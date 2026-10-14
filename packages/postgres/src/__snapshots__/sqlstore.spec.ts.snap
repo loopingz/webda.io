@@ -1,0 +1,351 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PostgresRepository SQL snapshot > records every statement 1`] = `
+[
+  {
+    "q": "CREATE TABLE IF NOT EXISTS animals (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT animals_pkey PRIMARY KEY (uuid))",
+    "values": undefined,
+  },
+  {
+    "q": "SELECT data FROM animals WHERE uuid=$1",
+    "values": [
+      "a",
+    ],
+  },
+  {
+    "q": "SELECT uuid FROM animals WHERE uuid=$1",
+    "values": [
+      "a",
+    ],
+  },
+  {
+    "q": "INSERT INTO animals(uuid,data) VALUES($1, $2)",
+    "values": [
+      "a",
+      "{"uuid":"a","n":1,"__type":"Test/Dog"}",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = CASE WHEN data ? '__type' THEN $1::jsonb || jsonb_build_object('__type', COALESCE($3::jsonb -> lower(data->>'__type'), data->'__type')) ELSE $1::jsonb END WHERE uuid=$2",
+    "values": [
+      "{"uuid":"a","n":2}",
+      "a",
+      "{"test/animal":"Test/Animal","test/dog":"Test/Dog"}",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data=$1 WHERE uuid=$2 AND data->>'n'=$3",
+    "values": [
+      "{"uuid":"a","n":2,"__type":"Test/Dog"}",
+      "a",
+      1,
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = CASE WHEN data ? '__type' THEN (data || $1::jsonb) || jsonb_build_object('__type', COALESCE($3::jsonb -> lower(data->>'__type'), data->'__type')) ELSE data || $1::jsonb END WHERE uuid=$2",
+    "values": [
+      "{"n":3,"tags":["x"]}",
+      "a",
+      "{"test/animal":"Test/Animal","test/dog":"Test/Dog"}",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = data || $1::jsonb WHERE uuid=$2 AND data->>'n'=$3",
+    "values": [
+      "{"n":3,"__type":"Test/Dog"}",
+      "a",
+      2,
+    ],
+  },
+  {
+    "q": "DELETE FROM animals WHERE uuid=$1",
+    "values": [
+      "a",
+    ],
+  },
+  {
+    "q": "DELETE FROM animals WHERE uuid=$1 AND data->>'n'=$2",
+    "values": [
+      "a",
+      3,
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = data - $1 WHERE uuid=$2",
+    "values": [
+      "n",
+      "a",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = data - $1 WHERE uuid=$2 AND data->>'n'=$3",
+    "values": [
+      "n",
+      "a",
+      3,
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = jsonb_set(jsonb_set(jsonb_set(data, '{count}', (COALESCE(data->>'count','0')::int + $2)::text::jsonb)::jsonb, '{other}', (COALESCE(data->>'other','0')::int + $3)::text::jsonb)::jsonb, '{_lastUpdate}', '"2026-01-01T00:00:00.000Z"'::jsonb) WHERE uuid=$1",
+    "values": [
+      "a",
+      2,
+      -1,
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = jsonb_set(jsonb_set(data, '{count}', (COALESCE(data->>'count','0')::int + $2)::text::jsonb)::jsonb, '{_lastUpdate}', '"2026-01-01T00:00:00.000Z"'::jsonb) WHERE uuid=$1",
+    "values": [
+      "a",
+      1,
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = jsonb_set(jsonb_set(data::jsonb, array['files'],COALESCE((data->'files')::jsonb, '[]'::jsonb) || jsonb_build_array($2::jsonb))::jsonb, '{_lastUpdate}', '"2026-01-01T00:00:00.000Z"'::jsonb) WHERE uuid=$1",
+    "values": [
+      "a",
+      "{"name":"l'été.png"}",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = jsonb_set(jsonb_set(data::jsonb, array['files'],jsonb_set(COALESCE((data->'files')::jsonb, '[]'::jsonb), '{1}', $2::jsonb)::jsonb), '{_lastUpdate}', '"2026-01-01T00:00:00.000Z"'::jsonb) WHERE uuid=$1 AND (data#>>'{files, 1}')::jsonb->>'hash'=$3",
+    "values": [
+      "a",
+      "{"name":"x"}",
+      "h2",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = jsonb_set(jsonb_set(data::jsonb, array['files'], COALESCE(((data->'files')::jsonb - 0), '[]'::jsonb))::jsonb, '{_lastUpdate}', '"2026-01-01T00:00:00.000Z"'::jsonb) WHERE uuid=$1",
+    "values": [
+      "a",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = jsonb_set(jsonb_set(data::jsonb, array['files'], COALESCE(((data->'files')::jsonb - 0), '[]'::jsonb))::jsonb, '{_lastUpdate}', '"2026-01-01T00:00:00.000Z"'::jsonb) WHERE uuid=$1 AND (data#>>'{files, 0}')::jsonb->>'hash'=$2",
+    "values": [
+      "a",
+      "h2",
+    ],
+  },
+  {
+    "q": "UPDATE animals SET data = data || jsonb_build_object('__type', $1::text) WHERE data->>'__type' IS NULL",
+    "values": [
+      "Test/Animal",
+    ],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (TRUE) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE TRUE LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) < 2) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) < 2 LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 1) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 1 LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) IS DISTINCT FROM 1) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) IS DISTINCT FROM 1 LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{n}' = 'abc') AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{n}' = 'abc' LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{b}') = 'boolean' THEN (data#>>'{b}')::boolean END) = TRUE) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{b}') = 'boolean' THEN (data#>>'{b}')::boolean END) = TRUE LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{b}') = 'boolean' THEN (data#>>'{b}')::boolean END) IS DISTINCT FROM TRUE) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{b}') = 'boolean' THEN (data#>>'{b}')::boolean END) IS DISTINCT FROM TRUE LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{s}' = 'x') AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{s}' = 'x' LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{s}' IS DISTINCT FROM 'x') AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{s}' IS DISTINCT FROM 'x' LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{s}' LIKE 'a%') AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{s}' LIKE 'a%' LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{s}' IS NULL) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{s}' IS NULL LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{n}' IS NOT NULL) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{n}' IS NOT NULL LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{tags}') = 'array' THEN data#>'{tags}' END) @> '["x"]'::jsonb) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{tags}') = 'array' THEN data#>'{tags}' END) @> '["x"]'::jsonb LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 1 OR (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 5) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 1 OR (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 5 LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) < 2 OR (CASE WHEN jsonb_typeof(data#>'{b}') = 'boolean' THEN (data#>>'{b}')::boolean END) = TRUE) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) < 2 OR (CASE WHEN jsonb_typeof(data#>'{b}') = 'boolean' THEN (data#>>'{b}')::boolean END) = TRUE LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{a,b}' = 'x') AND (lower(data->>'__type') IN ('test/dog')) ORDER BY data#>>'{a,b}' DESC, data#>>'{n}' ASC LIMIT 5 OFFSET 10",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{a,b}' = 'x' ORDER BY data#>>'{a,b}' DESC, data#>>'{n}' ASC LIMIT 5 OFFSET 10",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM animals WHERE (data#>>'{name}' = 'x'' OR 1=1 --') AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "SELECT * FROM items WHERE data#>>'{name}' = 'x'' OR 1=1 --' LIMIT 1000",
+    "values": [],
+  },
+  {
+    "q": "DELETE FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) < 2) AND (lower(data->>'__type') IN ('test/dog')) AND uuid IN (SELECT uuid FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) < 2) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 2)",
+    "values": [],
+  },
+  {
+    "q": "DELETE FROM items WHERE (TRUE)",
+    "values": [],
+  },
+  {
+    "q": "UPDATE animals SET data = (SELECT d8 FROM (SELECT animals.data AS d0) s0 CROSS JOIN LATERAL (SELECT jsonb_set(d0, $1::text[], $2::jsonb, true) AS d1) s1 CROSS JOIN LATERAL (SELECT jsonb_set(d1, $3::text[], CASE WHEN jsonb_typeof(d1 #> $3::text[]) IN ('object', 'array') THEN d1 #> $3::text[] ELSE '{}'::jsonb END, true) AS d2) s2 CROSS JOIN LATERAL (SELECT jsonb_set(d2, $4::text[], $5::jsonb, true) AS d3) s3 CROSS JOIN LATERAL (SELECT jsonb_set(d3, $6::text[], CASE WHEN jsonb_typeof(d3 #> $6::text[]) IN ('object', 'array') THEN d3 #> $6::text[] ELSE '{}'::jsonb END, true) AS d4) s4 CROSS JOIN LATERAL (SELECT jsonb_set(d4, $7::text[], $8::jsonb, true) AS d5) s5 CROSS JOIN LATERAL (SELECT jsonb_set(d5, $9::text[], CASE WHEN jsonb_typeof(d5 #> $9::text[]) IN ('object', 'array') THEN d5 #> $9::text[] ELSE '{}'::jsonb END, true) AS d6) s6 CROSS JOIN LATERAL (SELECT jsonb_set(d6, $10::text[], CASE WHEN jsonb_typeof(d6 #> $10::text[]) IN ('object', 'array') THEN d6 #> $10::text[] ELSE '{}'::jsonb END, true) AS d7) s7 CROSS JOIN LATERAL (SELECT jsonb_set(d7, $11::text[], $12::jsonb, true) AS d8) s8) WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 1) AND (lower(data->>'__type') IN ('test/dog')) AND uuid IN (SELECT uuid FROM animals WHERE ((CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) = 1) AND (lower(data->>'__type') IN ('test/dog')) LIMIT 1)",
+    "values": [
+      [
+        "name",
+      ],
+      ""even"",
+      [
+        "profile",
+      ],
+      [
+        "profile",
+        "level",
+      ],
+      "3",
+      [
+        "profile",
+        "deep",
+      ],
+      [
+        "profile",
+        "deep",
+        "flag",
+      ],
+      "true",
+      [
+        "list",
+      ],
+      [
+        "list",
+        "1",
+      ],
+      [
+        "list",
+        "1",
+        "v",
+      ],
+      "3",
+    ],
+  },
+  {
+    "q": "UPDATE items SET data = (SELECT d2 FROM (SELECT items.data AS d0) s0 CROSS JOIN LATERAL (SELECT jsonb_set(d0, $1::text[], CASE WHEN jsonb_typeof(d0 #> $1::text[]) IN ('object', 'array') THEN d0 #> $1::text[] ELSE '{}'::jsonb END, true) AS d1) s1 CROSS JOIN LATERAL (SELECT jsonb_set(d1, $2::text[], $3::jsonb, true) AS d2) s2) WHERE (TRUE)",
+    "values": [
+      [
+        "tags",
+      ],
+      [
+        "tags",
+        "0",
+      ],
+      ""n"",
+    ],
+  },
+  {
+    "q": "SELECT COUNT(*) AS "m0" FROM animals WHERE (lower(data->>'__type') IN ('test/dog')) AND (TRUE)",
+    "values": undefined,
+  },
+  {
+    "q": "SELECT NULLIF(data #> '{team,name}', 'null'::jsonb) AS "g0", COUNT(*) AS "m0", COUNT(DISTINCT NULLIF(data #> '{kind}', 'null'::jsonb)) AS "m1", COALESCE(SUM(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END), 0) AS "m2", AVG(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) AS "m3", MIN(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) AS "n4", MIN((CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{points}', 'null'::jsonb) #>> '{}' END) COLLATE "C") AS "s4", MAX(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) AS "n5", MAX((CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{points}', 'null'::jsonb) #>> '{}' END) COLLATE "C") AS "s5" FROM animals WHERE (lower(data->>'__type') IN ('test/dog')) AND (TRUE) GROUP BY 1 ORDER BY CASE WHEN MAX((CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{points}', 'null'::jsonb) #>> '{}' END) COLLATE "C") IS NOT NULL THEN 2 WHEN MAX(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) IS NOT NULL THEN 1 END DESC NULLS LAST, CASE WHEN MAX((CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{points}', 'null'::jsonb) #>> '{}' END) COLLATE "C") IS NULL THEN MAX(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) END DESC NULLS LAST, MAX((CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{points}', 'null'::jsonb) #>> '{}' END) COLLATE "C") DESC NULLS LAST, CASE WHEN MIN(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) IS NOT NULL THEN 1 WHEN MIN((CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{points}', 'null'::jsonb) #>> '{}' END) COLLATE "C") IS NOT NULL THEN 2 END ASC NULLS FIRST, MIN(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) ASC NULLS FIRST, CASE WHEN MIN(CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{points}', 'null'::jsonb))::numeric END) IS NULL THEN MIN((CASE WHEN jsonb_typeof(NULLIF(data #> '{points}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{points}', 'null'::jsonb) #>> '{}' END) COLLATE "C") END ASC NULLS FIRST LIMIT 3",
+    "values": undefined,
+  },
+  {
+    "q": "SELECT NULLIF(data #> '{kind}', 'null'::jsonb) AS "g0", COUNT(*) AS "m0" FROM items WHERE (CASE WHEN jsonb_typeof(data#>'{n}') = 'number' THEN (data#>>'{n}')::numeric END) > 1 GROUP BY 1 ORDER BY CASE WHEN NULLIF(data #> '{kind}', 'null'::jsonb) IS NULL THEN NULL WHEN jsonb_typeof(NULLIF(data #> '{kind}', 'null'::jsonb)) = 'number' THEN 1 WHEN jsonb_typeof(NULLIF(data #> '{kind}', 'null'::jsonb)) = 'string' THEN 2 ELSE 3 END ASC NULLS FIRST, CASE WHEN jsonb_typeof(NULLIF(data #> '{kind}', 'null'::jsonb)) = 'number' THEN (NULLIF(data #> '{kind}', 'null'::jsonb))::numeric END ASC NULLS FIRST, (CASE WHEN jsonb_typeof(NULLIF(data #> '{kind}', 'null'::jsonb)) = 'string' THEN NULLIF(data #> '{kind}', 'null'::jsonb) #>> '{}' END) COLLATE "C" ASC NULLS FIRST, NULLIF(data #> '{kind}', 'null'::jsonb) ASC NULLS FIRST LIMIT 10001",
+    "values": undefined,
+  },
+  {
+    "q": "DELETE FROM animals",
+    "values": [],
+  },
+]
+`;

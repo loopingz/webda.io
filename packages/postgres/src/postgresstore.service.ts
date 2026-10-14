@@ -1,18 +1,28 @@
 import {
+  Command,
   EventRepository,
   InstanceCache,
   SecretString,
+  UNREADABLE,
+  UNTYPED,
   useApplication,
   useCore,
   useModel,
   useModelMetadata
 } from "@webda/core";
-import type { ModelClass, Repository } from "@webda/core";
+import type {
+  MigratableStore,
+  ModelClass,
+  RawPage,
+  RawPatch,
+  RawTable,
+  Repository,
+  StoredTypeCounts
+} from "@webda/core";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { acquirePool, releasePool } from "./pgpool.js";
 import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js";
-import { useLog } from "@webda/workout";
 
 /*
  * Ideas:
@@ -64,7 +74,8 @@ export class PostgresParameters extends SQLStoreParameters {
   /**
    * Per-model table name overrides.
    * Maps a model identifier (e.g. "Webda/User") to a custom table name.
-   * When not specified, defaults are: primary model → `table`, others → identifier lowercased with "/" → "_".
+   * When not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier
+   * lowercased with "/" → "_".
    */
   tables?: { [modelIdentifier: string]: string };
 
@@ -100,7 +111,10 @@ export class PostgresParameters extends SQLStoreParameters {
  *
  * @WebdaModda
  */
-export class PostgresStore<K extends PostgresParameters = PostgresParameters> extends SQLStore<K> {
+export class PostgresStore<K extends PostgresParameters = PostgresParameters>
+  extends SQLStore<K>
+  implements MigratableStore
+{
   client: pg.Client | pg.Pool;
   /**
    * True when {@link client} is a shared pool acquired from the registry.
@@ -117,12 +131,6 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
    * @override
    */
   async init(): Promise<this> {
-    if (this.parameters.table && (this.parameters.models?.length ?? 0) > 1) {
-      useLog(
-        "WARN",
-        `PostgresStore "${this.getName()}": parameters.table is ignored when more than one model is configured. Use parameters.tables[id] instead.`
-      );
-    }
     if (this.parameters.usePool) {
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
@@ -157,8 +165,8 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
    *
    * Resolution order:
    * 1. `parameters.tables[meta.Identifier]` — explicit per-model override
-   * 2. Single-model back-compat: when only one model is configured, `parameters.table` maps to it
-   *    (and to its subclasses) — not to models routed to this store as fallback
+   * 2. `parameters.table` — the table of every model of the store, subclasses and models routed to this store as
+   *    fallback included: the rows stay where Webda 3 wrote them
    * 3. Default — model identifier lowercased with "/" replaced by "_"
    *
    * @param model - the model class to resolve the table for
@@ -173,12 +181,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
     if (this.parameters.tables?.[meta.Identifier]) {
       return this.parameters.tables[meta.Identifier];
     }
-    // Single-model back-compat: parameters.table maps to the one model and its hierarchy
-    if (
-      this.parameters.models?.length === 1 &&
-      this.parameters.table &&
-      (this.parameters.models[0] === meta.Identifier || this.handleModel(model) >= 0)
-    ) {
+    if (this.parameters.table) {
       return this.parameters.table;
     }
     // Default derivation
@@ -186,8 +189,8 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   }
 
   /**
-   * The model a table was declared for, owner of the rows written before `__type` stamping:
-   * the configured model of a single-model `table`, otherwise the model itself (its own or explicit table)
+   * The model a table was declared for, owner of the rows written before `__type` stamping: the first model of
+   * `models` stored in the same table, otherwise the model itself (its own table)
    * @param model - the model class
    * @returns the model identifier
    */
@@ -196,15 +199,27 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
     if (!meta) {
       return undefined;
     }
-    if (
-      !this.parameters.tables?.[meta.Identifier] &&
-      this.parameters.models?.length === 1 &&
-      this.parameters.table &&
-      (this.parameters.models[0] === meta.Identifier || this.handleModel(model) >= 0)
-    ) {
-      return this.parameters.models[0];
+    return this.tableRootOf(this.resolveTable(model))?.Metadata?.Identifier ?? meta.Identifier;
+  }
+
+  /**
+   * The first model of `models` stored in a table
+   * @param table - the table name
+   * @returns the model, undefined when no configured model is stored in it
+   */
+  protected tableRootOf(table: string): any {
+    for (const identifier of this.parameters.models ?? []) {
+      let model: any;
+      try {
+        model = useModel(identifier);
+      } catch {
+        continue;
+      }
+      if (model && this.resolveTable(model) === table) {
+        return model;
+      }
     }
-    return meta.Identifier;
+    return undefined;
   }
 
   /**
@@ -317,6 +332,122 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       repos.push((repo.repository ?? repo) as PostgresRepository<any>);
     }
     return repos;
+  }
+
+  /**
+   * Every table of the store, each with the model owning its untyped rows
+   * @override
+   */
+  getRawTables(): RawTable[] {
+    const names = new Set<string>();
+    if (this.parameters.table) {
+      names.add(this.parameters.table);
+    }
+    for (const repo of this.getRepositories()) {
+      names.add(repo.getTable());
+    }
+    return [...names].map(name => ({
+      name,
+      root:
+        this.tableRootOf(name) ??
+        this.getRepositories().find(repo => repo.getTable() === name)?.["model"] ??
+        this.getTableRoot()
+    }));
+  }
+
+  /**
+   * Refuse a table this store does not manage: the name is written in the statements
+   * @param table - the table name
+   */
+  protected checkRawTable(table: string): void {
+    if (!this.getRawTables().some(t => t.name === table)) {
+      throw new Error(`Unknown table ${table} in store ${this.getName()}`);
+    }
+  }
+
+  /**
+   * Rows ordered by key, the token is the last key of the page
+   * @override
+   */
+  async rawPages(table: string, batchSize: number, token?: string): Promise<RawPage> {
+    this.checkRawTable(table);
+    // The key is compared in the column own type (Webda 3 created some `uuid` columns as uuid), with its index
+    const res =
+      token === undefined
+        ? await this.client.query(`SELECT uuid, data FROM ${table} ORDER BY uuid LIMIT $1`, [batchSize + 1])
+        : await this.client.query(`SELECT uuid, data FROM ${table} WHERE uuid > $1 ORDER BY uuid LIMIT $2`, [
+            token,
+            batchSize + 1
+          ]);
+    const rows = res.rows.slice(0, batchSize).map(row => {
+      const data = row.data;
+      return data && typeof data === "object" && !Array.isArray(data)
+        ? { table, key: row.uuid, data }
+        : { table, key: row.uuid, data: {}, unreadable: true };
+    });
+    return {
+      rows,
+      continuationToken: res.rows.length > batchSize ? rows[rows.length - 1].key : undefined
+    };
+  }
+
+  /**
+   * Merge the fields into the row: one statement, no read
+   * @override
+   */
+  async rawPatch(table: string, key: string, patch: RawPatch): Promise<void> {
+    this.checkRawTable(table);
+    const res = await this.client.query(
+      `UPDATE ${table} SET data = data || $1::jsonb WHERE uuid = $2 AND jsonb_typeof(data) = 'object'`,
+      [JSON.stringify(patch), key]
+    );
+    if (res.rowCount === 0) {
+      throw new Error(`Raw row not found or not a JSON object: ${key}`);
+    }
+  }
+
+  /**
+   * Exact counts with one `GROUP BY` per table: never truncated
+   * @override
+   */
+  async countStoredTypes(_maxRows: number): Promise<StoredTypeCounts> {
+    const result: StoredTypeCounts = { tables: {}, truncated: false };
+    for (const { name } of this.getRawTables()) {
+      const counts: Record<string, number> = {};
+      const res = await this.client.query(
+        `SELECT CASE WHEN jsonb_typeof(data) IS DISTINCT FROM 'object' THEN $1
+          WHEN jsonb_typeof(data->'__type') = 'string' AND data->>'__type' <> '' THEN data->>'__type'
+          ELSE $2 END AS type, count(*)::int AS n FROM ${name} GROUP BY 1`,
+        [UNREADABLE, UNTYPED]
+      );
+      for (const row of res.rows) {
+        counts[row.type] = row.n;
+      }
+      result.tables[name] = counts;
+    }
+    return result;
+  }
+
+  /**
+   * Rewrite the Webda 3 types of the store to their Webda 4 identifiers
+   * @param dryRun - only count the rows to migrate, write nothing
+   * @param batch - rows per page
+   * @param allowUnknown - exit with 0 even when rows keep an unknown or ambiguous type
+   * @returns the exit code
+   */
+  @Command("migrate", {
+    description: "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+    phase: "initialized"
+  })
+  async migrate(
+    /** @description Only count the rows to migrate, write nothing */
+    dryRun: boolean = false,
+    /** @description Rows per page */
+    batch: number = 500,
+    /** @description Exit with 0 even when rows keep an unknown or ambiguous type */
+    allowUnknown: boolean = false
+  ): Promise<number> {
+    return this.migrateCommand(dryRun, batch, allowUnknown);
   }
 
   /**

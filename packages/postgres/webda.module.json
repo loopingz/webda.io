@@ -2182,7 +2182,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, defaults are: primary model → `table`, others → identifier lowercased with \"/\" → \"_\".",
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier\nlowercased with \"/\" → \"_\".",
             "type": "object"
           },
           "typeCheck#2": {
@@ -2272,7 +2272,7 @@
           },
           "tables": {
             "$ref": "#/definitions/tables%232",
-            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, defaults are: primary model → `table`, others → identifier lowercased with \"/\" → \"_\"."
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier\nlowercased with \"/\" → \"_\"."
           },
           "type": {
             "description": "Type of the service",
@@ -2320,7 +2320,34 @@
         "type": "object",
         "title": "PostgresStore"
       },
-      "Configuration": "lib/postgresstore.service:PostgresParameters"
+      "Configuration": "lib/postgresstore.service:PostgresParameters",
+      "capabilities": [
+        "store"
+      ],
+      "commands": {
+        "migrate": {
+          "description": "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+          "method": "migrate",
+          "args": {
+            "dryRun": {
+              "type": "boolean",
+              "default": false,
+              "description": "Only count the rows to migrate, write nothing"
+            },
+            "batch": {
+              "type": "number",
+              "default": 500,
+              "description": "Rows per page"
+            },
+            "allowUnknown": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exit with 0 even when rows keep an unknown or ambiguous type"
+            }
+          },
+          "phase": "initialized"
+        }
+      }
     }
   },
   "models": {},

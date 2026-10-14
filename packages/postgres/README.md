@@ -66,6 +66,8 @@ Or rely on libpq environment variables (`PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSE
 |---|---|---|---|---|
 | `postgresqlServer` | `ClientConfig` \| `PoolConfig` | libpq env vars | No | PostgreSQL connection config (host, port, database, user, password) |
 | `usePool` | boolean | `false` | No | Use a connection pool (`pg.Pool`) instead of a single client |
+| `table` | string | — | No | Table of every model of the store (subclasses and fallback models included), as in Webda 3 |
+| `tables` | object | `{}` | No | Per-model table overrides: `{ "MyApp/Model": "my_table" }` |
 | `autoCreateTable` | boolean | `true` | No | Automatically create the JSONB table if it does not exist |
 | `viewPrefix` | string | `""` | No | Prefix for auto-generated SQL views |
 | `views` | string[] | `["regex:.*"]` | No | Regexp list of model names to generate views for |

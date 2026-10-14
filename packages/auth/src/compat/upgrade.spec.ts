@@ -331,6 +331,13 @@ class V3UpgradeTest extends EmailTest {
     for (const type of [undefined, "Webda/Ident", "T/Mid", "T/Leaf"]) {
       assert.ok(isLegacyIdent(row(type), MidIdent as any), `${type}`);
     }
+    // A subclass another package defines is missing from Metadata.Subclasses: its rows load as it
+    class AppIdent extends MidIdent {}
+    Object.defineProperty(AppIdent, "Metadata", { value: { Identifier: "App/Ident", Subclasses: [] } });
+    const appRow: any = new AppIdent({ uuid: "t@x.com_email" } as any);
+    Object.defineProperty(appRow, "__type", { value: "App/Ident", enumerable: false });
+    assert.ok(isLegacyIdent(appRow, MidIdent as any));
+    assert.ok(!isLegacyIdent(row("App/Ident"), MidIdent as any), "only a row loaded as that class");
     assert.ok(!isLegacyIdent(row("Webda/User"), MidIdent as any));
     assert.ok(!isLegacyIdent(new Ident({ uuid: "t@x.com_email" } as any), MidIdent as any));
     assert.ok(!isLegacyIdent(new LeafIdent({ ...Ident.key("t@x.com", "email") } as any), MidIdent as any));

@@ -21,7 +21,11 @@ class CollectServiceCommandsTest {
           "MyApp/Server": {
             Import: "lib/server",
             commands: {
-              serve: { description: "Start server", method: "serve", args: { port: { type: "number", default: 18080 } } }
+              serve: {
+                description: "Start server",
+                method: "serve",
+                args: { port: { type: "number", default: 18080 } }
+              }
             }
           }
         },
@@ -49,13 +53,21 @@ class CollectServiceCommandsTest {
           "MyApp/Postgres": {
             Import: "lib/pg",
             commands: {
-              migrate: { description: "Run PG migrations", method: "migrate", args: { dryRun: { type: "boolean", default: false } } }
+              migrate: {
+                description: "Run PG migrations",
+                method: "migrate",
+                args: { dryRun: { type: "boolean", default: false } }
+              }
             }
           },
           "MyApp/Mongo": {
             Import: "lib/mongo",
             commands: {
-              migrate: { description: "Run Mongo migrations", method: "migrate", args: { verbose: { type: "boolean", default: false } } }
+              migrate: {
+                description: "Run Mongo migrations",
+                method: "migrate",
+                args: { verbose: { type: "boolean", default: false } }
+              }
             }
           }
         },
@@ -319,8 +331,16 @@ class ExecuteServiceCommandTest {
   async executesAllServices() {
     const calls: string[] = [];
     const services = {
-      "MyApp/A": { doIt: async (...args: any[]) => { calls.push("A:" + args.join(",")); } },
-      "MyApp/B": { doIt: async (...args: any[]) => { calls.push("B:" + args.join(",")); } }
+      "MyApp/A": {
+        doIt: async (...args: any[]) => {
+          calls.push("A:" + args.join(","));
+        }
+      },
+      "MyApp/B": {
+        doIt: async (...args: any[]) => {
+          calls.push("B:" + args.join(","));
+        }
+      }
     } as any;
     const cmdInfo = {
       description: "Test",
@@ -339,8 +359,16 @@ class ExecuteServiceCommandTest {
   async filtersWithServiceFilter() {
     const calls: string[] = [];
     const services = {
-      "MyApp/A": { doIt: async () => { calls.push("A"); } },
-      "MyApp/B": { doIt: async () => { calls.push("B"); } }
+      "MyApp/A": {
+        doIt: async () => {
+          calls.push("A");
+        }
+      },
+      "MyApp/B": {
+        doIt: async () => {
+          calls.push("B");
+        }
+      }
     } as any;
     const cmdInfo = {
       description: "Test",
@@ -359,7 +387,11 @@ class ExecuteServiceCommandTest {
   async suffixMatchingFilter() {
     const calls: string[] = [];
     const services = {
-      "MyApp/PostgresMigrator": { migrate: async () => { calls.push("pg"); } }
+      "MyApp/PostgresMigrator": {
+        migrate: async () => {
+          calls.push("pg");
+        }
+      }
     } as any;
     const cmdInfo = {
       description: "Migrate",
@@ -387,7 +419,11 @@ class ExecuteServiceCommandTest {
   async missingServiceSkipped() {
     const calls: string[] = [];
     const services = {
-      "MyApp/B": { doIt: async () => { calls.push("B"); } }
+      "MyApp/B": {
+        doIt: async () => {
+          calls.push("B");
+        }
+      }
     } as any;
     const cmdInfo = {
       description: "Test",
@@ -442,7 +478,13 @@ class ExecuteServiceCommandTest {
   async cancelledLongRunningCommandReturns0() {
     // A long-running command (serve, worker) settles when cancelled: that is a clean stop
     const services = {
-      "MyApp/A": { doIt: () => new CancelablePromise(() => {}, async () => {}) }
+      "MyApp/A": {
+        doIt: () =>
+          new CancelablePromise(
+            () => {},
+            async () => {}
+          )
+      }
     } as any;
     const cmdInfo = {
       description: "Test",
@@ -463,7 +505,10 @@ class ExecuteServiceCommandTest {
       constructor(public name: string) {}
       serve() {
         started.push(this.name);
-        return new CancelablePromise(() => {}, async () => {});
+        return new CancelablePromise(
+          () => {},
+          async () => {}
+        );
       }
     }
     const services = { a: new Server("a"), b: new Server("b") } as any;
@@ -482,7 +527,9 @@ class ExecuteServiceCommandTest {
   @test
   async failingLongRunningCommandRejects() {
     const services = {
-      "MyApp/A": { doIt: () => new CancelablePromise((_resolve, reject) => setTimeout(() => reject(new Error("BOOM")), 5)) }
+      "MyApp/A": {
+        doIt: () => new CancelablePromise((_resolve, reject) => setTimeout(() => reject(new Error("BOOM")), 5))
+      }
     } as any;
     const cmdInfo = {
       description: "Test",
@@ -529,7 +576,9 @@ class ExecuteServiceCommandTest {
   async fallsBackToClassNameLookup() {
     const calls: string[] = [];
     class MyService {
-      async doIt() { calls.push("found"); }
+      async doIt() {
+        calls.push("found");
+      }
     }
     const services = {
       someOtherName: Object.assign(new MyService(), {})
@@ -549,7 +598,9 @@ class ExecuteServiceCommandTest {
     const receivedArgs: any[] = [];
     const services = {
       "MyApp/S": {
-        cmd: async (...args: any[]) => { receivedArgs.push(...args); }
+        cmd: async (...args: any[]) => {
+          receivedArgs.push(...args);
+        }
       }
     } as any;
     const cmdInfo = {
@@ -620,9 +671,7 @@ class EnsureCommandServicesTest {
   injectsMissingServices() {
     const config = { services: {} as any };
     const app = { getConfiguration: () => config } as any;
-    ensureCommandServices(app, [
-      { name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }
-    ]);
+    ensureCommandServices(app, [{ name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }]);
     assert.strictEqual(config.services["Webda/HttpServer"].type, "Webda/HttpServer");
   }
 
@@ -630,9 +679,7 @@ class EnsureCommandServicesTest {
   skipsAlreadyConfigured() {
     const config = { services: { MyServer: { type: "Webda/HttpServer" } } as any };
     const app = { getConfiguration: () => config } as any;
-    ensureCommandServices(app, [
-      { name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }
-    ]);
+    ensureCommandServices(app, [{ name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }]);
     assert.strictEqual(Object.keys(config.services).length, 1);
   }
 
@@ -640,9 +687,7 @@ class EnsureCommandServicesTest {
   skipsWhenShortNameMatches() {
     const config = { services: { MyServer: { type: "HttpServer" } } as any };
     const app = { getConfiguration: () => config } as any;
-    ensureCommandServices(app, [
-      { name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }
-    ]);
+    ensureCommandServices(app, [{ name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }]);
     assert.strictEqual(Object.keys(config.services).length, 1);
   }
 
@@ -650,10 +695,28 @@ class EnsureCommandServicesTest {
   initializesServicesIfUndefined() {
     const config = {} as any;
     const app = { getConfiguration: () => config } as any;
-    ensureCommandServices(app, [
-      { name: "Webda/Router", method: "openapi", type: "Webda/Router" }
-    ]);
+    ensureCommandServices(app, [{ name: "Webda/Router", method: "openapi", type: "Webda/Router" }]);
     assert.strictEqual(config.services["Webda/Router"].type, "Webda/Router");
+  }
+
+  @test
+  skipsWhenASubclassIsConfigured() {
+    // An application service extending the declaring type inherits the command: no second instance is added
+    class Authentication {}
+    class AuthorizerService extends Authentication {}
+    const config = { services: { Authentication: { type: "MyApp/AuthorizerService" } } as any };
+    const moddas: any = { "Webda/Authentication": Authentication, "MyApp/AuthorizerService": AuthorizerService };
+    const app = {
+      getConfiguration: () => config,
+      getModda: (name: string) => {
+        if (!moddas[name]) throw new Error(`Unknown ${name}`);
+        return moddas[name];
+      }
+    } as any;
+    ensureCommandServices(app, [{ name: "Webda/Authentication", method: "migrate", type: "Webda/Authentication" }]);
+    assert.deepStrictEqual(Object.keys(config.services), ["Authentication"]);
+    ensureCommandServices(app, [{ name: "Webda/Unknown", method: "migrate", type: "Webda/Unknown" }]);
+    assert.deepStrictEqual(Object.keys(config.services), ["Authentication", "Webda/Unknown"]);
   }
 
   @test
@@ -677,6 +740,30 @@ class EnsureCommandServicesTest {
 
 @suite
 class ExecuteServiceCommandInstanceFilterTest {
+  @test
+  async runsOnSubclassInstances() {
+    const calls: string[] = [];
+    class Authentication {
+      constructor(private name: string) {}
+      getName() {
+        return this.name;
+      }
+      async migrate() {
+        calls.push(this.name);
+      }
+    }
+    class AuthorizerService extends Authentication {}
+    const cmdInfo: any = {
+      description: "",
+      services: [{ name: "Webda/Authentication", method: "migrate", type: "Webda/Authentication" }],
+      args: {},
+      requires: []
+    };
+    const services: any = { Authentication: new AuthorizerService("Authentication") };
+    assert.strictEqual(await executeServiceCommand("auth migrate", cmdInfo, {}, services), 0);
+    assert.deepStrictEqual(calls, ["Authentication"]);
+  }
+
   @test
   async filterByInstanceName() {
     const calls: string[] = [];

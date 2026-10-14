@@ -282,8 +282,9 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   }
 
   /**
-   * SQL condition restricting rows to this model and its subclasses, as `__type` stamps them; rows without a stamp
-   * (written before stamping) belong to every model of the table
+   * SQL condition restricting rows to this model and its subclasses, whatever form their `__type` has (Webda 3 short,
+   * lower-case and aliased types included); rows without a stamp (written before stamping) and rows typed as a
+   * strict ancestor of the table model belong to the table model and its ancestors
    * @returns the condition, undefined for a model without metadata
    */
   protected getClassCondition(): string | undefined {
@@ -291,9 +292,90 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     if (!ids) {
       return undefined;
     }
-    const typed = `data->>'__type' IN (${ids.map(sqlString).join(", ")})`;
+    // Stored types resolve case-insensitively (`WEBDA/USER` is `Webda/User`)
+    const accepted = [...new Set([...ids, ...this.acceptedTypes()].map(name => name.toLowerCase()))];
+    const typed = `lower(data->>'__type') IN (${accepted.map(sqlString).join(", ")})`;
     // Unstamped rows belong to the table model: its repository and its ancestors' see them, a subclass never does
-    return this.tableModel && ids.includes(this.tableModel) ? `(${typed} OR data->>'__type' IS NULL)` : `(${typed})`;
+    if (!this.tableModel || !ids.includes(this.tableModel)) {
+      return `(${typed})`;
+    }
+    const ancestors = Object.keys(this.rootAncestorTypes());
+    return `(${typed} OR data->>'__type' IS NULL OR data->>'__type' = ''${
+      ancestors.length ? ` OR lower(data->>'__type') IN (${ancestors.map(sqlString).join(", ")})` : ""
+    })`;
+  }
+
+  /**
+   * The class of the table model, when it is this model or one of its subclasses
+   * @returns the class, undefined when the table model is unknown or outside the model family
+   */
+  protected tableModelClass(): any {
+    if (!this.tableModel || !(this.model as any)?.Metadata?.Identifier) {
+      return undefined;
+    }
+    return this.typeResolver()
+      .family(this.model)
+      .find(clazz => (clazz as any).Metadata?.Identifier === this.tableModel);
+  }
+
+  /**
+   * Stored types naming a strict ancestor of the table model (e.g. `CoreModel` in a table of an application model):
+   * such rows belong to the table model, like unstamped rows
+   * @returns the current identifier of the table model by lower-cased stored type, empty when this model does not own
+   *   the table
+   */
+  protected rootAncestorTypes(): Record<string, string> {
+    const root = this.tableModelClass();
+    const types: Record<string, string> = {};
+    if (!root) {
+      return types;
+    }
+    const resolver = this.typeResolver();
+    for (let clazz = Object.getPrototypeOf(root); clazz && clazz !== Function.prototype;) {
+      if (Object.prototype.hasOwnProperty.call(clazz, "Metadata") && clazz.Metadata?.Identifier) {
+        const names = resolver.knows(clazz) ? resolver.acceptedTypes(clazz) : [clazz.Metadata.Identifier];
+        for (const name of names) {
+          if (!resolver.knows(clazz) || resolver.resolveStoredType(name) === clazz) {
+            types[name.toLowerCase()] = this.tableModel!;
+          }
+        }
+      }
+      clazz = Object.getPrototypeOf(clazz);
+    }
+    return types;
+  }
+
+  /**
+   * Stored types to rewrite when a row of this model family is written: each legacy form (short, lower-case, alias)
+   * to its current identifier, and the ancestor types of the table model to the table model
+   * @returns the current identifier by lower-cased stored type
+   */
+  protected legacyTypeMap(): Record<string, string> {
+    if (!(this.model as any)?.Metadata?.Identifier) {
+      return {};
+    }
+    const resolver = this.typeResolver();
+    const map: Record<string, string> = { ...this.rootAncestorTypes() };
+    for (const name of this.acceptedTypes()) {
+      const resolved = resolver.resolveStoredType(name);
+      const current = resolved
+        ? (resolver.getIdentifier(resolved) ?? (resolved as any).Metadata?.Identifier)
+        : undefined;
+      if (current) {
+        map[name.toLowerCase()] = current;
+      }
+    }
+    return map;
+  }
+
+  /**
+   * SQL expression of the `__type` a written row keeps: its stored type, rewritten to the current identifier when it
+   * is a legacy form of this model family
+   * @param mapParam - position of the bound {@link legacyTypeMap} parameter
+   * @returns the jsonb expression
+   */
+  protected keptTypeExpression(mapParam: number): string {
+    return `COALESCE($${mapParam}::jsonb -> lower(data->>'__type'), data->'__type')`;
   }
 
   /**
@@ -364,7 +446,10 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    */
   protected fromJSON(stored: any): InstanceType<T> {
     const { __type, ...data } = stored ?? {};
-    const instance = new this.model({}) as InstanceType<T>;
+    const typed = typeof __type === "string" && __type !== "";
+    // A row loads as the class its type resolves to (a Webda 3 form included): a subclass row as the subclass
+    const clazz: any = (typed && this.findModelClass(__type)) || this.model;
+    const instance = new clazz({}) as InstanceType<T>;
     if (typeof (instance as any).load === "function") {
       (instance as any).load(data);
     } else {
@@ -372,7 +457,8 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     }
     if (__type !== undefined) {
       Object.defineProperty(instance, "__type", {
-        value: __type,
+        // The current identifier of a legacy type, the stored value when it is unknown or ambiguous
+        value: typed ? this.currentTypeOf(instance, __type) : __type,
         enumerable: false,
         configurable: true,
         writable: true
@@ -416,10 +502,13 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   async update(data: any, conditionField?: any, condition?: any): Promise<void> {
     const key = this.getPrimaryKey(data).toString();
     const args: any[] = [this.toStoredJSON(data), key];
-    // Plain data keeps the stored type: a write through a parent repository never re-types a subclass row
-    let q = this.declaredType(data)
-      ? `UPDATE ${this.table} SET data=$1 WHERE uuid=$2`
-      : `UPDATE ${this.table} SET data = CASE WHEN data ? '__type' THEN $1::jsonb || jsonb_build_object('__type', data->'__type') ELSE $1::jsonb END WHERE uuid=$2`;
+    // Plain data keeps the stored type: a write through a parent repository never re-types a subclass row; a legacy
+    // form of it is written as the current identifier
+    let q = `UPDATE ${this.table} SET data=$1 WHERE uuid=$2`;
+    if (!this.declaredType(data)) {
+      args.push(JSON.stringify(this.legacyTypeMap()));
+      q = `UPDATE ${this.table} SET data = CASE WHEN data ? '__type' THEN $1::jsonb || jsonb_build_object('__type', ${this.keptTypeExpression(3)}) ELSE $1::jsonb END WHERE uuid=$2`;
+    }
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
     }
@@ -434,6 +523,11 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     const key = this.getPrimaryKey(primaryKey).toString();
     const args: any[] = [JSON.stringify(data), key];
     let q = `UPDATE ${this.table} SET data = data || $1::jsonb WHERE uuid=$2`;
+    if (!Object.prototype.hasOwnProperty.call(data ?? {}, "__type")) {
+      // A legacy form of the stored type is written as the current identifier
+      args.push(JSON.stringify(this.legacyTypeMap()));
+      q = `UPDATE ${this.table} SET data = CASE WHEN data ? '__type' THEN (data || $1::jsonb) || jsonb_build_object('__type', ${this.keptTypeExpression(3)}) ELSE data || $1::jsonb END WHERE uuid=$2`;
+    }
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
     }

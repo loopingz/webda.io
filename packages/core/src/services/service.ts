@@ -153,7 +153,6 @@ export function Inject(parameterOrName?: string, defaultValue?: string | boolean
  */
 abstract class Service<
   T extends ServiceParameters = ServiceParameters,
-   
   E extends AsyncEventUnknown = {}
 > extends AbstractService<T, E> {
   /**
@@ -313,7 +312,10 @@ abstract class Service<
   ): T {
     configuration.labelNames ??= [];
     configuration.labelNames = [...configuration.labelNames, "service"];
-    configuration.name = `${this.getName().toLowerCase()}_${configuration.name}`;
+    // Prometheus names only allow [a-zA-Z0-9_:]: a service named after its type (`Webda/Authentication`) is valid too
+    configuration.name = `${this.getName()
+      .toLowerCase()
+      .replace(/[^a-z0-9_:]/g, "_")}_${configuration.name}`;
     return useMetric(type, configuration);
   }
 

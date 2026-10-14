@@ -273,7 +273,14 @@ Fork(
                 getModules: () => mod,
                 completeNamespace: (name: string) => (name.includes("/") ? name : `${namespace}/${name}`)
               };
-              generateConfigurationSchemas(app, undefined, undefined, undefined, configPath);
+              generateConfigurationSchemas(
+                app,
+                project.getAppPath(".webda/config.schema.json"),
+                project.getAppPath(".webda/deployment.schema.json"),
+                undefined,
+                configPath,
+                project.getAppPath("deployments")
+              );
             } catch (err) {
               useWorkerOutput().log("WARN", "Cannot generate configuration schemas", err.message);
             }

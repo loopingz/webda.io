@@ -1,8 +1,15 @@
 {
+  "$schema": "../.webda/deployment.schema.json",
   "parameters": {
-    "website": { "path": "./wui", "url": "prod.webda-demo.com" },
+    "website": {
+      "path": "./wui",
+      "url": "prod.webda-demo.com"
+    },
     "requestLimit": "1mb",
-    "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "\\w+\\.facebook\\.com"],
+    "csrfOrigins": [
+      "^accounts\\.google\\.\\w{2,}$",
+      "\\w+\\.facebook\\.com"
+    ],
     "region": "eu-west-1",
     "accessKeyId": "PROD_KEY",
     "secretAccessKey": "PROD_SECRET",

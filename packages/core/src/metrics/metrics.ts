@@ -44,10 +44,10 @@ export function useMetric<T = Gauge | Counter | Histogram>(
   const metrics = useParameters().metrics;
   if (metrics === false) {
     // Return a mock
-    return <T>{
+    const mock: any = {
       inc: () => {},
       reset: () => {},
-      labels: () => undefined,
+      labels: () => mock,
       remove: () => {},
       observe: () => {},
       startTimer: () => {
@@ -58,6 +58,7 @@ export function useMetric<T = Gauge | Counter | Histogram>(
       setToCurrentTime: () => {},
       set: () => {}
     };
+    return mock;
   }
   const name = `${metrics.prefix}webda_${configuration.name}`;
   const labelNames = [...(configuration.labelNames || []), ...Object.keys(metrics.labels)];

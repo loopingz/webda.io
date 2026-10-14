@@ -3,6 +3,7 @@ import { StorableClass } from "../storable";
 import { Repository, WEBDA_TEST } from "./repository";
 import { RepositoryTest } from "./repository.spec";
 import { MemoryRepository } from "./memory";
+import type { QueryExecutionInfo } from "./monitoring";
 import { afterAll, suite, test } from "@webda/test";
 import * as assert from "assert";
 import { SubClassModel, TestModel } from "../model.spec";
@@ -147,5 +148,163 @@ class EventClearTest {
     repo.removeListener("Created" as any, listener);
     await repo.create({ uuid: "rm2", name: "n", age: 1, collection: [] } as any);
     assert.strictEqual(count, 1);
+  }
+}
+
+@suite
+class EventRepositoryMonitoringTest {
+  @test
+  async onQueryCalledOncePerQueryWithDetails() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+    await eventRepo.create({ uuid: "u1", name: "Alice", age: 30, collection: [] } as any);
+    await eventRepo.create({ uuid: "u2", name: "Bob", age: 25, collection: [] } as any);
+
+    const reports: QueryExecutionInfo[] = [];
+    eventRepo.configureMonitoring({
+      onQuery: info => reports.push(info)
+    });
+
+    const res = await eventRepo.query("age > :min LIMIT 1", { min: 20 });
+    assert.strictEqual(reports.length, 1);
+    assert.strictEqual(reports[0].operation, "query");
+    assert.strictEqual(reports[0].model, "SubClassModel");
+    assert.strictEqual(reports[0].query, "age > 20 LIMIT 1");
+    assert.strictEqual(reports[0].count, 1);
+    assert.strictEqual(reports[0].paginated, true);
+    assert.strictEqual(typeof reports[0].duration, "number");
+    assert.strictEqual(reports[0].error, undefined);
+  }
+
+  @test
+  async onQueryReportsErrorAndRethrows() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+    (memRepo as any).query = async () => {
+      throw new Error("backend timeout");
+    };
+
+    const reports: QueryExecutionInfo[] = [];
+    eventRepo.configureMonitoring({
+      onQuery: info => reports.push(info)
+    });
+
+    await assert.rejects(
+      async () => eventRepo.query("name = 'test'"),
+      /backend timeout/
+    );
+    assert.strictEqual(reports.length, 1);
+    assert.strictEqual(reports[0].operation, "query");
+    assert.strictEqual(reports[0].error?.message, "backend timeout");
+    assert.strictEqual(typeof reports[0].duration, "number");
+  }
+
+  @test
+  async onQueryThrowingDoesNotBreakQuery() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+    await eventRepo.create({ uuid: "u1", name: "Alice", age: 30, collection: [] } as any);
+
+    eventRepo.configureMonitoring({
+      onQuery: () => {
+        throw new Error("monitor exploded");
+      }
+    });
+
+    const res = await eventRepo.query("name = 'Alice'");
+    assert.strictEqual(res.results.length, 1);
+  }
+
+  @test
+  async iterateReportsOnceExcludingConsumerTime() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+    await eventRepo.create({ uuid: "u1", name: "Alice", age: 30, collection: [] } as any);
+    await eventRepo.create({ uuid: "u2", name: "Bob", age: 25, collection: [] } as any);
+
+    const reports: QueryExecutionInfo[] = [];
+    eventRepo.configureMonitoring({
+      onQuery: info => reports.push(info)
+    });
+
+    let items = 0;
+    for await (const _ of eventRepo.iterate("age > 10")) {
+      items++;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.strictEqual(items, 2);
+    assert.strictEqual(reports.length, 1);
+    assert.strictEqual(reports[0].operation, "iterate");
+    assert.strictEqual(reports[0].count, 2);
+    assert.strictEqual(reports[0].error, undefined);
+    // 2 items * 50ms = 100ms consumer time. Reported duration should be much less than 40ms.
+    assert.ok(reports[0].duration < 40, `Reported duration ${reports[0].duration}ms should be < 40ms`);
+  }
+
+  @test
+  async iterateReportsErrorWhenInnerThrows() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+    (memRepo as any).iterate = async function* failIterate() {
+      throw new Error("stream failed");
+    };
+
+    const reports: QueryExecutionInfo[] = [];
+    eventRepo.configureMonitoring({
+      onQuery: info => reports.push(info)
+    });
+
+    await assert.rejects(async () => {
+      for await (const _ of eventRepo.iterate("")) {}
+    }, /stream failed/);
+
+    assert.strictEqual(reports.length, 1);
+    assert.strictEqual(reports[0].operation, "iterate");
+    assert.strictEqual(reports[0].error?.message, "stream failed");
+  }
+
+  @test
+  async innerRepositoryIsNotConfigured() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+
+    eventRepo.configureMonitoring({
+      onQuery: () => {}
+    });
+
+    assert.strictEqual((memRepo as any).monitorOptions.onQuery, undefined);
+  }
+
+  @test
+  async monitorsAggregateAndBulkOperations() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+    await eventRepo.create({ uuid: "u1", name: "Alice", age: 30, collection: [] } as any);
+
+    const reports: QueryExecutionInfo[] = [];
+    eventRepo.configureMonitoring({
+      onQuery: info => reports.push(info)
+    });
+
+    // aggregate
+    await eventRepo.aggregate({
+      groupBy: ["name"],
+      metrics: { total: { count: "*" } }
+    });
+    assert.strictEqual(reports.length, 1);
+    assert.strictEqual(reports[0].operation, "aggregate");
+    assert.strictEqual(reports[0].count, 1);
+
+    // updateMany
+    await eventRepo.updateMany("UPDATE SET age = 31 WHERE name = :name", { name: "Alice" });
+    assert.strictEqual(reports.length, 2);
+    assert.strictEqual(reports[1].operation, "updateMany");
+    assert.strictEqual(reports[1].count, 1);
+
+    // deleteMany
+    await eventRepo.deleteMany("DELETE WHERE age = :age", { age: 31 });
+    assert.strictEqual(reports.length, 3);
+    assert.strictEqual(reports[2].operation, "deleteMany");
+    assert.strictEqual(reports[2].count, 1);
   }
 }

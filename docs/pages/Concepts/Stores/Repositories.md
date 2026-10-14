@@ -138,6 +138,54 @@ Errors are `AggregationError`s with a `code`: `AGGREGATION_NOT_NATIVE` (fallback
 WebdaQL also parses the same request as a `SELECT … GROUP BY` statement, see
 [Statements](../../Modules/ql/Statements.md#aggregation-select--group-by).
 
+## Slow queries
+
+Webda monitors query execution times across all repositories and logs warnings whenever a query exceeds a configurable threshold.
+
+### Configuration
+
+Slow query detection is configured per-store in `webda.config`:
+
+```json
+{
+  "stores": {
+    "default": {
+      "type": "MemoryStore",
+      "slowQueryThreshold": 5000,
+      "slowQueryLogLevel": "WARN",
+      "slowQueryMaxLength": 1024
+    }
+  }
+}
+```
+
+| Parameter            | Default  | Description                                                                              |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `slowQueryThreshold` | `30000`  | Duration in ms above which a query is considered slow. Set to `0` to disable detection. |
+| `slowQueryLogLevel`  | `"WARN"` | Log level used when logging slow queries (`"ERROR"`, `"WARN"`, `"INFO"`, `"DEBUG"`).    |
+| `slowQueryMaxLength` | `1024`   | Maximum length of the query string written to logs / events (longer queries truncated).   |
+
+### Log format
+
+When a query exceeds `slowQueryThreshold`, a log entry is emitted:
+
+```text
+Slow query on store default (MyModel, query) took 5120ms [42 results]: name = 'Alice'
+```
+
+Brackets include execution details when available:
+- Result count: `[10 results]`
+- Pagination: `[paginated]`
+- Execution errors: `[error: Connection timeout]`
+
+### Metrics & Events
+
+- **Metrics**:
+  - `<store>_queries`: Histogram tracking query durations with labels `operation` and `model`.
+  - `<store>_slow_queries_total`: Counter incremented on every slow query with labels `operation` and `model`.
+- **Events**:
+  - Stores emit `Store.SlowQuery` with payload `{ operation, model, query, duration, count?, paginated?, error?, store }`.
+
 ## Events
 
 Repositories emit typed events around every operation. Register listeners on the

@@ -15,6 +15,7 @@ import {
 } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 import { ModelTypeResolver, useTypeResolver } from "../types-resolver.js";
+import type { QueryExecutionInfo, QueryMonitorOptions, QueryOperation } from "./monitoring.js";
 
 /**
  * Base repository implementation providing shared logic for key management,
@@ -31,6 +32,8 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
 
   /** Aggregation fallback policy, set by the owning store through configureAggregation */
   protected aggregationOptions: AggregationOptions = { fallback: "warn", maxGroups: 10000 };
+  /** Query monitoring options, set by the owning store through configureMonitoring */
+  protected monitorOptions: QueryMonitorOptions = {};
   /** Fallback shapes already warned about */
   protected warnedAggregations: Set<string> = new Set();
   /**
@@ -608,6 +611,79 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     if (fallback !== undefined) this.aggregationOptions.fallback = fallback;
     if (maxGroups !== undefined) this.aggregationOptions.maxGroups = maxGroups;
     if (warn !== undefined) this.aggregationOptions.warn = warn;
+  }
+
+  /**
+   * Configure the query monitoring policy, called by the owning store
+   * @param options - options to override
+   */
+  configureMonitoring(options: Partial<QueryMonitorOptions>): void {
+    Object.assign(this.monitorOptions, options);
+  }
+
+  /**
+   * Safely invoke the onQuery callback without throwing into the caller
+   * @param info - query execution info
+   */
+  protected safeOnQuery(info: QueryExecutionInfo): void {
+    try {
+      this.monitorOptions?.onQuery?.(info);
+    } catch {
+      // onQuery must never throw into the caller
+    }
+  }
+
+  /**
+   * Helper that times a query operation, catches and rethrows errors, and calls onQuery safely
+   * @param operation - the query operation
+   * @param query - the query string
+   * @param fn - the async function to execute and time
+   * @param details - optional callback to extract result count or pagination details
+   * @returns the result of fn
+   */
+  protected async monitor<R>(
+    operation: QueryOperation,
+    query: string,
+    fn: () => Promise<R>,
+    details?: ((r: R) => { count?: number; paginated?: boolean }) | ((r: R) => number)
+  ): Promise<R> {
+    const start = performance.now();
+    const model = (this.model as any)?.Metadata?.Identifier ?? this.model?.name ?? "unknown";
+    let result: R;
+    try {
+      result = await fn();
+    } catch (err: any) {
+      const duration = performance.now() - start;
+      this.safeOnQuery({
+        operation,
+        model,
+        query,
+        duration,
+        error: err
+      });
+      throw err;
+    }
+    const duration = performance.now() - start;
+    let count: number | undefined;
+    let paginated: boolean | undefined;
+    if (details) {
+      const d = details(result);
+      if (typeof d === "number") {
+        count = d;
+      } else if (d && typeof d === "object") {
+        count = d.count;
+        paginated = d.paginated;
+      }
+    }
+    this.safeOnQuery({
+      operation,
+      model,
+      query,
+      duration,
+      count,
+      paginated
+    });
+    return result;
   }
 
   /**

@@ -7,6 +7,7 @@ import type {
   WebdaQLString
 } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type { QueryMonitorOptions } from "./monitoring.js";
 import type {
   PrimaryKey,
   PrimaryKeyType,
@@ -164,6 +165,12 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * @param options - options to override
    */
   configureAggregation(options: Partial<AggregationOptions>): void;
+
+  /**
+   * Configure the query monitoring policy, called by the owning store
+   * @param options - options to override
+   */
+  configureMonitoring?(options: Partial<QueryMonitorOptions>): void;
 
   /**
    * Delete every object matching a `DELETE [WHERE ...] [LIMIT n]` statement, in bulk

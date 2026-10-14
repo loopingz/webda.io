@@ -47,8 +47,12 @@ export function isIAMOperation(operationId: string): boolean {
  * @param evt - the operation event
  * @param evt.context - the operation context
  * @param evt.operationId - the operation id
+ * @param evt.dryRun - whether call was in dry mode
  */
-function clearAllowedOperation(evt: { context: OperationContext; operationId: string }): void {
+function clearAllowedOperation(evt: { context: OperationContext; operationId: string; dryRun?: boolean }): void {
+  if (evt.dryRun) {
+    return;
+  }
   if (evt.context?.getExtension?.(IAM_ALLOWED_OPERATION) === evt.operationId) {
     evt.context.setExtension(IAM_ALLOWED_OPERATION, undefined);
   }

@@ -246,6 +246,24 @@ class CliSchemaToOptionsTest {
     await cli.parseAsync(["user", "login"]);
     assert.strictEqual(calls[1].id, "User.Login");
   }
+
+  @test
+  async buildCliPassesDryRunOption() {
+    const ops = makeOps({
+      "User.Delete": { id: "User.Delete", input: "uuidRequest" }
+    });
+
+    const calls: OperationCall[] = [];
+    const cli = buildCli(ops, async call => {
+      calls.push(call);
+    });
+
+    await cli.parseAsync(["user", "delete", "123-abc", "--dry-run"]);
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0].id, "User.Delete");
+    assert.strictEqual(calls[0].parameters.uuid, "123-abc");
+    assert.strictEqual(calls[0].dryRun, true);
+  }
 }
 
 @suite

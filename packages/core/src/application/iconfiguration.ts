@@ -134,6 +134,19 @@ export type UnpackedConfiguration = {
      */
     configurationEncryption?: ConfigurationEncryption;
     /**
+     * Dry run configuration for operations
+     */
+    dryRun?: {
+      /** Run every operation in dry mode */
+      enabled?: boolean;
+      /** Operation id patterns that always run dry (glob, e.g. "Billing.*", "User.Delete") */
+      enforce?: string[];
+      /** Operation id patterns never put in dry mode by enabled/request flags */
+      exclude?: string[];
+      /** Accept the per-request X-Webda-Dry-Run header */
+      allowRequest?: boolean;
+    };
+    /**
      * Allow any other type of parameters
      */
     [key: string]: any;

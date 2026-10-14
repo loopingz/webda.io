@@ -204,3 +204,30 @@ export class OperationCancelledError extends Error {
     this.name = "OperationCancelledError";
   }
 }
+
+/**
+ * Raised when a requested template cannot be found
+ */
+export class TemplateNotFoundError extends CodeError {
+  /** Create a new TemplateNotFoundError
+   * @param message - error message
+   */
+  constructor(message: string) {
+    super("TEMPLATE_NOT_FOUND", message);
+    this.name = "TemplateNotFoundError";
+  }
+}
+
+/**
+ * Raised when a required template engine is not registered
+ */
+export class TemplateEngineNotFoundError extends CodeError {
+  /** Create a new TemplateEngineNotFoundError
+   * @param message - error message
+   */
+  constructor(message: string) {
+    super("TEMPLATE_ENGINE_NOT_FOUND", message);
+    this.name = "TemplateEngineNotFoundError";
+  }
+}
+

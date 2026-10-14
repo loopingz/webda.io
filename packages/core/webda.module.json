@@ -1122,19 +1122,24 @@
             "description": "SES AWS Bean if transport === \"ses\"\n\nCredentials inside can be encrypted with `webda config encrypt`"
           },
           "emailTemplateOptions": {
-            "see": "https://www.npmjs.com/package/email-templates"
+            "see": "https://www.npmjs.com/package/juice"
           },
           "sender": {
             "description": "Define the default sender",
             "type": "string"
           },
+          "templateService": {
+            "default": "TemplateService",
+            "description": "TemplateService bean to use",
+            "type": "string"
+          },
           "templates": {
-            "default": "templates",
+            "deprecated": true,
             "description": "Specify which folder contains templates",
             "type": "string"
           },
           "templatesEngine": {
-            "default": "mustache",
+            "deprecated": true,
             "description": "Template engine to use",
             "type": "string"
           },
@@ -1448,7 +1453,8 @@
                 "Registry",
                 "CryptoService",
                 "TokenService",
-                "SessionManager"
+                "SessionManager",
+                "TemplateService"
               ],
               "type": "string"
             },
@@ -1750,6 +1756,61 @@
           ]
         }
       }
+    },
+    "Webda/TemplateService": {
+      "Import": "lib/services/template.service:TemplateService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, any>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          }
+        },
+        "description": "Configuration parameters for TemplateService",
+        "properties": {
+          "cache": {
+            "default": true,
+            "description": "Cache compiled templates",
+            "type": "boolean"
+          },
+          "engine": {
+            "default": "mustache",
+            "description": "Preferred engine when several extensions match",
+            "type": "string"
+          },
+          "engines": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+            "description": "Options passed to TemplateEngine.configure, by engine name"
+          },
+          "folders": {
+            "default": [
+              "./templates"
+            ],
+            "description": "Folders to search, in order, first match wins",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "TemplateService"
+      },
+      "Configuration": "lib/services/template.service:TemplateServiceParameters"
     },
     "Webda/TokenService": {
       "Import": "lib/services/token.service:TokenService",

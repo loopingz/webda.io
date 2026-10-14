@@ -1,7 +1,27 @@
 # Mailer
 
-Webda defines a Mailer as a service than can send email and resolve templates
+Webda defines a Mailer as a service that can send emails and render templates.
 
-It can manage `SES` and `smtp`
+It uses `TemplateService` for template rendering and resolution, and `juice` for CSS inlining.
 
-For configuration please refer to [nodemailer](https://nodemailer.com/smtp/)
+It can manage `SES` and `smtp`.
+
+## Configuration
+
+For nodemailer transport options, please refer to [nodemailer](https://nodemailer.com/smtp/).
+
+```jsonc
+{
+  "services": {
+    "Mailer": {
+      "type": "Webda/Mailer",
+      "sender": "noreply@example.com",
+      "transport": "smtp",
+      "host": "smtp.example.com",
+      "templateService": "TemplateService"
+    }
+  }
+}
+```
+
+> **Note:** The `templates` and `templatesEngine` parameters on `MailerParameters` are deprecated. Use [`TemplateService`](./Templates.md) for template configuration.

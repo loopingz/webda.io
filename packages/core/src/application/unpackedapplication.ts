@@ -118,6 +118,11 @@ export class UnpackedApplication extends Application {
       type: "Webda/TokenService"
     };
 
+    // TemplateService by default
+    configuration.services["TemplateService"] ??= {
+      type: "Webda/TemplateService"
+    };
+
     // By default use CookieSessionManager
     // TODO Should not be added here as it is only for HTTP
     configuration.services["SessionManager"] ??= {

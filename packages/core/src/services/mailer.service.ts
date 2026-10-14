@@ -1,18 +1,20 @@
-import Email from "email-templates";
-import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import * as path from "path";
+import juice from "juice";
 import { NotificationService } from "./notificationservice.service.js";
-import { Service } from "./service.js";
+import { Inject, Service } from "./service.js";
 import { SecretString } from "./cryptoservice.service.js";
 import { Counter } from "../metrics/metrics.js";
 import type { User } from "../models/user.model.js";
 import type { Ident } from "../models/ident.model.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { ServicePartialParameters } from "./iservice.js";
+import { TemplateService } from "./template.service.js";
+import { useService } from "../core/hooks.js";
 
 /**
  * Interface for an email template that can render subject, html and text
+ * @deprecated Handled by TemplateService
  */
 interface IEmailTemplate {
   /**
@@ -22,11 +24,12 @@ interface IEmailTemplate {
    * @param options - Template variables for rendering
    * @returns Rendered result with subject, html and text properties
    */
-  renderAll(file: string, options: any);
+  renderAll(file: string, options: any): Promise<any>;
 }
 
 /**
  * Map of template names to their email template instances
+ * @deprecated Handled by TemplateService
  */
 interface TemplatesMap {
   [key: string]: IEmailTemplate;
@@ -43,7 +46,7 @@ export interface MailerService extends NotificationService {
    * @param callback - Callback to pass to sendMail
    * @returns Promise resolving when the email is sent
    */
-  send(options: MailerSendOptions, callback: () => void): Promise<any>;
+  send(options: MailerSendOptions, callback?: () => void): Promise<any>;
 }
 
 /**
@@ -65,6 +68,10 @@ interface MailerSendOptions extends nodemailer.SendMailOptions {
    * Replacements for the template
    */
   replacements?: Record<string, any>;
+  /**
+   * Locale for template rendering
+   */
+  locale?: string;
 }
 
 /**
@@ -78,21 +85,27 @@ export class MailerParameters extends ServiceParameters {
   /**
    * Specify which folder contains templates
    *
-   * @default "templates"
+   * @deprecated Configure TemplateService folders instead
    */
   templates?: string;
   /**
    * Template engine to use
    *
-   * @default "mustache"
+   * @deprecated Configure TemplateService engine instead
    */
   templatesEngine?: string;
+  /**
+   * TemplateService bean to use
+   *
+   * @default "TemplateService"
+   */
+  templateService?: string;
   /**
    * Define the default sender
    */
   sender: string;
   /**
-   * @see https://www.npmjs.com/package/email-templates
+   * @see https://www.npmjs.com/package/juice
    */
   emailTemplateOptions?: any;
   /**
@@ -109,23 +122,27 @@ export class MailerParameters extends ServiceParameters {
   /**
    * Load and apply defaults to the mailer parameters
    *
-   * Sets default templates directory to "./templates/", engine to "mustache",
-   * and configures juice resource options for CSS inlining
-   *
    * @param params - Raw parameters to load
    * @returns this instance with defaults applied
    */
   load(params: any = {}): this {
     super.load(params);
-    this.templates ??= "./templates";
-    if (!this.templates.endsWith("/")) {
-      this.templates += "/";
+    if (params.templates !== undefined) {
+      this.templates = params.templates;
+      if (!this.templates.endsWith("/")) {
+        this.templates += "/";
+      }
     }
-    this.templatesEngine ??= "mustache";
+    if (params.templatesEngine !== undefined) {
+      this.templatesEngine = params.templatesEngine;
+    }
+    this.templateService ??= "TemplateService";
     this.emailTemplateOptions ??= {};
     this.emailTemplateOptions.juiceResources ??= {};
     this.emailTemplateOptions.juiceResources.webResources ??= {};
-    this.emailTemplateOptions.juiceResources.webResources.relativeTo ??= path.resolve(this.templates);
+    if (this.templates) {
+      this.emailTemplateOptions.juiceResources.webResources.relativeTo ??= path.resolve(this.templates);
+    }
     return this;
   }
 }
@@ -142,6 +159,9 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   extends Service<T>
   implements MailerService
 {
+  @Inject("templateService", "TemplateService", true)
+  protected templateService!: TemplateService;
+
   /**
    * Mailer metrics for tracking sent emails and errors
    */
@@ -166,13 +186,49 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   }
 
   /**
-   * @inheritdoc
+   * Get the TemplateService instance used by this mailer
+   *
+   * @returns TemplateService instance
    */
-  abstract send(options: MailerSendOptions, callback?: () => void): Promise<any>;
+  getTemplateService(): TemplateService {
+    if ((this as any)._privateTemplateService) {
+      return (this as any)._privateTemplateService;
+    }
+    if (this.templateService) {
+      return this.templateService;
+    }
+    try {
+      return useService("TemplateService");
+    } catch {
+      return undefined as any;
+    }
+  }
+
   /**
    * @inheritdoc
    */
-  abstract hasNotification(notification: string);
+  abstract send(options: MailerSendOptions, callback?: () => void): Promise<any>;
+
+  /**
+   * Synchronous check if template exists
+   *
+   * @param notification - Template name
+   * @returns true if template exists
+   */
+  hasNotificationSync(notification: string): boolean {
+    const ts = this.getTemplateService();
+    return ts ? ts.hasSync(notification) : false;
+  }
+
+  /**
+   * Check if an email template exists
+   *
+   * @param notification - Template name to check
+   * @returns true if the template exists
+   */
+  async hasNotification(notification: string): Promise<boolean> {
+    return this.hasNotificationSync(notification);
+  }
 
   /**
    * Check if notifications can be delivered to a user via email
@@ -234,6 +290,8 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   _transporter: any;
   /** Cache of loaded email template instances by name */
   _templates: TemplatesMap = {};
+  /** Mailer-private TemplateService when deprecated parameters are used */
+  _privateTemplateService?: TemplateService;
 
   /**
    * Load and instantiate mailer parameters with defaults
@@ -247,12 +305,33 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 
   /**
+   * Resolve dependencies and initialize private TemplateService if deprecated parameters are used
+   *
+   * @override
+   */
+  resolve(): this {
+    super.resolve();
+    if (this.parameters.templates !== undefined || this.parameters.templatesEngine !== undefined) {
+      this.log("WARN", "Mailer 'templates' and 'templatesEngine' are deprecated, configure TemplateService instead");
+      this._privateTemplateService = new TemplateService(`${this.getName()}_TemplateService`, {
+        folders: this.parameters.templates ? [this.parameters.templates] : undefined,
+        engine: this.parameters.templatesEngine
+      } as any);
+      this._privateTemplateService.resolve();
+    }
+    return this;
+  }
+
+  /**
    * Initialize the nodemailer transport from the service parameters
    *
    * @returns this instance after transport creation
    * @override
    */
   async init(): Promise<this> {
+    if (this._privateTemplateService) {
+      await this._privateTemplateService.init();
+    }
     // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
     // Encrypted values (auth.pass, SES credentials...) are unwrapped to plain strings for nodemailer
     this._transporter = nodemailer.createTransport(
@@ -264,40 +343,53 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   /**
    * Get or create a cached email template instance by name
    *
-   * Lazily creates and caches an Email template using the configured
-   * templates directory and engine. Logs a warning if the template does not exist.
+   * Lazily creates and caches an email template using TemplateService.
+   * Logs a warning if the template does not exist.
    *
-   * @param name - Template name (must correspond to a directory in the templates folder)
+   * @param name - Template name
    * @returns The email template instance, or undefined if the template does not exist
    */
   _getTemplate(name: string) {
     if (!this._templates[name]) {
-      if (!this.hasNotification(name)) {
+      if (!this.hasNotificationSync(name)) {
         this.log("WARN", "No template found for", name);
         return;
       }
-      this._templates[name] = new Email({
-        ...this.parameters.emailTemplateOptions,
-        views: {
-          root: this.parameters.templates,
-          options: {
-            extension: this.parameters.templatesEngine
+      this._templates[name] = {
+        renderAll: async (file: string, options: any) => {
+          const ts = this.getTemplateService();
+          if (!ts) {
+            throw new Error("No TemplateService available");
           }
+          return ts.renderAll(file, options, { locale: options?.locale });
         }
-      });
+      };
     }
     return this._templates[name];
   }
 
   /**
-   * Check if an email template exists on the filesystem
+   * Inline CSS in HTML using juice
    *
-   * @param name - Template name to check
-   * @returns true if the template directory exists
+   * @param html - Raw HTML
+   * @returns Inlined HTML
    */
-  hasNotification(name: string): boolean {
-    // Load template
-    return fs.existsSync(this.parameters.templates + name);
+  protected async inlineCss(html: string): Promise<string> {
+    try {
+      const juiceResources = (juice as any).juiceResources;
+      const juiceOptions = this.parameters.emailTemplateOptions?.juiceResources;
+      if (juiceOptions && typeof juiceResources === "function") {
+        return await new Promise<string>((resolve) => {
+          juiceResources(html, juiceOptions, (err: any, inlinedHtml: string) => {
+            if (err) return resolve((juice as any)(html));
+            resolve(inlinedHtml);
+          });
+        });
+      }
+      return (juice as any)(html);
+    } catch {
+      return html;
+    }
   }
 
   /**
@@ -333,7 +425,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
           options.subject = result.subject;
         }
         if (result.html) {
-          options.html = result.html;
+          options.html = await this.inlineCss(result.html);
         }
         if (result.text) {
           options.text = result.text;
@@ -346,4 +438,4 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 }
 
-export { Mailer, type TemplatesMap, type IEmailTemplate };
+export { Mailer, type TemplatesMap, type IEmailTemplate, type MailerSendOptions };

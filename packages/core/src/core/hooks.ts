@@ -6,6 +6,7 @@ import type { CustomConstructor } from "@webda/tsc-esm";
 import type { Service } from "../services/service.js";
 import type CryptoService from "../services/cryptoservice.service.js";
 import type { TokenService } from "../services/token.service.js";
+import type { TemplateService } from "../services/template.service.js";
 import type { Store } from "../stores/store.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { useModel } from "../application/hooks.js";
@@ -38,6 +39,7 @@ export interface ServicesMap {
   CryptoService: CryptoService;
   TokenService: TokenService;
   SessionManager: SessionManager;
+  TemplateService: TemplateService;
 }
 
 /**

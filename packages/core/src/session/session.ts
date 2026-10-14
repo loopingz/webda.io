@@ -15,6 +15,32 @@ export interface LoginOptions {
 }
 
 /**
+ * Workload identity of an application session, see {@link Session.loginApplication}
+ */
+export interface ApplicationIdentity {
+  /**
+   * Application principal name, IAM sees it as `app:<principal>`
+   */
+  principal: string;
+  /**
+   * Issuer (`iss`) of the token that authenticated the application
+   */
+  issuer: string;
+  /**
+   * Subject (`sub`) of the token
+   */
+  subject: string;
+  /**
+   * Extra groups of the application, IAM sees them as `app-group:<group>`
+   */
+  groups?: string[];
+  /**
+   * Verified claims of the token
+   */
+  claims?: Record<string, unknown>;
+}
+
+/**
  * Session
  */
 export class Session {
@@ -65,6 +91,13 @@ export class Session {
   authAt?: number;
 
   /**
+   * Application (workload) identity when authenticated by OIDC: mutually exclusive with userId
+   *
+   * An application session has no current user, so ownership checks never mistake an application for a user
+   */
+  application?: ApplicationIdentity;
+
+  /**
    * Session is stateless (not persisted in cookies)
    */
   @NotEnumerable
@@ -77,6 +110,7 @@ export class Session {
    * @param options - login options including provider, amr, and mfa state
    */
   login(userId: string, identUsed: string, options: LoginOptions = {}) {
+    delete this.application;
     this.userId = userId;
     this.identUsed = identUsed;
     this.provider = options.provider;
@@ -84,9 +118,32 @@ export class Session {
     this.mfa = options.mfa ?? "none";
   }
   /**
+   * Login an application (workload identity): the session becomes stateless and has no user
+   * @param application - the application identity
+   * @param options - authentication methods, `["oidc"]` by default
+   * @param options.amr - authentication methods used
+   */
+  loginApplication(application: ApplicationIdentity, options: { amr?: string[] } = {}) {
+    this.logout();
+    this.stateless = true;
+    this.application = application;
+    this.provider = application.issuer;
+    this.amr = options.amr ?? ["oidc"];
+  }
+
+  /**
+   * If session is authenticated as an application
+   * @returns true if the condition is met
+   */
+  isApplication(): boolean {
+    return this.application !== undefined && this.userId === undefined;
+  }
+
+  /**
    * Logout
    */
   logout() {
+    delete this.application;
     delete this.userId;
     delete this.identUsed;
     delete this.roles;

@@ -29,6 +29,16 @@ export interface IAMRequestContext {
   operationId: string;
   probe: boolean;
   user?: { uuid: string; groups: string[]; roles: string[] };
+  /**
+   * Application (workload identity) of an application session
+   */
+  application?: {
+    principal: string;
+    issuer: string;
+    subject: string;
+    groups: string[];
+    claims: Record<string, unknown>;
+  };
   session?: any;
   input?: any;
   http?: { method: string; ip: string; host: string };

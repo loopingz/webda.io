@@ -70,10 +70,30 @@ class CompilerTest {
 
   @test
   principals() {
-    for (const principal of ["user:123", "group:admins", "authenticated", "anonymous"]) {
+    for (const principal of [
+      "user:123",
+      "group:admins",
+      "authenticated",
+      "anonymous",
+      "app:orders",
+      "app:repo:loopingz/orders:*",
+      "app-group:internal",
+      "app-issuer:https://token.actions.githubusercontent.com",
+      "authenticated-app"
+    ]) {
       assert.ok(isValidPrincipal(principal), principal);
     }
-    for (const principal of ["", "user:", "group:", "admins", "everyone", "Authenticated"]) {
+    for (const principal of [
+      "",
+      "user:",
+      "group:",
+      "admins",
+      "everyone",
+      "Authenticated",
+      "app:",
+      "app-group:",
+      "app"
+    ]) {
       assert.ok(!isValidPrincipal(principal), principal);
     }
   }

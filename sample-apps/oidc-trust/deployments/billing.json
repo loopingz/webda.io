@@ -1,0 +1,39 @@
+{
+  "services": {
+    "HttpServer": {
+      "port": 18082
+    },
+    "OIDCVerifier": {
+      "type": "Webda/OIDCVerifier",
+      "audience": "http://localhost:18082",
+      "trustedIssuers": [
+        {
+          "issuer": "http://localhost:18081",
+          "claims": {
+            "sub": "app:orders"
+          }
+        }
+      ]
+    },
+    "IAMStore": {
+      "type": "Webda/MemoryStore",
+      "models": ["Webda/IAMPolicy", "Webda/IAMPolicyAttachment"]
+    },
+    "IAM": {
+      "type": "Webda/IAMService",
+      "scope": ["Invoices.*"],
+      "policies": [
+        {
+          "name": "InvoiceWriter",
+          "statements": [{ "effect": "allow", "operations": ["Invoices.Create"] }]
+        }
+      ],
+      "attachments": {
+        "app:orders": ["InvoiceWriter"]
+      }
+    },
+    "Billing": {
+      "type": "OidcTrust/Billing"
+    }
+  }
+}

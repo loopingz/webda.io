@@ -831,6 +831,41 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
       403
     );
   }
+
+  @test
+  async qlCodeCompletion() {
+    // 1. Check completion suggestions for Post status enum
+    const completeRes = await this.routerHttp<any>({
+      method: "POST",
+      url: "/ql/complete",
+      body: { query: "status = ", caret: 9, model: "WebdaSample/Post" }
+    });
+    assert.strictEqual(completeRes.statusCode, 200, `Expected 200 from /ql/complete, got: ${completeRes.body}`);
+    const labels = completeRes.parsed.items.map((i: any) => i.label);
+    assert.ok(labels.includes("'published'"), "Should offer 'published'");
+    assert.ok(labels.includes("'draft'"), "Should offer 'draft'");
+    assert.ok(labels.includes("'archived'"), "Should offer 'archived'");
+    assert.ok(labels.includes("?"), "Should offer '?'");
+
+    // 2. Check prefix matching for field
+    const prefixRes = await this.routerHttp<any>({
+      method: "POST",
+      url: "/ql/complete",
+      body: { query: "sta", caret: 3, model: "WebdaSample/Post" }
+    });
+    assert.strictEqual(prefixRes.statusCode, 200);
+    const prefixLabels = prefixRes.parsed.items.map((i: any) => i.label);
+    assert.ok(prefixLabels.includes("status"), "Should offer status for prefix sta");
+
+    // 3. Querying posts with WebdaQL
+    const qlQueryRes = await this.routerHttp<any>({
+      method: "PUT",
+      url: "/posts",
+      body: { q: "status = 'published'" }
+    });
+    assert.strictEqual(qlQueryRes.statusCode, 200);
+    assert.ok(Array.isArray(qlQueryRes.parsed.results));
+  }
 }
 
 /**

@@ -141,6 +141,24 @@ q.aggregation.metrics; // { n: { fn: "COUNT" }, total: { fn: "SUM", field: "poin
 See [Statements](../../docs/pages/Modules/ql/Statements.md#aggregation-select--group-by) and
 [Repositories](../../docs/pages/Concepts/Stores/Repositories.md#aggregation).
 
+### Code completion
+
+WebdaQL provides grammar-driven code completion powered by `antlr4-c3`. `getCompletions` returns candidates for fields, keywords, operators, enum/boolean values, and parameters for a query and caret offset:
+
+```typescript
+import { getCompletions, fieldsFromSchema } from "@webda/ql";
+
+const fields = [
+  { name: "status", type: "string", enum: ["draft", "published"] },
+  { name: "viewCount", type: "integer" }
+];
+
+const { items, prefix } = getCompletions("status = 'dr", 12, { fields });
+// => items offer "'draft'", replacing range [9, 13]
+```
+
+See [Code Completion](../../docs/pages/Modules/ql/Completion.md).
+
 ### API reference
 
 | Export                                | Description                                                                                                        |
@@ -164,6 +182,8 @@ See [Statements](../../docs/pages/Modules/ql/Statements.md#aggregation-select--g
 | `AggregationError`                    | Runtime aggregation error with a `code` (`AGGREGATION_NOT_NATIVE`, `AGGREGATION_TOO_MANY_GROUPS`)                  |
 | `Query`                               | Parsed query result: `{ type, filter, fields?, assignments?, aggregation?, orderBy?, limit?, continuationToken? }` |
 | `OrderBy`                             | `{ field: string; direction: "ASC" \| "DESC" }`                                                                    |
+| `getCompletions(query, caret, opts)`  | Returns grammar-driven code completion candidates at a caret offset                                                |
+| `fieldsFromSchema(schema, maxDepth?)` | Flattens a JSON schema into completion fields with dotted paths                                                    |
 
 ### See also
 
@@ -171,6 +191,7 @@ See [Statements](../../docs/pages/Modules/ql/Statements.md#aggregation-select--g
 - [Operators](../../docs/pages/Modules/ql/Operators.md)
 - [Parameters](../../docs/pages/Modules/ql/Parameters.md) — binding values safely
 - [Statements](../../docs/pages/Modules/ql/Statements.md) — SELECT, DELETE, UPDATE and repository bulk operations
+- [Code Completion](../../docs/pages/Modules/ql/Completion.md) — autocomplete and suggestions
 - [Store Translators](../../docs/pages/Modules/ql/Translators.md) — how each Store backend converts WQL
 
 <!-- README_FOOTER -->

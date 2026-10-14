@@ -1335,18 +1335,48 @@ function throwingErrorListener(sql: string) {
 }
 
 /**
- * Create a lexer and a parser for a query, both throwing on errors
- * @param sql - the query string
- * @returns the lexer and the parser
+ * Options for creating an ANTLR WebdaQL parser
  */
-function createParser(sql: string): { lexer: WebdaQLLexer; parser: WebdaQLParserParser } {
+export interface CreateParserOptions {
+  /** If true, error listeners that throw on syntax errors are omitted */
+  tolerant?: boolean;
+}
+
+/**
+ * Create a lexer and a parser for a query
+ * @param sql - the query string
+ * @param options - parser options
+ * @returns the lexer, parser and token stream
+ */
+export function createParser(
+  sql: string,
+  options?: CreateParserOptions
+): { lexer: WebdaQLLexer; parser: WebdaQLParserParser; tokens: CommonTokenStream } {
   const lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
   lexer.removeErrorListeners();
-  lexer.addErrorListener(throwingErrorListener(sql));
-  const parser = new WebdaQLParserParser(new CommonTokenStream(lexer));
+  if (!options?.tolerant) {
+    lexer.addErrorListener(throwingErrorListener(sql));
+  }
+  const tokens = new CommonTokenStream(lexer);
+  const parser = new WebdaQLParserParser(tokens);
   parser.removeErrorListeners();
-  parser.addErrorListener(throwingErrorListener(sql));
-  return { lexer, parser };
+  if (!options?.tolerant) {
+    parser.addErrorListener(throwingErrorListener(sql));
+  }
+  return { lexer, parser, tokens };
+}
+
+/**
+ * Create a tolerant lexer and parser that do not throw on syntax errors
+ * @param sql - the query string
+ * @returns the lexer, parser and token stream
+ */
+export function createTolerantParser(sql: string): {
+  lexer: WebdaQLLexer;
+  parser: WebdaQLParserParser;
+  tokens: CommonTokenStream;
+} {
+  return createParser(sql, { tolerant: true });
 }
 
 /**

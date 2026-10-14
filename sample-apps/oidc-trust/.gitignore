@@ -1,0 +1,6 @@
+node_modules
+lib
+
+# Locally-generated build output
+.webda
+.registry

@@ -26,6 +26,7 @@
   "packages/mongodb": "4.0.0-beta.9",
   "packages/oci": "4.0.0-beta.9",
   "packages/offline": "4.0.0-beta.9",
+  "packages/oidc": "4.0.0-beta.9",
   "packages/otel": "4.0.0-beta.9",
   "packages/postgres": "4.0.0-beta.9",
   "packages/ql": "4.0.0-beta.8",

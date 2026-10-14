@@ -2321,6 +2321,9 @@
         "title": "PostgresStore"
       },
       "Configuration": "lib/postgresstore.service:PostgresParameters",
+      "capabilities": [
+        "store"
+      ],
       "commands": {
         "migrate": {
           "description": "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",

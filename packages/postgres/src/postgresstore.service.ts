@@ -1,5 +1,5 @@
 import { Command, SecretString, useApplication, useCore, useModelMetadata } from "@webda/core";
-import type { ModelClass } from "@webda/core";
+import type { MigratableStore, ModelClass } from "@webda/core";
 import type { SQLDialect } from "@webda/sql";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
@@ -79,7 +79,10 @@ export class PostgresParameters extends SQLStoreParameters {
  *
  * @WebdaModda
  */
-export class PostgresStore<K extends PostgresParameters = PostgresParameters> extends SQLStore<K> {
+export class PostgresStore<K extends PostgresParameters = PostgresParameters>
+  extends SQLStore<K>
+  implements MigratableStore
+{
   client: pg.Client | pg.Pool;
   /**
    * True when {@link client} is a shared pool acquired from the registry.

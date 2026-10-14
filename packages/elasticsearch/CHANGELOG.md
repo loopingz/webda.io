@@ -187,6 +187,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/elasticsearch-v4.0.0-beta.8...elasticsearch-v4.0.0-beta.9) (2026-10-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/elasticsearch-v4.0.0-beta.7...elasticsearch-v4.0.0-beta.8) (2026-10-12)
 
 

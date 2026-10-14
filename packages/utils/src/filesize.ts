@@ -4,7 +4,7 @@
  * Schema:
  * - `@schema number | string`
  * - `@minimum 0`
- * - `@pattern ^([0-9]*\.?[0-9]+)\s*(B|KB|MB|GB|TB|PB|O|KO|MO|GO|TO|PO)?$`
+ * - `@pattern ^([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*(B|KB|MB|GB|TB|PB|O|KO|MO|GO|TO|PO)?$`
  *
  * Supported inputs:
  * - Numeric bytes: `1024`
@@ -27,7 +27,7 @@ export class FileSize {
         }
         // Also manage octet
         const trimmed = value.trim().replace(/o+/gi, "B").toUpperCase();
-        const match = /^([0-9]*\.?[0-9]+)\s*(B|KB|MB|GB|TB|PB)?$/i.exec(trimmed);
+        const match = /^([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*(B|KB|MB|GB|TB|PB)?$/i.exec(trimmed);
         if (!match) {
             throw new Error(`Invalid file size: ${value}`);
         }

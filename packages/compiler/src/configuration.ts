@@ -1,6 +1,141 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
-import { relative, dirname } from "node:path";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, sep } from "node:path";
+
+/**
+ * File extensions of configuration and deployment files
+ */
+const CONFIGURATION_EXTENSIONS = [".json", ".jsonc", ".yaml", ".yml"];
+
+/**
+ * Schema references written by previous versions of webda, they are considered managed by webda
+ */
+const LEGACY_SCHEMA_REFERENCES = [".webda-config-schema.json", ".webda-deployment-schema.json"];
+
+/**
+ * YAML modeline understood by the YAML language server (VSCode, IntelliJ, ...)
+ *
+ * YAML has no `$schema` keyword, so the reference is written as a comment
+ */
+const YAML_MODELINE = /^#\s*yaml-language-server:\s*\$schema=(\S*).*$/m;
+
+/**
+ * Leading whitespaces and comments of a JSON/JSONC document up to its root object
+ */
+const JSON_ROOT_OBJECT = /^(?:\s|\/\/[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*\{/;
+
+/**
+ * First `$schema` property of a JSON/JSONC document, webda keeps it as first property of the root
+ */
+const JSON_SCHEMA_PROPERTY = /("\$schema"\s*:\s*)"(?:[^"\\]|\\.)*"/;
+
+/**
+ * Check if a schema reference is managed by webda and can be updated
+ *
+ * A reference is managed if it targets the generated schema or a legacy webda schema,
+ * any other reference (remote url, custom schema) is left untouched.
+ *
+ * @param current - the current reference
+ * @param schemaFile - the generated schema file
+ * @returns true if the reference can be replaced
+ */
+function isManagedSchemaReference(current: string, schemaFile: string): boolean {
+  const name = basename(current);
+  return name === basename(schemaFile) || LEGACY_SCHEMA_REFERENCES.includes(name);
+}
+
+/**
+ * Ensure a configuration or deployment file references its JSON schema
+ *
+ * - JSON/JSONC: the `$schema` property is added as first property, formatting and comments are kept
+ * - YAML: a `# yaml-language-server: $schema=...` modeline is added on the first line
+ *
+ * The reference is relative to the file. An existing reference is only replaced if it is
+ * managed by webda (stale path or legacy name), custom references are kept.
+ *
+ * @param file - the configuration or deployment file
+ * @param schemaFile - the schema file to reference
+ * @returns true if the file was updated
+ */
+export function ensureSchemaReference(file: string, schemaFile: string): boolean {
+  const reference = relative(dirname(file), schemaFile).split(sep).join("/");
+  if (/\.ya?ml$/.test(file)) {
+    const content = readFileSync(file, "utf-8");
+    const match = YAML_MODELINE.exec(content);
+    if (!match) {
+      writeFileSync(file, `# yaml-language-server: $schema=${reference}\n${content}`);
+      return true;
+    }
+    if (match[1] === reference || !isManagedSchemaReference(match[1], schemaFile)) {
+      return false;
+    }
+    writeFileSync(file, content.replace(YAML_MODELINE, `# yaml-language-server: $schema=${reference}`));
+    return true;
+  }
+  const content = readFileSync(file, "utf-8");
+  let parsed: any;
+  try {
+    parsed = JSONUtils.parse(content);
+  } catch {
+    return false;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || parsed.$schema === reference) {
+    return false;
+  }
+  if (parsed.$schema !== undefined) {
+    if (typeof parsed.$schema !== "string" || !isManagedSchemaReference(parsed.$schema, schemaFile)) {
+      return false;
+    }
+    writeFileSync(file, content.replace(JSON_SCHEMA_PROPERTY, `$1${JSON.stringify(reference)}`));
+    return true;
+  }
+  writeFileSync(file, insertSchemaProperty(content, reference));
+  return true;
+}
+
+/**
+ * Insert a `$schema` property as first property of a JSON/JSONC document
+ *
+ * The document is edited as text, so formatting and comments are kept as is
+ *
+ * @param content - the JSON/JSONC document, its root must be an object
+ * @param reference - the schema reference
+ * @returns the updated document
+ */
+function insertSchemaProperty(content: string, reference: string): string {
+  // Skip leading whitespaces and comments to find the root object
+  const start = JSON_ROOT_OBJECT.exec(content)[0].length;
+  const after = content.substring(start);
+  const property = `"$schema": ${JSON.stringify(reference)}`;
+  // Empty object
+  if (/^\s*}/.test(after)) {
+    return `${content.substring(0, start)} ${property} ${after.trimStart()}`;
+  }
+  // Multiline object: reuse the indentation of the first property
+  const multiline = /^[ \t]*\r?\n(\s*?)([ \t]*)\S/.exec(after);
+  if (multiline) {
+    const eol = after.includes("\r\n") ? "\r\n" : "\n";
+    return `${content.substring(0, start)}${eol}${multiline[2]}${property},${after}`;
+  }
+  return `${content.substring(0, start)}${property},${after}`;
+}
+
+/**
+ * List the deployment files of a deployments folder
+ *
+ * @param deploymentsDir - the `deployments` folder
+ * @returns the deployment files, empty if the folder does not exist
+ */
+export function listDeploymentFiles(deploymentsDir: string): string[] {
+  if (!existsSync(deploymentsDir)) {
+    return [];
+  }
+  return readdirSync(deploymentsDir, { withFileTypes: true })
+    .filter(entry => entry.isFile() && CONFIGURATION_EXTENSIONS.some(ext => entry.name.endsWith(ext)))
+    .map(entry => join(deploymentsDir, entry.name))
+    .sort();
+}
 
 /**
  * Interface for the application methods needed by configuration schema generation
@@ -36,13 +171,15 @@ function getServiceTypePattern(app: ConfigSchemaApplication, type: string): stri
  * @param deploymentFilename to save deployment schema to
  * @param full to keep all required
  * @param configFile - optional config file path to update $schema reference
+ * @param deploymentsDir - optional deployments folder, each deployment file gets its $schema reference
  */
 export function generateConfigurationSchemas(
   app: ConfigSchemaApplication,
   filename: string = ".webda/config.schema.json",
   deploymentFilename: string = ".webda/deployment.schema.json",
   full: boolean = false,
-  configFile?: string
+  configFile?: string,
+  deploymentsDir?: string
 ): void {
   // Build the base configuration schema structure
   let res: JSONSchema7 = {
@@ -123,7 +260,9 @@ export function generateConfigurationSchemas(
   // Ensure builtin deployers are there
   const definitions = JSONUtils.duplicate(res.definitions);
   res = {
+    type: "object",
     properties: {
+      $schema: { type: "string" },
       parameters: {
         type: "object",
         additionalProperties: true
@@ -183,11 +322,10 @@ export function generateConfigurationSchemas(
 
   // Ensure $schema is set in the configuration file
   if (configFile) {
-    const config = FileUtils.load(configFile);
-    const schemaRef = relative(dirname(configFile), filename);
-    if (config.$schema !== schemaRef) {
-      config.$schema = schemaRef;
-      FileUtils.save(config, configFile);
-    }
+    ensureSchemaReference(configFile, filename);
+  }
+  // Ensure $schema is set in every deployment file
+  if (deploymentsDir) {
+    listDeploymentFiles(deploymentsDir).forEach(file => ensureSchemaReference(file, deploymentFilename));
   }
 }

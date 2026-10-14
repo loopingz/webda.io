@@ -3,6 +3,298 @@
   "beans": {},
   "deployers": {},
   "moddas": {
+    "Webda/SQLitePubSub": {
+      "Import": "lib/sqlitepubsub.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, string | number>": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "SQLDatabase": {
+            "additionalProperties": false,
+            "description": "Database connection metadata",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "SQLitePersistence": {
+            "additionalProperties": false,
+            "description": "Same name and role as MemoryStoreParameters.persistence",
+            "properties": {
+              "path": {
+                "description": "Database file; relative paths resolve against the application directory",
+                "type": "string"
+              },
+              "readOnly": {
+                "default": false,
+                "description": "Open the file read-only: writes are rejected with a WebdaError",
+                "type": "boolean"
+              },
+              "synchronous": {
+                "default": "\"NORMAL\" with WAL, \"FULL\" otherwise",
+                "description": "PRAGMA synchronous",
+                "enum": [
+                  "OFF",
+                  "NORMAL",
+                  "FULL",
+                  "EXTRA"
+                ],
+                "type": "string"
+              },
+              "wal": {
+                "default": true,
+                "description": "PRAGMA journal_mode=WAL (concurrent readers across processes)",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Configuration for {@link SQLitePubSubService}",
+        "properties": {
+          "autoCreateTable": {
+            "default": true,
+            "description": "Create the table on init",
+            "type": "boolean"
+          },
+          "batchSize": {
+            "default": 100,
+            "description": "Max messages fetched per poll",
+            "type": "number"
+          },
+          "busyTimeout": {
+            "default": 5000,
+            "description": "PRAGMA busy_timeout in ms",
+            "type": "number"
+          },
+          "channel": {
+            "default": "the service name lowercased",
+            "description": "Channel name",
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/definitions/SQLDatabase",
+            "description": "Services giving the same database name share one handle"
+          },
+          "persistence": {
+            "$ref": "#/definitions/SQLitePersistence",
+            "description": "Omitted: in-process only (services sharing `database.name`); set: file shared by the processes of one host"
+          },
+          "pollInterval": {
+            "default": 100,
+            "description": "Poll interval in ms for messages written by other processes",
+            "type": "number"
+          },
+          "pragmas": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20number%3E",
+            "description": "Extra PRAGMAs run on open"
+          },
+          "retention": {
+            "default": 60,
+            "description": "Seconds a message is kept for slow consumers before being purged",
+            "type": "number"
+          },
+          "table": {
+            "default": "webda_pubsub",
+            "description": "Table holding the message log",
+            "pattern": "/^[a-zA-Z_][a-zA-Z0-9_]*$/",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SQLitePubSubService"
+      },
+      "Configuration": "lib/sqlitepubsub.service:SQLitePubSubParameters"
+    },
+    "Webda/SQLiteQueue": {
+      "Import": "lib/sqlitequeue.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, string | number>": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "SQLDatabase": {
+            "additionalProperties": false,
+            "description": "Database connection metadata",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "SQLitePersistence": {
+            "additionalProperties": false,
+            "description": "Same name and role as MemoryStoreParameters.persistence",
+            "properties": {
+              "path": {
+                "description": "Database file; relative paths resolve against the application directory",
+                "type": "string"
+              },
+              "readOnly": {
+                "default": false,
+                "description": "Open the file read-only: writes are rejected with a WebdaError",
+                "type": "boolean"
+              },
+              "synchronous": {
+                "default": "\"NORMAL\" with WAL, \"FULL\" otherwise",
+                "description": "PRAGMA synchronous",
+                "enum": [
+                  "OFF",
+                  "NORMAL",
+                  "FULL",
+                  "EXTRA"
+                ],
+                "type": "string"
+              },
+              "wal": {
+                "default": true,
+                "description": "PRAGMA journal_mode=WAL (concurrent readers across processes)",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          },
+          "WaitDelayerDefinition": {
+            "additionalProperties": false,
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
+            "properties": {
+              "interval": {
+                "description": "Base interval in milliseconds passed to the delayer factory.",
+                "type": "number"
+              },
+              "type": {
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "interval",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Configuration for {@link SQLiteQueueService}",
+        "properties": {
+          "autoCreateTable": {
+            "default": true,
+            "description": "Create the queue table on init",
+            "type": "boolean"
+          },
+          "batchSize": {
+            "default": 10,
+            "description": "Messages per receiveMessage",
+            "type": "number"
+          },
+          "busyTimeout": {
+            "default": 5000,
+            "description": "PRAGMA busy_timeout in ms",
+            "type": "number"
+          },
+          "database": {
+            "$ref": "#/definitions/SQLDatabase",
+            "description": "Services giving the same database name share one handle"
+          },
+          "maxConsumers": {
+            "default": 10,
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "persistence": {
+            "$ref": "#/definitions/SQLitePersistence",
+            "description": "Omitted: in-memory queue, lost on stop(); set: file database, messages survive restarts"
+          },
+          "pragmas": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20number%3E",
+            "description": "Extra PRAGMAs run on open"
+          },
+          "table": {
+            "default": "webda_queue",
+            "description": "Table backing the queue, created on init",
+            "pattern": "/^[a-zA-Z_][a-zA-Z0-9_]*$/",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "visibilityTimeout": {
+            "default": 30,
+            "description": "Seconds a received but not deleted message stays invisible before being delivered again",
+            "type": "number"
+          },
+          "waitTime": {
+            "default": 1,
+            "description": "Seconds an empty receiveMessage waits for a message before returning (long polling): a message sent by this\nprocess ends the wait at once, one written by another process is seen at the end of it",
+            "type": "number"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SQLiteQueueService"
+      },
+      "Configuration": "lib/sqlitequeue.service:SQLiteQueueParameters"
+    },
     "Webda/SQLiteStore": {
       "Import": "lib/sqlitestore.service:SQLiteStore",
       "Schema": {

@@ -652,11 +652,24 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveTableMultiModelIgnoresParametersTable() {
+  async resolveTableMultiModelSharesParametersTable() {
+    // As Webda 3: every model of the store lives in `table`, unless `tables` maps it elsewhere
     const store = new PostgresStore("multiTable", {
-      models: ["Webda/OwnerModel", "Webda/User"],
-      table: "idents"
+      models: ["Webda/OwnerModel", "Webda/User", "Webda/Ident"],
+      table: "idents",
+      tables: { "Webda/Ident": "own_idents" }
     });
+    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "idents");
+    assert.strictEqual(store.resolveTable(useModel("Webda/User")), "idents");
+    assert.strictEqual(store.resolveTable(useModel("Webda/Ident")), "own_idents");
+    // Untyped rows of a table belong to the first model stored in it
+    assert.strictEqual(store.resolveTableModel(useModel("Webda/User")), "Webda/OwnerModel");
+    assert.strictEqual(store.resolveTableModel(useModel("Webda/Ident")), "Webda/Ident");
+  }
+
+  @test
+  async resolveTableMultiModelWithoutTableDerivesEach() {
+    const store = new PostgresStore("multiDerived", { models: ["Webda/OwnerModel", "Webda/User"] });
     assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "webda_ownermodel");
     assert.strictEqual(store.resolveTable(useModel("Webda/User")), "webda_user");
   }
@@ -671,11 +684,13 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveTableSingleModelTableIsNotSharedWithFallbackModels() {
-    // Registry-like store: the configured model keeps `table`, a model routed to it as fallback does not
+  async resolveTableIsSharedWithFallbackModels() {
+    // Registry-like store: a model routed to it as fallback is stored in `table`, where Webda 3 wrote it; its untyped
+    // rows still belong to the configured model
     const store = new PostgresStore("fallbackTable", { models: ["Webda/RegistryEntry"], table: "registry" });
     assert.strictEqual(store.resolveTable(useModel("Webda/RegistryEntry")), "registry");
-    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "webda_ownermodel");
+    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "registry");
+    assert.strictEqual(store.resolveTableModel(useModel("Webda/OwnerModel")), "Webda/RegistryEntry");
   }
 
   @test
@@ -683,7 +698,7 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
     // Load the parameters as the application does, so autoCreateTable gets its default (true)
     const store = new PostgresStore(
       "fallbackCreate",
-      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry" })
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"] })
     );
     store.resolve();
     const statements: string[] = [];
@@ -724,7 +739,7 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   async fallbackRepositorySkipsCreateWhenAutoCreateDisabled() {
     const store = new PostgresStore(
       "fallbackNoCreate",
-      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry", autoCreateTable: false })
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], autoCreateTable: false })
     );
     store.resolve();
     const statements: string[] = [];

@@ -1,14 +1,22 @@
 # Stores: v3 to v4
 
-With the Memory and File stores, Webda 4 reads the data Webda 3 wrote, on the same database, without a manual step.
+With the Memory, File and Postgres stores, Webda 4 reads the data Webda 3 wrote, on the same database, without a manual step.
 You run `webda migrate` when you choose: it rewrites the Webda 3 types to the Webda 4 format, can be resumed, and is
 safe to run again.
 
 :::note
-The Memory and File stores implement this today. The Postgres, MongoDB, DynamoDB and Firestore stores, and the
-authentication changes, arrive in follow-up releases: until then those stores are not read transparently or
-migrated yet.
+The Memory, File and Postgres stores implement this today. The MongoDB, DynamoDB and Firestore stores arrive in
+follow-up releases: until then those stores are not read transparently or migrated yet. The authentication data
+(idents, users) has its own command, `webda auth migrate`.
 :::
+
+## Postgres tables
+
+A Postgres store keeps reading and writing the tables Webda 3 created: every model of the store, its subclasses and
+the models routed to it as fallback live in its `table`, unless `tables` maps a model elsewhere. Untyped rows
+belong to the first model of `models` stored in the table. Only a model new to the application gets a new table
+(its store's `table`, or its identifier lower-cased with `/` → `_` when the store has none). Key columns Webda 3
+created as `uuid` are kept as they are.
 
 ## What is transparent
 
@@ -58,7 +66,7 @@ Store Users: migration types
 - Resuming in another process and the lease between processes need a persistent Registry shared by every runner: a
   Registry kept in memory only protects the runners of one process, and its progress is lost when it stops.
 - Running it again scans every row again and reports 0 updates.
-- `webda migrate` runs on the stores that declare the `migrate` command: the Memory and File stores. A `Store`
+- `webda migrate` runs on the stores that declare the `migrate` command: the Memory, File and Postgres stores. A `Store`
   subclass of your own only gets it if it declares the `migrate` command itself; other stores are not migrated yet.
 
 ## Renamed models: `@WebdaAlias`

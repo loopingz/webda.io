@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import * as WebdaQL from "@webda/ql";
+import { PostgresDialect } from "./dialect.js";
 import { PostgresRepository, SQLClient, SQLComparisonExpression } from "./sqlstore.js";
 
 /**
@@ -36,11 +37,13 @@ async function where(query: string): Promise<string> {
 
 describe("SQLComparisonExpression", () => {
   it("doubles single quotes in string literals", () => {
-    expect(new SQLComparisonExpression("=", "a", "x' OR 1=1 --").toString()).toBe("a = 'x'' OR 1=1 --'");
+    expect(new SQLComparisonExpression("=", "a", "x' OR 1=1 --", new PostgresDialect()).toString()).toBe(
+      "a = 'x'' OR 1=1 --'"
+    );
   });
 
   it("keeps backslashes literal (standard_conforming_strings)", () => {
-    expect(new SQLComparisonExpression("=", "a", "c:\\dir").toString()).toBe("a = 'c:\\dir'");
+    expect(new SQLComparisonExpression("=", "a", "c:\\dir", new PostgresDialect()).toString()).toBe("a = 'c:\\dir'");
   });
 });
 

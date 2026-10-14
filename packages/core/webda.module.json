@@ -146,6 +146,40 @@
       },
       "Configuration": "lib/services/binary.service:BinaryParameters"
     },
+    "Webda/ClientCertificateFilter": {
+      "Import": "lib/services/clientcertificatefilter.service:ClientCertificateFilter",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "ClientCertificateFilter parameters",
+        "properties": {
+          "paths": {
+            "description": "Regular expressions of the request paths (relative uri without query string) allowed with a verified client\ncertificate, undefined allows every path",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "ClientCertificateFilter"
+      },
+      "Configuration": "lib/services/clientcertificatefilter.service:ClientCertificateFilterParameters",
+      "capabilities": [
+        "request-filter"
+      ]
+    },
     "Webda/ConfigurationService": {
       "Import": "lib/configurations/configuration.service:ConfigurationService",
       "Schema": {
@@ -977,6 +1011,44 @@
           },
           "cert": {
             "description": "TLS certificate file path",
+            "type": "string"
+          },
+          "clientAuth": {
+            "description": "Client certificate request on the TLS port: \"none\" does not ask for one, \"optional\" asks and accepts clients\nwithout one or with an unverified one (see ClientCertificate.verified), \"require\" refuses the TLS handshake of\nclients without a certificate signed by `clientCa`\n\nDefaults to \"optional\" when clientCa is set, \"none\" otherwise",
+            "enum": [
+              "none",
+              "optional",
+              "require"
+            ],
+            "type": "string"
+          },
+          "clientCa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "CA file(s) used to verify client certificates — enables mTLS on the TLS port"
+          },
+          "clientCertHeader": {
+            "description": "Header carrying the client certificate verified by a reverse proxy, disabled when undefined\n\nOnly accepted from `trustedProxies`: a request carrying it from another source is refused (400)",
+            "example": "\"x-forwarded-tls-client-cert\" (Traefik), \"x-ssl-client-cert\" (nginx), \"x-forwarded-client-cert\" (Envoy)",
+            "type": "string"
+          },
+          "clientCertHeaderFormat": {
+            "default": "traefik",
+            "description": "Format of `clientCertHeader`",
+            "enum": [
+              "traefik",
+              "pem-urlencoded",
+              "xfcc"
+            ],
             "type": "string"
           },
           "csrfOrigins": {

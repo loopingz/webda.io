@@ -15,7 +15,7 @@ export interface ProviderInfo {
   /**
    * Provider type
    */
-  type: "password" | "oauth" | "passwordless";
+  type: "password" | "oauth" | "passwordless" | "certificate";
   /**
    * URL to start the authentication flow (oauth, passwordless)
    */

@@ -7,7 +7,7 @@ import { Context, isWebContext } from "../contexts/icontext.js";
 import { getUuid } from "@webda/utils";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Session } from "./session.js";
-import { useService, useUserResolver } from "../core/hooks.js";
+import { useCertificateResolver, useService, useUserResolver } from "../core/hooks.js";
 import { runAsSystem } from "../contexts/execution.js";
 import { type ModelClass, type Repository, UuidModel } from "@webda/models";
 
@@ -115,6 +115,37 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
   }
 
   /**
+   * Build a stateless session from the verified client certificate of the request
+   *
+   * Needs a registered certificate resolver (see `registerCertificateResolver`), the session uses the provider
+   * "certificate" and the authentication method "mtls"
+   * @param context - the context
+   * @returns the session, undefined when no verified certificate resolves to a user
+   */
+  async loadFromCertificate(context: Context): Promise<Session | undefined> {
+    const resolver = useCertificateResolver();
+    const cert = isWebContext(context) ? context.getHttpContext()?.getClientCertificate?.() : undefined;
+    if (!resolver || !cert?.verified) {
+      return undefined;
+    }
+    let resolution: Awaited<ReturnType<typeof resolver.resolveCertificate>>;
+    try {
+      resolution = await resolver.resolveCertificate(cert, context);
+    } catch (err) {
+      this.log("WARN", "Cannot resolve the client certificate, certificate ignored", err?.message);
+      return undefined;
+    }
+    if (!resolution) {
+      return undefined;
+    }
+    const session = new Session();
+    session.stateless = true;
+    session.login(resolution.userId, resolution.identId, { provider: "certificate", amr: ["mtls"] });
+    session.roles = resolution.roles;
+    return session;
+  }
+
+  /**
    * Whether the user of an authenticated session changed their password after the session was authenticated
    *
    * Costs one user read (through the registered user resolver) per load of a session carrying `authAt`. A failing
@@ -203,6 +234,11 @@ export class CookieSessionManager<
     const authorization = context.getHttpContext().getHeader("authorization");
     if (typeof authorization === "string" && /^bearer(\s|$)/i.test(authorization)) {
       return this.loadFromToken(context, authorization.substring(7).trim());
+    }
+    // A verified client certificate of a known user comes next: an unknown one falls back to the cookie
+    const certSession = await this.loadFromCertificate(context);
+    if (certSession) {
+      return certSession;
     }
     const session = new Session();
     const cookie = await SecureCookie.load(

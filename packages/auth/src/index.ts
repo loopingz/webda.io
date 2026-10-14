@@ -5,4 +5,5 @@ export * from "./authentication.service.js";
 export * from "./email/tokens.js";
 export * from "./email/emailpassword.service.js";
 export * from "./oauth/oauth.service.js";
+export * from "./certificate/certificate.service.js";
 export * from "./compat/upgrade.js";

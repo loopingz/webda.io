@@ -1,6 +1,7 @@
 import {
   AsyncQueue,
   BuildCommand,
+  type ClientCertificate,
   HttpContext,
   OperationDefinition,
   OperationsTransport,
@@ -205,18 +206,20 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
       useLog("WARN", "No HttpServer found — gRPC cannot register its interceptor");
       return this;
     }
-    const interceptor = (req: IncomingMessage, res: ServerResponse): boolean => {
+    const interceptor = (req: IncomingMessage, res: ServerResponse, server: any): boolean => {
       const contentType = (req.headers["content-type"] as string) || "";
       if (!contentType.startsWith("application/grpc")) return false;
       runWithInstanceStorage(capturedStorage, () => {
-        this.handleGrpcRequest(req as any, res as any).catch(err => {
+        this.handleGrpcRequest(req as any, res as any, server).catch(err => {
           useLog("ERROR", "[GrpcService] handler failed:", err);
         });
       });
       return true;
     };
     for (const server of servers) {
-      (server as any).registerRequestInterceptor(interceptor);
+      (server as any).registerRequestInterceptor((req: IncomingMessage, res: ServerResponse) =>
+        interceptor(req, res, server)
+      );
     }
 
     return this;
@@ -280,9 +283,15 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
    *
    * @param req - HTTP/2 request carrying the gRPC method path and framed message body
    * @param res - HTTP/2 response used to write gRPC frames and trailers
+   * @param server - the HttpServer that received the request, it extracts the client certificate
+   * @param server.extractClientCertificate - client certificate of the request
    * @returns a promise that resolves when the response has been fully sent
    */
-  async handleGrpcRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async handleGrpcRequest(
+    req: IncomingMessage,
+    res: ServerResponse,
+    server?: { extractClientCertificate?(req: IncomingMessage): ClientCertificate | undefined }
+  ): Promise<void> {
     const grpcPath = req.url ?? "";
     const opId = this.rpcToOperation.get(grpcPath);
     const methodDef = this.rpcMethods.get(grpcPath);
@@ -297,9 +306,22 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
       return;
     }
 
+    const httpContext = this.httpContextOf(req);
+    try {
+      httpContext.setClientCertificate(server?.extractClientCertificate?.(req));
+    } catch {
+      // Client certificate header from an untrusted source
+      res.writeHead(200, {
+        "content-type": "application/grpc",
+        "grpc-status": String(GrpcStatus.PERMISSION_DENIED),
+        "grpc-message": "Forbidden"
+      });
+      res.end();
+      return;
+    }
     const stream = new GrpcStream(req, res, methodDef);
     const streaming = getOperationStreaming(this.getOperations()[opId]);
-    const ctx = new GrpcOperationContext(this.httpContextOf(req), stream, res);
+    const ctx = new GrpcOperationContext(httpContext, stream, res);
     const input = new AsyncQueue<unknown>();
     // Handlers first: data may arrive while the session loads
     stream.onMessage((message, size) => {

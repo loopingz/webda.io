@@ -92,6 +92,81 @@
         }
       }
     },
+    "Webda/CertificateProvider": {
+      "Import": "lib/certificate/certificate.service:CertificateProvider",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, string[]>": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          }
+        },
+        "description": "CertificateProvider parameters",
+        "properties": {
+          "allowedIssuers": {
+            "description": "Only certificates whose issuer common name or distinguished name (\"O=Webda, CN=ca\") is listed are accepted,\nundefined accepts every issuer trusted by the TLS layer",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "allowedSubjects": {
+            "description": "Only certificates whose subject distinguished name (\"O=Webda, CN=alice\") matches one of these regular\nexpressions are accepted, undefined accepts every subject",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "autoRegister": {
+            "default": false,
+            "description": "Register a user on the first request of an unknown certificate; otherwise the certificate has to be linked to\na logged user with `Auth.Certificate.Link`",
+            "type": "boolean"
+          },
+          "cacheTtl": {
+            "default": 60000,
+            "description": "How long a certificate resolved to a user is remembered, in milliseconds (0 disables the cache)",
+            "type": "number"
+          },
+          "identityField": {
+            "default": "fingerprint256",
+            "description": "Certificate field used as ident uid: the SHA-256 fingerprint pins one certificate, the other fields survive a\ncertificate renewal",
+            "enum": [
+              "fingerprint256",
+              "subject.CN",
+              "san.email",
+              "san.uri"
+            ],
+            "type": "string"
+          },
+          "roles": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%5B%5D%3E",
+            "description": "Roles of the certificate sessions by subject attribute: `{ \"OU=admins\": [\"admin\"] }` gives the role admin to\ncertificates having an OU admins"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "CertificateProvider"
+      },
+      "Configuration": "lib/certificate/certificate.service:CertificateProviderParameters"
+    },
     "Webda/EmailPasswordProvider": {
       "Import": "lib/email/emailpassword.service:EmailPasswordProvider",
       "Schema": {
@@ -100,9 +175,13 @@
         "definitions": {
           "password": {
             "additionalProperties": false,
+            "default": {
+              "policy": ".{8,}"
+            },
             "description": "Password rules",
             "properties": {
               "policy": {
+                "default": ".{8,}",
                 "type": "string"
               },
               "verifier": {
@@ -135,15 +214,23 @@
           },
           "throttle": {
             "additionalProperties": false,
+            "default": {
+              "failedBeforeDelay": 3,
+              "lockout": 900000,
+              "resendDelay": 14400000
+            },
             "description": "Throttling",
             "properties": {
               "failedBeforeDelay": {
+                "default": 3,
                 "type": "number"
               },
               "lockout": {
+                "default": 900000,
                 "type": "number"
               },
               "resendDelay": {
+                "default": 14400000,
                 "type": "number"
               }
             },
@@ -166,6 +253,9 @@
           },
           "password": {
             "$ref": "#/definitions/password",
+            "default": {
+              "policy": ".{8,}"
+            },
             "description": "Password rules"
           },
           "redirects": {
@@ -174,6 +264,11 @@
           },
           "throttle": {
             "$ref": "#/definitions/throttle",
+            "default": {
+              "failedBeforeDelay": 3,
+              "lockout": 900000,
+              "resendDelay": 14400000
+            },
             "description": "Throttling"
           },
           "trustEmailVerification": {
@@ -215,9 +310,7 @@
           }
         },
         "required": [
-          "password",
           "redirects",
-          "throttle",
           "type"
         ],
         "type": "object",
@@ -319,7 +412,8 @@
               "enum": [
                 "password",
                 "oauth",
-                "passwordless"
+                "passwordless",
+                "certificate"
               ],
               "type": "string"
             }
@@ -438,6 +532,68 @@
     "Authentication.unlink.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
+    },
+    "CertificateProvider.link.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "CertificateProvider.link.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "accessToken": {
+              "type": "string"
+            },
+            "expiresIn": {
+              "type": "number"
+            },
+            "refreshToken": {
+              "type": "string"
+            },
+            "status": {
+              "const": "ok",
+              "type": "string"
+            },
+            "user": {}
+          },
+          "required": [
+            "accessToken",
+            "expiresIn",
+            "refreshToken",
+            "status",
+            "user"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/definitions/%232"
+        }
+      ],
+      "description": "Result of an authentication completion",
+      "definitions": {
+        "#2": {
+          "additionalProperties": false,
+          "properties": {
+            "methods": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "status": {
+              "const": "mfa_required",
+              "type": "string"
+            }
+          },
+          "required": [
+            "methods",
+            "status"
+          ],
+          "type": "object"
+        }
+      }
     },
     "EmailPasswordProvider.login.input": {
       "type": "object",

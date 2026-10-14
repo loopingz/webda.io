@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Session, UnknownSession } from "./session.js";
 import { WebdaApplicationTest } from "../test/application.js";
-import { registerUserResolver, useService } from "../core/hooks.js";
+import { registerCertificateResolver, registerUserResolver, useService } from "../core/hooks.js";
 import { useModel } from "../application/hooks.js";
 import { useCrypto } from "../services/cryptoservice.service.js";
 import { OwnerModel } from "../models/ownermodel.model.js";
@@ -243,6 +243,89 @@ class BearerSessionTest extends WebdaApplicationTest {
     const loaded = await useService("SessionManager").load(ctx);
     assert.ok(!loaded.isLogged());
     assert.ok(loaded.isPending());
+  }
+
+  /**
+   * Context presenting a client certificate
+   * @param verified - whether the certificate was verified
+   * @param headers - request headers
+   * @returns the context
+   */
+  async withCertificate(verified: boolean, headers: Record<string, string> = {}) {
+    const ctx = await this.contextWith(headers);
+    ctx.getHttpContext().setClientCertificate({ subject: { CN: "alice" }, verified, source: "tls" } as any);
+    return ctx;
+  }
+
+  @test
+  async certificatePrecedence() {
+    const manager = useService("SessionManager");
+    const seen: any[] = [];
+    registerCertificateResolver({
+      resolveCertificate: async (cert, context) => {
+        seen.push({ cert, context });
+        return cert.subject.CN === "alice" ? { userId: "alice", identId: "fp:certificate", roles: ["ops"] } : undefined;
+      }
+    });
+    try {
+      // Certificate session: stateless, provider certificate, amr mtls
+      const ctx = await this.withCertificate(true);
+      const loaded = await manager.load(ctx);
+      assert.strictEqual(loaded.userId, "alice");
+      assert.strictEqual(loaded.identUsed, "fp:certificate");
+      assert.ok(loaded.stateless);
+      assert.ok(loaded.isLogged());
+      assert.strictEqual(loaded.provider, "certificate");
+      assert.deepStrictEqual(loaded.amr, ["mtls"]);
+      assert.deepStrictEqual(loaded.roles, ["ops"]);
+      assert.strictEqual(seen[0].context, ctx);
+
+      // Bearer wins over the certificate
+      const bearer = await manager.load(
+        await this.withCertificate(true, { authorization: `Bearer ${await this.token()}` })
+      );
+      assert.strictEqual(bearer.userId, "u1");
+      assert.strictEqual(seen.length, 1);
+
+      // Certificate wins over the cookie
+      const first = await this.newContext();
+      const s = new Session();
+      s.login("u1", "x:email");
+      await manager.save(first, s);
+      const withCookie = await this.withCookies(first);
+      assert.strictEqual((await manager.load(withCookie)).userId, "u1");
+      withCookie.getHttpContext().setClientCertificate({ subject: { CN: "alice" }, verified: true } as any);
+      assert.strictEqual((await manager.load(withCookie)).userId, "alice");
+      // An unknown certificate falls back to the cookie
+      withCookie.getHttpContext().setClientCertificate({ subject: { CN: "bob" }, verified: true } as any);
+      assert.strictEqual((await manager.load(withCookie)).userId, "u1");
+      // An unverified certificate is never resolved
+      const count = seen.length;
+      withCookie.getHttpContext().setClientCertificate({ subject: { CN: "alice" }, verified: false } as any);
+      assert.strictEqual((await manager.load(withCookie)).userId, "u1");
+      assert.strictEqual(seen.length, count);
+    } finally {
+      registerCertificateResolver(undefined);
+    }
+  }
+
+  @test
+  async certificateWithoutResolverOrFailing() {
+    const manager = useService("SessionManager");
+    // No resolver: a certificate authenticates nobody
+    const loaded = await manager.load(await this.withCertificate(true));
+    assert.ok(!loaded.isLogged());
+    assert.ok(!loaded.stateless);
+    registerCertificateResolver({
+      resolveCertificate: async () => {
+        throw new Error("store down");
+      }
+    });
+    try {
+      assert.ok(!(await manager.load(await this.withCertificate(true))).isLogged());
+    } finally {
+      registerCertificateResolver(undefined);
+    }
   }
 }
 

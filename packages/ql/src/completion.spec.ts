@@ -6,7 +6,7 @@ import {
   type CompletionField,
   type CompletionOptions,
   type JSONSchema7Like
-} from "./completion.js";
+} from "./index.js";
 
 const TEST_FIELDS: CompletionField[] = [
   { name: "status", type: "string", enum: ["open", "closed"] },
@@ -224,6 +224,42 @@ export class CompletionTest {
   }
 
   @test
+  insideDoubleQuotedString() {
+    // 'status = "op|"' -> 'open'
+    const res = complete('status = "op|"');
+    const labels = res.items.map(i => i.label);
+    assert.deepStrictEqual(labels, ["'open'"]);
+    assert.strictEqual(res.prefix, "op");
+    assert.deepStrictEqual(res.items[0].range, [9, 13]);
+
+    // Unclosed double-quoted string
+    const unclosed = complete('status = "op|');
+    assert.deepStrictEqual(unclosed.items.map(i => i.label), ["'open'"]);
+    assert.strictEqual(unclosed.prefix, "op");
+
+    // Completed double-quoted string with caret after
+    const afterDouble = complete('status = "open" AND |');
+    assert.ok(afterDouble.items.map(i => i.label).includes("status"));
+  }
+
+  @test
+  stringLiteralWithEscape() {
+    const res1 = complete("status = 'op\\\'en|'");
+    assert.strictEqual(res1.prefix, "op\\\'en");
+
+    const res2 = complete('status = "op\\\"en|"');
+    assert.strictEqual(res2.prefix, 'op\\\"en');
+  }
+
+  @test
+  insideStringLiteralNoEnum() {
+    // "title = 'foo|'" -> items empty because title has no enum
+    const res = complete("title = 'foo|'");
+    assert.deepStrictEqual(res.items, []);
+    assert.strictEqual(res.prefix, "foo");
+  }
+
+  @test
   afterLimit() {
     // "LIMIT |" -> ? (no fields)
     const res = complete("LIMIT |");
@@ -347,6 +383,70 @@ export class CompletionTest {
     // Empty or non-object schema
     assert.deepStrictEqual(fieldsFromSchema({} as any), []);
     assert.deepStrictEqual(fieldsFromSchema(null as any), []);
+  }
+
+  @test
+  fieldsFromSchemaExtraCases() {
+    const schema: JSONSchema7Like = {
+      type: "object",
+      properties: {
+        nestedBool: {
+          type: "object",
+          properties: {
+            flag: true,
+            negFlag: false
+          }
+        },
+        nullableString: {
+          type: ["string", "null"] as any,
+          description: "Nullable"
+        },
+        noTypeProp: {
+          description: "No type specified"
+        }
+      }
+    };
+    const fields = fieldsFromSchema(schema);
+    const names = fields.map(f => f.name);
+    assert.ok(names.includes("nestedBool.flag"));
+    assert.ok(!names.includes("nestedBool.negFlag"));
+    const nullableField = fields.find(f => f.name === "nullableString");
+    assert.strictEqual(nullableField?.type, "string");
+    const noTypeField = fields.find(f => f.name === "noTypeProp");
+    assert.strictEqual(noTypeField?.type, undefined);
+  }
+
+  @test
+  comparisonFieldBoundaries() {
+    // Keyword right before operator (hits break in findComparisonField)
+    const res1 = complete("WHERE = 'foo|'");
+    assert.deepStrictEqual(res1.items, []);
+    assert.strictEqual(res1.prefix, "foo");
+
+    // Number literal before operator (hits return undefined in findComparisonField)
+    const res2 = complete("123 = 'foo|'");
+    assert.deepStrictEqual(res2.items, []);
+    assert.strictEqual(res2.prefix, "foo");
+  }
+
+  @test
+  unquotedValuePrefixFiltering() {
+    // Caret right after identifier prefix 'op' following '=' without quotes
+    const res = complete("status = op|");
+    const labels = res.items.map(i => i.label);
+    assert.ok(labels.includes("'open'"));
+    assert.strictEqual(res.prefix, "op");
+  }
+
+  @test
+  getCompletionsErrorFallback() {
+    const badOptions: any = {
+      get fields() {
+        throw new Error("Forced error");
+      }
+    };
+    const res = getCompletions("SELECT", 0, badOptions);
+    assert.deepStrictEqual(res, { items: [], prefix: "" });
   }
 
   @test

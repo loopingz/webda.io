@@ -427,6 +427,63 @@ export class CovRepositoryTest {
     // getPrimaryKey with forceObject and object input (returns object directly)
     const pkObjFromObj = repo.getPrimaryKey({ uuid: "test-pk2" }, true);
     assert.strictEqual((pkObjFromObj as any).uuid, "test-pk2");
+
+    // Test getCompletionFields and getAllowedFields across Schemas
+    class SchemaStoredModel extends UuidModel {}
+    (SchemaStoredModel as any).Metadata = {
+      Schemas: {
+        Stored: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            author: { type: "object", properties: { name: { type: "string" } } }
+          }
+        }
+      }
+    };
+    const storedRepo = new MemoryRepository<typeof SchemaStoredModel>(SchemaStoredModel, ["uuid"]);
+    const storedFields = storedRepo.getCompletionFields();
+    assert.ok(storedFields.some(f => f.name === "title"));
+    assert.ok(storedFields.some(f => f.name === "author.name"));
+    const allowed = storedRepo.getAllowedFields();
+    assert.ok(allowed?.includes("title"));
+    assert.ok(allowed?.includes("author.name"));
+
+    // Schemas.Output only
+    class SchemaOutputModel extends UuidModel {}
+    (SchemaOutputModel as any).Metadata = {
+      Schemas: {
+        Output: {
+          type: "object",
+          properties: {
+            outputField: { type: "string" }
+          }
+        }
+      }
+    };
+    const outputRepo = new MemoryRepository<typeof SchemaOutputModel>(SchemaOutputModel, ["uuid"]);
+    assert.ok(outputRepo.getCompletionFields().some(f => f.name === "outputField"));
+
+    // Schemas.Input only
+    class SchemaInputModel extends UuidModel {}
+    (SchemaInputModel as any).Metadata = {
+      Schemas: {
+        Input: {
+          type: "object",
+          properties: {
+            inputField: { type: "string" }
+          }
+        }
+      }
+    };
+    const inputRepo = new MemoryRepository<typeof SchemaInputModel>(SchemaInputModel, ["uuid"]);
+    assert.ok(inputRepo.getCompletionFields().some(f => f.name === "inputField"));
+
+    // No schema
+    class NoSchemaModel extends UuidModel {}
+    (NoSchemaModel as any).Metadata = {};
+    const noSchemaRepo = new MemoryRepository<typeof NoSchemaModel>(NoSchemaModel, ["uuid"]);
+    assert.deepStrictEqual(noSchemaRepo.getCompletionFields(), []);
   }
 
   @test

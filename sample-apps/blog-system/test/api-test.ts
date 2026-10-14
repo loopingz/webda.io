@@ -6,6 +6,7 @@ import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { listOperations } from "@webda/core/lib/core/operations.js";
 import { useRouter } from "@webda/core/lib/rest/hooks.js";
 import { useApplication } from "@webda/core/lib/application/hooks.js";
+import { useService } from "@webda/core/lib/core/hooks.js";
 import { WebContext } from "@webda/core/lib/contexts/webcontext.js";
 import { HttpContext } from "@webda/core/lib/contexts/httpcontext.js";
 import { runWithContext } from "@webda/core/lib/contexts/execution.js";
@@ -219,6 +220,41 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     assert.ok(rootRoutes, "Root route should exist (OpenAPI)");
     const getMethods = rootRoutes.filter(r => r.methods.includes("GET"));
     assert.ok(getMethods.length > 0, "Root route should support GET (OpenAPI)");
+  }
+
+  @test
+  async completeQL() {
+    const app = useApplication();
+    const bean: any = useService("TestBean" as any);
+    assert.ok(bean, "TestBean should exist");
+
+    // Standard completion with default model
+    const res1 = await bean.completeQL();
+    assert.ok(Array.isArray(res1.items));
+
+    // Completion on Post model
+    const res2 = await bean.completeQL("tit", 3, "WebdaSample/Post");
+    assert.ok(res2.items.some((i: any) => i.label === "title"));
+
+    // Unknown model
+    const res3 = await bean.completeQL("x", 1, "NonExistent");
+    assert.ok(Array.isArray(res3.items));
+
+    // Model without repository (falls back to Schemas reflection)
+    class DummyModel {}
+    (DummyModel as any).Metadata = {
+      Schemas: {
+        Stored: {
+          type: "object",
+          properties: {
+            dummyField: { type: "string" }
+          }
+        }
+      }
+    };
+    (app.getModels() as any)["WebdaSample/Dummy"] = DummyModel;
+    const res4 = await bean.completeQL("dum", 3, "WebdaSample/Dummy");
+    assert.ok(res4.items.some((i: any) => i.label === "dummyField"));
   }
 }
 

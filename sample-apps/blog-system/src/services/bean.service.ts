@@ -97,23 +97,27 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
   async completeQL(query: string = "", caret?: number, model: string = "WebdaSample/Post"): Promise<CompletionResult> {
     const app = useApplication();
     let fields: CompletionField[] = [];
-    const modelClass = app.getModel(model);
-    if (modelClass) {
-      try {
-        const repo: any = useRepository(modelClass as any);
-        if (repo && typeof repo.getCompletionFields === "function") {
-          fields = repo.getCompletionFields();
+    try {
+      const modelClass = app.getModel(model);
+      if (modelClass) {
+        try {
+          const repo: any = useRepository(modelClass as any);
+          if (repo && typeof repo.getCompletionFields === "function") {
+            fields = repo.getCompletionFields();
+          }
+        } catch {
+          // Fallback to schema reflection
         }
-      } catch {
-        // Fallback to schema reflection
-      }
-      if (fields.length === 0) {
-        const meta: any = (modelClass as any)?.Metadata;
-        const schema = meta?.Schemas?.Stored || meta?.Schemas?.Output || meta?.Schemas?.Input;
-        if (schema) {
-          fields = fieldsFromSchema(schema);
+        if (fields.length === 0) {
+          const meta: any = (modelClass as any)?.Metadata;
+          const schema = meta?.Schemas?.Stored || meta?.Schemas?.Output || meta?.Schemas?.Input;
+          if (schema) {
+            fields = fieldsFromSchema(schema);
+          }
         }
       }
+    } catch {
+      // Model not found
     }
     const offset = typeof caret === "number" ? caret : query.length;
     return getCompletions(query, offset, { fields, filterOnly: true });

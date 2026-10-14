@@ -200,6 +200,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.8...mongo-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* **ql:** add NOW() time function with duration offset ([#856](https://github.com/loopingz/webda.io/issues/856)) ([#886](https://github.com/loopingz/webda.io/issues/886)) ([653ecd0](https://github.com/loopingz/webda.io/commit/653ecd05327a02c828cae9c7cac02b34af251f67))
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/ql bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.7...mongo-v4.0.0-beta.8) (2026-10-12)
 
 

@@ -103,3 +103,6 @@ export * from "./models/types.js";
 export * from "./cache/cache.js";
 export { escape, WebdaQLError } from "@webda/ql";
 export type { WebdaQLStatement, WebdaQLString } from "@webda/ql";
+
+export * from "./application/parameters.js";
+export * from "./application/modelconfiguration.js";

@@ -46,15 +46,6 @@
             ],
             "type": "string"
           },
-          "mfaAttribute": {
-            "default": "mfa",
-            "description": "User attribute used as the login second factor. Other MFA attributes remain independent.",
-            "type": "string"
-          },
-          "mfaReauthMaxAge": {
-            "description": "Maximum primary authentication age in seconds for enrolling a login factor (0 disables the limit).",
-            "type": "number"
-          },
           "registration": {
             "default": true,
             "description": "Allow automatic registration of new users",

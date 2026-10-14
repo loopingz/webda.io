@@ -334,24 +334,29 @@ checked.
 single-use recovery codes, with an extensible `SecondFactorService` base class for future factors (e.g. SMS, WebAuthn).
 
 The factors and recovery codes live in the `Webda/MFA` behavior of `@webda/core`. Each attribute has its own
-operations, secrets and recovery codes. `Authentication.mfaAttribute` selects the User attribute used for login
-(default `mfa`). Other attributes on the same User, or on other models, provide independent verification.
+operations, secrets and recovery codes. `purpose: "login"` selects the User attribute used for login. The inherited `User.mfa` attribute has that purpose
+by default. Other attributes on the same User, or on other models, provide independent verification.
 An attribute can enable several methods (e.g. `totp` and `sms`); its verification accepts any enabled method unless
 restricted by the `method` input.
 
 ### Configuration
 
 Add `Webda/TotpService` and expose the User model through a `Webda/DomainService` (or a transport that includes it).
-Configure `mfaAttribute` and `mfaReauthMaxAge` on the Authentication service, independently of the factor provider:
+Configure each attribute under `models.<Model>.behaviors.<attribute>`, independently of the factor provider:
 
 ```jsonc
 {
+  "models": {
+    "Webda/User": {
+      "behaviors": {
+        "mfa": { "purpose": "login", "methods": ["totp"], "reauthMaxAge": 300, "recoveryCodes": 10 }
+        // Declare paymentMfa: MFA on your User subclass before configuring it.
+        // "paymentMfa": { "purpose": "step-up", "methods": ["totp"], "verificationMaxAge": 60, "recoveryCodes": 0 }
+      }
+    }
+  },
   "services": {
-    "Authentication": {
-      "type": "Webda/Authentication",
-      "mfaAttribute": "mfa",
-      "mfaReauthMaxAge": 300 // seconds; 0 disables the enrollment reauthentication limit
-    },
+    "Authentication": { "type": "Webda/Authentication" },
     "DomainService": { "type": "Webda/DomainService", "models": ["Webda/User"] },
     "totp": {
       "type": "Webda/TotpService",
@@ -360,7 +365,7 @@ Configure `mfaAttribute` and `mfaReauthMaxAge` on the Authentication service, in
       "digits": 6, // 6 | 8 (default 6)
       "period": 30, // time step in seconds (default 30)
       "window": 1, // accepted drift window in time steps (default 1)
-      "recoveryCodes": 10, // recovery codes issued with the first enabled factor (default 10, 0 disables them)
+      "recoveryCodes": 10, // provider default; the behavior attribute can override it
       "throttle": {
         "failedBeforeDelay": 5, // failed verification attempts before lockout (the strictest enabled method applies)
         "lockout": 900000 // lockout duration in ms (15 min)
@@ -390,7 +395,7 @@ Configure `mfaAttribute` and `mfaReauthMaxAge` on the Authentication service, in
 ### Authentication Flow
 
 1. **Enrollment**:
-   - `POST users/{uuid}/mfa.enroll` with `{ method: "totp" }` requires an active logged-in session (and requires reauthentication if the session is older than `mfaReauthMaxAge`).
+   - `POST users/{uuid}/mfa.enroll` with `{ method: "totp" }` requires an active logged-in session (and requires reauthentication if the session is older than `reauthMaxAge`).
    - Returns `{ secret, uri }` where `uri` is a standard `otpauth://totp/...` URI ready for QR code rendering.
 2. **Confirmation**:
    - `POST users/{uuid}/mfa.confirm` with `{ method: "totp", code: "123456" }`.
@@ -485,8 +490,11 @@ A fourth argument requires a more recent proof (`verifyMfaProof(proof, vault, "m
 ### Multiple MFA attributes and session status
 
 For a User with `mfa: MFA` and `paymentMfa: MFA`, the operations are `User.Mfa.*` and `User.PaymentMfa.*`.
-Both attributes can use `method: "totp"` with separate secrets and recovery codes. Only the attribute selected by
-`Authentication.mfaAttribute` completes a pending login. Pending sessions can access only their own login attribute;
+Policies can restrict allowed `methods`, override `recoveryCodes` (0 disables them), set the proof lifetime with
+`verificationMaxAge` (seconds), and set login enrollment `reauthMaxAge` (seconds; 0 disables the limit).
+
+Both attributes can use `method: "totp"` with separate secrets and recovery codes. Only the attribute configured with
+`purpose: "login"` completes a pending login. More than one login attribute is a configuration error. Pending sessions can access only their own login attribute;
 all other behavior actions retain the model's normal read and action permission checks.
 
 Successful `Confirm`, `Verify` and `Recover` actions record their server-derived operation name in the session:

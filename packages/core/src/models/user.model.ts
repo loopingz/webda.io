@@ -14,6 +14,8 @@ export type UserEvents<T> = ModelEvents<T> & {
  * @WebdaModel
  */
 export class User extends UuidModel {
+  /** Default policy of the inherited login MFA attribute. */
+  static BehaviorParameters: Record<string, Record<string, unknown>> = { mfa: { purpose: "login" } };
   [WEBDA_EVENTS]: UserEvents<this>;
   /** Create a new User
    * @param data - initial data

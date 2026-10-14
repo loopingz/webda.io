@@ -1,3 +1,4 @@
+import { SchemaConverter } from "./schema/converter.ts";
 /**
  * The whole `webda.module.json`, generated on the TypeScript 7.1 API.
  *
@@ -41,7 +42,7 @@ import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order, ts6PropertyOrder } from "./property-order.ts";
 import { generateModelSchemas } from "./schema/model.ts";
 import { generateTopLevelSchemas } from "./schema/project.ts";
-import { findParametersNode, generateServiceSchema } from "./schema/service.ts";
+import { findParametersNode, findStaticParametersDeclaration, generateServiceSchema } from "./schema/service.ts";
 import type { JSONSchema7 } from "./schema/types.ts";
 
 /** Value of `$schema` in every generated module. */
@@ -1152,7 +1153,10 @@ function configurationOf(
   base: string,
   options: DiscoveryOptions
 ): string | undefined {
-  const node = findParametersNode(declaration, ctx.checker, ctx.project, base);
+  const node =
+    base === "Parameters"
+      ? findStaticParametersDeclaration(declaration, ctx.checker, ctx.project)
+      : findParametersNode(declaration, ctx.checker, ctx.project, base);
   if (!node) return undefined;
   const type = ctx.checker.getTypeAtLocation(node);
   const target: any = valueDeclarationOf(ctx, type.getSymbol());
@@ -1163,6 +1167,26 @@ function configurationOf(
     throw new Error(`Cannot find exported name for ${target.name?.text}, check that the class is exported`);
   }
   return `${jsTarget(sf.fileName, options)}:${exportName}`;
+}
+
+/**
+ * Metadata for runtime configuration declared through static Parameters.
+ * @param ctx - analysis context
+ * @param declaration - configurable class
+ * @param options - module discovery options
+ * @returns configuration schema and parameter export
+ */
+function runtimeConfigurationOf(
+  ctx: AnalysisContext,
+  declaration: ClassDeclaration,
+  options: DiscoveryOptions
+): { Schema?: any; Configuration?: string } {
+  const parameters = findStaticParametersDeclaration(declaration, ctx.checker, ctx.project);
+  if (!parameters) return {};
+  return {
+    Schema: new SchemaConverter({ project: ctx.project, checker: ctx.checker, mode: "input" }).fromNode(parameters),
+    Configuration: configurationOf(ctx, declaration, "Parameters", options)
+  };
 }
 
 /**
@@ -1286,6 +1310,7 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
       if (!entry) continue;
       try {
         entry.Schemas = generateModelSchemas(declaration, { project: ctx.project, checker: ctx.checker }) as any;
+        Object.assign(entry, runtimeConfigurationOf(ctx, declaration, discovery));
       } catch (error) {
         errors.push(`${object.name}: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -1331,7 +1356,8 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
       module.behaviors[identifier] = {
         Identifier: identifier,
         Import: `${outputTarget(sf.fileName, discovery)}:${exportName}`,
-        Actions: buildBehaviorActions(ctx, declaration, identifier)
+        Actions: buildBehaviorActions(ctx, declaration, identifier),
+        ...runtimeConfigurationOf(ctx, declaration, discovery)
       };
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));

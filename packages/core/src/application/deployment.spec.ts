@@ -76,6 +76,13 @@ class DeploymentTest {
   }
 
   @test
+  deploymentIntroducesModelPolicies() {
+    const configuration: any = { version: 4, parameters: {}, services: {} };
+    applyDeployment(configuration, { models: { "Test/User": { behaviors: { mfa: { methods: ["totp"] } } } } });
+    assert.deepStrictEqual(configuration.models["Test/User"].behaviors.mfa.methods, ["totp"]);
+  }
+
+  @test
   unitServices() {
     const services = getDeploymentUnitServices(
       {

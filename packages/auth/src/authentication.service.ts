@@ -5,7 +5,8 @@ import {
   Counter,
   Ident,
   InvalidMfaCode,
-  type MFA,
+  MFA,
+  useBehaviorParameters,
   type MfaAction,
   registerLoginMfa,
   type IAuthenticationService,
@@ -96,10 +97,6 @@ export class AuthenticationParameters extends ServiceParameters {
    * @default "Webda/User"
    */
   userModel: string;
-  /** User attribute used as the login second factor. Other MFA attributes remain independent. */
-  mfaAttribute: string = "mfa";
-  /** Maximum primary authentication age in seconds for enrolling a login factor (0 disables the limit). */
-  mfaReauthMaxAge: number = 300;
   /**
    * Ident model
    * @default "Webda/Ident"
@@ -153,6 +150,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   };
 
   protected providerMap = new Map<string, AuthProvider>();
+  protected loginMfaAttribute?: string;
 
   /**
    * @returns the configured user model
@@ -172,11 +170,29 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   resolve(): this {
     super.resolve();
     this.discoverProviders();
-    registerLoginMfa({
-      model: useModelMetadata(this.getUserModel()).Identifier,
-      attribute: this.parameters.mfaAttribute,
-      run: (mfa, action, method, next) => this.runLoginMfa(mfa, action, method, next)
-    });
+    const userModel = this.getUserModel();
+    const metadata = useModelMetadata(userModel);
+    const loginAttributes = (metadata.Relations?.behaviors ?? []).filter(
+      relation =>
+        relation.behavior === "Webda/MFA" &&
+        useBehaviorParameters(userModel, relation.attribute, MFA).purpose === "login"
+    );
+    if (loginAttributes.length > 1) {
+      throw new WebdaError.CodeError(
+        "MULTIPLE_LOGIN_MFA",
+        `${metadata.Identifier} declares more than one login MFA attribute`
+      );
+    }
+    this.loginMfaAttribute = loginAttributes[0]?.attribute;
+    registerLoginMfa(
+      this.loginMfaAttribute
+        ? {
+            model: metadata.Identifier,
+            attribute: this.loginMfaAttribute,
+            run: (mfa, action, method, next) => this.runLoginMfa(mfa, action, method, next)
+          }
+        : undefined
+    );
     registerUserResolver({
       resolve: async (id: string) => {
         const ref = (this.getUserModel() as any).ref(id);
@@ -345,7 +361,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @returns enabled methods, empty when MFA is off
    */
   protected mfaMethods(user: User): string[] {
-    const mfa: MFA | undefined = (user as any)?.[this.parameters.mfaAttribute];
+    const mfa: MFA | undefined = this.loginMfaAttribute ? (user as any)?.[this.loginMfaAttribute] : undefined;
     return mfa?.isEnabled?.() ? mfa.methods() : [];
   }
 
@@ -643,8 +659,8 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     }
     if (
       action === "enroll" &&
-      this.parameters.mfaReauthMaxAge &&
-      (!session.authAt || Date.now() - session.authAt > this.parameters.mfaReauthMaxAge * 1000)
+      mfa.getParameters().reauthMaxAge &&
+      (!session.authAt || Date.now() - session.authAt > mfa.getParameters().reauthMaxAge * 1000)
     ) {
       throw new WebdaError.Unauthorized("Reauthentication required");
     }

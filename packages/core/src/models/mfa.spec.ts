@@ -448,6 +448,39 @@ class MfaBehaviorTest extends WebdaApplicationTest {
   }
 
   @test
+  async perAttributeMethodRecoveryAndProofPolicy() {
+    this.registerFactors();
+    const { mfa } = await this.vault("policy-configured");
+    this.webda.applicationConfiguration.models = {
+      "Webda/User": {
+        behaviors: {
+          mfa: {
+            purpose: "step-up",
+            methods: ["good"],
+            recoveryCodes: 0,
+            verificationMaxAge: 60
+          }
+        }
+      }
+    };
+    try {
+      await runWithContext(await this.userContext("policy-configured"), async () => {
+        await assert.rejects(() => mfa.enroll("other"), /not allowed/);
+        await mfa.enroll("good");
+        assert.deepStrictEqual((await mfa.confirm("good", "good-code")).recoveryCodes, []);
+        assert.strictEqual((await mfa.verify("good-code")).expiresIn, 60);
+        assert.deepStrictEqual((await mfa.recoveryCodes("good-code")).recoveryCodes, []);
+        mfa.getFactor("other").enabledAt = Date.now();
+        assert.strictEqual(mfa.isEnabled("other"), false);
+        assert.deepStrictEqual(mfa.methods(), ["good"]);
+        await assert.rejects(() => mfa.verify("other-code", "other"), MfaNotEnabled);
+      });
+    } finally {
+      delete this.webda.applicationConfiguration.models;
+    }
+  }
+
+  @test
   async configuredLoginPolicyIsScoped() {
     this.registerFactors();
     const { mfa } = await this.vault("policy-owner");
@@ -484,7 +517,16 @@ class MfaBehaviorTest extends WebdaApplicationTest {
     const ident = await Ident.ref(Ident.key("no-counters", "vault")).get();
     const identMfa = new MFA();
     (identMfa as any)[WEBDA_STORAGE].__parent__ = { instance: ident, attribute: "mfa" };
-    await identMfa.startEnrollment("good");
-    await assert.rejects(() => identMfa.confirm("good", "good-code"), /without declaring _mfaAttempts/);
+    const metadata = (Ident as any).Metadata;
+    (Ident as any).Metadata = {
+      ...metadata,
+      Relations: { ...metadata.Relations, behaviors: [{ attribute: "mfa", behavior: "Webda/MFA" }] }
+    };
+    try {
+      await identMfa.startEnrollment("good");
+      await assert.rejects(() => identMfa.confirm("good", "good-code"), /without declaring _mfaAttempts/);
+    } finally {
+      (Ident as any).Metadata = metadata;
+    }
   }
 }

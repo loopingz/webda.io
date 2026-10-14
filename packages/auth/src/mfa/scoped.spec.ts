@@ -1,6 +1,17 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { hotp, totpStep, listOperations, runAsSystem, useModelMetadata, verifyMfaProof, WebdaError } from "@webda/core";
+import {
+  hotp,
+  totpStep,
+  listOperations,
+  runAsSystem,
+  useModelMetadata,
+  useCore,
+  useLoginMfa,
+  useService,
+  verifyMfaProof,
+  WebdaError
+} from "@webda/core";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "../test/authtest.js";
 import { User } from "@webda/core/lib/models/user.model.js";
@@ -15,11 +26,20 @@ class ScopedMfaTest extends AuthTest {
   getTestConfiguration() {
     return {
       parameters: { ignoreBeans: true },
+      models: {
+        "Webda/MfaUser": {
+          behaviors: {
+            mfa: { purpose: "step-up" },
+            loginMfa: { purpose: "login" },
+            paymentMfa: { methods: ["totp"], verificationMaxAge: 60, recoveryCodes: 2 }
+          }
+        }
+      },
       services: {
         DomainService: { type: "Webda/DomainService", models: ["Webda/MfaUser"] },
         AuthStore: { type: "Webda/MemoryStore", models: ["Webda/MfaUser", "Webda/Ident", "Webda/RefreshToken"] },
         DefinedMailer: { type: "WebdaTest/Mailer" },
-        Authentication: { type: "Webda/Authentication", userModel: "Webda/MfaUser", mfaAttribute: "loginMfa" },
+        Authentication: { type: "Webda/Authentication", userModel: "Webda/MfaUser" },
         TokenService: { type: "Webda/TokenService" },
         totp: { type: "Webda/TotpService" },
         email: { type: "Webda/EmailPasswordProvider", mailer: "DefinedMailer", verification: "none" }
@@ -51,6 +71,33 @@ class ScopedMfaTest extends AuthTest {
   }
 
   @test
+  loginPurposeIsUniqueAndCanBeDisabled() {
+    const auth = useService("Authentication" as any) as Authentication;
+    const policies = useCore().applicationConfiguration.models!["Webda/MfaUser"].behaviors!;
+    try {
+      policies.paymentMfa.purpose = "login";
+      assert.throws(() => auth.resolve(), /more than one login MFA/);
+      policies.paymentMfa.purpose = "step-up";
+      policies.loginMfa.purpose = "step-up";
+      auth.resolve();
+      assert.strictEqual(useLoginMfa("Webda/MfaUser", "loginMfa"), undefined);
+      assert.deepStrictEqual((auth as any).mfaMethods(undefined), []);
+      const metadata = (MfaUser as any).Metadata;
+      (MfaUser as any).Metadata = { ...metadata, Relations: undefined };
+      try {
+        auth.resolve();
+        assert.strictEqual(useLoginMfa("Webda/MfaUser", "loginMfa"), undefined);
+      } finally {
+        (MfaUser as any).Metadata = metadata;
+      }
+    } finally {
+      delete policies.paymentMfa.purpose;
+      policies.loginMfa.purpose = "login";
+      auth.resolve();
+    }
+  }
+
+  @test
   async independentAttributesAndScopedProofs() {
     const ctx = await this.ctx();
     const email = "two-mfa@example.com";
@@ -73,6 +120,7 @@ class ScopedMfaTest extends AuthTest {
       },
       ctx
     );
+    assert.strictEqual(paymentConfirmed.recoveryCodes.length, 2);
     assert.strictEqual(paymentConfirmed.accessToken, undefined);
     assert.strictEqual(ctx.getSession().mfa, "none");
     const loginConfirmed = await this.op(
@@ -132,6 +180,7 @@ class ScopedMfaTest extends AuthTest {
       },
       ctx
     );
+    assert.strictEqual(proof.expiresIn, 60);
     const user = await runAsSystem(() => MfaUser.ref(uuid).get());
     await this.inContext(ctx, async () => {
       assert.strictEqual(await verifyMfaProof(proof.proof, user, "paymentMfa"), "totp");

@@ -1,4 +1,5 @@
 import { suite, test } from "@webda/test";
+import { Parameters } from "../application/parameters.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import * as assert from "assert";
 
@@ -10,6 +11,34 @@ class TestParameters extends ServiceParameters {
 
 @suite
 class ServiceParametersTest {
+  @test
+  sharedParameterWatchersTrackDynamicDependencies() {
+    const empty = new Parameters().load();
+    let untracked = 0;
+    empty.with(() => {
+      untracked++;
+    });
+    empty.update({}, {});
+    assert.strictEqual(untracked, 1);
+    assert.ok(!JSON.stringify(empty).includes("watchers"));
+    const params = new TestParameters();
+    let calls = 0;
+    params.with(current => {
+      calls++;
+      if (current.random && current.random) void current.value;
+      else void current.permissions;
+    });
+    params.update({ random: true }, { random: true });
+    params.update({ value: 2 }, { value: true });
+    assert.strictEqual(calls, 3);
+    let read = true;
+    params.with(current => {
+      if (read) void current.value;
+    });
+    read = false;
+    params.update({ value: 3 }, { value: true });
+  }
+
   @test
   serviceParameters() {
     let patch = 0;

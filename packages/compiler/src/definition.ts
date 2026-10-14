@@ -147,6 +147,10 @@ export type ModelGraph = {
 };
 
 export interface ModelMetadata {
+  /** Typed runtime parameter schema, separate from instance schemas. */
+  Schema?: JSONSchema7;
+  /** Export of the model's Parameters class. */
+  Configuration?: string;
   /**
    * Model identifier
    */
@@ -270,6 +274,10 @@ export interface ModelMetadata {
  * Compile-time metadata for a class marked with `@Behavior()`.
  */
 export interface BehaviorMetadata {
+  /** Typed runtime parameter schema. */
+  Schema?: JSONSchema7;
+  /** Export of the behavior's Parameters class. */
+  Configuration?: string;
   /** Identifier of the Behavior (e.g. "Webda/MFA"). */
   Identifier: string;
   /** Module-relative path used at runtime to import the class. */

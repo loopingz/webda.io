@@ -1,3 +1,5 @@
+import { Parameters } from "../application/parameters.js";
+import { useBehaviorParameters } from "../application/modelconfiguration.js";
 import crypto from "node:crypto";
 import type { Session } from "../session/session.js";
 import { EncryptedField } from "./encrypted.model.js";
@@ -92,7 +94,7 @@ export interface LoginMfaPolicy {
  * Select the attribute that completes login in this application instance.
  * @param policy - authentication lifecycle
  */
-export function registerLoginMfa(policy: LoginMfaPolicy): void {
+export function registerLoginMfa(policy: LoginMfaPolicy | undefined): void {
   useInstanceStorage().loginMfa = policy;
 }
 
@@ -209,6 +211,20 @@ export async function verifyMfaProof(
   return claims.amr[0];
 }
 
+/** Policy for a single MFA attribute. */
+export class MfaParameters extends Parameters {
+  /** Whether this attribute completes login or protects a model operation. */
+  purpose: "login" | "step-up" = "step-up";
+  /** Allowed factor methods. Omit to accept all registered methods. */
+  methods?: string[];
+  /** Recovery codes issued by this attribute; 0 disables them. @minimum 0 */
+  recoveryCodes?: number;
+  /** Verification proof lifetime in seconds. @minimum 1 */
+  verificationMaxAge: number = MFA_PROOF_TTL;
+  /** Maximum primary authentication age for login enrollment, seconds; 0 disables it. @minimum 0 */
+  reauthMaxAge: number = 300;
+}
+
 /**
  * Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.
  *
@@ -221,6 +237,19 @@ export async function verifyMfaProof(
  * @WebdaBehavior Webda/MFA
  */
 export class MFA {
+  static Parameters = MfaParameters;
+
+  /**
+   * Resolve the policy of this model attribute; detached credentials use defaults.
+   * @returns typed MFA configuration
+   */
+  getParameters(): MfaParameters {
+    const owner = this.getOwner();
+    return owner
+      ? useBehaviorParameters(owner.constructor, (this as any).parent.attribute, this.constructor as typeof MFA)
+      : new MfaParameters();
+  }
+
   /** State of each configured second-factor method */
   factors: { [method: string]: FactorEntry } = {};
 
@@ -350,7 +379,8 @@ export class MFA {
    */
   isEnabled(method?: string): boolean {
     if (method) {
-      return this.factors[method]?.enabledAt !== undefined;
+      const allowed = this.getParameters().methods;
+      return this.factors[method]?.enabledAt !== undefined && (!allowed || allowed.includes(method));
     }
     return this.methods().length > 0;
   }
@@ -360,7 +390,10 @@ export class MFA {
    * @returns method names
    */
   methods(): string[] {
-    return Object.keys(this.factors).filter(m => this.factors[m]?.enabledAt !== undefined);
+    const allowed = this.getParameters().methods;
+    return Object.keys(this.factors).filter(
+      m => this.factors[m]?.enabledAt !== undefined && (!allowed || allowed.includes(m))
+    );
   }
 
   /**
@@ -496,6 +529,9 @@ export class MFA {
    * @returns the enrollment data for the client (e.g. TOTP secret and URI)
    */
   async startEnrollment(method: string, input?: any): Promise<any> {
+    if (this.getParameters().methods && !this.getParameters().methods!.includes(method)) {
+      throw new MfaNotEnabled(`Method ${method} is not allowed on this MFA attribute`);
+    }
     if (this.isEnabled(method)) {
       throw new MfaAlreadyEnabled();
     }
@@ -520,7 +556,7 @@ export class MFA {
     await this.attempt(() => provider.check(this, code), method);
     this.getFactor(method).enabledAt = Date.now();
     let recoveryCodes: string[] = [];
-    const count = provider.recoveryCodeCount ?? DEFAULT_RECOVERY_CODES;
+    const count = this.getParameters().recoveryCodes ?? provider.recoveryCodeCount ?? DEFAULT_RECOVERY_CODES;
     if (count > 0 && !this.hasRecoveryCodes()) {
       recoveryCodes = generateRecoveryCodes(count);
       this.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
@@ -579,7 +615,9 @@ export class MFA {
     }
     const methods = this.methods();
     await this.attempt(async () => (await this.checkFactors(code, methods, true)) !== undefined);
-    const count = Math.max(...methods.map(m => MFA.provider(m).recoveryCodeCount ?? DEFAULT_RECOVERY_CODES));
+    const count =
+      this.getParameters().recoveryCodes ??
+      Math.max(...methods.map(m => MFA.provider(m).recoveryCodeCount ?? DEFAULT_RECOVERY_CODES));
     const recoveryCodes = generateRecoveryCodes(count);
     this.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
     await this.saveOwner();
@@ -660,12 +698,13 @@ export class MFA {
   private async verifyProof(code: string, method: string | undefined, action: string): Promise<MfaProof> {
     const matched = await this.verifyCode(code, method);
     const { owner, attribute } = this.getScope();
+    const expiresIn = this.getParameters().verificationMaxAge;
     const proof = await useDynamicService<any>("CryptoService").jwtSign(
       { sub: useContext().getSession().userId, obj: objectKey(owner), attribute, amr: [matched] },
-      { audience: MFA_PROOF_AUDIENCE, expiresIn: MFA_PROOF_TTL }
+      { audience: MFA_PROOF_AUDIENCE, expiresIn }
     );
     this.recordVerification(action, matched);
-    return { method: matched, proof, expiresIn: MFA_PROOF_TTL };
+    return { method: matched, proof, expiresIn };
   }
 
   /**

@@ -5089,7 +5089,47 @@
             "method": "POST"
           }
         }
-      }
+      },
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Policy for a single MFA attribute.",
+        "properties": {
+          "methods": {
+            "description": "Allowed factor methods. Omit to accept all registered methods.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "purpose": {
+            "default": "step-up",
+            "description": "Whether this attribute completes login or protects a model operation.",
+            "enum": [
+              "login",
+              "step-up"
+            ],
+            "type": "string"
+          },
+          "reauthMaxAge": {
+            "description": "Maximum primary authentication age for login enrollment, seconds; 0 disables it.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "recoveryCodes": {
+            "description": "Recovery codes issued by this attribute; 0 disables them.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "verificationMaxAge": {
+            "description": "Verification proof lifetime in seconds.",
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "Configuration": "lib/models/mfa.model:MfaParameters"
     },
     "Webda/Password": {
       "Identifier": "Webda/Password",

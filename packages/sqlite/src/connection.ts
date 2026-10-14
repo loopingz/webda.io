@@ -123,20 +123,44 @@ export class SQLiteClient implements SQLClient {
   }
 
   /**
-   * Statements returning rows run with all(), the others with run(); the method is async to honor SQLClient
+   * SELECT / WITH / PRAGMA statements run with all(), the others with run(); the method is async to honor SQLClient
+   *
+   * The statement kind is read from its first keyword only: a value inlined in a WHERE clause can never change it.
+   * Use {@link rows} for a write statement with a RETURNING clause.
    * @param sql - the statement
    * @param values - the parameters
    * @returns the rows, or the number of changed rows
    */
   async query(sql: string, values: any[] = []): Promise<{ rows: any[]; rowCount: number }> {
-    const params = values.map(bindable);
+    if (/^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql)) {
+      const rows = await this.rows(sql, values);
+      return { rows, rowCount: rows.length };
+    }
+    return {
+      rows: [],
+      rowCount: Number(this.run(sql, () => this.statement(sql).run(...values.map(bindable))).changes)
+    };
+  }
+
+  /**
+   * Run a statement returning rows, a write with a RETURNING clause included
+   * @param sql - the statement
+   * @param values - the parameters
+   * @returns the rows
+   */
+  async rows(sql: string, values: any[] = []): Promise<any[]> {
+    return this.run(sql, () => this.statement(sql).all(...values.map(bindable)));
+  }
+
+  /**
+   * Run a statement, translating the engine errors
+   * @param sql - the statement
+   * @param execute - the execution
+   * @returns the execution result
+   */
+  protected run<R>(sql: string, execute: () => R): R {
     try {
-      const stmt = this.statement(sql);
-      if (/^\s*(SELECT|WITH|PRAGMA)\b/i.test(sql) || /\bRETURNING\b/i.test(sql)) {
-        const rows = stmt.all(...params);
-        return { rows, rowCount: rows.length };
-      }
-      return { rows: [], rowCount: Number(stmt.run(...params).changes) };
+      return execute();
     } catch (err: any) {
       if (err?.code === "ERR_SQLITE_ERROR" && err.errcode === READONLY) {
         throw new WebdaError.CodeError("SQLITE_READONLY", err.message);

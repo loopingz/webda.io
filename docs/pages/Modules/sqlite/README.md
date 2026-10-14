@@ -50,6 +50,10 @@ Semantics to know:
   missing fields, `CONTAINS` only matches arrays); `LIKE` is case-sensitive (translated to `GLOB`);
 - in paths, a numeric segment indexes an array (`tags.0`, `list.1.v`), as the in-memory store does;
 - `patch` replaces top-level keys (one `json_set` per key); attribute names must match `[A-Za-z0-9_]+`;
+- a collection item set at an index beyond the end is appended (as on PostgreSQL); an `UPDATE ... SET list.5.v`
+  through an index beyond the end of an existing array is not applied (SQLite `json_set` ignores the path);
+- two services sharing a `database.name` must ask for the same file (or memory) and the same `readOnly`,
+  otherwise `init()` fails with `SQLITE_CONFLICTING_DATABASE`;
 - the `migrate` command (Webda 3 types) is available, like on `PostgresStore`.
 
 ### SQLiteQueue

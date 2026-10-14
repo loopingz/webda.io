@@ -1,4 +1,4 @@
-import { EventRepository, MemoryRepository, useModel } from "@webda/core";
+import { EventRepository, MemoryRepository, UpdateConditionFailError, useModel } from "@webda/core";
 import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { AndExpression, escape, parse, PrependCondition, WebdaQLError } from "@webda/ql";
 import { SQLRepository } from "@webda/sql";
@@ -89,9 +89,38 @@ abstract class SQLiteStoreSuite extends WebdaApplicationTest {
   async checkTableIsIdempotentAndSkippedWithoutAutoCreate() {
     await this.store.checkTable();
     await this.store.checkTable();
+    const tables = async () =>
+      (await this.client().query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'smoke%'`)).rows
+        .map(r => r.name)
+        .sort();
+    assert.deepStrictEqual(await tables(), ["smoke_idents"]);
     this.store.getParameters().autoCreateTable = false;
-    await this.store.checkTable();
+    await this.store.ensureTable(this.repo(Row, "smoke_other"));
+    assert.deepStrictEqual(await tables(), ["smoke_idents"], "no DDL without autoCreateTable");
     this.store.getParameters().autoCreateTable = true;
+    await this.store.ensureTable(this.repo(Row, "smoke_other"));
+    assert.deepStrictEqual(await tables(), ["smoke_idents", "smoke_other"]);
+  }
+
+  @test
+  async collectionIndexBeyondTheEndAppends() {
+    const repo = this.repo();
+    await repo.create({ uuid: "a", files: [{ name: "f0" }] });
+    await repo.upsertItemToCollection("a", "files", { name: "f5" }, 5);
+    await repo.upsertItemToCollection("a", "files", { name: "f1" }, 1);
+    await repo.upsertItemToCollection("a", "files", { name: "f0b" }, 0);
+    assert.deepStrictEqual(((await repo.get("a")) as any).files, [{ name: "f0b" }, { name: "f1" }]);
+    // An append with a write condition never matches, like the other stores
+    await assert.rejects(
+      () => repo.upsertItemToCollection("a", "files", { name: "x" }, undefined, "name", "f1"),
+      UpdateConditionFailError
+    );
+    await assert.rejects(
+      () => repo.deleteItemFromCollection("a", "files", 1, "name", "nope"),
+      UpdateConditionFailError
+    );
+    await repo.deleteItemFromCollection("a", "files", 1, "name", "f1");
+    assert.deepStrictEqual(((await repo.get("a")) as any).files, [{ name: "f0b" }]);
   }
 
   @test

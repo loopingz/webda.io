@@ -219,7 +219,13 @@ class SQLitePubSubTest extends WebdaApplicationTest {
   @test
   async crossProcessDeliveryInFileMode() {
     const path = join(this.dir, "bus.sqlite");
-    const sub = await this.makePeer("sub", { database: undefined, persistence: { path }, channel: "xproc" });
+    // A burst larger than batchSize from another process must be drained in full
+    const sub = await this.makePeer("sub", {
+      database: undefined,
+      persistence: { path },
+      channel: "xproc",
+      batchSize: 100
+    });
     const received: string[] = [];
     const handle = sub.consume(async (msg: string) => {
       received.push(msg);
@@ -229,13 +235,18 @@ class SQLitePubSubTest extends WebdaApplicationTest {
       script,
       `import { DatabaseSync } from "node:sqlite";
 const db = new DatabaseSync(process.argv[2]);
-db.prepare("INSERT INTO webda_pubsub (channel, payload, created_at) VALUES (?1, ?2, ?3)").run("xproc", JSON.stringify("from child"), Date.now());
+const insert = db.prepare("INSERT INTO webda_pubsub (channel, payload, created_at) VALUES (?1, ?2, ?3)");
+db.exec("BEGIN");
+for (let i = 0; i < 250; i++) insert.run("xproc", JSON.stringify("from child " + i), Date.now());
+db.exec("COMMIT");
 db.close();
 `
     );
     await promisify(execFile)(process.execPath, ["--no-warnings", script, path]);
-    await waitFor(() => received.length >= 1);
-    assert.deepStrictEqual(received, ["from child"]);
+    await waitFor(() => received.length >= 250);
+    assert.strictEqual(received.length, 250);
+    assert.strictEqual(received[0], "from child 0");
+    assert.strictEqual(received[249], "from child 249");
     handle.cancel();
   }
 }

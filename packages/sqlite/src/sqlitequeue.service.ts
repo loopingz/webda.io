@@ -196,12 +196,12 @@ export default class SQLiteQueueService<T = any, K extends SQLiteQueueParameters
     const client = this.client;
     const now = this.now();
     // One statement, atomic: a single writer at a time, so each row goes to exactly one receiver per window
-    const res = await client.query(
+    const rows = await client.rows(
       `UPDATE ${this.table} SET locked_until = ?1 + ?2 WHERE id IN (SELECT id FROM ${this.table} WHERE locked_until IS NULL OR locked_until < ?1 ORDER BY id LIMIT ?3) RETURNING id, payload`,
       [now, this.parameters.visibilityTimeout! * 1000, this.parameters.batchSize]
     );
     // RETURNING order is unspecified
-    return res.rows.sort((a, b) => Number(a.id) - Number(b.id));
+    return rows.sort((a, b) => Number(a.id) - Number(b.id));
   }
 
   /**

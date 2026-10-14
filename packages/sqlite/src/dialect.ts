@@ -194,15 +194,19 @@ export class SQLiteDialect implements SQLDialect {
     return `json_set(data, ${pairs.join(", ")}, '$._lastUpdate', ${sqlString(updateDate)})`;
   }
 
-  /** @override */
+  /**
+   * An index at or beyond the end appends (json_set ignores a path past the end), as PostgreSQL jsonb_set does
+   * @override
+   */
   setCollectionItem(attr: string, itemParam: number, index: number | undefined, updateDate: string): string {
     this.checkKey(attr);
     const array = `COALESCE(data -> '$.${attr}', '[]')`;
+    const append = `json_insert(${array}, '$[#]', json(?${itemParam}))`;
     const updated =
       index === undefined
-        ? `json_insert(${array}, '$[#]', json(?${itemParam}))`
-        : `json_set(${array}, '$[${this.checkIndex(index)}]', json(?${itemParam}))`;
-    return `json_set(data, '$.${attr}', ${updated}, '$._lastUpdate', ${sqlString(updateDate)})`;
+        ? append
+        : `CASE WHEN json_array_length(${array}) > ${this.checkIndex(index)} THEN json_set(${array}, '$[${index}]', json(?${itemParam})) ELSE ${append} END`;
+    return `json_set(data, '$.${attr}', json(${updated}), '$._lastUpdate', ${sqlString(updateDate)})`;
   }
 
   /** @override */
@@ -212,18 +216,22 @@ export class SQLiteDialect implements SQLDialect {
   }
 
   /**
-   * Without an index (append with a condition) the last item is checked
+   * Without an index (an append with a condition) the condition never matches, as on the other stores
    * @override
    */
   collectionItemCondition(attr: string, index: number | undefined, field: string, valueParam: number): string {
     this.checkKey(attr);
     this.checkKey(field);
-    return `data ->> '$.${attr}[${index === undefined ? "#-1" : this.checkIndex(index)}].${field}' = ?${valueParam}`;
+    if (index === undefined) {
+      return `0 = ?${valueParam}`;
+    }
+    return `data ->> '$.${attr}[${this.checkIndex(index)}].${field}' = ?${valueParam}`;
   }
 
   /**
    * One json_set: parents of dotted targets made objects (read from the stored row: a statement never sets a field
-   * and one of its children), then the values
+   * and one of its children), then the values. An array index beyond the end of an existing array is not applied
+   * (json_set ignores a path past the end).
    * @override
    */
   bulkAssign(_table: string, assignments: { field: string; value: any }[], args: any[]): string {

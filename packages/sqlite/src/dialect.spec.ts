@@ -142,13 +142,15 @@ describe("SQLiteDialect writes", () => {
     expect(last().values).toEqual(["a", 2, -1]);
     await repo.upsertItemToCollection("a", "files" as any, { name: "l'été" } as any);
     expect(last().q).toMatch(
-      /^UPDATE items SET data = json_set\(data, '\$\.files', json_insert\(COALESCE\(data -> '\$\.files', '\[\]'\), '\$\[#\]', json\(\?2\)\), '\$\._lastUpdate', '[^']+'\) WHERE uuid=\?1$/
+      /^UPDATE items SET data = json_set\(data, '\$\.files', json\(json_insert\(COALESCE\(data -> '\$\.files', '\[\]'\), '\$\[#\]', json\(\?2\)\)\), '\$\._lastUpdate', '[^']+'\) WHERE uuid=\?1$/
     );
     expect(last().q).not.toContain("l'été");
     await repo.upsertItemToCollection("a", "files" as any, { name: "x" } as any, 1, "hash", "h2");
     expect(last().q).toMatch(
-      /json_set\(COALESCE\(data -> '\$\.files', '\[\]'\), '\$\[1\]', json\(\?2\)\).* AND data ->> '\$\.files\[1\]\.hash' = \?3$/
+      /CASE WHEN json_array_length\(COALESCE\(data -> '\$\.files', '\[\]'\)\) > 1 THEN json_set\(COALESCE\(data -> '\$\.files', '\[\]'\), '\$\[1\]', json\(\?2\)\) ELSE json_insert.* AND data ->> '\$\.files\[1\]\.hash' = \?3$/
     );
+    await repo.upsertItemToCollection("a", "files" as any, { name: "x" } as any, undefined, "hash", "h2");
+    expect(last().q).toMatch(/ AND 0 = \?3$/);
     expect(last().values).toEqual(["a", JSON.stringify({ name: "x" }), "h2"]);
     await repo.deleteItemFromCollection("a", "files" as any, 0);
     expect(last().q).toMatch(/json_remove\(COALESCE\(data -> '\$\.files', '\[\]'\), '\$\[0\]'\)/);

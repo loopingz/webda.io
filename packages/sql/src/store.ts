@@ -26,7 +26,7 @@ export class SQLStoreParameters extends StoreParameters {
    * The table of every model of the store, subclasses and models routed to this store as fallback included (the
    * Webda 3 layout). Without it each model gets its own table (its identifier lowercased with "/" → "_").
    */
-  table: string;
+  table?: string;
   database?: SQLDatabase;
   /**
    * Auto create tables if they do not exist
@@ -129,7 +129,7 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
   resolveTable(model: ModelClass): string {
     const meta = useModelMetadata(model);
     if (!meta) {
-      return this.parameters.table;
+      return this.parameters.table!;
     }
     // Explicit per-model override
     if (this.parameters.tables?.[meta.Identifier]) {

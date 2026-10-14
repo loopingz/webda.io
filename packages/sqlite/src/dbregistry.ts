@@ -20,6 +20,10 @@ export interface SQLiteHandle {
    * Resolved file path, undefined in memory
    */
   path?: string;
+  /**
+   * Opened read-only
+   */
+  readOnly: boolean;
 }
 
 const registry = new Map<string, SQLiteHandle>();
@@ -75,23 +79,29 @@ export function checkPersistence(persistence?: SQLitePersistence): void {
  */
 export async function acquireDatabase(params: SQLiteConnectionParameters, serviceName: string): Promise<SQLiteHandle> {
   checkPersistence(params.persistence);
+  // Loaded before the lookup: everything after it is synchronous, so two concurrent acquires never both open
+  const { DatabaseSync } = await loadSQLite();
   const key = databaseKey(params, serviceName);
+  const path = params.persistence?.path ? resolvePath(params.persistence.path) : undefined;
+  const readOnly = params.persistence?.readOnly ?? false;
   const existing = registry.get(key);
   if (existing) {
+    if (existing.path !== path || existing.readOnly !== readOnly) {
+      throw new WebdaError.CodeError(
+        "SQLITE_CONFLICTING_DATABASE",
+        `Database '${key}' is already open ${existing.path ? `on ${existing.path}` : "in memory"}${existing.readOnly ? " (read-only)" : ""}: ${serviceName} asks for ${path ?? "memory"}${readOnly ? " (read-only)" : ""}`
+      );
+    }
     existing.refCount++;
     return existing;
   }
-  const { DatabaseSync } = await loadSQLite();
   let db: DatabaseSync;
-  let path: string | undefined;
-  if (params.persistence?.path) {
-    path = resolvePath(params.persistence.path);
+  if (path) {
     mkdirSync(dirname(path), { recursive: true });
-    const readOnly = params.persistence.readOnly ?? false;
     db = new DatabaseSync(path, { readOnly });
     if (!readOnly) {
-      const wal = params.persistence.wal !== false;
-      const synchronous = params.persistence.synchronous ?? (wal ? "NORMAL" : "FULL");
+      const wal = params.persistence!.wal !== false;
+      const synchronous = params.persistence!.synchronous ?? (wal ? "NORMAL" : "FULL");
       if (!SYNCHRONOUS.includes(synchronous)) {
         db.close();
         throw new WebdaError.CodeError("SQLITE_INVALID_PARAMETER", `Invalid synchronous mode ${synchronous}`);
@@ -110,7 +120,15 @@ export async function acquireDatabase(params: SQLiteConnectionParameters, servic
     }
     db.exec(`PRAGMA ${name} = ${value}`);
   }
-  const handle: SQLiteHandle = { key, db, client: new SQLiteClient(db), events: new EventEmitter(), refCount: 1, path };
+  const handle: SQLiteHandle = {
+    key,
+    db,
+    client: new SQLiteClient(db),
+    events: new EventEmitter(),
+    refCount: 1,
+    path,
+    readOnly
+  };
   registry.set(key, handle);
   return handle;
 }

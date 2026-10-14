@@ -251,14 +251,20 @@ export default class SQLitePubSubService<
       const read = this.handle.db.prepare(
         `SELECT id, payload FROM ${this.table} WHERE channel = ?1 AND id > ?2 ORDER BY id LIMIT ?3`
       );
-      for (const sub of [...this.subscribers]) {
-        const rows = read.all(this.channel(), sub.cursor, this.parameters.batchSize!) as unknown as {
-          id: number;
-          payload: string;
-        }[];
-        for (const row of rows) {
-          sub.cursor = Number(row.id);
-          this.dispatch(sub, row.payload);
+      // A full batch may hide more rows (a burst from another process): read again until a batch is short
+      let more = true;
+      while (more) {
+        more = false;
+        for (const sub of [...this.subscribers]) {
+          const rows = read.all(this.channel(), sub.cursor, this.parameters.batchSize!) as unknown as {
+            id: number;
+            payload: string;
+          }[];
+          for (const row of rows) {
+            sub.cursor = Number(row.id);
+            this.dispatch(sub, row.payload);
+          }
+          more ||= rows.length >= this.parameters.batchSize!;
         }
       }
     } catch (err) {

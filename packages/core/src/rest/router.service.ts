@@ -20,6 +20,7 @@ import { templateVariables } from "../templates/templates.js";
 import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { FileUtils, JSONUtils } from "@webda/utils";
+import { getOperationFeatureFlags } from "../services/featureflags.js";
 
 /** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
@@ -513,6 +514,15 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
             operationId,
             requestBody
           };
+          if (operationId) {
+            const flags = getOperationFeatureFlags(operationId);
+            if (flags.length > 0) {
+              (desc as any)["x-webda-feature-flag"] = flags.length === 1 ? flags[0] : flags;
+            }
+          }
+          if (route.openapi[method.toLowerCase()]?.["x-webda-feature-flag"]) {
+            (desc as any)["x-webda-feature-flag"] = route.openapi[method.toLowerCase()]["x-webda-feature-flag"];
+          }
           if (method.toLowerCase().startsWith("p") && route.openapi[method.toLowerCase()]?.schemas?.input) {
             // Add request schema if exist
             desc.requestBody ??= {

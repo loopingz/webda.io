@@ -112,5 +112,7 @@ export * from "./application/iconfiguration.js";
 export * from "./application/iapplication.js";
 export * from "./models/types.js";
 export * from "./cache/cache.js";
+export * from "./services/featureflags.js";
+export * from "./services/featureflags.service.js";
 export { escape, WebdaQLError } from "@webda/ql";
 export type { WebdaQLStatement, WebdaQLString } from "@webda/ql";

@@ -269,6 +269,10 @@ export interface ModelMetadata {
         route?: string;
         method?: string;
       };
+      /**
+       * Feature flag gating the action
+       */
+      featureFlag?: string | true;
     };
   };
   /**

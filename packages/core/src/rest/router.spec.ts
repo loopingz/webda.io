@@ -5,6 +5,7 @@ import { TestApplication, WebdaTest } from "../test/index.js";
 import { HttpContext } from "../contexts/httpcontext.js";
 import { RESTOperationsTransport } from "./restoperationstransport.service.js";
 import { ImageUser } from "../services/binary.spec.js";
+import { registerOperation } from "../core/operations.js";
 
 /**
  * Test the Router
@@ -200,6 +201,27 @@ class RouterTest extends WebdaTest {
     assert.notStrictEqual(api.paths["/plop"], undefined);
     assert.deepStrictEqual(api.paths["/plop"].get.tags, ["plop", "test"]);
     assert.ok(api.tags.filter(f => f.name === "plop").length === 1);
+  }
+
+  @test
+  completeOpenApiWithFeatureFlags() {
+    registerOperation("Flagged.Op", {
+      service: "DefinedMailer",
+      method: "send",
+      input: "void",
+      output: "void",
+      featureFlag: "test-feature-flag"
+    });
+    const info: RouteInfo = {
+      methods: ["POST"],
+      executor: "DefinedMailer",
+      operationId: "Flagged.Op"
+    };
+    this.webda.addRoute("/flagged-op", info);
+    this.webda.getRouter().remapRoutes();
+    const api: any = { paths: {}, info: { title: "Test", version: "1.0" }, openapi: "3.0.0" };
+    this.webda.getRouter().completeOpenAPI(api);
+    assert.strictEqual(api.paths["/flagged-op"].post["x-webda-feature-flag"], "test-feature-flag");
   }
 
   @test

@@ -10,6 +10,8 @@ Like Stores they define where your data is stored but should barely be used dire
 
 The storage is optimized to avoid storing the same file multiple times. And it also includes a challenge system to avoid uploading files that are already stored in the system. Allowing users to prove they have the file without uploading it by providing two hashes of the file.
 
+For direct URL-addressed stream read/write access (e.g. `s3://bucket/key`, `gs://bucket/key`) without model binding or deduplication hashes, see [Content Storage](./ContentStorage.md).
+
 ## Map
 
 Binary services define who is responsible for what fields of your CoreModel. With a map, you can define which fields of which objects can store binaries.

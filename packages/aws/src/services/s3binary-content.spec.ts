@@ -1,0 +1,298 @@
+import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3,
+  UploadPartCommand
+} from "@aws-sdk/client-s3";
+import {
+  ContentExistsError,
+  ContentNotFoundError,
+  ContentStorages,
+  getContent,
+  putContent,
+  toReadable
+} from "@webda/core";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { ContentStorageContract } from "@webda/utils";
+import { afterEach, beforeEach, suite, test } from "@webda/test";
+import * as assert from "assert";
+import { mockClient } from "aws-sdk-client-mock";
+import { Readable } from "node:stream";
+import { S3Binary, S3BinaryParameters } from "./s3binary.service.js";
+
+const TEST_BUCKET = "unit-content-bucket";
+
+interface MockObject {
+  buffer: Buffer;
+  contentType: string;
+  metadata?: Record<string, string>;
+  etag: string;
+  lastModified: Date;
+}
+
+@suite
+class S3BinaryContentStorageTest extends WebdaApplicationTest {
+  private mock = mockClient(S3);
+  private storageMap = new Map<string, MockObject>();
+  private multipartUploads = new Map<
+    string,
+    { key: string; bucket: string; parts: Map<number, Buffer>; metadata?: Record<string, string>; contentType: string }
+  >();
+  private s3Binary: S3Binary;
+
+  private contract = ContentStorageContract(async () => {
+    return {
+      storage: this.s3Binary,
+      baseUrl: `s3://${TEST_BUCKET}`,
+      isCloud: true
+    };
+  })();
+
+  @beforeEach
+  async beforeEach() {
+    await super.beforeEach();
+    this.storageMap.clear();
+    this.multipartUploads.clear();
+    this.mock.reset();
+
+    // Mock GetObjectCommand
+    this.mock.on(GetObjectCommand).callsFake(async params => {
+      const fullKey = `${params.Bucket}/${params.Key}`;
+      const obj = this.storageMap.get(fullKey);
+      if (!obj) {
+        const err: any = new Error("The specified key does not exist.");
+        err.name = "NoSuchKey";
+        err.$metadata = { httpStatusCode: 404 };
+        throw err;
+      }
+      let buf = obj.buffer;
+      if (params.Range) {
+        const match = params.Range.match(/bytes=(\d+)-(\d*)/);
+        if (match) {
+          const start = parseInt(match[1], 10);
+          const end = match[2] ? parseInt(match[2], 10) + 1 : undefined;
+          buf = buf.subarray(start, end);
+        }
+      }
+      return {
+        Body: Readable.from([buf]),
+        ContentLength: buf.length,
+        ContentType: obj.contentType,
+        ETag: obj.etag,
+        Metadata: obj.metadata,
+        LastModified: obj.lastModified
+      };
+    });
+
+    // Mock HeadObjectCommand
+    this.mock.on(HeadObjectCommand).callsFake(async params => {
+      const fullKey = `${params.Bucket}/${params.Key}`;
+      const obj = this.storageMap.get(fullKey);
+      if (!obj) {
+        const err: any = new Error("Not Found");
+        err.name = "NotFound";
+        err.$metadata = { httpStatusCode: 404 };
+        throw err;
+      }
+      return {
+        ContentLength: obj.buffer.length,
+        ContentType: obj.contentType,
+        ETag: obj.etag,
+        Metadata: obj.metadata,
+        LastModified: obj.lastModified
+      };
+    });
+
+    // Mock DeleteObjectCommand
+    this.mock.on(DeleteObjectCommand).callsFake(async params => {
+      const fullKey = `${params.Bucket}/${params.Key}`;
+      this.storageMap.delete(fullKey);
+      return {};
+    });
+
+    // Mock PutObjectCommand
+    this.mock.on(PutObjectCommand).callsFake(async params => {
+      const fullKey = `${params.Bucket}/${params.Key}`;
+      if (params.IfNoneMatch === "*" && this.storageMap.has(fullKey)) {
+        const err: any = new Error("Precondition Failed");
+        err.name = "PreconditionFailed";
+        err.$metadata = { httpStatusCode: 412 };
+        throw err;
+      }
+
+      let buf: Buffer;
+      if (Buffer.isBuffer(params.Body)) {
+        buf = params.Body;
+      } else if (typeof params.Body === "string") {
+        buf = Buffer.from(params.Body, "utf-8");
+      } else if (params.Body instanceof Readable) {
+        const chunks: Buffer[] = [];
+        for await (const chunk of params.Body) {
+          chunks.push(Buffer.from(chunk));
+        }
+        buf = Buffer.concat(chunks);
+      } else {
+        buf = Buffer.from(params.Body as any);
+      }
+
+      const etag = `"${Math.random().toString(36).slice(2)}"`;
+      this.storageMap.set(fullKey, {
+        buffer: buf,
+        contentType: params.ContentType || "application/octet-stream",
+        metadata: params.Metadata,
+        etag,
+        lastModified: new Date()
+      });
+      return { ETag: etag };
+    });
+
+    // Mock Multipart Uploads for @aws-sdk/lib-storage Upload
+    this.mock.on(CreateMultipartUploadCommand).callsFake(async params => {
+      const fullKey = `${params.Bucket}/${params.Key}`;
+      if (params.IfNoneMatch === "*" && this.storageMap.has(fullKey)) {
+        const err: any = new Error("Precondition Failed");
+        err.name = "PreconditionFailed";
+        err.$metadata = { httpStatusCode: 412 };
+        throw err;
+      }
+      const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      this.multipartUploads.set(uploadId, {
+        key: params.Key,
+        bucket: params.Bucket,
+        parts: new Map(),
+        metadata: params.Metadata,
+        contentType: params.ContentType || "application/octet-stream"
+      });
+      return { UploadId: uploadId };
+    });
+
+    this.mock.on(UploadPartCommand).callsFake(async params => {
+      const up = this.multipartUploads.get(params.UploadId);
+      if (!up) {
+        throw new Error("Upload not found");
+      }
+      let buf: Buffer;
+      if (Buffer.isBuffer(params.Body)) {
+        buf = params.Body;
+      } else if (typeof params.Body === "string") {
+        buf = Buffer.from(params.Body, "utf-8");
+      } else if (params.Body instanceof Readable) {
+        const chunks: Buffer[] = [];
+        for await (const chunk of params.Body) {
+          chunks.push(Buffer.from(chunk));
+        }
+        buf = Buffer.concat(chunks);
+      } else {
+        buf = Buffer.from(params.Body as any);
+      }
+      up.parts.set(params.PartNumber, buf);
+      return { ETag: `"part-${params.PartNumber}"` };
+    });
+
+    this.mock.on(CompleteMultipartUploadCommand).callsFake(async params => {
+      const up = this.multipartUploads.get(params.UploadId);
+      if (!up) {
+        throw new Error("Upload not found");
+      }
+      const sortedPartNumbers = Array.from(up.parts.keys()).sort((a, b) => a - b);
+      const parts = sortedPartNumbers.map(n => up.parts.get(n)!);
+      const combined = Buffer.concat(parts);
+      const fullKey = `${up.bucket}/${up.key}`;
+      const etag = `"${Math.random().toString(36).slice(2)}"`;
+      this.storageMap.set(fullKey, {
+        buffer: combined,
+        contentType: up.contentType,
+        metadata: up.metadata,
+        etag,
+        lastModified: new Date()
+      });
+      this.multipartUploads.delete(params.UploadId);
+      return {
+        Bucket: up.bucket,
+        Key: up.key,
+        ETag: etag
+      };
+    });
+
+    this.mock.on(AbortMultipartUploadCommand).callsFake(async params => {
+      this.multipartUploads.delete(params.UploadId);
+      return {};
+    });
+
+    this.s3Binary = this.registerService(
+      new S3Binary(
+        "s3test",
+        new S3BinaryParameters().load({
+          bucket: TEST_BUCKET,
+          region: "us-east-1"
+        })
+      )
+    ).resolve();
+    await this.s3Binary.init();
+    await this.contract.setup();
+  }
+
+  @afterEach
+  async afterEach() {
+    await this.contract.teardown();
+    await this.s3Binary.stop();
+  }
+
+  @test
+  async roundTripBufferAndString() {
+    await this.contract.roundTripBufferAndString();
+  }
+
+  @test
+  async roundTripStreamWithoutLength() {
+    await this.contract.roundTripStreamWithoutLength();
+  }
+
+  @test
+  async missingKeyThrowsNotFoundError() {
+    await this.contract.missingKeyThrowsNotFoundError();
+  }
+
+  @test
+  async rangeReadReturnsExactBytes() {
+    await this.contract.rangeReadReturnsExactBytes();
+  }
+
+  @test
+  async ifNotExistsRejectsExistingKey() {
+    await this.contract.ifNotExistsRejectsExistingKey();
+  }
+
+  @test
+  async metadataAndHeadContent() {
+    await this.contract.metadataAndHeadContent();
+  }
+
+  @test
+  async streamErrorDoesNotLeaveCorruptedFile() {
+    await this.contract.streamErrorDoesNotLeaveCorruptedFile();
+  }
+
+  @test
+  async deprecatedGetObjectAndPutObject() {
+    await this.s3Binary.putObject("legacy.txt", "legacy body", { env: "prod" });
+    const stream = await this.s3Binary.getObject("legacy.txt");
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    assert.strictEqual(Buffer.concat(chunks).toString("utf-8"), "legacy body");
+  }
+
+  @test
+  async resolvedViaContentStorages() {
+    // Should be registered in ContentStorages for TEST_BUCKET
+    const resolved = ContentStorages.resolve(`s3://${TEST_BUCKET}/foo.txt`);
+    assert.strictEqual(resolved, this.s3Binary);
+  }
+}

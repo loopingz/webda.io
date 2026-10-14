@@ -121,3 +121,24 @@ export type { WebdaQLStatement, WebdaQLString } from "@webda/ql";
 
 export * from "./application/parameters.js";
 export * from "./application/modelconfiguration.js";
+export {
+  getContent,
+  putContent,
+  parseContentUrl,
+  lookupMimeType,
+  toReadable,
+  ContentStorages,
+  FileContentStorage,
+  defaultFileContentStorage,
+  MemoryContentStorage,
+  ContentNotFoundError,
+  ContentExistsError,
+  ContentStorageNotFoundError
+} from "@webda/utils";
+export type {
+  ContentBody,
+  ContentPutOptions,
+  ContentGetOptions,
+  ContentInfo,
+  ContentStorage
+} from "@webda/utils";

@@ -1,5 +1,6 @@
 // Load the AWS SDK for Node.js
 import { GetObjectCommand, HeadObjectCommandOutput, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   BinaryFile,
@@ -7,9 +8,18 @@ import {
   BinaryMap,
   CloudBinary,
   CloudBinaryParameters,
+  ContentBody,
+  ContentExistsError,
+  ContentGetOptions,
+  ContentInfo,
+  ContentNotFoundError,
+  ContentPutOptions,
   CoreModel,
+  lookupMimeType,
   OperationContext,
+  parseContentUrl,
   SecretString,
+  toReadable,
   useModelId,
   WebdaError
 } from "@webda/core";
@@ -119,6 +129,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends CloudBinary<T>
   implements CloudFormationContributor
 {
+  readonly schemes = ["s3"];
   _s3: S3;
   /**
    * S3 client configuration, with plain credentials
@@ -133,6 +144,151 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     super.computeParameters();
     this._s3Config = getAWSClientConfig(this.parameters);
     this._s3 = new S3(this._s3Config);
+  }
+
+  /**
+   * Get content read stream from S3
+   * @param url - s3://bucket/key or s3:///key
+   * @param options - range options
+   * @returns Readable stream
+   */
+  async getContent(url: string, options?: ContentGetOptions): Promise<Readable> {
+    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket || this.parameters.bucket;
+    const params: any = {
+      Bucket: targetBucket,
+      Key: key
+    };
+    if (options?.range) {
+      const start = options.range.start;
+      const end = options.range.end !== undefined ? options.range.end : "";
+      params.Range = `bytes=${start}-${end}`;
+    }
+    try {
+      const res = await this._s3.send(new GetObjectCommand(params));
+      if (this.metrics && (this.metrics as any).download) {
+        (this.metrics as any).download.inc();
+      }
+      return res.Body as Readable;
+    } catch (err: any) {
+      if (err.name === "NoSuchKey" || err.Code === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        throw new ContentNotFoundError(`Content not found: ${url}`);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Put content to S3 using streaming multipart Upload
+   * @param url - s3://bucket/key or s3:///key
+   * @param body - readable stream, buffer, or string
+   * @param options - write options
+   * @returns ContentInfo
+   */
+  async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
+    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket || this.parameters.bucket;
+
+    if (options?.ifNotExists) {
+      const existing = await this.exists(key, targetBucket);
+      if (existing) {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+    }
+
+    const contentType = options?.contentType || lookupMimeType(key);
+    const uploadParams: any = {
+      Bucket: targetBucket,
+      Key: key,
+      Body: toReadable(body),
+      ContentType: contentType,
+      Metadata: options?.metadata
+    };
+    if (options?.ifNotExists) {
+      uploadParams.IfNoneMatch = "*";
+    }
+
+    const upload = new Upload({
+      client: this._s3,
+      params: uploadParams
+    });
+
+    try {
+      const res = await upload.done();
+      if (this.metrics && (this.metrics as any).upload) {
+        (this.metrics as any).upload.inc();
+      }
+      let size = options?.contentLength;
+      let etag = res.ETag;
+      let lastModified: Date | undefined;
+      if (size === undefined) {
+        try {
+          const head = await this._s3.headObject({ Bucket: targetBucket, Key: key });
+          size = head.ContentLength;
+          etag = head.ETag || etag;
+          lastModified = head.LastModified;
+        } catch {}
+      }
+      return {
+        url,
+        size,
+        etag,
+        contentType,
+        metadata: options?.metadata,
+        lastModified
+      };
+    } catch (err: any) {
+      if (
+        err.name === "PreconditionFailed" ||
+        err.Code === "PreconditionFailed" ||
+        err.$metadata?.httpStatusCode === 412
+      ) {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Head content metadata from S3
+   * @param url - s3://bucket/key or s3:///key
+   * @returns ContentInfo or undefined if not found
+   */
+  async headContent(url: string): Promise<ContentInfo | undefined> {
+    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket || this.parameters.bucket;
+    try {
+      const res = await this._s3.headObject({
+        Bucket: targetBucket,
+        Key: key
+      });
+      return {
+        url,
+        size: res.ContentLength,
+        etag: res.ETag,
+        contentType: res.ContentType,
+        metadata: res.Metadata,
+        lastModified: res.LastModified
+      };
+    } catch (err: any) {
+      if (err.name === "NotFound" || err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        return undefined;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Delete content from S3
+   * @param url - s3://bucket/key or s3:///key
+   */
+  async deleteContent(url: string): Promise<void> {
+    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket || this.parameters.bucket;
+    await this._s3.deleteObject({
+      Bucket: targetBucket,
+      Key: key
+    });
   }
 
   /**
@@ -272,12 +428,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns the binary content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    return <Readable>(
-      await this._s3.getObject({
-        Bucket: this.parameters.bucket,
-        Key: this._getKey(info.hash)
-      })
-    ).Body;
+    return this.getContent(this.getContentUrl(this._getKey(info.hash)));
   }
 
   /**
@@ -406,15 +557,16 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param bucket to retrieve from or default bucket
    * @returns the object content stream
    */
+  /**
+   * Get an object from s3 bucket
+   * @deprecated Use {@link getContent} instead.
+   * @param key to get
+   * @param bucket to retrieve from or default bucket
+   * @returns the object content stream
+   */
   async getObject(key: string, bucket?: string): Promise<Readable> {
-    bucket = bucket || this.parameters.bucket;
-    const s3obj = new S3(this._s3Config);
-    return (
-      await s3obj.getObject({
-        Bucket: bucket,
-        Key: key
-      })
-    ).Body as Readable;
+    const targetBucket = bucket || this.parameters.bucket;
+    return this.getContent(`s3://${targetBucket}/${key}`);
   }
 
   /**
@@ -452,11 +604,12 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Add an object to S3 bucket
-   *
+   * @deprecated Use {@link putContent} instead.
    * @param key to add to
    * @param body content of the object
    * @param metadatas to put along the object
    * @param bucket to use
+   * @returns Content info
    */
   async putObject(
     key: string,
@@ -464,12 +617,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     metadatas = {},
     bucket: string = this.parameters.bucket
   ) {
-    const s3obj = new S3(this._s3Config);
-    await s3obj.putObject({
-      Bucket: bucket,
-      Key: key,
-      Metadata: metadatas,
-      Body: body
+    return this.putContent(`s3://${bucket}/${key}`, body as any, {
+      metadata: metadatas
     });
   }
 
@@ -484,15 +633,13 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     await file.getHashes();
     const data = await this._getS3(file.hash);
     if (data === undefined) {
-      const s3metas: any = {};
+      const s3metas: Record<string, string> = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
-      const s3obj = new S3(this._s3Config);
-      await s3obj.putObject({
-        Bucket: this.parameters.bucket,
-        Key: this._getKey(file.hash),
-        Metadata: s3metas,
-        Body: await file.get(),
-        ContentLength: file.size
+      const url = this.getContentUrl(this._getKey(file.hash));
+      await this.putContent(url, await file.get(), {
+        metadata: s3metas,
+        contentLength: file.size,
+        contentType: file.mimetype
       });
     }
     // The proof of possession of the content, compared on later challenges

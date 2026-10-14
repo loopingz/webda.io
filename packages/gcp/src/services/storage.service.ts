@@ -5,8 +5,17 @@ import {
   BinaryMap,
   CloudBinary,
   CloudBinaryParameters,
+  ContentBody,
+  ContentExistsError,
+  ContentGetOptions,
+  ContentInfo,
+  ContentNotFoundError,
+  ContentPutOptions,
   CoreModel,
+  lookupMimeType,
   OperationContext,
+  parseContentUrl,
+  toReadable,
   useModelId
 } from "@webda/core";
 import { StorageFinder, Throttler } from "@webda/utils";
@@ -77,20 +86,16 @@ export class GCSFinder implements StorageFinder {
 
   /**
    * Get info from url
-   * @param path - the gs:// url
+   * @param path - the gs:// or gcs:// url
    * @returns the bucket and key
    */
   getInfo(path: string): { bucket: string; key: string } {
-    const url = new URL(path);
-    if (url.protocol !== "gs:") {
+    const { scheme, bucket, key } = parseContentUrl(path);
+    if ((scheme !== "gs" && scheme !== "gcs") || !bucket) {
       throw new Error("Invalid protocol path should be gs://bucket/key");
     }
-    let key = url.pathname;
-    if (key.startsWith("/")) {
-      key = key.substring(1);
-    }
     return {
-      bucket: url.host,
+      bucket,
       key
     };
   }
@@ -174,6 +179,7 @@ export class GCSFinder implements StorageFinder {
  * @WebdaModda GoogleCloudStorage
  */
 export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
+  readonly schemes = ["gs", "gcs"];
   private _storage?: GCS;
   /**
    * GCS client, created on first use
@@ -192,8 +198,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    const key = this._getKey(info.hash);
-    return this.getContent({ key });
+    return this.getContent(this.getContentUrl(this._getKey(info.hash)));
   }
 
   /**
@@ -212,19 +217,146 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
-   * Get object content as a stream
-   * @param params - the object to read
-   * @param params.bucket - the bucket, default to the one predefined
-   * @param params.key - the object key
-   * @returns the content stream
+   * Get content read stream from GCS
+   * @param urlOrObject - gs:// or gcs:// URL or legacy StorageObject
+   * @param options - range options
+   * @returns Readable stream
    */
-  async getContent({ bucket, key }: StorageObject): Promise<Readable> {
-    return this.getStorageBucket(bucket).file(key).createReadStream();
+  async getContent(urlOrObject: string | StorageObject, options?: ContentGetOptions): Promise<Readable> {
+    let targetBucket: string;
+    let targetKey: string;
+    let url: string;
+    if (typeof urlOrObject === "string") {
+      url = urlOrObject;
+      const { bucket, key } = parseContentUrl(urlOrObject, this.parameters.bucket);
+      targetBucket = bucket || this.parameters.bucket;
+      targetKey = key;
+    } else {
+      targetBucket = urlOrObject.bucket || this.parameters.bucket;
+      targetKey = urlOrObject.key;
+      url = `gs://${targetBucket}/${targetKey}`;
+    }
+
+    const file = this.getStorageBucket(targetBucket).file(targetKey);
+    const [exists] = await file.exists();
+    if (!exists) {
+      throw new ContentNotFoundError(`Content not found: ${url}`);
+    }
+
+    const streamOpts: any = {};
+    if (options?.range) {
+      streamOpts.start = options.range.start;
+      if (options.range.end !== undefined) {
+        streamOpts.end = options.range.end;
+      }
+    }
+    if (this.metrics && (this.metrics as any).download) {
+      (this.metrics as any).download.inc();
+    }
+    return file.createReadStream(streamOpts);
+  }
+
+  /**
+   * Put content to GCS
+   * @param url - gs:// or gcs:// URL
+   * @param body - Readable stream, Buffer, or string
+   * @param options - write options
+   * @returns ContentInfo
+   */
+  async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
+    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket || this.parameters.bucket;
+    const file = this.getStorageBucket(targetBucket).file(key);
+
+    if (options?.ifNotExists) {
+      const [exists] = await file.exists();
+      if (exists) {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+    }
+
+    const contentType = options?.contentType || lookupMimeType(key);
+    const readable = toReadable(body);
+    const writeOpts: any = {
+      contentType,
+      resumable: options?.contentLength === undefined || options.contentLength > 8 * 1024 * 1024
+    };
+    if (options?.metadata) {
+      writeOpts.metadata = { metadata: options.metadata };
+    }
+    if (options?.ifNotExists) {
+      writeOpts.preconditionOpts = { ifGenerationMatch: 0 };
+    }
+
+    try {
+      await pipeline(readable, file.createWriteStream(writeOpts));
+      if (this.metrics && (this.metrics as any).upload) {
+        (this.metrics as any).upload.inc();
+      }
+    } catch (err: any) {
+      if (err?.code === 412 || err?.name === "PreconditionFailed") {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+      throw err;
+    }
+
+    const [metadata] = await file.getMetadata();
+    return {
+      url,
+      size: Number(metadata.size),
+      etag: metadata.etag,
+      contentType: metadata.contentType || contentType,
+      metadata: (metadata.metadata as Record<string, string>) || options?.metadata,
+      lastModified: metadata.updated ? new Date(metadata.updated) : undefined
+    };
+  }
+
+  /**
+   * Head content metadata from GCS
+   * @param url - gs:// or gcs:// URL
+   * @returns ContentInfo or undefined if not found
+   */
+  async headContent(url: string): Promise<ContentInfo | undefined> {
+    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket || this.parameters.bucket;
+    const file = this.getStorageBucket(targetBucket).file(key);
+    try {
+      const [metadata] = await file.getMetadata();
+      return {
+        url,
+        size: Number(metadata.size),
+        etag: metadata.etag,
+        contentType: metadata.contentType,
+        metadata: metadata.metadata as Record<string, string>,
+        lastModified: metadata.updated ? new Date(metadata.updated) : undefined
+      };
+    } catch (err: any) {
+      if (err?.code === 404 || err?.status === 404 || err?.name === "NotFoundError") {
+        return undefined;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Delete content from GCS
+   * @param url - gs:// or gcs:// URL
+   */
+  async deleteContent(url: string): Promise<void> {
+    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket || this.parameters.bucket;
+    try {
+      await this.getStorageBucket(targetBucket).file(key).delete({ ignoreNotFound: true });
+    } catch (err: any) {
+      if (err?.code !== 404 && err?.status !== 404) {
+        throw err;
+      }
+    }
   }
 
   /**
    * Upload a local file to GCS bucket destination
-   *
+   * @deprecated Use {@link putContent} instead.
    * @param key - key to add to
    * @param body - content of the object, a string is a local file path
    * @param metadata - to put along the object
@@ -305,9 +437,14 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     const [exists] = await this.getStorageBucket().file(this._getKey(file.hash)).exists();
     // If data already exist no need to upload
     if (!exists) {
-      await this.putObject(this._getKey(file.hash), await file.get(), {
-        ...file.metadata,
-        proof: file.challenge
+      const url = this.getContentUrl(this._getKey(file.hash));
+      await this.putContent(url, await file.get(), {
+        metadata: {
+          ...file.metadata,
+          proof: file.challenge
+        },
+        contentLength: file.size,
+        contentType: file.mimetype
       });
     }
     await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));

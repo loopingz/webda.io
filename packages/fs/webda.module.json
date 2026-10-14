@@ -9,6 +9,20 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
+          "contentStorage#2": {
+            "additionalProperties": false,
+            "properties": {
+              "default": {
+                "default": false,
+                "type": "boolean"
+              },
+              "register": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
           "models": {
             "additionalProperties": {
               "items": {
@@ -22,6 +36,9 @@
         },
         "description": "Configuration parameters for the filesystem-backed binary storage service.",
         "properties": {
+          "contentStorage": {
+            "$ref": "#/definitions/contentStorage%232"
+          },
           "folder": {
             "description": "Define the folder to store objects in",
             "type": "string"

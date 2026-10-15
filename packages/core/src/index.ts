@@ -133,12 +133,7 @@ export {
   MemoryContentStorage,
   ContentNotFoundError,
   ContentExistsError,
+  ContentCredentialNotFoundError,
   ContentStorageNotFoundError
 } from "@webda/utils";
-export type {
-  ContentBody,
-  ContentPutOptions,
-  ContentGetOptions,
-  ContentInfo,
-  ContentStorage
-} from "@webda/utils";
+export type { ContentBody, ContentPutOptions, ContentGetOptions, ContentInfo, ContentStorage } from "@webda/utils";

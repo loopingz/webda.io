@@ -86,6 +86,19 @@ export class ContentStorageNotFoundError extends Error {
   }
 }
 
+/** Thrown when a URL selects a credential profile absent from the provider. */
+export class ContentCredentialNotFoundError extends Error {
+  readonly code = "CONTENT_CREDENTIAL_NOT_FOUND";
+
+  /**
+   * @param profile - requested profile name
+   */
+  constructor(profile: string) {
+    super(`Content credential profile not found: ${profile}`);
+    this.name = "ContentCredentialNotFoundError";
+  }
+}
+
 const COMMON_MIME_TYPES: Record<string, string> = {
   json: "application/json",
   jsonc: "application/json",
@@ -173,7 +186,7 @@ export async function toBuffer(body: ContentBody): Promise<Buffer> {
 export function parseContentUrl(
   url: string,
   defaultBucket?: string
-): { scheme: string; bucket?: string; key: string; endpoint?: string } {
+): { scheme: string; bucket?: string; key: string; endpoint?: string; credential?: string } {
   if (!url) {
     throw new Error("URL must not be empty");
   }
@@ -192,32 +205,45 @@ export function parseContentUrl(
   const scheme = schemeMatch[1].toLowerCase();
   let rest = schemeMatch[2];
   let endpoint: string | undefined;
+  let credential: string | undefined;
   if (["s3", "gs", "gcs"].includes(scheme)) {
     const queryIndex = rest.indexOf("?");
     if (queryIndex !== -1) {
       const params = new URLSearchParams(rest.slice(queryIndex + 1));
-      if (params.has("endpoint")) {
-        if ([...params.keys()].some(key => key !== "endpoint") || params.getAll("endpoint").length !== 1) {
-          throw new Error("Content URL only supports one endpoint parameter");
-        }
-        const value = params.get("endpoint")!;
-        let parsed: URL;
-        try {
-          parsed = new URL(value);
-        } catch {
-          throw new Error("Content endpoint must be an absolute HTTP or HTTPS URL");
-        }
+      if (params.has("endpoint") || params.has("credential")) {
         if (
-          !["http:", "https:"].includes(parsed.protocol) ||
-          !parsed.hostname ||
-          parsed.username ||
-          parsed.password ||
-          parsed.search ||
-          parsed.hash
+          [...params.keys()].some(key => key !== "endpoint" && key !== "credential") ||
+          params.getAll("endpoint").length > 1 ||
+          params.getAll("credential").length > 1
         ) {
-          throw new Error("Content endpoint must be an HTTP or HTTPS URL without credentials, query, or fragment");
+          throw new Error("Content URL only supports one endpoint and one credential parameter");
         }
-        endpoint = parsed.toString().replace(/\/$/, "");
+        if (params.has("credential")) {
+          credential = params.get("credential")!;
+          if (!credential) {
+            throw new Error("Content credential profile must not be empty");
+          }
+        }
+        if (params.has("endpoint")) {
+          const value = params.get("endpoint")!;
+          let parsed: URL;
+          try {
+            parsed = new URL(value);
+          } catch {
+            throw new Error("Content endpoint must be an absolute HTTP or HTTPS URL");
+          }
+          if (
+            !["http:", "https:"].includes(parsed.protocol) ||
+            !parsed.hostname ||
+            parsed.username ||
+            parsed.password ||
+            parsed.search ||
+            parsed.hash
+          ) {
+            throw new Error("Content endpoint must be an HTTP or HTTPS URL without credentials, query, or fragment");
+          }
+          endpoint = parsed.toString().replace(/\/$/, "");
+        }
         rest = rest.slice(0, queryIndex);
       }
     }
@@ -227,7 +253,8 @@ export function parseContentUrl(
     scheme,
     bucket,
     key,
-    ...(endpoint === undefined ? {} : { endpoint })
+    ...(endpoint === undefined ? {} : { endpoint }),
+    ...(credential === undefined ? {} : { credential })
   });
 
   if (scheme === "file") {

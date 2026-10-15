@@ -1,4 +1,11 @@
-import { ContentExistsError, ContentNotFoundError, ContentStorages, getContent, putContent } from "@webda/core";
+import {
+  ContentCredentialNotFoundError,
+  ContentExistsError,
+  ContentNotFoundError,
+  ContentStorages,
+  getContent,
+  putContent
+} from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { ContentStorageContract } from "@webda/utils";
 import { afterEach, beforeEach, suite, test } from "@webda/test";
@@ -201,6 +208,50 @@ class GCSStorageContentTest extends WebdaApplicationTest {
     const bucketCalls = vi.mocked(this.storage.getStorageBucket).mock.calls;
     assert.ok(bucketCalls.every(([bucket, selected]) => bucket === TEST_BUCKET && selected === endpoint));
     assert.ok(!this.files.has(`${TEST_BUCKET}/emulated/file.txt`));
+  }
+
+  @test
+  async credentialProfilesSelectIndependentGcsClientsForTransfers() {
+    this.storage.parameters.credentialProfiles = {
+      source: {
+        projectId: "source-project",
+        credentials: { client_email: "source@example.test", private_key: "source-key" }
+      },
+      destination: {
+        projectId: "destination-project",
+        credentials: { client_email: "destination@example.test", private_key: "destination-key" }
+      }
+    };
+    const getRealBucket = Storage.prototype.getStorageBucket.bind(this.storage);
+    this.storage.parameters.credentials = { client_email: "default@example.test", private_key: "default-key" };
+    assert.strictEqual(
+      (getRealBucket(TEST_BUCKET).storage as any).authClient.jsonContent.client_email,
+      "default@example.test"
+    );
+    const source = getRealBucket(TEST_BUCKET, "http://127.0.0.1:4443", "source").storage;
+    const destination = getRealBucket(TEST_BUCKET, "http://127.0.0.1:4443", "destination").storage;
+    assert.notStrictEqual(source, destination);
+    assert.strictEqual(getRealBucket(TEST_BUCKET, "http://127.0.0.1:4443", "source").storage, source);
+    assert.strictEqual((source as any).authClient.jsonContent.client_email, "source@example.test");
+    assert.strictEqual((destination as any).authClient.jsonContent.client_email, "destination@example.test");
+    assert.strictEqual((destination as any).projectId, "destination-project");
+    const endpoint = "http://127.0.0.1:4443";
+    const url = `gcs://${TEST_BUCKET}/profile.txt?credential=destination&endpoint=${encodeURIComponent(endpoint)}`;
+    await putContent(url, "profile body");
+    const read = await getContent(url);
+    const chunks: Buffer[] = [];
+    for await (const chunk of read) chunks.push(Buffer.from(chunk));
+    assert.strictEqual(Buffer.concat(chunks).toString(), "profile body");
+    await this.storage.headContent(url);
+    await this.storage.deleteContent(url);
+    assert.ok(
+      vi
+        .mocked(this.storage.getStorageBucket)
+        .mock.calls.every(
+          ([bucket, selected, profile]) => bucket === TEST_BUCKET && selected === endpoint && profile === "destination"
+        )
+    );
+    assert.throws(() => getRealBucket(TEST_BUCKET, undefined, "missing"), ContentCredentialNotFoundError);
   }
 
   @test

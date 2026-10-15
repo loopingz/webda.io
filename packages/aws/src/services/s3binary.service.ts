@@ -9,6 +9,7 @@ import {
   CloudBinary,
   CloudBinaryParameters,
   ContentBody,
+  ContentCredentialNotFoundError,
   ContentExistsError,
   ContentGetOptions,
   ContentInfo,
@@ -65,6 +66,8 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
     secretAccessKey: string | SecretString;
     sessionToken?: string | SecretString;
   };
+  /** Named credentials selectable through `?credential=<name>` in content URLs. */
+  credentialProfiles?: Record<string, NonNullable<AWSServiceParameters["credentials"]>>;
   /**
    * AWS region
    * @default "us-east-1"
@@ -135,31 +138,44 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * S3 client configuration, with plain credentials
    */
   protected _s3Config: any;
-  private endpointClients = new Map<string, S3>();
+  private contentClients = new Map<string, S3>();
 
   /**
-   * Use this service's credentials and region with the URL-selected endpoint.
+   * Use this service's region with the URL-selected endpoint and credential profile.
    * @param endpoint - optional URL-selected endpoint
+   * @param credential - optional configured credential profile
    * @returns the S3 client
    */
-  protected getContentClient(endpoint?: string): S3 {
-    if (!endpoint) {
+  protected getContentClient(endpoint?: string, credential?: string): S3 {
+    if (!endpoint && !credential) {
       return this._s3;
     }
-    let client = this.endpointClients.get(endpoint);
+    const cacheKey = JSON.stringify([endpoint, credential]);
+    let client = this.contentClients.get(cacheKey);
     if (!client) {
-      client = new S3({ ...this._s3Config, endpoint, forcePathStyle: true });
-      this.endpointClients.set(endpoint, client);
+      let credentials = this._s3Config.credentials;
+      if (credential) {
+        if (!Object.prototype.hasOwnProperty.call(this.parameters.credentialProfiles ?? {}, credential)) {
+          throw new ContentCredentialNotFoundError(credential);
+        }
+        credentials = getAWSClientConfig({ credentials: this.parameters.credentialProfiles![credential] }).credentials;
+      }
+      client = new S3({
+        ...this._s3Config,
+        credentials,
+        ...(endpoint ? { endpoint, forcePathStyle: true } : {})
+      });
+      this.contentClients.set(cacheKey, client);
     }
     return client;
   }
 
   /** Release URL-selected clients when the service stops. */
   async stop(): Promise<void> {
-    for (const client of this.endpointClients.values()) {
+    for (const client of this.contentClients.values()) {
       client.destroy();
     }
-    this.endpointClients.clear();
+    this.contentClients.clear();
     await super.stop();
   }
 
@@ -180,9 +196,9 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns Readable stream
    */
   async getContent(url: string, options?: ContentGetOptions): Promise<Readable> {
-    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
-    const client = this.getContentClient(endpoint);
+    const client = this.getContentClient(endpoint, credential);
     const params: any = {
       Bucket: targetBucket,
       Key: key
@@ -214,9 +230,9 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns ContentInfo
    */
   async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
-    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
-    const client = this.getContentClient(endpoint);
+    const client = this.getContentClient(endpoint, credential);
 
     if (options?.ifNotExists) {
       const existing = await client.headObject({ Bucket: targetBucket, Key: key }).then(
@@ -291,10 +307,10 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns ContentInfo or undefined if not found
    */
   async headContent(url: string): Promise<ContentInfo | undefined> {
-    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
     try {
-      const res = await this.getContentClient(endpoint).headObject({
+      const res = await this.getContentClient(endpoint, credential).headObject({
         Bucket: targetBucket,
         Key: key
       });
@@ -319,9 +335,9 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param url - s3://bucket/key or s3:///key
    */
   async deleteContent(url: string): Promise<void> {
-    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
-    await this.getContentClient(endpoint).deleteObject({
+    await this.getContentClient(endpoint, credential).deleteObject({
       Bucket: targetBucket,
       Key: key
     });

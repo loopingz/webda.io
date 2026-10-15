@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, suite, test } from "@webda/test";
 import {
   ContentExistsError,
+  ContentCredentialNotFoundError,
   ContentNotFoundError,
   ContentStorageNotFoundError,
   ContentStorages,
@@ -82,6 +83,36 @@ class ContentUrlParsingTest {
   }
 
   @test
+  parsesCredentialProfileWithOrWithoutEndpoint() {
+    assert.deepStrictEqual(parseContentUrl("s3://source/key?credential=source-account"), {
+      scheme: "s3",
+      bucket: "source",
+      key: "key",
+      credential: "source-account"
+    });
+    assert.deepStrictEqual(
+      parseContentUrl("gs://target/key?endpoint=http%3A%2F%2Flocalhost%3A4443&credential=destination"),
+      {
+        scheme: "gs",
+        bucket: "target",
+        key: "key",
+        endpoint: "http://localhost:4443",
+        credential: "destination"
+      }
+    );
+    assert.deepStrictEqual(
+      parseContentUrl("gcs://target/key?credential=destination&endpoint=https%3A%2F%2Fexample.test"),
+      {
+        scheme: "gcs",
+        bucket: "target",
+        key: "key",
+        endpoint: "https://example.test",
+        credential: "destination"
+      }
+    );
+  }
+
+  @test
   rejectsInvalidEndpointSelection() {
     for (const endpoint of [
       "",
@@ -101,6 +132,8 @@ class ContentUrlParsingTest {
       /one endpoint/
     );
     assert.throws(() => parseContentUrl("s3://bucket/key?endpoint=http://localhost&other=1"), /one endpoint/);
+    assert.throws(() => parseContentUrl("s3://bucket/key?credential=one&credential=two"), /one credential/);
+    assert.throws(() => parseContentUrl("s3://bucket/key?credential="), /must not be empty/);
     assert.deepStrictEqual(parseContentUrl("s3://bucket/key?literal"), {
       scheme: "s3",
       bucket: "bucket",
@@ -172,6 +205,9 @@ class ContentUrlParsingTest {
   @test
   throwsOnEmptyUrl() {
     assert.throws(() => parseContentUrl(""), /URL must not be empty/);
+    const missing = new ContentCredentialNotFoundError("missing");
+    assert.strictEqual(missing.code, "CONTENT_CREDENTIAL_NOT_FOUND");
+    assert.strictEqual(missing.name, "ContentCredentialNotFoundError");
   }
 
   @test

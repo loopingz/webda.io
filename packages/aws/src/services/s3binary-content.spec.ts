@@ -11,6 +11,7 @@ import {
 } from "@aws-sdk/client-s3";
 import {
   ContentExistsError,
+  ContentCredentialNotFoundError,
   ContentNotFoundError,
   ContentStorages,
   getContent,
@@ -306,6 +307,43 @@ class S3BinaryContentStorageTest extends WebdaApplicationTest {
     assert.strictEqual(await this.s3Binary.headContent(url), undefined);
     assert.ok(getClient.mock.calls.every(([value]) => value === endpoint));
     assert.ok(this.storageMap.has(`${TEST_BUCKET}/endpoint/object.txt`) === false);
+  }
+
+  @test
+  async credentialProfilesSelectIndependentS3ClientsForTransfers() {
+    this.s3Binary.parameters.credentialProfiles = {
+      source: { accessKeyId: "source-key", secretAccessKey: "source-secret" },
+      destination: { accessKeyId: "destination-key", secretAccessKey: "destination-secret" }
+    };
+    const endpoint = "http://127.0.0.1:9000";
+    const source = (this.s3Binary as any).getContentClient(endpoint, "source") as S3;
+    const destination = (this.s3Binary as any).getContentClient(endpoint, "destination") as S3;
+    assert.notStrictEqual(source, destination);
+    assert.strictEqual((this.s3Binary as any).getContentClient(endpoint, "source"), source);
+    assert.strictEqual((await source.config.credentials()).accessKeyId, "source-key");
+    assert.strictEqual((await destination.config.credentials()).accessKeyId, "destination-key");
+    const url = `s3://${TEST_BUCKET}/transfer.txt?credential=destination&endpoint=${encodeURIComponent(endpoint)}`;
+    const getClient = vi.spyOn(this.s3Binary as any, "getContentClient");
+    await putContent(url, "transfer body");
+    const stream = await getContent(url);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    assert.strictEqual(Buffer.concat(chunks).toString(), "transfer body");
+    await this.s3Binary.headContent(url);
+    await this.s3Binary.deleteContent(url);
+    assert.ok(
+      getClient.mock.calls.every(
+        ([selectedEndpoint, profile]) => selectedEndpoint === endpoint && profile === "destination"
+      )
+    );
+    assert.strictEqual(
+      (await ((this.s3Binary as any).getContentClient(undefined, "source") as S3).config.credentials()).accessKeyId,
+      "source-key"
+    );
+    await assert.rejects(
+      this.s3Binary.getContent(`s3://${TEST_BUCKET}/x?credential=missing`),
+      ContentCredentialNotFoundError
+    );
   }
 
   @test

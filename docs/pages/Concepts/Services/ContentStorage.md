@@ -38,9 +38,45 @@ await getContent("gs://photos/image.jpg?endpoint=http%3A%2F%2F127.0.0.1%3A4443")
 
 Build URLs with `URLSearchParams` to encode the endpoint, including its protocol and port. Both `http://` and `https://` are supported. An endpoint must be absolute and cannot contain credentials, a query, or a fragment. An endpoint may include a path prefix. The bucket and key retain their existing positions and meanings; the query is not part of the object key. URLs without `endpoint` continue to use the provider's configured endpoint or the cloud default.
 
-The registry still selects a provider by scheme and bucket. The selected provider supplies its configured credentials and region (S3) or application default credentials (GCS). The URL replaces only that operation's server endpoint, including a configured endpoint or `STORAGE_EMULATOR_HOST` for GCS. S3 uses path-style requests for a URL-selected endpoint, as required by common compatible services. Keep credentials in service configuration or the environment, never in the content URL. The caller controlling the URL can direct the selected provider's credentials to that endpoint, so only accept endpoint-bearing URLs from trusted input.
+The registry still selects a provider by scheme and bucket. Unless a credential profile is selected, that provider supplies its configured credentials and region (S3) or application default credentials (GCS). The URL replaces only that operation's server endpoint, including a configured endpoint or `STORAGE_EMULATOR_HOST` for GCS. S3 uses path-style requests for a URL-selected endpoint, as required by common compatible services. Keep credentials in service configuration or the environment, never in the content URL. The caller controlling the URL can direct credentials to that endpoint, so only accept endpoint-bearing URLs from trusted input.
 
 We chose a query parameter because `bucket@host` would overload the bucket portion and require escaping host ports and protocols, while a new scheme would need separate provider registrations. The query parameter preserves `s3://bucket/key` and `gs://bucket/key`, makes `http` versus `https` explicit, and works with default-bucket URLs such as `s3:///key?endpoint=...`.
+
+## Credential profiles for transfers
+
+Use `?credential=<profile-name>` to select named credentials configured on the provider. This can be combined with `endpoint`. The URL contains only the profile name; an unknown name throws `ContentCredentialNotFoundError` instead of falling back to default credentials.
+
+```json title="webda.config.json"
+{
+  "services": {
+    "source": {
+      "type": "@webda/aws/S3Binary",
+      "params": {
+        "bucket": "source-bucket",
+        "credentialProfiles": {
+          "source": { "accessKeyId": "SOURCE_KEY", "secretAccessKey": "SOURCE_SECRET" }
+        }
+      }
+    },
+    "destination": {
+      "type": "@webda/gcp/Storage",
+      "params": {
+        "bucket": "destination-bucket",
+        "credentialProfiles": {
+          "destination": { "projectId": "destination-project", "keyFilename": "/run/secrets/destination-gcs.json" }
+        }
+      }
+    }
+  }
+}
+```
+
+```ts
+const input = await getContent("s3://source-bucket/archive.bin?credential=source");
+await putContent("gs://destination-bucket/archive.bin?credential=destination", input);
+```
+
+S3 profiles contain `accessKeyId`, `secretAccessKey`, and optional `sessionToken`; the provider's region is reused. GCS profiles accept `projectId`, `keyFilename`, or an inline service account `credentials` object. Both providers reuse the same client for repeated requests to the same endpoint and profile. Configure profiles through encrypted configuration or mounted secret files, and restrict which callers can select a profile.
 
 :::caution Caveat: `s3:///key` vs `s3://key`
 Under WHATWG URL standards, `s3://key` parses `key` as the *hostname* (bucket name), making it indistinguishable from a single-segment bucket URL. To address the default bucket for a scheme, use `s3:///key` (with three slashes, representing an empty host) or `s3:key`.

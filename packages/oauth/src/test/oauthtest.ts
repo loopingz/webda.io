@@ -7,6 +7,7 @@ import {
   runWithContext,
   useInstanceStorage,
   useRouter,
+  useService,
   type HttpMethodType,
   type WebContext
 } from "@webda/core";
@@ -301,9 +302,24 @@ export abstract class OAuthTest extends AuthTest {
    * @param json - send a JSON body instead of a form
    * @returns the response
    */
-  async tokenRequest(body: Record<string, string | undefined>, json: boolean = false): Promise<TokenEndpointResponse> {
+  tokenRequest(body: Record<string, string | undefined>, json: boolean = false): Promise<TokenEndpointResponse> {
+    return this.form("/oauth/token", body, json);
+  }
+
+  /**
+   * POST a form (or JSON) body like a native client: no session, no cookie
+   * @param path - path
+   * @param body - parameters
+   * @param json - send a JSON body instead of a form
+   * @returns the response
+   */
+  async form(
+    path: string,
+    body: Record<string, string | undefined>,
+    json: boolean = false
+  ): Promise<TokenEndpointResponse> {
     const fields = Object.fromEntries(Object.entries(body).filter((e): e is [string, string] => e[1] !== undefined));
-    const http = new HttpContext("test.webda.io", "POST", "/oauth/token", "http", 80, {
+    const http = new HttpContext("test.webda.io", "POST", path, "http", 80, {
       "content-type": json ? "application/json" : "application/x-www-form-urlencoded"
     });
     http.setBody(json ? JSON.stringify(fields) : new URLSearchParams(fields).toString());
@@ -318,6 +334,43 @@ export abstract class OAuthTest extends AuthTest {
       // Not JSON
     }
     return { status: call.statusCode, body: parsed, headers: call.getResponseHeaders() as any };
+  }
+
+  /**
+   * Go through the whole code flow for the `app` client and exchange the code
+   * @param options - requested scope, selected operations (all offered by default), browser (logged in as `user`,
+   * `u1` by default) and whether the consent is remembered
+   * @returns the token response and the family of the tokens
+   */
+  async fullTokens(options: {
+    scope: string;
+    operations?: string[];
+    browser?: Browser;
+    user?: string;
+    remember?: boolean;
+  }): Promise<{ access_token: string; refresh_token?: string; scope: string; family: string }> {
+    const browser = options.browser ?? (await this.browser());
+    await this.login(browser, options.user ?? "u1");
+    const redirectUri = "http://127.0.0.1:1234/callback";
+    await this.authorize(browser, { scope: options.scope, redirect_uri: redirectUri, prompt: "consent" });
+    const req = await this.op(browser, "OAuth.Consent.Get");
+    const operations = options.operations ?? req.operations.flatMap((g: any) => g.ids.map((i: any) => i.id));
+    const { redirect } = await this.op(browser, "OAuth.Consent.Decide", {
+      allow: true,
+      operations,
+      csrf: req.csrf,
+      remember: options.remember
+    });
+    const res = await this.tokenRequest({
+      grant_type: "authorization_code",
+      code: query(redirect).code,
+      code_verifier: browser.verifier,
+      client_id: "app",
+      redirect_uri: redirectUri
+    });
+    if (res.status !== 200) throw new Error(`Token exchange failed: ${JSON.stringify(res.body)}`);
+    const claims = await useService("TokenService").verifyAccess(res.body.access_token);
+    return { ...res.body, family: claims!.fam };
   }
 
   /**

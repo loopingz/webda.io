@@ -1245,6 +1245,126 @@
         "redirect"
       ],
       "type": "object"
+    },
+    "OAuthServer.sessions.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "OAuthServer.sessions.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/ConnectedSession"
+      },
+      "type": "array",
+      "definitions": {
+        "ConnectedSession": {
+          "additionalProperties": false,
+          "description": "Live refresh family of a connected app",
+          "properties": {
+            "clientId": {
+              "description": "Client the family was issued to",
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation, ms since epoch, when known",
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
+            "name": {
+              "description": "Display name, e.g. \"Webda CLI on remi-mbp\"",
+              "type": "string"
+            },
+            "scope": {
+              "description": "Granted scope",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "family"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "OAuthServer.grants.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "OAuthServer.grants.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/RememberedGrant"
+      },
+      "type": "array",
+      "definitions": {
+        "RememberedGrant": {
+          "additionalProperties": false,
+          "description": "Remembered consent of the user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "OAuthServer.revokeSession.input": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        }
+      }
+    },
+    "OAuthServer.revokeSession.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "OAuthServer.forget.input": {
+      "type": "object",
+      "properties": {
+        "clientId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "clientId"
+      ]
+    },
+    "OAuthServer.forget.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     }
   },
   "behaviors": {}

@@ -239,6 +239,27 @@ class TokenEndpointTest extends OAuthTest {
   }
 
   @test
+  async familyNotRecordedOnReusedCode() {
+    // The code is marked reused while the tokens are issued: the conditional write of the family fails and the
+    // exchange revokes the family itself, without reading the code back
+    const flow = await this.consentFlow({ scope: "Task.* offline_access", operations: ALL_TASK });
+    const server = useService<any>("OAuthServer");
+    const original = server.issueTokens;
+    server.issueTokens = async (...args: any[]) => {
+      await OAuthCode.ref(sha256(flow.code)).patch({ reusedAt: Date.now() } as any);
+      return original.apply(server, args);
+    };
+    try {
+      const first = await this.tokenRequest(this.codeBody(flow));
+      assert.strictEqual(first.status, 200);
+      assert.strictEqual(await useService("TokenService").verifyAccess(first.body.access_token), undefined);
+      assert.strictEqual((await OAuthCode.ref(sha256(flow.code)).get()).family, undefined);
+    } finally {
+      server.issueTokens = original;
+    }
+  }
+
+  @test
   async sequentialReuseRevokesFamily() {
     const flow = await this.consentFlow({ scope: "Task.* offline_access", operations: ALL_TASK });
     const first = await this.tokenRequest(this.codeBody(flow));

@@ -16,6 +16,7 @@ import {
   parseScope,
   RefreshToken,
   RESTOperationsTransport,
+  runAsSystem,
   type Scope,
   scopeMatches,
   Service,
@@ -31,7 +32,7 @@ import {
 import { OAuthError } from "./errors.js";
 import { ClientRegistry } from "./clients.js";
 import { randomToken, sha256 } from "./devicecode.js";
-import { type GrantIdentity, OAuthCode, OAuthGrant } from "./models.model.js";
+import { type GrantIdentity, OAuthCode, OAuthDeviceCode, OAuthGrant } from "./models.model.js";
 import { OAuthServerParameters } from "./parameters.js";
 import { type PendingRequest, PENDING_TTL, readPending, writePending } from "./pending.js";
 
@@ -63,6 +64,31 @@ const AUTHORIZE_PARAMS = [
   "prompt",
   "hostname"
 ];
+
+/** Live refresh family of a connected app */
+export interface ConnectedSession {
+  /** Refresh family */
+  family: string;
+  /** Client the family was issued to */
+  clientId: string;
+  /** Display name, e.g. "Webda CLI on remi-mbp" */
+  name?: string;
+  /** Granted scope */
+  scope?: string;
+  /** Creation, ms since epoch, when known */
+  createdAt?: number;
+  /** Last refresh, ms since epoch */
+  lastUsedAt?: number;
+}
+
+/** Remembered consent of the user for a client */
+export interface RememberedGrant {
+  clientId: string;
+  scope: string;
+  createdAt: number;
+  lastUsedAt: number;
+  expiresAt: number;
+}
 
 /** Consent request shown to the user */
 export interface ConsentRequest {
@@ -147,14 +173,22 @@ function identityOf(session: Session): GrantIdentity {
  * - `GET /.well-known/oauth-authorization-server`: server metadata (RFC 8414)
  * - `GET <url>/authorize`: authorization endpoint (code flow, PKCE S256 only)
  *
+ * - `POST <url>/token`: token endpoint (authorization code, refresh token and device code grants)
+ * - `POST <url>/revoke`: revocation endpoint (RFC 7009)
+ *
  * Operations (browser session, pending request cookie): `OAuth.Consent.Get`, `OAuth.Consent.Decide`. Their REST
  * hints sit below `/oauth`, the default `url`, so the pending cookie reaches them through a REST transport at `/`
+ *
+ * Connected apps operations (logged-in user, own records only): `OAuth.Sessions`, `OAuth.Grants`, `OAuth.Revoke`,
+ * `OAuth.Forget`
  *
  * @WebdaModda OAuthServer
  */
 export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters> extends Service<T> {
   /** Client resolution */
   clients: ClientRegistry;
+  /** Periodic sweep of the expired OAuth records */
+  protected sweepTimer?: ReturnType<typeof setInterval>;
 
   /** @override */
   resolve(): this {
@@ -192,7 +226,51 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
           `(${this.parameters.url}): browsers will not send it there`
       );
     }
+    const sweep = () => this.sweep().catch(err => this.log("WARN", "OAuth sweep failed", err));
+    await sweep();
+    this.sweepTimer = setInterval(sweep, this.parameters.codeTtl * 10 * 1000);
+    this.sweepTimer.unref();
     return this;
+  }
+
+  /** @override */
+  async stop(): Promise<void> {
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = undefined;
+    await super.stop();
+  }
+
+  /**
+   * Delete the expired OAuth records: authorization codes an access token lifetime after their expiry (a used code is
+   * kept that long to detect its reuse), device codes and remembered consents once expired
+   * @returns number of deleted records
+   */
+  async sweep(): Promise<number> {
+    return runAsSystem(async () => {
+      const now = Date.now();
+      let removed = 0;
+      const codeLimit = now - this.accessTtl() * 1000;
+      for await (const code of OAuthCode.iterate("expiresAt < ?", [codeLimit])) {
+        await code.ref().delete();
+        removed++;
+      }
+      for await (const device of OAuthDeviceCode.iterate("expiresAt < ?", [now])) {
+        await device.ref().delete();
+        removed++;
+      }
+      for await (const grant of OAuthGrant.iterate("expiresAt < ?", [now])) {
+        await grant.ref().delete();
+        removed++;
+      }
+      return removed;
+    });
+  }
+
+  /**
+   * @returns lifetime of the issued access tokens (s)
+   */
+  protected accessTtl(): number {
+    return this.parameters.accessTtl ?? this.tokenService().getParameters().accessTtl;
   }
 
   /**
@@ -808,10 +886,14 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       throw invalidCode();
     }
     const issued = await this.issueTokens(stored.identity, stored.clientId, parseScope(stored.scope), stored.name);
-    await ref.patch({ family: issued.family } as any);
-    // A concurrent presentation marks the code before reading the family: if it ran before the family was
-    // recorded it could not revoke it, so revoke it here (the tokens are returned but no longer valid)
-    if (((await ref.get()) as OAuthCode).reusedAt) await this.tokenService().revokeFamily(issued.family);
+    // Recorded only while the code is not marked reused: a concurrent presentation that marked it first could not
+    // see the family, so revoke it here (the tokens are returned but no longer valid)
+    try {
+      await ref.patch({ family: issued.family } as any, "reusedAt" as any, undefined);
+    } catch (err) {
+      if (!this.isConditionFailure(err)) throw err;
+      await this.tokenService().revokeFamily(issued.family);
+    }
     return issued.response;
   }
 
@@ -914,11 +996,157 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Revocation endpoint
-   * @param _ctx - web context
+   * Revocation endpoint (RFC 7009): a refresh or access token issued to the client revokes its whole family. Any other
+   * token, unknown, invalid or issued to another client, is ignored with the same `200` response
+   * @param ctx - web context
    */
-  async revoke(_ctx: WebContext): Promise<void> {
-    throw new WebdaError.NotFound("Not implemented");
+  async revoke(ctx: WebContext): Promise<void> {
+    let status = 200;
+    let payload: { error: string; error_description: string } | undefined;
+    try {
+      const { token, client_id: clientId } = await this.tokenBody(ctx);
+      if (!token || !clientId) throw new OAuthError("invalid_request", "token and client_id are required");
+      if (!(await this.clients.get(clientId))) throw new OAuthError("invalid_client", "Unknown client", 401);
+      // token_type_hint is only an optimization (RFC 7009 §2.1): both kinds are always tried
+      const family = (await this.refreshFamily(token, clientId)) ?? (await this.accessFamily(token, clientId));
+      if (family) await this.tokenService().revokeFamily(family);
+    } catch (err) {
+      const oauth = this.toOAuthError(err);
+      status = oauth.getResponseCode();
+      payload = oauth.toJSON();
+    }
+    ctx.writeHead(status, TOKEN_HEADERS);
+    if (payload) ctx.write(JSON.stringify(payload));
+  }
+
+  /**
+   * @param token - presented token
+   * @param clientId - authenticated client
+   * @returns the family of the refresh token, when it is one issued to the client
+   */
+  protected async refreshFamily(token: string, clientId: string): Promise<string | undefined> {
+    const ref = RefreshToken.ref({ hash: sha256(token) } as any);
+    if (!(await ref.exists())) return undefined;
+    const stored: RefreshToken = await ref.get();
+    return stored.clientId === clientId ? stored.family : undefined;
+  }
+
+  /**
+   * @param token - presented token
+   * @param clientId - authenticated client
+   * @returns the family of the access token, when it is a valid one issued to the client
+   */
+  protected async accessFamily(token: string, clientId: string): Promise<string | undefined> {
+    const claims = await this.tokenService().verifyAccess(token);
+    return claims?.client_id === clientId ? claims.fam : undefined;
+  }
+
+  /**
+   * @returns the user managing their connected apps
+   * @throws Unauthorized without a logged-in session, or with a delegated (scoped) token
+   */
+  protected connectedAppsUser(): string {
+    const session = useContext<WebContext>().getSession();
+    // A delegated token cannot list or revoke the other delegations of its user
+    if (!session?.isLogged() || session.scopes !== undefined) throw new WebdaError.Unauthorized("Login required");
+    return session.userId!;
+  }
+
+  /**
+   * Connected apps of the user: the live refresh families issued to OAuth clients
+   * @returns the current token of each live family
+   */
+  @Operation({ id: "OAuth.Sessions", rest: { method: "get", path: "oauth/sessions" } })
+  async sessions(): Promise<ConnectedSession[]> {
+    const userId = this.connectedAppsUser();
+    return runAsSystem(async () => {
+      const sessions: ConnectedSession[] = [];
+      // Families without offline_access have an expired, not revoked, record: they are not live sessions
+      for await (const token of RefreshToken.iterate(
+        "userId = ? AND clientId IS NOT NULL AND revokedAt IS NULL AND rotatedAt IS NULL AND expiresAt > ?",
+        [userId, Date.now()]
+      )) {
+        sessions.push({
+          family: token.family,
+          clientId: token.clientId!,
+          name: token.name,
+          scope: token.scope,
+          createdAt: (token as any).createdAt,
+          lastUsedAt: token.lastUsedAt
+        });
+      }
+      return sessions;
+    });
+  }
+
+  /**
+   * Remembered consents of the user
+   * @returns the unexpired grants
+   */
+  @Operation({ id: "OAuth.Grants", rest: { method: "get", path: "oauth/grants" } })
+  async grants(): Promise<RememberedGrant[]> {
+    const userId = this.connectedAppsUser();
+    return runAsSystem(async () => {
+      const grants: RememberedGrant[] = [];
+      for await (const grant of OAuthGrant.iterate("userId = ? AND expiresAt > ?", [userId, Date.now()])) {
+        const { clientId, scope, createdAt, lastUsedAt, expiresAt } = grant;
+        grants.push({ clientId, scope, createdAt, lastUsedAt, expiresAt });
+      }
+      return grants;
+    });
+  }
+
+  /**
+   * Revoke a refresh family of the user, or every family of the user for a client and its remembered consent. A
+   * family of another user is ignored
+   * @param family - family to revoke
+   * @param clientId - client whose families are revoked
+   */
+  @Operation({ id: "OAuth.Revoke", rest: { method: "post", path: "oauth/revoke-session" } })
+  async revokeSession(family?: string, clientId?: string): Promise<void> {
+    const userId = this.connectedAppsUser();
+    const hasFamily = typeof family === "string" && family !== "";
+    const hasClient = typeof clientId === "string" && clientId !== "";
+    if (!hasFamily && !hasClient) throw new WebdaError.BadRequest("family or clientId is required");
+    await runAsSystem(async () => {
+      const families = new Set<string>();
+      if (hasFamily) {
+        for await (const _ of RefreshToken.iterate("family = ? AND userId = ? LIMIT 1", [family, userId])) {
+          families.add(family!);
+        }
+      }
+      if (hasClient) {
+        // Expired records too: a family without offline_access still has live access tokens
+        for await (const token of RefreshToken.iterate("userId = ? AND clientId = ? AND revokedAt IS NULL", [
+          userId,
+          clientId
+        ])) {
+          families.add(token.family);
+        }
+        await this.forgetGrant(userId, clientId!);
+      }
+      for (const f of families) await this.tokenService().revokeFamily(f);
+    });
+  }
+
+  /**
+   * Forget the remembered consent of the user for a client: the issued tokens stay valid
+   * @param clientId - client
+   */
+  @Operation({ id: "OAuth.Forget", rest: { method: "post", path: "oauth/forget" } })
+  async forget(clientId: string): Promise<void> {
+    const userId = this.connectedAppsUser();
+    if (typeof clientId !== "string" || !clientId) throw new WebdaError.BadRequest("clientId is required");
+    await runAsSystem(() => this.forgetGrant(userId, clientId));
+  }
+
+  /**
+   * @param userId - user
+   * @param clientId - client
+   */
+  protected async forgetGrant(userId: string, clientId: string): Promise<void> {
+    const ref = OAuthGrant.ref(`${userId}:${clientId}`);
+    if (await ref.exists()) await ref.delete();
   }
 
   /**

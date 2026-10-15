@@ -3,6 +3,47 @@
   "beans": {},
   "deployers": {},
   "moddas": {
+    "Webda/McpOAuthAuthenticator": {
+      "Import": "lib/oauth.service:McpOAuthAuthenticator",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "McpOAuthAuthenticator parameters",
+        "properties": {
+          "authorizationServers": {
+            "description": "Authorization servers advertised in the protected resource metadata; defaults to the request origin",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resourceMetadataPath": {
+            "default": "/.well-known/oauth-protected-resource",
+            "description": "Path serving the RFC 9728 protected resource metadata",
+            "type": "string"
+          },
+          "resourcePath": {
+            "default": "/mcp",
+            "description": "MCP endpoint path, advertised as the `resource`",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "McpOAuthAuthenticator"
+      },
+      "Configuration": "lib/oauth.service:McpOAuthAuthenticatorParameters"
+    },
     "Webda/McpService": {
       "Import": "lib/mcpservice.service:McpService",
       "Schema": {
@@ -13,6 +54,10 @@
             "additionalProperties": false,
             "properties": {
               "models": {
+                "default": [
+                  "*"
+                ],
+                "description": "Models exposed as resources",
                 "items": {
                   "type": "string"
                 },
@@ -23,6 +68,7 @@
           },
           "stdio": {
             "additionalProperties": false,
+            "default": {},
             "description": "stdio defaults",
             "properties": {
               "user": {
@@ -111,6 +157,7 @@
           },
           "stdio": {
             "$ref": "#/definitions/stdio",
+            "default": {},
             "description": "stdio defaults"
           },
           "type": {

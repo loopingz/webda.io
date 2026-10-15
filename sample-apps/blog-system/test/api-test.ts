@@ -60,6 +60,25 @@ class BlogSystemAppTest extends WebdaApplicationTest {
   }
 
   @test
+  async userStoredForm() {
+    const User: any = useApplication().getModels()["WebdaSample/User"];
+    const user = new User();
+    user.username = "stored";
+    user.name = "Stored User";
+    user.__email = "stored@example.com";
+    user.__password = "hash";
+    user.createdAt = new Date("2026-01-02T03:04:05.000Z");
+    // What the stores write: every field, private ones included
+    const stored = JSON.parse(JSON.stringify(user));
+    assert.strictEqual(stored.__password, "hash");
+    assert.strictEqual(stored.__email, "stored@example.com");
+    assert.strictEqual(stored.createdAt, "2026-01-02T03:04:05.000Z");
+    // The email of the owner is derived for the viewer, never kept from a stored copy
+    user.email = "stored@example.com";
+    assert.strictEqual(JSON.parse(JSON.stringify(user)).email, undefined);
+  }
+
+  @test
   async servicesInitialized() {
     const services = this.webda.getServices();
     const serviceNames = Object.keys(services);

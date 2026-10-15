@@ -1,4 +1,4 @@
-import { UuidModel, OneToMany, WEBDA_EVENTS, ModelEvents } from "@webda/models";
+import { UuidModel, OneToMany, WEBDA_EVENTS, WEBDA_STORAGE, ModelEvents } from "@webda/models";
 import bcrypt from "bcryptjs";
 import type { Post } from "./Post.model.js";
 import type { Comment } from "./Comment.model.js";
@@ -136,18 +136,33 @@ export class User extends UuidModel {
   }
 
   /**
-   * Client representation: private fields are never sent; the email is added for the owner only
-   * @returns the public user
+   * JSON form of the user, written by the stores and sent in the responses
+   *
+   * The stores serialize models through `toJSON`: it must keep every field, private ones included, or they are not
+   * persisted (the password hash, the email, the dates). The responses strip the `__` fields (public audience of
+   * `JSONUtils.stringify`), so they never leave the server. The owner also gets its email as `email`: derived for
+   * the current viewer, never taken from a stored copy.
+   * @returns the user fields
    */
   toJSON(): any {
-    const { __password: _hash, __email: email, ...profile } = this as any;
+    // Same fields as the toJSON the content mapper generates for the other models: the own fields and the values held
+    // in WEBDA_STORAGE by the generated accessors (dates)
+    const json: any = {};
+    for (const key of Object.keys(this)) {
+      json[key] = (this as any)[key];
+    }
+    Object.assign(json, (this as any)[WEBDA_STORAGE]);
+    delete json.email;
     let viewer: string | undefined;
     try {
       viewer = useContext()?.getCurrentUserId();
     } catch {
-      // Outside a request: public view
+      // Outside a request: no viewer
     }
-    return viewer === this.getUUID() ? { ...profile, email } : profile;
+    if (viewer && viewer === this.getUUID() && this.__email) {
+      json.email = this.__email;
+    }
+    return json;
   }
 
   /**

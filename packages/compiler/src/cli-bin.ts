@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { closeSync, constants, fchmodSync, ftruncateSync, mkdirSync, openSync, readFileSync, writeSync } from "node:fs";
 import { dirname, join, normalize, posix, relative, resolve, sep } from "node:path";
 import { useLog } from "@webda/workout";
 import type { PackageDescriptor } from "./definition.js";
@@ -75,14 +75,24 @@ export function writeCliBin(
   }
   const file = join(appPath, binPath);
   const content = generateCliBin(binPath);
+  mkdirSync(dirname(file), { recursive: true });
+  const fd = openSync(file, constants.O_RDWR | constants.O_CREAT, 0o755);
   let written = false;
-  if (!existsSync(file) || readFileSync(file, "utf-8") !== content) {
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, content);
-    written = true;
-    useLog("INFO", `Generated ${binPath}`);
+  try {
+    if (readFileSync(fd, "utf-8") !== content) {
+      const bytes = Buffer.from(content);
+      let offset = 0;
+      while (offset < bytes.length) {
+        offset += writeSync(fd, bytes, offset, bytes.length - offset, offset);
+      }
+      ftruncateSync(fd, bytes.length);
+      written = true;
+      useLog("INFO", `Generated ${binPath}`);
+    }
+    fchmodSync(fd, 0o755);
+  } finally {
+    closeSync(fd);
   }
-  chmodSync(file, 0o755);
   if (!isDeclaredBin(packageDescription, binPath)) {
     const name = packageDescription.webda?.cli?.name ?? packageDescription.name?.split("/").pop();
     useLog(

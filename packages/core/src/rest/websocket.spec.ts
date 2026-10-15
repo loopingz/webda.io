@@ -142,11 +142,19 @@ class WebSocketOperationTest extends WebdaApplicationTest {
         output: "Ws.Frame",
         permission: "userId = 'alice'"
       });
+      registerOperation("Ws.Flagged", {
+        service: "Ws",
+        method: "connect",
+        input: "Ws.Frame",
+        output: "Ws.Frame",
+        featureFlag: "ws-disabled-flag"
+      });
       registerOperation("Ws.Stall", { service: "Ws", method: "stall", input: "Ws.Frame", output: "Ws.Frame" });
       const ops = useInstanceStorage().operations;
       (useService("RESTService" as any) as any).exposeServiceOperations({
         "Ws.Connect": ops["Ws.Connect"],
         "Ws.Guarded": ops["Ws.Guarded"],
+        "Ws.Flagged": ops["Ws.Flagged"],
         "Ws.Stall": ops["Ws.Stall"]
       });
       const http = useService("HttpServer" as any) as any;
@@ -238,6 +246,15 @@ class WebSocketOperationTest extends WebdaApplicationTest {
       ws.on("unexpected-response", (_req, res) => resolve(res.statusCode!))
     );
     assert.strictEqual(status, 403);
+  }
+
+  @test
+  async refusesADisabledUpgradeWith404() {
+    const ws = new WebSocket(`ws://${await this.url()}/ws/flagged`);
+    const status = await new Promise<number>(resolve =>
+      ws.on("unexpected-response", (_req, res) => resolve(res.statusCode!))
+    );
+    assert.strictEqual(status, 404);
   }
 
   @test

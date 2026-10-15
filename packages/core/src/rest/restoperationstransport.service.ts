@@ -13,6 +13,7 @@ import { useApplication, useParameters } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { callOperation, canCallOperation, getOperationStreaming } from "../core/operations.js";
+import { isOperationEnabled } from "../services/featureflags.js";
 import { AsyncQueue } from "../core/asyncqueue.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
@@ -297,15 +298,21 @@ export class RESTOperationsTransport<
     const base: WebContext | undefined = http && (await http.getContextFromRequest(req));
     if (!base) return this.refuseUpgrade(socket, 400, "Bad Request");
     await base.init();
-    const allowed = await runWithContext(base, async () => {
+    const status = await runWithContext(base, async () => {
       try {
         emitCoreEvent("Webda.Request", { context: base });
       } catch {
         // listener error
       }
-      return (await useRouter().checkRequest(base)) && canCallOperation(base, opId);
+      if (!(await isOperationEnabled(base, opId))) {
+        return 404;
+      }
+      if (!(await useRouter().checkRequest(base)) || !(await canCallOperation(base, opId))) {
+        return 403;
+      }
+      return 200;
     });
-    if (!allowed) return this.refuseUpgrade(socket, 403, "Forbidden");
+    if (status !== 200) return this.refuseUpgrade(socket, status, status === 404 ? "Not Found" : "Forbidden");
     const storage = useInstanceStorage();
     this.webSocketServer ??= new WebSocketServer({
       noServer: true,

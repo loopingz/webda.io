@@ -851,6 +851,96 @@
       },
       "Configuration": "lib/services/domainservice.service:DomainServiceParameters"
     },
+    "Webda/FeatureFlags": {
+      "Import": "lib/services/featureflags.service:FeatureFlagsService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "FeatureFlagRule": {
+            "additionalProperties": false,
+            "description": "Detailed feature flag definition",
+            "properties": {
+              "condition": {
+                "description": "WebdaQL evaluated on the session, e.g. \"roles CONTAINS 'beta'\"",
+                "type": "string"
+              },
+              "enabled": {
+                "default": false,
+                "description": "Global switch, default true",
+                "type": "boolean"
+              },
+              "percentage": {
+                "description": "0-100 stable rollout on targetingKey (hash(flag + targetingKey) % 100)",
+                "type": "number"
+              },
+              "targets": {
+                "description": "Explicit allow-list of targeting keys",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "flags": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FeatureFlagRule"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "default": {},
+            "description": "Flags definitions",
+            "type": "object"
+          },
+          "operations": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "description": "Attach flags to operations by id or pattern (same syntax as transports `operations`: `*`, `Service.*`, exact id),\nin addition to the ones declared in code. e.g. { \"Posts.Delete\": \"safe-delete\", \"Admin.*\": \"admin-v2\" }",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "defaultValue": {
+            "default": false,
+            "description": "Value of an unknown flag",
+            "type": "boolean"
+          },
+          "flags": {
+            "$ref": "#/definitions/flags",
+            "default": {},
+            "description": "Flags definitions"
+          },
+          "operations": {
+            "$ref": "#/definitions/operations",
+            "default": {},
+            "description": "Attach flags to operations by id or pattern (same syntax as transports `operations`: `*`, `Service.*`, exact id),\nin addition to the ones declared in code. e.g. { \"Posts.Delete\": \"safe-delete\", \"Admin.*\": \"admin-v2\" }"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "FeatureFlagsService"
+      },
+      "Configuration": "lib/services/featureflags.service:FeatureFlagsServiceParameters"
+    },
     "Webda/FileConfiguration": {
       "Import": "lib/configurations/fileconfiguration.service:FileConfigurationService",
       "Schema": {

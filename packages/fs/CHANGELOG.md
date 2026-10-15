@@ -1,5 +1,29 @@
 # Changelog
 
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.9...fs-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **bench:** benchmarks for Store, Queue, Pub/Sub and the blog-system application ([#914](https://github.com/loopingz/webda.io/issues/914)) ([#916](https://github.com/loopingz/webda.io/issues/916)) ([aed07ef](https://github.com/loopingz/webda.io/commit/aed07ef3efe25cfd6957eb007a3216e181be7681))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+
+
+### Bug Fixes
+
+* **fs:** FileQueue wakes up on new messages instead of sleeping 10s when empty ([#917](https://github.com/loopingz/webda.io/issues/917)) ([4fe2962](https://github.com/loopingz/webda.io/commit/4fe296204c37a61063d27030ce3c816296c9889a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.10
+    * @webda/compiler bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.8...fs-v4.0.0-beta.9) (2026-10-14)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@webda/oauth",
-  "version": "4.0.0-beta.9",
+  "version": "4.0.0-beta.10",
   "description": "OAuth 2.1 authorization server for Webda",
   "keywords": [
     "oauth",

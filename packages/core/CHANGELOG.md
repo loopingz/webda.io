@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.9...core-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+* **auth:** TLS client certificate (mTLS) authentication ([#834](https://github.com/loopingz/webda.io/issues/834)) ([#899](https://github.com/loopingz/webda.io/issues/899)) ([5bf7996](https://github.com/loopingz/webda.io/commit/5bf7996fb9ac76506f8d1f2311f7e4453159e54e))
+* **core:** add slow query logger for WebdaQL ([#244](https://github.com/loopingz/webda.io/issues/244)) ([#903](https://github.com/loopingz/webda.io/issues/903)) ([827781d](https://github.com/loopingz/webda.io/commit/827781d30c843e9e0871416f780730eb8ae0ca5d))
+* **core:** route aliases in Router ([#684](https://github.com/loopingz/webda.io/issues/684)) ([#908](https://github.com/loopingz/webda.io/issues/908)) ([b5f48f9](https://github.com/loopingz/webda.io/commit/b5f48f98f2ca05846653b1042ffcb930070d7981))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+* **oidc:** @webda/oidc workload identity and trust between applications ([#832](https://github.com/loopingz/webda.io/issues/832)) ([#896](https://github.com/loopingz/webda.io/issues/896)) ([51719bf](https://github.com/loopingz/webda.io/commit/51719bf07b9abcc798c9191c385c4e11365561d4))
+* webda.cli in package.json — command selection, runCli and a generated app executable ([#927](https://github.com/loopingz/webda.io/issues/927)) ([10f68c6](https://github.com/loopingz/webda.io/commit/10f68c658f417cc102cab45f235ca82aa8d6d345))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.10
+    * @webda/models bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+    * @webda/content-mapper bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.8...core-v4.0.0-beta.9) (2026-10-14)
 
 

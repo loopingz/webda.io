@@ -1,6 +1,6 @@
 {
   "name": "@webda/sql",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0-beta.2",
   "description": "Engine-neutral SQL JSON document store for webda, shared by @webda/postgres and @webda/sqlite",
   "keywords": [
     "sql",

@@ -42,7 +42,7 @@ export type ActionLogTarget = { patch(data: { logs: string[] }): Promise<any> };
  * Keep log in memory and save it to the action object every 5s
  */
 export class ActionMemoryLogger extends MemoryLogger {
-  protected timeout: NodeJS.Timeout;
+  protected timeout?: NodeJS.Timeout;
 
   /**
    * @param output - the worker output to listen to
@@ -110,7 +110,7 @@ export class ServiceRunnerParameters extends RunnerParameters {
    *
    * @default 5000
    */
-  logSaveDelay?: number;
+  logSaveDelay!: number;
 
   /**
    * @override
@@ -173,8 +173,12 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
           this.parameters.logFormat
         );
         if (action instanceof AsyncWebdaAction) {
-          await useDynamicService(action.serviceName)[action.method](...(action.arguments || []));
+          if (!action.serviceName || !action.method) throw new Error("Action service and method are required");
+          const service = useDynamicService(action.serviceName);
+          if (!service) throw new Error(`Service ${action.serviceName} was not found`);
+          await (service as any)[action.method](...(action.arguments || []));
         } else {
+          if (!action.operationId) throw new Error("Operation id is required");
           await callOperation(this.getOperationContext(action.context), action.operationId);
         }
         await logger.saveAndClose();

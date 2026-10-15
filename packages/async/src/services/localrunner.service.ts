@@ -1,4 +1,4 @@
-import { spawn, SpawnOptions } from "node:child_process";
+import { spawn, SpawnOptions, ChildProcess } from "node:child_process";
 import type { AsyncAction } from "../asyncaction.model.js";
 import type { JobInfo } from "./asyncjobservice.service.js";
 import { AgentInfo, Runner, RunnerParameters } from "./runner.service.js";
@@ -10,7 +10,7 @@ export class LocalRunnerParameters extends RunnerParameters {
   /**
    * Command to launch
    */
-  command: string;
+  command!: string;
   /**
    * Args
    */
@@ -60,9 +60,9 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
    * @param options - the spawn options
    * @returns the child process
    */
-  spawn(command: string, args: string[], options?: SpawnOptions | undefined) {
+  spawn(command: string, args: string[], options?: SpawnOptions): ChildProcess {
     /* c8 ignore next 2 */
-    return spawn(command, args, options);
+    return spawn(command, args, options ?? {}) as ChildProcess;
   }
 
   /**
@@ -98,7 +98,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       const repository = action.getRepository();
       // Chain the writes so concurrent output does not lose lines
       let logs: Promise<void> = Promise.resolve();
-      const addLog = data => {
+      const addLog = (data: Buffer) => {
         logs = logs.then(() => repository.upsertItemToCollection(action.uuid, "logs", data.toString()));
         return logs;
       };
@@ -106,7 +106,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       child.stderr?.on("data", addLog);
       // As this is local just and mostly used for batch auto status it
       await repository.patch(action.uuid, { status: "RUNNING" });
-      child.on("exit", async code => {
+      child.on("exit", async (code: number | null) => {
         if (code !== 0) {
           this.log("INFO", "Job", action.uuid, "errored with", code);
           await repository.patch(action.uuid, { status: "ERROR" });

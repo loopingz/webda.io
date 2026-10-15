@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, type Dirent } from "node:fs";
 import { join, resolve } from "node:path";
-import { BENCH_SCHEMA_VERSION, type BenchResult, type BenchResultsFile } from "../result.js";
+import { BENCH_SCHEMA_VERSION, resultKey, type BenchResult, type BenchResultsFile } from "../result.js";
 import type { Reporter } from "./reporter.js";
 
 /**
@@ -15,15 +15,11 @@ export function defaultOutputDir(): string {
 /**
  * Write the results as JSON, one file per suite and backend: `<suite>-<backend>.json`
  *
- * Several runners of the same process writing the same file (e.g. two suites of one bench file) are merged; a file
- * left by a previous process is replaced.
+ * The results are merged with the file already there: a result replaces the previous result of the same scenario
+ * and parameters (see {@link resultKey}), the others are kept. Several bench files of a suite (each run in its own
+ * process) share one file, and a partial run (`WEBDA_BENCH_FILTER`) updates its scenarios only.
  */
 export class JsonReporter implements Reporter {
-  /**
-   * Results written by this process, by file
-   */
-  protected static written = new Map<string, BenchResult[]>();
-
   /**
    * @param outputDir - folder of the results
    */
@@ -44,9 +40,9 @@ export class JsonReporter implements Reporter {
     mkdirSync(this.outputDir, { recursive: true });
     for (const [file, group] of groups) {
       const path = join(this.outputDir, file);
-      const results = [...(JsonReporter.written.get(path) ?? []), ...group];
-      JsonReporter.written.set(path, results);
-      const content: BenchResultsFile = { schemaVersion: BENCH_SCHEMA_VERSION, results };
+      const replaced = new Set(group.map(resultKey));
+      const kept = loadResults([path]).filter(r => !replaced.has(resultKey(r)));
+      const content: BenchResultsFile = { schemaVersion: BENCH_SCHEMA_VERSION, results: [...kept, ...group] };
       writeFileSync(path, JSON.stringify(content, undefined, 2));
     }
   }

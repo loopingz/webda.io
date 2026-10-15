@@ -131,6 +131,18 @@ jobs:
           PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
           FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
 
+      - name: Blog benchmark on PostgreSQL and MongoDB
+        run: |
+          for store in postgres mongodb; do
+            WEBDA_BENCH_BLOG_STORE=$store pnpm --filter @webda/sample-blog-system run bench
+          done
+        env:
+          PGHOST: localhost
+          PGUSER: webda.io
+          PGPASSWORD: webda.io
+          PGDATABASE: webda.io
+          WEBDA_MONGO_URL: mongodb://root:webda.io@localhost:37017
+
       - name: Report
         if: always()
         run: |

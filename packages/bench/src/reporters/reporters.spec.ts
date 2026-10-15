@@ -160,11 +160,15 @@ class ReportersTest {
       ["nested", "queue", "store", "store"]
     );
     assert.strictEqual(loadResults([join(output, "store-MemoryStore.json")]).length, 2);
-    // A second runner of the same process writing the same file is merged
-    new JsonReporter(output).report([result({ scenario: "store.other" })]);
+    // Another run writing the same file is merged: same scenario and parameters replaced, the others kept
+    new JsonReporter(output).report([result({ scenario: "store.other" }), result({ throughput: 7 })]);
     assert.deepStrictEqual(
-      loadResults([join(output, "store-MemoryStore.json")]).map(r => r.scenario),
-      ["store.get", "x", "store.other"]
+      loadResults([join(output, "store-MemoryStore.json")]).map(r => [r.scenario, r.throughput]),
+      [
+        ["x", 100000],
+        ["store.other", 100000],
+        ["store.get", 7]
+      ]
     );
     const previous = process.env.WEBDA_BENCH_OUTPUT;
     try {

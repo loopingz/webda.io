@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { WebdaTest } from "../test/index.js";
+import { WebdaApplicationTest } from "../test/index.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { useRouter } from "./hooks.js";
@@ -8,12 +8,33 @@ import { RouteInfo, RouterParameters, compileAliasTarget } from "./router.servic
 import * as WebdaError from "../errors/errors.js";
 import { runWithContext } from "../contexts/execution.js";
 import { IWebContext } from "../contexts/icontext.js";
+import { useParameters } from "../application/hooks.js";
+import { useWorkerOutput } from "@webda/workout";
 
 /**
  * Route aliases in Router test suite (#684)
  */
 @suite
-class RouterAliasTest extends WebdaTest {
+class RouterAliasTest extends WebdaApplicationTest {
+  private baseRoutes: Record<string, RouteInfo[]>;
+
+  override async beforeAll() {
+    await super.beforeAll();
+    const routes = useRouter().getRoutes();
+    this.baseRoutes = Object.fromEntries(Object.keys(routes).map(url => [url, routes[url]]));
+  }
+
+  override async afterEach() {
+    await super.afterEach();
+    delete useParameters().routePrefix;
+    const router = useRouter();
+    const routes = router.getRoutes();
+    for (const url of Object.keys(routes)) delete routes[url];
+    Object.assign(routes, this.baseRoutes);
+    for (const url of Object.keys(router.getAliases())) router.removeAlias(url);
+    router.remapRoutes();
+  }
+
   /**
    * Helper to execute a request through the router
    */
@@ -35,7 +56,8 @@ class RouterAliasTest extends WebdaTest {
     if (options.body) {
       httpContext.setBody(options.body);
     }
-    const ctx = await this.webda.newWebContext(httpContext);
+    const ctx = await this.newWebContext(httpContext);
+    ctx.newSession();
     if (options.userId) {
       ctx.getSession().login(options.userId, `${options.userId}@test.com:email`, { mfa: options.mfa ?? "none" });
     } else if (options.mfa === "pending") {
@@ -66,9 +88,9 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testStaticAlias() {
-    this.webda.addRoute("/version", {
+    useRouter().addRouteToRouter("/version", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ version: "1.0.0" });
       }
@@ -90,9 +112,9 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testUserAlias() {
-    this.webda.addRoute("/users/{uuid}", {
+    useRouter().addRouteToRouter("/users/{uuid}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ uuid: ctx.getParameters().uuid });
       }
@@ -124,9 +146,9 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testParamAndRest() {
-    this.webda.addRoute("/users/{uuid}/images/{index}", {
+    useRouter().addRouteToRouter("/users/{uuid}/images/{index}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ uuid: ctx.getParameters().uuid, index: ctx.getParameters().index });
       }
@@ -147,9 +169,9 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testQueryPropagation() {
-    this.webda.addRoute("/users/{uuid}{?fields}", {
+    useRouter().addRouteToRouter("/users/{uuid}{?fields}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ uuid: ctx.getParameters().uuid, fields: ctx.getParameters().fields });
       }
@@ -161,9 +183,9 @@ class RouterAliasTest extends WebdaTest {
     assert.deepStrictEqual(res.body, { uuid: "123", fields: "a" });
 
     // Query template {?q*} on alias
-    this.webda.addRoute("/orders{?userId,q*}", {
+    useRouter().addRouteToRouter("/orders{?userId,q*}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ userId: ctx.getParameters().userId, q: ctx.getParameters().q });
       }
@@ -181,16 +203,16 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testEncodingAndPathTraversal() {
-    this.webda.addRoute("/users/{uuid}", {
+    useRouter().addRouteToRouter("/users/{uuid}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ uuid: ctx.getParameters().uuid });
       }
     } as RouteInfo);
-    this.webda.addRoute("/users/a/b", {
+    useRouter().addRouteToRouter("/users/a/b", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ hijacked: true });
       }
@@ -219,25 +241,25 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testPrecedenceAndCollisionWarning() {
-    this.webda.addRoute("/users/{uuid}", {
+    useRouter().addRouteToRouter("/users/{uuid}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ fromRoute: ctx.getParameters().uuid });
       }
     } as RouteInfo);
-    this.webda.addRoute("/collision", {
+    useRouter().addRouteToRouter("/collision", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ collision: "route" });
       }
     } as RouteInfo);
 
     const logs: { level: string; args: any[] }[] = [];
-    this.webda.log = (level, ...args) => {
+    this.stub(useWorkerOutput(), "log").callsFake((level, ...args) => {
       logs.push({ level, args });
-    };
+    });
 
     useRouter().addAlias("/users/me", "/users/${user.id}");
     useRouter().addAlias("/collision", "/other");
@@ -257,9 +279,9 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testMethodFiltering() {
-    this.webda.addRoute("/target", {
+    useRouter().addRouteToRouter("/target", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ ok: true });
       }
@@ -280,9 +302,10 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testOptionsPreflight() {
-    this.webda.addRoute("/users/{uuid}", {
+    useRouter().registerCORSFilter({ checkRequest: async () => true });
+    useRouter().addRouteToRouter("/users/{uuid}", {
       methods: ["GET", "PUT", "DELETE"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({});
       }
@@ -295,7 +318,7 @@ class RouterAliasTest extends WebdaTest {
     // OPTIONS preflight carries no session / cookies
     const res = await this.request("OPTIONS", "/me");
     assert.strictEqual(res.statusCode, 204);
-    const allowMethods = res.ctx.getResponseHeaders()["access-control-allow-methods"] as string;
+    const allowMethods = res.ctx.getResponseHeaders()["Access-Control-Allow-Methods"] as string;
     assert.ok(allowMethods, "Access-Control-Allow-Methods header must be set");
     const methods = allowMethods.split(",");
     assert.ok(methods.includes("GET"));
@@ -328,10 +351,10 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testRoutePrefixHandling() {
-    this.webda.getGlobalParams().routePrefix = "/api";
-    this.webda.addRoute("/users/{uuid}", {
+    useParameters().routePrefix = "/api";
+    useRouter().addRouteToRouter("/users/{uuid}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ uuid: ctx.getParameters().uuid });
       }
@@ -351,7 +374,7 @@ class RouterAliasTest extends WebdaTest {
     assert.deepStrictEqual(resAbsolute.body, { uuid: "123" });
 
     // Reset prefix
-    delete this.webda.getGlobalParams().routePrefix;
+    delete useParameters().routePrefix;
     useRouter().remapRoutes();
   }
 
@@ -424,9 +447,9 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   async testRuntimeAddRemove() {
-    this.webda.addRoute("/runtime-target", {
+    useRouter().addRouteToRouter("/runtime-target", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({ runtime: true });
       }
@@ -454,9 +477,9 @@ class RouterAliasTest extends WebdaTest {
    */
   @test
   testOpenAPIExport() {
-    this.webda.addRoute("/users/{uuid}", {
+    useRouter().addRouteToRouter("/users/{uuid}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       openapi: {
         get: {
           operationId: "getUser",
@@ -499,9 +522,9 @@ class RouterAliasTest extends WebdaTest {
       }
     });
 
-    this.webda.addRoute("/users/{uuid}", {
+    useRouter().addRouteToRouter("/users/{uuid}", {
       methods: ["GET"],
-      executor: "TestExecutor",
+      executor: "Router",
       _method: async (ctx: WebContext) => {
         ctx.write({
           handlerUrl: ctx.getHttpContext().getUrl(),

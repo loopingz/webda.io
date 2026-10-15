@@ -80,17 +80,23 @@ export function compileAliasTarget(
   requiresUser: boolean;
   resolve: (ctx: IOperationContext, params: Record<string, any>) => string;
 } {
-  const PLACEHOLDER_REGEX = /\$\{([^}]+)\}/g;
   let requiresUser = false;
   const parts: (string | ((ctx: IOperationContext, params: Record<string, any>) => string))[] = [];
   let lastIndex = 0;
-  let match: RegExpExecArray | null;
+  let placeholderStart = target.indexOf("${", lastIndex);
 
-  while ((match = PLACEHOLDER_REGEX.exec(target)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(target.substring(lastIndex, match.index));
+  while (placeholderStart !== -1) {
+    const placeholderEnd = target.indexOf("}", placeholderStart + 2);
+    if (placeholderEnd === -1) {
+      throw new WebdaError.CodeError(
+        "INVALID_ALIAS_TARGET",
+        `Unclosed placeholder in alias "${alias}" target "${target}"`
+      );
     }
-    const expr = match[1];
+    if (placeholderStart > lastIndex) {
+      parts.push(target.substring(lastIndex, placeholderStart));
+    }
+    const expr = target.substring(placeholderStart + 2, placeholderEnd);
     if (expr === "user.id") {
       requiresUser = true;
       parts.push((ctx: IOperationContext) => {
@@ -135,18 +141,12 @@ export function compileAliasTarget(
         `Invalid placeholder "\${${expr}}" in alias "${alias}" target "${target}"`
       );
     }
-    lastIndex = match.index + match[0].length;
+    lastIndex = placeholderEnd + 1;
+    placeholderStart = target.indexOf("${", lastIndex);
   }
 
   if (lastIndex < target.length) {
-    const remaining = target.substring(lastIndex);
-    if (remaining.includes("${")) {
-      throw new WebdaError.CodeError(
-        "INVALID_ALIAS_TARGET",
-        `Unclosed placeholder in alias "${alias}" target "${target}"`
-      );
-    }
-    parts.push(remaining);
+    parts.push(target.substring(lastIndex));
   }
 
   const resolve = (ctx: IOperationContext, params: Record<string, any>): string => {
@@ -644,7 +644,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (aliasEntry.definition.methods && !aliasEntry.definition.methods.includes(method)) {
         continue;
       }
-      const params = this.matchTemplate(aliasEntry, aliasEntry.url, finalUrl);
+      const params = this.matchTemplate(
+        aliasEntry,
+        aliasEntry.url,
+        aliasEntry.rawUrl.startsWith("//") ? url : finalUrl
+      );
       if (params !== undefined) {
         let resolvedTarget = aliasEntry.target.resolve(ctx, params);
         // Query string propagation: if the alias template does not declare a query ({?...}),
@@ -693,7 +697,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       map.methods.forEach(m => methods.add(m));
     }
     for (const aliasEntry of this.aliasMap) {
-      const params = this.matchTemplate(aliasEntry, aliasEntry.url, finalUrl);
+      const params = this.matchTemplate(
+        aliasEntry,
+        aliasEntry.url,
+        aliasEntry.rawUrl.startsWith("//") ? url : finalUrl
+      );
       if (params !== undefined) {
         const placeholderCtx = aliasEntry.target.requiresUser
           ? ({ getCurrentUserId: () => "__placeholder__" } as any)

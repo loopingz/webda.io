@@ -41,6 +41,28 @@ class JSONCParserTest {
   }
 
   @test
+  async parseDecimalAndExponentNumbers() {
+    assert.strictEqual(JSONCParser.parse("1.5"), 1.5);
+    assert.strictEqual(JSONCParser.parse("-0.25"), -0.25);
+    assert.strictEqual(JSONCParser.parse("1e3"), 1000);
+    assert.strictEqual(JSONCParser.parse("2.5E-2"), 0.025);
+    assert.strictEqual(JSONCParser.parse("-1e+2"), -100);
+    const result = JSONCParser.parse('{"sentAt": 610.276375, "ratio": 0.5, "list": [1.25, -3.5e1]}');
+    assert.strictEqual(result.sentAt, 610.276375);
+    assert.strictEqual(result.ratio, 0.5);
+    assert.deepStrictEqual(Array.from(result.list), [1.25, -35]);
+    // Decimals survive a stringify round trip
+    assert.strictEqual(JSONCParser.stringify(JSONCParser.parse('{"a": 1.5}')), '{"a": 1.5}');
+  }
+
+  @test
+  async parseInvalidNumber() {
+    for (const invalid of ["-", "1.", "1e", "1e+", "-.5"]) {
+      assert.throws(() => JSONCParser.parse(invalid), /Invalid number at position 0/, invalid);
+    }
+  }
+
+  @test
   async parseUnexpectedKeyword() {
     assert.throws(
       () => JSONCParser.parse("nope"),

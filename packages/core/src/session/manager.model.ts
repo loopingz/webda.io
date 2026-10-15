@@ -103,7 +103,12 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
       }
     }
     if (claims) {
-      session.login(claims.sub, claims.ident, { provider: claims.provider, amr: claims.amr, mfa: claims.mfa });
+      session.login(claims.sub, claims.ident, {
+        provider: claims.provider,
+        amr: claims.amr,
+        mfa: claims.mfa,
+        mfaVerifications: claims.mfaVerifications
+      });
       session.roles = claims.roles;
       session.refreshFamily = claims.fam;
       session.authAt = claims.authAt;

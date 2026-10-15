@@ -2,6 +2,7 @@ import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { emitCoreEvent, useLog } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { localstackParams, WebdaAwsTest } from "../../test/fixture.js";
 import { CloudWatchLogger, CloudWatchLoggerParameters } from "./cloudwatchlogger.service.js";
 
@@ -58,7 +59,12 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     useLog("DEBUG", "Plop 1", "Test");
     useLog("TRACE", "Plop filtered", "Test");
     assert.strictEqual(this.service._bufferedLogs.length, 2);
+    const flush = vi.spyOn(this.service, "sendLogs");
     emitCoreEvent("Webda.Result", { context: undefined });
+    assert.strictEqual(flush.mock.calls.length, 1);
+    // LocalStack can expose the events before the SDK receives its response and clears the buffer.
+    await flush.mock.results[0].value;
+    flush.mockRestore();
     await this.waitFor(async () => {
       const res = await this.service._cloudwatch.describeLogStreams({
         logGroupName: "webda-test"

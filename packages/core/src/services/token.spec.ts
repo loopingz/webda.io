@@ -68,6 +68,42 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async refreshAcceptsLegacyRecordWithoutMfaState() {
+    const tokens = await this.service.issue(this.session());
+    const repository = RefreshToken.getRepository();
+    const get = repository.get;
+    // Model repositories supplied by applications may return legacy records without newer session fields.
+    repository.get = async (...args: Parameters<typeof get>) => {
+      const record = await get.apply(repository, args);
+      (record as any).mfa = undefined;
+      record.mfaVerifications = undefined;
+      return record;
+    };
+    try {
+      const refreshed = await this.service.refresh(tokens.refreshToken);
+      assert.strictEqual(refreshed.session.mfa, "none");
+      assert.deepStrictEqual(refreshed.session.mfaVerifications, {});
+      assert.ok(refreshed.accessToken);
+    } finally {
+      repository.get = get;
+    }
+  }
+
+  @test
+  async refreshPreservesMfaScopeAndOriginalVerificationTime() {
+    const session = this.session();
+    session.mfaVerifications = {
+      "User.Mfa.Verify": { method: "totp", owner: "Webda/User/u1", verifiedAt: 123 },
+      "User.PaymentMfa.Verify": { method: "totp", owner: "Webda/User/u1", verifiedAt: 456 }
+    };
+    const tokens = await this.service.issue(session);
+    const refreshed = await this.service.refresh(tokens.refreshToken);
+    assert.deepStrictEqual(refreshed.session.mfaVerifications, session.mfaVerifications);
+    const claims = await this.service.verifyAccess(refreshed.accessToken);
+    assert.deepStrictEqual(claims.mfaVerifications, session.mfaVerifications);
+  }
+
+  @test
   async rotationAndReuse() {
     const first = await this.service.issue(this.session());
     const second = await this.service.refresh(first.refreshToken);

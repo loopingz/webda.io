@@ -63,6 +63,12 @@ export type ServiceGroup = {
   parameters: any;
 };
 
+/** Runtime policies for a model and its behavior attributes, separate from persisted instance data. */
+export interface ModelConfiguration {
+  parameters?: Record<string, any>;
+  behaviors?: Record<string, Record<string, any>>;
+}
+
 export type UnpackedConfiguration = {
   version: 4;
   /**
@@ -95,6 +101,8 @@ export type UnpackedConfiguration = {
    * Services configuration
    */
   services?: Record<string, any>;
+  /** Model configuration keyed by fully qualified model identifier. */
+  models?: Record<string, ModelConfiguration>;
   /**
    * Global parameters
    *

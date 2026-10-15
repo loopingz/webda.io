@@ -5,6 +5,13 @@ import { NotEnumerable } from "@webda/tsc-esm";
  */
 export type MfaState = "none" | "pending" | "verified";
 
+/** Verification of one MFA operation on one owner, with its original timestamp. */
+export interface MfaVerification {
+  method: string;
+  verifiedAt: number;
+  owner: string;
+}
+
 /**
  * Options for {@link Session.login}
  */
@@ -12,6 +19,7 @@ export interface LoginOptions {
   provider?: string;
   amr?: string[];
   mfa?: MfaState;
+  mfaVerifications?: Record<string, MfaVerification>;
 }
 
 /**
@@ -78,6 +86,7 @@ export class Session {
    * MFA state of the session
    */
   mfa?: MfaState;
+  mfaVerifications?: Record<string, MfaVerification>;
 
   /**
    * Refresh token family identifier
@@ -116,6 +125,7 @@ export class Session {
     this.provider = options.provider;
     this.amr = options.amr ?? [];
     this.mfa = options.mfa ?? "none";
+    this.mfaVerifications = options.mfaVerifications ?? {};
   }
   /**
    * Login an application (workload identity): the session becomes stateless and has no user
@@ -150,6 +160,7 @@ export class Session {
     delete this.provider;
     delete this.amr;
     delete this.mfa;
+    delete this.mfaVerifications;
     delete this.refreshFamily;
     delete this.authAt;
   }

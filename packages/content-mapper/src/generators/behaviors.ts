@@ -295,12 +295,18 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
           }
           if (!blocks.length) continue;
 
+          // A subclass adds its own behaviors without dropping its base's password/MFA attributes.
+          const base = ctx.baseNames(sf, cls)[0];
+          const inherited = base
+            ? `${memberIndent}  (${base}.prototype as any).__hydrateBehaviors?.call(this, rawData);\n`
+            : "";
           needsStorage = true;
           edits.push({
             start: closePos,
             end: closePos,
             text:
               `${memberIndent}protected __hydrateBehaviors(rawData?: any): void {\n` +
+              inherited +
               `${blocks.join("\n")}\n` +
               `${memberIndent}}\n`,
             source: "behaviors"

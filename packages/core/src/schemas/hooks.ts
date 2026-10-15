@@ -137,6 +137,18 @@ export function validateSchema(
 }
 
 /**
+ * Validate typed runtime configuration against a module's parameter schema.
+ * @param schema - parameter schema
+ * @param object - resolved parameters including defaults
+ */
+export function validateSchemaDefinition(schema: JSONSchema7, object: any): void {
+  const ajv = getAjv();
+  if (!ajv.validate(schema, object)) {
+    throw new ValidationError(ajv.errors);
+  }
+}
+
+/**
  * Check whether a JSON schema is registered for the given model or schema key
  * @param webdaObject - the Webda object to validate
  * @returns true if the condition is met

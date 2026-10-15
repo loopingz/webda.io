@@ -1,4 +1,6 @@
 import type { Ident, IdentThrottle } from "@webda/core";
+// Generic attempt counting lives in core, shared with the MFA behavior
+export { countAttempt, type ThrottleParameters } from "@webda/core";
 
 /** Login failure state of an ident: its top-level `_loginAttempts` / `_lastLoginAttemptAt` attributes */
 export type LoginAttempts = Pick<Ident, "_loginAttempts" | "_lastLoginAttemptAt">;

@@ -2807,6 +2807,13 @@
         "mfa": {
           "type": "MfaState"
         },
+        "mfaVerifications": {
+          "type": "Record",
+          "typeParameters": [
+            "string",
+            "MfaVerification"
+          ]
+        },
         "family": {
           "type": "string"
         },
@@ -2825,6 +2832,36 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            }
+          },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
             "amr": {
@@ -2859,6 +2896,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaVerifications": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+              "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
             "provider": {
               "description": "Provider used",
@@ -2891,6 +2932,36 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            }
+          },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
             "amr": {
@@ -2925,6 +2996,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaVerifications": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+              "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
             "provider": {
               "description": "Provider used",
@@ -2957,6 +3032,36 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            }
+          },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
             "amr": {
@@ -2991,6 +3096,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaVerifications": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+              "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
             "provider": {
               "description": "Provider used",
@@ -3303,6 +3412,10 @@
           {
             "attribute": "password",
             "behavior": "Webda/Password"
+          },
+          {
+            "attribute": "mfa",
+            "behavior": "Webda/MFA"
           }
         ]
       },
@@ -3334,6 +3447,15 @@
         "password": {
           "type": "Password"
         },
+        "mfa": {
+          "type": "MFA"
+        },
+        "_mfaAttempts": {
+          "type": "number"
+        },
+        "_lastMfaAttemptAt": {
+          "type": "number"
+        },
         "displayName": {
           "type": "string"
         },
@@ -3355,6 +3477,93 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
+            "EncryptedField<TotpSecret>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "EncryptedField<any>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "FactorEntry<any>": {
+              "additionalProperties": false,
+              "description": "Stored state for one second factor method",
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/EncryptedField%3Cany%3E",
+                  "description": "Secret or credential data encrypted at rest"
+                },
+                "enabledAt": {
+                  "description": "Timestamp when factor was confirmed/enabled",
+                  "type": "number"
+                },
+                "lastStep": {
+                  "description": "Last accepted time step for step-based factors (replay protection)",
+                  "type": "number"
+                },
+                "lastUsed": {
+                  "description": "Timestamp when factor was last used",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            },
+            "MFA": {
+              "WebdaBehavior": "Webda/MFA",
+              "additionalProperties": false,
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
+              "properties": {
+                "__recoveryCodes": {
+                  "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "factors": {
+                  "$ref": "#/definitions/mfa%24factors",
+                  "description": "State of each configured second-factor method"
+                },
+                "totp": {
+                  "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
+                },
+                "totpEnabledAt": {
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
+                  "type": "number"
+                },
+                "totpLastStep": {
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "totp"
+              ],
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -3370,6 +3579,13 @@
                 }
               },
               "type": "object"
+            },
+            "mfa$factors": {
+              "additionalProperties": {
+                "$ref": "#/definitions/FactorEntry%3Cany%3E"
+              },
+              "description": "State of each configured second-factor method",
+              "type": "object"
             }
           },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
@@ -3384,6 +3600,14 @@
                 "type": "string"
               },
               "type": "array"
+            },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -3405,6 +3629,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "mfa": {
+              "$ref": "#/definitions/MFA",
+              "description": "Multi-Factor Authentication credentials"
             },
             "password": {
               "$ref": "#/definitions/Password",
@@ -3427,6 +3655,73 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
+            "EncryptedField<any>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "FactorEntry<any>": {
+              "additionalProperties": false,
+              "description": "Stored state for one second factor method",
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/EncryptedField%3Cany%3E",
+                  "description": "Secret or credential data encrypted at rest"
+                },
+                "enabledAt": {
+                  "description": "Timestamp when factor was confirmed/enabled",
+                  "type": "number"
+                },
+                "lastStep": {
+                  "description": "Last accepted time step for step-based factors (replay protection)",
+                  "type": "number"
+                },
+                "lastUsed": {
+                  "description": "Timestamp when factor was last used",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            },
+            "MFA": {
+              "WebdaBehavior": "Webda/MFA",
+              "additionalProperties": false,
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
+              "properties": {
+                "__recoveryCodes": {
+                  "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "factors": {
+                  "$ref": "#/definitions/mfa%24factors",
+                  "description": "State of each configured second-factor method"
+                },
+                "totpEnabledAt": {
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
+                  "type": "number"
+                },
+                "totpLastStep": {
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -3442,6 +3737,13 @@
                 }
               },
               "type": "object"
+            },
+            "mfa$factors": {
+              "additionalProperties": {
+                "$ref": "#/definitions/FactorEntry%3Cany%3E"
+              },
+              "description": "State of each configured second-factor method",
+              "type": "object"
             }
           },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
@@ -3456,6 +3758,14 @@
                 "type": "string"
               },
               "type": "array"
+            },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -3477,6 +3787,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "mfa": {
+              "$ref": "#/definitions/MFA",
+              "description": "Multi-Factor Authentication credentials"
             },
             "password": {
               "$ref": "#/definitions/Password",
@@ -3499,6 +3813,93 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
+            "EncryptedField<TotpSecret>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "EncryptedField<any>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "FactorEntry<any>": {
+              "additionalProperties": false,
+              "description": "Stored state for one second factor method",
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/EncryptedField%3Cany%3E",
+                  "description": "Secret or credential data encrypted at rest"
+                },
+                "enabledAt": {
+                  "description": "Timestamp when factor was confirmed/enabled",
+                  "type": "number"
+                },
+                "lastStep": {
+                  "description": "Last accepted time step for step-based factors (replay protection)",
+                  "type": "number"
+                },
+                "lastUsed": {
+                  "description": "Timestamp when factor was last used",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            },
+            "MFA": {
+              "WebdaBehavior": "Webda/MFA",
+              "additionalProperties": false,
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
+              "properties": {
+                "__recoveryCodes": {
+                  "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "factors": {
+                  "$ref": "#/definitions/mfa%24factors",
+                  "description": "State of each configured second-factor method"
+                },
+                "totp": {
+                  "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
+                },
+                "totpEnabledAt": {
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
+                  "type": "number"
+                },
+                "totpLastStep": {
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "totp"
+              ],
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -3514,6 +3915,13 @@
                 }
               },
               "type": "object"
+            },
+            "mfa$factors": {
+              "additionalProperties": {
+                "$ref": "#/definitions/FactorEntry%3Cany%3E"
+              },
+              "description": "State of each configured second-factor method",
+              "type": "object"
             }
           },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
@@ -3528,6 +3936,14 @@
                 "type": "string"
               },
               "type": "array"
+            },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -3549,6 +3965,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "mfa": {
+              "$ref": "#/definitions/MFA",
+              "description": "Multi-Factor Authentication credentials"
             },
             "password": {
               "$ref": "#/definitions/Password",
@@ -3600,6 +4020,10 @@
           {
             "attribute": "password",
             "behavior": "Webda/Password"
+          },
+          {
+            "attribute": "mfa",
+            "behavior": "Webda/MFA"
           }
         ]
       },
@@ -3610,6 +4034,15 @@
       "Reflection": {
         "password": {
           "type": "Password"
+        },
+        "mfa": {
+          "type": "MFA"
+        },
+        "_mfaAttempts": {
+          "type": "number"
+        },
+        "_lastMfaAttemptAt": {
+          "type": "number"
         },
         "displayName": {
           "type": "string"
@@ -3634,6 +4067,93 @@
           "additionalProperties": false,
           "class": true,
           "definitions": {
+            "EncryptedField<TotpSecret>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "EncryptedField<any>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "FactorEntry<any>": {
+              "additionalProperties": false,
+              "description": "Stored state for one second factor method",
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/EncryptedField%3Cany%3E",
+                  "description": "Secret or credential data encrypted at rest"
+                },
+                "enabledAt": {
+                  "description": "Timestamp when factor was confirmed/enabled",
+                  "type": "number"
+                },
+                "lastStep": {
+                  "description": "Last accepted time step for step-based factors (replay protection)",
+                  "type": "number"
+                },
+                "lastUsed": {
+                  "description": "Timestamp when factor was last used",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            },
+            "MFA": {
+              "WebdaBehavior": "Webda/MFA",
+              "additionalProperties": false,
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
+              "properties": {
+                "__recoveryCodes": {
+                  "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "factors": {
+                  "$ref": "#/definitions/mfa%24factors",
+                  "description": "State of each configured second-factor method"
+                },
+                "totp": {
+                  "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
+                },
+                "totpEnabledAt": {
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
+                  "type": "number"
+                },
+                "totpLastStep": {
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "totp"
+              ],
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -3649,6 +4169,13 @@
                 }
               },
               "type": "object"
+            },
+            "mfa$factors": {
+              "additionalProperties": {
+                "$ref": "#/definitions/FactorEntry%3Cany%3E"
+              },
+              "description": "State of each configured second-factor method",
+              "type": "object"
             }
           },
           "description": "First basic model for User",
@@ -3656,6 +4183,14 @@
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
+            },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3670,6 +4205,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "mfa": {
+              "$ref": "#/definitions/MFA",
+              "description": "Multi-Factor Authentication credentials"
             },
             "password": {
               "$ref": "#/definitions/Password",
@@ -3694,6 +4233,73 @@
           "additionalProperties": false,
           "class": true,
           "definitions": {
+            "EncryptedField<any>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "FactorEntry<any>": {
+              "additionalProperties": false,
+              "description": "Stored state for one second factor method",
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/EncryptedField%3Cany%3E",
+                  "description": "Secret or credential data encrypted at rest"
+                },
+                "enabledAt": {
+                  "description": "Timestamp when factor was confirmed/enabled",
+                  "type": "number"
+                },
+                "lastStep": {
+                  "description": "Last accepted time step for step-based factors (replay protection)",
+                  "type": "number"
+                },
+                "lastUsed": {
+                  "description": "Timestamp when factor was last used",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            },
+            "MFA": {
+              "WebdaBehavior": "Webda/MFA",
+              "additionalProperties": false,
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
+              "properties": {
+                "__recoveryCodes": {
+                  "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "factors": {
+                  "$ref": "#/definitions/mfa%24factors",
+                  "description": "State of each configured second-factor method"
+                },
+                "totpEnabledAt": {
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
+                  "type": "number"
+                },
+                "totpLastStep": {
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -3709,6 +4315,13 @@
                 }
               },
               "type": "object"
+            },
+            "mfa$factors": {
+              "additionalProperties": {
+                "$ref": "#/definitions/FactorEntry%3Cany%3E"
+              },
+              "description": "State of each configured second-factor method",
+              "type": "object"
             }
           },
           "description": "First basic model for User",
@@ -3716,6 +4329,14 @@
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
+            },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3730,6 +4351,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "mfa": {
+              "$ref": "#/definitions/MFA",
+              "description": "Multi-Factor Authentication credentials"
             },
             "password": {
               "$ref": "#/definitions/Password",
@@ -3754,6 +4379,93 @@
           "additionalProperties": false,
           "class": true,
           "definitions": {
+            "EncryptedField<TotpSecret>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "EncryptedField<any>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "FactorEntry<any>": {
+              "additionalProperties": false,
+              "description": "Stored state for one second factor method",
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/EncryptedField%3Cany%3E",
+                  "description": "Secret or credential data encrypted at rest"
+                },
+                "enabledAt": {
+                  "description": "Timestamp when factor was confirmed/enabled",
+                  "type": "number"
+                },
+                "lastStep": {
+                  "description": "Last accepted time step for step-based factors (replay protection)",
+                  "type": "number"
+                },
+                "lastUsed": {
+                  "description": "Timestamp when factor was last used",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            },
+            "MFA": {
+              "WebdaBehavior": "Webda/MFA",
+              "additionalProperties": false,
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
+              "properties": {
+                "__recoveryCodes": {
+                  "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "factors": {
+                  "$ref": "#/definitions/mfa%24factors",
+                  "description": "State of each configured second-factor method"
+                },
+                "totp": {
+                  "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
+                },
+                "totpEnabledAt": {
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
+                  "type": "number"
+                },
+                "totpLastStep": {
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "totp"
+              ],
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -3769,6 +4481,13 @@
                 }
               },
               "type": "object"
+            },
+            "mfa$factors": {
+              "additionalProperties": {
+                "$ref": "#/definitions/FactorEntry%3Cany%3E"
+              },
+              "description": "State of each configured second-factor method",
+              "type": "object"
             }
           },
           "description": "First basic model for User",
@@ -3776,6 +4495,14 @@
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
+            },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3790,6 +4517,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "mfa": {
+              "$ref": "#/definitions/MFA",
+              "description": "Multi-Factor Authentication credentials"
             },
             "password": {
               "$ref": "#/definitions/Password",
@@ -3872,6 +4603,116 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Webda/MFA.enroll.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "input": {}
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "Webda/MFA.enroll.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.confirm.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "code"
+      ]
+    },
+    "Webda/MFA.confirm.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.verify.input": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "Webda/MFA.verify.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.recover.input": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "Webda/MFA.recover.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.disable.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "code"
+      ]
+    },
+    "Webda/MFA.disable.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/MFA.recoveryCodes.input": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "Webda/MFA.recoveryCodes.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "recoveryCodes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "recoveryCodes"
+      ],
+      "type": "object"
     },
     "Webda/Password.change.input": {
       "type": "object",
@@ -4313,6 +5154,87 @@
         }
       }
     },
+    "Webda/Encrypted": {
+      "Identifier": "Webda/Encrypted",
+      "Import": "lib/models/encrypted.model:EncryptedField",
+      "Actions": {}
+    },
+    "Webda/MFA": {
+      "Identifier": "Webda/MFA",
+      "Import": "lib/models/mfa.model:MFA",
+      "Actions": {
+        "enroll": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "confirm": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "verify": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "recover": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "disable": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "recoveryCodes": {
+          "rest": {
+            "method": "POST"
+          }
+        }
+      },
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Policy for a single MFA attribute.",
+        "properties": {
+          "methods": {
+            "description": "Allowed factor methods. Omit to accept all registered methods.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "purpose": {
+            "default": "step-up",
+            "description": "Whether this attribute completes login or protects a model operation.",
+            "enum": [
+              "login",
+              "step-up"
+            ],
+            "type": "string"
+          },
+          "reauthMaxAge": {
+            "description": "Maximum primary authentication age for login enrollment, seconds; 0 disables it.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "recoveryCodes": {
+            "description": "Recovery codes issued by this attribute; 0 disables them.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "verificationMaxAge": {
+            "description": "Verification proof lifetime in seconds.",
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "Configuration": "lib/models/mfa.model:MfaParameters"
+    },
     "Webda/Password": {
       "Identifier": "Webda/Password",
       "Import": "lib/models/password.model:Password",
@@ -4323,11 +5245,6 @@
           }
         }
       }
-    },
-    "Webda/Encrypted": {
-      "Identifier": "Webda/Encrypted",
-      "Import": "lib/models/encrypted.model:EncryptedField",
-      "Actions": {}
     }
   },
   "capabilities": {

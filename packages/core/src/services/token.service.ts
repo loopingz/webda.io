@@ -5,7 +5,7 @@ import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
-import { MfaState, Session } from "../session/session.js";
+import { MfaState, type MfaVerification, Session } from "../session/session.js";
 
 const ACCESS_AUDIENCE = "webda-access";
 
@@ -33,6 +33,7 @@ export interface AccessClaims {
   roles?: string[];
   fam: string;
   mfa: MfaState;
+  mfaVerifications?: Record<string, MfaVerification>;
   /** When the session was authenticated (ms): checked against the user's last password change */
   authAt?: number;
 }
@@ -95,6 +96,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       provider: session.provider,
       amr: session.amr ?? [],
       mfa: session.mfa ?? "none",
+      mfaVerifications: session.mfaVerifications,
       family,
       expiresAt: Date.now() + this.parameters.refreshTtl * 1000
     } as any);
@@ -109,6 +111,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       roles: session.roles,
       fam: family,
       mfa: session.mfa ?? "none",
+      mfaVerifications: session.mfaVerifications,
       authAt: session.authAt
     };
     const accessToken = await useCrypto().jwtSign(claims, {
@@ -169,7 +172,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     session.login(stored.userId, stored.identId, {
       provider: stored.provider,
       amr: stored.amr,
-      mfa: stored.mfa ?? "none"
+      mfa: stored.mfa ?? "none",
+      mfaVerifications: stored.mfaVerifications
     });
     const tokens = await this.issue(session, stored.family);
     // A revocation may have run between our read and the issue: its scan would have missed the new record

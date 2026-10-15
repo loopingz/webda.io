@@ -109,6 +109,7 @@ export * from "./rest/originfilter.js";
 export * from "./session/manager.model.js";
 export * from "./session/cookie.js";
 export * from "./session/session.js";
+export * from "./session/scope.js";
 export * from "./templates/templates.js";
 
 export * from "./services/iservice.js";

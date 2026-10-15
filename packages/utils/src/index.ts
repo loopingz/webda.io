@@ -7,6 +7,7 @@ export * from "./duration.js";
 export * from "./esm.js";
 export * from "./filesize.js";
 export * from "./freeze.js";
+export * from "./glob.js";
 export * from "./regexp.js";
 export * from "./serializers.js";
 export * from "./state.js";

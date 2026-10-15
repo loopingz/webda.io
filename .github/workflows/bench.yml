@@ -1,0 +1,82 @@
+# Benchmarks of the Webda abstractions (Store, Queue, Pub/Sub), see packages/bench/README.md
+#
+# Not part of ci.yml on purpose: shared runners are noisy and benchmarks must not slow down nor fail regular CI.
+name: "Benchmarks"
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Benchmark profile"
+        type: choice
+        options: [quick, full]
+        default: quick
+      filter:
+        description: "Scenario filter, e.g. store.get,queue.*"
+        required: false
+        default: ""
+  schedule:
+    # Nightly on main
+    - cron: "17 3 * * *"
+  pull_request:
+    types: [labeled, synchronize]
+    branches: [main]
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    # On pull requests, only when labelled 'benchmark'
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'benchmark')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    name: Benchmarks (${{ github.event.inputs.profile || (github.event_name == 'schedule' && 'full') || 'quick' }})
+    env:
+      FORCE_COLOR: 1
+      WEBDA_BENCH_PROFILE: ${{ github.event.inputs.profile || (github.event_name == 'schedule' && 'full') || 'quick' }}
+      WEBDA_BENCH_FILTER: ${{ github.event.inputs.filter || '' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      # Backends needing external services (postgres, mongodb, amqp, localstack, GCP emulators) will add their
+      # service containers here, copied from ci.yml, as their harnesses land (#914).
+      - name: Run benchmarks
+        run: pnpm run bench
+
+      - name: Report
+        if: always()
+        run: |
+          node packages/bench/lib/bin/webda-bench.js report packages/*/bench-results sample-apps/*/bench-results \
+            --summary --markdown bench-results/summary.md --github-benchmark bench-results/github
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-results-${{ env.WEBDA_BENCH_PROFILE }}-${{ github.sha }}
+          path: |
+            packages/*/bench-results/*.json
+            sample-apps/*/bench-results/*.json
+            bench-results/
+          retention-days: 30

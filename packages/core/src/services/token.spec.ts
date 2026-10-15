@@ -244,6 +244,50 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async issueHonoursTtlOverrides() {
+    const svc = this.service;
+    const before = Date.now();
+    const first = await svc.issue(this.session(), undefined, { clientId: "c", accessTtl: 60, refreshTtl: 120 });
+    assert.strictEqual(first.expiresIn, 60);
+    const claims: any = await svc.verifyAccess(first.accessToken);
+    assert.strictEqual(claims.exp - claims.iat, 60);
+    const stored = await RefreshToken.ref({ hash: (svc as any).hash(first.refreshToken) } as any).get();
+    assert.ok(stored.expiresAt >= before + 120_000 && stored.expiresAt <= Date.now() + 120_000);
+    // Rotation keeps the lifetimes of the family
+    const second = await svc.refresh(first.refreshToken, { clientId: "c" });
+    assert.strictEqual(second.expiresIn, 60);
+    const rotated = await RefreshToken.ref({ hash: (svc as any).hash(second.refreshToken) } as any).get();
+    assert.ok(rotated.expiresAt <= Date.now() + 120_000);
+    // Defaults without overrides
+    assert.strictEqual((await svc.issue(this.session())).expiresIn, 900);
+  }
+
+  @test
+  async revocationOutlivesLongerAccessTokens() {
+    const svc = this.service;
+    const long = await svc.issue(this.session(), undefined, { clientId: "c", accessTtl: 7200 });
+    await svc.revokeFamily(long.family);
+    const fam = await RevokedAccess.ref({ key: `fam:${long.family}` } as any).get();
+    assert.ok(fam.expiresAt >= Date.now() + 7100_000, "family entry must cover the longest access token");
+    // A family whose refresh token is already revoked still covers its access tokens
+    const other = await svc.issue(this.session(), undefined, { clientId: "c", accessTtl: 7200 });
+    for await (const t of RefreshToken.iterate("family = ?", [other.family])) {
+      await t.ref().patch({ revokedAt: Date.now() } as any);
+    }
+    await svc.revokeFamily(other.family);
+    const entry = await RevokedAccess.ref({ key: `fam:${other.family}` } as any).get();
+    assert.ok(entry.expiresAt >= Date.now() + 7100_000);
+    await svc.issue(this.session("u9"), undefined, { clientId: "c", accessTtl: 7200 });
+    await svc.revokeUser("u9");
+    const user = await RevokedAccess.ref({ key: "user:u9" } as any).get();
+    assert.ok(user.expiresAt >= Date.now() + 7100_000);
+    // A later revocation never shortens an entry
+    await (svc as any).denylist(`fam:${long.family}`);
+    const again = await RevokedAccess.ref({ key: `fam:${long.family}` } as any).get();
+    assert.ok(again.expiresAt >= fam.expiresAt);
+  }
+
+  @test
   async loadFromTokenSetsScopes() {
     const svc = this.service;
     const manager = useService("SessionManager") as any;

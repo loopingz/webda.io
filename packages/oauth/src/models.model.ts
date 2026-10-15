@@ -28,6 +28,8 @@ export class OAuthCode extends Model {
   usedAt?: number;
   /** Refresh family issued from the code */
   family?: string;
+  /** Set when the code is presented again: the exchange that recorded the family revokes it */
+  reusedAt?: number;
 }
 
 /**

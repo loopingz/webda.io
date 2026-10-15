@@ -36,6 +36,10 @@ export interface IssueOptions {
   scope?: Scope;
   /** Display name of the refresh family */
   name?: string;
+  /** Access token lifetime (s), defaults to the `accessTtl` parameter; kept by the family on refresh */
+  accessTtl?: number;
+  /** Refresh token lifetime (s), defaults to the `refreshTtl` parameter; kept by the family on refresh */
+  refreshTtl?: number;
 }
 
 /** Claims carried by an access token */
@@ -168,6 +172,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       throw new TokenInvalid("Session is not fully authenticated");
     }
     const scope = options.scope ? formatScope(options.scope) : undefined;
+    const accessTtl = options.accessTtl ?? this.parameters.accessTtl;
     const refreshToken = randomBytes(32).toString("base64url");
     await RefreshToken.create({
       hash: this.hash(refreshToken),
@@ -178,10 +183,12 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       mfa: session.mfa ?? "none",
       mfaVerifications: session.mfaVerifications,
       family,
-      expiresAt: Date.now() + this.parameters.refreshTtl * 1000,
+      expiresAt: Date.now() + (options.refreshTtl ?? this.parameters.refreshTtl) * 1000,
       clientId: options.clientId,
       scope,
-      name: options.name
+      name: options.name,
+      accessTtl: options.accessTtl,
+      refreshTtl: options.refreshTtl
     } as any);
     session.refreshFamily = family;
     // A refreshed session is re-authenticated by its (unrevoked) refresh token
@@ -202,9 +209,9 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     };
     const accessToken = await useCrypto().jwtSign(claims, {
       audience: ACCESS_AUDIENCE,
-      expiresIn: this.parameters.accessTtl
+      expiresIn: accessTtl
     });
-    return { accessToken, refreshToken, expiresIn: this.parameters.accessTtl, family };
+    return { accessToken, refreshToken, expiresIn: accessTtl, family };
   }
 
   /**
@@ -281,15 +288,22 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   /**
    * @param key - denylist key
    * @param notBefore - for user entries, tokens issued before are rejected (ms)
+   * @param accessTtl - longest lifetime (s) of the access tokens to reject, at least the `accessTtl` parameter
    */
-  protected async denylist(key: string, notBefore?: number): Promise<void> {
-    const entry = { key, notBefore, expiresAt: Date.now() + this.parameters.accessTtl * 1000 };
+  protected async denylist(key: string, notBefore?: number, accessTtl: number = 0): Promise<void> {
+    const entry = {
+      key,
+      notBefore,
+      expiresAt: Date.now() + Math.max(accessTtl, this.parameters.accessTtl) * 1000
+    };
     const ref = RevokedAccess.ref({ key } as any);
     try {
       await RevokedAccess.create(entry as any);
     } catch (err) {
       // Created concurrently (or already there): update it, an existing row means the conflict is benign
       if (!(await ref.exists())) throw err;
+      // Never shorten an entry: it may cover longer-lived access tokens
+      entry.expiresAt = Math.max(entry.expiresAt, (await ref.get()).expiresAt ?? 0);
       await ref.patch(entry as any);
     }
     this.revocationMisses.delete(key);
@@ -365,7 +379,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       mfa: stored.mfa ?? "none",
       mfaVerifications: stored.mfaVerifications
     });
-    const tokens = await this.issue(session, stored.family, { clientId: stored.clientId, scope, name: stored.name });
+    const tokens = await this.issue(session, stored.family, {
+      clientId: stored.clientId,
+      scope,
+      name: stored.name,
+      accessTtl: stored.accessTtl,
+      refreshTtl: stored.refreshTtl
+    });
     // A revocation may have run between our read and the issue: its scan would have missed the new record
     for await (const _ of RefreshToken.iterate("family = ? AND revokedAt IS NOT NULL LIMIT 1", [stored.family])) {
       await RefreshToken.ref({ hash: this.hash(tokens.refreshToken) } as any).patch({
@@ -391,19 +411,24 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * @param family - family to revoke
    */
   async revokeFamily(family: string): Promise<void> {
-    for await (const token of RefreshToken.iterate("family = ? AND revokedAt IS NULL", [family])) {
-      await token.ref().patch({ revokedAt: Date.now() } as any);
+    let accessTtl = 0;
+    // Revoked records too: their access tokens may outlive the default lifetime
+    for await (const token of RefreshToken.iterate("family = ?", [family])) {
+      accessTtl = Math.max(accessTtl, token.accessTtl ?? 0);
+      if (!token.revokedAt) await token.ref().patch({ revokedAt: Date.now() } as any);
     }
-    await this.denylist(`fam:${family}`);
+    await this.denylist(`fam:${family}`, undefined, accessTtl);
   }
 
   /**
    * @param userId - user whose tokens are revoked
    */
   async revokeUser(userId: string): Promise<void> {
+    let accessTtl = 0;
     for await (const token of RefreshToken.iterate("userId = ? AND revokedAt IS NULL", [userId])) {
+      accessTtl = Math.max(accessTtl, token.accessTtl ?? 0);
       await token.ref().patch({ revokedAt: Date.now() } as any);
     }
-    await this.denylist(`user:${userId}`, Date.now());
+    await this.denylist(`user:${userId}`, Date.now(), accessTtl);
   }
 }

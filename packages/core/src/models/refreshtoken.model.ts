@@ -37,4 +37,8 @@ export class RefreshToken extends Model {
   name?: string;
   /** Last refresh, ms since epoch */
   lastUsedAt?: number;
+  /** Access token lifetime of the family (s), when it overrides the TokenService one */
+  accessTtl?: number;
+  /** Refresh token lifetime of the family (s), when it overrides the TokenService one */
+  refreshTtl?: number;
 }

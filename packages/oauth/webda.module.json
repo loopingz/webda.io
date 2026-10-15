@@ -215,6 +215,9 @@
         },
         "family": {
           "type": "string"
+        },
+        "reusedAt": {
+          "type": "number"
         }
       },
       "Schemas": {
@@ -287,6 +290,10 @@
             },
             "redirectUri": {
               "type": "string"
+            },
+            "reusedAt": {
+              "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
+              "type": "number"
             },
             "scope": {
               "type": "string"
@@ -378,6 +385,10 @@
             "redirectUri": {
               "type": "string"
             },
+            "reusedAt": {
+              "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
+              "type": "number"
+            },
             "scope": {
               "type": "string"
             },
@@ -467,6 +478,10 @@
             },
             "redirectUri": {
               "type": "string"
+            },
+            "reusedAt": {
+              "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
+              "type": "number"
             },
             "scope": {
               "type": "string"

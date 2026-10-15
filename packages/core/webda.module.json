@@ -2891,6 +2891,12 @@
         },
         "lastUsedAt": {
           "type": "number"
+        },
+        "accessTtl": {
+          "type": "number"
+        },
+        "refreshTtl": {
+          "type": "number"
         }
       },
       "Schemas": {
@@ -2930,6 +2936,10 @@
           },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
+            "accessTtl": {
+              "description": "Access token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
+            },
             "amr": {
               "description": "Authentication methods",
               "items": {
@@ -2982,6 +2992,10 @@
             "provider": {
               "description": "Provider used",
               "type": "string"
+            },
+            "refreshTtl": {
+              "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
             },
             "revokedAt": {
               "description": "Set when revoked",
@@ -3046,6 +3060,10 @@
           },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
+            "accessTtl": {
+              "description": "Access token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
+            },
             "amr": {
               "description": "Authentication methods",
               "items": {
@@ -3098,6 +3116,10 @@
             "provider": {
               "description": "Provider used",
               "type": "string"
+            },
+            "refreshTtl": {
+              "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
             },
             "revokedAt": {
               "description": "Set when revoked",
@@ -3162,6 +3184,10 @@
           },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
+            "accessTtl": {
+              "description": "Access token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
+            },
             "amr": {
               "description": "Authentication methods",
               "items": {
@@ -3214,6 +3240,10 @@
             "provider": {
               "description": "Provider used",
               "type": "string"
+            },
+            "refreshTtl": {
+              "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
             },
             "revokedAt": {
               "description": "Set when revoked",

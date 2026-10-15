@@ -413,7 +413,6 @@ class AuthorizeTest extends OAuthTest {
   async stubbedRoutes() {
     const b = await this.browser();
     for (const [method, path] of [
-      ["POST", "/oauth/token"],
       ["POST", "/oauth/revoke"],
       ["POST", "/oauth/device_authorization"],
       ["GET", "/oauth/consent"],

@@ -3,7 +3,9 @@ import {
   callOperation,
   HttpContext,
   listOperations,
+  registerOperation,
   runWithContext,
+  useInstanceStorage,
   useRouter,
   type HttpMethodType,
   type WebContext
@@ -34,6 +36,34 @@ export interface BrowserResponse {
   cookies: Record<string, { name: string; value: string; options: any }>;
   /** Context of the request */
   ctx: WebContext;
+}
+
+/** Operations of the test application */
+export const TEST_OPERATIONS: Record<string, { permission?: string; summary?: string }> = {
+  "Task.Get": { summary: "Read a task" },
+  "Task.Update": {},
+  "Task.Comment.Add": {},
+  "Admin.Purge": { permission: "roles CONTAINS 'admin'" },
+  "User.Me": {}
+};
+
+/** Register the test operations: OAuthServer.metadata stands for their implementation */
+export function registerTestOperations(): void {
+  for (const [id, definition] of Object.entries(TEST_OPERATIONS)) {
+    registerOperation(id, { service: "OAuthServer", method: "metadata", ...definition });
+  }
+}
+
+/** Remove the test operations: the registry is global, they must not leak into other suites */
+export function unregisterTestOperations(): void {
+  for (const id of Object.keys(TEST_OPERATIONS)) delete useInstanceStorage().operations?.[id];
+}
+
+/** Response of the token endpoint */
+export interface TokenEndpointResponse {
+  status: number;
+  body: any;
+  headers: Record<string, any>;
 }
 
 /**
@@ -241,6 +271,53 @@ export abstract class OAuthTest extends AuthTest {
   pkce(): { verifier: string; challenge: string } {
     const verifier = randomBytes(32).toString("base64url");
     return { verifier, challenge: createHash("sha256").update(verifier).digest("base64url") };
+  }
+
+  /**
+   * Go through the code flow for the `app` client as `u1`: authorize (consent forced), then allow the operations
+   * @param options - requested scope and operations selected on the consent page
+   * @returns the authorization code, its PKCE verifier and the redirect_uri it is bound to
+   */
+  async consentFlow(options: {
+    scope: string;
+    operations: string[];
+  }): Promise<{ code: string; verifier: string; redirectUri: string }> {
+    const browser = await this.browser();
+    await this.login(browser, "u1");
+    const redirectUri = "http://127.0.0.1:1234/callback";
+    await this.authorize(browser, { scope: options.scope, redirect_uri: redirectUri, prompt: "consent" });
+    const { csrf } = await this.op(browser, "OAuth.Consent.Get");
+    const { redirect } = await this.op(browser, "OAuth.Consent.Decide", {
+      allow: true,
+      operations: options.operations,
+      csrf
+    });
+    return { code: query(redirect).code, verifier: browser.verifier!, redirectUri };
+  }
+
+  /**
+   * POST to the token endpoint like a native client: no session, no cookie
+   * @param body - parameters
+   * @param json - send a JSON body instead of a form
+   * @returns the response
+   */
+  async tokenRequest(body: Record<string, string | undefined>, json: boolean = false): Promise<TokenEndpointResponse> {
+    const fields = Object.fromEntries(Object.entries(body).filter((e): e is [string, string] => e[1] !== undefined));
+    const http = new HttpContext("test.webda.io", "POST", "/oauth/token", "http", 80, {
+      "content-type": json ? "application/json" : "application/x-www-form-urlencoded"
+    });
+    http.setBody(json ? JSON.stringify(fields) : new URLSearchParams(fields).toString());
+    http.setClientIp("127.0.0.1");
+    const call = await this.newWebContext<WebContext>(http);
+    await runWithContext(call, () => useRouter().execute(call));
+    const raw = call.getResponseBody();
+    let parsed: any = raw ? raw.toString() : undefined;
+    try {
+      parsed = parsed !== undefined ? JSON.parse(parsed) : undefined;
+    } catch {
+      // Not JSON
+    }
+    return { status: call.statusCode, body: parsed, headers: call.getResponseHeaders() as any };
   }
 
   /**

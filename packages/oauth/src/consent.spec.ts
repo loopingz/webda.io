@@ -1,29 +1,17 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { listOperations, registerOperation, useInstanceStorage, useRouter, useService } from "@webda/core";
-import { OAuthTest, query } from "./test/oauthtest.js";
+import { listOperations, useRouter, useService } from "@webda/core";
+import { OAuthTest, query, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
 import { OAuthCode, OAuthGrant } from "./models.model.js";
 import { sha256 } from "./devicecode.js";
 import { PENDING_COOKIE } from "./oauthserver.service.js";
-
-/** Operations of the test application */
-const TEST_OPERATIONS: Record<string, { permission?: string; summary?: string }> = {
-  "Task.Get": { summary: "Read a task" },
-  "Task.Update": {},
-  "Task.Comment.Add": {},
-  "Admin.Purge": { permission: "roles CONTAINS 'admin'" },
-  "User.Me": {}
-};
 
 @suite
 class ConsentTest extends OAuthTest {
   /** @override */
   async beforeEach() {
     await super.beforeEach();
-    // A test service exposing the operations: OAuthServer.metadata stands for their implementation
-    for (const [id, definition] of Object.entries(TEST_OPERATIONS)) {
-      registerOperation(id, { service: "OAuthServer", method: "metadata", ...definition });
-    }
+    registerTestOperations();
     // The store outlives a test: forget the remembered consents
     for (const uuid of ["u1:app", "u2:app", "u1:webda-cli"]) {
       if (await OAuthGrant.ref(uuid).exists()) await OAuthGrant.ref(uuid).delete();
@@ -32,8 +20,7 @@ class ConsentTest extends OAuthTest {
 
   /** @override */
   async afterEach() {
-    // The registry is global: do not leak the test operations into other suites
-    for (const id of Object.keys(TEST_OPERATIONS)) delete useInstanceStorage().operations[id];
+    unregisterTestOperations();
     await super.afterEach();
   }
 

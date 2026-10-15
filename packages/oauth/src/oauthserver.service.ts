@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import {
   canCallOperation,
   collapse,
@@ -6,6 +6,7 @@ import {
   expand,
   formatScope,
   intersect,
+  type IssuedTokens,
   InvalidScope,
   listOperations,
   OFFLINE_ACCESS,
@@ -13,16 +14,21 @@ import {
   OperationIdTransport,
   operationGlobs,
   parseScope,
+  RefreshToken,
   RESTOperationsTransport,
   type Scope,
   scopeMatches,
   Service,
-  type Session,
+  Session,
+  TokenInvalid,
+  type TokenService,
   useContext,
   useCore,
+  useService,
   type WebContext,
   WebdaError
 } from "@webda/core";
+import { OAuthError } from "./errors.js";
 import { ClientRegistry } from "./clients.js";
 import { randomToken, sha256 } from "./devicecode.js";
 import { type GrantIdentity, OAuthCode, OAuthGrant } from "./models.model.js";
@@ -37,6 +43,14 @@ const MAX_STATE = 256;
 const MAX_SCOPE = 1024;
 /** Maximum length of the `hostname` parameter */
 const MAX_HOSTNAME = 64;
+/** Device authorization grant type (RFC 8628) */
+export const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
+/** PKCE code_verifier: 43 to 128 unreserved characters (RFC 7636 §4.1) */
+const PKCE_VERIFIER = /^[A-Za-z0-9\-._~]{43,128}$/;
+/** Maximum size of a token request body */
+const MAX_TOKEN_BODY = 64 * 1024;
+/** Headers of every token endpoint response (RFC 6749 §5.1) */
+const TOKEN_HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store", Pragma: "no-cache" };
 /** Query parameters of the authorization endpoint */
 const AUTHORIZE_PARAMS = [
   "response_type",
@@ -68,6 +82,25 @@ export interface ConsentRequest {
   rememberable: boolean;
   /** CSRF token to send back with the decision */
   csrf: string;
+}
+
+/** Successful token endpoint response (RFC 6749 §5.1) */
+export interface TokenResponse {
+  access_token: string;
+  token_type: "Bearer";
+  /** Access token lifetime (s) */
+  expires_in: number;
+  /** Granted scope */
+  scope: string;
+  /** Only when `offline_access` is granted */
+  refresh_token?: string;
+}
+
+/**
+ * @returns the error for an authorization code that cannot be exchanged: one description for every cause
+ */
+function invalidCode(): OAuthError {
+  return new OAuthError("invalid_grant", "Invalid authorization code");
 }
 
 /**
@@ -571,9 +604,20 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       codeChallenge: pending.codeChallenge!,
       scope: formatScope(scope),
       identity,
+      name: await this.familyName(pending),
       expiresAt: Date.now() + this.parameters.codeTtl * 1000
     } as any);
     return code;
+  }
+
+  /**
+   * @param pending - approved request
+   * @returns display name of the refresh family, e.g. "Webda CLI on remi-mbp"
+   */
+  protected async familyName(pending: PendingRequest): Promise<string> {
+    const client = await this.clients.get(pending.clientId);
+    const name = client?.name ?? pending.clientId;
+    return pending.hostname ? `${name} on ${pending.hostname}` : name;
   }
 
   /**
@@ -629,11 +673,244 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Token endpoint
-   * @param _ctx - web context
+   * Token endpoint: authorization code, refresh token and device code grants. Accepts form-encoded and JSON bodies;
+   * every response, errors included, is JSON and never cached
+   * @param ctx - web context
    */
-  async token(_ctx: WebContext): Promise<void> {
-    throw new WebdaError.NotFound("Not implemented");
+  async token(ctx: WebContext): Promise<void> {
+    let status = 200;
+    let payload: TokenResponse | { error: string; error_description: string };
+    try {
+      const body = await this.tokenBody(ctx);
+      switch (body.grant_type) {
+        case "authorization_code":
+          payload = await this.exchangeCode(body);
+          break;
+        case "refresh_token":
+          payload = await this.exchangeRefresh(body);
+          break;
+        case DEVICE_GRANT:
+          payload = await this.exchangeDevice(body);
+          break;
+        case undefined:
+          throw new OAuthError("invalid_request", "grant_type is required");
+        default:
+          throw new OAuthError("unsupported_grant_type", "Unsupported grant_type");
+      }
+    } catch (err) {
+      const oauth = this.toOAuthError(err);
+      status = oauth.getResponseCode();
+      payload = oauth.toJSON();
+    }
+    ctx.writeHead(status, TOKEN_HEADERS);
+    ctx.write(JSON.stringify(payload));
+  }
+
+  /**
+   * @param err - error raised while serving a token request
+   * @returns the RFC 6749 error to send: never an internal message
+   */
+  protected toOAuthError(err: unknown): OAuthError {
+    if (err instanceof OAuthError) return err;
+    if (err instanceof InvalidScope) {
+      return new OAuthError("invalid_scope", "Requested scope is invalid or exceeds the granted scope");
+    }
+    if (err instanceof TokenInvalid) return new OAuthError("invalid_grant", "Invalid refresh token");
+    this.log("ERROR", "Token request failed", err);
+    return new OAuthError("server_error", "Internal error", 500);
+  }
+
+  /**
+   * @param ctx - web context
+   * @returns the string parameters of a form-encoded or JSON body
+   * @throws OAuthError invalid_request on an unreadable body, another content type or a repeated parameter
+   */
+  protected async tokenBody(ctx: WebContext): Promise<Record<string, string>> {
+    const type = ctx.getHttpContext().getUniqueHeader("content-type", "").split(";")[0].trim().toLowerCase();
+    let raw: string;
+    try {
+      raw = await ctx.getRawInputAsString(MAX_TOKEN_BODY);
+    } catch {
+      throw new OAuthError("invalid_request", "Unreadable request body");
+    }
+    const body: Record<string, string> = {};
+    if (type === "application/x-www-form-urlencoded") {
+      for (const [key, value] of new URLSearchParams(raw)) {
+        // RFC 6749 §3.2: request parameters must not be included more than once
+        if (Object.prototype.hasOwnProperty.call(body, key)) {
+          throw new OAuthError("invalid_request", "Repeated parameter");
+        }
+        body[key] = value;
+      }
+      return body;
+    }
+    if (type === "application/json") {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new OAuthError("invalid_request", "Malformed JSON body");
+      }
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        throw new OAuthError("invalid_request", "Body must be a JSON object");
+      }
+      for (const [key, value] of Object.entries(parsed)) {
+        if (typeof value === "string") body[key] = value;
+      }
+      return body;
+    }
+    throw new OAuthError("invalid_request", "Unsupported content type");
+  }
+
+  /**
+   * @returns the token service
+   */
+  protected tokenService(): TokenService {
+    return useService("TokenService") as TokenService;
+  }
+
+  /**
+   * Exchange an authorization code (RFC 6749 §4.1.3, PKCE RFC 7636 §4.6).
+   *
+   * The code is consumed by a compare-and-set on `usedAt` before anything else is checked, so it is exchanged at most
+   * once whatever the outcome. A code presented again revokes the family issued from it
+   * @param body - token request
+   * @returns the tokens
+   */
+  protected async exchangeCode(body: Record<string, string>): Promise<TokenResponse> {
+    const { code, code_verifier: verifier, client_id: clientId, redirect_uri: redirectUri } = body;
+    if (!code || !verifier || !clientId || !redirectUri) {
+      throw new OAuthError("invalid_request", "code, code_verifier, client_id and redirect_uri are required");
+    }
+    const ref = OAuthCode.ref(sha256(code));
+    if (!(await ref.exists())) throw invalidCode();
+    const stored: OAuthCode = await ref.get();
+    if (stored.usedAt) {
+      await this.codeReused(ref);
+      throw invalidCode();
+    }
+    // Compare-and-set: only one caller moves usedAt from undefined to a value
+    try {
+      await ref.patch({ usedAt: Date.now() } as any, "usedAt" as any, undefined);
+    } catch (err) {
+      if (!this.isConditionFailure(err)) throw err;
+      await this.codeReused(ref);
+      throw invalidCode();
+    }
+    const challenge = createHash("sha256").update(verifier).digest("base64url");
+    if (
+      !(stored.expiresAt > Date.now()) ||
+      stored.clientId !== clientId ||
+      stored.redirectUri !== redirectUri ||
+      !PKCE_VERIFIER.test(verifier) ||
+      !sameSecret(challenge, stored.codeChallenge)
+    ) {
+      throw invalidCode();
+    }
+    const issued = await this.issueTokens(stored.identity, stored.clientId, parseScope(stored.scope), stored.name);
+    await ref.patch({ family: issued.family } as any);
+    // A concurrent presentation marks the code before reading the family: if it ran before the family was
+    // recorded it could not revoke it, so revoke it here (the tokens are returned but no longer valid)
+    if (((await ref.get()) as OAuthCode).reusedAt) await this.tokenService().revokeFamily(issued.family);
+    return issued.response;
+  }
+
+  /**
+   * A used code was presented again: mark it, then revoke the family issued from it once recorded. The exchange that
+   * records the family checks the mark afterwards, so the family is revoked whichever runs first
+   * @param ref - code reference
+   */
+  protected async codeReused(ref: ReturnType<typeof OAuthCode.ref>): Promise<void> {
+    await ref.patch({ reusedAt: Date.now() } as any);
+    const { family } = (await ref.get()) as OAuthCode;
+    if (family) await this.tokenService().revokeFamily(family);
+  }
+
+  /**
+   * @param err - error thrown by a conditional write
+   * @returns true if the error is a failed write condition
+   */
+  protected isConditionFailure(err: any): boolean {
+    return /condition/i.test(`${err?.name} ${err?.message}`);
+  }
+
+  /**
+   * Refresh token grant (RFC 6749 §6): rotation, reuse detection, client binding and narrowing are done by
+   * TokenService
+   * @param body - token request
+   * @returns the tokens, with the rotated refresh token while `offline_access` is kept
+   */
+  protected async exchangeRefresh(body: Record<string, string>): Promise<TokenResponse> {
+    const { refresh_token: refreshToken, client_id: clientId } = body;
+    if (!refreshToken || !clientId) throw new OAuthError("invalid_request", "refresh_token and client_id are required");
+    if (!(await this.clients.get(clientId))) throw new OAuthError("invalid_client", "Unknown client", 401);
+    let requested: Scope | undefined;
+    if (body.scope !== undefined) {
+      if (body.scope.length > MAX_SCOPE) throw new InvalidScope("Scope is too long");
+      requested = parseScope(body.scope);
+      if (!operationGlobs(requested).length) throw new InvalidScope("No operation requested");
+    }
+    const tokens = await this.tokenService().refresh(refreshToken, { clientId, scope: requested });
+    return this.tokenResponse(tokens, tokens.scope ?? []);
+  }
+
+  /**
+   * Device code grant (RFC 8628 §3.4)
+   * @param _body - token request
+   * @returns the tokens
+   */
+  protected async exchangeDevice(_body: Record<string, string>): Promise<TokenResponse> {
+    throw new OAuthError("unsupported_grant_type", "Unsupported grant_type");
+  }
+
+  /**
+   * Issue the tokens of a new family for a consented identity
+   * @param identity - identity captured at consent
+   * @param clientId - client
+   * @param scope - granted scope
+   * @param name - display name of the family
+   * @returns the family and the response
+   */
+  protected async issueTokens(
+    identity: GrantIdentity,
+    clientId: string,
+    scope: Scope,
+    name?: string
+  ): Promise<{ family: string; response: TokenResponse }> {
+    const session = new Session();
+    session.login(identity.userId, identity.identId, {
+      provider: identity.provider,
+      amr: identity.amr,
+      mfa: identity.mfa
+    });
+    const tokens = await this.tokenService().issue(session, undefined, {
+      clientId,
+      scope,
+      name,
+      accessTtl: this.parameters.accessTtl,
+      refreshTtl: this.parameters.refreshTtl
+    });
+    return { family: tokens.family, response: await this.tokenResponse(tokens, scope) };
+  }
+
+  /**
+   * @param tokens - issued tokens
+   * @param scope - granted scope
+   * @returns the response; without `offline_access` the refresh token is withheld and made unusable
+   */
+  protected async tokenResponse(tokens: IssuedTokens, scope: Scope): Promise<TokenResponse> {
+    const offline = scope.includes(OFFLINE_ACCESS);
+    if (!offline) {
+      // Expired rather than revoked: the record still tells a later revocation how long its access token lives
+      await RefreshToken.ref({ hash: sha256(tokens.refreshToken) } as any).patch({ expiresAt: Date.now() - 1 } as any);
+    }
+    return {
+      access_token: tokens.accessToken,
+      token_type: "Bearer",
+      expires_in: tokens.expiresIn,
+      scope: formatScope(scope),
+      ...(offline ? { refresh_token: tokens.refreshToken } : {})
+    };
   }
 
   /**

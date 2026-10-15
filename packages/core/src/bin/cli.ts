@@ -1092,6 +1092,7 @@ export function applyDefaultCommand(argv: string[], defaultCommand?: string, com
  * The process exits once the command completes (or fails, or is interrupted by SIGINT/SIGTERM).
  *
  * @param options - application folder, arguments, default command and program name
+ * @returns once the command is parsed and started (the process exits when it completes)
  */
 export async function runCli(options: RunCliOptions = {}): Promise<void> {
   return runCommandLine(options, true);

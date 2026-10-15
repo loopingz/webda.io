@@ -233,7 +233,7 @@ export function generateConfigurationSchemas(
     try {
       const config = FileUtils.load(configFile);
       if (config && typeof config === "object" && !Array.isArray(config) && !config.$schema) {
-        const schemaRef = relative(dirname(resolve(configFile)), absFilename);
+        const schemaRef = relative(dirname(resolve(configFile)), absFilename).replace(/\\/g, "/");
         const updated = { $schema: schemaRef, ...config };
         FileUtils.save(updated, configFile);
       }
@@ -243,14 +243,18 @@ export function generateConfigurationSchemas(
   }
 
   // Ensure $schema is set in each deployment file if not present
-  const targetDeploymentsDir = deploymentsDir ?? (configFile ? join(projectDir, "deployments") : undefined);
+  const targetDeploymentsDir = deploymentsDir
+    ? resolve(projectDir, deploymentsDir)
+    : configFile
+      ? join(projectDir, "deployments")
+      : undefined;
   if (targetDeploymentsDir && existsSync(targetDeploymentsDir)) {
     FileUtils.walkSync(targetDeploymentsDir, filePath => {
       if (filePath.endsWith(".json") || filePath.endsWith(".jsonc")) {
         try {
           const deployment = FileUtils.load(filePath);
           if (deployment && typeof deployment === "object" && !Array.isArray(deployment) && !deployment.$schema) {
-            const schemaRef = relative(dirname(resolve(filePath)), absDeploymentFilename);
+            const schemaRef = relative(dirname(resolve(filePath)), absDeploymentFilename).replace(/\\/g, "/");
             const updated = { $schema: schemaRef, ...deployment };
             FileUtils.save(updated, filePath);
           }

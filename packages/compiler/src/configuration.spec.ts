@@ -143,7 +143,7 @@ class ConfigurationSchemaTest {
   generatesConfigAndDeploymentSchemas() {
     const app = createMockApp();
     const configSchemaPath = path.join(this.tempDir, ".webda", "config.schema.json");
-    const deploymentSchemaPath = path.join(this.tempDir, ".webda", "deployment.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, ".schemas", "deployment.schema.json");
 
     generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath);
 
@@ -210,7 +210,7 @@ class ConfigurationSchemaTest {
     writeFileSync(devJson, JSON.stringify({ parameters: { env: "dev" } }, null, 2));
 
     const prodJsonc = path.join(deploymentsDir, "Prod.jsonc");
-    writeFileSync(prodJsonc, "{\n  // Production deployment\n  \"parameters\": { \"env\": \"prod\" }\n}\n");
+    writeFileSync(prodJsonc, '{\n  // Production deployment\n  "parameters": { "env": "prod" }\n}\n');
 
     const alreadyHasSchema = path.join(deploymentsDir, "Staging.json");
     writeFileSync(alreadyHasSchema, JSON.stringify({ $schema: "custom-staging-schema.json", parameters: {} }, null, 2));
@@ -263,5 +263,62 @@ class ConfigurationSchemaTest {
 
     const dev = FileUtils.load(devJson);
     assert.strictEqual(dev.$schema, "../.webda/deployment.schema.json");
+  }
+
+  @test
+  resolvesRelativeSchemaPathsFromTheProjectAndLeavesExistingFilesUntouched() {
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    const deploymentsDir = path.join(this.tempDir, "deployments");
+    mkdirSync(deploymentsDir);
+    writeFileSync(configPath, '{"version":4}');
+    const deploymentPath = path.join(deploymentsDir, "Dev.json");
+    writeFileSync(deploymentPath, '{"parameters":{}}');
+
+    generateConfigurationSchemas(
+      createMockApp(),
+      ".webda/config.schema.json",
+      ".webda/deployment.schema.json",
+      false,
+      configPath,
+      "deployments"
+    );
+
+    assert.ok(existsSync(path.join(this.tempDir, ".webda", "config.schema.json")));
+    assert.ok(existsSync(path.join(this.tempDir, ".webda", "deployment.schema.json")));
+    assert.strictEqual(FileUtils.load(configPath).$schema, ".webda/config.schema.json");
+    assert.strictEqual(FileUtils.load(deploymentPath).$schema, "../.webda/deployment.schema.json");
+
+    const updatedConfig = readFileSync(configPath, "utf-8");
+    const updatedDeployment = readFileSync(deploymentPath, "utf-8");
+    generateConfigurationSchemas(
+      createMockApp(),
+      ".webda/config.schema.json",
+      ".webda/deployment.schema.json",
+      false,
+      configPath
+    );
+    assert.strictEqual(readFileSync(configPath, "utf-8"), updatedConfig);
+    assert.strictEqual(readFileSync(deploymentPath, "utf-8"), updatedDeployment);
+  }
+
+  @test
+  ignoresUnparseableConfigAndDeploymentFiles() {
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    const deploymentsDir = path.join(this.tempDir, "deployments");
+    mkdirSync(deploymentsDir);
+    const deploymentPath = path.join(deploymentsDir, "Broken.json");
+    writeFileSync(configPath, "{");
+    writeFileSync(deploymentPath, "{");
+
+    generateConfigurationSchemas(
+      createMockApp(),
+      path.join(this.tempDir, ".webda", "config.schema.json"),
+      path.join(this.tempDir, ".webda", "deployment.schema.json"),
+      false,
+      configPath
+    );
+
+    assert.strictEqual(readFileSync(configPath, "utf-8"), "{");
+    assert.strictEqual(readFileSync(deploymentPath, "utf-8"), "{");
   }
 }

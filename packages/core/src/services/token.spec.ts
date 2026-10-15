@@ -6,6 +6,7 @@ import { TokenInvalid, TokenService } from "./token.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
 import { useService } from "../core/hooks.js";
 import { useCrypto } from "./cryptoservice.service.js";
+import { InvalidScope } from "../session/scope.js";
 
 @suite
 class TokenServiceTest extends WebdaApplicationTest {
@@ -213,5 +214,66 @@ class TokenServiceTest extends WebdaApplicationTest {
     const all = (await RefreshToken.query("userId = 'u3'")).results;
     assert.strictEqual(all.filter(r => r.revokedAt).length, 0);
     assert.ok(await this.service.refresh(t.refreshToken));
+  }
+
+  @test
+  async issueCarriesScopeAndClient() {
+    const svc = this.service;
+    const tokens = await svc.issue(this.session(), undefined, {
+      clientId: "webda-cli",
+      scope: ["Task.*", "offline_access"],
+      name: "cli on host"
+    });
+    const claims = await svc.verifyAccess(tokens.accessToken);
+    assert.strictEqual(claims.scope, "Task.* offline_access");
+    assert.strictEqual(claims.client_id, "webda-cli");
+    const stored = await RefreshToken.ref({ hash: (svc as any).hash(tokens.refreshToken) } as any).get();
+    assert.strictEqual(stored.clientId, "webda-cli");
+    assert.strictEqual(stored.scope, "Task.* offline_access");
+    assert.strictEqual(stored.name, "cli on host");
+    assert.ok(tokens.family);
+  }
+
+  @test
+  async loadFromTokenSetsScopes() {
+    const svc = this.service;
+    const manager = useService("SessionManager") as any;
+    const tokens = await svc.issue(this.session(), undefined, { clientId: "c", scope: ["Task.*"] });
+    const loaded = await manager.loadFromToken(await this.newContext(), tokens.accessToken);
+    assert.deepStrictEqual(loaded.scopes, ["Task.*"]);
+    assert.strictEqual(loaded.clientId, "c");
+    const plain = await svc.issue(this.session());
+    const unscoped = await manager.loadFromToken(await this.newContext(), plain.accessToken);
+    assert.strictEqual(unscoped.scopes, undefined);
+  }
+
+  @test
+  async refreshKeepsOrNarrowsScope() {
+    const svc = this.service;
+    const first = await svc.issue(this.session(), undefined, { clientId: "c", scope: ["Task.*", "offline_access"] });
+    const second = await svc.refresh(first.refreshToken, { clientId: "c" });
+    assert.deepStrictEqual(second.scope, ["Task.*", "offline_access"]);
+    const third = await svc.refresh(second.refreshToken, { clientId: "c", scope: ["Task.Get"] });
+    assert.strictEqual((await svc.verifyAccess(third.accessToken)).scope, "Task.Get");
+    await assert.rejects(() => svc.refresh(third.refreshToken, { clientId: "c", scope: ["User.*"] }), InvalidScope);
+    // the failed narrowing did not burn the refresh token
+    assert.ok(await svc.refresh(third.refreshToken, { clientId: "c" }));
+  }
+
+  @test
+  async refreshRejectsOtherClient() {
+    const svc = this.service;
+    const first = await svc.issue(this.session(), undefined, { clientId: "c", scope: ["*"] });
+    await assert.rejects(() => svc.refresh(first.refreshToken, { clientId: "other" }), TokenInvalid);
+  }
+
+  @test
+  async logoutClearsScopes() {
+    const session = this.session();
+    session.scopes = ["*"];
+    session.clientId = "c";
+    session.logout();
+    assert.strictEqual(session.scopes, undefined);
+    assert.strictEqual(session.clientId, undefined);
   }
 }

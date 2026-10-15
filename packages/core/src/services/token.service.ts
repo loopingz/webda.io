@@ -5,6 +5,7 @@ import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
+import { covers, formatScope, InvalidScope, parseScope, type Scope } from "../session/scope.js";
 import { MfaState, type MfaVerification, Session } from "../session/session.js";
 
 const ACCESS_AUDIENCE = "webda-access";
@@ -24,6 +25,16 @@ export interface IssuedTokens {
   expiresIn: number;
 }
 
+/** Options of {@link TokenService.issue} */
+export interface IssueOptions {
+  /** OAuth client */
+  clientId?: string;
+  /** Granted scope */
+  scope?: Scope;
+  /** Display name of the refresh family */
+  name?: string;
+}
+
 /** Claims carried by an access token */
 export interface AccessClaims {
   sub: string;
@@ -36,6 +47,12 @@ export interface AccessClaims {
   mfaVerifications?: Record<string, MfaVerification>;
   /** When the session was authenticated (ms): checked against the user's last password change */
   authAt?: number;
+  /** Granted scope (space-separated operation globs) */
+  scope?: string;
+  /** OAuth client the token was issued to */
+  client_id?: string;
+  /** Issued at, seconds (set by the JWT signer) */
+  iat?: number;
 }
 
 /** TokenService parameters */
@@ -82,12 +99,18 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * Roles are not persisted: refreshed access tokens carry no roles until they are re-derived.
    * @param session - logged session (must not be anonymous nor pending MFA)
    * @param family - existing family when rotating
-   * @returns the tokens
+   * @param options - OAuth client, scope and display name
+   * @returns the tokens and their family
    */
-  async issue(session: Session, family: string = getUuid("base64")): Promise<IssuedTokens> {
+  async issue(
+    session: Session,
+    family: string = getUuid("base64"),
+    options: IssueOptions = {}
+  ): Promise<IssuedTokens & { family: string }> {
     if (!session.isLogged()) {
       throw new TokenInvalid("Session is not fully authenticated");
     }
+    const scope = options.scope ? formatScope(options.scope) : undefined;
     const refreshToken = randomBytes(32).toString("base64url");
     await RefreshToken.create({
       hash: this.hash(refreshToken),
@@ -98,7 +121,10 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       mfa: session.mfa ?? "none",
       mfaVerifications: session.mfaVerifications,
       family,
-      expiresAt: Date.now() + this.parameters.refreshTtl * 1000
+      expiresAt: Date.now() + this.parameters.refreshTtl * 1000,
+      clientId: options.clientId,
+      scope,
+      name: options.name
     } as any);
     session.refreshFamily = family;
     // A refreshed session is re-authenticated by its (unrevoked) refresh token
@@ -112,13 +138,15 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       fam: family,
       mfa: session.mfa ?? "none",
       mfaVerifications: session.mfaVerifications,
-      authAt: session.authAt
+      authAt: session.authAt,
+      ...(scope !== undefined ? { scope } : {}),
+      ...(options.clientId ? { client_id: options.clientId } : {})
     };
     const accessToken = await useCrypto().jwtSign(claims, {
       audience: ACCESS_AUDIENCE,
       expiresIn: this.parameters.accessTtl
     });
-    return { accessToken, refreshToken, expiresIn: this.parameters.accessTtl };
+    return { accessToken, refreshToken, expiresIn: this.parameters.accessTtl, family };
   }
 
   /**
@@ -139,9 +167,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * The token is only ever looked up by its hash, so an access token or any
    * arbitrary string simply does not match a stored record.
    * @param refreshToken - raw refresh token
-   * @returns new tokens and the rebuilt session
+   * @param options - client the token must belong to and optional narrower scope
+   * @returns new tokens, the rebuilt session and the granted scope
    */
-  async refresh(refreshToken: string): Promise<IssuedTokens & { session: Session }> {
+  async refresh(
+    refreshToken: string,
+    options: { scope?: Scope; clientId?: string } = {}
+  ): Promise<IssuedTokens & { session: Session; scope?: Scope }> {
     if (typeof refreshToken !== "string" || !refreshToken) {
       throw new TokenInvalid();
     }
@@ -153,9 +185,21 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     if (stored.revokedAt || stored.expiresAt < Date.now()) {
       throw new TokenInvalid();
     }
+    if ((stored.clientId ?? undefined) !== (options.clientId ?? stored.clientId)) {
+      throw new TokenInvalid("Refresh token issued to another client");
+    }
     if (stored.rotatedAt) {
       await this.revokeFamily(stored.family);
       throw new TokenInvalid("Refresh token reused");
+    }
+    // Checked before the compare-and-set so an invalid narrowing does not burn the refresh token
+    const storedScope = stored.scope !== undefined ? parseScope(stored.scope) : undefined;
+    let scope = storedScope;
+    if (options.scope) {
+      if (storedScope && !covers(storedScope, options.scope)) {
+        throw new InvalidScope("Requested scope exceeds the granted scope");
+      }
+      scope = options.scope;
     }
     // Compare-and-set: only one caller can move rotatedAt from undefined to a value
     try {
@@ -175,7 +219,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       mfa: stored.mfa ?? "none",
       mfaVerifications: stored.mfaVerifications
     });
-    const tokens = await this.issue(session, stored.family);
+    const tokens = await this.issue(session, stored.family, { clientId: stored.clientId, scope, name: stored.name });
     // A revocation may have run between our read and the issue: its scan would have missed the new record
     for await (const _ of RefreshToken.iterate("family = ? AND revokedAt IS NOT NULL LIMIT 1", [stored.family])) {
       await RefreshToken.ref({ hash: this.hash(tokens.refreshToken) } as any).patch({
@@ -183,7 +227,10 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       } as any);
       throw new TokenInvalid("Refresh token revoked");
     }
-    return { ...tokens, session };
+    await RefreshToken.ref({ hash: this.hash(tokens.refreshToken) } as any).patch({
+      lastUsedAt: Date.now()
+    } as any);
+    return { ...tokens, session, scope };
   }
 
   /**

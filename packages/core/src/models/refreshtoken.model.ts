@@ -29,4 +29,12 @@ export class RefreshToken extends Model {
   rotatedAt?: number;
   /** Set when revoked */
   revokedAt?: number;
+  /** OAuth client the token was issued to */
+  clientId?: string;
+  /** Granted scope (space-separated) */
+  scope?: string;
+  /** Display name, e.g. "webda-cli on remi-mbp" */
+  name?: string;
+  /** Last refresh, ms since epoch */
+  lastUsedAt?: number;
 }

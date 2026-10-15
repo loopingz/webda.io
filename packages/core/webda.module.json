@@ -2825,6 +2825,18 @@
         },
         "revokedAt": {
           "type": "number"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "lastUsedAt": {
+          "type": "number"
         }
       },
       "Schemas": {
@@ -2871,6 +2883,10 @@
               },
               "type": "array"
             },
+            "clientId": {
+              "description": "OAuth client the token was issued to",
+              "type": "string"
+            },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
               "type": "number"
@@ -2887,6 +2903,10 @@
               "description": "Ident used to log in",
               "type": "string"
             },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
             "mfa": {
               "default": "none",
               "description": "MFA state of the session that issued the token",
@@ -2901,6 +2921,10 @@
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
+            "name": {
+              "description": "Display name, e.g. \"webda-cli on remi-mbp\"",
+              "type": "string"
+            },
             "provider": {
               "description": "Provider used",
               "type": "string"
@@ -2912,6 +2936,10 @@
             "rotatedAt": {
               "description": "Set once exchanged",
               "type": "number"
+            },
+            "scope": {
+              "description": "Granted scope (space-separated)",
+              "type": "string"
             },
             "userId": {
               "description": "Owner",
@@ -2971,6 +2999,10 @@
               },
               "type": "array"
             },
+            "clientId": {
+              "description": "OAuth client the token was issued to",
+              "type": "string"
+            },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
               "type": "number"
@@ -2987,6 +3019,10 @@
               "description": "Ident used to log in",
               "type": "string"
             },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
             "mfa": {
               "default": "none",
               "description": "MFA state of the session that issued the token",
@@ -3001,6 +3037,10 @@
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
+            "name": {
+              "description": "Display name, e.g. \"webda-cli on remi-mbp\"",
+              "type": "string"
+            },
             "provider": {
               "description": "Provider used",
               "type": "string"
@@ -3012,6 +3052,10 @@
             "rotatedAt": {
               "description": "Set once exchanged",
               "type": "number"
+            },
+            "scope": {
+              "description": "Granted scope (space-separated)",
+              "type": "string"
             },
             "userId": {
               "description": "Owner",
@@ -3071,6 +3115,10 @@
               },
               "type": "array"
             },
+            "clientId": {
+              "description": "OAuth client the token was issued to",
+              "type": "string"
+            },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
               "type": "number"
@@ -3087,6 +3135,10 @@
               "description": "Ident used to log in",
               "type": "string"
             },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
             "mfa": {
               "default": "none",
               "description": "MFA state of the session that issued the token",
@@ -3101,6 +3153,10 @@
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
+            "name": {
+              "description": "Display name, e.g. \"webda-cli on remi-mbp\"",
+              "type": "string"
+            },
             "provider": {
               "description": "Provider used",
               "type": "string"
@@ -3112,6 +3168,10 @@
             "rotatedAt": {
               "description": "Set once exchanged",
               "type": "number"
+            },
+            "scope": {
+              "description": "Granted scope (space-separated)",
+              "type": "string"
             },
             "userId": {
               "description": "Owner",

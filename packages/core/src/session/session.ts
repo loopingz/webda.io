@@ -100,6 +100,17 @@ export class Session {
   authAt?: number;
 
   /**
+   * Operation globs the bearer token is restricted to (OAuth scope); undefined means unrestricted. Never set on
+   * cookie sessions.
+   */
+  scopes?: string[];
+
+  /**
+   * OAuth client the bearer token was issued to
+   */
+  clientId?: string;
+
+  /**
    * Application (workload) identity when authenticated by OIDC: mutually exclusive with userId
    *
    * An application session has no current user, so ownership checks never mistake an application for a user
@@ -163,6 +174,8 @@ export class Session {
     delete this.mfaVerifications;
     delete this.refreshFamily;
     delete this.authAt;
+    delete this.scopes;
+    delete this.clientId;
   }
 
   /**

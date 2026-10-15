@@ -112,6 +112,12 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
       session.roles = claims.roles;
       session.refreshFamily = claims.fam;
       session.authAt = claims.authAt;
+      if (typeof claims.scope === "string") {
+        session.scopes = claims.scope.split(" ").filter(Boolean);
+      }
+      if (claims.client_id) {
+        session.clientId = claims.client_id;
+      }
       if (await this.isOutdated(session)) {
         session.logout();
       }

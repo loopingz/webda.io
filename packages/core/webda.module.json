@@ -1706,8 +1706,86 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "definitions": {
+          "Record<string, string | RouteAliasDefinition>": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/RouteAliasDefinition"
+                }
+              ]
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "RouteAliasDefinition": {
+            "additionalProperties": false,
+            "description": "Full definition of a route alias",
+            "properties": {
+              "methods": {
+                "default": "all methods",
+                "description": "Methods the alias applies to",
+                "items": {
+                  "enum": [
+                    "GET",
+                    "OPTIONS",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "mode": {
+                "default": "rewrite",
+                "description": "rewrite: served in-process, redirect: HTTP redirect to the target",
+                "enum": [
+                  "rewrite",
+                  "redirect"
+                ],
+                "type": "string"
+              },
+              "openapi": {
+                "default": "true for rewrite, false for redirect",
+                "description": "Document the alias in OpenAPI",
+                "type": "boolean"
+              },
+              "redirectCode": {
+                "default": 302,
+                "description": "Status code used in redirect mode",
+                "enum": [
+                  301,
+                  302,
+                  307,
+                  308
+                ],
+                "type": "number"
+              },
+              "target": {
+                "description": "Target URL, relative to the application (routePrefix is applied like routes)\nSupports ${user.id} and ${params.<name>} placeholders",
+                "type": "string"
+              }
+            },
+            "required": [
+              "target"
+            ],
+            "type": "object"
+          }
+        },
         "description": "Parameters for the Router service",
         "properties": {
+          "aliases": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20RouteAliasDefinition%3E",
+            "description": "Route aliases: key is the alias URL template, value the target",
+            "example": {
+              "/me": "/users/${user.id}"
+            }
+          },
           "overrideWarning": {
             "default": false,
             "description": "Display a WARNING if a route is overriden",

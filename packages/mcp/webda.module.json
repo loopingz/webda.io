@@ -22,11 +22,6 @@
             "description": "Path serving the RFC 9728 protected resource metadata",
             "type": "string"
           },
-          "resourcePath": {
-            "default": "/mcp",
-            "description": "MCP endpoint path, advertised as the `resource`",
-            "type": "string"
-          },
           "type": {
             "description": "Type of the service",
             "type": "string"

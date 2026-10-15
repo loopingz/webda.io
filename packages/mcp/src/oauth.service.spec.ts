@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Session, useService } from "@webda/core";
+import { HttpContext, Session, useService } from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -16,8 +16,7 @@ const INIT = {
 };
 const HEADERS = { "content-type": "application/json", accept: "application/json, text/event-stream" };
 
-@suite
-class McpOAuthTest extends McpFixtureTest {
+class McpOAuthBase extends McpFixtureTest {
   port: number;
 
   /**
@@ -88,7 +87,10 @@ class McpOAuthTest extends McpFixtureTest {
     await client.connect(transport);
     return client;
   }
+}
 
+@suite
+class McpOAuthTest extends McpOAuthBase {
   @test
   async challengeWithoutToken() {
     const base = await this.base();
@@ -137,6 +139,41 @@ class McpOAuthTest extends McpFixtureTest {
   }
 
   @test
+  async metadataIsNotCached() {
+    const res = await fetch(`${await this.base()}/.well-known/oauth-protected-resource`);
+    assert.strictEqual(res.headers.get("cache-control"), "no-store");
+    assert.strictEqual(res.headers.get("vary"), "Host");
+  }
+
+  @test
+  async followsPrefix() {
+    const auth = useService("McpAuth") as McpOAuthAuthenticator;
+    const headers: Record<string, string> = {};
+    let body = "";
+    const http = new HttpContext("example.com", "GET", "/prod/.well-known/oauth-protected-resource", "https", 443, {
+      host: "example.com"
+    });
+    http.setPrefix("/prod");
+    const ctx: any = {
+      getHttpContext: () => http,
+      setHeader: (k: string, v: string) => (headers[k] = v),
+      write: (b: string) => (body += b),
+      getSession: () => new Session()
+    };
+    await auth.metadata(ctx);
+    assert.deepStrictEqual(JSON.parse(body), {
+      resource: "https://example.com/prod/mcp",
+      authorization_servers: ["https://example.com/prod"],
+      bearer_methods_supported: ["header"]
+    });
+    await assert.rejects(() => auth.authenticate(ctx));
+    assert.strictEqual(
+      headers["WWW-Authenticate"],
+      'Bearer resource_metadata="https://example.com/prod/.well-known/oauth-protected-resource"'
+    );
+  }
+
+  @test
   async authInfoReflectsToken() {
     const token = await this.bearer(["Fixture.*"]);
     const service = useService("Mcp") as any;
@@ -157,5 +194,26 @@ class McpOAuthTest extends McpFixtureTest {
     assert.strictEqual(captured.token, token);
     assert.strictEqual(captured.clientId, "https://mcp.example.com/c.json");
     assert.deepStrictEqual(captured.scopes, ["Fixture.*"]);
+  }
+}
+
+@suite
+class McpOAuthCustomUrlTest extends McpOAuthBase {
+  /**
+   * @returns configuration with a non-default MCP url
+   */
+  getTestConfiguration(): any {
+    const config = super.getTestConfiguration();
+    config.services.Mcp.url = "/api/mcp";
+    return config;
+  }
+
+  @test
+  async resourceFollowsMcpUrl() {
+    const base = await this.base();
+    const meta = await (await fetch(`${base}/.well-known/oauth-protected-resource`)).json();
+    assert.strictEqual(meta.resource, `${base}/api/mcp`);
+    const res = await fetch(`${base}/api/mcp`, { method: "POST", headers: HEADERS, body: JSON.stringify(INIT) });
+    assert.strictEqual(res.status, 401);
   }
 }

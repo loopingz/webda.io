@@ -194,6 +194,9 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
         throw new Error(`MCP authenticator '${this.parameters.authenticator}' must implement authenticate(ctx)`);
       }
       this.authenticator = service;
+      if (typeof this.parameters.url === "string") {
+        (service as any).bindResource?.(this.parameters.url);
+      }
     } else {
       this.authenticator = new SessionAuthenticator();
     }
@@ -369,8 +372,8 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     const bearer = (http.getUniqueHeader("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const authInfo: AuthInfo = {
       token: bearer,
-      clientId: (session as any)?.clientId ?? userId ?? "anonymous",
-      scopes: (session as any)?.scopes ?? [],
+      clientId: session?.clientId ?? userId ?? "anonymous",
+      scopes: session?.scopes ?? [],
       extra: { session }
     };
     const response = await (entry.transport as WebStandardStreamableHTTPServerTransport).handleRequest(

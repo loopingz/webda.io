@@ -154,7 +154,7 @@ export function stripPrivateFields<T = any>(input: T): T {
  * Models that hold authentication state: never exposed by a DomainService (REST, GraphQL, operations), nor any of
  * their subclasses, unless explicitly listed in its `models` parameter
  */
-export const INTERNAL_MODELS: readonly string[] = ["Webda/Ident", "Webda/RefreshToken"];
+export const INTERNAL_MODELS: readonly string[] = ["Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"];
 
 /**
  * @param model - a model class

@@ -90,6 +90,7 @@ export * from "./services/secretscheck.js";
 export * from "./services/pki.encrypter.js";
 export * from "./services/token.service.js";
 export * from "./models/refreshtoken.model.js";
+export * from "./models/revokedaccess.model.js";
 export * from "./services/serviceparameters.js";
 export * from "./services/cron.service.js";
 export * from "./services/command.js";

@@ -52,7 +52,7 @@ class TotpTest extends AuthTest {
         DomainService: { type: "Webda/DomainService", models: ["Webda/User"] },
         AuthStore: {
           type: "Webda/MemoryStore",
-          models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken"]
+          models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"]
         },
         DefinedMailer: { type: "WebdaTest/Mailer" },
         Authentication: { type: "Webda/Authentication" },

@@ -21,7 +21,7 @@ class ScopeAuthorizerTest extends WebdaApplicationTest {
       parameters: { ignoreBeans: true },
       services: {
         Scoped: { type: "ScopedService" },
-        AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken"] }
+        AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/RevokedAccess"] }
       }
     };
   }

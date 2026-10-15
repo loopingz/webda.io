@@ -90,7 +90,9 @@ class BearerSessionTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       parameters: { ignoreBeans: true },
-      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/User"] } }
+      services: {
+        AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/RevokedAccess", "Webda/User"] }
+      }
     };
   }
 
@@ -288,7 +290,9 @@ class BearerResolverTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       parameters: { ignoreBeans: true },
-      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/User"] } }
+      services: {
+        AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/RevokedAccess", "Webda/User"] }
+      }
     };
   }
 

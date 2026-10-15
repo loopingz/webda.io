@@ -1846,6 +1846,16 @@
             "description": "Refresh token lifetime in seconds",
             "type": "number"
           },
+          "revocationCacheTtl": {
+            "default": 10,
+            "description": "Seconds a \"not revoked\" answer is cached: bounds how long a revocation done by another instance can be missed",
+            "type": "number"
+          },
+          "revocationCheck": {
+            "default": true,
+            "description": "Reject access tokens whose family or user was revoked",
+            "type": "boolean"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"
@@ -3296,6 +3306,125 @@
         "uuid"
       ],
       "Identifier": "Webda/RegistryEntry"
+    },
+    "Webda/RevokedAccess": {
+      "Plural": "RevokedAccesses",
+      "Import": "lib/models/revokedaccess.model:RevokedAccess",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "key": {
+          "type": "string"
+        },
+        "notBefore": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Denylist entry for access tokens: `fam:<family>` or `user:<userId>` (with `notBefore`)",
+          "properties": {
+            "expiresAt": {
+              "description": "Removal time (ms): revocation time + access token lifetime",
+              "type": "number"
+            },
+            "key": {
+              "description": "`fam:<family>` or `user:<userId>`",
+              "type": "string"
+            },
+            "notBefore": {
+              "description": "For `user:` entries: tokens issued before (ms) are rejected",
+              "type": "number"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "key"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Denylist entry for access tokens: `fam:<family>` or `user:<userId>` (with `notBefore`)",
+          "properties": {
+            "expiresAt": {
+              "description": "Removal time (ms): revocation time + access token lifetime",
+              "type": "number"
+            },
+            "key": {
+              "description": "`fam:<family>` or `user:<userId>`",
+              "type": "string"
+            },
+            "notBefore": {
+              "description": "For `user:` entries: tokens issued before (ms) are rejected",
+              "type": "number"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "key"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Denylist entry for access tokens: `fam:<family>` or `user:<userId>` (with `notBefore`)",
+          "properties": {
+            "expiresAt": {
+              "description": "Removal time (ms): revocation time + access token lifetime",
+              "type": "number"
+            },
+            "key": {
+              "description": "`fam:<family>` or `user:<userId>`",
+              "type": "string"
+            },
+            "notBefore": {
+              "description": "For `user:` entries: tokens issued before (ms) are rejected",
+              "type": "number"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "key"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "key"
+      ],
+      "Identifier": "Webda/RevokedAccess"
     },
     "Webda/RoleModel": {
       "Plural": "RoleModels",

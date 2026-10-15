@@ -5,6 +5,7 @@ import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
+import { RevokedAccess } from "../models/revokedaccess.model.js";
 import { covers, formatScope, InvalidScope, parseScope, type Scope } from "../session/scope.js";
 import { registerOperationAuthorizer, unregisterOperationAuthorizer } from "../core/operations.js";
 import { scopeAuthorizer } from "./scopeauthorizer.js";
@@ -55,6 +56,8 @@ export interface AccessClaims {
   client_id?: string;
   /** Issued at, seconds (set by the JWT signer) */
   iat?: number;
+  /** Issued at, ms: `iat` only has a 1 s resolution, which is too coarse to order a token against a revocation */
+  iatMs?: number;
 }
 
 /** TokenService parameters */
@@ -69,6 +72,16 @@ export class TokenServiceParameters extends ServiceParameters {
    * @default 2592000
    */
   refreshTtl: number;
+  /**
+   * Reject access tokens whose family or user was revoked
+   * @default true
+   */
+  revocationCheck: boolean;
+  /**
+   * Seconds a "not revoked" answer is cached: bounds how long a revocation done by another instance can be missed
+   * @default 10
+   */
+  revocationCacheTtl: number;
 
   /**
    * @param params - raw parameters
@@ -78,6 +91,8 @@ export class TokenServiceParameters extends ServiceParameters {
     super.load(params);
     this.accessTtl ??= 900;
     this.refreshTtl ??= 2592000;
+    this.revocationCheck ??= true;
+    this.revocationCacheTtl ??= 10;
     return this;
   }
 }
@@ -87,6 +102,13 @@ export class TokenServiceParameters extends ServiceParameters {
  * @WebdaModda TokenService
  */
 export class TokenService<T extends TokenServiceParameters = TokenServiceParameters> extends Service<T> {
+  /** Revoked keys, cached until their expiry */
+  protected revocationHits = new Map<string, RevokedAccess>();
+  /** Keys known not revoked, cached for revocationCacheTtl */
+  protected revocationMisses = new Map<string, number>();
+  /** Periodic sweep of the expired denylist entries */
+  protected sweepTimer?: ReturnType<typeof setInterval>;
+
   /**
    * Enforce the bearer token scope on every operation
    * @override
@@ -98,9 +120,24 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Purge expired denylist entries now and then periodically
+   * @override
+   */
+  async init(): Promise<this> {
+    await super.init();
+    const sweep = () => this.sweepRevoked().catch(err => this.log("WARN", "Revocation sweep failed", err));
+    await sweep();
+    this.sweepTimer = setInterval(sweep, this.parameters.accessTtl * 1000);
+    this.sweepTimer.unref();
+    return this;
+  }
+
+  /**
    * @override
    */
   async stop(): Promise<void> {
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = undefined;
     unregisterOperationAuthorizer(scopeAuthorizer);
     await super.stop();
   }
@@ -159,6 +196,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       mfa: session.mfa ?? "none",
       mfaVerifications: session.mfaVerifications,
       authAt: session.authAt,
+      iatMs: Date.now(),
       ...(scope !== undefined ? { scope } : {}),
       ...(options.clientId ? { client_id: options.clientId } : {})
     };
@@ -174,11 +212,69 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * @returns claims, or undefined when invalid/expired
    */
   async verifyAccess(token: string): Promise<AccessClaims | undefined> {
+    let claims: AccessClaims;
     try {
-      return await useCrypto().jwtVerify(token, { audience: ACCESS_AUDIENCE });
+      claims = await useCrypto().jwtVerify(token, { audience: ACCESS_AUDIENCE });
     } catch {
       return undefined;
     }
+    return (await this.isRevoked(claims)) ? undefined : claims;
+  }
+
+  /**
+   * @param key - denylist key
+   * @returns the entry, or undefined
+   */
+  protected async lookupRevoked(key: string): Promise<RevokedAccess | undefined> {
+    const now = Date.now();
+    const hit = this.revocationHits.get(key);
+    if (hit && hit.expiresAt > now) return hit;
+    if ((this.revocationMisses.get(key) ?? 0) > now) return undefined;
+    const ref = RevokedAccess.ref({ key } as any);
+    const entry = (await ref.exists()) ? await ref.get() : undefined;
+    if (entry && entry.expiresAt > now) {
+      this.revocationHits.set(key, entry);
+      return entry;
+    }
+    if (this.parameters.revocationCacheTtl > 0) {
+      this.revocationMisses.set(key, now + this.parameters.revocationCacheTtl * 1000);
+    }
+    return undefined;
+  }
+
+  /**
+   * @param claims - verified access claims
+   * @returns true when the family or the user was revoked after the token was issued
+   */
+  async isRevoked(claims: AccessClaims): Promise<boolean> {
+    if (!this.parameters.revocationCheck) return false;
+    if (claims.fam && (await this.lookupRevoked(`fam:${claims.fam}`))) return true;
+    const user = await this.lookupRevoked(`user:${claims.sub}`);
+    // Tokens without iatMs fall back to iat, rounded down to the second: rejected when in doubt
+    return user !== undefined && (claims.iatMs ?? (claims.iat ?? 0) * 1000) <= (user.notBefore ?? Infinity);
+  }
+
+  /**
+   * @param key - denylist key
+   * @param notBefore - for user entries, tokens issued before are rejected (ms)
+   */
+  protected async denylist(key: string, notBefore?: number): Promise<void> {
+    const entry = { key, notBefore, expiresAt: Date.now() + this.parameters.accessTtl * 1000 };
+    const ref = RevokedAccess.ref({ key } as any);
+    if (await ref.exists()) await ref.patch(entry as any);
+    else await RevokedAccess.create(entry as any);
+    this.revocationMisses.delete(key);
+    this.revocationHits.set(key, entry as any);
+  }
+
+  /** @returns number of removed expired entries */
+  async sweepRevoked(): Promise<number> {
+    let removed = 0;
+    for await (const entry of RevokedAccess.iterate("expiresAt < ?", [Date.now()])) {
+      await entry.ref().delete();
+      removed++;
+    }
+    return removed;
   }
 
   /**
@@ -268,6 +364,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     for await (const token of RefreshToken.iterate("family = ? AND revokedAt IS NULL", [family])) {
       await token.ref().patch({ revokedAt: Date.now() } as any);
     }
+    await this.denylist(`fam:${family}`);
   }
 
   /**
@@ -277,5 +374,6 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     for await (const token of RefreshToken.iterate("userId = ? AND revokedAt IS NULL", [userId])) {
       await token.ref().patch({ revokedAt: Date.now() } as any);
     }
+    await this.denylist(`user:${userId}`, Date.now());
   }
 }

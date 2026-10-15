@@ -4,6 +4,7 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { Session } from "../session/session.js";
 import { TokenInvalid, TokenService } from "./token.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
+import { RevokedAccess } from "../models/revokedaccess.model.js";
 import { useService } from "../core/hooks.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { InvalidScope } from "../session/scope.js";
@@ -15,13 +16,21 @@ class TokenServiceTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       parameters: { ignoreBeans: true },
-      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken"] } }
+      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/RevokedAccess"] } }
     };
   }
 
   async beforeEach() {
     await super.beforeEach();
     this.service = useService("TokenService");
+    // The service and its memory store survive between tests: start each one without denylist state
+    (this.service as any).revocationHits.clear();
+    (this.service as any).revocationMisses.clear();
+    this.service.getParameters().revocationCheck = true;
+    this.service.getParameters().revocationCacheTtl = 10;
+    for await (const entry of RevokedAccess.iterate("")) {
+      await entry.ref().delete();
+    }
   }
 
   session(user: string = "u1"): Session {
@@ -275,5 +284,67 @@ class TokenServiceTest extends WebdaApplicationTest {
     session.logout();
     assert.strictEqual(session.scopes, undefined);
     assert.strictEqual(session.clientId, undefined);
+  }
+
+  @test
+  async revokedFamilyRejectedImmediately() {
+    const svc = this.service;
+    const tokens = await svc.issue(this.session());
+    assert.ok(await svc.verifyAccess(tokens.accessToken));
+    await svc.revokeFamily(tokens.family);
+    assert.strictEqual(await svc.verifyAccess(tokens.accessToken), undefined);
+  }
+
+  @test
+  async revokedUserOnlyBlocksOlderTokens() {
+    const svc = this.service;
+    const before = await svc.issue(this.session());
+    await svc.revokeUser("u1");
+    // Same second as the revocation: iat (1 s resolution) cannot order the tokens, iatMs does
+    await new Promise(r => setTimeout(r, 5));
+    const after = await svc.issue(this.session());
+    assert.strictEqual(await svc.verifyAccess(before.accessToken), undefined);
+    assert.ok(await svc.verifyAccess(after.accessToken));
+    // A token without iatMs is judged on iat: accepted once issued in a later second than the revocation
+    await new Promise(r => setTimeout(r, 1100));
+    const later = await useCrypto().jwtSign(
+      { sub: "u1", ident: "a:b", amr: ["pwd"], fam: "legacy", mfa: "none" },
+      { audience: "webda-access", expiresIn: 60 }
+    );
+    assert.ok(await svc.verifyAccess(later));
+    // another user is not affected
+    assert.ok(await svc.verifyAccess((await svc.issue(this.session("u2"))).accessToken));
+  }
+
+  @test
+  async missCacheDelaysOtherInstanceRevocation() {
+    const svc = this.service;
+    svc.getParameters().revocationCacheTtl = 10;
+    const tokens = await svc.issue(this.session());
+    assert.ok(await svc.verifyAccess(tokens.accessToken)); // caches the miss
+    // another instance revokes: write the row directly, bypassing this instance's cache
+    await RevokedAccess.create({ key: `fam:${tokens.family}`, expiresAt: Date.now() + 900_000 } as any);
+    assert.ok(await svc.verifyAccess(tokens.accessToken), "miss still cached");
+    svc.getParameters().revocationCacheTtl = 0;
+    (svc as any).revocationMisses.clear();
+    assert.strictEqual(await svc.verifyAccess(tokens.accessToken), undefined);
+  }
+
+  @test
+  async revocationCheckDisabled() {
+    const svc = this.service;
+    svc.getParameters().revocationCheck = false;
+    const tokens = await svc.issue(this.session());
+    await svc.revokeFamily(tokens.family);
+    assert.ok(await svc.verifyAccess(tokens.accessToken));
+  }
+
+  @test
+  async sweepRemovesExpired() {
+    await RevokedAccess.create({ key: "fam:old", expiresAt: Date.now() - 1 } as any);
+    await RevokedAccess.create({ key: "fam:new", expiresAt: Date.now() + 60_000 } as any);
+    assert.strictEqual(await this.service.sweepRevoked(), 1);
+    assert.strictEqual(await RevokedAccess.ref({ key: "fam:old" } as any).exists(), false);
+    assert.strictEqual(await RevokedAccess.ref({ key: "fam:new" } as any).exists(), true);
   }
 }

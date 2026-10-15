@@ -1728,7 +1728,7 @@
           },
           "folder": {
             "default": "\".\" + url",
-            "description": "Folder to server",
+            "description": "Folder to serve, a relative path is resolved from the application folder",
             "type": "string"
           },
           "index": {

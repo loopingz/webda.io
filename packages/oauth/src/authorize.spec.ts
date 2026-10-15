@@ -1,6 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { type DomainService, listOperations, useApplication, useCrypto, useDynamicService, useRouter } from "@webda/core";
+import {
+  type DomainService,
+  listOperations,
+  useApplication,
+  useCrypto,
+  useDynamicService,
+  useRouter
+} from "@webda/core";
 import { OAuthTest, query } from "./test/oauthtest.js";
 import { readPending, writePending } from "./pending.js";
 import { OAuthGrant } from "./models.model.js";
@@ -54,7 +61,12 @@ class AuthorizeTest extends OAuthTest {
   @test
   async validationErrorsRedirect() {
     const b = await this.browser();
-    const base = { client_id: "app", redirect_uri: "http://127.0.0.1:1234/callback", response_type: "code", state: "s" };
+    const base = {
+      client_id: "app",
+      redirect_uri: "http://127.0.0.1:1234/callback",
+      response_type: "code",
+      state: "s"
+    };
     const missingPkce = await this.get(b, "/oauth/authorize", base);
     assert.deepStrictEqual(query(missingPkce.headers.Location), {
       error: "invalid_request",
@@ -133,7 +145,10 @@ class AuthorizeTest extends OAuthTest {
   async anonymousGoesToLogin() {
     const b = await this.browser();
     const res = await this.authorize(b, { scope: "Task.*", hostname: "laptop" });
-    assert.strictEqual(res.headers.Location, "/login?redirect=" + encodeURIComponent("http://test.webda.io/oauth/consent"));
+    assert.strictEqual(
+      res.headers.Location,
+      "/login?redirect=" + encodeURIComponent("http://test.webda.io/oauth/consent")
+    );
     assert.ok(b.jar["webda_oauth_pending"]);
     const cookie = res.cookies["webda_oauth_pending"];
     assert.strictEqual(cookie.options.httpOnly, true);

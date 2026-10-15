@@ -446,7 +446,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const selected = (Array.isArray(operations) ? operations : []).filter(
       (id): id is string => typeof id === "string" && callable.includes(id)
     );
-    let granted = collapse(selected, requested, callable);
+    // A requested glob is kept only when every delegable operation it matches is selected, callable or not: a glob
+    // covering operations the user never saw (a later role) would silently widen the grant
+    let granted = collapse(selected, requested, this.delegableOperations());
     const client = await this.clients.get(pending.clientId);
     if (!client) throw new WebdaError.BadRequest("Unknown client");
     if (client.allowedScopes !== undefined) granted = intersect(granted, parseScope(client.allowedScopes));

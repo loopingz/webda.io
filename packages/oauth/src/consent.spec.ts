@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { listOperations, registerOperation, useRouter, useService } from "@webda/core";
+import { listOperations, registerOperation, useInstanceStorage, useRouter, useService } from "@webda/core";
 import { OAuthTest, query } from "./test/oauthtest.js";
 import { OAuthCode, OAuthGrant } from "./models.model.js";
 import { sha256 } from "./devicecode.js";
@@ -28,6 +28,35 @@ class ConsentTest extends OAuthTest {
     for (const uuid of ["u1:app", "u2:app", "u1:webda-cli"]) {
       if (await OAuthGrant.ref(uuid).exists()) await OAuthGrant.ref(uuid).delete();
     }
+  }
+
+  /** @override */
+  async afterEach() {
+    // The registry is global: do not leak the test operations into other suites
+    for (const id of Object.keys(TEST_OPERATIONS)) delete useInstanceStorage().operations[id];
+    await super.afterEach();
+  }
+
+  @test
+  async globKeptOnlyWhenEveryOperationIsSelected() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    // Non-admin u1 selects everything offered under `*`: Admin.Purge was never shown, so `*` is not granted
+    await this.authorize(b, { scope: "*", client_id: "webda-cli" });
+    const req = await this.op(b, "OAuth.Consent.Get");
+    const offered = req.operations.flatMap(g => g.ids.map(i => i.id));
+    assert.ok(!offered.includes("Admin.Purge"));
+    const all = await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: offered, csrf: req.csrf });
+    const scope = (await OAuthCode.ref(sha256(query(all.redirect).code)).get()).scope.split(" ");
+    assert.ok(!scope.includes("*"), scope.join(" "));
+    assert.ok(!scope.some(t => t.includes("*")), scope.join(" "));
+    assert.deepStrictEqual([...scope].sort(), [...offered].sort());
+    // Every operation of Task.* is callable and selected: the glob is kept
+    await this.authorize(b, { scope: "Task.*", client_id: "webda-cli" });
+    const task = await this.op(b, "OAuth.Consent.Get");
+    const ids = task.operations[0].ids.map(i => i.id);
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ids, csrf: task.csrf });
+    assert.strictEqual((await OAuthCode.ref(sha256(query(redirect).code)).get()).scope, "Task.*");
   }
 
   @test

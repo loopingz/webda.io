@@ -12,6 +12,7 @@
     "packages/auth": {},
     "packages/async": {},
     "packages/aws": {},
+    "packages/bench": {},
     "packages/cache": {},
     "packages/cloudevents": {},
     "packages/compiler": {},

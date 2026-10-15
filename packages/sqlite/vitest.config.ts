@@ -22,7 +22,7 @@ export default defineConfig({
         normalizePath(resolve(__dirname, "src/**/*.ts")),
         normalizePath(resolve(__dirname, "../sql/src/**/*.ts"))
       ],
-      exclude: ["**/*.spec.ts", "**/src/index.ts", "**/src/test/**"],
+      exclude: ["**/*.spec.ts", "**/*.bench.ts", "**/src/index.ts", "**/src/test/**"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

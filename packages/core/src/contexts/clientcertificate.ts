@@ -189,9 +189,14 @@ export function toClientCertificate(
  * @throws Error when the value is not a certificate
  */
 function parseCertificate(value: string): X509Certificate {
-  const pem = value.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/);
-  if (pem) {
-    return new X509Certificate(pem[0]);
+  const beginMarker = "-----BEGIN CERTIFICATE-----";
+  const endMarker = "-----END CERTIFICATE-----";
+  const begin = value.indexOf(beginMarker);
+  if (begin !== -1) {
+    const end = value.indexOf(endMarker, begin + beginMarker.length);
+    if (end !== -1) {
+      return new X509Certificate(value.slice(begin, end + endMarker.length));
+    }
   }
   return new X509Certificate(Buffer.from(value.replace(/\s/g, ""), "base64"));
 }

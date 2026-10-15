@@ -54,7 +54,7 @@ class ClientCertificateTest {
     assert.deepStrictEqual(cert.san, ["email:alice@example.com", "URI:spiffe://example.com/alice"]);
     assert.match(cert.fingerprint256, /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
     assert.ok(cert.validFrom.getTime() <= Date.now() && cert.validTo.getTime() > Date.now());
-    assert.strictEqual(cert.raw?.trim(), certs.client.pem.trim());
+    assert.strictEqual(cert.raw?.trim().replace(/\r\n/g, "\n"), certs.client.pem.trim().replace(/\r\n/g, "\n"));
     assert.strictEqual(cert.verified, true);
     assert.strictEqual(cert.source, "tls");
     assert.strictEqual(toClientCertificate(new X509Certificate(certs.bob.pem), false, "proxy").san, undefined);
@@ -68,6 +68,11 @@ class ClientCertificateTest {
     assert.strictEqual(parseClientCertificateHeader(leaf, "traefik")?.subject.endsWith("CN=alice"), true);
     // Full PEM is accepted too
     assert.ok(parseClientCertificateHeader(encodeURIComponent(certs.client.pem), "traefik"));
+    assert.strictEqual(
+      parseClientCertificateHeader(encodeURIComponent(`${certs.client.pem}\n${certs.ca.pem}`), "traefik")?.subject,
+      "O=Webda\nOU=dev\nOU=ops\nCN=alice"
+    );
+    assert.throws(() => parseClientCertificateHeader(encodeURIComponent("-----BEGIN CERTIFICATE-----".repeat(10000))));
     assert.strictEqual(parseClientCertificateHeader("", "traefik"), undefined);
     assert.throws(() => parseClientCertificateHeader("bm90LWEtY2VydA%3D%3D", "traefik"));
   }

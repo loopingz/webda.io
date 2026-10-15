@@ -13,6 +13,8 @@ sidebar_label: "@webda/fs"
 - You need to store file uploads on local disk (e.g. a blog system or a small self-hosted app) using `FileBinary`.
 - You want a file-backed queue (`FileQueue`) for sequential task processing in a single-process scenario.
 
+`FileQueue` provides best-effort FIFO ordering. Each producer uses its own sequence number, so messages created by different processes in the same millisecond may be received out of order. Clock differences between hosts can also affect ordering. During a rolling upgrade, messages written by the older UUID-only format are received before messages written by the timestamped format, regardless of creation time. Message filenames include a UUID, making collisions across producers extremely unlikely.
+
 ## Install
 
 ```bash

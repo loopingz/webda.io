@@ -16,8 +16,10 @@ on:
         required: false
         default: ""
   schedule:
-    # Nightly on main
+    # Nightly quick run on main: the baseline pull requests are compared to
     - cron: "17 3 * * *"
+    # Weekly full run
+    - cron: "17 5 * * 0"
   pull_request:
     types: [labeled, synchronize]
     branches: [main]
@@ -35,10 +37,15 @@ jobs:
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'benchmark')
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    name: Benchmarks (${{ github.event.inputs.profile || (github.event_name == 'schedule' && 'full') || 'quick' }})
+    permissions:
+      # Push the history to the benchmarks branch
+      contents: write
+      # Comment the regressions on pull requests
+      pull-requests: write
+    name: Benchmarks (${{ github.event.inputs.profile || (github.event.schedule == '17 5 * * 0' && 'full') || 'quick' }})
     env:
       FORCE_COLOR: 1
-      WEBDA_BENCH_PROFILE: ${{ github.event.inputs.profile || (github.event_name == 'schedule' && 'full') || 'quick' }}
+      WEBDA_BENCH_PROFILE: ${{ github.event.inputs.profile || (github.event.schedule == '17 5 * * 0' && 'full') || 'quick' }}
       WEBDA_BENCH_FILTER: ${{ github.event.inputs.filter || '' }}
 
     # Same backends as ci.yml
@@ -127,6 +134,50 @@ jobs:
         run: |
           node packages/bench/lib/bin/webda-bench.js report packages/*/bench-results sample-apps/*/bench-results \
             --summary --markdown bench-results/summary.md --github-benchmark bench-results/github
+
+      # github-action-benchmark needs its branch to exist
+      - name: Create the benchmarks branch
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          if ! git ls-remote --exit-code --heads origin benchmarks > /dev/null; then
+            git worktree add --orphan -b benchmarks /tmp/benchmarks-branch
+            cd /tmp/benchmarks-branch
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --allow-empty -m "chore: benchmark history"
+            git push origin benchmarks
+          fi
+
+      # History on main, alert comment on pull requests (compared to the last run on main with the same profile)
+      - name: Throughput history
+        if: always() && hashFiles('bench-results/github-bigger.json') != ''
+        uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
+        with:
+          name: Throughput (${{ env.WEBDA_BENCH_PROFILE }})
+          tool: customBiggerIsBetter
+          output-file-path: bench-results/github-bigger.json
+          gh-pages-branch: benchmarks
+          benchmark-data-dir-path: ${{ env.WEBDA_BENCH_PROFILE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          comment-on-alert: ${{ github.event_name == 'pull_request' }}
+          # Shared runners are noisy: alert only on large regressions, never fail
+          alert-threshold: "150%"
+          fail-on-alert: false
+
+      - name: Latency history
+        if: always() && hashFiles('bench-results/github-smaller.json') != ''
+        uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
+        with:
+          name: p99 latency (${{ env.WEBDA_BENCH_PROFILE }})
+          tool: customSmallerIsBetter
+          output-file-path: bench-results/github-smaller.json
+          gh-pages-branch: benchmarks
+          benchmark-data-dir-path: ${{ env.WEBDA_BENCH_PROFILE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          comment-on-alert: ${{ github.event_name == 'pull_request' }}
+          alert-threshold: "150%"
+          fail-on-alert: false
 
       - name: Upload results
         if: always()

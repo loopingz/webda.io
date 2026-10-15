@@ -18,3 +18,22 @@ describe("user codes", () => {
     expect(splitDeviceCode("BCDFGHJK.")).toBeUndefined();
   });
 });
+
+describe("user codes (negative)", () => {
+  it("rejects malformed device codes", () => {
+    expect(splitDeviceCode("BCDFGHJK.abc.def")).toBeUndefined();
+    expect(splitDeviceCode("bcdfghjk.abc")).toBeUndefined();
+    expect(splitDeviceCode(undefined)).toBeUndefined();
+    expect(splitDeviceCode({})).toBeUndefined();
+    expect(splitDeviceCode("")).toBeUndefined();
+    expect(splitDeviceCode(`BCDFGHJK.${"a".repeat(129)}`)).toBeUndefined();
+    expect(splitDeviceCode(`BCDFGHJK.${"a".repeat(128)}`)).toBeDefined();
+  });
+  it("rejects bad user codes", () => {
+    expect(normalizeUserCode("BCDFGHJ")).toBeUndefined();
+    expect(normalizeUserCode("BCDFGHJKL")).toBeUndefined();
+    expect(normalizeUserCode("")).toBeUndefined();
+    expect(normalizeUserCode("BCDFGHJ1")).toBeUndefined();
+    expect(normalizeUserCode("AEIOUBCD")).toBeUndefined();
+  });
+});

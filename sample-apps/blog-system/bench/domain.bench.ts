@@ -25,6 +25,7 @@ class BlogDomainBench extends BlogBench {
     await super.beforeAll();
     this.runner = new BenchmarkRunner({ suite: "blog", backend: this.backend });
     const size = BLOG_DATASETS[this.runner.profile.name] ?? BLOG_DATASETS.quick;
+    await this.resetStore();
     this.data = await seedBlog(size);
   }
 

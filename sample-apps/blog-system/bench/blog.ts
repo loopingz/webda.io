@@ -9,6 +9,10 @@ import { HttpContext, type HttpMethodType } from "@webda/core/lib/contexts/httpc
 import { runWithContext } from "@webda/core/lib/contexts/execution.js";
 import { Router, RouterParameters } from "@webda/core/lib/rest/router.service.js";
 import * as WebdaError from "@webda/core/lib/errors/errors.js";
+import { useService } from "@webda/core";
+import { blogStore, loadBlogModule } from "./stores.mjs";
+
+export { BLOG_STORES } from "./stores.mjs";
 
 /**
  * Folder of the blog-system application
@@ -34,20 +38,15 @@ export class BlogBenchApplication extends TestApplication {
   }
 
   /**
-   * @override
+   * Skip the store modules installed for the benchmarks but not under test
+   *
+   * @param filename - path of the webda.module.json
+   * @returns true when the module must be loaded
    */
-  filterModule(_filename: string): boolean {
-    return true;
+  filterModule(filename: string): boolean {
+    return loadBlogModule(filename);
   }
 }
-
-/**
- * Stores the blog can run on, selected with `WEBDA_BENCH_BLOG_STORE`
- */
-export const BLOG_STORES: Record<string, { backend: string; config: (folder: string) => any }> = {
-  memory: { backend: "MemoryStore", config: () => ({ type: "Webda/MemoryStore" }) },
-  fs: { backend: "FileStore", config: folder => ({ type: "Webda/FileStore", folder }) }
-};
 
 /**
  * Response of {@link BlogBench.request}
@@ -75,9 +74,9 @@ export class BlogBench extends WebdaApplicationTest {
    */
   audit = true;
   /**
-   * Store key in {@link BLOG_STORES}
+   * Store under test, from `WEBDA_BENCH_BLOG_STORE` (see stores.mjs)
    */
-  store = process.env.WEBDA_BENCH_BLOG_STORE || "memory";
+  store = blogStore();
   /**
    * Temporary folder for the file based store and binaries
    */
@@ -89,13 +88,14 @@ export class BlogBench extends WebdaApplicationTest {
    * @returns the store backend name
    */
   get backend(): string {
-    const store = BLOG_STORES[this.store];
-    if (!store) {
-      throw new Error(
-        `Unknown WEBDA_BENCH_BLOG_STORE '${this.store}', expected ${Object.keys(BLOG_STORES).join(", ")}`
-      );
-    }
-    return store.backend;
+    return this.store.backend;
+  }
+
+  /**
+   * Remove the data of a previous run: persistent stores keep it, and the seed is deterministic
+   */
+  async resetStore() {
+    await (useService("Registry" as any) as any).__clean?.();
   }
 
   /**
@@ -121,7 +121,7 @@ export class BlogBench extends WebdaApplicationTest {
    */
   async tweakApp(app: any) {
     const services = app.getCurrentConfiguration().services;
-    services.Registry = BLOG_STORES[this.store].config(join(this.folder, "store"));
+    services.Registry = this.store.config(join(this.folder, "store"));
     services.Images = { ...services.Images, folder: join(this.folder, "images") };
     // No listening servers nor remote transports: requests go through the Router
     for (const name of ["HttpServer", "HttpServerH2c", "GRPCService", "MCP", "WebUI"]) {

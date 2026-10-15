@@ -42,7 +42,10 @@ class AuthTestHelperTest extends AuthTest {
       version: 3,
       parameters: { ignoreBeans: true },
       services: {
-        AuthStore: { type: "Webda/MemoryStore", models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
+        AuthStore: {
+          type: "Webda/MemoryStore",
+          models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"]
+        },
         DefinedMailer: { type: "WebdaTest/Mailer" },
         EchoService: { type: "EchoService" }
       }

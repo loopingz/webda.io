@@ -37,7 +37,10 @@ class ScopedMfaTest extends AuthTest {
       },
       services: {
         DomainService: { type: "Webda/DomainService", models: ["Webda/MfaUser"] },
-        AuthStore: { type: "Webda/MemoryStore", models: ["Webda/MfaUser", "Webda/Ident", "Webda/RefreshToken"] },
+        AuthStore: {
+          type: "Webda/MemoryStore",
+          models: ["Webda/MfaUser", "Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"]
+        },
         DefinedMailer: { type: "WebdaTest/Mailer" },
         Authentication: { type: "Webda/Authentication", userModel: "Webda/MfaUser" },
         TokenService: { type: "Webda/TokenService" },

@@ -1,4 +1,5 @@
 import { Service } from "./service.js";
+import { InsufficientScope } from "./scopeauthorizer.js";
 import { Command } from "./command.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
@@ -306,6 +307,10 @@ export class HttpServer<
           if (err instanceof WebdaError.Redirect && err.location && !webCtx.hasFlushedHeaders?.()) {
             webCtx.setHeader("Location", err.location);
           }
+          // RFC 6750: tell the client which scope the refused operation needs
+          if (err instanceof InsufficientScope && !webCtx.hasFlushedHeaders?.()) {
+            webCtx.setHeader("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${err.operation}"`);
+          }
           const method = webCtx.getHttpContext().getMethod();
           const url = webCtx.getHttpContext().getUrl();
           // Log 5xx at ERROR and 4xx at DEBUG so validation failures are still
@@ -335,7 +340,8 @@ export class HttpServer<
                 message: err?.message ?? String(err)
               };
               if (err?.details !== undefined) body.details = err.details;
-              webCtx.write({ error: body });
+              // RFC 6750 clients read the OAuth error object itself: `{ error, operation }`
+              webCtx.write(err instanceof InsufficientScope ? err.details : { error: body });
             }
           }
         }

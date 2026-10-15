@@ -49,7 +49,10 @@ class OAuthProviderTest extends AuthTest {
     return {
       parameters: { ignoreBeans: true },
       services: {
-        AuthStore: { type: "Webda/MemoryStore", models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
+        AuthStore: {
+          type: "Webda/MemoryStore",
+          models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"]
+        },
         Authentication: { type: "Webda/Authentication" },
         ...stubProvidersConfig("email"),
         fakeAuth: {

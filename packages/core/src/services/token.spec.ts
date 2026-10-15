@@ -4,8 +4,13 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { Session } from "../session/session.js";
 import { TokenInvalid, TokenService } from "./token.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
+import { RevokedAccess } from "../models/revokedaccess.model.js";
 import { useService } from "../core/hooks.js";
 import { useCrypto } from "./cryptoservice.service.js";
+import { InvalidScope } from "../session/scope.js";
+import { listOperationAuthorizers } from "../core/operations.js";
+import { InsufficientScope, scopeAuthorizer } from "./scopeauthorizer.js";
+import { vi } from "vitest";
 
 @suite
 class TokenServiceTest extends WebdaApplicationTest {
@@ -14,13 +19,21 @@ class TokenServiceTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       parameters: { ignoreBeans: true },
-      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken"] } }
+      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/RevokedAccess"] } }
     };
   }
 
   async beforeEach() {
     await super.beforeEach();
     this.service = useService("TokenService");
+    // The service and its memory store survive between tests: start each one without denylist state
+    (this.service as any).revocationHits.clear();
+    (this.service as any).revocationMisses.clear();
+    this.service.getParameters().revocationCheck = true;
+    this.service.getParameters().revocationCacheTtl = 10;
+    for await (const entry of RevokedAccess.iterate("")) {
+      await entry.ref().delete();
+    }
   }
 
   session(user: string = "u1"): Session {
@@ -213,5 +226,303 @@ class TokenServiceTest extends WebdaApplicationTest {
     const all = (await RefreshToken.query("userId = 'u3'")).results;
     assert.strictEqual(all.filter(r => r.revokedAt).length, 0);
     assert.ok(await this.service.refresh(t.refreshToken));
+  }
+
+  @test
+  async issueCarriesScopeAndClient() {
+    const svc = this.service;
+    const tokens = await svc.issue(this.session(), undefined, {
+      clientId: "webda-cli",
+      scope: ["Task.*", "offline_access"],
+      name: "cli on host"
+    });
+    const claims = await svc.verifyAccess(tokens.accessToken);
+    assert.strictEqual(claims.scope, "Task.* offline_access");
+    assert.strictEqual(claims.client_id, "webda-cli");
+    const stored = await RefreshToken.ref({ hash: (svc as any).hash(tokens.refreshToken) } as any).get();
+    assert.strictEqual(stored.clientId, "webda-cli");
+    assert.strictEqual(stored.scope, "Task.* offline_access");
+    assert.strictEqual(stored.name, "cli on host");
+    assert.ok(tokens.family);
+  }
+
+  @test
+  async issueHonoursTtlOverrides() {
+    const svc = this.service;
+    const before = Date.now();
+    const first = await svc.issue(this.session(), undefined, { clientId: "c", accessTtl: 60, refreshTtl: 120 });
+    assert.strictEqual(first.expiresIn, 60);
+    const claims: any = await svc.verifyAccess(first.accessToken);
+    assert.strictEqual(claims.exp - claims.iat, 60);
+    const stored = await RefreshToken.ref({ hash: (svc as any).hash(first.refreshToken) } as any).get();
+    assert.ok(stored.expiresAt >= before + 120_000 && stored.expiresAt <= Date.now() + 120_000);
+    // Rotation keeps the lifetimes of the family
+    const second = await svc.refresh(first.refreshToken, { clientId: "c" });
+    assert.strictEqual(second.expiresIn, 60);
+    const rotated = await RefreshToken.ref({ hash: (svc as any).hash(second.refreshToken) } as any).get();
+    assert.ok(rotated.expiresAt <= Date.now() + 120_000);
+    // Defaults without overrides
+    assert.strictEqual((await svc.issue(this.session())).expiresIn, 900);
+  }
+
+  @test
+  async revocationOutlivesLongerAccessTokens() {
+    const svc = this.service;
+    const long = await svc.issue(this.session(), undefined, { clientId: "c", accessTtl: 7200 });
+    await svc.revokeFamily(long.family);
+    const fam = await RevokedAccess.ref({ key: `fam:${long.family}` } as any).get();
+    assert.ok(fam.expiresAt >= Date.now() + 7100_000, "family entry must cover the longest access token");
+    // A family whose refresh token is already revoked still covers its access tokens
+    const other = await svc.issue(this.session(), undefined, { clientId: "c", accessTtl: 7200 });
+    for await (const t of RefreshToken.iterate("family = ?", [other.family])) {
+      await t.ref().patch({ revokedAt: Date.now() } as any);
+    }
+    await svc.revokeFamily(other.family);
+    const entry = await RevokedAccess.ref({ key: `fam:${other.family}` } as any).get();
+    assert.ok(entry.expiresAt >= Date.now() + 7100_000);
+    await svc.issue(this.session("u9"), undefined, { clientId: "c", accessTtl: 7200 });
+    await svc.revokeUser("u9");
+    const user = await RevokedAccess.ref({ key: "user:u9" } as any).get();
+    assert.ok(user.expiresAt >= Date.now() + 7100_000);
+    // A later revocation never shortens an entry
+    await (svc as any).denylist(`fam:${long.family}`);
+    const again = await RevokedAccess.ref({ key: `fam:${long.family}` } as any).get();
+    assert.ok(again.expiresAt >= fam.expiresAt);
+  }
+
+  @test
+  async loadFromTokenSetsScopes() {
+    const svc = this.service;
+    const manager = useService("SessionManager") as any;
+    const tokens = await svc.issue(this.session(), undefined, { clientId: "c", scope: ["Task.*"] });
+    const loaded = await manager.loadFromToken(await this.newContext(), tokens.accessToken);
+    assert.deepStrictEqual(loaded.scopes, ["Task.*"]);
+    assert.strictEqual(loaded.clientId, "c");
+    const plain = await svc.issue(this.session());
+    const unscoped = await manager.loadFromToken(await this.newContext(), plain.accessToken);
+    assert.strictEqual(unscoped.scopes, undefined);
+  }
+
+  @test
+  async refreshKeepsOrNarrowsScope() {
+    const svc = this.service;
+    const first = await svc.issue(this.session(), undefined, { clientId: "c", scope: ["Task.*", "offline_access"] });
+    const second = await svc.refresh(first.refreshToken, { clientId: "c" });
+    assert.deepStrictEqual(second.scope, ["Task.*", "offline_access"]);
+    const third = await svc.refresh(second.refreshToken, { clientId: "c", scope: ["Task.Get"] });
+    assert.strictEqual((await svc.verifyAccess(third.accessToken)).scope, "Task.Get");
+    await assert.rejects(() => svc.refresh(third.refreshToken, { clientId: "c", scope: ["User.*"] }), InvalidScope);
+    // the failed narrowing did not burn the refresh token
+    assert.ok(await svc.refresh(third.refreshToken, { clientId: "c" }));
+  }
+
+  @test
+  async refreshRejectsOtherClient() {
+    const svc = this.service;
+    const first = await svc.issue(this.session(), undefined, { clientId: "c", scope: ["*"] });
+    await assert.rejects(() => svc.refresh(first.refreshToken, { clientId: "other" }), TokenInvalid);
+    // Nor a first-party (client-less) refresh
+    await assert.rejects(() => svc.refresh(first.refreshToken), TokenInvalid);
+    // A first-party token is not refreshed by a client either
+    const own = await svc.issue(this.session());
+    await assert.rejects(() => svc.refresh(own.refreshToken, { clientId: "c" }), TokenInvalid);
+    assert.ok(await svc.refresh(own.refreshToken));
+    assert.ok(await svc.refresh(first.refreshToken, { clientId: "c" }));
+  }
+
+  @test
+  async tokenIssuedInTheRevocationMsIsAccepted() {
+    const svc = this.service;
+    const before = await svc.issue(this.session());
+    const now = Date.now() + 1000;
+    const spy = vi.spyOn(Date, "now").mockReturnValue(now);
+    try {
+      // MFA confirm: revokeUser then issue, in the same ms
+      await svc.revokeUser("u1");
+      const fresh = await svc.issue(this.session());
+      assert.ok(await svc.verifyAccess(fresh.accessToken));
+      assert.strictEqual(await svc.verifyAccess(before.accessToken), undefined);
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  @test
+  async rotationRecordsUseAndCreationWithTheNewToken() {
+    const svc = this.service;
+    const first = await svc.issue(this.session(), undefined, { clientId: "c" });
+    const stored = await RefreshToken.ref({ hash: (svc as any).hash(first.refreshToken) } as any).get();
+    assert.ok(stored.createdAt);
+    assert.strictEqual(stored.lastUsedAt, undefined);
+    // No write may follow the rotation: a failure there would make the client retry its rotated token
+    const repo: any = RefreshToken.getRepository();
+    const original = repo.patch.bind(repo);
+    let rotated = false;
+    repo.patch = async (...args: any[]) => {
+      if (rotated) throw new Error("db down after rotation");
+      rotated = true;
+      return original(...args);
+    };
+    let second;
+    try {
+      second = await svc.refresh(first.refreshToken, { clientId: "c" });
+    } finally {
+      repo.patch = original;
+    }
+    const next = await RefreshToken.ref({ hash: (svc as any).hash(second.refreshToken) } as any).get();
+    assert.ok(next.lastUsedAt >= stored.createdAt);
+    // The family keeps its creation time
+    assert.strictEqual(next.createdAt, stored.createdAt);
+    const third = await svc.refresh(second.refreshToken, { clientId: "c" });
+    const last = await RefreshToken.ref({ hash: (svc as any).hash(third.refreshToken) } as any).get();
+    assert.strictEqual(last.createdAt, stored.createdAt);
+  }
+
+  @test
+  async scopeAuthorizerSurvivesStop() {
+    const svc = this.service;
+    try {
+      await svc.stop();
+      assert.ok(listOperationAuthorizers().includes(scopeAuthorizer));
+      const ctx: any = await this.newContext();
+      ctx.newSession();
+      ctx.getSession().login("u1", "a@b.c:email", { provider: "email", amr: ["pwd"] });
+      ctx.getSession().scopes = ["Task.*"];
+      await assert.rejects(
+        () => scopeAuthorizer(ctx, "User.Me", {} as any, { probe: false }),
+        (err: any) => err instanceof InsufficientScope
+      );
+      assert.strictEqual(await scopeAuthorizer(ctx, "Task.Get", {} as any, { probe: false }), true);
+    } finally {
+      await svc.init();
+    }
+  }
+
+  @test
+  async logoutClearsScopes() {
+    const session = this.session();
+    session.scopes = ["*"];
+    session.clientId = "c";
+    session.logout();
+    assert.strictEqual(session.scopes, undefined);
+    assert.strictEqual(session.clientId, undefined);
+  }
+
+  @test
+  async revokedFamilyRejectedImmediately() {
+    const svc = this.service;
+    const tokens = await svc.issue(this.session());
+    assert.ok(await svc.verifyAccess(tokens.accessToken));
+    await svc.revokeFamily(tokens.family);
+    assert.strictEqual(await svc.verifyAccess(tokens.accessToken), undefined);
+  }
+
+  @test
+  async revokedUserOnlyBlocksOlderTokens() {
+    const svc = this.service;
+    const before = await svc.issue(this.session());
+    await svc.revokeUser("u1");
+    // Same second as the revocation: iat (1 s resolution) cannot order the tokens, iatMs does
+    const after = await svc.issue(this.session());
+    assert.strictEqual(await svc.verifyAccess(before.accessToken), undefined);
+    assert.ok(await svc.verifyAccess(after.accessToken));
+    // A token without iatMs is judged on iat: accepted once issued in a later second than the revocation
+    await new Promise(r => setTimeout(r, 1100));
+    const later = await useCrypto().jwtSign(
+      { sub: "u1", ident: "a:b", amr: ["pwd"], fam: "legacy", mfa: "none" },
+      { audience: "webda-access", expiresIn: 60 }
+    );
+    assert.ok(await svc.verifyAccess(later));
+    // another user is not affected
+    assert.ok(await svc.verifyAccess((await svc.issue(this.session("u2"))).accessToken));
+  }
+
+  @test
+  async missCacheDelaysOtherInstanceRevocation() {
+    const svc = this.service;
+    svc.getParameters().revocationCacheTtl = 10;
+    const tokens = await svc.issue(this.session());
+    assert.ok(await svc.verifyAccess(tokens.accessToken)); // caches the miss
+    // another instance revokes: write the row directly, bypassing this instance's cache
+    await RevokedAccess.create({ key: `fam:${tokens.family}`, expiresAt: Date.now() + 900_000 } as any);
+    assert.ok(await svc.verifyAccess(tokens.accessToken), "miss still cached");
+    svc.getParameters().revocationCacheTtl = 0;
+    (svc as any).revocationMisses.clear();
+    assert.strictEqual(await svc.verifyAccess(tokens.accessToken), undefined);
+  }
+
+  @test
+  async revocationCheckDisabled() {
+    const svc = this.service;
+    svc.getParameters().revocationCheck = false;
+    const tokens = await svc.issue(this.session());
+    await svc.revokeFamily(tokens.family);
+    assert.ok(await svc.verifyAccess(tokens.accessToken));
+  }
+
+  @test
+  async sweepRemovesExpired() {
+    await RevokedAccess.create({ key: "fam:old", expiresAt: Date.now() - 1 } as any);
+    await RevokedAccess.create({ key: "fam:new", expiresAt: Date.now() + 60_000 } as any);
+    assert.strictEqual(await this.service.sweepRevoked(), 1);
+    assert.strictEqual(await RevokedAccess.ref({ key: "fam:old" } as any).exists(), false);
+    assert.strictEqual(await RevokedAccess.ref({ key: "fam:new" } as any).exists(), true);
+  }
+
+  @test
+  async userRevocationRaisedByAnotherInstanceIsSeenAfterTtl() {
+    const svc = this.service;
+    const first = await svc.issue(this.session());
+    await svc.revokeUser("u1");
+    const second = await svc.issue(this.session());
+    assert.ok(await svc.verifyAccess(second.accessToken)); // caches the user hit
+    // another instance revokes again, strictly after the second token
+    await new Promise(r => setTimeout(r, 5));
+    await RevokedAccess.ref({ key: "user:u1" } as any).patch({ notBefore: Date.now() } as any);
+    assert.ok(await svc.verifyAccess(second.accessToken), "still inside the TTL");
+    svc.getParameters().revocationCacheTtl = 0.05;
+    (svc as any).revocationHits.clear();
+    assert.strictEqual(await svc.verifyAccess(second.accessToken), undefined);
+    assert.strictEqual(await svc.verifyAccess(first.accessToken), undefined);
+    // a hit is only cached for the TTL
+    const hit = (svc as any).revocationHits.get("user:u1");
+    assert.ok(hit.until <= Date.now() + 50);
+  }
+
+  @test
+  async cachesArePruned() {
+    const svc: any = this.service;
+    svc.revocationMisses.set("fam:a", Date.now() - 1);
+    svc.revocationMisses.set("fam:b", Date.now() + 60_000);
+    svc.revocationHits.set("fam:c", { entry: { expiresAt: Date.now() - 1 }, until: Date.now() - 1 });
+    svc.revocationHits.set("fam:d", { entry: { expiresAt: Date.now() + 60_000 }, until: Date.now() + 60_000 });
+    await svc.sweepRevoked();
+    assert.deepStrictEqual([...svc.revocationMisses.keys()], ["fam:b"]);
+    assert.deepStrictEqual([...svc.revocationHits.keys()], ["fam:d"]);
+  }
+
+  @test
+  async concurrentRevocationsDoNotThrow() {
+    const svc = this.service;
+    const tokens = await svc.issue(this.session());
+    await Promise.all([svc.revokeFamily(tokens.family), svc.revokeFamily(tokens.family)]);
+    await Promise.all([svc.revokeUser("u1"), svc.revokeUser("u1")]);
+    // simulate losing the exists/create race: the row appears between our create attempt and the fallback
+    await RevokedAccess.create({ key: "fam:race", expiresAt: Date.now() + 1000 } as any);
+    await (svc as any).denylist("fam:race");
+    assert.strictEqual(await svc.verifyAccess(tokens.accessToken), undefined);
+  }
+
+  @test
+  async tokenWithoutSubjectSkipsUserLookup() {
+    const svc: any = this.service;
+    const looked: string[] = [];
+    const original = svc.lookupRevoked.bind(svc);
+    svc.lookupRevoked = async (key: string) => {
+      looked.push(key);
+      return original(key);
+    };
+    assert.strictEqual(await svc.isRevoked({ fam: "f", amr: [], mfa: "none" } as any), false);
+    assert.deepStrictEqual(looked, ["fam:f"]);
   }
 }

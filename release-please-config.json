@@ -34,6 +34,7 @@
     "packages/mock": {},
     "packages/models": {},
     "packages/mongodb": {},
+    "packages/oauth": {},
     "packages/oci": {},
     "packages/offline": {},
     "packages/oidc": {},

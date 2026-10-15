@@ -665,7 +665,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         return {
           alias: aliasEntry.rawUrl,
           url: resolvedTarget,
-          mode: aliasEntry.definition.mode || "rewrite",
+          mode: aliasEntry.definition.mode as RouteAliasMode,
           redirectCode: aliasEntry.definition.redirectCode
         };
       }

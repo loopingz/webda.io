@@ -407,6 +407,10 @@ class RouterAliasTest extends WebdaApplicationTest {
     const resAbsolute = await this.request("GET", "/absolute", { userId: "123" });
     assert.strictEqual(resAbsolute.statusCode, 200);
     assert.deepStrictEqual(resAbsolute.body, { uuid: "123" });
+    useRouter().registerCORSFilter({ checkRequest: async () => true });
+    const preflightAbsolute = await this.request("OPTIONS", "/absolute");
+    assert.strictEqual(preflightAbsolute.statusCode, 204);
+    assert.ok(preflightAbsolute.ctx.getResponseHeaders()["Access-Control-Allow-Methods"].includes("GET"));
 
     // Reset prefix
     delete useParameters().routePrefix;

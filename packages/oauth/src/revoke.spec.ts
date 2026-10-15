@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { RefreshToken, useService } from "@webda/core";
 import { OAuthTest, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
 import { OAuthCode, OAuthDeviceCode, OAuthGrant } from "./models.model.js";
@@ -222,7 +223,7 @@ class RevokeTest extends OAuthTest {
         expiresAt
       } as any);
     // Used codes are kept an access token lifetime after their expiry, for reuse detection
-    await code("old", now - 900_000 - 60_000);
+    await code("old", now - server.accessTtl() * 1000 - 60_000);
     await code("recent", now - 1000);
     const device = (userCode: string, expiresAt: number) =>
       OAuthDeviceCode.create({
@@ -256,5 +257,84 @@ class RevokeTest extends OAuthTest {
     assert.ok(!(await OAuthGrant.ref("u1:app").exists()));
     assert.ok(await OAuthGrant.ref("u2:app").exists());
     assert.strictEqual(await server.sweep(), 0);
+  }
+
+  @test
+  async sweepRemovesMoreThanAPage() {
+    const server = useService<any>("OAuthServer");
+    const now = Date.now();
+    const alphabet = "BCDFGHJKLMNPQRSTVWXZ";
+    // Expired and live codes interleaved, more than a query page of each
+    for (let i = 0; i < 250; i++) {
+      const userCode = `BBBBBB${alphabet[Math.floor(i / 20)]}${alphabet[i % 20]}`;
+      await OAuthDeviceCode.create({
+        userCode,
+        secretHash: "s",
+        clientId: "webda-cli",
+        requestedScope: "Task.*",
+        status: "pending",
+        expiresAt: i % 5 === 0 ? now + 60_000 : now - 1000,
+        interval: 5
+      } as any);
+    }
+    for (let i = 0; i < 130; i++) {
+      await OAuthGrant.create({
+        uuid: `u${i}:app`,
+        userId: `u${i}`,
+        clientId: "app",
+        scope: "Task.*",
+        createdAt: now,
+        lastUsedAt: now,
+        expiresAt: now - 1000
+      } as any);
+    }
+    assert.strictEqual(await server.sweep(), 200 + 130);
+    let left = 0;
+    for await (const d of OAuthDeviceCode.iterate("userCode != ''", [])) {
+      assert.ok(d.expiresAt > now);
+      left++;
+    }
+    assert.strictEqual(left, 50);
+    for await (const _ of OAuthGrant.iterate("uuid != ''", [])) assert.fail("expired grant left");
+  }
+
+  @test
+  async sweepKeepsReconsentedGrant() {
+    const server = useService<any>("OAuthServer");
+    const now = Date.now();
+    await OAuthGrant.create({
+      uuid: "u1:app",
+      userId: "u1",
+      clientId: "app",
+      scope: "Task.*",
+      createdAt: now,
+      lastUsedAt: now,
+      expiresAt: now - 1000
+    } as any);
+    const stale = await OAuthGrant.ref("u1:app").get();
+    // The user consents again after the sweep read the grant
+    await OAuthGrant.ref("u1:app").patch({ expiresAt: now + 60_000 } as any);
+    const iterate = OAuthGrant.iterate.bind(OAuthGrant);
+    vi.spyOn(OAuthGrant, "iterate").mockImplementation(((q: string, p: any) =>
+      q === "expiresAt < ?"
+        ? (async function* staleRead() {
+            yield stale;
+          })()
+        : iterate(q, p)) as any);
+    try {
+      assert.strictEqual(await server.sweep(), 0);
+    } finally {
+      vi.restoreAllMocks();
+    }
+    assert.ok(await OAuthGrant.ref("u1:app").exists());
+  }
+
+  @test
+  async sweepRunsOneAtATime() {
+    const server = useService<any>("OAuthServer");
+    const first = server.sweep();
+    assert.strictEqual(server.sweep(), first);
+    await first;
+    assert.notStrictEqual(server.sweep(), first);
   }
 }

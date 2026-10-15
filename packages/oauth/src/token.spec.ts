@@ -411,13 +411,13 @@ class TokenEndpointTest extends OAuthTest {
   }
 
   @test
-  async deviceGrantNotYetSupported() {
+  async deviceGrantRejectsMalformedCode() {
     const res = await this.tokenRequest({
       grant_type: "urn:ietf:params:oauth:grant-type:device_code",
       device_code: "x",
       client_id: "webda-cli"
     });
-    assert.strictEqual(res.body.error, "unsupported_grant_type");
+    assert.strictEqual(res.body.error, "invalid_grant");
   }
 
   @test

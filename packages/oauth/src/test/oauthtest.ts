@@ -12,6 +12,7 @@ import {
   type WebContext
 } from "@webda/core";
 import { AuthTest } from "@webda/auth/lib/test/authtest.js";
+import { OAuthDeviceCode } from "../models.model.js";
 
 /** A browser: a session (cookie session) and the other cookies it holds */
 export interface Browser {
@@ -371,6 +372,14 @@ export abstract class OAuthTest extends AuthTest {
     if (res.status !== 200) throw new Error(`Token exchange failed: ${JSON.stringify(res.body)}`);
     const claims = await useService("TokenService").verifyAccess(res.body.access_token);
     return { ...res.body, family: claims!.fam };
+  }
+
+  /**
+   * Move the last poll of a device code a minute in the past: the next poll is not too fast
+   * @param deviceCode - device_code
+   */
+  async advancePoll(deviceCode: string): Promise<void> {
+    await OAuthDeviceCode.ref(deviceCode.split(".")[0]).patch({ lastPolledAt: Date.now() - 60_000 } as any);
   }
 
   /**

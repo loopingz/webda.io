@@ -31,9 +31,16 @@ import {
 } from "@webda/core";
 import { OAuthError } from "./errors.js";
 import { ClientRegistry } from "./clients.js";
-import { randomToken, sha256 } from "./devicecode.js";
+import {
+  formatUserCode,
+  generateUserCode,
+  normalizeUserCode,
+  randomToken,
+  sha256,
+  splitDeviceCode
+} from "./devicecode.js";
 import { type GrantIdentity, OAuthCode, OAuthDeviceCode, OAuthGrant } from "./models.model.js";
-import { OAuthServerParameters } from "./parameters.js";
+import { type OAuthClient, OAuthServerParameters } from "./parameters.js";
 import { type PendingRequest, PENDING_TTL, readPending, writePending } from "./pending.js";
 
 /** Name of the pending request cookie */
@@ -52,6 +59,18 @@ const PKCE_VERIFIER = /^[A-Za-z0-9\-._~]{43,128}$/;
 const MAX_TOKEN_BODY = 64 * 1024;
 /** Headers of every token endpoint response (RFC 6749 §5.1) */
 const TOKEN_HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store", Pragma: "no-cache" };
+/** Maximum number of records deleted per query by a sweep pass */
+const SWEEP_BATCH = 100;
+/** Attempts at drawing a free user code */
+const USER_CODE_ATTEMPTS = 5;
+/** Window of the device lookup rate limit (ms) */
+const LOOKUP_WINDOW = 10 * 60 * 1000;
+/** Failed device lookups allowed per browser session in the window */
+const LOOKUP_SESSION_FAILURES = 5;
+/** Failed device lookups allowed per client IP in the window */
+const LOOKUP_IP_FAILURES = 20;
+/** Maximum number of tracked rate limit keys: the oldest are dropped beyond */
+const LOOKUP_MAX_KEYS = 10_000;
 /** Query parameters of the authorization endpoint */
 const AUTHORIZE_PARAMS = [
   "response_type",
@@ -175,8 +194,10 @@ function identityOf(session: Session): GrantIdentity {
  *
  * - `POST <url>/token`: token endpoint (authorization code, refresh token and device code grants)
  * - `POST <url>/revoke`: revocation endpoint (RFC 7009)
+ * - `POST <url>/device_authorization`: device authorization endpoint (RFC 8628)
  *
- * Operations (browser session, pending request cookie): `OAuth.Consent.Get`, `OAuth.Consent.Decide`. Their REST
+ * Operations (browser session, pending request cookie): `OAuth.Device.Lookup`, `OAuth.Consent.Get`,
+ * `OAuth.Consent.Decide`. Their REST
  * hints sit below `/oauth`, the default `url`, so the pending cookie reaches them through a REST transport at `/`
  *
  * Connected apps operations (logged-in user, own records only): `OAuth.Sessions`, `OAuth.Grants`, `OAuth.Revoke`,
@@ -189,6 +210,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   clients: ClientRegistry;
   /** Periodic sweep of the expired OAuth records */
   protected sweepTimer?: ReturnType<typeof setInterval>;
+  /** Sweep in progress: a new sweep joins it */
+  protected sweeping?: Promise<number>;
+  /** Times of the recent failed device lookups, by `session:<uuid>` and `ip:<client ip>` */
+  lookupFailures: Map<string, number[]> = new Map();
 
   /** @override */
   resolve(): this {
@@ -242,28 +267,79 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
 
   /**
    * Delete the expired OAuth records: authorization codes an access token lifetime after their expiry (a used code is
-   * kept that long to detect its reuse), device codes and remembered consents once expired
+   * kept that long to detect its reuse), device codes and remembered consents once expired. A sweep started while
+   * another runs joins it
    * @returns number of deleted records
    */
-  async sweep(): Promise<number> {
-    return runAsSystem(async () => {
-      const now = Date.now();
-      let removed = 0;
-      const codeLimit = now - this.accessTtl() * 1000;
-      for await (const code of OAuthCode.iterate("expiresAt < ?", [codeLimit])) {
-        await code.ref().delete();
-        removed++;
-      }
-      for await (const device of OAuthDeviceCode.iterate("expiresAt < ?", [now])) {
-        await device.ref().delete();
-        removed++;
-      }
-      for await (const grant of OAuthGrant.iterate("expiresAt < ?", [now])) {
-        await grant.ref().delete();
-        removed++;
-      }
-      return removed;
+  sweep(): Promise<number> {
+    this.sweeping ??= runAsSystem(() => this.sweepExpired()).finally(() => {
+      this.sweeping = undefined;
     });
+    return this.sweeping;
+  }
+
+  /**
+   * @returns number of deleted records
+   */
+  protected async sweepExpired(): Promise<number> {
+    const now = Date.now();
+    this.pruneLookupFailures(now);
+    const codeLimit = now - this.accessTtl() * 1000;
+    let removed = await this.sweepBatches(
+      () => OAuthCode.iterate("expiresAt < ?", [codeLimit]),
+      async code => {
+        await code.ref().delete();
+        return true;
+      }
+    );
+    removed += await this.sweepBatches(
+      () => OAuthDeviceCode.iterate("expiresAt < ?", [now]),
+      async device => {
+        await device.ref().delete();
+        return true;
+      }
+    );
+    removed += await this.sweepBatches(
+      () => OAuthGrant.iterate("expiresAt < ?", [now]),
+      async grant => {
+        // A re-consent since the read extended the grant: it survives
+        try {
+          await grant.ref().delete("expiresAt" as any, grant.expiresAt as any);
+          return true;
+        } catch (err) {
+          if (!this.isConditionFailure(err)) throw err;
+          return false;
+        }
+      }
+    );
+    return removed;
+  }
+
+  /**
+   * Delete matching records by batches: a batch is read, then deleted, so deleting never shifts the pages of a running
+   * query. Repeated until a batch is not full or deletes nothing
+   * @param query - query of the records to delete, run again for each batch
+   * @param remove - delete a record, false when it was kept
+   * @returns number of deleted records
+   */
+  protected async sweepBatches<M>(
+    query: () => AsyncIterable<M>,
+    remove: (item: M) => Promise<boolean>
+  ): Promise<number> {
+    let removed = 0;
+    for (;;) {
+      const batch: M[] = [];
+      for await (const item of query()) {
+        batch.push(item);
+        if (batch.length >= SWEEP_BATCH) break;
+      }
+      let deleted = 0;
+      for (const item of batch) {
+        if (await remove(item)) deleted++;
+      }
+      removed += deleted;
+      if (batch.length < SWEEP_BATCH || deleted === 0) return removed;
+    }
   }
 
   /**
@@ -392,16 +468,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     }
     let scope: Scope;
     try {
-      const raw = p("scope") ?? client.defaultScope ?? "";
-      if (raw.length > MAX_SCOPE) throw new InvalidScope("Scope is too long");
-      scope = parseScope(raw);
-      if (client.allowedScopes !== undefined && !covers(parseScope(client.allowedScopes), scope)) {
-        throw new InvalidScope("Scope exceeds what the client may request");
-      }
+      scope = this.requestedScope(client, p("scope"));
     } catch (err) {
       return fail("invalid_scope", (err as Error).message);
     }
-    if (!operationGlobs(scope).length) return fail("invalid_scope", "No operation requested");
     const pending: PendingRequest = {
       flow: "code",
       clientId: client.id,
@@ -441,6 +511,24 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       return fail("invalid_request", "Authorization request is too large");
     }
     return this.redirect(ctx, this.pageUrl(ctx, "consent"));
+  }
+
+  /**
+   * Scope of an authorization request
+   * @param client - requesting client
+   * @param raw - `scope` parameter, the client default scope when absent
+   * @returns the parsed scope
+   * @throws InvalidScope when too long, malformed, beyond the client allowed scope or without any operation
+   */
+  protected requestedScope(client: OAuthClient, raw: string | undefined): Scope {
+    const value = raw ?? client.defaultScope ?? "";
+    if (value.length > MAX_SCOPE) throw new InvalidScope("Scope is too long");
+    const scope = parseScope(value);
+    if (client.allowedScopes !== undefined && !covers(parseScope(client.allowedScopes), scope)) {
+      throw new InvalidScope("Scope exceeds what the client may request");
+    }
+    if (!operationGlobs(scope).length) throw new InvalidScope("No operation requested");
+    return scope;
   }
 
   /**
@@ -699,21 +787,47 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Approve a pending device authorization
-   * @param _pending - pending request
-   * @param _identity - identity of the user
-   * @param _scope - granted scope
+   * Approve a pending device authorization: compare-and-set of its status from `pending`, so a code is decided once
+   * @param pending - pending request
+   * @param identity - identity of the user
+   * @param scope - granted scope
+   * @throws BadRequest when the device code is gone, expired or already decided
    */
-  protected async approveDevice(_pending: PendingRequest, _identity: GrantIdentity, _scope: Scope): Promise<void> {
-    throw new WebdaError.CodeError("NOT_IMPLEMENTED", "Device approval is not implemented yet");
+  protected async approveDevice(pending: PendingRequest, identity: GrantIdentity, scope: Scope): Promise<void> {
+    const decided = await this.decideDevice(pending, {
+      status: "approved",
+      identity,
+      grantedScope: formatScope(scope),
+      name: await this.familyName(pending)
+    });
+    if (!decided) throw new WebdaError.BadRequest("The device authorization is no longer pending");
   }
 
   /**
-   * Deny a pending device authorization
-   * @param _pending - pending request
+   * Deny a pending device authorization; a device code gone, expired or already decided is left as it is
+   * @param pending - pending request
    */
-  protected async denyDevice(_pending: PendingRequest): Promise<void> {
-    throw new WebdaError.CodeError("NOT_IMPLEMENTED", "Device denial is not implemented yet");
+  protected async denyDevice(pending: PendingRequest): Promise<void> {
+    await this.decideDevice(pending, { status: "denied" });
+  }
+
+  /**
+   * @param pending - pending device request
+   * @param update - decision
+   * @returns false when the device code is gone, expired, of another client or no longer pending
+   */
+  protected async decideDevice(pending: PendingRequest, update: Partial<OAuthDeviceCode>): Promise<boolean> {
+    const ref = OAuthDeviceCode.ref(pending.userCode!);
+    if (!(await ref.exists())) return false;
+    const stored: OAuthDeviceCode = await ref.get();
+    if (stored.clientId !== pending.clientId || !(stored.expiresAt > Date.now())) return false;
+    try {
+      await ref.patch(update as any, "status" as any, "pending");
+      return true;
+    } catch (err) {
+      if (!this.isConditionFailure(err) && (await ref.exists())) throw err;
+      return false;
+    }
   }
 
   /**
@@ -937,12 +1051,70 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Device code grant (RFC 8628 §3.4)
-   * @param _body - token request
+   * Device code grant (RFC 8628 §3.4, §3.5). The approved code is consumed by a compare-and-set of its status, so it
+   * yields tokens once
+   * @param body - token request
    * @returns the tokens
    */
-  protected async exchangeDevice(_body: Record<string, string>): Promise<TokenResponse> {
-    throw new OAuthError("unsupported_grant_type", "Unsupported grant_type");
+  protected async exchangeDevice(body: Record<string, string>): Promise<TokenResponse> {
+    const { device_code: deviceCode, client_id: clientId } = body;
+    if (!deviceCode || !clientId) throw new OAuthError("invalid_request", "device_code and client_id are required");
+    if (!(await this.deviceClient(clientId))) {
+      throw new OAuthError("unauthorized_client", "The client may not use the device authorization grant");
+    }
+    const invalid = () => new OAuthError("invalid_grant", "Invalid device code");
+    const parts = splitDeviceCode(deviceCode);
+    if (!parts) throw invalid();
+    const ref = OAuthDeviceCode.ref(parts.userCode);
+    if (!(await ref.exists())) throw invalid();
+    const stored: OAuthDeviceCode = await ref.get();
+    if (stored.clientId !== clientId || !sameSecret(sha256(parts.secret), stored.secretHash)) throw invalid();
+    const now = Date.now();
+    if (!(stored.expiresAt > now)) throw new OAuthError("expired_token", "The device code has expired");
+    if (stored.status === "consumed") throw invalid();
+    if (stored.lastPolledAt && now - stored.lastPolledAt < stored.interval * 1000) {
+      await ref.patch({ interval: stored.interval + 5, lastPolledAt: now } as any);
+      throw new OAuthError("slow_down", "Polling too fast");
+    }
+    await ref.patch({ lastPolledAt: now } as any);
+    switch (stored.status) {
+      case "pending":
+        throw new OAuthError("authorization_pending", "The user has not decided yet");
+      case "denied":
+        await ref.delete();
+        throw new OAuthError("access_denied", "The user denied the authorization");
+      case "approved":
+        break;
+      default:
+        throw invalid();
+    }
+    // Compare-and-set: only one poll moves the status from approved to consumed
+    try {
+      await ref.patch({ status: "consumed" } as any, "status" as any, "approved");
+    } catch (err) {
+      if (!this.isConditionFailure(err) && (await ref.exists())) throw err;
+      throw invalid();
+    }
+    const issued = await this.issueTokens(
+      stored.identity!,
+      stored.clientId,
+      parseScope(stored.grantedScope!),
+      stored.name
+    );
+    return issued.response;
+  }
+
+  /**
+   * @param clientId - client_id
+   * @returns the client when it is a configured client allowed to use the device flow. Never fetches a metadata
+   * document: such clients never get the device flow
+   */
+  protected async deviceClient(clientId: string | undefined): Promise<OAuthClient | undefined> {
+    if (typeof clientId !== "string" || !Object.prototype.hasOwnProperty.call(this.parameters.clients, clientId)) {
+      return undefined;
+    }
+    const client = await this.clients.get(clientId);
+    return client?.deviceFlow === true ? client : undefined;
   }
 
   /**
@@ -1150,11 +1322,174 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Device authorization endpoint
-   * @param _ctx - web context
+   * Device authorization endpoint (RFC 8628 §3.1, §3.2): `client_id`, `scope?`, `hostname?`. Every response, errors
+   * included, is JSON and never cached
+   * @param ctx - web context
    */
-  async deviceAuthorization(_ctx: WebContext): Promise<void> {
-    throw new WebdaError.NotFound("Not implemented");
+  async deviceAuthorization(ctx: WebContext): Promise<void> {
+    let status = 200;
+    let payload: Record<string, string | number>;
+    try {
+      const body = await this.tokenBody(ctx);
+      const client = await this.deviceClient(body.client_id);
+      if (!client) throw new OAuthError("unauthorized_client", "The client may not use the device authorization grant");
+      const scope = this.requestedScope(client, body.scope);
+      const secret = randomToken(32);
+      const ttl = this.parameters.deviceCodeTtl;
+      const userCode = await this.createDeviceCode({
+        secretHash: sha256(secret),
+        clientId: client.id,
+        requestedScope: formatScope(scope),
+        status: "pending",
+        hostname: this.cleanHostname(body.hostname),
+        expiresAt: Date.now() + ttl * 1000,
+        interval: this.parameters.devicePollInterval
+      });
+      const formatted = formatUserCode(userCode);
+      const verification = this.pageUrl(ctx, "device");
+      payload = {
+        device_code: `${userCode}.${secret}`,
+        user_code: formatted,
+        verification_uri: verification,
+        verification_uri_complete: withQuery(verification, { user_code: formatted }),
+        expires_in: ttl,
+        interval: this.parameters.devicePollInterval
+      };
+    } catch (err) {
+      const oauth = this.toOAuthError(err);
+      status = oauth.getResponseCode();
+      payload = oauth.toJSON();
+    }
+    ctx.writeHead(status, TOKEN_HEADERS);
+    ctx.write(JSON.stringify(payload));
+  }
+
+  /**
+   * @returns a random user code
+   */
+  protected newUserCode(): string {
+    return generateUserCode();
+  }
+
+  /**
+   * Store a device code under a free user code: a drawn code already taken is drawn again, a bounded number of times
+   * @param data - the device code but its user code
+   * @returns the user code
+   */
+  protected async createDeviceCode(data: Omit<Partial<OAuthDeviceCode>, "userCode">): Promise<string> {
+    for (let attempt = 1; ; attempt++) {
+      const userCode = this.newUserCode();
+      try {
+        await OAuthDeviceCode.create({ ...data, userCode } as any);
+        return userCode;
+      } catch (err) {
+        // The create failed on an existing record: draw again
+        if (attempt >= USER_CODE_ATTEMPTS || !(await OAuthDeviceCode.ref(userCode).exists())) throw err;
+      }
+    }
+  }
+
+  /**
+   * Bind a device code typed by the user to the browser: the pending request then goes through the consent page, which
+   * is never skipped for the device flow.
+   *
+   * Rate limited on failures: 5 per browser session and 20 per client IP in 10 minutes. Every failure (malformed,
+   * unknown, expired or already decided code) is the same `404`
+   * @param userCode - code displayed by the device, case, spaces and dashes ignored
+   * @returns the consent page
+   */
+  @Operation({ id: "OAuth.Device.Lookup", rest: { method: "post", path: "oauth/device/lookup" } })
+  async deviceLookup(userCode: string): Promise<{ redirect: string }> {
+    const ctx = useContext<WebContext>();
+    const session = ctx.getSession();
+    // A bearer (scoped) session cannot consent: consent comes from a browser session
+    if (!session?.isLogged() || session.scopes !== undefined) throw new WebdaError.Unauthorized("Login required");
+    const keys = [
+      `session:${session.uuid ?? `user:${session.userId}`}`,
+      `ip:${ctx.getHttpContext()?.getClientIp() ?? "unknown"}`
+    ];
+    const now = Date.now();
+    if (
+      this.countLookupFailures(keys[0], now) >= LOOKUP_SESSION_FAILURES ||
+      this.countLookupFailures(keys[1], now) >= LOOKUP_IP_FAILURES
+    ) {
+      throw new WebdaError.TooManyRequests("Too many attempts");
+    }
+    // Counted before the lookup, so concurrent attempts are all counted; withdrawn on success
+    this.recordLookupFailure(keys, now);
+    const code = normalizeUserCode(userCode);
+    let device: OAuthDeviceCode | undefined;
+    if (code) {
+      const ref = OAuthDeviceCode.ref(code);
+      device = (await ref.exists()) ? await ref.get() : undefined;
+    }
+    if (!device || device.status !== "pending" || !(device.expiresAt > Date.now())) {
+      throw new WebdaError.NotFound("Unknown or expired code");
+    }
+    this.withdrawLookupFailure(keys, now);
+    const pending: PendingRequest = {
+      flow: "device",
+      clientId: device.clientId,
+      scope: device.requestedScope,
+      hostname: device.hostname,
+      userCode: device.userCode,
+      userId: session.userId,
+      csrf: randomToken(24),
+      expires: Math.min(Date.now() + PENDING_TTL * 1000, device.expiresAt)
+    };
+    if (!(await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending))) {
+      throw new WebdaError.BadRequest("Authorization request is too large");
+    }
+    return { redirect: this.pageUrl(ctx, "consent") };
+  }
+
+  /**
+   * @param key - rate limit key
+   * @param now - current time
+   * @returns failed lookups of the key in the window
+   */
+  protected countLookupFailures(key: string, now: number): number {
+    const times = this.lookupFailures.get(key)?.filter(t => t > now - LOOKUP_WINDOW) ?? [];
+    if (times.length) this.lookupFailures.set(key, times);
+    else this.lookupFailures.delete(key);
+    return times.length;
+  }
+
+  /**
+   * @param keys - rate limit keys
+   * @param now - time of the failure
+   */
+  protected recordLookupFailure(keys: string[], now: number): void {
+    for (const key of keys) {
+      const times = this.lookupFailures.get(key) ?? [];
+      times.push(now);
+      // Re-inserted last: the map stays ordered by last failure
+      this.lookupFailures.delete(key);
+      this.lookupFailures.set(key, times);
+    }
+    while (this.lookupFailures.size > LOOKUP_MAX_KEYS) {
+      this.lookupFailures.delete(this.lookupFailures.keys().next().value!);
+    }
+  }
+
+  /**
+   * @param keys - rate limit keys
+   * @param time - time of the failure recorded for the attempt
+   */
+  protected withdrawLookupFailure(keys: string[], time: number): void {
+    for (const key of keys) {
+      const times = this.lookupFailures.get(key);
+      const index = times?.lastIndexOf(time) ?? -1;
+      if (index >= 0) times!.splice(index, 1);
+    }
+  }
+
+  /**
+   * Forget the failed lookups out of the window
+   * @param now - current time
+   */
+  protected pruneLookupFailures(now: number): void {
+    for (const key of [...this.lookupFailures.keys()]) this.countLookupFailures(key, now);
   }
 
   /**

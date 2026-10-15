@@ -181,6 +181,15 @@ export class GCSFinder implements StorageFinder {
 export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
   readonly schemes = ["gs", "gcs"];
   private _storage?: GCS;
+  private endpointStorages = new Map<string, GCS>();
+
+  /**
+   * Release URL-selected clients when the service stops.
+   */
+  async stop(): Promise<void> {
+    this.endpointStorages.clear();
+    await super.stop();
+  }
   /**
    * GCS client, created on first use
    * @returns the GCS client
@@ -226,18 +235,20 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     let targetBucket: string;
     let targetKey: string;
     let url: string;
+    let selectedEndpoint: string | undefined;
     if (typeof urlOrObject === "string") {
       url = urlOrObject;
-      const { bucket, key } = parseContentUrl(urlOrObject, this.parameters.bucket);
+      const { bucket, key, endpoint } = parseContentUrl(urlOrObject, this.parameters.bucket);
       targetBucket = bucket || this.parameters.bucket;
       targetKey = key;
+      selectedEndpoint = endpoint;
     } else {
       targetBucket = urlOrObject.bucket || this.parameters.bucket;
       targetKey = urlOrObject.key;
       url = `gs://${targetBucket}/${targetKey}`;
     }
 
-    const file = this.getStorageBucket(targetBucket).file(targetKey);
+    const file = this.getStorageBucket(targetBucket, selectedEndpoint).file(targetKey);
     const [exists] = await file.exists();
     if (!exists) {
       throw new ContentNotFoundError(`Content not found: ${url}`);
@@ -264,9 +275,9 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns ContentInfo
    */
   async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
-    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
-    const file = this.getStorageBucket(targetBucket).file(key);
+    const file = this.getStorageBucket(targetBucket, endpoint).file(key);
 
     if (options?.ifNotExists) {
       const [exists] = await file.exists();
@@ -317,9 +328,9 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns ContentInfo or undefined if not found
    */
   async headContent(url: string): Promise<ContentInfo | undefined> {
-    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
-    const file = this.getStorageBucket(targetBucket).file(key);
+    const file = this.getStorageBucket(targetBucket, endpoint).file(key);
     try {
       const [metadata] = await file.getMetadata();
       return {
@@ -343,10 +354,10 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @param url - gs:// or gcs:// URL
    */
   async deleteContent(url: string): Promise<void> {
-    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
     try {
-      await this.getStorageBucket(targetBucket).file(key).delete({ ignoreNotFound: true });
+      await this.getStorageBucket(targetBucket, endpoint).file(key).delete({ ignoreNotFound: true });
     } catch (err: any) {
       if (err?.code !== 404 && err?.status !== 404) {
         throw err;
@@ -389,10 +400,22 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * Return the Google Bucket directly
    *
    * @param bucket - name of the bucket default to the one predefined
+   * @param endpoint - optional URL-selected API endpoint
    * @returns the bucket
    */
-  getStorageBucket(bucket: string = this.parameters.bucket): Bucket {
-    return this.storage.bucket(bucket);
+  getStorageBucket(bucket: string = this.parameters.bucket, endpoint?: string): Bucket {
+    if (!endpoint || endpoint === this.parameters.endpoint) {
+      return this.storage.bucket(bucket);
+    }
+    let storage = this.endpointStorages.get(endpoint);
+    if (!storage) {
+      storage = new GCS({ apiEndpoint: endpoint });
+      // The SDK gives STORAGE_EMULATOR_HOST priority for baseUrl even when
+      // apiEndpoint is explicit. A URL-selected endpoint must win for this client.
+      storage.baseUrl = `${endpoint}/storage/v1`;
+      this.endpointStorages.set(endpoint, storage);
+    }
+    return storage.bucket(bucket);
   }
 
   /**

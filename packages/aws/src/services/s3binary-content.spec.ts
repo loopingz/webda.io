@@ -23,6 +23,7 @@ import { afterEach, beforeEach, suite, test } from "@webda/test";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import { Readable } from "node:stream";
+import { vi } from "vitest";
 import { S3Binary, S3BinaryParameters } from "./s3binary.service.js";
 
 const TEST_BUCKET = "unit-content-bucket";
@@ -276,6 +277,53 @@ class S3BinaryContentStorageTest extends WebdaApplicationTest {
   @test
   async streamErrorDoesNotLeaveCorruptedFile() {
     await this.contract.streamErrorDoesNotLeaveCorruptedFile();
+  }
+
+  @test
+  async endpointSelectionUsesProviderCredentialsAndKeepsObjectKey() {
+    const endpoint = "http://127.0.0.1:9000";
+    const url = `s3://${TEST_BUCKET}/endpoint/object.txt?endpoint=${encodeURIComponent(endpoint)}`;
+    const selected = (this.s3Binary as any).getContentClient(endpoint) as S3;
+    assert.notStrictEqual(selected, this.s3Binary._s3);
+    assert.strictEqual((this.s3Binary as any).getContentClient(endpoint), selected);
+    assert.strictEqual((this.s3Binary as any).getContentClient(), this.s3Binary._s3);
+    assert.strictEqual((await selected.config.endpoint()).hostname, "127.0.0.1");
+    assert.strictEqual((await selected.config.endpoint()).port, 9000);
+    assert.strictEqual(selected.config.forcePathStyle, true);
+    const getClient = vi.spyOn(this.s3Binary as any, "getContentClient");
+    await this.s3Binary.putContent(url, "endpoint body", { ifNotExists: true });
+    const stream = await this.s3Binary.getContent(url);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    assert.strictEqual(Buffer.concat(chunks).toString(), "endpoint body");
+    assert.strictEqual((await this.s3Binary.headContent(url))?.size, 13);
+    await this.s3Binary.deleteContent(url);
+    assert.strictEqual(await this.s3Binary.headContent(url), undefined);
+    assert.ok(getClient.mock.calls.every(([value]) => value === endpoint));
+    assert.ok(this.storageMap.has(`${TEST_BUCKET}/endpoint/object.txt`) === false);
+  }
+
+  @test
+  async endpointPreflightPropagatesUnexpectedErrors() {
+    this.mock.on(HeadObjectCommand).rejects(new Error("endpoint unavailable"));
+    const url = `s3://${TEST_BUCKET}/key?endpoint=http%3A%2F%2Flocalhost%3A9000`;
+    await assert.rejects(this.s3Binary.putContent(url, "body", { ifNotExists: true }), /endpoint unavailable/);
+  }
+
+  @test
+  async unexpectedS3ReadAndHeadErrorsPropagate() {
+    const url = `s3://${TEST_BUCKET}/error?endpoint=http%3A%2F%2Flocalhost%3A9000`;
+    this.mock.on(GetObjectCommand).rejects(new Error("read failed"));
+    await assert.rejects(this.s3Binary.getContent(url), /read failed/);
+    this.mock.on(HeadObjectCommand).rejects(new Error("head failed"));
+    await assert.rejects(this.s3Binary.headContent(url), /head failed/);
+  }
+
+  @test
+  async uploadPreconditionRaceMapsToContentExists() {
+    const url = `s3://${TEST_BUCKET}/race?endpoint=http%3A%2F%2Flocalhost%3A9000`;
+    this.mock.on(PutObjectCommand).rejects(Object.assign(new Error("precondition"), { name: "PreconditionFailed" }));
+    await assert.rejects(this.s3Binary.putContent(url, "body"), ContentExistsError);
   }
 
   @test

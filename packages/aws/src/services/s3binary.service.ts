@@ -135,6 +135,33 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * S3 client configuration, with plain credentials
    */
   protected _s3Config: any;
+  private endpointClients = new Map<string, S3>();
+
+  /**
+   * Use this service's credentials and region with the URL-selected endpoint.
+   * @param endpoint - optional URL-selected endpoint
+   * @returns the S3 client
+   */
+  protected getContentClient(endpoint?: string): S3 {
+    if (!endpoint) {
+      return this._s3;
+    }
+    let client = this.endpointClients.get(endpoint);
+    if (!client) {
+      client = new S3({ ...this._s3Config, endpoint, forcePathStyle: true });
+      this.endpointClients.set(endpoint, client);
+    }
+    return client;
+  }
+
+  /** Release URL-selected clients when the service stops. */
+  async stop(): Promise<void> {
+    for (const client of this.endpointClients.values()) {
+      client.destroy();
+    }
+    this.endpointClients.clear();
+    await super.stop();
+  }
 
   /**
    * Create the S3 client
@@ -153,8 +180,9 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns Readable stream
    */
   async getContent(url: string, options?: ContentGetOptions): Promise<Readable> {
-    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
+    const client = this.getContentClient(endpoint);
     const params: any = {
       Bucket: targetBucket,
       Key: key
@@ -165,7 +193,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       params.Range = `bytes=${start}-${end}`;
     }
     try {
-      const res = await this._s3.send(new GetObjectCommand(params));
+      const res = await client.send(new GetObjectCommand(params));
       if (this.metrics && (this.metrics as any).download) {
         (this.metrics as any).download.inc();
       }
@@ -186,11 +214,19 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns ContentInfo
    */
   async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
-    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
+    const client = this.getContentClient(endpoint);
 
     if (options?.ifNotExists) {
-      const existing = await this.exists(key, targetBucket);
+      const existing = await client.headObject({ Bucket: targetBucket, Key: key }).then(
+        () => true,
+        (err: any) => {
+          if (err.name === "NotFound" || err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404)
+            return false;
+          throw err;
+        }
+      );
       if (existing) {
         throw new ContentExistsError(`Content already exists: ${url}`);
       }
@@ -209,7 +245,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     }
 
     const upload = new Upload({
-      client: this._s3,
+      client,
       params: uploadParams
     });
 
@@ -223,7 +259,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       let lastModified: Date | undefined;
       if (size === undefined) {
         try {
-          const head = await this._s3.headObject({ Bucket: targetBucket, Key: key });
+          const head = await client.headObject({ Bucket: targetBucket, Key: key });
           size = head.ContentLength;
           etag = head.ETag || etag;
           lastModified = head.LastModified;
@@ -255,10 +291,10 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns ContentInfo or undefined if not found
    */
   async headContent(url: string): Promise<ContentInfo | undefined> {
-    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
     try {
-      const res = await this._s3.headObject({
+      const res = await this.getContentClient(endpoint).headObject({
         Bucket: targetBucket,
         Key: key
       });
@@ -283,9 +319,9 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param url - s3://bucket/key or s3:///key
    */
   async deleteContent(url: string): Promise<void> {
-    const { bucket, key } = parseContentUrl(url, this.parameters.bucket);
+    const { bucket, key, endpoint } = parseContentUrl(url, this.parameters.bucket);
     const targetBucket = bucket || this.parameters.bucket;
-    await this._s3.deleteObject({
+    await this.getContentClient(endpoint).deleteObject({
       Bucket: targetBucket,
       Key: key
     });

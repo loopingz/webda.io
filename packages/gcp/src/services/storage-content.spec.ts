@@ -1,10 +1,4 @@
-import {
-  ContentExistsError,
-  ContentNotFoundError,
-  ContentStorages,
-  getContent,
-  putContent
-} from "@webda/core";
+import { ContentExistsError, ContentNotFoundError, ContentStorages, getContent, putContent } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { ContentStorageContract } from "@webda/utils";
 import { afterEach, beforeEach, suite, test } from "@webda/test";
@@ -190,6 +184,91 @@ class GCSStorageContentTest extends WebdaApplicationTest {
   @test
   async streamErrorDoesNotLeaveCorruptedFile() {
     await this.contract.streamErrorDoesNotLeaveCorruptedFile();
+  }
+
+  @test
+  async endpointSelectionKeepsBucketAndKeyForAllOperations() {
+    const endpoint = "http://127.0.0.1:4443";
+    const url = `gcs://${TEST_BUCKET}/emulated/file.txt?endpoint=${encodeURIComponent(endpoint)}`;
+    await this.storage.putContent(url, "emulated body");
+    const stream = await this.storage.getContent(url);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    assert.strictEqual(Buffer.concat(chunks).toString(), "emulated body");
+    assert.strictEqual((await this.storage.headContent(url))?.size, 13);
+    await this.storage.deleteContent(url);
+    assert.strictEqual(await this.storage.headContent(url), undefined);
+    const bucketCalls = vi.mocked(this.storage.getStorageBucket).mock.calls;
+    assert.ok(bucketCalls.every(([bucket, selected]) => bucket === TEST_BUCKET && selected === endpoint));
+    assert.ok(!this.files.has(`${TEST_BUCKET}/emulated/file.txt`));
+  }
+
+  @test
+  urlEndpointCreatesCachedGcsClientWithProtocolAndPort() {
+    const getRealBucket = Storage.prototype.getStorageBucket.bind(this.storage);
+    const first = getRealBucket(TEST_BUCKET, "http://127.0.0.1:4443");
+    const again = getRealBucket(TEST_BUCKET, "http://127.0.0.1:4443");
+    const secure = getRealBucket(TEST_BUCKET, "https://storage.example.com:8443");
+    assert.strictEqual(first.storage, again.storage);
+    assert.strictEqual((first.storage as any).baseUrl, "http://127.0.0.1:4443/storage/v1");
+    assert.strictEqual((secure.storage as any).baseUrl, "https://storage.example.com:8443/storage/v1");
+    assert.notStrictEqual(first.storage, secure.storage);
+    this.storage.parameters.endpoint = "https://storage.example.com:8443";
+    assert.strictEqual(
+      (getRealBucket(TEST_BUCKET, "https://storage.example.com:8443").storage as any).baseUrl,
+      "https://storage.example.com:8443/storage/v1"
+    );
+    const originalEmulator = process.env.STORAGE_EMULATOR_HOST;
+    try {
+      process.env.STORAGE_EMULATOR_HOST = "http://other-emulator:5555";
+      const selected = getRealBucket(TEST_BUCKET, "http://127.0.0.1:4444");
+      assert.strictEqual((selected.storage as any).baseUrl, "http://127.0.0.1:4444/storage/v1");
+    } finally {
+      if (originalEmulator === undefined) delete process.env.STORAGE_EMULATOR_HOST;
+      else process.env.STORAGE_EMULATOR_HOST = originalEmulator;
+    }
+  }
+
+  @test
+  async emulatorErrorsPropagateAndPreconditionRaceMapsToContentExists() {
+    const url = `gs://${TEST_BUCKET}/error?endpoint=http%3A%2F%2Flocalhost%3A4443`;
+    const bucket = vi.mocked(this.storage.getStorageBucket);
+    bucket.mockReturnValueOnce(<any>{
+      file: () => ({
+        exists: async () => {
+          throw new Error("read failed");
+        }
+      })
+    });
+    await assert.rejects(this.storage.getContent(url), /read failed/);
+    bucket.mockReturnValueOnce(<any>{
+      file: () => ({
+        getMetadata: async () => {
+          throw new Error("head failed");
+        }
+      })
+    });
+    await assert.rejects(this.storage.headContent(url), /head failed/);
+    bucket.mockReturnValueOnce(<any>{
+      file: () => ({
+        delete: async () => {
+          throw new Error("delete failed");
+        }
+      })
+    });
+    await assert.rejects(this.storage.deleteContent(url), /delete failed/);
+    bucket.mockReturnValueOnce(<any>{
+      file: () => ({
+        exists: async () => [false],
+        createWriteStream: () =>
+          new Writable({
+            write(_chunk, _encoding, callback) {
+              callback(Object.assign(new Error("precondition"), { code: 412 }));
+            }
+          })
+      })
+    });
+    await assert.rejects(this.storage.putContent(url, "body", { ifNotExists: true }), ContentExistsError);
   }
 
   @test

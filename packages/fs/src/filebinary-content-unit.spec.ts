@@ -1,9 +1,4 @@
-import {
-  ContentNotFoundError,
-  ContentStorages,
-  getContent,
-  putContent
-} from "@webda/core";
+import { ContentNotFoundError, ContentStorages, getContent, putContent } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { ContentStorageContract } from "@webda/utils";
 import { afterEach, beforeEach, suite, test } from "@webda/test";
@@ -11,6 +6,7 @@ import * as assert from "assert";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { vi } from "vitest";
 import { FileBinary, FileBinaryParameters } from "./filebinary.service.js";
 
 const TEST_DIR = path.join(os.tmpdir(), `webda-fs-content-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -97,5 +93,19 @@ class FileBinaryContentTest extends WebdaApplicationTest {
       },
       (err: any) => err instanceof ContentNotFoundError && err.message.includes("Path traversal rejected")
     );
+  }
+
+  @test
+  async deleteContentRemovesTheFile() {
+    const url = `file://${path.join(TEST_DIR, "delete.txt")}`;
+    await this.fileBinary.putContent(url, "body");
+    await this.fileBinary.deleteContent(url);
+    assert.strictEqual(await this.fileBinary.headContent(url), undefined);
+  }
+
+  @test
+  async getPropagatesUnexpectedReadFailures() {
+    vi.spyOn(this.fileBinary, "getContent").mockRejectedValueOnce(new Error("read failed"));
+    await assert.rejects(this.fileBinary._get({ hash: "sample" } as any), /read failed/);
   }
 }

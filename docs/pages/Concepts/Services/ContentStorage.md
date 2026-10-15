@@ -27,6 +27,21 @@ const stream = await getContent("gs://my-bucket/exports/2026.ndjson.gz");
 | `file:///abs/path`, `/abs/path`, `./rel/path` | Local filesystem path | `FileContentStorage` / `@webda/fs` (`FileBinary`) |
 | `memory://name/key` | In-memory key-value store | `MemoryContentStorage` (testing) |
 
+## S3-compatible servers and GCS emulators
+
+Add an `endpoint` query parameter to select a server for one content operation:
+
+```ts
+await putContent("s3://photos/image.jpg?endpoint=http%3A%2F%2F127.0.0.1%3A9000", image);
+await getContent("gs://photos/image.jpg?endpoint=http%3A%2F%2F127.0.0.1%3A4443");
+```
+
+Build URLs with `URLSearchParams` to encode the endpoint, including its protocol and port. Both `http://` and `https://` are supported. An endpoint must be absolute and cannot contain credentials, a query, or a fragment. An endpoint may include a path prefix. The bucket and key retain their existing positions and meanings; the query is not part of the object key. URLs without `endpoint` continue to use the provider's configured endpoint or the cloud default.
+
+The registry still selects a provider by scheme and bucket. The selected provider supplies its configured credentials and region (S3) or application default credentials (GCS). The URL replaces only that operation's server endpoint, including a configured endpoint or `STORAGE_EMULATOR_HOST` for GCS. S3 uses path-style requests for a URL-selected endpoint, as required by common compatible services. Keep credentials in service configuration or the environment, never in the content URL. The caller controlling the URL can direct the selected provider's credentials to that endpoint, so only accept endpoint-bearing URLs from trusted input.
+
+We chose a query parameter because `bucket@host` would overload the bucket portion and require escaping host ports and protocols, while a new scheme would need separate provider registrations. The query parameter preserves `s3://bucket/key` and `gs://bucket/key`, makes `http` versus `https` explicit, and works with default-bucket URLs such as `s3:///key?endpoint=...`.
+
 :::caution Caveat: `s3:///key` vs `s3://key`
 Under WHATWG URL standards, `s3://key` parses `key` as the *hostname* (bucket name), making it indistinguishable from a single-segment bucket URL. To address the default bucket for a scheme, use `s3:///key` (with three slashes, representing an empty host) or `s3:key`.
 :::

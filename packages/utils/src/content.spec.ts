@@ -11,8 +11,11 @@ import {
   FileContentStorage,
   MemoryContentStorage,
   getContent,
+  lookupMimeType,
   parseContentUrl,
-  putContent
+  putContent,
+  toBuffer,
+  toReadable
 } from "./content.js";
 import { ContentStorageContract } from "./content.contract.js";
 import { streamToBuffer } from "./stream.js";
@@ -56,6 +59,56 @@ class ContentUrlParsingTest {
   }
 
   @test
+  parsesEndpointSelectionWithoutChangingBucketOrKey() {
+    for (const scheme of ["s3", "gs", "gcs"]) {
+      const endpoint = "http://127.0.0.1:9000";
+      const url = `${scheme}://my-bucket/folder/file%20one.txt?endpoint=${encodeURIComponent(endpoint)}`;
+      assert.deepStrictEqual(parseContentUrl(url), {
+        scheme,
+        bucket: "my-bucket",
+        key: "folder/file one.txt",
+        endpoint
+      });
+      assert.deepStrictEqual(
+        parseContentUrl(`${scheme}:///file.txt?endpoint=https%3A%2F%2Fstorage.example.com`, "default"),
+        {
+          scheme,
+          bucket: "default",
+          key: "file.txt",
+          endpoint: "https://storage.example.com"
+        }
+      );
+    }
+  }
+
+  @test
+  rejectsInvalidEndpointSelection() {
+    for (const endpoint of [
+      "",
+      "localhost:9000",
+      "ftp://localhost",
+      "http://user:pass@localhost",
+      "http://localhost/?secret=1",
+      "http://localhost/#part"
+    ]) {
+      assert.throws(
+        () => parseContentUrl(`s3://bucket/key?endpoint=${encodeURIComponent(endpoint)}`),
+        /Content endpoint/
+      );
+    }
+    assert.throws(
+      () => parseContentUrl("gs://bucket/key?endpoint=http://localhost&endpoint=http://other"),
+      /one endpoint/
+    );
+    assert.throws(() => parseContentUrl("s3://bucket/key?endpoint=http://localhost&other=1"), /one endpoint/);
+    assert.deepStrictEqual(parseContentUrl("s3://bucket/key?literal"), {
+      scheme: "s3",
+      bucket: "bucket",
+      key: "key?literal"
+    });
+  }
+
+  @test
   parsesFilesystemAndBarePaths() {
     assert.deepStrictEqual(parseContentUrl("file:///var/data/test.txt"), {
       scheme: "file",
@@ -73,6 +126,16 @@ class ContentUrlParsingTest {
       scheme: "file",
       bucket: undefined,
       key: "./relative/test.txt"
+    });
+    assert.deepStrictEqual(parseContentUrl("file:relative.txt"), {
+      scheme: "file",
+      bucket: undefined,
+      key: "relative.txt"
+    });
+    assert.deepStrictEqual(parseContentUrl("C:\\temp\\file.txt"), {
+      scheme: "file",
+      bucket: undefined,
+      key: "C:\\temp\\file.txt"
     });
   }
 
@@ -109,6 +172,18 @@ class ContentUrlParsingTest {
   @test
   throwsOnEmptyUrl() {
     assert.throws(() => parseContentUrl(""), /URL must not be empty/);
+  }
+
+  @test
+  async convertsSupportedBodiesAndRejectsInvalidOnes() {
+    assert.strictEqual(lookupMimeType("unknown.extension"), "application/octet-stream");
+    assert.deepStrictEqual(await toBuffer(new Uint8Array([1, 2])), Buffer.from([1, 2]));
+    assert.deepStrictEqual(await toBuffer(toReadable("text")), Buffer.from("text"));
+    assert.deepStrictEqual(await toBuffer(Buffer.from("text")), Buffer.from("text"));
+    assert.throws(() => toReadable(5 as any), /Invalid ContentBody/);
+    await assert.rejects(toBuffer(5 as any), /Invalid ContentBody/);
+    assert.deepStrictEqual(parseContentUrl("s3://bucket"), { scheme: "s3", bucket: "bucket", key: "" });
+    assert.deepStrictEqual(parseContentUrl("s3://", "fallback"), { scheme: "s3", bucket: "fallback", key: "" });
   }
 }
 
@@ -150,6 +225,19 @@ class ContentStoragesRegistryTest {
   }
 
   @test
+  endpointDoesNotBypassBucketProviderSelection() {
+    class S3MemoryContentStorage extends MemoryContentStorage {
+      override readonly schemes = ["s3"];
+    }
+    const first = new S3MemoryContentStorage();
+    const bucket = new S3MemoryContentStorage();
+    ContentStorages.register(first, { default: true });
+    ContentStorages.register(bucket, { bucket: "special" });
+    assert.strictEqual(ContentStorages.resolve("s3://special/key?endpoint=http://localhost:9000"), bucket);
+    assert.strictEqual(ContentStorages.resolve("s3://other/key?endpoint=http://localhost:9000"), first);
+  }
+
+  @test
   freeFunctionsGetAndPutContent() {
     const mem = new MemoryContentStorage();
     ContentStorages.register(mem, { default: true });
@@ -164,6 +252,26 @@ class ContentStoragesRegistryTest {
       const buf = await streamToBuffer(stream);
       assert.strictEqual(buf.toString("utf-8"), "free content");
     })();
+  }
+
+  @test
+  async registryAndDeletionLifecycle() {
+    const first = new MemoryContentStorage();
+    const second = new MemoryContentStorage();
+    ContentStorages.register(first, { bucket: "same" });
+    ContentStorages.register(second, { bucket: "same" });
+    assert.strictEqual(ContentStorages.resolve("memory://same/key"), first);
+    assert.ok(ContentStorages.resolve("file:///missing") instanceof FileContentStorage);
+    await first.putContent("memory://same/key", "value");
+    await first.deleteContent("memory://same/key");
+    assert.strictEqual(await first.headContent("memory://same/key"), undefined);
+    await first.putContent("memory://same/key", "value");
+    first.clear();
+    assert.strictEqual(await first.headContent("memory://same/key"), undefined);
+    await first.putContent("memory:key", "value", { metadata: { source: "test" } });
+    assert.deepStrictEqual((await first.headContent("memory:key"))?.metadata, { source: "test" });
+    const ranged = await first.getContent("memory:key", { range: { start: 2 } });
+    assert.strictEqual((await toBuffer(ranged)).toString(), "lue");
   }
 }
 
@@ -253,6 +361,24 @@ class FileContentStorageContractTest {
   @test
   async roundTripBufferAndString() {
     await this.contract.roundTripBufferAndString();
+  }
+
+  @test
+  async deleteContentRemovesAnExistingFile() {
+    const storage = new FileContentStorage();
+    const url = `file://${join(this.testDir, "delete.txt")}`;
+    await storage.putContent(url, "delete me");
+    await storage.deleteContent(url);
+    await storage.deleteContent(url);
+    assert.strictEqual(await storage.headContent(url), undefined);
+  }
+
+  @test
+  async openEndedRangeReadsToEnd() {
+    const storage = new FileContentStorage();
+    const url = `file://${join(this.testDir, "range.txt")}`;
+    await storage.putContent(url, "abcdef");
+    assert.strictEqual((await toBuffer(await storage.getContent(url, { range: { start: 2 } }))).toString(), "cdef");
   }
 
   @test

@@ -173,9 +173,14 @@ export async function toBuffer(body: ContentBody): Promise<Buffer> {
 export function parseContentUrl(
   url: string,
   defaultBucket?: string
-): { scheme: string; bucket?: string; key: string } {
+): { scheme: string; bucket?: string; key: string; endpoint?: string } {
   if (!url) {
     throw new Error("URL must not be empty");
+  }
+
+  // A Windows drive letter is a filesystem path, not a one-letter URL scheme.
+  if (/^[a-zA-Z]:[\\/]/.test(url)) {
+    return { scheme: "file", bucket: undefined, key: url };
   }
 
   // Bare paths (e.g. /abs/path, ./rel, rel/file.txt)
@@ -185,7 +190,45 @@ export function parseContentUrl(
   }
 
   const scheme = schemeMatch[1].toLowerCase();
-  const rest = schemeMatch[2];
+  let rest = schemeMatch[2];
+  let endpoint: string | undefined;
+  if (["s3", "gs", "gcs"].includes(scheme)) {
+    const queryIndex = rest.indexOf("?");
+    if (queryIndex !== -1) {
+      const params = new URLSearchParams(rest.slice(queryIndex + 1));
+      if (params.has("endpoint")) {
+        if ([...params.keys()].some(key => key !== "endpoint") || params.getAll("endpoint").length !== 1) {
+          throw new Error("Content URL only supports one endpoint parameter");
+        }
+        const value = params.get("endpoint")!;
+        let parsed: URL;
+        try {
+          parsed = new URL(value);
+        } catch {
+          throw new Error("Content endpoint must be an absolute HTTP or HTTPS URL");
+        }
+        if (
+          !["http:", "https:"].includes(parsed.protocol) ||
+          !parsed.hostname ||
+          parsed.username ||
+          parsed.password ||
+          parsed.search ||
+          parsed.hash
+        ) {
+          throw new Error("Content endpoint must be an HTTP or HTTPS URL without credentials, query, or fragment");
+        }
+        endpoint = parsed.toString().replace(/\/$/, "");
+        rest = rest.slice(0, queryIndex);
+      }
+    }
+  }
+
+  const result = (bucket: string | undefined, key: string) => ({
+    scheme,
+    bucket,
+    key,
+    ...(endpoint === undefined ? {} : { endpoint })
+  });
 
   if (scheme === "file") {
     let path = rest;
@@ -206,7 +249,7 @@ export function parseContentUrl(
     try {
       key = decodeURIComponent(key);
     } catch {}
-    return { scheme, bucket: defaultBucket, key };
+    return result(defaultBucket, key);
   }
 
   if (rest.startsWith("//")) {
@@ -224,7 +267,7 @@ export function parseContentUrl(
     try {
       key = decodeURIComponent(key);
     } catch {}
-    return { scheme, bucket: bucket || defaultBucket, key };
+    return result(bucket || defaultBucket, key);
   }
 
   // scheme:key
@@ -232,7 +275,7 @@ export function parseContentUrl(
   try {
     key = decodeURIComponent(key);
   } catch {}
-  return { scheme, bucket: defaultBucket, key };
+  return result(defaultBucket, key);
 }
 
 export interface StorageRegistration {
@@ -257,9 +300,7 @@ export class ContentStoragesRegistry {
   register(provider: ContentStorage, opts?: { bucket?: string; default?: boolean }): void {
     if (opts?.bucket) {
       for (const scheme of provider.schemes) {
-        const existing = this.providers.find(
-          p => p.bucket === opts.bucket && p.provider.schemes.includes(scheme)
-        );
+        const existing = this.providers.find(p => p.bucket === opts.bucket && p.provider.schemes.includes(scheme));
         if (existing && existing.provider !== provider) {
           useLog("WARN", `ContentStorages: replacing provider for ${scheme}://${opts.bucket}`);
         }
@@ -589,11 +630,7 @@ export async function getContent(url: string, options?: ContentGetOptions): Prom
  * @param options - write options
  * @returns written ContentInfo
  */
-export async function putContent(
-  url: string,
-  body: ContentBody,
-  options?: ContentPutOptions
-): Promise<ContentInfo> {
+export async function putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
   const storage = ContentStorages.resolve(url);
   return storage.putContent(url, body, options);
 }

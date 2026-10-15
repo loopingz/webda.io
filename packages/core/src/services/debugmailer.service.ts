@@ -16,6 +16,7 @@ export class DebugMailer extends AbstractMailer {
   static createConfiguration(params: any): any {
     return new ServiceParameters().load(params);
   }
+
   /**
    * Return parameters unchanged
    * @param params - the service parameters
@@ -24,14 +25,35 @@ export class DebugMailer extends AbstractMailer {
   static filterParameters(params: any): any {
     return params;
   }
+
   /**
    * Fakely send a message saving it to memory to test later on
    *
    * @param options - the options
-   * @param callback - the callback function
    * @param _callback - the callback function
    */
-  async send(options, _callback = undefined): Promise<void> {
+  async send(options: any, _callback = undefined): Promise<void> {
+    if (options.template) {
+      if (!options.replacements) {
+        options.replacements = {};
+      }
+      options.replacements.now = new Date();
+      const templateService = this.getTemplateService();
+      if (templateService && (await templateService.has(options.template))) {
+        const result = await templateService.renderAll(options.template, options.replacements, {
+          locale: options.locale
+        });
+        if (result.subject) {
+          options.subject = result.subject;
+        }
+        if (result.html) {
+          options.html = result.html;
+        }
+        if (result.text) {
+          options.text = result.text;
+        }
+      }
+    }
     this.log("DEBUG", "Send a fake email", options);
     this.sent.push(options);
   }
@@ -46,7 +68,6 @@ export class DebugMailer extends AbstractMailer {
   /**
    * Check if the email template exists
    *
-   * @param name - the name to use
    * @param _name - the name to use
    * @returns true if the condition is met
    */

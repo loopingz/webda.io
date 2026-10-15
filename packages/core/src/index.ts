@@ -105,7 +105,10 @@ export * from "./rest/originfilter.js";
 export * from "./session/manager.model.js";
 export * from "./session/cookie.js";
 export * from "./session/session.js";
+export * from "./templates/itemplate.js";
+export * from "./templates/mustache.engine.js";
 export * from "./templates/templates.js";
+export * from "./services/template.service.js";
 
 export * from "./services/iservice.js";
 export * from "./application/iconfiguration.js";

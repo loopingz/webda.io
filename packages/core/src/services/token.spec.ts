@@ -347,4 +347,61 @@ class TokenServiceTest extends WebdaApplicationTest {
     assert.strictEqual(await RevokedAccess.ref({ key: "fam:old" } as any).exists(), false);
     assert.strictEqual(await RevokedAccess.ref({ key: "fam:new" } as any).exists(), true);
   }
+
+  @test
+  async userRevocationRaisedByAnotherInstanceIsSeenAfterTtl() {
+    const svc = this.service;
+    const first = await svc.issue(this.session());
+    await svc.revokeUser("u1");
+    await new Promise(r => setTimeout(r, 5));
+    const second = await svc.issue(this.session());
+    assert.ok(await svc.verifyAccess(second.accessToken)); // caches the user hit
+    // another instance revokes again
+    await RevokedAccess.ref({ key: "user:u1" } as any).patch({ notBefore: Date.now() } as any);
+    assert.ok(await svc.verifyAccess(second.accessToken), "still inside the TTL");
+    svc.getParameters().revocationCacheTtl = 0.05;
+    (svc as any).revocationHits.clear();
+    assert.strictEqual(await svc.verifyAccess(second.accessToken), undefined);
+    assert.strictEqual(await svc.verifyAccess(first.accessToken), undefined);
+    // a hit is only cached for the TTL
+    const hit = (svc as any).revocationHits.get("user:u1");
+    assert.ok(hit.until <= Date.now() + 50);
+  }
+
+  @test
+  async cachesArePruned() {
+    const svc: any = this.service;
+    svc.revocationMisses.set("fam:a", Date.now() - 1);
+    svc.revocationMisses.set("fam:b", Date.now() + 60_000);
+    svc.revocationHits.set("fam:c", { entry: { expiresAt: Date.now() - 1 }, until: Date.now() - 1 });
+    svc.revocationHits.set("fam:d", { entry: { expiresAt: Date.now() + 60_000 }, until: Date.now() + 60_000 });
+    await svc.sweepRevoked();
+    assert.deepStrictEqual([...svc.revocationMisses.keys()], ["fam:b"]);
+    assert.deepStrictEqual([...svc.revocationHits.keys()], ["fam:d"]);
+  }
+
+  @test
+  async concurrentRevocationsDoNotThrow() {
+    const svc = this.service;
+    const tokens = await svc.issue(this.session());
+    await Promise.all([svc.revokeFamily(tokens.family), svc.revokeFamily(tokens.family)]);
+    await Promise.all([svc.revokeUser("u1"), svc.revokeUser("u1")]);
+    // simulate losing the exists/create race: the row appears between our create attempt and the fallback
+    await RevokedAccess.create({ key: "fam:race", expiresAt: Date.now() + 1000 } as any);
+    await (svc as any).denylist("fam:race");
+    assert.strictEqual(await svc.verifyAccess(tokens.accessToken), undefined);
+  }
+
+  @test
+  async tokenWithoutSubjectSkipsUserLookup() {
+    const svc: any = this.service;
+    let looked: string[] = [];
+    const original = svc.lookupRevoked.bind(svc);
+    svc.lookupRevoked = async (key: string) => {
+      looked.push(key);
+      return original(key);
+    };
+    assert.strictEqual(await svc.isRevoked({ fam: "f", amr: [], mfa: "none" } as any), false);
+    assert.deepStrictEqual(looked, ["fam:f"]);
+  }
 }

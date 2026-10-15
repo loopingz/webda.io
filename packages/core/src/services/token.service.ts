@@ -102,8 +102,8 @@ export class TokenServiceParameters extends ServiceParameters {
  * @WebdaModda TokenService
  */
 export class TokenService<T extends TokenServiceParameters = TokenServiceParameters> extends Service<T> {
-  /** Revoked keys, cached until their expiry */
-  protected revocationHits = new Map<string, RevokedAccess>();
+  /** Revoked keys, cached until their expiry (`user:` entries only for revocationCacheTtl: they can be raised) */
+  protected revocationHits = new Map<string, { entry: RevokedAccess; until: number }>();
   /** Keys known not revoked, cached for revocationCacheTtl */
   protected revocationMisses = new Map<string, number>();
   /** Periodic sweep of the expired denylist entries */
@@ -228,12 +228,12 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   protected async lookupRevoked(key: string): Promise<RevokedAccess | undefined> {
     const now = Date.now();
     const hit = this.revocationHits.get(key);
-    if (hit && hit.expiresAt > now) return hit;
+    if (hit && hit.until > now) return hit.entry;
     if ((this.revocationMisses.get(key) ?? 0) > now) return undefined;
     const ref = RevokedAccess.ref({ key } as any);
     const entry = (await ref.exists()) ? await ref.get() : undefined;
     if (entry && entry.expiresAt > now) {
-      this.revocationHits.set(key, entry);
+      this.cacheHit(key, entry);
       return entry;
     }
     if (this.parameters.revocationCacheTtl > 0) {
@@ -243,12 +243,36 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Cache a revoked entry: a `user:` notBefore can be raised by a later revocation, so re-read it after the TTL
+   * @param key - denylist key
+   * @param entry - the entry
+   */
+  protected cacheHit(key: string, entry: RevokedAccess): void {
+    const until = key.startsWith("user:")
+      ? Math.min(entry.expiresAt, Date.now() + this.parameters.revocationCacheTtl * 1000)
+      : entry.expiresAt;
+    this.revocationHits.set(key, { entry, until });
+  }
+
+  /** Drop the expired cache entries */
+  protected pruneRevocationCaches(): void {
+    const now = Date.now();
+    for (const [key, hit] of this.revocationHits) {
+      if (hit.until <= now || hit.entry.expiresAt <= now) this.revocationHits.delete(key);
+    }
+    for (const [key, until] of this.revocationMisses) {
+      if (until <= now) this.revocationMisses.delete(key);
+    }
+  }
+
+  /**
    * @param claims - verified access claims
    * @returns true when the family or the user was revoked after the token was issued
    */
   async isRevoked(claims: AccessClaims): Promise<boolean> {
     if (!this.parameters.revocationCheck) return false;
     if (claims.fam && (await this.lookupRevoked(`fam:${claims.fam}`))) return true;
+    if (!claims.sub) return false;
     const user = await this.lookupRevoked(`user:${claims.sub}`);
     // Tokens without iatMs fall back to iat, rounded down to the second: rejected when in doubt
     return user !== undefined && (claims.iatMs ?? (claims.iat ?? 0) * 1000) <= (user.notBefore ?? Infinity);
@@ -261,14 +285,20 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   protected async denylist(key: string, notBefore?: number): Promise<void> {
     const entry = { key, notBefore, expiresAt: Date.now() + this.parameters.accessTtl * 1000 };
     const ref = RevokedAccess.ref({ key } as any);
-    if (await ref.exists()) await ref.patch(entry as any);
-    else await RevokedAccess.create(entry as any);
+    try {
+      await RevokedAccess.create(entry as any);
+    } catch (err) {
+      // Created concurrently (or already there): update it, an existing row means the conflict is benign
+      if (!(await ref.exists())) throw err;
+      await ref.patch(entry as any);
+    }
     this.revocationMisses.delete(key);
-    this.revocationHits.set(key, entry as any);
+    this.cacheHit(key, entry as any);
   }
 
   /** @returns number of removed expired entries */
   async sweepRevoked(): Promise<number> {
+    this.pruneRevocationCaches();
     let removed = 0;
     for await (const entry of RevokedAccess.iterate("expiresAt < ?", [Date.now()])) {
       await entry.ref().delete();

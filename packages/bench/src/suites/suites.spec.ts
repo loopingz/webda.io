@@ -163,6 +163,30 @@ class BenchSuitesTest extends WebdaApplicationTest {
   }
 
   @test
+  async queueWithoutRawReceive() {
+    const results = await benchQueue(
+      {
+        backend: "MemoryQueue",
+        createQueue: name => this.addService(MemoryQueue, { expire: 1, timeout: 1 } as any, name),
+        rawReceive: false,
+        inconsistentSize: true
+      },
+      {
+        profile: { ...this.profile, queueMaxConsumers: [2], rates: [100] },
+        reporters: [],
+        filter: () => true,
+        queueName: "SpecBenchQueueNoRaw"
+      }
+    );
+    const names = new Set(results.map(r => r.scenario));
+    assert.ok(!names.has("queue.drain.raw"), "raw drain is skipped");
+    assert.ok(!names.has("queue.redelivery"), "redelivery needs redeliveryDelayMs");
+    assert.ok(names.has("queue.consume"));
+    // inconsistentSize skips the size checks
+    assert.ok(results.every(r => r.checks.sizeAfter === undefined));
+  }
+
+  @test
   async pubsub() {
     const results = await benchPubSub(
       {

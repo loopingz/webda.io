@@ -41,6 +41,26 @@ jobs:
       WEBDA_BENCH_PROFILE: ${{ github.event.inputs.profile || (github.event_name == 'schedule' && 'full') || 'quick' }}
       WEBDA_BENCH_FILTER: ${{ github.event.inputs.filter || '' }}
 
+    # Same backends as ci.yml
+    services:
+      localstack:
+        image: localstack/localstack:3.6.0
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: sqs,dynamodb
+      mongodb:
+        image: mongo
+        ports:
+          - 37017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: webda.io
+      amqp:
+        image: rabbitmq
+        ports:
+          - 5672:5672
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,6 +71,36 @@ jobs:
         with:
           node-version: "24"
 
+      # The Firestore emulator requires a Java 21+ JRE
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: "google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db" # v3.0.1
+        with:
+          install_components: "beta,cloud-firestore-emulator,pubsub-emulator"
+
+      - name: "Start GCP emulators"
+        run: |
+          gcloud --quiet beta emulators pubsub start --host-port=127.0.0.1:8085 > /tmp/pubsub-emulator.log 2>&1 &
+          gcloud --quiet emulators firestore start --host-port=127.0.0.1:8289 > /tmp/firestore-emulator.log 2>&1 &
+          for port in 8085 8289; do
+            for i in $(seq 1 60); do
+              curl -s -o /dev/null "http://127.0.0.1:$port" && break
+              sleep 2
+            done
+            curl -s -o /dev/null "http://127.0.0.1:$port" || { echo "Emulator on port $port did not start"; cat /tmp/pubsub-emulator.log /tmp/firestore-emulator.log; exit 1; }
+          done
+
+      - name: Setup postgresql
+        uses: Softwarepark/postgresql-action@92b6750bf30f39d64489c77d38a1675dfb4a8bc0 # v2
+        with:
+          postgresql version: "15"
+          postgresql password: webda.io
+          postgresql user: webda.io
+          postgresql db: webda.io
+
       - name: Install dependencies
         run: pnpm install
 
@@ -59,10 +109,18 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      # Backends needing external services (postgres, mongodb, amqp, localstack, GCP emulators) will add their
-      # service containers here, copied from ci.yml, as their harnesses land (#914).
       - name: Run benchmarks
         run: pnpm run bench
+        env:
+          PGHOST: localhost
+          PGUSER: webda.io
+          PGPASSWORD: webda.io
+          PGDATABASE: webda.io
+          WEBDA_MONGO_URL: mongodb://root:webda.io@localhost:37017
+          WEBDA_AMQP_URL: amqp://localhost:5672
+          WEBDA_LOCALSTACK: http://localhost:4566
+          PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
 
       - name: Report
         if: always()

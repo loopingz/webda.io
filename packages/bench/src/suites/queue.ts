@@ -45,6 +45,14 @@ export interface QueueBenchHarness {
    */
   redeliveryDelayMs?: number;
   /**
+   * `receiveMessage` / `deleteMessage` can be called directly, enables the `queue.drain.raw` scenario
+   *
+   * Set to false for queues that only deliver through `consume()` (e.g. GCPQueue in consumer mode).
+   *
+   * @default true
+   */
+  rawReceive?: boolean;
+  /**
    * The backend is an emulator: numbers are for regression tracking only
    */
   emulated?: boolean;
@@ -187,7 +195,7 @@ export async function benchQueue(harness: QueueBenchHarness, options: QueueBench
     }
 
     // Raw drain runs before any consume(): a cancelled consumer may still finish its last receive
-    for (const concurrency of profile.concurrency) {
+    for (const concurrency of harness.rawReceive === false ? [] : profile.concurrency) {
       await runner.custom({
         name: "queue.drain.raw",
         params: { concurrency, messages: profile.messages },

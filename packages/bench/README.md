@@ -83,16 +83,17 @@ Then in the package:
 
 Harness options:
 
-| Harness              | Option              | Purpose                                                                       |
-| -------------------- | ------------------- | ----------------------------------------------------------------------------- |
-| `StoreBenchHarness`  | `clean`             | empty the store before/after the suite                                        |
-|                      | `capabilities`      | `orderBy`, `bulk`, `atomic`: skip unsupported scenarios                       |
-| `QueueBenchHarness`  | `purge`             | empty the queue between scenarios (defaults to `__clean`)                     |
-|                      | `inconsistentSize`  | `size()` is approximate (SQS, GCP): size checks skipped                       |
-|                      | `redeliveryDelayMs` | delay before an unacknowledged message is delivered again: enables redelivery |
-| `PubSubBenchHarness` | `maxPayloadBytes`   | skip bigger payloads (e.g. 7900 for Postgres `NOTIFY`)                        |
-|                      | `maxSubscribers`    | skip bigger fan-outs                                                          |
-| all                  | `emulated`          | results come from an emulator: regression tracking only                       |
+| Harness              | Option              | Purpose                                                                         |
+| -------------------- | ------------------- | ------------------------------------------------------------------------------- |
+| `StoreBenchHarness`  | `clean`             | empty the store before/after the suite                                          |
+|                      | `capabilities`      | `orderBy`, `bulk`, `atomic`: skip unsupported scenarios                         |
+| `QueueBenchHarness`  | `purge`             | empty the queue between scenarios (defaults to `__clean`)                       |
+|                      | `inconsistentSize`  | `size()` is approximate (SQS, GCP): size checks skipped                         |
+|                      | `redeliveryDelayMs` | delay before an unacknowledged message is delivered again: enables redelivery   |
+|                      | `rawReceive`        | `false` for queues delivering only through `consume()` (GCPQueue consumer mode) |
+| `PubSubBenchHarness` | `maxPayloadBytes`   | skip bigger payloads (e.g. 7900 for Postgres `NOTIFY`)                          |
+|                      | `maxSubscribers`    | skip bigger fan-outs                                                            |
+| all                  | `emulated`          | results come from an emulator: regression tracking only                         |
 
 ## Measurement
 

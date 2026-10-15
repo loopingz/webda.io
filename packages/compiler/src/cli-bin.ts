@@ -1,6 +1,6 @@
 import { closeSync, constants, fchmodSync, ftruncateSync, mkdirSync, openSync, readFileSync, writeSync } from "node:fs";
 import { dirname, join, normalize, posix, relative, resolve, sep } from "node:path";
-import { useLog } from "@webda/workout";
+import { useLog, useWorkerOutput } from "@webda/workout";
 import type { PackageDescriptor } from "./definition.js";
 
 /**
@@ -101,4 +101,17 @@ export function writeCliBin(
     );
   }
   return { path: file, written };
+}
+
+/**
+ * Generate the application executable during a build, reporting write failures as warnings.
+ * @param appPath - the package root
+ * @param packageDescription - the package.json content
+ */
+export function writeCliBinForBuild(appPath: string, packageDescription: PackageDescriptor): void {
+  try {
+    writeCliBin(appPath, packageDescription);
+  } catch (err) {
+    useWorkerOutput().log("WARN", "Cannot generate the webda.cli executable", (err as Error).message);
+  }
 }

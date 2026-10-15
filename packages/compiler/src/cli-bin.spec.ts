@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync,
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
-import { generateCliBin, getCliBinPath, writeCliBin } from "./cli-bin.js";
+import { generateCliBin, getCliBinPath, writeCliBin, writeCliBinForBuild } from "./cli-bin.js";
 
 /**
  * Run `fn` and return the warnings it logged
@@ -40,6 +40,7 @@ class CliBinTest {
     );
     assert.strictEqual(getCliBinPath({ name: "@loopingz/runner", webda: { cli: {} } } as any), "bin/runner.mjs");
     assert.strictEqual(getCliBinPath({ name: "app", webda: { cli: { name: "x", bin: "cli.mjs" } } } as any), "cli.mjs");
+    assert.strictEqual(getCliBinPath({ webda: { cli: {} } } as any), undefined);
   }
 
   @test
@@ -102,8 +103,29 @@ await runCli({ appPath: fileURLToPath(new URL("../", import.meta.url)) });
       // A string bin pointing to it is enough
       ({ warnings } = captureWarnings(() => writeCliBin(dir, { ...pkg, bin: "bin/runner.mjs" })));
       assert.deepStrictEqual(warnings, []);
+      // Missing bin field and CLI name use the package name in the diagnostic
+      ({ warnings } = captureWarnings(() => writeCliBin(dir, { name: "runner", webda: { cli: {} } } as any)));
+      assert.ok(warnings[0].includes('"runner": "bin/runner.mjs"'), warnings[0]);
       // No webda.cli: nothing generated
       assert.strictEqual(writeCliBin(dir, { name: "runner" } as any), undefined);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  buildReportsWriteFailuresWithoutStoppingCompilation() {
+    const dir = mkdtempSync(join(tmpdir(), "webda-cli-bin-"));
+    try {
+      writeFileSync(join(dir, "bin"), "not a directory");
+      const pkg: any = { name: "runner", webda: { cli: { name: "runner" } } };
+      const { warnings } = captureWarnings(() => writeCliBinForBuild(dir, pkg));
+      assert.strictEqual(warnings.length, 1);
+      assert.ok(warnings[0].includes("Cannot generate the webda.cli executable"), warnings[0]);
+      assert.ok(warnings[0].includes("ENOTDIR") || warnings[0].includes("EEXIST"), warnings[0]);
+      rmSync(join(dir, "bin"));
+      writeCliBinForBuild(dir, { ...pkg, bin: "bin/runner.mjs" });
+      assert.strictEqual(readFileSync(join(dir, "bin", "runner.mjs"), "utf-8"), generateCliBin("bin/runner.mjs"));
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

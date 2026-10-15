@@ -5,10 +5,10 @@ import { CancelablePromise } from "@webda/utils";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { vi } from "vitest";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   applyDefaultCommand,
   buildCli,
@@ -794,10 +794,31 @@ class CliRunCliTest {
         "-e",
         "const m = await import(process.env.WEBDA_CLI); console.log(typeof m.runCli, typeof m.applyDefaultCommand)"
       ],
-      { env: { ...process.env, WEBDA_CLI: lib, WEBDA_APP_PATH: "/nonexistent" }, encoding: "utf-8", timeout: 30000 }
+      {
+        env: { ...process.env, WEBDA_CLI: pathToFileURL(lib).href, WEBDA_APP_PATH: "/nonexistent" },
+        encoding: "utf-8",
+        timeout: 30000
+      }
     );
     assert.strictEqual(result.status, 0, result.stderr);
     assert.strictEqual(result.stdout.trim(), "function function");
+  }
+
+  @test
+  async importingWithoutAScriptPathDoesNotRunTheCli() {
+    const originalArgv = process.argv;
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      process.argv = [process.execPath, "/nonexistent/webda-cli"];
+      vi.resetModules();
+      const mod = await import("./cli.js");
+      assert.strictEqual(typeof mod.runCli, "function");
+      assert.strictEqual(exit.mock.calls.length, 0);
+    } finally {
+      exit.mockRestore();
+      process.argv = originalArgv;
+      vi.resetModules();
+    }
   }
 }
 
@@ -823,6 +844,63 @@ class CliApplicationConfigurationTest {
       assert.ok(exit.mock.calls.length > 0);
     } finally {
       exit.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async runCliUsesEnvironmentPathAndDiscoversOperations() {
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    const originalPath = process.env.WEBDA_APP_PATH;
+    const originalArgv = process.argv;
+    const originalCwd = process.cwd();
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("CLI test exit");
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({ name: "mini", version: "1.0.0", type: "module", webda: { cli: { name: "mini-runner" } } })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(join(app, "runner.js"), "export class Runner {}\n");
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({
+          $schema: "https://webda.io/schemas/webda.module.v4.json",
+          moddas: {
+            "Mini/Runner": {
+              Import: "runner.js:Runner",
+              commands: { hello: { method: "hello", description: "Say hello" } }
+            }
+          },
+          beans: {},
+          deployers: {},
+          models: {},
+          schemas: {}
+        })
+      );
+      mkdirSync(join(app, ".webda"));
+      writeFileSync(
+        join(app, ".webda", "operations.json"),
+        JSON.stringify({ operations: { "Task.Get": { id: "Task.Get", input: "void", output: "void" } }, schemas: {} })
+      );
+      process.env.WEBDA_APP_PATH = app;
+      process.argv = [process.execPath, "webda", "unknown", "--console-patch=false"];
+      await assert.rejects(runCli(), /CLI test exit/);
+      delete process.env.WEBDA_APP_PATH;
+      vi.mocked(process.cwd).mockReturnValue(app);
+      await assert.rejects(runCli({ argv: ["unknown", "--console-patch=false"] }), /CLI test exit/);
+      assert.ok(exit.mock.calls.length > 0);
+      assert.ok(error.mock.calls.flat().join(" ").includes("Available commands: hello, task"));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+      vi.mocked(process.cwd).mockReturnValue(originalCwd);
+      process.argv = originalArgv;
+      if (originalPath === undefined) delete process.env.WEBDA_APP_PATH;
+      else process.env.WEBDA_APP_PATH = originalPath;
       rmSync(app, { recursive: true, force: true });
     }
   }
@@ -864,7 +942,7 @@ class CliApplicationConfigurationTest {
       const nodeArgs = script === undefined ? [lib, ...args] : ["--input-type=module", "-e", script, ...args];
       const result = spawnSync(process.execPath, nodeArgs, {
         cwd: tmpdir(),
-        env: { ...process.env, CLI: lib, APP: app, WEBDA_APP_PATH: app, FORCE_COLOR: "0" },
+        env: { ...process.env, CLI: pathToFileURL(lib).href, APP: app, WEBDA_APP_PATH: app, FORCE_COLOR: "0" },
         encoding: "utf-8",
         timeout: 60000
       });
@@ -906,5 +984,51 @@ class CliApplicationConfigurationTest {
     const none = this.run(undefined, []);
     assert.ok(!none.includes("hello"), none);
     assert.ok(none.includes("Specify a command"), none);
+  }
+
+  @test
+  async directEntryUsesWebdaConfiguration() {
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    const originalArgv = process.argv;
+    const originalPath = process.env.WEBDA_APP_PATH;
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("CLI test exit");
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({
+          name: "mini",
+          version: "1.0.0",
+          type: "module",
+          webda: { cli: { name: "mini-runner", defaultCommand: "hello" } }
+        })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({ moddas: {}, beans: {}, deployers: {}, models: {}, schemas: {} })
+      );
+      process.env.WEBDA_APP_PATH = app;
+      process.argv = [
+        process.execPath,
+        fileURLToPath(new URL("./cli.ts", import.meta.url)),
+        "unknown",
+        "--console-patch=false"
+      ];
+      vi.resetModules();
+      await assert.rejects(import("./cli.js"), /CLI test exit/);
+      assert.ok(exit.mock.calls.length > 0);
+      assert.ok(error.mock.calls.flat().join(" ").includes("Run 'webda --help' for details."));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+      process.argv = originalArgv;
+      if (originalPath === undefined) delete process.env.WEBDA_APP_PATH;
+      else process.env.WEBDA_APP_PATH = originalPath;
+      vi.resetModules();
+      rmSync(app, { recursive: true, force: true });
+    }
   }
 }

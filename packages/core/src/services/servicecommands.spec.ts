@@ -204,6 +204,23 @@ class CollectServiceCommandsTest {
     const commands = collectServiceCommands(app);
     assert.deepStrictEqual(commands.openapi.requires, []);
   }
+
+  @test
+  commandWithoutArgumentMetadata() {
+    const app = {
+      getModules: () => ({
+        moddas: { "MyApp/Runner": { commands: { run: { description: "Run", method: "run" } } } },
+        beans: {},
+        deployers: {}
+      })
+    } as any;
+    const commands = collectServiceCommands(app);
+    assert.deepStrictEqual(commands.run.args, {});
+    assert.deepStrictEqual(
+      commands.run.services.map(service => service.name),
+      ["MyApp/Runner"]
+    );
+  }
 }
 
 @suite

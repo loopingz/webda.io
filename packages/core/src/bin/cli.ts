@@ -610,9 +610,7 @@ export function ensureCommandServices(app: Application, services: ServiceCommand
         (cfg: any) =>
           cfg.type === svc.type || cfg.type === svc.type.split("/").pop() || isSubclassType(app, cfg.type, svc.type)
       ) || appConfig.services[svc.name];
-    // A subclass redeclaring the command overrides it: its instance runs the command instead
-    const overridden = services.some(other => other !== svc && isSubclassType(app, other.type, svc.type));
-    if (!hasProvider && !overridden) {
+    if (!hasProvider) {
       appConfig.services[svc.name] = { type: svc.type };
     }
   }

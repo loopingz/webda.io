@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { OperationsTransport, OperationsTransportParameters } from "../services/operationstransport.js";
 import { canCallOperation, getOperationStreaming, listOperations } from "../core/operations.js";
 import { useApplication } from "../application/hooks.js";
@@ -67,7 +68,9 @@ export class OperationIdTransport<
   }
 
   /**
-   * List the operations the caller (and its token scope) may call
+   * List the operations the caller (and its token scope) may call: `{ version, operations }`. `version` is a hash of
+   * the listed operations (16 hex characters): it changes whenever an operation the caller sees is added, removed or
+   * changed, so a client can cache the listing
    * @param ctx - web context
    */
   async list(ctx: WebContext): Promise<void> {
@@ -86,8 +89,9 @@ export class OperationIdTransport<
         streaming: streaming !== "none" ? streaming : undefined
       };
     }
+    const version = createHash("sha256").update(JSON.stringify(operations)).digest("hex").slice(0, 16);
     ctx.setHeader("Content-Type", "application/json");
-    ctx.write({ operations });
+    ctx.write({ version, operations });
   }
 
   /**

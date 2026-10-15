@@ -95,6 +95,12 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const res = await this.http("GET", "/operations", undefined, { bearerScopes: ["Scoped.Read"] });
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(Object.keys(res.body.operations), ["Scoped.Read"]);
+    // The version identifies the listing: stable for the same operations, different for another listing
+    assert.match(res.body.version, /^[0-9a-f]{16}$/);
+    const again = await this.http("GET", "/operations", undefined, { bearerScopes: ["Scoped.Read"] });
+    assert.strictEqual(again.body.version, res.body.version);
+    const wider = await this.http("GET", "/operations", undefined, { bearerScopes: ["*"] });
+    assert.notStrictEqual(wider.body.version, res.body.version);
     assert.strictEqual(res.body.operations["Scoped.Read"].id, "Scoped.Read");
   }
 

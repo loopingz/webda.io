@@ -134,6 +134,20 @@ function httpsUrl(value: unknown): string | undefined {
   }
 }
 
+/**
+ * Copy a client definition into a plain object
+ *
+ * Configuration objects can be Proxies (comment-preserving JSONC loader), which
+ * `structuredClone` rejects with a DataCloneError. A client is plain JSON data,
+ * so a JSON round trip is a faithful copy.
+ *
+ * @param client - client definition
+ * @returns a detached plain copy
+ */
+function copyClient<T>(client: T): T {
+  return JSON.parse(JSON.stringify(client));
+}
+
 /** Resolve clients: static configuration, then Client ID Metadata Documents */
 export class ClientRegistry {
   /** Metadata documents by client_id, in least recently used order */
@@ -161,7 +175,7 @@ export class ClientRegistry {
     if (typeof clientId !== "string" || !clientId) return undefined;
     if (Object.prototype.hasOwnProperty.call(this.params.clients, clientId)) {
       const configured = this.params.clients[clientId];
-      return configured ? { ...structuredClone(configured), id: clientId } : undefined;
+      return configured ? { ...copyClient(configured), id: clientId } : undefined;
     }
     if (
       !this.params.clientMetadataDocuments ||
@@ -176,7 +190,7 @@ export class ClientRegistry {
       // Refresh LRU position
       this.cache.delete(clientId);
       this.cache.set(clientId, cached);
-      return cached.client && structuredClone(cached.client);
+      return cached.client && copyClient(cached.client);
     }
     let pending = this.inflight.get(clientId);
     if (!pending) {
@@ -184,7 +198,7 @@ export class ClientRegistry {
       this.inflight.set(clientId, pending);
     }
     const client = await pending;
-    return client && structuredClone(client);
+    return client && copyClient(client);
   }
 
   /**

@@ -12,6 +12,20 @@ describe("ClientRegistry", () => {
     expect(await new ClientRegistry(params({ clients: { "webda-cli": null } })).get("webda-cli")).toBeUndefined();
   });
 
+  it("copies configured clients that are Proxies (config loaded from webda.config.json)", async () => {
+    const def = { name: "App", redirect_uris: ["http://127.0.0.1/callback"] };
+    const proxied = new Proxy(def, {});
+    for (const clients of [{ app: proxied }, new Proxy({ app: proxied }, {})]) {
+      const reg = new ClientRegistry(params({ clients }));
+      const c = (await reg.get("app"))!;
+      expect(c).toMatchObject({ id: "app", name: "App", redirect_uris: ["http://127.0.0.1/callback"] });
+      c.redirect_uris!.push("http://evil.com/");
+      c.name = "Hacked";
+      expect(def).toEqual({ name: "App", redirect_uris: ["http://127.0.0.1/callback"] });
+      expect((await reg.get("app"))!.name).toBe("App");
+    }
+  });
+
   it("does not resolve inherited object properties as clients", async () => {
     const reg = new ClientRegistry(params());
     expect(await reg.get("__proto__")).toBeUndefined();
@@ -152,7 +166,9 @@ describe("ClientRegistry", () => {
       logo_uri: "javascript:alert(1)",
       client_uri: "javascript:alert(1)"
     }).get(url))!;
-    expect(ok).toMatchObject({ id: url, logo: undefined, client_uri: undefined });
+    expect(ok).toMatchObject({ id: url });
+    expect(ok.logo).toBeUndefined();
+    expect(ok.client_uri).toBeUndefined();
   });
 
   it("rejects metadata URLs with credentials, fragments or private literal addresses without fetching", async () => {

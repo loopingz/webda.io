@@ -27,6 +27,11 @@ export type CertificateIdentityField = "fingerprint256" | "subject.CN" | "san.em
 /** CertificateProvider parameters */
 export class CertificateProviderParameters extends ServiceParameters {
   /**
+   * `factor` only adds `mtls` to a session already authenticated as the certificate's linked user.
+   * @default "login"
+   */
+  mode: "login" | "factor";
+  /**
    * Certificate field used as ident uid: the SHA-256 fingerprint pins one certificate, the other fields survive a
    * certificate renewal
    * @default "fingerprint256"
@@ -65,6 +70,7 @@ export class CertificateProviderParameters extends ServiceParameters {
    */
   load(params: any = {}): this {
     super.load(params);
+    this.mode ??= "login";
     this.identityField ??= "fingerprint256";
     this.autoRegister ??= false;
     this.cacheTtl ??= 60000;
@@ -79,9 +85,9 @@ const CACHE_MAX = 10000;
  * Login with a TLS client certificate (mTLS)
  *
  * The certificate is verified by the HttpServer (`clientCa`) or by a trusted reverse proxy (`clientCertHeader`):
- * this provider maps verified certificates to users. Each request carrying the certificate of a known user gets a
- * stateless session with the provider "certificate" and the authentication method "mtls" (no MFA step); a request
- * with a Bearer token keeps the token session.
+ * this provider maps verified certificates to users. In login mode, each request carrying the certificate of a
+ * known user gets a stateless session with the provider "certificate" and the authentication method "mtls". In
+ * factor mode, it adds "mtls" only to an existing session for the same user on that request.
  *
  * Exposes the operation `Auth.Certificate.Link` (`POST auth/certificate/link`) linking the presented certificate to
  * the logged user.
@@ -95,6 +101,11 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
   static Parameters = CertificateProviderParameters;
 
   readonly providerName: string = "certificate";
+
+  /** @returns how certificate authentication contributes to a session */
+  get mode(): "login" | "factor" {
+    return this.parameters.mode;
+  }
 
   /** Certificates resolved to a user, by ident uid */
   protected cache = new Map<string, { value: CertificateResolution; expires: number }>();
@@ -286,7 +297,7 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
    * @returns the new user and ident ids, undefined when not registered
    */
   protected async register(identity: ResolvedIdentity, context: Context): Promise<CertificateResolution | undefined> {
-    if (!this.parameters.autoRegister) {
+    if (this.mode === "factor" || !this.parameters.autoRegister) {
       return undefined;
     }
     // The request session is not loaded yet: complete() logs a scratch session in
@@ -317,7 +328,7 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
    * @throws WebdaError.Forbidden when the request has no verified, accepted certificate with the identity field
    */
   @Operation({ id: "Auth.Certificate.Link", rest: { method: "post", path: "auth/certificate/link" } })
-  async link(): Promise<AuthResult> {
+  async link(): Promise<AuthResult | { status: "linked" }> {
     const ctx = useContext<any>();
     if (!ctx.getSession()?.isLogged()) {
       throw new WebdaError.Unauthorized("Login required");
@@ -329,6 +340,11 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
     const identity = this.getIdentity(cert);
     if (!identity) {
       throw new WebdaError.Forbidden(`The client certificate has no ${this.parameters.identityField}`);
+    }
+    if (this.mode === "factor") {
+      const result = await useAuthentication().linkIdentity(identity);
+      this.cache.delete(identity.providerUid);
+      return result;
     }
     return useAuthentication().complete(identity);
   }

@@ -310,6 +310,56 @@ class BearerSessionTest extends WebdaApplicationTest {
   }
 
   @test
+  async certificateAsRequestFactor() {
+    const manager = useService("SessionManager");
+    registerCertificateResolver({
+      mode: "factor",
+      resolveCertificate: async cert =>
+        cert.subject.CN === "alice" ? { userId: "u1", identId: "fp:certificate" } : { userId: "other", identId: "other:certificate" }
+    });
+    try {
+      const alone = await manager.load(await this.withCertificate(true));
+      assert.ok(!alone.isLogged());
+      assert.deepStrictEqual(alone.amr, undefined);
+      assert.strictEqual(await manager.loadFromCertificate(await this.withCertificate(true)), undefined);
+
+      const first = await this.newContext();
+      const original = new Session();
+      original.login("u1", "x:email", { provider: "email", amr: ["pwd"], mfa: "verified" });
+      await manager.save(first, original);
+      const ctx = await this.withCookies(first);
+      ctx.getHttpContext().setClientCertificate({ subject: { CN: "alice" }, verified: true } as any);
+      const loaded = await manager.load(ctx);
+      assert.strictEqual(loaded.userId, "u1");
+      assert.strictEqual(loaded.provider, "email");
+      assert.strictEqual(loaded.mfa, "verified");
+      assert.deepStrictEqual(loaded.amr, ["pwd", "mtls"]);
+      assert.deepStrictEqual(loaded.getPersistentAmr(), ["pwd"]);
+
+      await manager.save(ctx, loaded);
+      const next = await this.withCookies(ctx);
+      assert.deepStrictEqual((await manager.load(next)).amr, ["pwd"]);
+      next.getHttpContext().setClientCertificate({ subject: { CN: "bob" }, verified: true } as any);
+      assert.deepStrictEqual((await manager.load(next)).amr, ["pwd"]);
+
+      const bearer = await manager.load(await this.withCertificate(true, { authorization: `Bearer ${await this.token()}` }));
+      assert.deepStrictEqual(bearer.amr, ["pwd", "mtls"]);
+      const unverified = await manager.load(await this.withCertificate(false, { authorization: `Bearer ${await this.token()}` }));
+      assert.deepStrictEqual(unverified.amr, ["pwd"]);
+      const invalid = await manager.load(await this.withCertificate(true, { authorization: "Bearer invalid" }));
+      assert.ok(!invalid.isLogged());
+      assert.ok(!invalid.amr?.includes("mtls"));
+      const pending = new Session();
+      pending.login("u1", "x:email", { provider: "email", amr: ["pwd"], mfa: "pending" });
+      await manager.addCertificateFactor(await this.withCertificate(true), pending);
+      assert.deepStrictEqual(pending.amr, ["pwd", "mtls"]);
+      assert.ok(!pending.isLogged());
+    } finally {
+      registerCertificateResolver(undefined);
+    }
+  }
+
+  @test
   async certificateWithoutResolverOrFailing() {
     const manager = useService("SessionManager");
     // No resolver: a certificate authenticates nobody

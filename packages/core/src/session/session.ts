@@ -74,6 +74,10 @@ export class Session {
    */
   amr?: string[];
 
+  /** Authentication methods verified only for this request */
+  @NotEnumerable
+  transientAmr?: string[];
+
   /**
    * MFA state of the session
    */
@@ -115,6 +119,7 @@ export class Session {
     this.identUsed = identUsed;
     this.provider = options.provider;
     this.amr = options.amr ?? [];
+    delete this.transientAmr;
     this.mfa = options.mfa ?? "none";
   }
   /**
@@ -149,6 +154,7 @@ export class Session {
     delete this.roles;
     delete this.provider;
     delete this.amr;
+    delete this.transientAmr;
     delete this.mfa;
     delete this.refreshFamily;
     delete this.authAt;
@@ -176,6 +182,21 @@ export class Session {
    */
   isDirty(): boolean {
     return this.changed;
+  }
+
+  /**
+   * Add a method proved only for the current request.
+   * @param method - authentication method
+   */
+  addTransientAmr(method: string): void {
+    if (this.amr?.includes(method)) return;
+    this.amr = [...(this.amr ?? []), method];
+    this.transientAmr = [...(this.transientAmr ?? []), method];
+  }
+
+  /** @returns authentication methods safe to persist in a cookie or token */
+  getPersistentAmr(): string[] {
+    return (this.amr ?? []).filter(method => !this.transientAmr?.includes(method));
   }
 
   /**

@@ -52,6 +52,7 @@ class CertificateProviderTest extends AuthTest {
     this.provider = useService("CertificateProvider" as any);
     const params = this.provider.getParameters();
     params.identityField = "fingerprint256";
+    params.mode = "login";
     params.autoRegister = false;
     params.cacheTtl = 60000;
     delete params.allowedIssuers;
@@ -198,6 +199,41 @@ class CertificateProviderTest extends AuthTest {
     // Unverified: anonymous
     const anonymous = await useService("SessionManager").load(await this.withCert(cert(certs.client.pem, false)));
     assert.ok(!anonymous.isLogged());
+  }
+
+  @test
+  async certificateAsExtraFactor() {
+    const params = this.provider.getParameters();
+    params.mode = "factor";
+    params.autoRegister = true;
+    const manager = useService("SessionManager");
+
+    const usersBefore = (await this.auth.getUserModel().query("")).results.length;
+    const alone = await manager.load(await this.withCert(this.bob));
+    assert.ok(!alone.isLogged());
+    assert.strictEqual((await this.auth.getUserModel().query("")).results.length, usersBefore);
+
+    const ctx = await this.logged("factor-user", this.bob);
+    const session = ctx.getSession();
+    const userId = session.userId;
+    const result = await this.inContext(ctx, () => this.provider.link());
+    assert.deepStrictEqual(result, { status: "linked" });
+    assert.strictEqual(ctx.getSession(), session);
+    assert.strictEqual(session.userId, userId);
+    assert.strictEqual(session.provider, "google");
+    assert.deepStrictEqual(session.amr, ["oauth"]);
+    assert.strictEqual((await this.provider.resolveCertificate(this.bob, ctx))?.userId, userId);
+
+    await manager.addCertificateFactor(ctx, session);
+    assert.deepStrictEqual(session.amr, ["oauth", "mtls"]);
+    assert.deepStrictEqual(session.getPersistentAmr(), ["oauth"]);
+    const tokenService = useService("TokenService");
+    const issued = await this.inContext(ctx, () => tokenService.issue(session));
+    assert.deepStrictEqual((await tokenService.verifyAccess(issued.accessToken))?.amr, ["oauth"]);
+    const other = await this.logged("other-user", this.bob);
+    await manager.addCertificateFactor(other, other.getSession());
+    assert.deepStrictEqual(other.getSession().amr, ["oauth"]);
+    await assert.rejects(() => this.inContext(other, () => this.provider.link()), { code: "IDENT_LINKED_ELSEWHERE" });
   }
 
   @test

@@ -108,6 +108,7 @@ verified certificates to users through an `Ident` `<uid>:certificate`.
     "Authentication": { "type": "Webda/Authentication" },
     "CertificateProvider": {
       "type": "Webda/CertificateProvider",
+      "mode": "login", // "login" (default) | "factor"
       "identityField": "san.email", // "fingerprint256" (default) | "subject.CN" | "san.email" | "san.uri"
       "allowedIssuers": ["webda-client-ca"], // issuer CN or DN, optional
       "allowedSubjects": ["^O=Webda, "], // regexps on the subject DN, optional
@@ -123,8 +124,16 @@ Each request presenting a verified, accepted certificate of a known user gets a 
 written): `provider` is `certificate`, `amr` is `["mtls"]` and `roles` come from the `roles` mapping. Permission queries
 can rely on it, for example `amr CONTAINS 'mtls'`.
 
-Session precedence: a `Bearer` token wins, then the certificate, then the session cookie. An unknown or refused
-certificate falls back to the cookie session.
+Set `mode: "factor"` to require an existing cookie or Bearer session. The certificate must be linked to that same
+user; then `mtls` is added to the request's `amr` while the original provider and MFA state remain intact. A
+certificate alone never logs a user in or registers one in this mode, even if `autoRegister` is set. Certificate roles
+are not added to the existing session. The added `mtls` method is only present while the certificate is presented:
+it is not saved in the cookie or included in newly issued access and refresh tokens. In factor mode,
+`Auth.Certificate.Link` returns `{ "status": "linked" }` without logging in again or issuing tokens.
+
+In `login` mode, session precedence is a `Bearer` token, then the certificate, then the session cookie. An unknown or
+refused certificate falls back to the cookie session. In `factor` mode, the Bearer or cookie session is loaded first,
+then the matching certificate adds `mtls` for that request.
 
 - `identityField`: `fingerprint256` pins one certificate (a renewed certificate must be linked again), the other fields
   survive a renewal but trust the CA not to issue the same subject or SAN to someone else.
@@ -139,7 +148,8 @@ certificate falls back to the cookie session.
   `Auth.Unlink` (`provider: "certificate"`).
 - Resolved certificates are cached `cacheTtl` ms per instance: an unlink is effective at once on the instance that
   handled it, after `cacheTtl` on the others.
-- Certificate sessions skip the MFA step: the certificate is the possession factor.
+- In `login` mode, certificate sessions skip the MFA step: the certificate is the possession factor. In `factor` mode,
+  the certificate does not finish an MFA session that is still pending another method.
 
 :::warning
 

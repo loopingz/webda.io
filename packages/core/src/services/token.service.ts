@@ -93,7 +93,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       userId: session.userId,
       identId: session.identUsed,
       provider: session.provider,
-      amr: session.amr ?? [],
+      amr: session.getPersistentAmr(),
       mfa: session.mfa ?? "none",
       family,
       expiresAt: Date.now() + this.parameters.refreshTtl * 1000
@@ -105,7 +105,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       sub: session.userId,
       ident: session.identUsed,
       provider: session.provider,
-      amr: session.amr ?? [],
+      amr: session.getPersistentAmr(),
       roles: session.roles,
       fam: family,
       mfa: session.mfa ?? "none",

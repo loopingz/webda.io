@@ -178,9 +178,11 @@ export interface CertificateResolution {
  * Resolves a verified client certificate into a user
  */
 export interface CertificateResolver {
+  /** Whether a certificate authenticates on its own or adds a factor to an existing session */
+  readonly mode?: "login" | "factor";
   /**
    * @param cert - verified client certificate
-   * @param context - context of the request, its session is not loaded yet
+   * @param context - context of the request
    * @returns the user authenticated by the certificate, undefined when the certificate is unknown or refused
    */
   resolveCertificate(cert: ClientCertificate, context: Context): Promise<CertificateResolution | undefined>;

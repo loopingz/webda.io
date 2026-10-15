@@ -302,7 +302,8 @@ decrypt.
 
 `CertificateProvider` (`Webda/CertificateProvider`, provider `certificate`) authenticates requests presenting a
 verified TLS client certificate, terminated by the `HttpServer` or by a trusted reverse proxy: each request gets a
-stateless session with `amr: ["mtls"]`. See [Client certificates (mTLS)](./ClientCertificate.md).
+stateless session with `amr: ["mtls"]` by default. With `mode: "factor"`, it adds `mtls` only to an existing session
+for the certificate's linked user, for that request. See [Client certificates (mTLS)](./ClientCertificate.md).
 
 ## Tokens
 

@@ -1,5 +1,4 @@
-import { Service } from "../services/service.js";
-import { ServiceParameters } from "../services/serviceparameters.js";
+import { OperationsTransport, OperationsTransportParameters } from "../services/operationstransport.js";
 import { canCallOperation, getOperationStreaming, listOperations } from "../core/operations.js";
 import { useApplication } from "../application/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
@@ -8,7 +7,7 @@ import type { WebContext } from "../contexts/webcontext.js";
 import { runOperation } from "./streaming.js";
 
 /** Parameters of the operation-id transport */
-export class OperationIdTransportParameters extends ServiceParameters {
+export class OperationIdTransportParameters extends OperationsTransportParameters {
   /**
    * Route prefix
    * @default "/operations"
@@ -36,12 +35,34 @@ export class OperationIdTransportParameters extends ServiceParameters {
  */
 export class OperationIdTransport<
   T extends OperationIdTransportParameters = OperationIdTransportParameters
-> extends Service<T> {
+> extends OperationsTransport<T> {
+  /**
+   * Whether this transport serves an operation: known, visible, included by the `operations` filter and not client-streamed
+   * @param id - the operation identifier
+   * @returns true when it can be listed and called
+   */
+  protected isServed(id: string): boolean {
+    const operations = useInstanceStorage().operations;
+    if (!Object.hasOwn(operations, id)) return false;
+    const op = operations[id];
+    return !op.hidden && this.parameters.isIncluded(id) && !["client", "bidi"].includes(getOperationStreaming(op));
+  }
+
+  /** @override Routes are fixed, operations are not exposed one by one */
+  protected initTransport(): void {
+    // Nothing to expose per operation
+  }
+
+  /** @override */
+  exposeOperation(): void {
+    // Nothing to expose per operation
+  }
+
   /** @override */
   resolve(): this {
     super.resolve();
-    this.addRoute(this.parameters.url, ["GET"], this.list, { hidden: true } as any);
-    this.addRoute(`${this.parameters.url}/{id}`, ["POST"], this.call, { hidden: true } as any);
+    this.addRoute(this.parameters.url, ["GET"], this.list, { hidden: true });
+    this.addRoute(`${this.parameters.url}/{id}`, ["POST"], this.call, { hidden: true });
     return this;
   }
 
@@ -53,7 +74,7 @@ export class OperationIdTransport<
     const app = useApplication();
     const operations: Record<string, any> = {};
     for (const [id, op] of Object.entries(listOperations())) {
-      if (op.hidden || !(await canCallOperation(ctx, id))) continue;
+      if (!this.isServed(id) || !(await canCallOperation(ctx, id))) continue;
       const streaming = getOperationStreaming(op);
       operations[id] = {
         id,
@@ -75,9 +96,12 @@ export class OperationIdTransport<
    */
   async call(ctx: WebContext): Promise<void> {
     const id = ctx.getParameters().id;
-    if (!useInstanceStorage().operations[id]) {
+    if (!this.isServed(id)) {
       throw new WebdaError.NotFound(`${id} Unknown`);
     }
+    // The route parameter is the operation id, not an input of the operation
+    const { id: _id, ...parameters } = ctx.getParameters();
+    ctx.setParameters(parameters);
     await runOperation(ctx, id, this.parameters.streamKeepAliveInterval);
   }
 }

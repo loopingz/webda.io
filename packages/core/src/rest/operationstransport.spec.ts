@@ -5,10 +5,17 @@ import { TestApplication } from "../test/objects.js";
 import { Service } from "../services/service.js";
 import { Session } from "../session/session.js";
 import { useService } from "../core/hooks.js";
+import { useApplication } from "../application/hooks.js";
 import { registerOperation } from "../core/operations.js";
 import { HttpServer } from "../services/httpserver.service.js";
 
 class ScopedService extends Service {
+  last: any;
+  async echo(id?: string, other?: string): Promise<any> {
+    this.last = { id, other };
+    return this.last;
+  }
+
   async run(): Promise<void> {
     // intentionally empty
   }
@@ -39,6 +46,23 @@ class OperationsTransportTest extends WebdaApplicationTest {
     for (const id of ["Scoped.Read", "Scoped.Write"]) {
       registerOperation(id, { service: "Scoped", method: "run", input: "void", output: "void" } as any);
     }
+    useApplication<any>().getSchemas()["Scoped.Echo"] = {
+      type: "object",
+      properties: { id: { type: "string" }, other: { type: "string" } },
+      additionalProperties: false
+    };
+    registerOperation("Scoped.Echo", {
+      service: "Scoped",
+      method: "echo",
+      input: "Scoped.Echo",
+      output: "void"
+    } as any);
+    registerOperation("Scoped.Hidden", { service: "Scoped", method: "run", hidden: true } as any);
+    registerOperation("Scoped.ClientStream", {
+      service: "Scoped",
+      method: "run",
+      streaming: "client"
+    } as any);
     await useService<HttpServer>("HttpServer").start("127.0.0.1", 0);
     this.port = (<any>useService<HttpServer>("HttpServer").server.address()).port;
   }
@@ -93,5 +117,50 @@ class OperationsTransportTest extends WebdaApplicationTest {
   async unknownOperation() {
     const res = await this.http("POST", "/operations/Nope.Nope", {}, { bearerScopes: ["*"] });
     assert.strictEqual(res.status, 404);
+  }
+
+  @test
+  async hiddenAndStreamedOperationsAreNotServed() {
+    const all = await this.http("GET", "/operations", undefined, { bearerScopes: ["*"] });
+    assert.ok(all.body.operations["Scoped.Read"]);
+    assert.strictEqual(all.body.operations["Scoped.Hidden"], undefined);
+    assert.strictEqual(all.body.operations["Scoped.ClientStream"], undefined);
+    for (const id of ["Scoped.Hidden", "Scoped.ClientStream"]) {
+      assert.strictEqual((await this.http("POST", `/operations/${id}`, {}, { bearerScopes: ["*"] })).status, 404);
+    }
+  }
+
+  @test
+  async prototypeKeysAreUnknown() {
+    for (const id of ["constructor", "toString", "__proto__"]) {
+      assert.strictEqual((await this.http("POST", `/operations/${id}`, {}, { bearerScopes: ["*"] })).status, 404);
+    }
+  }
+
+  @test
+  async routeIdIsNotAnInput() {
+    const service = useService<any>("Scoped");
+    const res = await this.http("POST", "/operations/Scoped.Echo", { other: "o" }, { bearerScopes: ["*"] });
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(service.last, { id: undefined, other: "o" });
+    await this.http("POST", "/operations/Scoped.Echo", { id: "mine" }, { bearerScopes: ["*"] });
+    assert.deepStrictEqual(service.last, { id: "mine", other: undefined });
+  }
+
+  @test
+  async honoursOperationsFilter() {
+    const params = useService<any>("Operations").getParameters();
+    const previous = params.operations;
+    params.operations = ["Scoped.Read"];
+    try {
+      const list = await this.http("GET", "/operations", undefined, { bearerScopes: ["*"] });
+      assert.deepStrictEqual(Object.keys(list.body.operations), ["Scoped.Read"]);
+      assert.strictEqual(
+        (await this.http("POST", "/operations/Scoped.Write", {}, { bearerScopes: ["*"] })).status,
+        404
+      );
+    } finally {
+      params.operations = previous;
+    }
   }
 }

@@ -1479,6 +1479,16 @@
         "additionalProperties": false,
         "description": "Parameters of the operation-id transport",
         "properties": {
+          "operations": {
+            "default": [
+              "*"
+            ],
+            "description": "List of operations to include/exclude\nSupports wildcards and negation: [\"*\", \"!User.Delete\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "streamKeepAliveInterval": {
             "default": 20000,
             "description": "Keep-alive interval of a streamed response, in ms",

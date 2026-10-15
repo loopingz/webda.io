@@ -42,7 +42,7 @@ jobs:
       contents: write
       # Comment the regressions on pull requests
       pull-requests: write
-    name: Benchmarks (${{ github.event.inputs.profile || (github.event.schedule == '17 5 * * 0' && 'full') || 'quick' }})
+    name: Benchmarks
     env:
       FORCE_COLOR: 1
       WEBDA_BENCH_PROFILE: ${{ github.event.inputs.profile || (github.event.schedule == '17 5 * * 0' && 'full') || 'quick' }}
@@ -117,7 +117,9 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run benchmarks
-        run: pnpm run bench
+        run: |
+          echo "Profile: $WEBDA_BENCH_PROFILE, filter: ${WEBDA_BENCH_FILTER:-none}"
+          pnpm run bench
         env:
           PGHOST: localhost
           PGUSER: webda.io

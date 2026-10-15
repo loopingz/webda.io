@@ -6,11 +6,11 @@ import { JSONUtils } from "@webda/utils";
 import type { MessageReceipt } from "@webda/core";
 
 /**
- * Name prefix of the message files: fixed-width creation time and sequence, so the name order is the FIFO order
+ * Name prefix of the message files: fixed-width creation time and process-local sequence for best-effort ordering
  */
 const TIME_PREFIX = /^\d{15}-\d{6}-/;
 
-/** Configuration parameters for the filesystem-backed FIFO queue. */
+/** Configuration parameters for the filesystem-backed queue. */
 export class FileQueueParameters extends QueueParameters {
   /**
    * Number of seconds before dropping message
@@ -59,7 +59,14 @@ export class FileQueueParameters extends QueueParameters {
 }
 
 /**
- * FIFO Queue on filesystem
+ * Filesystem-backed queue with best-effort FIFO ordering.
+ *
+ * Message filenames contain a timestamp and a sequence local to each process. Messages from different producers
+ * created in the same millisecond may be received out of order; clocks that differ between hosts can also affect
+ * ordering. The UUID suffix makes filename collisions extremely unlikely.
+ *
+ * During a rolling upgrade, legacy UUID-named messages are received before timestamp-named messages, regardless
+ * of when they were created.
  * @category CoreServices
  * @WebdaModda
  */
@@ -69,7 +76,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    */
   protected waiters = new Set<() => void>();
   /**
-   * Sequence of the messages sent in the same millisecond by this process
+   * Process-local sequence used to order messages with the same timestamp from this process
    */
   protected static sequence = 0;
 
@@ -109,7 +116,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
-   * New message identifier: creation time and sequence first so sorting the names sorts the messages by age
+   * New message identifier: creation time and process-local sequence first for best-effort age ordering
    *
    * @returns the identifier
    */
@@ -208,10 +215,11 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
-   * Sort message files from the oldest to the newest
+   * Sort message files in best-effort receive order
    *
-   * Files written by a previous version are named by a random UUID: they come first, ordered by creation time.
-   * The other names start with their creation time and sequence.
+   * Files written by a previous version are named by a random UUID: they come first, ordered by creation time,
+   * even if they were created after a timestamp-named message. Timestamp-named files are sorted by their names;
+   * the sequence only preserves same-millisecond send order within one process.
    *
    * @param files - message file names
    * @returns the sorted names

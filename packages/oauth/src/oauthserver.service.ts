@@ -23,9 +23,11 @@ import { type PendingRequest, PENDING_TTL, writePending } from "./pending.js";
 /** Name of the pending request cookie */
 export const PENDING_COOKIE = "webda_oauth_pending";
 /** Maximum length of the `state` parameter */
-const MAX_STATE = 512;
+const MAX_STATE = 256;
 /** Maximum length of the `scope` parameter */
-const MAX_SCOPE = 2048;
+const MAX_SCOPE = 1024;
+/** Maximum length of the `hostname` parameter */
+const MAX_HOSTNAME = 64;
 /** Query parameters of the authorization endpoint */
 const AUTHORIZE_PARAMS = [
   "response_type",
@@ -123,7 +125,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const issuer = this.issuer(ctx);
     const base = `${issuer}${this.parameters.url}`;
     const operations = this.findOperationsTransport();
-    ctx.writeHead(200, { "Content-Type": "application/json" });
+    // The issuer may come from the request Host: never let a shared cache keep it
+    ctx.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store", Vary: "Host" });
     ctx.write(
       JSON.stringify({
         issuer,
@@ -200,7 +203,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       state,
       codeChallenge: challenge,
       scope: formatScope(scope),
-      hostname: p("hostname")?.slice(0, 64),
+      hostname: this.cleanHostname(p("hostname")),
       csrf: randomToken(24),
       expires: Date.now() + PENDING_TTL * 1000
     };
@@ -209,7 +212,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     // A bearer (scoped) session cannot drive the authorization endpoint: consent comes from a browser session
     if (!session?.isLogged() || session.scopes !== undefined) {
       if (prompt === "none") return fail("login_required", "Login required");
-      await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending);
+      if (!(await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending))) {
+        return fail("invalid_request", "Authorization request is too large");
+      }
       const login = this.parameters.loginUrl;
       return this.redirect(
         ctx,
@@ -219,16 +224,19 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     if (prompt !== "consent") {
       const remembered = await this.rememberedScope(session.userId!, client.id);
       if (remembered && covers(remembered, scope)) {
+        await this.touchGrant(session.userId!, client.id);
         return this.approveCode(ctx, pending, intersect(scope, remembered));
       }
       if (prompt === "none") return fail("consent_required", "Consent required");
     }
-    await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending);
+    if (!(await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending))) {
+      return fail("invalid_request", "Authorization request is too large");
+    }
     return this.redirect(ctx, this.pageUrl(ctx, "consent"));
   }
 
   /**
-   * Remembered consent of a user for a client; its use is recorded
+   * Remembered consent of a user for a client
    * @param userId - user
    * @param clientId - client
    * @returns the remembered scope, undefined when none, expired or when remembering consent is disabled
@@ -238,10 +246,29 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const ref = OAuthGrant.ref(`${userId}:${clientId}`);
     if (!(await ref.exists())) return undefined;
     const grant = await ref.get();
-    const now = Date.now();
-    if (!(grant.expiresAt > now)) return undefined;
-    await ref.patch({ lastUsedAt: now });
+    if (!(grant.expiresAt > Date.now())) return undefined;
     return parseScope(grant.scope);
+  }
+
+  /**
+   * Record the use of a remembered consent
+   * @param userId - user
+   * @param clientId - client
+   */
+  protected async touchGrant(userId: string, clientId: string): Promise<void> {
+    await OAuthGrant.ref(`${userId}:${clientId}`).patch({ lastUsedAt: Date.now() });
+  }
+
+  /**
+   * @param hostname - untrusted hostname shown on the consent page
+   * @returns the hostname without control or format (bidi, zero-width) characters, capped; undefined when empty
+   */
+  protected cleanHostname(hostname: string | undefined): string | undefined {
+    const clean = hostname
+      ?.replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "")
+      .trim()
+      .slice(0, MAX_HOSTNAME);
+    return clean || undefined;
   }
 
   /**

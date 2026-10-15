@@ -2,6 +2,10 @@ import { CookieOptions, SecureCookie, useCrypto, type WebContext } from "@webda/
 
 /** Lifetime of a pending request (s) */
 export const PENDING_TTL = 600;
+/** Maximum size of a cookie, Set-Cookie attributes included (SecureCookie splits beyond it) */
+const MAX_COOKIE = 4096;
+/** Room kept for the Set-Cookie attributes besides the name and the path (Max-Age, HttpOnly, Secure, SameSite) */
+const COOKIE_ATTRIBUTES = 128;
 
 /** Validated authorization request waiting for login and consent, kept in an encrypted cookie */
 export interface PendingRequest {
@@ -54,18 +58,20 @@ function isPendingRequest(value: any): value is PendingRequest {
 }
 
 /**
- * Set, or clear without a pending request, the encrypted pending request cookie
+ * Set, or clear without a pending request, the encrypted pending request cookie. The request must fit in a single
+ * cookie: {@link readPending} does not reassemble split cookies
  * @param ctx - web context
  * @param cookieName - cookie name
  * @param path - cookie path
  * @param pending - pending request, undefined to clear the cookie
+ * @returns false when the encrypted request is too large for a single cookie (nothing is sent)
  */
 export async function writePending(
   ctx: WebContext,
   cookieName: string,
   path: string,
   pending: PendingRequest | undefined
-): Promise<void> {
+): Promise<boolean> {
   const options = new CookieOptions(
     {
       name: cookieName,
@@ -76,11 +82,14 @@ export async function writePending(
     },
     ctx.getHttpContext()
   );
-  if (pending) {
-    SecureCookie.sendCookie(ctx, cookieName, await useCrypto().encrypt(pending), options);
-  } else {
+  if (!pending) {
     ctx.cookie(cookieName, "", options);
+    return true;
   }
+  const value = await useCrypto().encrypt(pending);
+  if (value.length + cookieName.length + options.path!.length + COOKIE_ATTRIBUTES > MAX_COOKIE) return false;
+  SecureCookie.sendCookie(ctx, cookieName, value, options);
+  return true;
 }
 
 /**

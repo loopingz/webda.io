@@ -21,6 +21,8 @@ class AuthorizeTest extends OAuthTest {
     assert.strictEqual(res.body.client_id_metadata_document_supported, true);
     assert.strictEqual(res.body.webda_result_uri, "http://test.webda.io/oauth/done");
     assert.strictEqual(res.body.webda_operations_uri, undefined); // no OperationsTransport configured
+    assert.strictEqual(res.headers["Cache-Control"], "no-store");
+    assert.strictEqual(res.headers.Vary, "Host");
     assert.ok(res.body.scopes_supported.includes("*"));
     assert.ok(res.body.scopes_supported.includes("offline_access"));
   }
@@ -96,7 +98,7 @@ class AuthorizeTest extends OAuthTest {
     });
     assert.strictEqual(query(token.headers.Location).error, "unsupported_response_type");
     // Oversized state: rejected, not echoed
-    const longState = await this.get(b, "/oauth/authorize", { ...base, state: "s".repeat(513) });
+    const longState = await this.get(b, "/oauth/authorize", { ...base, state: "s".repeat(257) });
     assert.deepStrictEqual(query(longState.headers.Location), {
       error: "invalid_request",
       error_description: "state is too long"
@@ -105,7 +107,7 @@ class AuthorizeTest extends OAuthTest {
       ...base,
       code_challenge: challenge,
       code_challenge_method: "S256",
-      scope: "Task.Get ".repeat(300)
+      scope: "Task.Get ".repeat(120)
     });
     assert.strictEqual(query(longScope.headers.Location).error, "invalid_scope");
     // No state: none echoed
@@ -151,6 +153,84 @@ class AuthorizeTest extends OAuthTest {
     assert.strictEqual(pending.hostname, "laptop");
     assert.ok(pending.csrf.length >= 24);
     assert.ok(pending.expires > Date.now() + 590_000 && pending.expires <= Date.now() + 600_000);
+  }
+
+  @test
+  async maximalRequestFitsOneCookie() {
+    const b = await this.browser();
+    // Distinct globs up to the scope cap, state and hostname at their caps
+    const globs: string[] = [];
+    for (let i = 0; globs.join(" ").length + 12 <= 1024; i++) globs.push(`Task.G${String(i).padStart(4, "0")}*`);
+    const scope = globs.join(" ");
+    assert.ok(scope.length > 1000 && scope.length <= 1024, `${scope.length}`);
+    const res = await this.authorize(b, { scope, state: "s".repeat(256), hostname: "h".repeat(64) });
+    assert.ok(res.headers.Location.startsWith("/login?redirect="), res.headers.Location);
+    assert.deepStrictEqual(Object.keys(res.cookies), ["webda_oauth_pending"]);
+    const ctx = await this.ctx();
+    ctx.getHttpContext().getCookies = () => ({ ...b.jar });
+    const pending = await readPending(ctx, "webda_oauth_pending");
+    assert.strictEqual(pending?.scope, scope);
+    assert.strictEqual(pending?.state, "s".repeat(256));
+  }
+
+  @test
+  async oversizedRequestIsRejected() {
+    const server: any = this.getService("OAuthServer" as any);
+    const long = `https://app.example.com/${"p".repeat(2000)}`;
+    server.getParameters().clients.long = { name: "Long", redirect_uris: [long] };
+    try {
+      const b = await this.browser();
+      const globs: string[] = [];
+      for (let i = 0; globs.join(" ").length + 12 <= 1024; i++) globs.push(`Task.G${String(i).padStart(4, "0")}*`);
+      const res = await this.authorize(b, {
+        client_id: "long",
+        redirect_uri: long,
+        scope: globs.join(" "),
+        state: "s".repeat(256),
+        hostname: "h".repeat(64)
+      });
+      assert.ok(res.headers.Location.startsWith(`${long}?`));
+      assert.deepStrictEqual(query(res.headers.Location), {
+        error: "invalid_request",
+        error_description: "Authorization request is too large",
+        state: "s".repeat(256)
+      });
+      assert.strictEqual(Object.keys(res.cookies).length, 0);
+      assert.strictEqual(b.jar["webda_oauth_pending"], undefined);
+      // Same when logged in, on the way to consent
+      await this.login(b, "u1");
+      const logged = await this.authorize(b, {
+        client_id: "long",
+        redirect_uri: long,
+        scope: globs.join(" "),
+        state: "s".repeat(256),
+        hostname: "h".repeat(64)
+      });
+      assert.strictEqual(query(logged.headers.Location).error, "invalid_request");
+      assert.strictEqual(Object.keys(logged.cookies).length, 0);
+    } finally {
+      delete server.getParameters().clients.long;
+    }
+  }
+
+  @test
+  async extraParametersAreIgnored() {
+    const b = await this.browser();
+    const res = await this.authorize(b, { scope: "Task.*", resource: "https://mcp.example.com" });
+    assert.ok(res.headers.Location.startsWith("/login?redirect="), res.headers.Location);
+    assert.ok(b.jar["webda_oauth_pending"]);
+  }
+
+  @test
+  async hostnameIsSanitized() {
+    const b = await this.browser();
+    const pendingOf = async (hostname: string) => {
+      await this.authorize(b, { scope: "Task.*", hostname });
+      return (await useCrypto().decrypt(b.jar["webda_oauth_pending"])).hostname;
+    };
+    assert.strictEqual(await pendingOf("lap\u0000top\n\u202Eexe.\u200Bcom "), "laptopexe.com");
+    assert.strictEqual(await pendingOf("\u0007\t "), undefined);
+    assert.strictEqual(await pendingOf("é".repeat(100)), "é".repeat(64));
   }
 
   @test
@@ -245,7 +325,20 @@ class AuthorizeTest extends OAuthTest {
       expiresAt: now + 60_000
     } as any);
     assert.deepStrictEqual(await server.rememberedScope("u1", "app"), ["Task.*", "offline_access"]);
+    // Reading is not a use
+    assert.strictEqual((await OAuthGrant.ref("u1:app").get()).lastUsedAt, now - 1000);
+    // A grant that does not cover the request is not used either
+    const b = await this.browser();
+    await this.login(b, "u1");
+    const partial = await this.authorize(b, { scope: "Task.* Other.Get", prompt: "none" });
+    assert.strictEqual(query(partial.headers.Location).error, "invalid_scope");
+    await OAuthGrant.ref("u1:app").patch({ scope: "Task.Get" });
+    const uncovered = await this.authorize(b, { scope: "Task.*", prompt: "none" });
+    assert.strictEqual(query(uncovered.headers.Location).error, "consent_required");
+    assert.strictEqual((await OAuthGrant.ref("u1:app").get()).lastUsedAt, now - 1000);
+    await server.touchGrant("u1", "app");
     assert.ok((await OAuthGrant.ref("u1:app").get()).lastUsedAt >= now);
+    await OAuthGrant.ref("u1:app").patch({ scope: "Task.* offline_access" });
     server.getParameters().rememberConsent = false;
     try {
       assert.strictEqual(await server.rememberedScope("u1", "app"), undefined);

@@ -24,6 +24,7 @@ jobs:
     name: Build with NodeJS v${{ matrix.node }}
     env:
       FORCE_COLOR: 1
+      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
     services:
       localstack:
@@ -52,6 +53,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
@@ -129,7 +132,7 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        run: pnpm run test
+        run: node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
@@ -138,7 +141,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
       - name: Test app templates
-        run: pnpm --filter @webda/create run test:templates
+        run: node scripts/run-affected-tests.mjs test:templates "$PR_BASE_SHA"
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           WEBDA_MONGO_URL: mongodb://root:webda.io@localhost:37017
@@ -159,13 +162,13 @@ jobs:
         run: pnpm run lint
 
       - name: Check with mocha
-        run: pnpm run test:mocha
+        run: node scripts/run-affected-tests.mjs test:mocha "$PR_BASE_SHA"
 
       - name: Check with jest
-        run: pnpm run test:jest
+        run: node scripts/run-affected-tests.mjs test:jest "$PR_BASE_SHA"
 
       - name: Check with bun
-        run: pnpm run test:bun
+        run: node scripts/run-affected-tests.mjs test:bun "$PR_BASE_SHA"
 
       - name: CodeCov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5

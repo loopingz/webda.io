@@ -4,7 +4,11 @@ import type { JSONSchema7 } from "json-schema";
 import { CancelablePromise } from "@webda/utils";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { vi } from "vitest";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
+  applyDefaultCommand,
   buildCli,
   createCommandShutdown,
   exitAfterFlush,
@@ -718,5 +722,78 @@ class CliUnknownCommandTest {
   pointsToEveryPackageProvidingASharedCommand() {
     const message = unknownCommandMessage("deploy", []);
     assert.ok(message.includes("@webda/aws or @webda/oci"), message);
+  }
+}
+
+@suite
+class CliRunCliTest {
+  @test
+  defaultCommandOnlyWhenNoneIsGiven() {
+    const commands = ["serve", "debug", "task", "completion"];
+    assert.deepStrictEqual(applyDefaultCommand([], "serve", commands), ["serve"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--port", "3000"], "serve", commands), ["serve", "--port", "3000"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--port=3000", "-w"], "serve", commands), [
+      "serve",
+      "--port=3000",
+      "-w"
+    ]);
+    // A command is given, known or not
+    assert.deepStrictEqual(applyDefaultCommand(["debug"], "serve", commands), ["debug"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--log-stream", "stderr", "task", "get"], "serve", commands), [
+      "--log-stream",
+      "stderr",
+      "task",
+      "get"
+    ]);
+    assert.deepStrictEqual(applyDefaultCommand(["unknown"], "serve", commands), ["unknown"]);
+    // --help and --version keep the global help and version
+    assert.deepStrictEqual(applyDefaultCommand(["--help"], "serve", commands), ["--help"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--version"], "serve", commands), ["--version"]);
+    assert.deepStrictEqual(applyDefaultCommand(["serve", "--help"], "serve", commands), ["serve", "--help"]);
+    // Without a default command, or after "--", nothing changes
+    assert.deepStrictEqual(applyDefaultCommand(["--port", "3000"], undefined, commands), ["--port", "3000"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--", "x"], "serve", commands), ["serve", "--", "x"]);
+    // Subcommand as default
+    assert.deepStrictEqual(applyDefaultCommand([], "auth migrate", commands), ["auth", "migrate"]);
+  }
+
+  @test
+  defaultCommandWithoutCommandList() {
+    // Without the command list a bare word is a command, unless it is a global option value
+    assert.deepStrictEqual(applyDefaultCommand(["-w"], "serve"), ["serve", "-w"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--port", "3000"], "serve"), ["--port", "3000"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--service", "HttpServer"], "serve"), [
+      "serve",
+      "--service",
+      "HttpServer"
+    ]);
+  }
+
+  @test
+  async importingDoesNotRunTheCli() {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      const mod = await import("./cli.js");
+      assert.strictEqual(typeof mod.runCli, "function");
+      assert.strictEqual(exit.mock.calls.length, 0);
+    } finally {
+      exit.mockRestore();
+    }
+    // The compiled module, imported by an application executable, in a real node process
+    const lib = fileURLToPath(new URL("../../lib/bin/cli.js", import.meta.url));
+    if (!existsSync(lib)) {
+      return;
+    }
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        "const m = await import(process.env.WEBDA_CLI); console.log(typeof m.runCli, typeof m.applyDefaultCommand)"
+      ],
+      { env: { ...process.env, WEBDA_CLI: lib, WEBDA_APP_PATH: "/nonexistent" }, encoding: "utf-8", timeout: 30000 }
+    );
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.strictEqual(result.stdout.trim(), "function function");
   }
 }

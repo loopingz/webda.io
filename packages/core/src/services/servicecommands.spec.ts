@@ -1019,6 +1019,9 @@ class ServiceCommandOverrideTest {
       .map(l => l.log)
       .filter(l => l?.level === "WARN")
       .map(l => l.args.join(" "));
-    assert.ok(warnings.some(w => w.includes("'limit'")), JSON.stringify(warnings));
+    assert.ok(
+      warnings.some(w => w.includes("'limit'")),
+      JSON.stringify(warnings)
+    );
   }
 }

@@ -335,10 +335,7 @@ function providerRank(
  * @param args - parsed argument values keyed by argument name
  * @returns the values to call the handler with
  */
-function handlerArguments(
-  definitions: { [name: string]: CommandArgDefinition },
-  args: { [key: string]: any }
-): any[] {
+function handlerArguments(definitions: { [name: string]: CommandArgDefinition }, args: { [key: string]: any }): any[] {
   return Object.keys(definitions).map(argName =>
     args[argName] !== undefined ? args[argName] : definitions[argName].default
   );

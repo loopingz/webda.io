@@ -102,22 +102,33 @@ export function expand(globs: Scope, operationIds: string[]): string[] {
 
 /**
  * Turn a selection of operations back into a scope: a requested glob whose operations are all selected is kept as a
- * glob (operations added later stay covered); otherwise the selected ids are listed. Never widens the request.
+ * glob (operations added later stay covered). Otherwise, when the request covers the operation group (`<Group>.*`,
+ * the id up to its first `.`) and every operation of that group is selected, the group glob is used, so a broad
+ * request (`*`) does not turn into a list of every operation id. Otherwise the selected ids are listed. Never widens
+ * the request.
  * @param selected - selected operation ids
  * @param requested - requested scope
  * @param operationIds - operations the user may call
  * @returns scope (without `offline_access`)
  */
 export function collapse(selected: string[], requested: Scope, operationIds: string[]): Scope {
-  const chosen = selected.filter(id => scopeMatches(requested, id));
+  const chosen = new Set(selected.filter(id => scopeMatches(requested, id)));
+  const allChosen = (glob: string) => {
+    const matched = expand([glob], operationIds);
+    return matched.length > 0 && matched.every(op => chosen.has(op));
+  };
+  const groups = new Map<string, string | undefined>();
+  const groupGlob = (id: string): string | undefined => {
+    const dot = id.indexOf(".");
+    if (dot <= 0) return undefined;
+    const glob = `${id.slice(0, dot)}.*`;
+    if (!groups.has(glob)) groups.set(glob, coversToken(requested, glob) && allChosen(glob) ? glob : undefined);
+    return groups.get(glob);
+  };
   const result = new Set<string>();
   for (const id of chosen) {
-    const glob = operationGlobs(requested).find(g => {
-      if (!globMatch(id, g)) return false;
-      const matched = expand([g], operationIds);
-      return matched.length > 0 && matched.every(op => chosen.includes(op));
-    });
-    result.add(glob ?? id);
+    const glob = operationGlobs(requested).find(g => globMatch(id, g) && allChosen(g));
+    result.add(glob ?? groupGlob(id) ?? id);
   }
   return [...result];
 }

@@ -40,4 +40,21 @@ describe("scope", () => {
     // never widens beyond the request
     expect(collapse(["User.Me"], ["Task.*"], OPS)).toEqual([]);
   });
+  it("collapses a broad request into group globs", () => {
+    // Everything but Auth.Me: `*` cannot be kept, the fully selected groups can
+    expect(collapse(["Task.Get", "Task.Update", "Task.Comment.Add", "User.Me"], ["*"], OPS)).toEqual([
+      "Task.*",
+      "User.*"
+    ]);
+    // A partially selected group stays a list of ids
+    expect(collapse(["Task.Get", "User.Me"], ["*"], OPS)).toEqual(["Task.Get", "User.*"]);
+    // Everything selected keeps the requested glob
+    expect(collapse(OPS, ["*"], OPS)).toEqual(["*"]);
+    // A group glob is only used when the request covers it: never widens
+    const ids = ["Task.Get", "Task.Update", "Task.Comment.Add"];
+    expect(collapse(ids, ids, OPS)).toEqual(ids);
+    expect(collapse(["Task.Comment.Add"], ["Task.Comment.*"], OPS)).toEqual(["Task.Comment.*"]);
+    // An id without a group is listed
+    expect(collapse(["Ping"], ["*"], [...OPS, "Ping"])).toEqual(["Ping"]);
+  });
 });

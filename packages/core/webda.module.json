@@ -1472,6 +1472,40 @@
       },
       "Configuration": "lib/services/notificationservice.service:MultiNotificationParameters"
     },
+    "Webda/OperationsTransport": {
+      "Import": "lib/rest/operationstransport.service:OperationIdTransport",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters of the operation-id transport",
+        "properties": {
+          "streamKeepAliveInterval": {
+            "default": 20000,
+            "description": "Keep-alive interval of a streamed response, in ms",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/operations",
+            "description": "Route prefix",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "OperationIdTransport"
+      },
+      "Configuration": "lib/rest/operationstransport.service:OperationIdTransportParameters"
+    },
     "Webda/PrometheusService": {
       "Import": "lib/services/prometheus.service:PrometheusService",
       "Schema": {

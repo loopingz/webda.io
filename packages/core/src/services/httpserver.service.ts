@@ -303,7 +303,8 @@ export class HttpServer<
                 message: err?.message ?? String(err)
               };
               if (err?.details !== undefined) body.details = err.details;
-              webCtx.write({ error: body });
+              // RFC 6750 clients read the OAuth error object itself: `{ error, operation }`
+              webCtx.write(err instanceof InsufficientScope ? err.details : { error: body });
             }
           }
         }

@@ -103,6 +103,7 @@ export * from "./services/binary.service.js";
 export * from "./configurations/configuration.service.js";
 export * from "./rest/irest.js";
 export * from "./rest/restoperationstransport.service.js";
+export * from "./rest/operationstransport.service.js";
 export * from "./services/operationstransport.js";
 export * from "./rest/router.service.js";
 export * from "./rest/hooks.js";

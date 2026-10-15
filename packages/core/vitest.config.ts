@@ -39,6 +39,7 @@ export default defineConfig({
       "src/queues/*.spec.ts",
       //"src/rest/*.spec.ts",
       "src/rest/restoperationstransport.spec.ts",
+      "src/rest/operationstransport.spec.ts",
       "src/rest/rest-behaviors.spec.ts",
       "src/rest/router-alias.spec.ts",
       "src/rest/router-prefix.spec.ts",

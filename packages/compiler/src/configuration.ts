@@ -1,6 +1,7 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
-import { relative, dirname } from "node:path";
+import { relative, dirname, resolve, isAbsolute, join } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
 
 /**
  * Interface for the application methods needed by configuration schema generation
@@ -36,14 +37,21 @@ function getServiceTypePattern(app: ConfigSchemaApplication, type: string): stri
  * @param deploymentFilename to save deployment schema to
  * @param full to keep all required
  * @param configFile - optional config file path to update $schema reference
+ * @param deploymentsDir - optional deployments directory to update $schema references
  */
 export function generateConfigurationSchemas(
   app: ConfigSchemaApplication,
   filename: string = ".webda/config.schema.json",
   deploymentFilename: string = ".webda/deployment.schema.json",
   full: boolean = false,
-  configFile?: string
+  configFile?: string,
+  deploymentsDir?: string
 ): void {
+  const projectDir = configFile ? dirname(resolve(configFile)) : process.cwd();
+  const absFilename = isAbsolute(filename) ? filename : resolve(projectDir, filename);
+  const absDeploymentFilename = isAbsolute(deploymentFilename)
+    ? deploymentFilename
+    : resolve(projectDir, deploymentFilename);
   // Build the base configuration schema structure
   let res: JSONSchema7 = {
     type: "object",
@@ -149,12 +157,16 @@ export function generateConfigurationSchemas(
     };
   }
   res.properties.models = modelSchemas;
-  FileUtils.save(res, filename);
+  if (!existsSync(dirname(absFilename))) {
+    mkdirSync(dirname(absFilename), { recursive: true });
+  }
+  FileUtils.save(res, absFilename);
   // Build the deployment schema
   // Ensure builtin deployers are there
   const definitions = JSONUtils.duplicate(res.definitions);
   res = {
     properties: {
+      $schema: { type: "string" },
       parameters: {
         type: "object",
         additionalProperties: true
@@ -211,15 +223,45 @@ export function generateConfigurationSchemas(
       definition["required"] = ["type"];
     }
   });
-  FileUtils.save(res, deploymentFilename);
+  if (!existsSync(dirname(absDeploymentFilename))) {
+    mkdirSync(dirname(absDeploymentFilename), { recursive: true });
+  }
+  FileUtils.save(res, absDeploymentFilename);
 
-  // Ensure $schema is set in the configuration file
-  if (configFile) {
-    const config = FileUtils.load(configFile);
-    const schemaRef = relative(dirname(configFile), filename);
-    if (config.$schema !== schemaRef) {
-      config.$schema = schemaRef;
-      FileUtils.save(config, configFile);
+  // Ensure $schema is set in the configuration file if not present
+  if (configFile && existsSync(configFile)) {
+    try {
+      const config = FileUtils.load(configFile);
+      if (config && typeof config === "object" && !Array.isArray(config) && !config.$schema) {
+        const schemaRef = relative(dirname(resolve(configFile)), absFilename).replace(/\\/g, "/");
+        const updated = { $schema: schemaRef, ...config };
+        FileUtils.save(updated, configFile);
+      }
+    } catch {
+      // Ignore unparseable configuration file
     }
+  }
+
+  // Ensure $schema is set in each deployment file if not present
+  const targetDeploymentsDir = deploymentsDir
+    ? resolve(projectDir, deploymentsDir)
+    : configFile
+      ? join(projectDir, "deployments")
+      : undefined;
+  if (targetDeploymentsDir && existsSync(targetDeploymentsDir)) {
+    FileUtils.walkSync(targetDeploymentsDir, filePath => {
+      if (filePath.endsWith(".json") || filePath.endsWith(".jsonc")) {
+        try {
+          const deployment = FileUtils.load(filePath);
+          if (deployment && typeof deployment === "object" && !Array.isArray(deployment) && !deployment.$schema) {
+            const schemaRef = relative(dirname(resolve(filePath)), absDeploymentFilename).replace(/\\/g, "/");
+            const updated = { $schema: schemaRef, ...deployment };
+            FileUtils.save(updated, filePath);
+          }
+        } catch {
+          // Ignore unparseable deployment file
+        }
+      }
+    });
   }
 }

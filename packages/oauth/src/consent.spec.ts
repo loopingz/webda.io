@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { listOperations, useRouter, useService } from "@webda/core";
+import { expand, listOperations, registerOperation, useInstanceStorage, useRouter, useService } from "@webda/core";
 import { OAuthTest, query, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
 import { OAuthCode, OAuthGrant } from "./models.model.js";
 import { sha256 } from "./devicecode.js";
@@ -36,14 +36,77 @@ class ConsentTest extends OAuthTest {
     const all = await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: offered, csrf: req.csrf });
     const scope = (await OAuthCode.ref(sha256(query(all.redirect).code)).get()).scope.split(" ");
     assert.ok(!scope.includes("*"), scope.join(" "));
-    assert.ok(!scope.some(t => t.includes("*")), scope.join(" "));
-    assert.deepStrictEqual([...scope].sort(), [...offered].sort());
+    // The fully selected groups are granted as group globs, the others as ids
+    assert.ok(scope.includes("Task.*") && scope.includes("User.*"), scope.join(" "));
+    assert.ok(!scope.includes("Admin.*"), scope.join(" "));
+    assert.deepStrictEqual(expand(scope, Object.keys(listOperations())).sort(), [...offered].sort());
     // Every operation of Task.* is callable and selected: the glob is kept
     await this.authorize(b, { scope: "Task.*", client_id: "webda-cli" });
     const task = await this.op(b, "OAuth.Consent.Get");
     const ids = task.operations[0].ids.map(i => i.id);
     const { redirect } = await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ids, csrf: task.csrf });
     assert.strictEqual((await OAuthCode.ref(sha256(query(redirect).code)).get()).scope, "Task.*");
+  }
+
+  @test
+  async rememberedWildcardSkipsConsentForNonAdmin() {
+    // Many operations: the granted scope must not list them one by one
+    const bulk = Array.from({ length: 300 }, (_, i) => `Bulk.Operation${i}`);
+    for (const id of bulk) registerOperation(id, { service: "OAuthServer", method: "metadata" });
+    try {
+      const b = await this.browser();
+      await this.login(b, "u1");
+      const redirectUri = "http://127.0.0.1:1234/callback";
+      const exchange = async (location: string) => {
+        const res = await this.tokenRequest({
+          grant_type: "authorization_code",
+          code: query(location).code,
+          code_verifier: b.verifier,
+          client_id: "webda-cli",
+          redirect_uri: redirectUri
+        });
+        assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+        return res.body;
+      };
+      // First authorization: the consent page, everything offered selected and remembered
+      const first = await this.authorize(b, { scope: "* offline_access", client_id: "webda-cli" });
+      assert.strictEqual(first.headers.Location, "http://test.webda.io/oauth/consent");
+      const req = await this.op(b, "OAuth.Consent.Get");
+      const offered = req.operations.flatMap(g => g.ids.map(i => i.id));
+      assert.ok(!offered.includes("Admin.Purge"));
+      const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+        allow: true,
+        operations: offered,
+        csrf: req.csrf,
+        remember: true
+      });
+      const tokens = await exchange(redirect);
+      const scope = tokens.scope.split(" ");
+      // Group globs, never `*` (Admin.Purge was not granted) nor the list of the operation ids
+      assert.ok(scope.includes("Bulk.*") && scope.includes("Task.*") && scope.includes("User.*"), tokens.scope);
+      assert.ok(!scope.includes("*") && !scope.includes("Admin.*"), tokens.scope);
+      assert.ok(scope.includes("offline_access"), tokens.scope);
+      assert.ok(tokens.scope.length < 300, `${tokens.scope.length}: ${tokens.scope}`);
+      assert.ok(tokens.access_token.length < 2048, `access token of ${tokens.access_token.length} bytes`);
+      // Second authorization: the remembered consent answers `*`, the consent page is skipped
+      const again = await this.authorize(b, { scope: "* offline_access", client_id: "webda-cli" });
+      assert.ok(again.headers.Location.startsWith(redirectUri), again.headers.Location);
+      const second = await exchange(again.headers.Location);
+      assert.deepStrictEqual(second.scope.split(" ").sort(), [...scope].sort());
+      // prompt=none is answered as well
+      const silent = await this.authorize(b, { scope: "* offline_access", client_id: "webda-cli", prompt: "none" });
+      assert.ok(query(silent.headers.Location).code, silent.headers.Location);
+      // A new callable operation is not covered by the remembered consent: asked again
+      registerOperation("Other.New", { service: "OAuthServer", method: "metadata" });
+      try {
+        const changed = await this.authorize(b, { scope: "* offline_access", client_id: "webda-cli" });
+        assert.strictEqual(changed.headers.Location, "http://test.webda.io/oauth/consent");
+      } finally {
+        delete useInstanceStorage().operations["Other.New"];
+      }
+    } finally {
+      for (const id of bulk) delete useInstanceStorage().operations[id];
+    }
   }
 
   @test
@@ -366,19 +429,24 @@ class ConsentRestTest extends OAuthTest {
   }
 
   @test
-  async restRoutesSitUnderThePendingCookiePath() {
+  async browserOperationsAreServedByTheOAuthServerOnly() {
     const ops = listOperations();
-    assert.deepStrictEqual(ops["OAuth.Consent.Get"].rest, { method: "get", path: "oauth/consent/request" });
-    assert.deepStrictEqual(ops["OAuth.Consent.Decide"].rest, { method: "post", path: "oauth/consent/decide" });
+    for (const id of ["OAuth.Consent.Get", "OAuth.Consent.Decide", "OAuth.Device.Lookup"]) {
+      // Hidden from every transport: the REST transport does not expose them a second time
+      assert.strictEqual(ops[id].hidden, true, id);
+      assert.strictEqual(ops[id].rest, undefined, id);
+    }
     const routes = useRouter().getRoutes();
     for (const [path, method] of [
       ["/oauth/consent/request", "GET"],
-      ["/oauth/consent/decide", "POST"]
+      ["/oauth/consent/decide", "POST"],
+      ["/oauth/device/lookup", "POST"]
     ]) {
-      const route = Object.keys(routes).find(r => r === path);
-      assert.ok(route, `${path} in ${Object.keys(routes).join(",")}`);
-      assert.ok(JSON.stringify(routes[route]).includes(method), path);
+      assert.strictEqual(routes[path]?.length, 1, `${path} in ${Object.keys(routes).join(",")}`);
+      assert.ok(JSON.stringify(routes[path]).includes(method), path);
     }
+    // Not exposed by the REST transport under its default path either
+    assert.strictEqual(routes["/oauth/consent/get"], undefined);
     // Through the router, like a browser: the pending cookie (path /oauth) reaches the operations
     const b = await this.browser();
     await this.login(b, "u1");

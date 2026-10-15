@@ -263,7 +263,7 @@ const CONSENT_SCRIPT = `"use strict";
 
 /**
  * Consent page
- * @param apiBase - path of the REST hints of the OAuth operations (`<apiBase>/consent/request`)
+ * @param apiBase - path of the OAuthServer routes of the browser operations (`<apiBase>/consent/request`)
  * @param nonce - nonce of the page script
  * @returns the HTML document
  */
@@ -307,7 +307,7 @@ const DEVICE_SCRIPT = `"use strict";
 
 /**
  * Device code entry page
- * @param apiBase - path of the REST hints of the OAuth operations (`<apiBase>/device/lookup`)
+ * @param apiBase - path of the OAuthServer routes of the browser operations (`<apiBase>/device/lookup`)
  * @param userCode - untrusted code to prefill
  * @param nonce - nonce of the page script
  * @returns the HTML document

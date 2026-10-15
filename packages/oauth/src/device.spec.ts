@@ -347,6 +347,33 @@ class DeviceFlowTest extends OAuthTest {
   }
 
   @test
+  async deviceAuthorizationRateLimitedPerIp() {
+    for (let i = 0; i < 20; i++) {
+      const res = await this.form("/oauth/device_authorization", { client_id: "webda-cli", scope: "Task.*" });
+      assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    }
+    let stored = 0;
+    for await (const _ of OAuthDeviceCode.iterate("userCode != ''", [])) stored++;
+    assert.strictEqual(stored, 20);
+    // The 21st request in the window is refused before anything is stored, invalid requests count too
+    const refused = await this.form("/oauth/device_authorization", { client_id: "webda-cli", scope: "Task.*" });
+    assert.strictEqual(refused.status, 429);
+    assert.strictEqual(refused.body.error, "slow_down");
+    assert.strictEqual(refused.headers["Cache-Control"], "no-store");
+    assert.strictEqual((await this.form("/oauth/device_authorization", { client_id: "nope" })).status, 429);
+    stored = 0;
+    for await (const _ of OAuthDeviceCode.iterate("userCode != ''", [])) stored++;
+    assert.strictEqual(stored, 20);
+    // The window is 10 minutes, and the sweep forgets what is out of it
+    const now = Date.now();
+    vi.spyOn(Date, "now").mockReturnValue(now + 600_001);
+    await useService<any>("OAuthServer").sweep();
+    assert.strictEqual(useService<any>("OAuthServer").deviceRequests.size, 0);
+    const later = await this.form("/oauth/device_authorization", { client_id: "webda-cli", scope: "Task.*" });
+    assert.strictEqual(later.status, 200, JSON.stringify(later.body));
+  }
+
+  @test
   async deviceLookupRateLimitedPerIp() {
     const start = await this.form("/oauth/device_authorization", { client_id: "webda-cli", scope: "Task.*" });
     // New sessions do not reset the client IP budget

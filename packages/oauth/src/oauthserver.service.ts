@@ -1,10 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import {
+  callOperation,
   canCallOperation,
   collapse,
   covers,
   expand,
   formatScope,
+  type HttpMethodType,
   intersect,
   type IssuedTokens,
   InvalidScope,
@@ -15,7 +17,6 @@ import {
   operationGlobs,
   parseScope,
   RefreshToken,
-  RESTOperationsTransport,
   runAsSystem,
   type Scope,
   scopeMatches,
@@ -72,6 +73,8 @@ const LOOKUP_WINDOW = 10 * 60 * 1000;
 const LOOKUP_SESSION_FAILURES = 5;
 /** Failed device lookups allowed per client IP in the window */
 const LOOKUP_IP_FAILURES = 20;
+/** Device authorization requests allowed per client IP in the window: each one stores a device code */
+const DEVICE_AUTHORIZATION_IP_LIMIT = 20;
 /** Maximum number of tracked rate limit keys: the oldest are dropped beyond */
 const LOOKUP_MAX_KEYS = 10_000;
 /** Query parameters of the authorization endpoint */
@@ -85,6 +88,13 @@ const AUTHORIZE_PARAMS = [
   "scope",
   "prompt",
   "hostname"
+];
+
+/** Browser operations served on routes below `url`: method, path, operation */
+const BROWSER_OPERATIONS: [HttpMethodType, string, string][] = [
+  ["GET", "/consent/request", "OAuth.Consent.Get"],
+  ["POST", "/consent/decide", "OAuth.Consent.Decide"],
+  ["POST", "/device/lookup", "OAuth.Device.Lookup"]
 ];
 
 /** Live refresh family of a connected app */
@@ -199,9 +209,11 @@ function identityOf(session: Session): GrantIdentity {
  * - `POST <url>/revoke`: revocation endpoint (RFC 7009)
  * - `POST <url>/device_authorization`: device authorization endpoint (RFC 8628)
  *
- * Operations (browser session, pending request cookie): `OAuth.Device.Lookup`, `OAuth.Consent.Get`,
- * `OAuth.Consent.Decide`. Their REST
- * hints sit below `/oauth`, the default `url`, so the pending cookie reaches them through a REST transport at `/`
+ * Browser operations (browser session, pending request cookie), hidden from the transports and served on routes of
+ * their own below `url`, the path of the pending request cookie, whatever transports are configured:
+ * - `GET <url>/consent/request`: `OAuth.Consent.Get`
+ * - `POST <url>/consent/decide`: `OAuth.Consent.Decide`
+ * - `POST <url>/device/lookup`: `OAuth.Device.Lookup`
  *
  * Connected apps operations (logged-in user, own records only): `OAuth.Sessions`, `OAuth.Grants`, `OAuth.Revoke`,
  * `OAuth.Forget`
@@ -217,6 +229,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   protected sweeping?: Promise<number>;
   /** Times of the recent failed device lookups, by `session:<uuid>` and `ip:<client ip>` */
   lookupFailures: Map<string, number[]> = new Map();
+  /** Times of the recent device authorization requests, by `ip:<client ip>` */
+  deviceRequests: Map<string, number[]> = new Map();
 
   /** @override */
   resolve(): this {
@@ -236,24 +250,18 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     this.addRoute(`${url}/consent`, ["GET"], this.consentPage, { hidden: true });
     this.addRoute(`${url}/device{?user_code?}`, ["GET"], this.devicePage, { hidden: true });
     this.addRoute(`${url}/done{?status?,error?}`, ["GET"], this.resultPage, { hidden: true });
+    // The browser operations are hidden from the transports: served here, below the pending cookie path
+    for (const [method, path, operationId] of BROWSER_OPERATIONS) {
+      this.addRoute(`${url}${path}`, [method], (ctx: WebContext) => this.browserOperation(ctx, operationId), {
+        hidden: true
+      });
+    }
     return this;
   }
 
   /** @override */
   async init(): Promise<this> {
     await super.init();
-    // The consent operations only see the pending cookie when their REST route is below its path
-    const rest = Object.values(useCore().getServices()).find(
-      (service): service is RESTOperationsTransport => service instanceof RESTOperationsTransport
-    );
-    const consent = rest ? `${rest.getParameters().url}oauth/consent` : undefined;
-    if (consent && !consent.startsWith(`${this.parameters.url}/`)) {
-      this.log(
-        "WARN",
-        `The REST routes of the consent operations (${consent}/...) are outside the pending request cookie path ` +
-          `(${this.parameters.url}): browsers will not send it there`
-      );
-    }
     const sweep = () => this.sweep().catch(err => this.log("WARN", "OAuth sweep failed", err));
     await sweep();
     this.sweepTimer = setInterval(sweep, this.parameters.codeTtl * 10 * 1000);
@@ -502,7 +510,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     }
     if (prompt !== "consent") {
       const remembered = await this.rememberedScope(session.userId!, client.id);
-      if (remembered && covers(remembered, scope)) {
+      if (remembered && (await this.rememberedCovers(ctx, remembered, scope))) {
         await this.touchGrant(session.userId!, client.id);
         return this.approveCode(ctx, pending, intersect(scope, remembered));
       }
@@ -550,6 +558,22 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Whether a remembered consent answers a request: it covers every operation the request matches that the user can
+   * call now (an operation added or made callable since is asked again), grants at least one of them, and
+   * `offline_access` when requested. Checked on operations, not globs: a `*` request remembered as group globs is
+   * answered
+   * @param ctx - web context of the user
+   * @param remembered - remembered scope
+   * @param requested - requested scope
+   * @returns true when the consent page can be skipped
+   */
+  protected async rememberedCovers(ctx: WebContext, remembered: Scope, requested: Scope): Promise<boolean> {
+    if (requested.includes(OFFLINE_ACCESS) && !remembered.includes(OFFLINE_ACCESS)) return false;
+    const callable = await this.callableOperations(ctx, requested);
+    return callable.length > 0 && callable.every(id => scopeMatches(remembered, id));
+  }
+
+  /**
    * Record the use of a remembered consent
    * @param userId - user
    * @param clientId - client
@@ -574,7 +598,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * Pending consent request of the browser
    * @returns the request to display
    */
-  @Operation({ id: "OAuth.Consent.Get", rest: { method: "get", path: "oauth/consent/request" } })
+  @Operation({ id: "OAuth.Consent.Get", hidden: true })
   async consentGet(): Promise<ConsentRequest> {
     const ctx = useContext<WebContext>();
     const pending = await this.requirePending(ctx);
@@ -622,7 +646,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param remember - remember the consent for this client
    * @returns where the browser goes next
    */
-  @Operation({ id: "OAuth.Consent.Decide", rest: { method: "post", path: "oauth/consent/decide" } })
+  @Operation({ id: "OAuth.Consent.Decide", hidden: true })
   async consentDecide(
     allow: boolean,
     operations: string[],
@@ -879,15 +903,13 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Serve a browser operation on its route: called through core, so input validation and the operation authorizers
+   * apply as on any transport
    * @param ctx - web context
-   * @returns path of the REST hints of the OAuth operations (`<path>/consent/request`), below the deployment prefix
+   * @param operationId - operation
    */
-  protected apiBase(ctx: WebContext): string {
-    const rest = Object.values(useCore().getServices()).find(
-      (service): service is RESTOperationsTransport => service instanceof RESTOperationsTransport
-    );
-    const url = `${(rest?.getParameters().url ?? "/").replace(/\/?$/, "/")}oauth`;
-    return new URL(ctx.getHttpContext().getAbsoluteUrl(url)).pathname;
+  protected async browserOperation(ctx: WebContext, operationId: string): Promise<void> {
+    await callOperation(ctx, operationId);
   }
 
   /**
@@ -1279,7 +1301,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
           clientId: token.clientId!,
           name: token.name,
           scope: token.scope,
-          createdAt: (token as any).createdAt,
+          createdAt: token.createdAt,
           lastUsedAt: token.lastUsedAt
         });
       }
@@ -1359,13 +1381,22 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
 
   /**
    * Device authorization endpoint (RFC 8628 §3.1, §3.2): `client_id`, `scope?`, `hostname?`. Every response, errors
-   * included, is JSON and never cached
+   * included, is JSON and never cached.
+   *
+   * Rate limited: 20 requests per client IP in 10 minutes, then `429` with `{"error": "slow_down"}`
    * @param ctx - web context
    */
   async deviceAuthorization(ctx: WebContext): Promise<void> {
     let status = 200;
     let payload: Record<string, string | number>;
     try {
+      // Unauthenticated and storing a device code: rate limited per client IP
+      const key = `ip:${ctx.getHttpContext()?.getClientIp() ?? "unknown"}`;
+      const now = Date.now();
+      if (this.countAttempts(this.deviceRequests, key, now) >= DEVICE_AUTHORIZATION_IP_LIMIT) {
+        throw new OAuthError("slow_down", "Too many device authorization requests", 429);
+      }
+      this.recordAttempt(this.deviceRequests, [key], now);
       const body = await this.tokenBody(ctx);
       const client = await this.deviceClient(body.client_id);
       if (!client) throw new OAuthError("unauthorized_client", "The client may not use the device authorization grant");
@@ -1434,7 +1465,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param userCode - code displayed by the device, case, spaces and dashes ignored
    * @returns the consent page
    */
-  @Operation({ id: "OAuth.Device.Lookup", rest: { method: "post", path: "oauth/device/lookup" } })
+  @Operation({ id: "OAuth.Device.Lookup", hidden: true })
   async deviceLookup(userCode: string): Promise<{ redirect: string }> {
     const ctx = useContext<WebContext>();
     const session = ctx.getSession();
@@ -1485,9 +1516,19 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @returns failed lookups of the key in the window
    */
   protected countLookupFailures(key: string, now: number): number {
-    const times = this.lookupFailures.get(key)?.filter(t => t > now - LOOKUP_WINDOW) ?? [];
-    if (times.length) this.lookupFailures.set(key, times);
-    else this.lookupFailures.delete(key);
+    return this.countAttempts(this.lookupFailures, key, now);
+  }
+
+  /**
+   * @param attempts - rate limit state
+   * @param key - rate limit key
+   * @param now - current time
+   * @returns attempts of the key in the window
+   */
+  protected countAttempts(attempts: Map<string, number[]>, key: string, now: number): number {
+    const times = attempts.get(key)?.filter(t => t > now - LOOKUP_WINDOW) ?? [];
+    if (times.length) attempts.set(key, times);
+    else attempts.delete(key);
     return times.length;
   }
 
@@ -1496,15 +1537,24 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param now - time of the failure
    */
   protected recordLookupFailure(keys: string[], now: number): void {
+    this.recordAttempt(this.lookupFailures, keys, now);
+  }
+
+  /**
+   * @param attempts - rate limit state
+   * @param keys - rate limit keys
+   * @param now - time of the attempt
+   */
+  protected recordAttempt(attempts: Map<string, number[]>, keys: string[], now: number): void {
     for (const key of keys) {
-      const times = this.lookupFailures.get(key) ?? [];
+      const times = attempts.get(key) ?? [];
       times.push(now);
-      // Re-inserted last: the map stays ordered by last failure
-      this.lookupFailures.delete(key);
-      this.lookupFailures.set(key, times);
+      // Re-inserted last: the map stays ordered by last attempt
+      attempts.delete(key);
+      attempts.set(key, times);
     }
-    while (this.lookupFailures.size > LOOKUP_MAX_KEYS) {
-      this.lookupFailures.delete(this.lookupFailures.keys().next().value!);
+    while (attempts.size > LOOKUP_MAX_KEYS) {
+      attempts.delete(attempts.keys().next().value!);
     }
   }
 
@@ -1525,7 +1575,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param now - current time
    */
   protected pruneLookupFailures(now: number): void {
-    for (const key of [...this.lookupFailures.keys()]) this.countLookupFailures(key, now);
+    for (const attempts of [this.lookupFailures, this.deviceRequests]) {
+      for (const key of [...attempts.keys()]) this.countAttempts(attempts, key, now);
+    }
   }
 
   /**
@@ -1533,7 +1585,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param ctx - web context
    */
   async consentPage(ctx: WebContext): Promise<void> {
-    this.writePage(ctx, 200, nonce => consentHtml(this.apiBase(ctx), nonce));
+    this.writePage(ctx, 200, nonce => consentHtml(this.pendingPath(ctx), nonce));
   }
 
   /**
@@ -1552,7 +1604,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       const login = this.parameters.loginUrl;
       return this.redirect(ctx, `${login}${login.includes("?") ? "&" : "?"}redirect=${encodeURIComponent(back)}`);
     }
-    this.writePage(ctx, 200, nonce => deviceHtml(this.apiBase(ctx), userCode, nonce));
+    this.writePage(ctx, 200, nonce => deviceHtml(this.pendingPath(ctx), userCode, nonce));
   }
 
   /**

@@ -118,6 +118,27 @@ class RevokeTest extends OAuthTest {
   }
 
   @test
+  async sessionsCarryCreationAndLastUse() {
+    const b = await this.browser();
+    const before = Date.now();
+    const t = await this.fullTokens({ scope: "Task.* offline_access", browser: b });
+    const [created] = await this.op(b, "OAuth.Sessions");
+    assert.ok(created.createdAt >= before && created.createdAt <= Date.now(), JSON.stringify(created));
+    assert.strictEqual(created.lastUsedAt, undefined);
+    const refreshed = await this.tokenRequest({
+      grant_type: "refresh_token",
+      refresh_token: t.refresh_token!,
+      client_id: "app"
+    });
+    assert.strictEqual(refreshed.status, 200, JSON.stringify(refreshed.body));
+    const [rotated] = await this.op(b, "OAuth.Sessions");
+    // The family keeps its creation time, the rotation is its last use
+    assert.strictEqual(rotated.family, t.family);
+    assert.strictEqual(rotated.createdAt, created.createdAt);
+    assert.ok(rotated.lastUsedAt >= created.createdAt);
+  }
+
+  @test
   async revokeOneFamily() {
     const b = await this.browser();
     const first = await this.fullTokens({ scope: "Task.* offline_access", browser: b });

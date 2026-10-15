@@ -42,6 +42,13 @@ export interface BrowserResponse {
   ctx: WebContext;
 }
 
+/** Routes of the OAuthServer browser operations */
+const BROWSER_ROUTES: Record<string, [HttpMethodType, string]> = {
+  "OAuth.Consent.Get": ["GET", "/oauth/consent/request"],
+  "OAuth.Consent.Decide": ["POST", "/oauth/consent/decide"],
+  "OAuth.Device.Lookup": ["POST", "/oauth/device/lookup"]
+};
+
 /** Operations of the test application */
 export const TEST_OPERATIONS: Record<string, { permission?: string; summary?: string }> = {
   "Task.Get": { summary: "Read a task" },
@@ -120,6 +127,10 @@ export abstract class OAuthTest extends AuthTest {
     await super.beforeEach();
     // The HTTP server maps the routes before listening; requests here go straight to the router
     useRouter().remapRoutes();
+    // The service outlives a test: start each one without rate limit state
+    const server = useService<any>("OAuthServer");
+    server.lookupFailures.clear();
+    server.deviceRequests.clear();
   }
 
   /**
@@ -208,9 +219,9 @@ export abstract class OAuthTest extends AuthTest {
   }
 
   /**
-   * Call an operation by id (see AuthTest), or, with a browser first, call it like a browser on its REST route: the
-   * request goes to the path of the operation's `rest` hint, so only the cookies of that path are sent. Errors are
-   * thrown, the response cookies update the jar
+   * Call an operation by id (see AuthTest), or, with a browser first, call it like a browser: a browser operation of
+   * the OAuthServer goes through the router to its route below `/oauth`; another operation is called on the path of
+   * its `rest` hint. Only the cookies of that path are sent. Errors are thrown, the response cookies update the jar
    * @param args - `(browser, operationId, input?)` or the arguments of AuthTest.op
    * @returns parsed output
    */
@@ -225,8 +236,9 @@ export abstract class OAuthTest extends AuthTest {
     if (typeof args[0] === "string") return super.op(...(args as Parameters<AuthTest["op"]>));
     const [browser, operationId, input] = args as [Browser, string, any];
     const rest = listOperations()[operationId]?.rest;
-    const path = typeof rest === "object" ? `/${rest.path.replace(/^\//, "")}` : "/";
-    const method = (typeof rest === "object" ? rest.method.toUpperCase() : "POST") as HttpMethodType;
+    const route = BROWSER_ROUTES[operationId];
+    const path = route?.[1] ?? (typeof rest === "object" ? `/${rest.path.replace(/^\//, "")}` : "/");
+    const method = (route?.[0] ?? (typeof rest === "object" ? rest.method.toUpperCase() : "POST")) as HttpMethodType;
     const headers = this.cookieHeader(browser, path);
     if (method !== "GET") headers["content-type"] = "application/json";
     const http = new HttpContext("test.webda.io", method, path, "http", 80, headers);
@@ -235,7 +247,7 @@ export abstract class OAuthTest extends AuthTest {
     const call = await this.newWebContext<WebContext>(http);
     call.setSession(browser.ctx.getSession());
     try {
-      await runWithContext(call, () => callOperation(call, operationId));
+      await runWithContext(call, () => (route ? useRouter().execute(call) : callOperation(call, operationId)));
     } catch (err) {
       // Like the HTTP response: the status code is part of what the browser sees
       const status = (err as any)?.getResponseCode?.();

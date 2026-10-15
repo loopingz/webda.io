@@ -1115,6 +1115,20 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
+          "contentStorage": {
+            "additionalProperties": false,
+            "properties": {
+              "default": {
+                "default": false,
+                "type": "boolean"
+              },
+              "register": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
           "models": {
             "additionalProperties": {
               "items": {
@@ -1131,6 +1145,9 @@
           "bucket": {
             "description": "Bucket to store binaries in",
             "type": "string"
+          },
+          "contentStorage": {
+            "$ref": "#/definitions/contentStorage"
           },
           "endpoint": {
             "description": "Specify endpoint for GCS",

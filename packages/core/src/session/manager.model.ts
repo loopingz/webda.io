@@ -7,7 +7,7 @@ import { Context, isWebContext } from "../contexts/icontext.js";
 import { getUuid } from "@webda/utils";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Session } from "./session.js";
-import { useService, useUserResolver } from "../core/hooks.js";
+import { useCertificateResolver, useService, useUserResolver } from "../core/hooks.js";
 import { runAsSystem } from "../contexts/execution.js";
 import { type ModelClass, type Repository, UuidModel } from "@webda/models";
 
@@ -120,6 +120,58 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
   }
 
   /**
+   * Build a stateless session from the verified client certificate of the request
+   *
+   * Needs a registered certificate resolver (see `registerCertificateResolver`), the session uses the provider
+   * "certificate" and the authentication method "mtls"
+   * @param context - the context
+   * @returns the session, undefined when no verified certificate resolves to a user
+   */
+  async loadFromCertificate(context: Context): Promise<Session | undefined> {
+    const resolver = useCertificateResolver();
+    const cert = isWebContext(context) ? context.getHttpContext()?.getClientCertificate?.() : undefined;
+    if (!resolver || resolver.mode === "factor" || !cert?.verified) {
+      return undefined;
+    }
+    let resolution: Awaited<ReturnType<typeof resolver.resolveCertificate>>;
+    try {
+      resolution = await resolver.resolveCertificate(cert, context);
+    } catch (err) {
+      this.log("WARN", "Cannot resolve the client certificate, certificate ignored", err?.message);
+      return undefined;
+    }
+    if (!resolution) {
+      return undefined;
+    }
+    const session = new Session();
+    session.stateless = true;
+    session.login(resolution.userId, resolution.identId, { provider: "certificate", amr: ["mtls"] });
+    session.roles = resolution.roles;
+    return session;
+  }
+
+  /**
+   * Add the certificate as a request-scoped factor only when it belongs to the session's user.
+   * @param context - request context
+   * @param session - session authenticated by a cookie or Bearer token
+   * @returns the session with the additional factor when it matches
+   */
+  async addCertificateFactor(context: Context, session: Session): Promise<Session> {
+    const resolver = useCertificateResolver();
+    const cert = isWebContext(context) ? context.getHttpContext()?.getClientCertificate?.() : undefined;
+    if (!resolver || !cert?.verified || !session.userId || session.isApplication()) return session;
+    try {
+      const resolution = await resolver.resolveCertificate(cert, context);
+      if (resolution?.userId === session.userId) {
+        session.addTransientAmr("mtls");
+      }
+    } catch (err) {
+      this.log("WARN", "Cannot resolve the client certificate, certificate ignored", err?.message);
+    }
+    return session;
+  }
+
+  /**
    * Whether the user of an authenticated session changed their password after the session was authenticated
    *
    * Costs one user read (through the registered user resolver) per load of a session carrying `authAt`. A failing
@@ -207,7 +259,13 @@ export class CookieSessionManager<
     // A Bearer scheme is authoritative: an invalid token yields an anonymous session, never the cookie
     const authorization = context.getHttpContext().getHeader("authorization");
     if (typeof authorization === "string" && /^bearer(\s|$)/i.test(authorization)) {
-      return this.loadFromToken(context, authorization.substring(7).trim());
+      const session = await this.loadFromToken(context, authorization.substring(7).trim());
+      return useCertificateResolver()?.mode === "factor" ? this.addCertificateFactor(context, session) : session;
+    }
+    // A verified client certificate of a known user comes next: an unknown one falls back to the cookie
+    if (useCertificateResolver()?.mode !== "factor") {
+      const certSession = await this.loadFromCertificate(context);
+      if (certSession) return certSession;
     }
     const session = new Session();
     const cookie = await SecureCookie.load(
@@ -229,7 +287,7 @@ export class CookieSessionManager<
     if (await this.isOutdated(session)) {
       session.logout();
     }
-    return session;
+    return useCertificateResolver()?.mode === "factor" ? this.addCertificateFactor(context, session) : session;
   }
 
   /**
@@ -242,18 +300,21 @@ export class CookieSessionManager<
     if (session.stateless) {
       return;
     }
+    const storedSession = session.transientAmr?.length
+      ? Object.assign(new Session(), session, { amr: session.getPersistentAmr() })
+      : session;
     // If store is found session info are stored in db
     if (this.sessionModel) {
       if (await this.sessionModel.exists(session.uuid)) {
         await this.sessionModel.update({
           uuid: session.uuid,
-          session,
+          session: storedSession,
           ttl: Date.now() + this.parameters.cookie.maxAge * 1000
         });
       } else {
         await this.sessionModel.create({
           uuid: session.uuid,
-          session,
+          session: storedSession,
           ttl: Date.now() + this.parameters.cookie.maxAge * 1000
         });
       }
@@ -269,7 +330,7 @@ export class CookieSessionManager<
     SecureCookie.save(
       this.parameters.cookie.name,
       context,
-      session,
+      storedSession,
       SecretString.unwrap(this.parameters.jwt),
       this.parameters.cookie
     );

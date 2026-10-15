@@ -344,6 +344,30 @@ class S3BinaryContentStorageTest extends WebdaApplicationTest {
       this.s3Binary.getContent(`s3://${TEST_BUCKET}/x?credential=missing`),
       ContentCredentialNotFoundError
     );
+    this.s3Binary.parameters.credentialProfiles = undefined;
+    await assert.rejects(
+      this.s3Binary.getContent(`s3://${TEST_BUCKET}/x?credential=missing`),
+      ContentCredentialNotFoundError
+    );
+  }
+
+  @test
+  async defaultBucketUrlSupportsEveryOperationAndOpenEndedRange() {
+    const url = "s3:///default-bucket.txt";
+    const metrics = this.s3Binary.metrics;
+    (this.s3Binary as any).metrics = undefined;
+    try {
+      await this.s3Binary.putContent(url, "default bucket");
+      const stream = await this.s3Binary.getContent(url, { range: { start: 8 } });
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+      assert.strictEqual(Buffer.concat(chunks).toString(), "bucket");
+      assert.strictEqual((await this.s3Binary.headContent(url))?.size, 14);
+      await this.s3Binary.deleteContent(url);
+      assert.strictEqual(await this.s3Binary.headContent(url), undefined);
+    } finally {
+      (this.s3Binary as any).metrics = metrics;
+    }
   }
 
   @test

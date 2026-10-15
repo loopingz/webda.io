@@ -96,4 +96,16 @@ export class FakeCloudBinaryTest extends WebdaApplicationTest {
     await service.stop();
     assert.throws(() => ContentStorages.resolve("fake://example/key"));
   }
+
+  @test
+  async contentUrlWithoutBucketAndOptedOutRegistration() {
+    const params = new CloudBinaryParameters().load({ contentStorage: { register: false } });
+    const service = this.registerService(new CloudBinaryFakeService("unregistered-fake", params)).resolve();
+    assert.strictEqual(service.contentUrl("/some/key"), "fake:/some/key");
+    service.schemes.splice(0);
+    assert.strictEqual(service.contentUrl("key"), "s3:/key");
+    await service.init();
+    assert.throws(() => ContentStorages.resolve("fake:/key"));
+    await service.stop();
+  }
 }

@@ -197,7 +197,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async getContent(url: string, options?: ContentGetOptions): Promise<Readable> {
     const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
-    const targetBucket = bucket || this.parameters.bucket;
+    const targetBucket = bucket!;
     const client = this.getContentClient(endpoint, credential);
     const params: any = {
       Bucket: targetBucket,
@@ -231,7 +231,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
     const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
-    const targetBucket = bucket || this.parameters.bucket;
+    const targetBucket = bucket!;
     const client = this.getContentClient(endpoint, credential);
 
     if (options?.ifNotExists) {
@@ -308,7 +308,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async headContent(url: string): Promise<ContentInfo | undefined> {
     const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
-    const targetBucket = bucket || this.parameters.bucket;
+    const targetBucket = bucket!;
     try {
       const res = await this.getContentClient(endpoint, credential).headObject({
         Bucket: targetBucket,
@@ -336,7 +336,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async deleteContent(url: string): Promise<void> {
     const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
-    const targetBucket = bucket || this.parameters.bucket;
+    const targetBucket = bucket!;
     await this.getContentClient(endpoint, credential).deleteObject({
       Bucket: targetBucket,
       Key: key

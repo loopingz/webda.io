@@ -235,6 +235,10 @@ class GCSStorageContentTest extends WebdaApplicationTest {
     assert.strictEqual((source as any).authClient.jsonContent.client_email, "source@example.test");
     assert.strictEqual((destination as any).authClient.jsonContent.client_email, "destination@example.test");
     assert.strictEqual((destination as any).projectId, "destination-project");
+    assert.strictEqual(
+      (getRealBucket(TEST_BUCKET, undefined, "source").storage as any).authClient.jsonContent.client_email,
+      "source@example.test"
+    );
     const endpoint = "http://127.0.0.1:4443";
     const url = `gcs://${TEST_BUCKET}/profile.txt?credential=destination&endpoint=${encodeURIComponent(endpoint)}`;
     await putContent(url, "profile body");
@@ -252,6 +256,33 @@ class GCSStorageContentTest extends WebdaApplicationTest {
         )
     );
     assert.throws(() => getRealBucket(TEST_BUCKET, undefined, "missing"), ContentCredentialNotFoundError);
+    this.storage.parameters.credentialProfiles = undefined;
+    assert.throws(() => getRealBucket(TEST_BUCKET, undefined, "missing"), ContentCredentialNotFoundError);
+    const inherited = getRealBucket(TEST_BUCKET, undefined, undefined).storage;
+    assert.strictEqual((inherited as any).authClient.jsonContent.client_email, "default@example.test");
+  }
+
+  @test
+  async defaultBucketUrlSupportsEveryOperationAndOpenEndedRange() {
+    const url = "gs:///default-bucket.txt";
+    const metrics = this.storage.metrics;
+    (this.storage as any).metrics = undefined;
+    try {
+      await this.storage.putContent(url, "default bucket");
+      const stream = await this.storage.getContent(url, { range: { start: 8 } });
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+      assert.strictEqual(Buffer.concat(chunks).toString(), "bucket");
+      const legacyStream = await this.storage.getContent({ key: "default-bucket.txt" });
+      const legacyChunks: Buffer[] = [];
+      for await (const chunk of legacyStream) legacyChunks.push(Buffer.from(chunk));
+      assert.strictEqual(Buffer.concat(legacyChunks).toString(), "default bucket");
+      assert.strictEqual((await this.storage.headContent(url))?.size, 14);
+      await this.storage.deleteContent(url);
+      assert.strictEqual(await this.storage.headContent(url), undefined);
+    } finally {
+      (this.storage as any).metrics = metrics;
+    }
   }
 
   @test

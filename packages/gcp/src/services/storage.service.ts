@@ -255,7 +255,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     if (typeof urlOrObject === "string") {
       url = urlOrObject;
       const { bucket, key, endpoint, credential } = parseContentUrl(urlOrObject, this.parameters.bucket);
-      targetBucket = bucket || this.parameters.bucket;
+      targetBucket = bucket!;
       targetKey = key;
       selectedEndpoint = endpoint;
       selectedCredential = credential;
@@ -293,7 +293,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
     const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
-    const targetBucket = bucket || this.parameters.bucket;
+    const targetBucket = bucket!;
     const file = this.getStorageBucket(targetBucket, endpoint, credential).file(key);
 
     if (options?.ifNotExists) {
@@ -346,7 +346,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   async headContent(url: string): Promise<ContentInfo | undefined> {
     const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
-    const targetBucket = bucket || this.parameters.bucket;
+    const targetBucket = bucket!;
     const file = this.getStorageBucket(targetBucket, endpoint, credential).file(key);
     try {
       const [metadata] = await file.getMetadata();
@@ -372,7 +372,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   async deleteContent(url: string): Promise<void> {
     const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
-    const targetBucket = bucket || this.parameters.bucket;
+    const targetBucket = bucket!;
     try {
       await this.getStorageBucket(targetBucket, endpoint, credential).file(key).delete({ ignoreNotFound: true });
     } catch (err: any) {

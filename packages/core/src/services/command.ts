@@ -50,6 +50,15 @@ export interface CommandOptions {
  *
  * Multiple services can declare the same command name — they all run in
  * dependency-graph order. Use `--service=ServiceName` to filter at invocation.
+ * The CLI accepts the union of their arguments; each handler is called with
+ * its own parameters only, the values matched by name (a handler does not need
+ * to mirror the parameters of the other providers, nor their order), falling
+ * back to its own defaults.
+ *
+ * Every configured instance runs the command once. A subclass inherits the
+ * commands of its ancestors; redeclaring `@Command` with the same name on a
+ * subclass replaces the ancestor's for the subclass instances (instances of the
+ * parent class keep the parent handler), and may add its own arguments.
  *
  * Subcommands use space-separated names. The service owns its subtree:
  * `@Command("aws s3")` handles everything under `webda aws s3`.
@@ -93,6 +102,21 @@ export interface CommandOptions {
  * }
  * // webda migrate              → runs both
  * // webda migrate --service=PostgresMigrator  → runs only PostgreSQL
+ * ```
+ *
+ * @example Overriding an inherited command
+ * ```typescript
+ * class RunnerHttpServer extends HttpServer {
+ *   @Command("serve", { description: "Start the runner" })
+ *   async serve(
+ *     /&ast;&ast; @description Hub to connect to &ast;/
+ *     connect: string = "wss://hub.example.com",
+ *     bind: string = "127.0.0.1",
+ *     port: number = 18080
+ *   ): Promise<void> { ... }
+ * }
+ * // webda serve --connect wss://other --port 3000
+ * // → RunnerHttpServer.serve("wss://other", "127.0.0.1", 3000), once; HttpServer.serve is not called on it
  * ```
  */
 export const Command = createMethodDecorator(

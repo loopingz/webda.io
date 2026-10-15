@@ -1,24 +1,33 @@
+import { timingSafeEqual } from "node:crypto";
 import {
+  canCallOperation,
+  collapse,
   covers,
+  expand,
   formatScope,
   intersect,
   InvalidScope,
   listOperations,
   OFFLINE_ACCESS,
+  Operation,
   OperationIdTransport,
   operationGlobs,
   parseScope,
+  RESTOperationsTransport,
   type Scope,
+  scopeMatches,
   Service,
+  type Session,
+  useContext,
   useCore,
   type WebContext,
   WebdaError
 } from "@webda/core";
 import { ClientRegistry } from "./clients.js";
-import { randomToken } from "./devicecode.js";
-import { type GrantIdentity, OAuthGrant } from "./models.model.js";
+import { randomToken, sha256 } from "./devicecode.js";
+import { type GrantIdentity, OAuthCode, OAuthGrant } from "./models.model.js";
 import { OAuthServerParameters } from "./parameters.js";
-import { type PendingRequest, PENDING_TTL, writePending } from "./pending.js";
+import { type PendingRequest, PENDING_TTL, readPending, writePending } from "./pending.js";
 
 /** Name of the pending request cookie */
 export const PENDING_COOKIE = "webda_oauth_pending";
@@ -41,12 +50,72 @@ const AUTHORIZE_PARAMS = [
   "hostname"
 ];
 
+/** Consent request shown to the user */
+export interface ConsentRequest {
+  /** Authorization code or device flow */
+  flow: "code" | "device";
+  /** Requesting client */
+  client: { id: string; name: string; logo?: string; uri?: string; host?: string };
+  /** Signed-in user */
+  user: { id: string; name?: string };
+  /** Hostname of the device requesting access */
+  hostname?: string;
+  /** Requested operations the user can call, by first segment */
+  operations: { group: string; ids: { id: string; summary?: string; preselected: boolean }[] }[];
+  /** A refresh token is requested */
+  offlineAccess: boolean;
+  /** The decision can be remembered */
+  rememberable: boolean;
+  /** CSRF token to send back with the decision */
+  csrf: string;
+}
+
+/**
+ * @param a - received secret
+ * @param b - expected secret
+ * @returns true when equal, compared in constant time
+ */
+function sameSecret(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+/**
+ * @param url - base URL, possibly with a query
+ * @param params - parameters to append, undefined values are skipped
+ * @returns the URL with the parameters
+ */
+function withQuery(url: string, params: Record<string, string | undefined>): string {
+  const query = new URLSearchParams(
+    Object.entries(params).filter((e): e is [string, string] => e[1] !== undefined)
+  ).toString();
+  return query ? `${url}${url.includes("?") ? "&" : "?"}${query}` : url;
+}
+
+/**
+ * @param session - logged-in session
+ * @returns the identity carried by the issued tokens
+ */
+function identityOf(session: Session): GrantIdentity {
+  return {
+    userId: session.userId!,
+    identId: session.identUsed,
+    provider: session.provider,
+    amr: session.amr ?? [],
+    mfa: session.mfa ?? "none"
+  };
+}
+
 /**
  * OAuth 2.1 authorization server issuing scoped TokenService tokens to native and MCP clients
  *
  * Routes:
  * - `GET /.well-known/oauth-authorization-server`: server metadata (RFC 8414)
  * - `GET <url>/authorize`: authorization endpoint (code flow, PKCE S256 only)
+ *
+ * Operations (browser session, pending request cookie): `OAuth.Consent.Get`, `OAuth.Consent.Decide`. Their REST
+ * hints sit below `/oauth`, the default `url`, so the pending cookie reaches them through a REST transport at `/`
  *
  * @WebdaModda OAuthServer
  */
@@ -72,6 +141,24 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     this.addRoute(`${url}/consent`, ["GET"], this.consentPage, { hidden: true });
     this.addRoute(`${url}/device`, ["GET"], this.devicePage, { hidden: true });
     this.addRoute(`${url}/done`, ["GET"], this.resultPage, { hidden: true });
+    return this;
+  }
+
+  /** @override */
+  async init(): Promise<this> {
+    await super.init();
+    // The consent operations only see the pending cookie when their REST route is below its path
+    const rest = Object.values(useCore().getServices()).find(
+      (service): service is RESTOperationsTransport => service instanceof RESTOperationsTransport
+    );
+    const consent = rest ? `${rest.getParameters().url}oauth/consent` : undefined;
+    if (consent && !consent.startsWith(`${this.parameters.url}/`)) {
+      this.log(
+        "WARN",
+        `The REST routes of the consent operations (${consent}/...) are outside the pending request cookie path ` +
+          `(${this.parameters.url}): browsers will not send it there`
+      );
+    }
     return this;
   }
 
@@ -147,11 +234,19 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * @returns the operations a delegated token may be granted: all but the OAuth operations, which manage consent
+   * and only serve browser sessions
+   */
+  protected delegableOperations(): string[] {
+    return Object.keys(listOperations()).filter(id => !id.startsWith("OAuth."));
+  }
+
+  /**
    * @returns advertised scopes: configured, or `*`, the top-level operation groups and `offline_access`
    */
   protected scopesSupported(): string[] {
     if (this.parameters.scopesSupported) return this.parameters.scopesSupported;
-    const groups = new Set(Object.keys(listOperations()).map(id => `${id.split(".")[0]}.*`));
+    const groups = new Set(this.delegableOperations().map(id => `${id.split(".")[0]}.*`));
     return ["*", ...groups, OFFLINE_ACCESS];
   }
 
@@ -229,6 +324,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       }
       if (prompt === "none") return fail("consent_required", "Consent required");
     }
+    // Bound to the signed-in user: consent from another user of the browser is refused
+    pending.userId = session.userId;
     if (!(await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending))) {
       return fail("invalid_request", "Authorization request is too large");
     }
@@ -272,24 +369,227 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Issue an authorization code for an approved request and redirect to the client
-   * @param _ctx - web context
-   * @param _pending - pending request
-   * @param _scope - granted scope
+   * Pending consent request of the browser
+   * @returns the request to display
    */
-  protected async approveCode(_ctx: WebContext, _pending: PendingRequest, _scope: Scope): Promise<void> {
-    throw new WebdaError.CodeError("NOT_IMPLEMENTED", "Authorization code approval is not implemented yet");
+  @Operation({ id: "OAuth.Consent.Get", rest: { method: "get", path: "oauth/consent/request" } })
+  async consentGet(): Promise<ConsentRequest> {
+    const ctx = useContext<WebContext>();
+    const pending = await this.requirePending(ctx);
+    const client = await this.clients.get(pending.clientId);
+    if (!client) throw new WebdaError.BadRequest("Unknown client");
+    const requested = parseScope(pending.scope);
+    const ops = listOperations();
+    const callable = await this.callableOperations(ctx, requested);
+    const userId = ctx.getSession().userId!;
+    // Consent is never skipped for the device flow, the remembered scope only pre-selects in the code flow
+    const remembered = pending.flow === "code" ? await this.rememberedScope(userId, client.id) : undefined;
+    const groups = new Map<string, ConsentRequest["operations"][number]>();
+    for (const id of callable) {
+      const group = id.split(".")[0];
+      if (!groups.has(group)) groups.set(group, { group, ids: [] });
+      groups.get(group)!.ids.push({
+        id,
+        summary: ops[id]?.summary,
+        preselected: remembered ? scopeMatches(remembered, id) : true
+      });
+    }
+    return {
+      flow: pending.flow,
+      client: {
+        id: client.id,
+        name: client.name,
+        logo: client.logo,
+        uri: client.client_uri,
+        host: client.metadataDocument ? new URL(client.id).host : undefined
+      },
+      user: { id: userId },
+      hostname: pending.hostname,
+      operations: [...groups.values()],
+      offlineAccess: requested.includes(OFFLINE_ACCESS),
+      rememberable: pending.flow === "code" && this.parameters.rememberConsent,
+      csrf: pending.csrf
+    };
   }
 
   /**
-   * Create an authorization code
+   * Record the user's decision on the pending request
+   * @param allow - grant or deny
+   * @param operations - selected operation ids
+   * @param csrf - token from OAuth.Consent.Get
+   * @param remember - remember the consent for this client
+   * @returns where the browser goes next
+   */
+  @Operation({ id: "OAuth.Consent.Decide", rest: { method: "post", path: "oauth/consent/decide" } })
+  async consentDecide(
+    allow: boolean,
+    operations: string[],
+    csrf: string,
+    remember?: boolean
+  ): Promise<{ redirect: string }> {
+    const ctx = useContext<WebContext>();
+    const pending = await this.requirePending(ctx);
+    if (typeof csrf !== "string" || !sameSecret(csrf, pending.csrf)) {
+      throw new WebdaError.Forbidden("Invalid CSRF token");
+    }
+    if (allow !== true) {
+      await this.clearPending(ctx);
+      if (pending.flow === "device") {
+        await this.denyDevice(pending);
+        return { redirect: withQuery(this.pageUrl(ctx, "result"), { status: "error", error: "access_denied" }) };
+      }
+      return { redirect: withQuery(pending.redirectUri!, { error: "access_denied", state: pending.state }) };
+    }
+    const requested = parseScope(pending.scope);
+    const callable = await this.callableOperations(ctx, requested);
+    // Only operation ids both requested and callable by the user: never a glob, never more than requested
+    const selected = (Array.isArray(operations) ? operations : []).filter(
+      (id): id is string => typeof id === "string" && callable.includes(id)
+    );
+    let granted = collapse(selected, requested, callable);
+    const client = await this.clients.get(pending.clientId);
+    if (!client) throw new WebdaError.BadRequest("Unknown client");
+    if (client.allowedScopes !== undefined) granted = intersect(granted, parseScope(client.allowedScopes));
+    if (!operationGlobs(granted).length) throw new WebdaError.BadRequest("Select at least one operation");
+    if (requested.includes(OFFLINE_ACCESS)) granted.push(OFFLINE_ACCESS);
+    await this.clearPending(ctx);
+    const identity = identityOf(ctx.getSession());
+    if (pending.flow === "device") {
+      await this.approveDevice(pending, identity, granted);
+      return { redirect: withQuery(this.pageUrl(ctx, "result"), { status: "success", client: pending.clientId }) };
+    }
+    if (remember === true && this.parameters.rememberConsent) {
+      await this.remember(identity.userId, pending.clientId, granted);
+    }
+    return { redirect: await this.codeRedirect(pending, identity, granted) };
+  }
+
+  /**
+   * The pending request of a browser session, bound to its user
+   * @param ctx - web context
+   * @returns the pending request
+   * @throws Unauthorized without a browser (cookie) session logged in
+   * @throws BadRequest without a pending request
+   * @throws Forbidden when the request belongs to another user
+   */
+  protected async requirePending(ctx: WebContext): Promise<PendingRequest> {
+    const session = ctx.getSession();
+    // A bearer (scoped) session cannot consent: consent comes from a browser session
+    if (!session?.isLogged() || session.scopes !== undefined) throw new WebdaError.Unauthorized("Login required");
+    const pending = await readPending(ctx, PENDING_COOKIE);
+    if (!pending) throw new WebdaError.BadRequest("No pending authorization request");
+    if (pending.userId === undefined) {
+      // Started before the login: bind it to the user who reviews it
+      pending.userId = session.userId;
+      if (!(await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending))) {
+        throw new WebdaError.BadRequest("Authorization request is too large");
+      }
+    } else if (pending.userId !== session.userId) {
+      throw new WebdaError.Forbidden("The authorization request belongs to another user");
+    }
+    return pending;
+  }
+
+  /**
+   * @param ctx - web context
+   */
+  protected async clearPending(ctx: WebContext): Promise<void> {
+    await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), undefined);
+  }
+
+  /**
+   * @param ctx - web context of the user
+   * @param requested - requested scope
+   * @returns the requested operations the user can call, in registration order
+   */
+  protected async callableOperations(ctx: WebContext, requested: Scope): Promise<string[]> {
+    const callable: string[] = [];
+    for (const id of expand(requested, this.delegableOperations())) {
+      if (await canCallOperation(ctx, id)) callable.push(id);
+    }
+    return callable;
+  }
+
+  /**
+   * Remember the consent of a user for a client, replacing the previous one
+   * @param userId - user
+   * @param clientId - client
+   * @param scope - granted scope
+   */
+  protected async remember(userId: string, clientId: string, scope: Scope): Promise<void> {
+    const uuid = `${userId}:${clientId}`;
+    const now = Date.now();
+    const update = {
+      scope: formatScope(scope),
+      lastUsedAt: now,
+      expiresAt: now + this.parameters.rememberConsentTtl * 1000
+    };
+    const ref = OAuthGrant.ref(uuid);
+    if (await ref.exists()) {
+      await ref.patch(update);
+    } else {
+      await OAuthGrant.create({ uuid, userId, clientId, createdAt: now, ...update } as any);
+    }
+  }
+
+  /**
+   * @param pending - approved request
+   * @param identity - identity of the user
+   * @param scope - granted scope
+   * @returns the client redirect carrying a new authorization code
+   */
+  protected async codeRedirect(pending: PendingRequest, identity: GrantIdentity, scope: Scope): Promise<string> {
+    const code = await this.issueCode(pending, identity, scope);
+    return withQuery(pending.redirectUri!, { code, state: pending.state });
+  }
+
+  /**
+   * Issue an authorization code for an approved request and redirect to the client
+   * @param ctx - web context
+   * @param pending - pending request
+   * @param scope - granted scope
+   */
+  protected async approveCode(ctx: WebContext, pending: PendingRequest, scope: Scope): Promise<void> {
+    this.redirect(ctx, await this.codeRedirect(pending, identityOf(ctx.getSession()), scope));
+  }
+
+  /**
+   * Create an authorization code, stored hashed
+   * @param pending - pending request
+   * @param identity - identity of the user
+   * @param scope - granted scope
+   * @returns the code
+   */
+  protected async issueCode(pending: PendingRequest, identity: GrantIdentity, scope: Scope): Promise<string> {
+    const code = randomToken(32);
+    await OAuthCode.create({
+      hash: sha256(code),
+      clientId: pending.clientId,
+      redirectUri: pending.redirectUri!,
+      codeChallenge: pending.codeChallenge!,
+      scope: formatScope(scope),
+      identity,
+      expiresAt: Date.now() + this.parameters.codeTtl * 1000
+    } as any);
+    return code;
+  }
+
+  /**
+   * Approve a pending device authorization
    * @param _pending - pending request
    * @param _identity - identity of the user
    * @param _scope - granted scope
-   * @returns the code
    */
-  protected async issueCode(_pending: PendingRequest, _identity: GrantIdentity, _scope: Scope): Promise<string> {
-    throw new WebdaError.CodeError("NOT_IMPLEMENTED", "Authorization code issuance is not implemented yet");
+  protected async approveDevice(_pending: PendingRequest, _identity: GrantIdentity, _scope: Scope): Promise<void> {
+    throw new WebdaError.CodeError("NOT_IMPLEMENTED", "Device approval is not implemented yet");
+  }
+
+  /**
+   * Deny a pending device authorization
+   * @param _pending - pending request
+   */
+  protected async denyDevice(_pending: PendingRequest): Promise<void> {
+    throw new WebdaError.CodeError("NOT_IMPLEMENTED", "Device denial is not implemented yet");
   }
 
   /**

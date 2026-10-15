@@ -1,5 +1,13 @@
 import { createHash, randomBytes } from "node:crypto";
-import { HttpContext, runWithContext, useRouter, type HttpMethodType, type WebContext } from "@webda/core";
+import {
+  callOperation,
+  HttpContext,
+  listOperations,
+  runWithContext,
+  useRouter,
+  type HttpMethodType,
+  type WebContext
+} from "@webda/core";
 import { AuthTest } from "@webda/auth/lib/test/authtest.js";
 
 /** A browser: a session (cookie session) and the other cookies it holds */
@@ -106,11 +114,7 @@ export abstract class OAuthTest extends AuthTest {
       Object.entries(params).filter((e): e is [string, string] => e[1] !== undefined)
     ).toString();
     const url = method === "GET" && search ? `${path}?${search}` : path;
-    const cookie = Object.entries(browser.jar)
-      .filter(([k]) => path.startsWith(browser.paths[k] ?? "/"))
-      .map(([k, v]) => `${k}=${v}`)
-      .join("; ");
-    const headers: Record<string, string> = cookie ? { cookie } : {};
+    const headers = this.cookieHeader(browser, path);
     if (method !== "GET") headers["content-type"] = "application/x-www-form-urlencoded";
     const http = new HttpContext("test.webda.io", method, url, "http", 80, headers);
     if (method !== "GET") http.setBody(search);
@@ -118,6 +122,29 @@ export abstract class OAuthTest extends AuthTest {
     const call = await this.newWebContext<WebContext>(http);
     call.setSession(browser.ctx.getSession());
     await runWithContext(call, () => useRouter().execute(call));
+    return this.receive(browser, call);
+  }
+
+  /**
+   * @param browser - browser
+   * @param path - path of the request
+   * @returns the Cookie header the browser sends to the path
+   */
+  protected cookieHeader(browser: Browser, path: string): Record<string, string> {
+    const cookie = Object.entries(browser.jar)
+      .filter(([k]) => path.startsWith(browser.paths[k] ?? "/"))
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; ");
+    return cookie ? { cookie } : {};
+  }
+
+  /**
+   * Update the browser from a finished request: its session and the cookies set by the response
+   * @param browser - browser
+   * @param call - context of the request
+   * @returns the response
+   */
+  protected receive(browser: Browser, call: WebContext): BrowserResponse {
     browser.ctx.setSession(call.getSession());
     const cookies: BrowserResponse["cookies"] = (call.getResponseCookies() as any) ?? {};
     for (const set of Object.values(cookies)) {
@@ -137,6 +164,46 @@ export abstract class OAuthTest extends AuthTest {
       // Not JSON
     }
     return { status: call.statusCode, headers: call.getResponseHeaders() as any, body, cookies, ctx: call };
+  }
+
+  /**
+   * Call an operation by id (see AuthTest), or, with a browser first, call it like a browser on its REST route: the
+   * request goes to the path of the operation's `rest` hint, so only the cookies of that path are sent. Errors are
+   * thrown, the response cookies update the jar
+   * @param args - `(browser, operationId, input?)` or the arguments of AuthTest.op
+   * @returns parsed output
+   */
+  op<T = any>(
+    operationId: string,
+    input?: any,
+    ctx?: WebContext,
+    headers?: Record<string, string>
+  ): Promise<T | undefined>;
+  op<T = any>(browser: Browser, operationId: string, input?: any): Promise<T | undefined>;
+  async op(...args: any[]): Promise<any> {
+    if (typeof args[0] === "string") return super.op(...(args as Parameters<AuthTest["op"]>));
+    const [browser, operationId, input] = args as [Browser, string, any];
+    const rest = listOperations()[operationId]?.rest;
+    const path = typeof rest === "object" ? `/${rest.path.replace(/^\//, "")}` : "/";
+    const method = (typeof rest === "object" ? rest.method.toUpperCase() : "POST") as HttpMethodType;
+    const headers = this.cookieHeader(browser, path);
+    if (method !== "GET") headers["content-type"] = "application/json";
+    const http = new HttpContext("test.webda.io", method, path, "http", 80, headers);
+    if (method !== "GET") http.setBody(JSON.stringify(input ?? {}));
+    http.setClientIp("127.0.0.1");
+    const call = await this.newWebContext<WebContext>(http);
+    call.setSession(browser.ctx.getSession());
+    try {
+      await runWithContext(call, () => callOperation(call, operationId));
+    } catch (err) {
+      // Like the HTTP response: the status code is part of what the browser sees
+      const status = (err as any)?.getResponseCode?.();
+      if (status) (err as Error).message = `${status} ${(err as Error).message}`;
+      throw err;
+    } finally {
+      browser.ctx.setSession(call.getSession());
+    }
+    return this.receive(browser, call).body;
   }
 
   /**

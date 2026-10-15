@@ -1052,6 +1052,184 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "OAuthServer.consentGet.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "OAuthServer.consentGet.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "Consent request shown to the user",
+      "properties": {
+        "client": {
+          "$ref": "#/definitions/client",
+          "description": "Requesting client"
+        },
+        "csrf": {
+          "description": "CSRF token to send back with the decision",
+          "type": "string"
+        },
+        "flow": {
+          "description": "Authorization code or device flow",
+          "enum": [
+            "code",
+            "device"
+          ],
+          "type": "string"
+        },
+        "hostname": {
+          "description": "Hostname of the device requesting access",
+          "type": "string"
+        },
+        "offlineAccess": {
+          "default": false,
+          "description": "A refresh token is requested",
+          "type": "boolean"
+        },
+        "operations": {
+          "description": "Requested operations the user can call, by first segment",
+          "items": {
+            "$ref": "#/definitions/operations%5B%5D"
+          },
+          "type": "array"
+        },
+        "rememberable": {
+          "default": false,
+          "description": "The decision can be remembered",
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/user",
+          "description": "Signed-in user"
+        }
+      },
+      "required": [
+        "client",
+        "csrf",
+        "flow",
+        "operations",
+        "user"
+      ],
+      "type": "object",
+      "definitions": {
+        "client": {
+          "additionalProperties": false,
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "logo": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uri": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "operations[]": {
+          "additionalProperties": false,
+          "properties": {
+            "group": {
+              "type": "string"
+            },
+            "ids": {
+              "items": {
+                "$ref": "#/definitions/operations%5B%5D%24ids%5B%5D"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "group",
+            "ids"
+          ],
+          "type": "object"
+        },
+        "operations[]$ids[]": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "preselected": {
+              "default": false,
+              "type": "boolean"
+            },
+            "summary": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "user": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "OAuthServer.consentDecide.input": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "type": "boolean"
+        },
+        "operations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "csrf": {
+          "type": "string"
+        },
+        "remember": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "allow",
+        "operations",
+        "csrf"
+      ]
+    },
+    "OAuthServer.consentDecide.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "redirect": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "redirect"
+      ],
+      "type": "object"
     }
   },
   "behaviors": {}

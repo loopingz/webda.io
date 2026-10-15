@@ -10,6 +10,7 @@ import {
   collectServiceCommands,
   getCliConfiguration,
   executeServiceCommand,
+  selectOperations,
   type ServiceCommandInfo,
   type ServiceCommandTarget
 } from "../services/servicecommands.js";
@@ -1087,7 +1088,8 @@ export function applyDefaultCommand(argv: string[], defaultCommand?: string, com
  *
  * The program name and default command come from `webda.cli` (`name`, `defaultCommand`) unless given
  * in `options`. The command selection of `webda.cli` (`include`, `exclude`) applies to the `webda`
- * command as well, see {@link collectServiceCommands}.
+ * command as well, to the service commands and the operation commands alike, see
+ * {@link collectServiceCommands} and {@link selectOperations}.
  *
  * The process exits once the command completes (or fails, or is interrupted by SIGINT/SIGTERM).
  *
@@ -1124,8 +1126,23 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
       useInstanceStorage().application = app;
       await app.load();
 
+      // Operation commands, if operations.json exists, selected by webda.cli like the service commands
+      const opsPath = join(appPath, ".webda", "operations.json");
+      let ops: OperationsFile | undefined = existsSync(opsPath)
+        ? JSON.parse(readFileSync(opsPath, "utf-8"))
+        : undefined;
+      const selection = getCliConfiguration(app);
+      const operationIds = ops ? Object.values(ops.operations).map(op => op.id) : [];
+
       // Collect service commands from webda.module.json
-      const serviceCommands = collectServiceCommands(app);
+      const serviceCommands = collectServiceCommands(app, selection, operationIds);
+      if (ops) {
+        const selected = new Set(selectOperations(operationIds, selection));
+        ops = {
+          ...ops,
+          operations: Object.fromEntries(Object.entries(ops.operations).filter(([, op]) => selected.has(op.id)))
+        };
+      }
 
       // Track which command was matched so we know whether to boot Core
       let matchedCommand:
@@ -1142,16 +1159,11 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         // @webda/compiler not installed
       }
 
-      // Operation commands, if operations.json exists
-      const opsPath = join(appPath, ".webda", "operations.json");
-      const ops: OperationsFile | undefined = existsSync(opsPath)
-        ? JSON.parse(readFileSync(opsPath, "utf-8"))
-        : undefined;
       const available = [
         ...Object.keys(serviceCommands).map(name => name.split(" ")[0]),
         ...(ops ? [...groupOperations(ops.operations).keys()].map(group => group.toLowerCase()) : [])
       ];
-      const cliConfiguration = applicationCli ? getCliConfiguration(app) : undefined;
+      const cliConfiguration = applicationCli ? selection : undefined;
       const cliArgv = applyDefaultCommand(extractedArgv, options.defaultCommand ?? cliConfiguration?.defaultCommand, [
         ...available,
         "completion"

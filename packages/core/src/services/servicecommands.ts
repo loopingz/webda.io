@@ -64,6 +64,123 @@ function isCommandOrSubcommand(cmdName: string, name: string): boolean {
 }
 
 /**
+ * A command the `webda.cli` selection applies to: a provider of a `@Command`, or an operation
+ */
+interface SelectableCommand {
+  /** Command name, space-separated (`"config encrypt"`, `"task get"`) */
+  cmdName: string;
+  /** Service type providing the `@Command` */
+  typeName?: string;
+  /** An operation command, named in lowercase */
+  operation?: boolean;
+}
+
+/**
+ * The CLI command name of an operation: its group (the id before the first dot) and its action, in
+ * lowercase, as `webda` declares it (`"Task.Get"` is `task get`)
+ *
+ * @param id - the operation id
+ * @returns the command name
+ */
+export function operationCommandName(id: string): string {
+  const dot = id.indexOf(".");
+  const group = dot >= 0 ? id.substring(0, dot) : id;
+  return `${group} ${id.substring(dot + 1)}`.toLowerCase();
+}
+
+/**
+ * @param operationIds - operation ids
+ * @returns the operations as selectable commands
+ */
+function operationCommands(operationIds: string[]): (SelectableCommand & { id: string; operation: true })[] {
+  return operationIds.map(id => ({ cmdName: operationCommandName(id), id, operation: true }));
+}
+
+/**
+ * Whether a `webda.cli.exclude` entry matches a command
+ *
+ * @param command - the command
+ * @param type - the provider type of the entry (`"Webda/HttpServer"` in `"Webda/HttpServer:serve"`), if any
+ * @param name - the command name of the entry
+ * @returns true if the entry drops the command
+ */
+function excludes(command: SelectableCommand, type: string | undefined, name: string): boolean {
+  if (command.operation) {
+    // Operations have no provider type: only `"group"` or `"group action"`, in any case
+    return type === undefined && isCommandOrSubcommand(command.cmdName, name.toLowerCase());
+  }
+  return (
+    isCommandOrSubcommand(command.cmdName, name) &&
+    (type === undefined ||
+      command.typeName === type ||
+      (!type.includes("/") && !!command.typeName?.endsWith(`/${type}`)))
+  );
+}
+
+/**
+ * Whether a `webda.cli.include` entry keeps a command
+ *
+ * @param command - the command
+ * @param name - the entry
+ * @returns true if the entry keeps the command
+ */
+function includes(command: SelectableCommand, name: string): boolean {
+  return isCommandOrSubcommand(command.cmdName, command.operation ? name.toLowerCase() : name);
+}
+
+/**
+ * Apply the `webda.cli` selection: `include` keeps the listed commands, then `exclude` removes some
+ *
+ * @param commands - the `@Command` providers and the operations
+ * @param cli - the selection
+ * @param warn - log a warning for an entry matching none of `commands`
+ * @returns the commands selected
+ */
+function selectCommands<T extends SelectableCommand>(
+  commands: T[],
+  cli: Pick<WebdaCliDescriptor, "include" | "exclude"> | undefined,
+  warn: boolean
+): T[] {
+  if (cli?.include) {
+    for (const name of cli.include) {
+      if (warn && !commands.some(c => includes(c, name))) {
+        useLog("WARN", `webda.cli.include: no command '${name}'`);
+      }
+    }
+    commands = commands.filter(c => cli.include.some(name => includes(c, name)));
+  }
+  for (const entry of cli?.exclude || []) {
+    const separator = entry.indexOf(":");
+    const type = separator >= 0 ? entry.substring(0, separator) : undefined;
+    const name = separator >= 0 ? entry.substring(separator + 1) : entry;
+    if (warn && !commands.some(c => excludes(c, type, name))) {
+      useLog("WARN", `webda.cli.exclude: no ${type ? `provider '${type}' of command` : "command"} '${name}'`);
+    }
+    commands = commands.filter(c => !excludes(c, type, name));
+  }
+  return commands;
+}
+
+/**
+ * Select the operations offered as CLI commands with the application `webda.cli` configuration
+ *
+ * An operation `Group.Action` is the command `group action`: `include` keeps it when it lists `"group"`
+ * (every operation of the group) or `"group action"`, then `exclude` drops it the same way. Names are
+ * matched in any case (`"RunnerAuth"` is `runnerauth`); the `"Type:command"` form only selects `@Command`
+ * providers. Unmatched entries are reported by {@link collectServiceCommands}, which knows both sources.
+ *
+ * @param operationIds - the operation ids
+ * @param cli - the command selection
+ * @returns the operation ids selected
+ */
+export function selectOperations(
+  operationIds: string[],
+  cli: Pick<WebdaCliDescriptor, "include" | "exclude"> | undefined
+): string[] {
+  return selectCommands(operationCommands(operationIds), cli, false).map(c => c.id);
+}
+
+/**
  * Collect all CLI commands declared by services across all loaded modules.
  *
  * Scans the `moddas`, `beans`, and `deployers` sections of `webda.module.json`
@@ -75,12 +192,15 @@ function isCommandOrSubcommand(cmdName: string, name: string): boolean {
  * The application `webda.cli` configuration (package.json) selects the commands first:
  * `include` keeps only the listed commands (with their subcommands), then `exclude`
  * removes a provider (`"Webda/HttpServer:serve"`) or a whole command (`"openapi"`, with
- * its subcommands). An entry matching nothing is logged as a warning. Two remaining
+ * its subcommands). The selection applies to the operation commands too, see {@link selectOperations}:
+ * an entry matching neither a command nor an operation is logged as a warning. Two remaining
  * providers declaring the same argument with another type or at another position are
  * logged as a warning too: every handler receives the same positional values.
  *
  * @param app - The loaded Webda Application with module metadata available
  * @param cli - The command selection, read from the application package.json by default
+ * @param operationIds - The operation ids of the application (`.webda/operations.json`): an entry selecting
+ *   only operations is not reported as matching nothing
  * @returns A map of command names to their merged definitions
  *
  * @example
@@ -97,13 +217,14 @@ function isCommandOrSubcommand(cmdName: string, name: string): boolean {
  */
 export function collectServiceCommands(
   app: Application,
-  cli: Pick<WebdaCliDescriptor, "include" | "exclude"> | undefined = getCliConfiguration(app)
+  cli: Pick<WebdaCliDescriptor, "include" | "exclude"> | undefined = getCliConfiguration(app),
+  operationIds: string[] = []
 ): { [name: string]: ServiceCommandInfo } {
   const commands: { [name: string]: ServiceCommandInfo } = {};
   const modules = app.getModules();
 
   // Every provider of every command, in module order
-  let providers: { cmdName: string; typeName: string; cmdDef: CommandDefinition }[] = [];
+  let providers: { cmdName: string; typeName: string; cmdDef: CommandDefinition; operation?: false }[] = [];
   for (const section of ["moddas", "beans", "deployers"] as const) {
     for (const [typeName, metadata] of Object.entries(modules[section] || {})) {
       if (!metadata.commands) continue;
@@ -113,27 +234,10 @@ export function collectServiceCommands(
     }
   }
 
-  // Select them with the application configuration
-  if (cli?.include) {
-    for (const name of cli.include) {
-      if (!providers.some(p => isCommandOrSubcommand(p.cmdName, name))) {
-        useLog("WARN", `webda.cli.include: no command '${name}'`);
-      }
-    }
-    providers = providers.filter(p => cli.include.some(name => isCommandOrSubcommand(p.cmdName, name)));
-  }
-  for (const entry of cli?.exclude || []) {
-    const separator = entry.indexOf(":");
-    const type = separator >= 0 ? entry.substring(0, separator) : undefined;
-    const name = separator >= 0 ? entry.substring(separator + 1) : entry;
-    const excluded = (p: (typeof providers)[number]) =>
-      isCommandOrSubcommand(p.cmdName, name) &&
-      (type === undefined || p.typeName === type || (!type.includes("/") && p.typeName.endsWith(`/${type}`)));
-    if (!providers.some(excluded)) {
-      useLog("WARN", `webda.cli.exclude: no ${type ? `provider '${type}' of command` : "command"} '${name}'`);
-    }
-    providers = providers.filter(p => !excluded(p));
-  }
+  // Select them, with the operation commands, with the application configuration
+  providers = selectCommands([...providers, ...operationCommands(operationIds)], cli, true).filter(
+    (p): p is (typeof providers)[number] => !p.operation
+  );
 
   for (const { cmdName, typeName, cmdDef } of providers) {
     commands[cmdName] ??= {

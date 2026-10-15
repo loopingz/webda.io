@@ -558,12 +558,18 @@ export interface WebdaCliDescriptor {
   /**
    * Commands available, applied before `exclude`: a command name keeps it with its subcommands
    * (`"config"` keeps `config encrypt`). Absent: every command.
+   *
+   * Operation commands are selected too: the operation `Task.Get` is the command `task get`, so
+   * `"task"` keeps the whole group and `"task get"` one operation (in any case). A group not listed is
+   * hidden and cannot be run.
    */
   include?: string[];
   /**
    * Commands or command providers removed, applied to `webda` too:
-   * - `"Type:command"` drops one provider (`"Webda/HttpServer:serve"`), e.g. to let a subclass serve instead
-   * - `"command"` drops the command with its subcommands (`"openapi"`, `"config"`)
+   * - `"Type:command"` drops one provider (`"Webda/HttpServer:serve"`), e.g. to let a subclass serve instead;
+   *   it never matches an operation
+   * - `"command"` drops the command with its subcommands (`"openapi"`, `"config"`), or an operation group
+   *   (`"task"`) or operation (`"task get"`)
    */
   exclude?: string[];
 }

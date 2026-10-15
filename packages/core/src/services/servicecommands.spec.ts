@@ -1,7 +1,12 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { ensureCommandServices, resolveCapabilities } from "../bin/cli.js";
-import { collectServiceCommands, executeServiceCommand } from "./servicecommands.js";
+import {
+  collectServiceCommands,
+  executeServiceCommand,
+  operationCommandName,
+  selectOperations
+} from "./servicecommands.js";
 import { CancelablePromise } from "@webda/utils";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
@@ -934,6 +939,74 @@ class CliConfigurationTest {
   explicitSelectionWinsOverThePackage() {
     const cmds = collectServiceCommands(cliApp({ exclude: ["serve"] }), { include: ["openapi"] });
     assert.deepStrictEqual(Object.keys(cmds), ["openapi"]);
+  }
+
+  @test
+  operationCommandNames() {
+    assert.strictEqual(operationCommandName("RunnerAuth.Login"), "runnerauth login");
+    assert.strictEqual(operationCommandName("Task.Sub.Get"), "task sub.get");
+  }
+
+  @test
+  includeSelectsOperations() {
+    const ids = ["RunnerAuth.Login", "RunnerAuth.Status", "AcpRelay.Connect"];
+    // Absent selection: every operation
+    assert.deepStrictEqual(selectOperations(ids, undefined), ids);
+    // An include listing only @Command names drops every operation group
+    assert.deepStrictEqual(selectOperations(ids, { include: ["serve", "login", "logout"] }), []);
+    // A group keeps all its operations, in any case; "group action" keeps one
+    assert.deepStrictEqual(selectOperations(ids, { include: ["RunnerAuth"] }), [
+      "RunnerAuth.Login",
+      "RunnerAuth.Status"
+    ]);
+    assert.deepStrictEqual(selectOperations(ids, { include: ["acprelay connect", "runnerauth status"] }), [
+      "RunnerAuth.Status",
+      "AcpRelay.Connect"
+    ]);
+    // "group" is matched on whole words
+    assert.deepStrictEqual(selectOperations(ids, { include: ["runner"] }), []);
+  }
+
+  @test
+  excludeSelectsOperations() {
+    const ids = ["RunnerAuth.Login", "RunnerAuth.Status", "AcpRelay.Connect"];
+    assert.deepStrictEqual(selectOperations(ids, { exclude: ["runnerauth"] }), ["AcpRelay.Connect"]);
+    assert.deepStrictEqual(selectOperations(ids, { exclude: ["RunnerAuth Login"] }), [
+      "RunnerAuth.Status",
+      "AcpRelay.Connect"
+    ]);
+    // The provider form only selects @Command providers
+    assert.deepStrictEqual(selectOperations(ids, { exclude: ["RunnerAuth:login", "Webda/HttpServer:serve"] }), ids);
+    assert.deepStrictEqual(selectOperations(ids, { include: ["runnerauth"], exclude: ["runnerauth status"] }), [
+      "RunnerAuth.Login"
+    ]);
+  }
+
+  @test
+  entriesMatchingOperationsDoNotWarn() {
+    const ids = ["RunnerAuth.Login", "AcpRelay.Connect"];
+    const { result: cmds, warnings } = captureWarnings(() =>
+      collectServiceCommands(
+        cliApp({ include: ["serve", "runnerauth", "AcpRelay connect", "nope"], exclude: ["acprelay", "ghost"] }),
+        undefined,
+        ids
+      )
+    );
+    assert.deepStrictEqual(Object.keys(cmds), ["serve"]);
+    // Only the entries matching neither a command nor an operation are reported
+    assert.strictEqual(warnings.length, 2, warnings.join("\n"));
+    assert.ok(warnings.some(w => w.includes("webda.cli.include: no command 'nope'")));
+    assert.ok(warnings.some(w => w.includes("webda.cli.exclude: no command 'ghost'")));
+    // Without the operations, the operation entries are reported
+    const { warnings: without } = captureWarnings(() =>
+      collectServiceCommands(cliApp({ include: ["serve", "runnerauth"], exclude: ["acprelay"] }))
+    );
+    assert.strictEqual(without.length, 2, without.join("\n"));
+    // An operation excluded after the include is still matched by the include: no warning
+    const { warnings: dropped } = captureWarnings(() =>
+      collectServiceCommands(cliApp({ include: ["runnerauth"], exclude: ["runnerauth login"] }), undefined, ids)
+    );
+    assert.deepStrictEqual(dropped, []);
   }
 
   @test

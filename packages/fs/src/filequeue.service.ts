@@ -5,6 +5,11 @@ import { Queue, QueueParameters } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import type { MessageReceipt } from "@webda/core";
 
+/**
+ * Name prefix of the message files: fixed-width creation time and sequence, so the name order is the FIFO order
+ */
+const TIME_PREFIX = /^\d{15}-\d{6}-/;
+
 /** Configuration parameters for the filesystem-backed FIFO queue. */
 export class FileQueueParameters extends QueueParameters {
   /**
@@ -63,6 +68,10 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    * Receivers waiting for a message, woken up by {@link sendMessage}
    */
   protected waiters = new Set<() => void>();
+  /**
+   * Sequence of the messages sent in the same millisecond by this process
+   */
+  protected static sequence = 0;
 
   /**
    * @override
@@ -100,13 +109,23 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
+   * New message identifier: creation time and sequence first so sorting the names sorts the messages by age
+   *
+   * @returns the identifier
+   */
+  protected newMessageId(): string {
+    FileQueue.sequence = (FileQueue.sequence + 1) % 1000000;
+    return `${Date.now().toString().padStart(15, "0")}-${FileQueue.sequence.toString().padStart(6, "0")}-${randomUUID()}`;
+  }
+
+  /**
    * @override
    */
   async sendMessage(params: T) {
-    let uid = randomUUID();
+    let uid = this.newMessageId();
     let file = this.getFile(uid);
     while (fs.existsSync(file)) {
-      uid = randomUUID();
+      uid = this.newMessageId();
       file = this.getFile(uid);
     }
     JSONUtils.saveFile(params, file);
@@ -151,48 +170,105 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   /**
    * Lock and read the oldest message not locked
    *
+   * One directory listing gives the messages and their locks: only the locked messages are inspected, to release
+   * the expired locks. The lock is created exclusively, so two consumers, even in different processes, cannot take
+   * the same message.
+   *
    * @param proto - class of the message
    * @returns the message, or an empty array when every message is locked
    */
   protected pickMessage<L>(proto?: { new (): L }): MessageReceipt<L>[] {
-    const files = fs
-      .readdirSync(this.parameters.folder)
-      .filter(f => f.endsWith(".json"))
-      .map(f => {
-        const lockFile = join(this.parameters.folder, f + ".lock");
-        const res = {
-          ...fs.lstatSync(join(this.parameters.folder, f)),
-          path: join(this.parameters.folder, f),
-          hasLock: fs.existsSync(lockFile),
-          uid: f.substring(0, f.length - 5)
-        };
-        if (res.hasLock) {
-          const lock = fs.lstatSync(lockFile);
-          if (lock.birthtimeMs < Date.now() - this.parameters.expire) {
-            res.hasLock = false;
-            fs.unlinkSync(lockFile);
-          }
+    const folder = this.parameters.folder;
+    const entries = fs.readdirSync(folder);
+    const locks = new Set(entries.filter(f => f.endsWith(".json.lock")));
+    const messages = entries.filter(f => f.endsWith(".json"));
+    for (const file of this.sortMessages(messages)) {
+      const path = join(folder, file);
+      if (locks.has(`${file}.lock`) && !this.releaseExpiredLock(`${path}.lock`)) {
+        continue;
+      }
+      if (!this.lock(path)) {
+        // Locked by another consumer since the listing
+        continue;
+      }
+      let content: string;
+      try {
+        content = fs.readFileSync(path).toString();
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw err;
         }
-        return res;
-      })
-      .filter(f => !f.hasLock)
-      .sort((a, b) => {
-        if (a.birthtimeMs > b.birthtimeMs) {
-          return 1;
-        }
-        return -1;
-      });
-    const el = files.shift();
-    if (el) {
-      fs.writeFileSync(el.path + ".lock", "");
-      return [
-        {
-          ReceiptHandle: el.uid,
-          Message: this.unserialize(fs.readFileSync(el.path).toString(), proto)
-        }
-      ];
+        // Deleted by another consumer since the listing
+        fs.rmSync(`${path}.lock`, { force: true });
+        continue;
+      }
+      return [{ ReceiptHandle: file.substring(0, file.length - 5), Message: this.unserialize(content, proto) }];
     }
     return [];
+  }
+
+  /**
+   * Sort message files from the oldest to the newest
+   *
+   * Files written by a previous version are named by a random UUID: they come first, ordered by creation time.
+   * The other names start with their creation time and sequence.
+   *
+   * @param files - message file names
+   * @returns the sorted names
+   */
+  protected sortMessages(files: string[]): string[] {
+    const legacy = files
+      .filter(f => !TIME_PREFIX.test(f))
+      .map(f => {
+        try {
+          return { file: f, time: fs.lstatSync(join(this.parameters.folder, f)).birthtimeMs };
+        } catch {
+          // Deleted since the listing
+          return undefined;
+        }
+      })
+      .filter(f => f !== undefined)
+      .sort((a, b) => a.time - b.time)
+      .map(f => f.file);
+    return [...legacy, ...files.filter(f => TIME_PREFIX.test(f)).sort()];
+  }
+
+  /**
+   * Create the lock of a message, failing if it exists
+   *
+   * @param path - path of the message file
+   * @returns true when this consumer owns the lock
+   */
+  protected lock(path: string): boolean {
+    try {
+      fs.writeFileSync(`${path}.lock`, "", { flag: "wx" });
+      return true;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+        return false;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Remove a lock older than `expire`
+   *
+   * @param lockPath - path of the lock file
+   * @returns true when the lock is gone: expired and removed, or already released
+   */
+  protected releaseExpiredLock(lockPath: string): boolean {
+    try {
+      if (fs.statSync(lockPath).mtimeMs >= Date.now() - this.parameters.expire) {
+        return false;
+      }
+      fs.unlinkSync(lockPath);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw err;
+      }
+    }
+    return true;
   }
 
   /**

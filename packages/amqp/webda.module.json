@@ -109,9 +109,22 @@
         },
         "description": "Configuration for {@link AMQPQueue}",
         "properties": {
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
           "maxConsumers": {
             "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
           "queue": {

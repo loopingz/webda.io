@@ -1,4 +1,4 @@
-import { ServiceParameters } from "@webda/core";
+import { ServiceParameters, WebdaError } from "@webda/core";
 
 /** OAuth client definition */
 export interface OAuthClient {
@@ -30,6 +30,25 @@ export const WEBDA_CLI_CLIENT: Omit<OAuthClient, "id"> = {
   defaultScope: "* offline_access"
 };
 
+/**
+ * Validate a statically configured client
+ *
+ * @param id - client_id
+ * @param client - definition
+ * @throws CodeError when the definition is invalid
+ */
+export function validateClient(id: string, client: any): void {
+  const fail = (reason: string) => {
+    throw new WebdaError.CodeError("OAUTH_INVALID_CLIENT", `Invalid OAuth client "${id}": ${reason}`);
+  };
+  if (!id) fail("empty client id");
+  if (typeof client !== "object" || Array.isArray(client)) fail("definition must be an object or null");
+  if (typeof client.name !== "string" || !client.name) fail("name must be a non-empty string");
+  if (!Array.isArray(client.redirect_uris) || !client.redirect_uris.every((u: unknown) => typeof u === "string")) {
+    fail("redirect_uris must be an array of strings");
+  }
+}
+
 /** OAuthServer parameters */
 export class OAuthServerParameters extends ServiceParameters {
   /** @default "/oauth" */
@@ -40,7 +59,11 @@ export class OAuthServerParameters extends ServiceParameters {
   clients: Record<string, Omit<OAuthClient, "id"> | null>;
   /** @default true */
   clientMetadataDocuments: boolean;
-  /** Hosts allowed for metadata documents even on private addresses */
+  /**
+   * Hosts allowed to serve Client ID Metadata Documents.
+   * Empty (default): any public host is accepted. Non-empty: only these hosts are accepted, and they bypass the
+   * private address check (so internal hosts can be listed)
+   */
   clientMetadataHosts: string[];
   /** @default 5 */
   clientMetadataTimeout: number;
@@ -80,6 +103,9 @@ export class OAuthServerParameters extends ServiceParameters {
     super.load(params);
     this.url ??= "/oauth";
     this.clients = { "webda-cli": WEBDA_CLI_CLIENT, ...(this.clients ?? {}) };
+    for (const [id, client] of Object.entries(this.clients)) {
+      if (client !== null) validateClient(id, client);
+    }
     this.clientMetadataDocuments ??= true;
     this.clientMetadataHosts ??= [];
     this.clientMetadataTimeout ??= 5;

@@ -8,6 +8,10 @@ const MAX_DOCUMENT = 64 * 1024;
 const MAX_REDIRECT_URI = 2048;
 /** Maximum number of redirect URIs accepted from a metadata document */
 const MAX_REDIRECT_URIS = 20;
+/** Maximum number of cached metadata documents */
+const MAX_CACHE = 1000;
+/** Lifetime of a cached metadata document failure (s) */
+const NEGATIVE_CACHE_TTL = 60;
 /** Hosts matching any port for http redirect URIs (RFC 8252 §7.3) */
 const LOOPBACK_HOSTS = ["127.0.0.1", "localhost", "[::1]"];
 /** Schemes that must never be used as redirect URIs */
@@ -132,7 +136,10 @@ function httpsUrl(value: unknown): string | undefined {
 
 /** Resolve clients: static configuration, then Client ID Metadata Documents */
 export class ClientRegistry {
+  /** Metadata documents by client_id, in least recently used order */
   protected cache = new Map<string, { client?: OAuthClient; until: number }>();
+  /** Metadata document fetches in progress */
+  protected inflight = new Map<string, Promise<OAuthClient | undefined>>();
 
   /**
    * @param params - server parameters
@@ -154,13 +161,52 @@ export class ClientRegistry {
     if (typeof clientId !== "string" || !clientId) return undefined;
     if (Object.prototype.hasOwnProperty.call(this.params.clients, clientId)) {
       const configured = this.params.clients[clientId];
-      return configured ? { ...configured, id: clientId } : undefined;
+      return configured ? { ...structuredClone(configured), id: clientId } : undefined;
     }
-    if (!this.params.clientMetadataDocuments || !clientId.startsWith("https://")) return undefined;
+    if (
+      !this.params.clientMetadataDocuments ||
+      clientId.length > MAX_REDIRECT_URI ||
+      !clientId.startsWith("https://")
+    ) {
+      return undefined;
+    }
+    const now = Date.now();
     const cached = this.cache.get(clientId);
-    if (cached && cached.until > Date.now()) return cached.client;
+    if (cached && cached.until > now) {
+      // Refresh LRU position
+      this.cache.delete(clientId);
+      this.cache.set(clientId, cached);
+      return cached.client && structuredClone(cached.client);
+    }
+    let pending = this.inflight.get(clientId);
+    if (!pending) {
+      pending = this.load(clientId).finally(() => this.inflight.delete(clientId));
+      this.inflight.set(clientId, pending);
+    }
+    const client = await pending;
+    return client && structuredClone(client);
+  }
+
+  /**
+   * Fetch a metadata document and cache the result
+   *
+   * @param clientId - metadata document URL
+   * @returns the client
+   */
+  protected async load(clientId: string): Promise<OAuthClient | undefined> {
     const client = await this.fetchDocument(clientId).catch(() => undefined);
-    this.cache.set(clientId, { client, until: Date.now() + this.params.clientMetadataCacheTtl * 1000 });
+    const ttl = client
+      ? this.params.clientMetadataCacheTtl
+      : Math.min(NEGATIVE_CACHE_TTL, this.params.clientMetadataCacheTtl);
+    const now = Date.now();
+    this.cache.delete(clientId);
+    for (const [id, entry] of this.cache) {
+      if (entry.until <= now) this.cache.delete(id);
+    }
+    while (this.cache.size >= MAX_CACHE) {
+      this.cache.delete(this.cache.keys().next().value!);
+    }
+    this.cache.set(clientId, { client, until: now + ttl * 1000 });
     return client;
   }
 
@@ -173,7 +219,15 @@ export class ClientRegistry {
     if (target.protocol !== "https:" || target.username || target.password || target.hash) return undefined;
     // WHATWG URL keeps the brackets around IPv6 literals
     const host = target.hostname.replace(/^\[(.*)\]$/, "$1");
-    if (!this.params.clientMetadataHosts.includes(target.hostname)) {
+    const allowed = this.params.clientMetadataHosts.map(h => h.toLowerCase());
+    if (allowed.length && !allowed.includes(target.hostname)) return undefined;
+    // Listed hosts are trusted by configuration and bypass the private address check
+    if (!allowed.length) {
+      // Limitation: the address checked here and the one fetch() connects to come from two DNS lookups, so a
+      // rebinding DNS server can still steer the request to a private address. Impact is limited: https only
+      // (a valid certificate for the name is required) and the response must be JSON whose client_id equals the
+      // URL, otherwise it is discarded and never exposed. Inject a fetcher pinning the validated address at
+      // connect time to close it.
       if (host === "localhost" || host.endsWith(".localhost")) return undefined;
       const addresses = isIP(host) ? [host] : await this.resolver(host);
       if (!addresses.length || addresses.some(isPrivateAddress)) return undefined;
@@ -241,7 +295,7 @@ export class ClientRegistry {
    * @returns true when allowed: exact match, or loopback http with any port and identical path
    */
   matchRedirect(client: OAuthClient, uri: string): boolean {
-    if (typeof uri !== "string" || uri.length > MAX_REDIRECT_URI) return false;
+    if (typeof uri !== "string" || uri.length > MAX_REDIRECT_URI || !Array.isArray(client?.redirect_uris)) return false;
     let requested: URL;
     try {
       requested = new URL(uri);

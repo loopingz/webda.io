@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { ClientRegistry, isPrivateAddress } from "./clients.js";
-import { OAuthServerParameters } from "./parameters.js";
+import { OAuthServerParameters, WEBDA_CLI_CLIENT } from "./parameters.js";
 import { OAuthError } from "./errors.js";
 
 const params = (p: any = {}) => new OAuthServerParameters().load({ loginUrl: "/login", ...p });
@@ -200,6 +200,124 @@ describe("ClientRegistry", () => {
       async () => ["10.0.0.1"]
     );
     expect(await reg.get(url)).toMatchObject({ id: url, metadataDocument: true });
+  });
+
+  it("accepts metadata documents only from clientMetadataHosts when the list is non-empty", async () => {
+    const fetcher = vi.fn(
+      async (u: string) => new Response(JSON.stringify({ client_id: u, redirect_uris: ["https://a.example.com/cb"] }))
+    );
+    const resolver = vi.fn(async () => ["93.184.216.34"]);
+    const reg = new ClientRegistry(params({ clientMetadataHosts: ["Internal.Example.com"] }), fetcher as any, resolver);
+    expect(await reg.get("https://public.example.com/client.json")).toBeUndefined();
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(resolver).not.toHaveBeenCalled();
+    // Listed host is matched case-insensitively and bypasses the address check (no DNS lookup)
+    expect(await reg.get("https://internal.example.com/client.json")).toMatchObject({ metadataDocument: true });
+    expect(resolver).not.toHaveBeenCalled();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects client ids longer than 2048 characters without fetching", async () => {
+    const fetcher = vi.fn(async () => new Response("{}"));
+    const resolver = vi.fn(async () => ["93.184.216.34"]);
+    const reg = new ClientRegistry(params(), fetcher as any, resolver);
+    expect(await reg.get("https://mcp.example.com/" + "a".repeat(2048))).toBeUndefined();
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(resolver).not.toHaveBeenCalled();
+  });
+
+  it("shares one in-flight fetch for concurrent identical client ids", async () => {
+    const url = "https://mcp.example.com/client.json";
+    let release!: () => void;
+    const gate = new Promise<void>(r => (release = r));
+    const fetcher = vi.fn(async () => {
+      await gate;
+      return new Response(JSON.stringify({ client_id: url, redirect_uris: ["https://a.example.com/cb"] }));
+    });
+    const reg = new ClientRegistry(params(), fetcher as any, async () => ["93.184.216.34"]);
+    const all = Promise.all([reg.get(url), reg.get(url), reg.get(url)]);
+    await new Promise(r => setTimeout(r, 10));
+    release();
+    const results = await all;
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(results.every(c => c?.id === url)).toBe(true);
+    // Each caller gets its own copy
+    expect(results[0]).not.toBe(results[1]);
+  });
+
+  it("caches failures for 60 seconds and successes for clientMetadataCacheTtl", async () => {
+    const good = "https://good.example.com/client.json";
+    const bad = "https://bad.example.com/client.json";
+    const fetcher = vi.fn(async (u: string) =>
+      u === good
+        ? new Response(JSON.stringify({ client_id: good, redirect_uris: ["https://a.example.com/cb"] }))
+        : new Response("nope", { status: 500 })
+    );
+    const reg = new ClientRegistry(params(), fetcher as any, async () => ["93.184.216.34"]);
+    vi.useFakeTimers();
+    try {
+      await reg.get(good);
+      await reg.get(bad);
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      vi.advanceTimersByTime(59_000);
+      await reg.get(good);
+      await reg.get(bad);
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      vi.advanceTimersByTime(2_000);
+      await reg.get(good);
+      await reg.get(bad);
+      expect(fetcher).toHaveBeenCalledTimes(3); // only the failure was refetched
+      vi.advanceTimersByTime(3600_000);
+      await reg.get(good);
+      expect(fetcher).toHaveBeenCalledTimes(4);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("bounds the cache size and prunes expired entries", async () => {
+    const fetcher = vi.fn(async () => new Response("nope", { status: 500 }));
+    const reg = new ClientRegistry(params(), fetcher as any, async () => ["93.184.216.34"]);
+    const cache = (reg as any).cache as Map<string, unknown>;
+    vi.useFakeTimers();
+    try {
+      for (let i = 0; i < 1005; i++) await reg.get(`https://c${i}.example.com/client.json`);
+      expect(cache.size).toBe(1000);
+      // Oldest entries were evicted
+      expect(cache.has("https://c0.example.com/client.json")).toBe(false);
+      expect(cache.has("https://c1004.example.com/client.json")).toBe(true);
+      vi.advanceTimersByTime(61_000);
+      await reg.get("https://fresh.example.com/client.json");
+      expect(cache.size).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns copies so callers cannot mutate configured clients", async () => {
+    const reg = new ClientRegistry(
+      params({ clients: { app: { name: "App", redirect_uris: ["https://a.example.com/cb"] } } })
+    );
+    const cli = (await reg.get("webda-cli"))!;
+    cli.redirect_uris.push("https://evil.example.com/cb");
+    const app = (await reg.get("app"))!;
+    app.redirect_uris.length = 0;
+    expect(WEBDA_CLI_CLIENT.redirect_uris).toEqual(["http://127.0.0.1/callback"]);
+    expect((await reg.get("webda-cli"))!.redirect_uris).toEqual(["http://127.0.0.1/callback"]);
+    expect((await reg.get("app"))!.redirect_uris).toEqual(["https://a.example.com/cb"]);
+  });
+
+  it("validates configured clients", () => {
+    expect(() => params({ clients: { app: { name: "App" } } })).toThrow(/Invalid OAuth client "app".*redirect_uris/);
+    expect(() => params({ clients: { app: { name: "App", redirect_uris: [1] } } })).toThrow(/redirect_uris/);
+    expect(() => params({ clients: { app: { redirect_uris: [] } } })).toThrow(/name/);
+    expect(() => params({ clients: { app: "x" } })).toThrow(/object/);
+    expect(() => params({ clients: { "": { name: "A", redirect_uris: [] } } })).toThrow(/empty client id/);
+    expect(() => params({ clients: { "webda-cli": null } })).not.toThrow();
+    // A malformed client object never makes matchRedirect throw
+    expect(new ClientRegistry(params()).matchRedirect({ id: "x", name: "x" } as any, "http://127.0.0.1/cb")).toBe(
+      false
+    );
   });
 
   it("rejects non-2xx answers, invalid JSON and fetch errors", async () => {

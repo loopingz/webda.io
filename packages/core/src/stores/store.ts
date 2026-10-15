@@ -622,7 +622,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       bracketParts.push("paginated");
     }
     if (info.error) {
-      bracketParts.push(`error: ${info.error.message ?? info.error}`);
+      bracketParts.push(`error: ${info.error.message}`);
     }
     const bracket = bracketParts.length > 0 ? ` [${bracketParts.join(", ")}]` : "";
     useLog(

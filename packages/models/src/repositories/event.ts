@@ -90,7 +90,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       "query",
       query,
       () => this.repository.query(query),
-      r => ({ count: r.results?.length ?? 0, paginated: !!r.continuationToken })
+      r => ({ count: r.results.length, paginated: !!r.continuationToken })
     );
     await this.emit("Queried", { ...res, query } as any);
     return res;
@@ -106,11 +106,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     if (params !== undefined) {
       query = (await import("@webda/ql")).bind(query, params);
     }
-    const model = (this.model as any)?.Metadata?.Identifier ?? this.model?.name ?? "unknown";
+    const model = (this.model as any).Metadata?.Identifier ?? this.model.name;
     const iterator = this.repository.iterate(query)[Symbol.asyncIterator]();
     let totalDuration = 0;
     let count = 0;
-    let reported = false;
     let error: Error | undefined;
 
     try {
@@ -132,17 +131,14 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
         yield step.value;
       }
     } finally {
-      if (!reported) {
-        reported = true;
-        this.safeOnQuery({
-          operation: "iterate",
-          model,
-          query,
-          duration: totalDuration,
-          count,
-          error
-        });
-      }
+      this.safeOnQuery({
+        operation: "iterate",
+        model,
+        query,
+        duration: totalDuration,
+        count,
+        error
+      });
     }
   }
 
@@ -171,7 +167,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       "aggregate",
       queryStr,
       () => this.repository.aggregate(spec),
-      r => (r as any).rows?.length ?? (r as any).results?.length ?? 0
+      r => r.rows.length
     );
     await this.emit("Aggregated", { query: spec, ...res } as any);
     return res;

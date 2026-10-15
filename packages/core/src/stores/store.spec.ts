@@ -11,8 +11,9 @@ import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailEr
 import { UuidModel, useRepository } from "@webda/models";
 import { checkAggregation } from "../test/index.js";
 import { useCore } from "../core/hooks.js";
-import { useApplication } from "../application/hooks.js";
+import { useApplication, useParameters } from "../application/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
+import { Counter, useMetric } from "../metrics/metrics.js";
 
 /**
  * Fake model that refuse the half of the items
@@ -890,6 +891,68 @@ class StoreAggregationTest extends WebdaApplicationTest {
 
 @suite
 class StoreSlowQueryTest extends WebdaApplicationTest {
+  @test
+  disabledMetricsAcceptLabeledQueries() {
+    const parameters = useParameters();
+    const previous = parameters.metrics;
+    parameters.metrics = false;
+    try {
+      const metric = useMetric(Counter, {
+        name: "disabled_query_test",
+        help: "Disabled query metric",
+        labelNames: ["operation", "model"]
+      });
+      const labeled = metric.labels({ operation: "query", model: "Post" });
+      assert.strictEqual(labeled, metric);
+      assert.doesNotThrow(() => labeled.inc());
+    } finally {
+      parameters.metrics = previous;
+    }
+  }
+
+  @test
+  async slowQueryLogIncludesSingleResultPaginationAndError() {
+    const store = new MemoryStore("detailsStore", { models: ["WebdaTest/AggregationRow"] } as any);
+    store.resolve();
+    await store.init();
+    const events: any[] = [];
+    store.on("Store.SlowQuery", event => events.push(event));
+    const logger = new MemoryLogger(useWorkerOutput());
+    try {
+      store.logSlowQuery({
+        operation: "query",
+        model: "WebdaTest/AggregationRow",
+        query: "uuid = 'one'",
+        duration: 12.5,
+        count: 1,
+        paginated: true,
+        error: new Error("backend timeout")
+      });
+      store.logSlowQuery({
+        operation: "query",
+        model: "WebdaTest/AggregationRow",
+        query: "uuid = 'two'",
+        duration: 15
+      });
+      store.parameters.slowQueryMaxLength = undefined;
+      store.parameters.slowQueryLogLevel = undefined;
+      store.logSlowQuery({
+        operation: "query",
+        model: "WebdaTest/AggregationRow",
+        query: "uuid = 'defaults'",
+        duration: 16
+      });
+    } finally {
+      logger.close();
+    }
+    assert.strictEqual(events.length, 3);
+    assert.strictEqual(events[0].query, "uuid = 'one'");
+    const messages = logger.getLogs().filter(l => l.log?.level === "WARN").map(l => (l.log?.args ?? []).join(" "));
+    assert.ok(messages.some(message => message.includes("1 result, paginated, error: backend timeout")));
+    assert.ok(messages.some(message => message.includes("uuid = 'two'") && !message.includes("[")));
+    assert.ok(messages.some(message => message.includes("uuid = 'defaults'")));
+  }
+
   @test
   async slowQueryThresholdZeroDoesNotEmitEventOrLog() {
     const store = new MemoryStore("zeroThreshold", { models: ["WebdaTest/AggregationRow"], slowQueryThreshold: 0 } as any);

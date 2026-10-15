@@ -645,10 +645,10 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     operation: QueryOperation,
     query: string,
     fn: () => Promise<R>,
-    details?: ((r: R) => { count?: number; paginated?: boolean }) | ((r: R) => number)
+    details: ((r: R) => { count?: number; paginated?: boolean }) | ((r: R) => number)
   ): Promise<R> {
     const start = performance.now();
-    const model = (this.model as any)?.Metadata?.Identifier ?? this.model?.name ?? "unknown";
+    const model = (this.model as any).Metadata?.Identifier ?? this.model.name;
     let result: R;
     try {
       result = await fn();
@@ -666,14 +666,12 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     const duration = performance.now() - start;
     let count: number | undefined;
     let paginated: boolean | undefined;
-    if (details) {
-      const d = details(result);
-      if (typeof d === "number") {
-        count = d;
-      } else if (d && typeof d === "object") {
-        count = d.count;
-        paginated = d.paginated;
-      }
+    const d = details(result);
+    if (typeof d === "number") {
+      count = d;
+    } else {
+      count = d.count;
+      paginated = d.paginated;
     }
     this.safeOnQuery({
       operation,

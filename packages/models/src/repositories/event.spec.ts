@@ -9,6 +9,7 @@ import * as assert from "assert";
 import { SubClassModel, TestModel } from "../model.spec";
 import { FilterAttributes } from "@webda/tsc-esm";
 import { registerRepository } from "./hooks";
+import { parse } from "@webda/ql";
 
 @suite
 class EventRepositoryTest extends RepositoryTest {
@@ -306,5 +307,11 @@ class EventRepositoryMonitoringTest {
     assert.strictEqual(reports.length, 3);
     assert.strictEqual(reports[2].operation, "deleteMany");
     assert.strictEqual(reports[2].count, 1);
+
+    await eventRepo.create({ uuid: "u2", name: "Bob", age: 25, collection: [] } as any);
+    await eventRepo.updateMany(parse("UPDATE SET age = 26 WHERE name = 'Bob'"));
+    assert.strictEqual(reports[3].operation, "updateMany");
+    assert.strictEqual(reports[3].count, 1);
+    assert.ok(reports[3].query.includes("UPDATE"));
   }
 }

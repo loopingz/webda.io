@@ -1,4 +1,4 @@
-import type { CommandArgDefinition, CommandDefinition } from "@webda/compiler";
+import type { CommandArgDefinition, CommandDefinition, WebdaCliDescriptor } from "@webda/compiler";
 import type { Application } from "../application/application.js";
 import type { AbstractService } from "./iservice.js";
 import { useLog } from "@webda/workout";
@@ -43,6 +43,27 @@ export interface ServiceCommandInfo {
 }
 
 /**
+ * Read the application command-line configuration, the `webda.cli` section of its package.json
+ *
+ * @param app - the loaded application
+ * @returns the configuration, undefined when the package declares none
+ */
+export function getCliConfiguration(app: Pick<Application, "getPackageDescription">): WebdaCliDescriptor | undefined {
+  return typeof app?.getPackageDescription === "function" ? app.getPackageDescription()?.webda?.cli : undefined;
+}
+
+/**
+ * Whether a command is the given one or one of its subcommands
+ *
+ * @param cmdName - the command name, space-separated (`"config encrypt"`)
+ * @param name - the command or command group (`"config"`)
+ * @returns true if `cmdName` is `name` or under it
+ */
+function isCommandOrSubcommand(cmdName: string, name: string): boolean {
+  return cmdName === name || cmdName.startsWith(`${name} `);
+}
+
+/**
  * Collect all CLI commands declared by services across all loaded modules.
  *
  * Scans the `moddas`, `beans`, and `deployers` sections of `webda.module.json`
@@ -51,7 +72,15 @@ export interface ServiceCommandInfo {
  * command name — each service becomes an entry in the `services` array, and args
  * are merged (first definition wins for each arg name).
  *
+ * The application `webda.cli` configuration (package.json) selects the commands first:
+ * `include` keeps only the listed commands (with their subcommands), then `exclude`
+ * removes a provider (`"Webda/HttpServer:serve"`) or a whole command (`"openapi"`, with
+ * its subcommands). An entry matching nothing is logged as a warning. Two remaining
+ * providers declaring the same argument with another type or at another position are
+ * logged as a warning too: every handler receives the same positional values.
+ *
  * @param app - The loaded Webda Application with module metadata available
+ * @param cli - The command selection, read from the application package.json by default
  * @returns A map of command names to their merged definitions
  *
  * @example
@@ -66,39 +95,93 @@ export interface ServiceCommandInfo {
  * // }
  * ```
  */
-export function collectServiceCommands(app: Application): { [name: string]: ServiceCommandInfo } {
+export function collectServiceCommands(
+  app: Application,
+  cli: Pick<WebdaCliDescriptor, "include" | "exclude"> | undefined = getCliConfiguration(app)
+): { [name: string]: ServiceCommandInfo } {
   const commands: { [name: string]: ServiceCommandInfo } = {};
   const modules = app.getModules();
 
+  // Every provider of every command, in module order
+  let providers: { cmdName: string; typeName: string; cmdDef: CommandDefinition }[] = [];
   for (const section of ["moddas", "beans", "deployers"] as const) {
     for (const [typeName, metadata] of Object.entries(modules[section] || {})) {
       if (!metadata.commands) continue;
       for (const [cmdName, cmdDef] of Object.entries(metadata.commands)) {
-        commands[cmdName] ??= {
-          description: cmdDef.description,
-          services: [],
-          args: { ...cmdDef.args },
-          requires: [],
-          phases: []
-        };
-        commands[cmdName].services.push({
-          name: typeName,
-          method: cmdDef.method,
-          type: typeName
-        });
-        commands[cmdName].phases.push(cmdDef.phase);
-        // Merge args from multiple services providing the same command
-        for (const [argName, argDef] of Object.entries(cmdDef.args)) {
-          commands[cmdName].args[argName] ??= argDef;
-        }
-        // Merge requires (union, no duplicates)
-        for (const req of cmdDef.requires || []) {
-          if (!commands[cmdName].requires.includes(req)) {
-            commands[cmdName].requires.push(req);
-          }
-        }
+        providers.push({ cmdName, typeName, cmdDef });
       }
     }
+  }
+
+  // Select them with the application configuration
+  if (cli?.include) {
+    for (const name of cli.include) {
+      if (!providers.some(p => isCommandOrSubcommand(p.cmdName, name))) {
+        useLog("WARN", `webda.cli.include: no command '${name}'`);
+      }
+    }
+    providers = providers.filter(p => cli.include.some(name => isCommandOrSubcommand(p.cmdName, name)));
+  }
+  for (const entry of cli?.exclude || []) {
+    const separator = entry.indexOf(":");
+    const type = separator >= 0 ? entry.substring(0, separator) : undefined;
+    const name = separator >= 0 ? entry.substring(separator + 1) : entry;
+    const excluded = (p: (typeof providers)[number]) =>
+      isCommandOrSubcommand(p.cmdName, name) &&
+      (type === undefined || p.typeName === type || (!type.includes("/") && p.typeName.endsWith(`/${type}`)));
+    if (!providers.some(excluded)) {
+      useLog("WARN", `webda.cli.exclude: no ${type ? `provider '${type}' of command` : "command"} '${name}'`);
+    }
+    providers = providers.filter(p => !excluded(p));
+  }
+
+  for (const { cmdName, typeName, cmdDef } of providers) {
+    commands[cmdName] ??= {
+      description: cmdDef.description,
+      services: [],
+      args: {},
+      requires: [],
+      phases: []
+    };
+    commands[cmdName].services.push({
+      name: typeName,
+      method: cmdDef.method,
+      type: typeName
+    });
+    commands[cmdName].phases.push(cmdDef.phase);
+    // Merge args from multiple services providing the same command
+    for (const [argName, argDef] of Object.entries(cmdDef.args || {})) {
+      commands[cmdName].args[argName] ??= argDef;
+    }
+    // Merge requires (union, no duplicates)
+    for (const req of cmdDef.requires || []) {
+      if (!commands[cmdName].requires.includes(req)) {
+        commands[cmdName].requires.push(req);
+      }
+    }
+  }
+
+  // Every handler is called with the merged arguments as positional parameters: report the
+  // providers whose own parameters would receive another argument's value
+  for (const { cmdName, typeName, cmdDef } of providers) {
+    const merged = commands[cmdName].args;
+    const positions = Object.keys(merged);
+    Object.entries(cmdDef.args || {}).forEach(([argName, argDef], position) => {
+      if (positions[position] !== argName) {
+        useLog(
+          "WARN",
+          `Command '${cmdName}': parameter '${argName}' of ${typeName} is at position ${position} but receives ` +
+            `'${positions[position]}' (merged arguments: ${positions.join(", ")}); ` +
+            `align the parameters or drop a provider with webda.cli.exclude ("<Type>:${cmdName}")`
+        );
+      } else if (merged[argName].type !== argDef.type) {
+        useLog(
+          "WARN",
+          `Command '${cmdName}': parameter '${argName}' of ${typeName} is ${argDef.type} but parsed as ` +
+            `${merged[argName].type}; align the parameters or drop a provider with webda.cli.exclude ("<Type>:${cmdName}")`
+        );
+      }
+    });
   }
 
   return commands;

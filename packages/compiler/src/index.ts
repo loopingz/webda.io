@@ -1,3 +1,4 @@
+export * from "./cli-bin.js";
 export * from "./compiler.js";
 export * from "./configuration.js";
 export * from "./definition.js";

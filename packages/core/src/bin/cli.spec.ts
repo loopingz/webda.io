@@ -4,7 +4,13 @@ import type { JSONSchema7 } from "json-schema";
 import { CancelablePromise } from "@webda/utils";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { vi } from "vitest";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  applyDefaultCommand,
   buildCli,
   createCommandShutdown,
   exitAfterFlush,
@@ -17,6 +23,7 @@ import {
   loadOperations,
   addServiceCommandsToCli,
   resolveLogStream,
+  runCli,
   shouldPatchConsole,
   unknownCommandMessage,
   type OperationsFile,
@@ -718,5 +725,310 @@ class CliUnknownCommandTest {
   pointsToEveryPackageProvidingASharedCommand() {
     const message = unknownCommandMessage("deploy", []);
     assert.ok(message.includes("@webda/aws or @webda/oci"), message);
+  }
+}
+
+@suite
+class CliRunCliTest {
+  @test
+  defaultCommandOnlyWhenNoneIsGiven() {
+    const commands = ["serve", "debug", "task", "completion"];
+    assert.deepStrictEqual(applyDefaultCommand([], "serve", commands), ["serve"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--port", "3000"], "serve", commands), ["serve", "--port", "3000"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--port=3000", "-w"], "serve", commands), [
+      "serve",
+      "--port=3000",
+      "-w"
+    ]);
+    // A command is given, known or not
+    assert.deepStrictEqual(applyDefaultCommand(["debug"], "serve", commands), ["debug"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--log-stream", "stderr", "task", "get"], "serve", commands), [
+      "--log-stream",
+      "stderr",
+      "task",
+      "get"
+    ]);
+    assert.deepStrictEqual(applyDefaultCommand(["unknown"], "serve", commands), ["unknown"]);
+    // --help and --version keep the global help and version
+    assert.deepStrictEqual(applyDefaultCommand(["--help"], "serve", commands), ["--help"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--version"], "serve", commands), ["--version"]);
+    assert.deepStrictEqual(applyDefaultCommand(["serve", "--help"], "serve", commands), ["serve", "--help"]);
+    // Without a default command, or after "--", nothing changes
+    assert.deepStrictEqual(applyDefaultCommand(["--port", "3000"], undefined, commands), ["--port", "3000"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--", "x"], "serve", commands), ["serve", "--", "x"]);
+    // Subcommand as default
+    assert.deepStrictEqual(applyDefaultCommand([], "auth migrate", commands), ["auth", "migrate"]);
+  }
+
+  @test
+  defaultCommandWithoutCommandList() {
+    // Without the command list a bare word is a command, unless it is a global option value
+    assert.deepStrictEqual(applyDefaultCommand(["-w"], "serve"), ["serve", "-w"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--port", "3000"], "serve"), ["--port", "3000"]);
+    assert.deepStrictEqual(applyDefaultCommand(["--service", "HttpServer"], "serve"), [
+      "serve",
+      "--service",
+      "HttpServer"
+    ]);
+  }
+
+  @test
+  async importingDoesNotRunTheCli() {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      const mod = await import("./cli.js");
+      assert.strictEqual(typeof mod.runCli, "function");
+      assert.strictEqual(exit.mock.calls.length, 0);
+    } finally {
+      exit.mockRestore();
+    }
+    // The compiled module, imported by an application executable, in a real node process
+    const lib = fileURLToPath(new URL("../../lib/bin/cli.js", import.meta.url));
+    if (!existsSync(lib)) {
+      return;
+    }
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        "const m = await import(process.env.WEBDA_CLI); console.log(typeof m.runCli, typeof m.applyDefaultCommand)"
+      ],
+      {
+        env: { ...process.env, WEBDA_CLI: pathToFileURL(lib).href, WEBDA_APP_PATH: "/nonexistent" },
+        encoding: "utf-8",
+        timeout: 30000
+      }
+    );
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.strictEqual(result.stdout.trim(), "function function");
+  }
+
+  @test
+  async importingWithoutAScriptPathDoesNotRunTheCli() {
+    const originalArgv = process.argv;
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      process.argv = [process.execPath, "/nonexistent/webda-cli"];
+      vi.resetModules();
+      const mod = await import("./cli.js");
+      assert.strictEqual(typeof mod.runCli, "function");
+      assert.strictEqual(exit.mock.calls.length, 0);
+    } finally {
+      exit.mockRestore();
+      process.argv = originalArgv;
+      vi.resetModules();
+    }
+  }
+}
+
+@suite
+class CliApplicationConfigurationTest {
+  @test
+  async runCliLoadsApplicationConfigurationInProcess() {
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("CLI test exit");
+    });
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({ name: "mini", version: "1.0.0", type: "module", webda: { cli: { name: "mini-runner" } } })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({ moddas: {}, beans: {}, deployers: {}, models: {}, schemas: {} })
+      );
+      await assert.rejects(runCli({ appPath: app, argv: ["unknown", "--console-patch=false"] }), /CLI test exit/);
+      assert.ok(exit.mock.calls.length > 0);
+    } finally {
+      exit.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async runCliUsesEnvironmentPathAndDiscoversOperations() {
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    const originalPath = process.env.WEBDA_APP_PATH;
+    const originalArgv = process.argv;
+    const originalCwd = process.cwd();
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("CLI test exit");
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({ name: "mini", version: "1.0.0", type: "module", webda: { cli: { name: "mini-runner" } } })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(join(app, "runner.js"), "export class Runner {}\n");
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({
+          $schema: "https://webda.io/schemas/webda.module.v4.json",
+          moddas: {
+            "Mini/Runner": {
+              Import: "runner.js:Runner",
+              commands: { hello: { method: "hello", description: "Say hello" } }
+            }
+          },
+          beans: {},
+          deployers: {},
+          models: {},
+          schemas: {}
+        })
+      );
+      mkdirSync(join(app, ".webda"));
+      writeFileSync(
+        join(app, ".webda", "operations.json"),
+        JSON.stringify({ operations: { "Task.Get": { id: "Task.Get", input: "void", output: "void" } }, schemas: {} })
+      );
+      process.env.WEBDA_APP_PATH = app;
+      process.argv = [process.execPath, "webda", "unknown", "--console-patch=false"];
+      await assert.rejects(runCli(), /CLI test exit/);
+      delete process.env.WEBDA_APP_PATH;
+      vi.mocked(process.cwd).mockReturnValue(app);
+      await assert.rejects(runCli({ argv: ["unknown", "--console-patch=false"] }), /CLI test exit/);
+      assert.ok(exit.mock.calls.length > 0);
+      assert.ok(error.mock.calls.flat().join(" ").includes("Available commands: hello, task"));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+      vi.mocked(process.cwd).mockReturnValue(originalCwd);
+      process.argv = originalArgv;
+      if (originalPath === undefined) delete process.env.WEBDA_APP_PATH;
+      else process.env.WEBDA_APP_PATH = originalPath;
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * Run the compiled CLI on a minimal application declaring `webda.cli`
+   * @param script - module code run with `cli` (the compiled cli.js path) and `app` (the application folder)
+   * @param args - arguments of the node process
+   * @returns the output (stdout and stderr), undefined when the CLI is not compiled
+   */
+  run(script: string | undefined, args: string[] = []): string | undefined {
+    const lib = fileURLToPath(new URL("../../lib/bin/cli.js", import.meta.url));
+    if (!existsSync(lib)) {
+      return undefined;
+    }
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({
+          name: "mini",
+          version: "1.0.0",
+          type: "module",
+          webda: { cli: { name: "mini-runner", defaultCommand: "hello", exclude: ["ghost"] } }
+        })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({
+          $schema: "https://webda.io/schemas/webda.module.v4.json",
+          moddas: {},
+          beans: {},
+          deployers: {},
+          models: {},
+          schemas: {}
+        })
+      );
+      const nodeArgs = script === undefined ? [lib, ...args] : ["--input-type=module", "-e", script, ...args];
+      const result = spawnSync(process.execPath, nodeArgs, {
+        cwd: tmpdir(),
+        env: { ...process.env, CLI: pathToFileURL(lib).href, APP: app, WEBDA_APP_PATH: app, FORCE_COLOR: "0" },
+        encoding: "utf-8",
+        timeout: 60000
+      });
+      return `${result.stdout}${result.stderr}`;
+    } finally {
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  runCliUsesTheApplicationNameAndDefaultCommand() {
+    const help = this.run(
+      "const { runCli } = await import(process.env.CLI); await runCli({ appPath: process.env.APP, argv: ['--help'] })"
+    );
+    if (help === undefined) return;
+    assert.ok(help.includes("mini-runner <command> [options]"), help);
+    // include/exclude apply: the unknown entry is reported
+    assert.ok(help.includes("webda.cli.exclude: no command 'ghost'"), help);
+    // No command given: the default one runs
+    const run = this.run(
+      "const { runCli } = await import(process.env.CLI); await runCli({ appPath: process.env.APP, argv: [] })"
+    );
+    assert.ok(run.includes("Unknown command 'hello'"), run);
+    assert.ok(run.includes("Run 'mini-runner --help'"), run);
+    // The options win over the configuration
+    const options = this.run(
+      "const { runCli } = await import(process.env.CLI); await runCli({ appPath: process.env.APP, argv: [], name: 'other', defaultCommand: 'bye' })"
+    );
+    assert.ok(options.includes("Unknown command 'bye'"), options);
+    assert.ok(options.includes("Run 'other --help'"), options);
+  }
+
+  @test
+  webdaCommandKeepsItsNameWithoutDefaultCommand() {
+    const help = this.run(undefined, ["--help"]);
+    if (help === undefined) return;
+    assert.ok(help.includes("webda <command> [options]"), help);
+    assert.ok(help.includes("webda.cli.exclude: no command 'ghost'"), help);
+    const none = this.run(undefined, []);
+    assert.ok(!none.includes("hello"), none);
+    assert.ok(none.includes("Specify a command"), none);
+  }
+
+  @test
+  async directEntryUsesWebdaConfiguration() {
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    const originalArgv = process.argv;
+    const originalPath = process.env.WEBDA_APP_PATH;
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("CLI test exit");
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({
+          name: "mini",
+          version: "1.0.0",
+          type: "module",
+          webda: { cli: { name: "mini-runner", defaultCommand: "hello" } }
+        })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({ moddas: {}, beans: {}, deployers: {}, models: {}, schemas: {} })
+      );
+      process.env.WEBDA_APP_PATH = app;
+      process.argv = [
+        process.execPath,
+        fileURLToPath(new URL("./cli.ts", import.meta.url)),
+        "unknown",
+        "--console-patch=false"
+      ];
+      vi.resetModules();
+      await assert.rejects(import("./cli.js"), /CLI test exit/);
+      assert.ok(exit.mock.calls.length > 0);
+      assert.ok(error.mock.calls.flat().join(" ").includes("Run 'webda --help' for details."));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+      process.argv = originalArgv;
+      if (originalPath === undefined) delete process.env.WEBDA_APP_PATH;
+      else process.env.WEBDA_APP_PATH = originalPath;
+      vi.resetModules();
+      rmSync(app, { recursive: true, force: true });
+    }
   }
 }

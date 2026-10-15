@@ -116,6 +116,10 @@ class ReportersTest {
     );
     assert.ok(markdown.startsWith("## T\n"));
     assert.ok(markdown.includes("query=a\\|b"), "pipes are escaped");
+    assert.ok(
+      toMarkdown([result({ params: { path: "a\\|b" } })]).includes("path=a\\\\\\|b"),
+      "backslashes are escaped"
+    );
     assert.ok(markdown.includes("commit 01234567"));
     assert.ok(markdown.includes("**Unstable results**"));
     const file = join(this.tmp, "summary.md");
@@ -146,6 +150,15 @@ class ReportersTest {
     writeFileSync(join(output, "broken.json"), "{");
     writeFileSync(join(output, "notes.txt"), "x");
     assert.strictEqual(loadResults([output, join(this.tmp, "missing")]).length, 3);
+    // Sub-folders are read, node_modules is skipped
+    new JsonReporter(join(output, "nested")).report([result({ suite: "nested" })]);
+    new JsonReporter(join(output, "node_modules")).report([result({ suite: "skipped" })]);
+    assert.deepStrictEqual(
+      loadResults([output])
+        .map(r => r.suite)
+        .sort(),
+      ["nested", "queue", "store", "store"]
+    );
     assert.strictEqual(loadResults([join(output, "store-MemoryStore.json")]).length, 2);
     // A second runner of the same process writing the same file is merged
     new JsonReporter(output).report([result({ scenario: "store.other" })]);

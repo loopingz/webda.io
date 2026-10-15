@@ -82,7 +82,7 @@ export function comparisonToMarkdown(comparisons: Comparison[]): string {
   ];
   for (const c of comparisons) {
     lines.push(
-      `| ${c.key.replace(/\|/g, "\\|")} | ${formatNumber(c.baseline.throughput, 0)} | ${formatNumber(c.current.throughput, 0)}` +
+      `| ${c.key.replace(/\\/g, "\\\\").replace(/\|/g, "\\|")} | ${formatNumber(c.baseline.throughput, 0)} | ${formatNumber(c.current.throughput, 0)}` +
         ` | ${percent(c.throughputRatio)} | ${c.baseline.latency.p99} | ${c.current.latency.p99} | ${percent(c.p99Ratio)}` +
         ` | ${c.regression ? "⚠️ regression" : ""} |`
     );

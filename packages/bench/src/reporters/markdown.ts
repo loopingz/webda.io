@@ -10,7 +10,7 @@ import { RESULT_COLUMNS, type Reporter } from "./reporter.js";
  * @returns the markdown
  */
 export function toMarkdown(results: BenchResult[], title?: string): string {
-  const escape = (text: string) => text.replace(/\|/g, "\\|");
+  const escape = (text: string) => text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
   const lines: string[] = [];
   if (title) {
     lines.push(`## ${title}`, "");

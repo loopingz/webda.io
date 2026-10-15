@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync, type Dirent } from "node:fs";
 import { join, resolve } from "node:path";
 import { BENCH_SCHEMA_VERSION, type BenchResult, type BenchResultsFile } from "../result.js";
 import type { Reporter } from "./reporter.js";
@@ -60,19 +60,7 @@ export class JsonReporter implements Reporter {
  */
 export function loadResults(paths: string[]): BenchResult[] {
   const results: BenchResult[] = [];
-  const visit = (path: string) => {
-    let stat;
-    try {
-      stat = statSync(path);
-    } catch {
-      return;
-    }
-    if (stat.isDirectory()) {
-      for (const entry of readdirSync(path).sort()) {
-        if (entry !== "node_modules") visit(join(path, entry));
-      }
-      return;
-    }
+  const readFile = (path: string) => {
     if (!path.endsWith(".json")) {
       return;
     }
@@ -82,7 +70,26 @@ export function loadResults(paths: string[]): BenchResult[] {
         results.push(...content.results);
       }
     } catch {
-      // Not a results file
+      // Missing or not a results file
+    }
+  };
+  // Read directly instead of checking first: no window between a check and the use of the path
+  const visit = (path: string) => {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(path, { withFileTypes: true });
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOTDIR") {
+        readFile(path);
+      }
+      return;
+    }
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.isDirectory() && entry.name !== "node_modules") {
+        visit(join(path, entry.name));
+      } else if (entry.isFile()) {
+        readFile(join(path, entry.name));
+      }
     }
   };
   paths.forEach(visit);

@@ -439,7 +439,7 @@ class TokenServiceTest extends WebdaApplicationTest {
   @test
   async tokenWithoutSubjectSkipsUserLookup() {
     const svc: any = this.service;
-    let looked: string[] = [];
+    const looked: string[] = [];
     const original = svc.lookupRevoked.bind(svc);
     svc.lookupRevoked = async (key: string) => {
       looked.push(key);

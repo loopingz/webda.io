@@ -328,6 +328,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * arbitrary string simply does not match a stored record.
    * @param refreshToken - raw refresh token
    * @param options - client the token must belong to and optional narrower scope
+   * @param options.scope - narrower scope to grant
+   * @param options.clientId - client the token must belong to
    * @returns new tokens, the rebuilt session and the granted scope
    */
   async refresh(

@@ -17,6 +17,11 @@ export class InsufficientScope extends WebdaError.Forbidden {
 
 /**
  * Refuse operations outside the session's token scope; sessions without scopes are unrestricted
+ * @param context - calling context
+ * @param operationId - operation being called
+ * @param _operation - operation definition (unused)
+ * @param root0 - authorizer options
+ * @param root0.probe - true when only checking visibility: return a reason instead of throwing
  * @returns true or throws
  */
 export const scopeAuthorizer: OperationAuthorizer = async (context, operationId, _operation, { probe }) => {

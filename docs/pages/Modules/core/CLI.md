@@ -125,10 +125,17 @@ The `webda.cli` section of the application `package.json` configures its command
 | `name` | generated executable (`runCli`) | Program name shown in `--help`; also names the executable. Defaults to the unscoped package name |
 | `defaultCommand` | generated executable (`runCli`) | Command inserted when the arguments name none (`acp-loopingz-runner --port 3000` runs `serve --port 3000`); `--help` and `--version` alone still show the global help and version |
 | `bin` | `webdac build` | Path of the generated executable, relative to the package, default `bin/<name>.mjs` |
-| `include` | `webda` and the executable | Allow-list of commands, applied before `exclude`; a command keeps its subcommands (`"config"` keeps `config encrypt`) |
+| `include` | `webda` and the executable | Allow-list of commands, applied before `exclude`; a command keeps its subcommands (`"config"` keeps `config encrypt`, `"task"` keeps every `task` operation) |
 | `exclude` | `webda` and the executable | `"Type:command"` removes one provider of a command (`"Webda/HttpServer:serve"`, or `"HttpServer:serve"`), `"command"` removes the command with its subcommands |
 
 `include` and `exclude` apply to `webda` too, so `webda` and the application executable offer the same commands. An entry matching no command logs a warning. An excluded provider is not added to the configuration to run the command either.
+
+They select the operation commands (`@Operation`, from `.webda/operations.json`) the same way. The operation `RunnerAuth.Login` is the command `runnerauth login`:
+
+- `"runnerauth"` selects the whole group, `"runnerauth login"` one operation. Operation names match in any case (`"RunnerAuth"` works too).
+- `"Type:command"` only selects `@Command` providers, never an operation.
+- With `include`, a group not listed is hidden from `--help` and cannot be run: `"include": ["serve", "login", "logout"]` leaves no operation command.
+- An entry matching only an operation is not reported as unknown.
 
 Replacing a framework command with a subclass, for example a `serve` taking a hub address:
 

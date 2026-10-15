@@ -909,9 +909,16 @@ class CliApplicationConfigurationTest {
    * Run the compiled CLI on a minimal application declaring `webda.cli`
    * @param script - module code run with `cli` (the compiled cli.js path) and `app` (the application folder)
    * @param args - arguments of the node process
+   * @param cli - the `webda.cli` section of the application package.json
+   * @param operations - operation ids written to `.webda/operations.json`, if any
    * @returns the output (stdout and stderr), undefined when the CLI is not compiled
    */
-  run(script: string | undefined, args: string[] = []): string | undefined {
+  run(
+    script: string | undefined,
+    args: string[] = [],
+    cli: any = { name: "mini-runner", defaultCommand: "hello", exclude: ["ghost"] },
+    operations?: string[]
+  ): string | undefined {
     const lib = fileURLToPath(new URL("../../lib/bin/cli.js", import.meta.url));
     if (!existsSync(lib)) {
       return undefined;
@@ -924,9 +931,19 @@ class CliApplicationConfigurationTest {
           name: "mini",
           version: "1.0.0",
           type: "module",
-          webda: { cli: { name: "mini-runner", defaultCommand: "hello", exclude: ["ghost"] } }
+          webda: { cli }
         })
       );
+      if (operations) {
+        mkdirSync(join(app, ".webda"));
+        writeFileSync(
+          join(app, ".webda", "operations.json"),
+          JSON.stringify({
+            operations: Object.fromEntries(operations.map(id => [id, { id, input: "void", output: "void" }])),
+            schemas: {}
+          })
+        );
+      }
       writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
       writeFileSync(
         join(app, "webda.module.json"),
@@ -984,6 +1001,35 @@ class CliApplicationConfigurationTest {
     const none = this.run(undefined, []);
     assert.ok(!none.includes("hello"), none);
     assert.ok(none.includes("Specify a command"), none);
+  }
+
+  @test
+  includeAndExcludeSelectOperationGroups() {
+    const operations = ["RunnerAuth.Login", "RunnerAuth.Status", "AcpRelay.Connect", "Task.Get"];
+    const cli = { name: "mini-runner", include: ["runnerauth", "acprelay", "nope"], exclude: ["runnerauth status"] };
+    const runCliScript = (argv: string[]) =>
+      `const { runCli } = await import(process.env.CLI); await runCli({ appPath: process.env.APP, argv: ${JSON.stringify(argv)} })`;
+    const help = this.run(runCliScript(["--help"]), [], cli, operations);
+    if (help === undefined) return;
+    assert.ok(/^\s+mini-runner runnerauth\b/m.test(help), help);
+    assert.ok(/^\s+mini-runner acprelay\b/m.test(help), help);
+    assert.ok(!/^\s+mini-runner task\b/m.test(help), help);
+    // Only the entry matching neither a command nor an operation is reported
+    assert.ok(help.includes("webda.cli.include: no command 'nope'"), help);
+    assert.ok(!help.includes("no command 'runnerauth"), help);
+    assert.ok(!help.includes("no command 'acprelay'"), help);
+    // One operation of a group excluded
+    const group = this.run(runCliScript(["runnerauth", "--help"]), [], cli, operations);
+    assert.ok(group.includes("runnerauth login"), group);
+    assert.ok(!group.includes("runnerauth status"), group);
+    // A group left out is not runnable
+    const task = this.run(runCliScript(["task", "get"]), [], cli, operations);
+    assert.ok(task.includes("Unknown command 'task'"), task);
+    // The webda command applies the same selection
+    const webda = this.run(undefined, ["--help"], { exclude: ["task", "runnerauth login"] }, operations);
+    assert.ok(/^\s+webda runnerauth\b/m.test(webda), webda);
+    assert.ok(!/^\s+webda task\b/m.test(webda), webda);
+    assert.ok(!webda.includes("webda.cli.exclude"), webda);
   }
 
   @test

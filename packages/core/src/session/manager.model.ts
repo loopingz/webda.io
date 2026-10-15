@@ -231,6 +231,9 @@ export class CookieSessionManager<
     } else {
       Object.assign(session, cookie);
     }
+    // Only bearer sessions carry a token scope: a browser session is never restricted
+    delete session.scopes;
+    delete session.clientId;
     // A password change ends the sessions authenticated before it
     if (await this.isOutdated(session)) {
       session.logout();

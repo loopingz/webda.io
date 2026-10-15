@@ -1,4 +1,5 @@
 import { Service } from "./service.js";
+import { InsufficientScope } from "./scopeauthorizer.js";
 import { Command } from "./command.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
@@ -268,6 +269,10 @@ export class HttpServer<
           // A Redirect carries its target: without the Location header the client only gets the JSON body
           if (err instanceof WebdaError.Redirect && err.location && !webCtx.hasFlushedHeaders?.()) {
             webCtx.setHeader("Location", err.location);
+          }
+          // RFC 6750: tell the client which scope the refused operation needs
+          if (err instanceof InsufficientScope && !webCtx.hasFlushedHeaders?.()) {
+            webCtx.setHeader("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${err.operation}"`);
           }
           const method = webCtx.getHttpContext().getMethod();
           const url = webCtx.getHttpContext().getUrl();

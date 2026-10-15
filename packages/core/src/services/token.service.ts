@@ -6,6 +6,8 @@ import { ServiceParameters } from "./serviceparameters.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
 import { covers, formatScope, InvalidScope, parseScope, type Scope } from "../session/scope.js";
+import { registerOperationAuthorizer, unregisterOperationAuthorizer } from "../core/operations.js";
+import { scopeAuthorizer } from "./scopeauthorizer.js";
 import { MfaState, type MfaVerification, Session } from "../session/session.js";
 
 const ACCESS_AUDIENCE = "webda-access";
@@ -85,6 +87,24 @@ export class TokenServiceParameters extends ServiceParameters {
  * @WebdaModda TokenService
  */
 export class TokenService<T extends TokenServiceParameters = TokenServiceParameters> extends Service<T> {
+  /**
+   * Enforce the bearer token scope on every operation
+   * @override
+   */
+  resolve(): this {
+    super.resolve();
+    registerOperationAuthorizer(scopeAuthorizer);
+    return this;
+  }
+
+  /**
+   * @override
+   */
+  async stop(): Promise<void> {
+    unregisterOperationAuthorizer(scopeAuthorizer);
+    await super.stop();
+  }
+
   /**
    * @param token - raw refresh token
    * @returns SHA-256 hex

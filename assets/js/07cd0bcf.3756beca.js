@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunk_webda_docs||=[]).push([[24844],{97264(e,d,a){a.r(d),a.d(d,{default:()=>u});var r=a(57923),s=a(84387);function u(){return(0,r.useEffect)(()=>{window.location.replace("/debug/")},[]),(0,s.jsxs)("p",{style:{padding:"2rem"},children:["The debug dashboard moved to ",(0,s.jsx)("a",{href:"pathname:///debug/",children:"/debug/"}),"."]})}}}]);

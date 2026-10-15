@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-Security/OIDC" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">Application trust with OIDC | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/docs/Security/OIDC"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Application trust with OIDC | Webda.io"><meta data-rh="true" name="description" content="@webda/oidc lets Webda applications call each other without a shared secret. The caller presents a short-lived"><meta data-rh="true" property="og:description" content="@webda/oidc lets Webda applications call each other without a shared secret. The caller presents a short-lived"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/docs/Security/OIDC"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Security/OIDC" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Security/OIDC" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Security","item":"https://webda.io/docs/Security/"},{"@type":"ListItem","position":2,"name":"Application trust with OIDC","item":"https://webda.io/docs/Security/OIDC"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml">
+
+
+
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.4204b3f1.css">
+<script src="/assets/js/runtime~main.80465312.js" defer="defer"></script>
+<script src="/assets/js/main.48aaa4e8.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_MWLN" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_Yfpc themedComponent--light_amqC"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_Yfpc themedComponent--dark_XRuD"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a class="navbar__item navbar__link" href="/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a href="/debug/" target="_self" rel="noopener noreferrer" class="navbar__item navbar__link" title="My Application — debug dashboard">My Application</a><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link header-github-link" aria-label="GitHub repository"></a><div class="navbar-search-centered navbarSearchContainer_iIFX"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div><div class="toggle_noWv colorModeToggle_oozF"><button class="clean-btn toggleButton_pFnF toggleButtonDisabled_kNkN" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU lightToggleIcon_bBiL"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU darkToggleIcon_pGW8"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU systemToggleIcon_zcqz"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_UUZP"><div class="docsWrapper_nU0q"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_LFjF" type="button"></button><div class="docRoot_zh1L"><aside class="theme-doc-sidebar-container docSidebarContainer_Pr5l"><div class="sidebarViewport_UJlQ"><div class="sidebar_SBgp"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_iyWm"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/QuickStart/"><span class="categoryLinkLabel_6V4C">Quick Start</span></a><button aria-label="Expand sidebar category &#x27;Quick Start&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Glossary"><span class="linkLabel_N6h3">Glossary</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Concepts/"><span class="categoryLinkLabel_6V4C">Concepts</span></a><button aria-label="Expand sidebar category &#x27;Concepts&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/REST/"><span class="categoryLinkLabel_6V4C">REST</span></a><button aria-label="Expand sidebar category &#x27;REST&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Modules/"><span class="categoryLinkLabel_6V4C">Modules</span></a><button aria-label="Expand sidebar category &#x27;Modules&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Deployments/"><span class="categoryLinkLabel_6V4C">Deployments</span></a><button aria-label="Expand sidebar category &#x27;Deployments&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--active" href="/docs/Security/"><span class="categoryLinkLabel_6V4C">Security</span></a><button aria-label="Collapse sidebar category &#x27;Security&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/Authentication"><span class="linkLabel_N6h3">Authentication</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/CORS"><span class="linkLabel_N6h3">CORS</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/ClientCertificate"><span class="linkLabel_N6h3">Client certificates (mTLS)</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/ConfigurationSecrets"><span class="linkLabel_N6h3">Configuration Secrets</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/CookieConfiguration"><span class="linkLabel_N6h3">Cookies</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/Hawk"><span class="linkLabel_N6h3">Hawk</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/docs/Security/OIDC"><span class="linkLabel_N6h3">Application trust with OIDC</span></a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Monitoring/"><span class="categoryLinkLabel_6V4C">Monitoring</span></a><button aria-label="Expand sidebar category &#x27;Monitoring&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Application/"><span class="linkLabel_N6h3">Application</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Benchmarks"><span class="linkLabel_N6h3">Benchmarks</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/CommonIssues/"><span class="categoryLinkLabel_6V4C">Common Issues</span></a><button aria-label="Expand sidebar category &#x27;Common Issues&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/docs/Debug/DebugDashboard"><span class="categoryLinkLabel_6V4C">Debug</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Intro"><span class="linkLabel_N6h3">Webda</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Lifecycle"><span class="linkLabel_N6h3">Lifecycle</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Migration/"><span class="categoryLinkLabel_6V4C">Migration</span></a><button aria-label="Expand sidebar category &#x27;Migration&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Testing"><span class="linkLabel_N6h3">Testing your application</span></a></li></ul></nav></div></div></aside><main class="docMainContainer_qpv5"><div class="container padding-top--md padding-bottom--lg"><div class="wrapper_xJ_b"><canvas aria-hidden="true" class="network_l8Fo band_NwgC band_TnFH"></canvas><canvas aria-hidden="true" class="network_l8Fo bandArea_R8Vj band_TnFH"></canvas><div class="row"><div class="col docItemCol_NWVy"><div class="docItemContainer_dtc9"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_zWSF" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_v8bk"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/docs/Security/"><span>Security</span></a></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">Application trust with OIDC</span></li></ul></nav><div class="tocCollapsible_Kr7U theme-doc-toc-mobile tocMobile_A93Z"><button type="button" class="clean-btn tocCollapsibleButton_C54N">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Application trust with OIDC</h1></header>
+<p><code>@webda/oidc</code> lets Webda applications call each other <strong>without a shared secret</strong>. The caller presents a short-lived
+JWT signed with its own asymmetric key. The callee verifies it against the caller&#x27;s public JWKS, found through standard
+OpenID Connect discovery, and turns the caller into an <em>application principal</em> that IAM policies can target.</p>
+<p>The same verifier accepts tokens from any OIDC issuer that publishes discovery and JWKS: Kubernetes service accounts,
+GitHub Actions, GCP service accounts...</p>
+<p>It is about <strong>workloads</strong> (applications, jobs, CI), not users: user login stays with <code>@webda/auth</code>.</p>
+<!-- -->
+<h2 class="anchor anchorTargetStickyNavbar_Y7so" id="services">Services<a href="#services" class="hash-link" aria-label="Direct link to Services" title="Direct link to Services" translate="no">​</a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Service</th><th>Role</th></tr></thead><tbody><tr><td><code>Webda/OIDCIssuer</code></td><td>Publishes <code>/.well-known/openid-configuration</code> and mints audience-scoped workload tokens</td></tr><tr><td><code>Webda/OIDCVerifier</code></td><td>Trusts a list of issuers, turns a valid <code>Authorization: Bearer</code> into an application session</td></tr><tr><td><code>Webda/OIDCClient</code></td><td>Gets a token for a target audience and calls other applications with it</td></tr></tbody></table>
+<h3 class="anchor anchorTargetStickyNavbar_Y7so" id="oidcissuer">OIDCIssuer<a href="#oidcissuer" class="hash-link" aria-label="Direct link to OIDCIssuer" title="Direct link to OIDCIssuer" translate="no">​</a></h3>
+<p>The issuer signs with the <code>CryptoService</code> asymmetric keys and publishes them through the <code>CryptoService</code> JWKS route,
+so the <code>CryptoService</code> needs an <code>url</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>issuer</code></td><td>required</td><td>Public URL, <code>https</code> (plain <code>http</code> is only accepted for <code>localhost</code>), no query</td></tr><tr><td><code>name</code></td><td>application package name</td><td>Tokens carry <code>sub: app:&lt;name&gt;</code> and <code>webda_app: &lt;name&gt;</code></td></tr><tr><td><code>tokenTtl</code></td><td><code>300</code></td><td>Token lifetime in seconds</td></tr><tr><td><code>algorithm</code></td><td><code>RS256</code></td><td><code>RS256</code>, <code>RS384</code>, <code>RS512</code>, <code>PS256</code> or <code>ES256</code> (EC keys). Symmetric algorithms are refused</td></tr><tr><td><code>audiences</code></td><td><code>[&quot;*&quot;]</code></td><td>Audiences this application may mint tokens for (globs, <code>*</code> does not cross <code>/</code>)</td></tr></tbody></table>
+<p><code>useOIDCIssuer().mint(audience, extraClaims?)</code> returns <code>{ token, expiresAt }</code>. Extra claims cannot override <code>iss</code>,
+<code>sub</code>, <code>aud</code>, <code>exp</code>, <code>nbf</code>, <code>iat</code>, <code>jti</code> nor <code>webda_app</code>.</p>
+<p>The JWKS published by the <code>CryptoService</code>:</p>
+<ul>
+<li class="">uses the <code>kid</code> written in the tokens (<code>A&lt;keyId&gt;</code>), with <code>use: &quot;sig&quot;</code>;</li>
+<li class="">advertises <code>alg</code> only when the <code>CryptoService</code> <code>jwt.algorithm</code> is asymmetric: the issuer then refuses to start with
+another algorithm;</li>
+<li class="">never contains symmetric keys nor private parts;</li>
+<li class="">keeps the keys of previous rotations while they are in the registry, so tokens signed before a rotation still verify;</li>
+<li class="">is served with <code>Cache-Control: public, max-age=…</code> (a tenth of <code>keyActiveLifespan</code>, between 1 minute and 1 hour,
+10 minutes by default).</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_Y7so" id="oidcverifier">OIDCVerifier<a href="#oidcverifier" class="hash-link" aria-label="Direct link to OIDCVerifier" title="Direct link to OIDCVerifier" translate="no">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>audience</code></td><td>required</td><td>Default expected audience, usually this application public URL</td></tr><tr><td><code>trustedIssuers</code></td><td><code>[]</code></td><td>See below</td></tr><tr><td><code>clockTolerance</code></td><td><code>30</code></td><td>Clock skew in seconds</td></tr><tr><td><code>maxTokenAge</code></td><td><code>3600</code></td><td>Max lifetime (<code>exp - iat</code>) in seconds</td></tr><tr><td><code>jwksCacheTtl</code></td><td><code>600</code></td><td>Discovery and JWKS cache in seconds</td></tr><tr><td><code>requestTimeout</code></td><td><code>5000</code></td><td>Discovery and JWKS request timeout in milliseconds</td></tr></tbody></table>
+<p>Each trusted issuer:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>issuer</code></td><td>required</td><td>Compared <strong>exactly</strong> to the token <code>iss</code></td></tr><tr><td><code>jwksUri</code></td><td>discovered</td><td>Skip discovery, useful for issuers that are not URLs</td></tr><tr><td><code>audiences</code></td><td><code>[audience]</code></td><td>Accepted audiences</td></tr><tr><td><code>algorithms</code></td><td><code>[&quot;RS256&quot;, &quot;ES256&quot;]</code></td><td>Never <code>none</code> nor <code>HS*</code></td></tr><tr><td><code>claims</code></td><td><code>{}</code></td><td>Conditions on claims, all must match. Values are globs (<code>*</code> does not cross <code>/</code>), a list means any of</td></tr><tr><td><code>principal</code></td><td><code>${sub}</code></td><td>Template over the claims. A leading <code>app:</code> is removed</td></tr><tr><td><code>groups</code></td><td><code>[]</code></td><td>Static groups, seen by IAM as <code>app-group:&lt;group&gt;</code></td></tr><tr><td><code>maxTokenAge</code></td><td>the verifier <code>maxTokenAge</code></td><td>Per-issuer max lifetime</td></tr></tbody></table>
+<p><code>useOIDCVerifier().verify(token)</code> returns the <code>AppIdentity</code> or <code>undefined</code>, <code>verifyOrFail(token)</code> throws an
+<code>OIDCTokenInvalid</code> (401).</p>
+<h3 class="anchor anchorTargetStickyNavbar_Y7so" id="oidcclient">OIDCClient<a href="#oidcclient" class="hash-link" aria-label="Direct link to OIDCClient" title="Direct link to OIDCClient" translate="no">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>source</code></td><td><code>self</code></td><td><code>self</code>, <code>file</code>, <code>gcp-metadata</code> or <code>github-actions</code></td></tr><tr><td><code>tokenFile</code></td><td></td><td>For <code>file</code>: the projected token path</td></tr><tr><td><code>issuerService</code></td><td><code>OIDCIssuer</code></td><td>For <code>self</code>: the issuer service name</td></tr><tr><td><code>refreshMargin</code></td><td><code>60</code></td><td>Seconds before expiration when a cached token is renewed</td></tr><tr><td><code>requestTimeout</code></td><td><code>5000</code></td><td>Token request timeout in milliseconds</td></tr></tbody></table>
+<p>Sources:</p>
+<ul>
+<li class=""><code>self</code>: minted by this application <code>OIDCIssuer</code>.</li>
+<li class=""><code>file</code>: read again on every refresh, as the kubelet rotates it. The audience is fixed by the pod spec: asking for
+another one throws.</li>
+<li class=""><code>gcp-metadata</code>: identity token of the default service account from the metadata server.</li>
+<li class=""><code>github-actions</code>: from <code>ACTIONS_ID_TOKEN_REQUEST_URL</code> / <code>ACTIONS_ID_TOKEN_REQUEST_TOKEN</code>, the workflow needs
+<code>permissions: id-token: write</code>.</li>
+</ul>
+<p>Tokens are cached per audience, and concurrent calls share a single request.</p>
+<div class="language-ts codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-ts codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> useOIDCClient </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;@webda/oidc&quot;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// Audience defaults to the url origin: https://billing.example.com</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> res </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">await</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">useOIDCClient</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">fetch</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;https://billing.example.com/invoices&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  method</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;POST&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  body</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token constant" style="color:#36acaa">JSON</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">stringify</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> amount</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token number" style="color:#36acaa">10</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<h2 class="anchor anchorTargetStickyNavbar_Y7so" id="request-flow">Request flow<a href="#request-flow" class="hash-link" aria-label="Direct link to Request flow" title="Direct link to Request flow" translate="no">​</a></h2>
+<!-- -->
+<p>The <code>SessionManager</code> tries the <code>TokenService</code> access tokens first, then every registered <code>BearerTokenResolver</code>
+(<code>registerBearerResolver()</code> in <code>@webda/core</code>). A Bearer that nobody accepts gives an anonymous session: the cookie is
+never used as a fallback.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Y7so" id="application-sessions">Application sessions<a href="#application-sessions" class="hash-link" aria-label="Direct link to Application sessions" title="Direct link to Application sessions" translate="no">​</a></h2>
+<p>A verified token gives a <strong>stateless</strong> session with <code>session.application</code> set:</p>
+<div class="language-ts codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-ts codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  principal</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;orders&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  issuer</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;https://orders.example.com&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  subject</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;app:orders&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  groups</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  claims</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">...</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token comment" style="color:#999988;font-style:italic">// the verified claims</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p><code>session.isApplication()</code> is true, <code>amr</code> is <code>[&quot;oidc&quot;]</code> and <code>provider</code> is the issuer. An application session has <strong>no
+user</strong>: <code>getCurrentUserId()</code> is <code>undefined</code> and <code>isLogged()</code> is <code>false</code>, so ownership checks (<code>OwnerModel</code>) and
+user-only operations never mistake an application for a user. Mapping an application to a user is up to the
+application.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Y7so" id="iam">IAM<a href="#iam" class="hash-link" aria-label="Direct link to IAM" title="Direct link to IAM" translate="no">​</a></h2>
+<p><code>IAMService</code> gives an application session these principals:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Principal</th><th>Meaning</th></tr></thead><tbody><tr><td><code>app:&lt;principal&gt;</code></td><td>The application</td></tr><tr><td><code>app-issuer:&lt;issuer&gt;</code></td><td>Any application of this issuer</td></tr><tr><td><code>app-group:&lt;group&gt;</code></td><td>The static groups of its trusted issuer</td></tr><tr><td><code>authenticated-app</code></td><td>Any verified application</td></tr></tbody></table>
+<p>Users keep <code>user:&lt;id&gt;</code>, <code>group:&lt;name&gt;</code>, <code>authenticated</code>; neither side gets the other&#x27;s principals. Conditions can read
+<code>r.ctx.application</code> (<code>principal</code>, <code>issuer</code>, <code>subject</code>, <code>groups</code>, <code>claims</code>).</p>
+<div class="language-jsonc codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-jsonc codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token plain">&quot;IAMService&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;type&quot;: &quot;Webda/IAMService&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;scope&quot;: [&quot;Invoices.*&quot;, &quot;Orders.*&quot;],</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;policies&quot;: [</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    { &quot;name&quot;: &quot;InvoiceWriter&quot;, &quot;statements&quot;: [{ &quot;effect&quot;: &quot;allow&quot;, &quot;operations&quot;: [&quot;Invoices.Create&quot;] }] },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    { &quot;name&quot;: &quot;OrdersReader&quot;, &quot;statements&quot;: [{ &quot;effect&quot;: &quot;allow&quot;, &quot;operations&quot;: [&quot;Orders.Get&quot;, &quot;Orders.Query&quot;] }] },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;name&quot;: &quot;MainBranchDeploy&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;statements&quot;: [</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        { &quot;effect&quot;: &quot;allow&quot;, &quot;operations&quot;: [&quot;Orders.*&quot;], &quot;condition&quot;: &quot;r.ctx.application.claims.ref == &#x27;refs/heads/main&#x27;&quot; }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      ]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  ],</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;attachments&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;app:orders&quot;: [&quot;InvoiceWriter&quot;],</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;app:repo:loopingz/orders:*&quot;: [&quot;OrdersReader&quot;],</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;app-issuer:https://token.actions.githubusercontent.com&quot;: [&quot;MainBranchDeploy&quot;]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<p><code>IAMPolicyAttachment</code> models accept the same principals.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Y7so" id="configuration-example">Configuration example<a href="#configuration-example" class="hash-link" aria-label="Direct link to Configuration example" title="Direct link to Configuration example" translate="no">​</a></h2>
+<div class="language-jsonc codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-jsonc codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token plain">// App A (orders)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">&quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;CryptoService&quot;: { &quot;url&quot;: &quot;/jwks&quot;, &quot;jwt&quot;: { &quot;algorithm&quot;: &quot;RS256&quot; } },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;OIDCIssuer&quot;: { &quot;type&quot;: &quot;Webda/OIDCIssuer&quot;, &quot;issuer&quot;: &quot;https://orders.example.com&quot;, &quot;name&quot;: &quot;orders&quot; },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;OIDCClient&quot;: { &quot;type&quot;: &quot;Webda/OIDCClient&quot;, &quot;source&quot;: &quot;self&quot; }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">// App B (billing)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">&quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;OIDCVerifier&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;type&quot;: &quot;Webda/OIDCVerifier&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;audience&quot;: &quot;https://billing.example.com&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;trustedIssuers&quot;: [</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      { &quot;issuer&quot;: &quot;https://orders.example.com&quot;, &quot;claims&quot;: { &quot;sub&quot;: &quot;app:orders&quot; } },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;issuer&quot;: &quot;https://token.actions.githubusercontent.com&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;claims&quot;: { &quot;repository&quot;: &quot;loopingz/*&quot;, &quot;ref&quot;: &quot;refs/heads/main&quot; },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;principal&quot;: &quot;gha:${repository}&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;issuer&quot;: &quot;https://kubernetes.default.svc.cluster.local&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;claims&quot;: { &quot;sub&quot;: &quot;system:serviceaccount:prod:*&quot; }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<p>Principal names are shared by all the trusted issuers: give each external issuer a distinct <code>principal</code> template
+(<code>gha:${repository}</code>, <code>k8s:${sub}</code>...) so that one issuer cannot produce the principal of another.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Y7so" id="kubernetes">Kubernetes<a href="#kubernetes" class="hash-link" aria-label="Direct link to Kubernetes" title="Direct link to Kubernetes" translate="no">​</a></h3>
+<p>Project a token with the audience of the called application, and read it with the <code>file</code> source:</p>
+<div class="language-yaml codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-yaml codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token key atrule" style="color:#00a4db">volumes</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">name</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> webda</span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain">token</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token key atrule" style="color:#00a4db">projected</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token key atrule" style="color:#00a4db">sources</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">serviceAccountToken</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            </span><span class="token key atrule" style="color:#00a4db">path</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> webda</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            </span><span class="token key atrule" style="color:#00a4db">audience</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> https</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain">//billing.example.com</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            </span><span class="token key atrule" style="color:#00a4db">expirationSeconds</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> </span><span class="token number" style="color:#36acaa">600</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<div class="language-jsonc codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-jsonc codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token plain">&quot;OIDCClient&quot;: { &quot;type&quot;: &quot;Webda/OIDCClient&quot;, &quot;source&quot;: &quot;file&quot;, &quot;tokenFile&quot;: &quot;/var/run/secrets/tokens/webda/webda&quot; }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>The callee trusts the cluster issuer (<code>kubectl get --raw /.well-known/openid-configuration</code>). Its discovery must be
+reachable from the callee: either a public issuer (managed clusters) or the <code>system:service-account-issuer-discovery</code>
+role bound to unauthenticated callers. Set <code>jwksUri</code> when the issuer is not an URL.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Y7so" id="security">Security<a href="#security" class="hash-link" aria-label="Direct link to Security" title="Direct link to Security" translate="no">​</a></h2>
+<ul>
+<li class="">Only configured issuers are contacted: an unknown <code>iss</code> is refused without any network request, so a token cannot
+make the verifier fetch an attacker URL.</li>
+<li class="">The discovery document must announce the configured <code>issuer</code>, its <code>jwks_uri</code> must be <code>https</code>.</li>
+<li class=""><code>none</code> and <code>HS*</code> are never accepted, whatever the <code>kid</code>: no algorithm confusion with a public key.</li>
+<li class=""><code>iss</code>, <code>aud</code>, <code>exp</code>, <code>nbf</code>, <code>iat</code> are checked with <code>clockTolerance</code>; <code>exp - iat</code> above <code>maxTokenAge</code> is refused.</li>
+<li class="">An unknown <code>kid</code> refetches the JWKS at most once per 30 seconds.</li>
+<li class="">Refusals are logged at <code>DEBUG</code> with the reason, never with the token, and counted in
+<code>webda_oidc_verify_total{issuer,result}</code> (untrusted issuers share the <code>untrusted</code> label).</li>
+<li class="">Tokens are short-lived and audience-scoped: a token for billing is useless against another application.</li>
+</ul>
+<p>Token exchange (RFC 8693), mTLS-bound tokens (RFC 8705) and a full OpenID Provider for users are out of scope.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Y7so" id="sample">Sample<a href="#sample" class="hash-link" aria-label="Direct link to Sample" title="Direct link to Sample" translate="no">​</a></h2>
+<p><code>sample-apps/oidc-trust</code> runs two applications: <code>orders</code> calls <code>billing</code>, whose IAM allows <code>app:orders</code> to create
+invoices.</p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_ikyx"><a href="https://github.com/loopingz/webda.io/tree/docs/pages/Security/OIDC.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_mkLG" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_ArRQ"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/Security/Hawk"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Hawk</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/Monitoring/"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">Monitoring</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_S27E thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#services" class="table-of-contents__link toc-highlight">Services</a><ul><li><a href="#oidcissuer" class="table-of-contents__link toc-highlight">OIDCIssuer</a></li><li><a href="#oidcverifier" class="table-of-contents__link toc-highlight">OIDCVerifier</a></li><li><a href="#oidcclient" class="table-of-contents__link toc-highlight">OIDCClient</a></li></ul></li><li><a href="#request-flow" class="table-of-contents__link toc-highlight">Request flow</a></li><li><a href="#application-sessions" class="table-of-contents__link toc-highlight">Application sessions</a></li><li><a href="#iam" class="table-of-contents__link toc-highlight">IAM</a></li><li><a href="#configuration-example" class="table-of-contents__link toc-highlight">Configuration example</a><ul><li><a href="#kubernetes" class="table-of-contents__link toc-highlight">Kubernetes</a></li></ul></li><li><a href="#security" class="table-of-contents__link toc-highlight">Security</a></li><li><a href="#sample" class="table-of-contents__link toc-highlight">Sample</a></li></ul></div></div></div></div></div></main></div></div></div></div>
+</body>
+</html>

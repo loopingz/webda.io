@@ -1,4 +1,12 @@
-import { Service, ServiceParameters, WebdaError, type Session, type WebContext } from "@webda/core";
+import {
+  listOperations,
+  OFFLINE_ACCESS,
+  Service,
+  ServiceParameters,
+  WebdaError,
+  type Session,
+  type WebContext
+} from "@webda/core";
 import type { McpAuthenticator } from "./auth.js";
 
 /**
@@ -14,6 +22,11 @@ export class McpOAuthAuthenticatorParameters extends ServiceParameters {
    * @default "/.well-known/oauth-protected-resource"
    */
   resourceMetadataPath: string;
+  /**
+   * Scopes advertised in the protected resource metadata (`scopes_supported`); defaults to what the Webda authorization
+   * server advertises: `*`, the top-level operation groups (`<Group>.*`) and `offline_access`
+   */
+  scopesSupported?: string[];
 
   /**
    * @param params - raw parameters
@@ -126,9 +139,25 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
       JSON.stringify({
         resource: this.absolute(ctx, resource),
         authorization_servers: this.parameters.authorizationServers ?? [this.absolute(ctx, "")],
+        scopes_supported: this.scopesSupported(),
         bearer_methods_supported: ["header"]
       })
     );
+  }
+
+  /**
+   * The scopes are operation globs: the default is computed from the operation registry like the Webda authorization
+   * server does, without depending on it. The OAuth operations are never delegated
+   * @returns advertised scopes
+   */
+  protected scopesSupported(): string[] {
+    if (this.parameters.scopesSupported) return this.parameters.scopesSupported;
+    const groups = new Set(
+      Object.keys(listOperations())
+        .filter(id => !id.startsWith("OAuth."))
+        .map(id => `${id.split(".")[0]}.*`)
+    );
+    return ["*", ...groups, OFFLINE_ACCESS];
   }
 
   /**

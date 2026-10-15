@@ -150,7 +150,10 @@ then call with a scoped bearer token:
   `/.well-known/oauth-protected-resource` (`resourceMetadataPath`), with the RFC 9728 path-suffixed form when several
   MCP endpoints share the authenticator.
 - `authorizationServers` lists the advertised authorization servers; it defaults to the request origin.
-- Tools outside the token scope are filtered from `tools/list` and refused as unknown tools.
+- `scopesSupported` lists the scopes advertised in the metadata (`scopes_supported`); it defaults to `*`, the
+  top-level operation groups (`<Group>.*`) and `offline_access`, like the Webda authorization server.
+- Tools outside the token scope are filtered from `tools/list`, and calling one answers the JSON-RPC error
+  `Unknown tool`, as for a tool that does not exist.
 - Without a valid token the endpoint answers `401` with a `WWW-Authenticate` header pointing to the metadata.
 
 ### Multiple instances

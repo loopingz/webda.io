@@ -119,11 +119,26 @@ class McpOAuthTest extends McpOAuthBase {
     const base = await this.base();
     const res = await fetch(`${base}/.well-known/oauth-protected-resource`);
     assert.strictEqual(res.status, 200);
-    assert.deepStrictEqual(await res.json(), {
+    const { scopes_supported: scopes, ...metadata } = await res.json();
+    assert.deepStrictEqual(metadata, {
       resource: `${base}/mcp`,
       authorization_servers: [base],
       bearer_methods_supported: ["header"]
     });
+    // Like the authorization server: `*`, the operation groups and offline_access, never the OAuth operations
+    assert.strictEqual(scopes[0], "*");
+    assert.strictEqual(scopes[scopes.length - 1], "offline_access");
+    assert.ok(scopes.includes("Fixture.*"), scopes.join(" "));
+    assert.ok(!scopes.includes("OAuth.*"), scopes.join(" "));
+    // Configured scopes replace the default
+    const auth = useService("McpAuth") as McpOAuthAuthenticator;
+    auth.getParameters().scopesSupported = ["Fixture.Echo", "offline_access"];
+    try {
+      const configured = await (await fetch(`${base}/.well-known/oauth-protected-resource`)).json();
+      assert.deepStrictEqual(configured.scopes_supported, ["Fixture.Echo", "offline_access"]);
+    } finally {
+      delete auth.getParameters().scopesSupported;
+    }
   }
 
   @test
@@ -161,7 +176,8 @@ class McpOAuthTest extends McpOAuthBase {
       getSession: () => new Session()
     };
     await auth.metadata(ctx);
-    assert.deepStrictEqual(JSON.parse(body), {
+    const { scopes_supported: _scopes, ...metadata } = JSON.parse(body);
+    assert.deepStrictEqual(metadata, {
       resource: "https://example.com/prod/mcp",
       authorization_servers: ["https://example.com/prod"],
       bearer_methods_supported: ["header"]

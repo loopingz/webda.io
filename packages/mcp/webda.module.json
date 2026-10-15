@@ -22,6 +22,13 @@
             "description": "Path serving the RFC 9728 protected resource metadata",
             "type": "string"
           },
+          "scopesSupported": {
+            "description": "Scopes advertised in the protected resource metadata (`scopes_supported`); defaults to what the Webda authorization\nserver advertises: `*`, the top-level operation groups (`<Group>.*`) and `offline_access`",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"

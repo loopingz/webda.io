@@ -42,6 +42,7 @@ import {
 import { type GrantIdentity, OAuthCode, OAuthDeviceCode, OAuthGrant } from "./models.model.js";
 import { type OAuthClient, OAuthServerParameters } from "./parameters.js";
 import { type PendingRequest, PENDING_TTL, readPending, writePending } from "./pending.js";
+import { consentHtml, deviceHtml, errorHtml, MAX_ECHO, newNonce, pageHeaders, resultHtml } from "./pages.js";
 
 /** Name of the pending request cookie */
 export const PENDING_COOKIE = "webda_oauth_pending";
@@ -61,6 +62,8 @@ const MAX_TOKEN_BODY = 64 * 1024;
 const TOKEN_HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store", Pragma: "no-cache" };
 /** Maximum number of records deleted per query by a sweep pass */
 const SWEEP_BATCH = 100;
+/** Longest user code prefilled by the device page */
+const USER_CODE_MAX = 32;
 /** Attempts at drawing a free user code */
 const USER_CODE_ATTEMPTS = 5;
 /** Window of the device lookup rate limit (ms) */
@@ -231,8 +234,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     this.addRoute(`${url}/revoke`, ["POST"], this.revoke, { hidden: true });
     this.addRoute(`${url}/device_authorization`, ["POST"], this.deviceAuthorization, { hidden: true });
     this.addRoute(`${url}/consent`, ["GET"], this.consentPage, { hidden: true });
-    this.addRoute(`${url}/device`, ["GET"], this.devicePage, { hidden: true });
-    this.addRoute(`${url}/done`, ["GET"], this.resultPage, { hidden: true });
+    this.addRoute(`${url}/device{?user_code?}`, ["GET"], this.devicePage, { hidden: true });
+    this.addRoute(`${url}/done{?status?,error?}`, ["GET"], this.resultPage, { hidden: true });
     return this;
   }
 
@@ -302,12 +305,12 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     removed += await this.sweepBatches(
       () => OAuthGrant.iterate("expiresAt < ?", [now]),
       async grant => {
-        // A re-consent since the read extended the grant: it survives
+        // A re-consent since the read extended the grant: it survives; a grant forgotten since the read is skipped
         try {
           await grant.ref().delete("expiresAt" as any, grant.expiresAt as any);
           return true;
         } catch (err) {
-          if (!this.isConditionFailure(err)) throw err;
+          if (!this.isConditionFailure(err) && (await grant.ref().exists())) throw err;
           return false;
         }
       }
@@ -860,8 +863,41 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param message - message, never derived from the request
    */
   protected errorPage(ctx: WebContext, status: number, message: string): void {
-    ctx.writeHead(status, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
-    ctx.write(message);
+    this.writePage(ctx, status, () => errorHtml(message));
+  }
+
+  /**
+   * Write a built-in page: not cached, not framed, only its nonce-bound script runs
+   * @param ctx - web context
+   * @param status - HTTP status
+   * @param render - render the page with the nonce of its script
+   */
+  protected writePage(ctx: WebContext, status: number, render: (nonce: string) => string): void {
+    const nonce = newNonce();
+    ctx.writeHead(status, pageHeaders(nonce));
+    ctx.write(render(nonce));
+  }
+
+  /**
+   * @param ctx - web context
+   * @returns path of the REST hints of the OAuth operations (`<path>/consent/request`), below the deployment prefix
+   */
+  protected apiBase(ctx: WebContext): string {
+    const rest = Object.values(useCore().getServices()).find(
+      (service): service is RESTOperationsTransport => service instanceof RESTOperationsTransport
+    );
+    const url = `${(rest?.getParameters().url ?? "/").replace(/\/?$/, "/")}oauth`;
+    return new URL(ctx.getHttpContext().getAbsoluteUrl(url)).pathname;
+  }
+
+  /**
+   * @param ctx - web context
+   * @param name - query parameter
+   * @returns its value, capped, undefined when absent or not a string
+   */
+  protected queryParameter(ctx: WebContext, name: string): string | undefined {
+    const value = ctx.parameter(name);
+    return typeof value === "string" ? value.slice(0, MAX_ECHO) : undefined;
   }
 
   /**
@@ -1493,26 +1529,38 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Built-in consent page
-   * @param _ctx - web context
+   * Built-in consent page: renders OAuth.Consent.Get, sends OAuth.Consent.Decide
+   * @param ctx - web context
    */
-  async consentPage(_ctx: WebContext): Promise<void> {
-    throw new WebdaError.NotFound("Not implemented");
+  async consentPage(ctx: WebContext): Promise<void> {
+    this.writePage(ctx, 200, nonce => consentHtml(this.apiBase(ctx), nonce));
   }
 
   /**
-   * Built-in device code entry page
-   * @param _ctx - web context
+   * Built-in device code entry page: sends OAuth.Device.Lookup, which needs a signed-in browser. A signed-out browser
+   * goes to the configured login page first, which brings it back here with the code
+   * @param ctx - web context
+   * @returns once the response is written
    */
-  async devicePage(_ctx: WebContext): Promise<void> {
-    throw new WebdaError.NotFound("Not implemented");
+  async devicePage(ctx: WebContext): Promise<void> {
+    const userCode = this.queryParameter(ctx, "user_code")?.slice(0, USER_CODE_MAX);
+    const session = ctx.getSession();
+    if (!session?.isLogged() || session.scopes !== undefined) {
+      const back = `${this.issuer(ctx)}${this.parameters.url}/device${
+        userCode ? `?user_code=${encodeURIComponent(userCode)}` : ""
+      }`;
+      const login = this.parameters.loginUrl;
+      return this.redirect(ctx, `${login}${login.includes("?") ? "&" : "?"}redirect=${encodeURIComponent(back)}`);
+    }
+    this.writePage(ctx, 200, nonce => deviceHtml(this.apiBase(ctx), userCode, nonce));
   }
 
   /**
    * Built-in result page
-   * @param _ctx - web context
+   * @param ctx - web context
    */
-  async resultPage(_ctx: WebContext): Promise<void> {
-    throw new WebdaError.NotFound("Not implemented");
+  async resultPage(ctx: WebContext): Promise<void> {
+    const status = this.queryParameter(ctx, "status") ?? "error";
+    this.writePage(ctx, 200, () => resultHtml(status, this.queryParameter(ctx, "error")));
   }
 }

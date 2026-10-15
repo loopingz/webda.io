@@ -330,6 +330,36 @@ class RevokeTest extends OAuthTest {
   }
 
   @test
+  async sweepSkipsVanishedGrant() {
+    const server = useService<any>("OAuthServer");
+    const now = Date.now();
+    await OAuthGrant.create({
+      uuid: "u1:app",
+      userId: "u1",
+      clientId: "app",
+      scope: "Task.*",
+      createdAt: now,
+      lastUsedAt: now,
+      expiresAt: now - 1000
+    } as any);
+    const stale = await OAuthGrant.ref("u1:app").get();
+    // The user forgets the app after the sweep read the grant
+    await OAuthGrant.ref("u1:app").delete();
+    const iterate = OAuthGrant.iterate.bind(OAuthGrant);
+    vi.spyOn(OAuthGrant, "iterate").mockImplementation(((q: string, p: any) =>
+      q === "expiresAt < ?"
+        ? (async function* staleRead() {
+            yield stale;
+          })()
+        : iterate(q, p)) as any);
+    try {
+      assert.strictEqual(await server.sweep(), 0);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  }
+
+  @test
   async sweepRunsOneAtATime() {
     const server = useService<any>("OAuthServer");
     const first = server.sweep();

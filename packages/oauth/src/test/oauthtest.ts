@@ -34,6 +34,8 @@ export interface BrowserResponse {
   headers: Record<string, any>;
   /** Parsed JSON body, or the raw text */
   body: any;
+  /** Raw body */
+  text: string;
   /** Cookies set by the response */
   cookies: Record<string, { name: string; value: string; options: any }>;
   /** Context of the request */
@@ -195,7 +197,14 @@ export abstract class OAuthTest extends AuthTest {
     } catch {
       // Not JSON
     }
-    return { status: call.statusCode, headers: call.getResponseHeaders() as any, body, cookies, ctx: call };
+    return {
+      status: call.statusCode,
+      headers: call.getResponseHeaders() as any,
+      body,
+      text: raw ? raw.toString() : "",
+      cookies,
+      ctx: call
+    };
   }
 
   /**

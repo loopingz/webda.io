@@ -53,7 +53,7 @@ class AuthorizeTest extends OAuthTest {
       });
       assert.strictEqual(res.status, 400);
       assert.strictEqual(res.headers.Location, undefined);
-      assert.strictEqual(res.body, "Unknown client or redirect URI");
+      assert.match(res.body, /Unknown client or redirect URI/);
       assert.strictEqual(b.jar["webda_oauth_pending"], undefined);
     }
   }
@@ -407,19 +407,6 @@ class AuthorizeTest extends OAuthTest {
     assert.strictEqual(cleared.value, "");
     assert.strictEqual(cleared.options.maxAge, 0);
     assert.strictEqual(cleared.options.path, "/oauth");
-  }
-
-  @test
-  async stubbedRoutes() {
-    const b = await this.browser();
-    for (const [method, path] of [
-      ["GET", "/oauth/consent"],
-      ["GET", "/oauth/device"],
-      ["GET", "/oauth/done"]
-    ] as const) {
-      const res = await this.request(b, method, path).catch(err => ({ status: err.getResponseCode?.() }));
-      assert.strictEqual(res.status, 404, path);
-    }
   }
 }
 

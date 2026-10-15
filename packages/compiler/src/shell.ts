@@ -11,11 +11,8 @@ import { runWithCurrentDirectory } from "@webda/utils";
 import { existsSync, mkdirSync, readdirSync, lstatSync, realpathSync, writeFileSync } from "node:fs";
 import { bold, italic, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher.js";
-import {
-  shouldDispatchBuildHooks,
-  spawnWebdaBuild,
-  WEBDA_BUILD_DISPATCH_ENV
-} from "./shell-build-dispatch.js";
+import { shouldDispatchBuildHooks, spawnWebdaBuild, WEBDA_BUILD_DISPATCH_ENV } from "./shell-build-dispatch.js";
+import { writeCliBin } from "./cli-bin.js";
 
 /**
  * Scan a single node_modules directory for webda.module.json files
@@ -195,6 +192,12 @@ Fork(
       });
       await runWithCurrentDirectory(targetDir, async () => {
         const compiler = new Compiler(project);
+        // The application executable declared by the "webda.cli" section of package.json
+        try {
+          writeCliBin(project.getAppPath(), project.packageDescription);
+        } catch (err) {
+          useWorkerOutput().log("WARN", "Cannot generate the webda.cli executable", (err as Error).message);
+        }
         if (argv.watch) {
           // Guard against accidental recursion if a build hook re-invokes webdac.
           const recursive = !!process.env[WEBDA_BUILD_DISPATCH_ENV];
@@ -248,10 +251,7 @@ Fork(
           const needsCompilation = argv.force || compiler.requireCompilation();
           compiler.compile(argv.force);
           if (!needsCompilation) {
-            useWorkerOutput().log(
-              "INFO",
-              "Cache up-to-date; skipping build (pass --force to recompile)"
-            );
+            useWorkerOutput().log("INFO", "Cache up-to-date; skipping build (pass --force to recompile)");
           }
           // Generate configuration schemas if the project is an application
           if (needsCompilation && project.isApplication()) {
@@ -267,7 +267,10 @@ Fork(
               const app: ConfigSchemaApplication = {
                 getModdas: () => mod.moddas || {},
                 getSchema: (type: string) =>
-                  mod.schemas?.[type] || mod.moddas?.[type]?.Schema || mod.beans?.[type]?.Schema || mod.deployers?.[type]?.Schema,
+                  mod.schemas?.[type] ||
+                  mod.moddas?.[type]?.Schema ||
+                  mod.beans?.[type]?.Schema ||
+                  mod.deployers?.[type]?.Schema,
                 getDeployers: () => mod.deployers || {},
                 getConfiguration: () => config,
                 getModules: () => mod,

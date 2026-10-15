@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, readdirSync, lstatSync, realpathSync, writeFileS
 import { bold, italic, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher.js";
 import { shouldDispatchBuildHooks, spawnWebdaBuild, WEBDA_BUILD_DISPATCH_ENV } from "./shell-build-dispatch.js";
+import { writeCliBin } from "./cli-bin.js";
 /**
  * Scan a single node_modules directory for webda.module.json files
  * @param dir - the node_modules directory path
@@ -177,6 +178,13 @@ Fork(async () => {
         });
         await runWithCurrentDirectory(targetDir, async () => {
             const compiler = new Compiler(project);
+            // The application executable declared by the "webda.cli" section of package.json
+            try {
+                writeCliBin(project.getAppPath(), project.packageDescription);
+            }
+            catch (err) {
+                useWorkerOutput().log("WARN", "Cannot generate the webda.cli executable", err.message);
+            }
             if (argv.watch) {
                 // Guard against accidental recursion if a build hook re-invokes webdac.
                 const recursive = !!process.env[WEBDA_BUILD_DISPATCH_ENV];

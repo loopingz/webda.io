@@ -71,13 +71,15 @@ await runCli({ appPath: fileURLToPath(new URL("../", import.meta.url)) });
       assert.deepStrictEqual(result, { path: file, written: true });
       assert.deepStrictEqual(warnings, []);
       assert.strictEqual(readFileSync(file, "utf-8"), generateCliBin("bin/acp-loopingz-runner.mjs"));
-      assert.strictEqual(statSync(file).mode & 0o777, 0o755);
+      if (process.platform !== "win32") {
+        assert.strictEqual(statSync(file).mode & 0o777, 0o755);
+      }
 
       // Unchanged: not rewritten
       const past = new Date(Date.now() - 3600_000);
       utimesSync(file, past, past);
       assert.deepStrictEqual(writeCliBin(dir, pkg), { path: file, written: false });
-      assert.strictEqual(statSync(file).mtimeMs, past.getTime());
+      assert.ok(Math.abs(statSync(file).mtimeMs - past.getTime()) < 2000);
 
       // Edited: rewritten
       writeFileSync(file, "// edited");

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import yargs, { type Argv, type Options } from "yargs";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { JSONSchema7 } from "json-schema";
-import { isMainModule } from "@webda/tsc-esm";
 import { Application, installConfigurationFactories } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import {
@@ -1350,7 +1350,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
  */
 function isRunDirectly(): boolean {
   try {
-    return isMainModule(import.meta);
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
   } catch {
     // No script path (node -e, REPL): imported
     return false;

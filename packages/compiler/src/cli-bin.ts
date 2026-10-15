@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize, posix, relative, resolve, sep } from "node:path";
 import { useLog } from "@webda/workout";
 import type { PackageDescriptor } from "./definition.js";
@@ -82,9 +82,7 @@ export function writeCliBin(
     written = true;
     useLog("INFO", `Generated ${binPath}`);
   }
-  if ((statSync(file).mode & 0o777) !== 0o755) {
-    chmodSync(file, 0o755);
-  }
+  chmodSync(file, 0o755);
   if (!isDeclaredBin(packageDescription, binPath)) {
     const name = packageDescription.webda?.cli?.name ?? packageDescription.name?.split("/").pop();
     useLog(

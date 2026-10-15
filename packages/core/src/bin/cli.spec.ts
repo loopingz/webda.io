@@ -23,6 +23,7 @@ import {
   loadOperations,
   addServiceCommandsToCli,
   resolveLogStream,
+  runCli,
   shouldPatchConsole,
   unknownCommandMessage,
   type OperationsFile,
@@ -802,6 +803,30 @@ class CliRunCliTest {
 
 @suite
 class CliApplicationConfigurationTest {
+  @test
+  async runCliLoadsApplicationConfigurationInProcess() {
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("CLI test exit");
+    });
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({ name: "mini", version: "1.0.0", type: "module", webda: { cli: { name: "mini-runner" } } })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({ moddas: {}, beans: {}, deployers: {}, models: {}, schemas: {} })
+      );
+      await assert.rejects(runCli({ appPath: app, argv: ["unknown", "--console-patch=false"] }), /CLI test exit/);
+      assert.ok(exit.mock.calls.length > 0);
+    } finally {
+      exit.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
   /**
    * Run the compiled CLI on a minimal application declaring `webda.cli`
    * @param script - module code run with `cli` (the compiled cli.js path) and `app` (the application folder)

@@ -283,6 +283,10 @@ class S3BinaryContentStorageTest extends WebdaApplicationTest {
   async endpointSelectionUsesProviderCredentialsAndKeepsObjectKey() {
     const endpoint = "http://127.0.0.1:9000";
     const url = `s3://${TEST_BUCKET}/endpoint/object.txt?endpoint=${encodeURIComponent(endpoint)}`;
+    (this.s3Binary as any)._s3Config.credentials = {
+      accessKeyId: "provider-key",
+      secretAccessKey: "provider-secret"
+    };
     const selected = (this.s3Binary as any).getContentClient(endpoint) as S3;
     assert.notStrictEqual(selected, this.s3Binary._s3);
     assert.strictEqual((this.s3Binary as any).getContentClient(endpoint), selected);
@@ -290,6 +294,7 @@ class S3BinaryContentStorageTest extends WebdaApplicationTest {
     assert.strictEqual((await selected.config.endpoint()).hostname, "127.0.0.1");
     assert.strictEqual((await selected.config.endpoint()).port, 9000);
     assert.strictEqual(selected.config.forcePathStyle, true);
+    assert.strictEqual((await selected.config.credentials()).accessKeyId, "provider-key");
     const getClient = vi.spyOn(this.s3Binary as any, "getContentClient");
     await this.s3Binary.putContent(url, "endpoint body", { ifNotExists: true });
     const stream = await this.s3Binary.getContent(url);

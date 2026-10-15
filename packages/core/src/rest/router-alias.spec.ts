@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { WebdaApplicationTest } from "../test/index.js";
+import { TestApplication, WebdaApplicationTest } from "../test/index.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { useRouter } from "./hooks.js";
@@ -17,11 +17,22 @@ import { useWorkerOutput } from "@webda/workout";
 @suite
 class RouterAliasTest extends WebdaApplicationTest {
   private baseRoutes: Record<string, RouteInfo[]>;
+  private baseAliases: ReturnType<ReturnType<typeof useRouter>["getAliases"]>;
+
+  override async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    app.getCurrentConfiguration().services.Router = {
+      type: "Webda/Router",
+      aliases: { "/configured": "/version" }
+    };
+  }
 
   override async beforeAll() {
     await super.beforeAll();
-    const routes = useRouter().getRoutes();
+    const router = useRouter();
+    const routes = router.getRoutes();
     this.baseRoutes = Object.fromEntries(Object.keys(routes).map(url => [url, routes[url]]));
+    this.baseAliases = router.getAliases();
   }
 
   override async afterEach() {
@@ -32,6 +43,7 @@ class RouterAliasTest extends WebdaApplicationTest {
     for (const url of Object.keys(routes)) delete routes[url];
     Object.assign(routes, this.baseRoutes);
     for (const url of Object.keys(router.getAliases())) router.removeAlias(url);
+    for (const [url, def] of Object.entries(this.baseAliases)) router.addAlias(url, def);
     router.remapRoutes();
   }
 
@@ -97,6 +109,9 @@ class RouterAliasTest extends WebdaApplicationTest {
     } as RouteInfo);
     useRouter().addAlias("/healthz", "/version");
 
+    assert.deepStrictEqual(useRouter().getAliases()["/configured"], { target: "/version", mode: "rewrite" });
+    assert.deepStrictEqual((await this.request("GET", "/configured")).body, { version: "1.0.0" });
+
     const res = await this.request("GET", "/healthz");
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body, { version: "1.0.0" });
@@ -104,6 +119,13 @@ class RouterAliasTest extends WebdaApplicationTest {
       alias: "/healthz",
       target: "/version"
     });
+    useRouter().addAlias("/healthz-query", "/version?source=alias");
+    const query = await this.request("GET", "/healthz-query?requested=yes");
+    assert.deepStrictEqual(query.ctx.getExtension("routeAlias"), {
+      alias: "/healthz-query",
+      target: "/version?source=alias&requested=yes"
+    });
+    assert.strictEqual((await this.request("GET", "/healthz-query?")).statusCode, 200);
   }
 
   /**
@@ -334,6 +356,9 @@ class RouterAliasTest extends WebdaApplicationTest {
     assert.ok(methods.includes("GET"));
     assert.ok(methods.includes("PUT"));
     assert.ok(!methods.includes("DELETE"), "DELETE should be excluded by alias.methods intersection");
+    useRouter().addAlias("/public", "/users/123");
+    assert.strictEqual((await this.request("OPTIONS", "/public")).statusCode, 204);
+    assert.strictEqual((await this.request("OPTIONS", "/unknown")).statusCode, 404);
   }
 
   /**
@@ -463,12 +488,16 @@ class RouterAliasTest extends WebdaApplicationTest {
       mode: "redirect",
       redirectCode: 301
     });
+    assert.strictEqual(new RouterParameters().load({}).aliases, undefined);
 
     const queryTarget = compileAliasTarget("/search{?rest*}", "/results?${params.rest*}");
     assert.strictEqual(queryTarget.resolve({} as any, {}), "/results");
+    assert.strictEqual(queryTarget.resolve({} as any, { rest: {} }), "/results");
+    assert.strictEqual(queryTarget.resolve({} as any, { rest: { q: "a b" } }), "/results?q=a%20b");
     const pathTarget = compileAliasTarget("/files/{name}", "/files/${params.name}");
     assert.strictEqual(pathTarget.resolve({} as any, {}), "/files/");
     assert.strictEqual(pathTarget.resolve({} as any, { name: "a/b" }), "/files/a%2Fb");
+    assert.strictEqual(compileAliasTarget("/x", "${params.name}").resolve({} as any, { name: "ok" }), "ok");
   }
 
   /**
@@ -500,6 +529,25 @@ class RouterAliasTest extends WebdaApplicationTest {
     assert.strictEqual(resAfterRemove.statusCode, 404);
   }
 
+  @test
+  async testAliasChangesBeforeRunning() {
+    useRouter().addRouteToRouter("/deferred-target", {
+      methods: ["GET"],
+      executor: "Router",
+      _method: async (ctx: WebContext) => ctx.write({ deferred: true })
+    } as RouteInfo);
+    const router = useRouter();
+    this.stub(router, "getState").returns("resolved");
+    router.addAlias("/deferred", "/deferred-target");
+    assert.strictEqual((await this.request("GET", "/deferred")).statusCode, 404);
+    router.remapRoutes();
+    assert.deepStrictEqual((await this.request("GET", "/deferred")).body, { deferred: true });
+    router.removeAlias("/deferred");
+    assert.deepStrictEqual((await this.request("GET", "/deferred")).body, { deferred: true });
+    router.remapRoutes();
+    assert.strictEqual((await this.request("GET", "/deferred")).statusCode, 404);
+  }
+
   /**
    * 14. OpenAPI: exportOpenAPI() contains /me with getUserAlias-style operation ids and without uuid path param.
    * Redirect aliases are hidden unless includeHidden.
@@ -520,6 +568,22 @@ class RouterAliasTest extends WebdaApplicationTest {
     useRouter().addAlias("/docs", { target: "/static/docs", mode: "redirect" });
     useRouter().addAlias("/my-orders/{orderId}{?view?}", "/users/${params.orderId}?view=${params.view}");
     useRouter().addAlias("/orphan/{slug}", { target: "/missing/${params.slug}", methods: ["POST"] });
+    useRouter().addAlias("/orphan-default", "/missing");
+    useRouter().addRouteToRouter("/plain/{id}", {
+      methods: ["GET"],
+      executor: "Router",
+      openapi: {
+        get: {
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+            { name: "expand", in: "query", required: false, schema: { type: "string" } },
+            { $ref: "#/components/parameters/shared" }
+          ]
+        }
+      }
+    } as RouteInfo);
+    useRouter().addAlias("/plain-short/{id}", "/plain/${params.id}");
+    useRouter().addAlias("/plain-me", "/plain/fixed");
     useRouter().remapRoutes();
 
     // Default export (skipHidden=true)
@@ -539,6 +603,18 @@ class RouterAliasTest extends WebdaApplicationTest {
     assert.strictEqual(docDefault.paths["/my-orders/{orderId}"].get.operationId, "getUserAlias");
     assert.strictEqual(docDefault.paths["/orphan/{slug}"].post.summary, "Alias of /missing/${params.slug}");
     assert.strictEqual(docDefault.paths["/orphan/{slug}"].get, undefined);
+    assert.strictEqual(docDefault.paths["/orphan-default"].get.summary, "Alias of /missing");
+    assert.strictEqual(docDefault.paths["/plain-short/{id}"].get.operationId, undefined);
+    assert.strictEqual(docDefault.paths["/plain-short/{id}"].get.description, "Alias of /plain/${params.id}");
+    assert.deepStrictEqual(docDefault.paths["/plain-short/{id}"].get.parameters, [
+      { name: "id", in: "path", required: true, schema: { type: "string" } },
+      { name: "expand", in: "query", required: false, schema: { type: "string" } },
+      { $ref: "#/components/parameters/shared" }
+    ]);
+    assert.deepStrictEqual(docDefault.paths["/plain-me"].get.parameters, [
+      { name: "expand", in: "query", required: false, schema: { type: "string" } },
+      { $ref: "#/components/parameters/shared" }
+    ]);
     // Redirect alias /docs must be hidden
     assert.strictEqual(docDefault.paths["/docs"], undefined);
 

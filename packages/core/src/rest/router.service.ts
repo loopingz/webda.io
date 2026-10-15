@@ -259,8 +259,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     useInstanceStorage().router = this;
     if (this.parameters.aliases) {
       for (const [key, val] of Object.entries(this.parameters.aliases)) {
-        this.aliases[key] =
-          typeof val === "string" ? { target: val, mode: "rewrite" } : { mode: "rewrite", ...val };
+        this.aliases[key] = val as RouteAliasDefinition;
       }
     }
     // Discover routes + filters once every service is resolved and initialized
@@ -876,7 +875,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
             description,
             summary,
             operationId,
-            requestBody
+            requestBody,
+            parameters: route.openapi[method.toLowerCase()]?.parameters
           };
           if (method.toLowerCase().startsWith("p") && route.openapi[method.toLowerCase()]?.schemas?.input) {
             // Add request schema if exist
@@ -919,12 +919,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         aliasEntry._uriTemplateParse.varNames.forEach(varName => {
           const queryParam = aliasEntry._queryParams?.find(i => i.name === varName);
           if (queryParam) {
-            let name = varName;
-            if (name.startsWith("*")) {
-              name = name.substring(1);
-            }
             openapi.paths[path].parameters.push({
-              name,
+              name: varName,
               in: "query",
               required: queryParam.required,
               schema: {
@@ -995,15 +991,6 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
             });
           }
           openapi.paths[path][method.toLowerCase()] = op;
-          if (op.tags) {
-            op.tags
-              .filter(tag => !hasTag(tag))
-              .forEach(tag =>
-                openapi.tags.push({
-                  name: tag
-                })
-              );
-          }
         }
       } else {
         const methodsToEmit = def.methods || ["GET"];

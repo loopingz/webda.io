@@ -2182,7 +2182,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier\nlowercased with \"/\" → \"_\".",
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.",
             "type": "object"
           },
           "typeCheck#2": {
@@ -2215,7 +2215,7 @@
           },
           "autoCreateTable": {
             "default": true,
-            "description": "Auto create table if not exists",
+            "description": "Auto create tables if they do not exist",
             "type": "boolean"
           },
           "database": {
@@ -2268,11 +2268,12 @@
             "type": "boolean"
           },
           "table": {
+            "description": "The table of every model of the store, subclasses and models routed to this store as fallback included (the\nWebda 3 layout). Without it each model gets its own table (its identifier lowercased with \"/\" → \"_\").",
             "type": "string"
           },
           "tables": {
             "$ref": "#/definitions/tables%232",
-            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier\nlowercased with \"/\" → \"_\"."
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name."
           },
           "type": {
             "description": "Type of the service",
@@ -2313,7 +2314,6 @@
           }
         },
         "required": [
-          "database",
           "table",
           "type"
         ],

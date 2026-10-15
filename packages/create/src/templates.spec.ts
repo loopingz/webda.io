@@ -92,6 +92,7 @@ class TemplatesTest {
   async storesReplaceTheRegistry() {
     const expected = {
       file: { type: "Webda/FileStore", folder: "./data" },
+      sqlite: { type: "Webda/SQLiteStore", table: "registry", persistence: { path: "./.webda/app.sqlite" } },
       mongodb: { type: "Webda/MongoStore", collection: "registry" },
       postgres: { type: "Webda/PostgresStore", table: "registry" }
     };
@@ -101,7 +102,9 @@ class TemplatesTest {
       assert.deepStrictEqual(config.services.Registry, registry, store);
       const deps = JSON.parse(files.get("package.json")).dependencies;
       assert.ok(
-        Object.keys(deps).some(name => ["@webda/fs", "@webda/mongo", "@webda/postgres"].includes(name)),
+        Object.keys(deps).some(name =>
+          ["@webda/fs", "@webda/sqlite", "@webda/mongo", "@webda/postgres"].includes(name)
+        ),
         store
       );
     }

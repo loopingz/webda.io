@@ -7,7 +7,8 @@ export default defineConfig({
   clearScreen: false,
   resolve: {
     alias: {
-      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts")
+      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts"),
+      "@webda/sql/lib/test": resolve(__dirname, "../sql/src/test/index.ts")
     }
   },
   test: {

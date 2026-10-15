@@ -42,6 +42,8 @@
     "packages/runtime": {},
     "packages/sdk": {},
     "packages/serialize": {},
+    "packages/sql": {},
+    "packages/sqlite": {},
     "packages/test": {},
     "packages/tsc-esm": {},
     "packages/utils": {},

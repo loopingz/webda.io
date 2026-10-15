@@ -29,6 +29,7 @@
   "dependencies": {
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
+    "@webda/sql": "workspace:*",
     "@webda/utils": "workspace:*",
     "@webda/workout": "workspace:*",
     "pg": "^8.20.0"

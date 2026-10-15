@@ -109,6 +109,16 @@
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
             "type": "number"
           },
+          "pollInterval": {
+            "default": 100,
+            "description": "Interval between two checks of the folder while waiting for a message, in milliseconds",
+            "type": "number"
+          },
+          "timeout": {
+            "default": 10,
+            "description": "Number of seconds to wait for a message when the queue is empty, before returning no message\n\nA message sent by this service ends the wait immediately; messages written by other processes are picked up\nwithin `pollInterval`.",
+            "type": "number"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"

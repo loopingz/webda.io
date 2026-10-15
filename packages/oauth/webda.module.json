@@ -3,7 +3,842 @@
   "beans": {},
   "deployers": {},
   "moddas": {},
-  "models": {},
+  "models": {
+    "Webda/OAuthCode": {
+      "Plural": "OAuthCodes",
+      "Import": "lib/models.model:OAuthCode",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "hash": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "redirectUri": {
+          "type": "string"
+        },
+        "codeChallenge": {
+          "type": "string"
+        },
+        "identity": {
+          "type": "GrantIdentity"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "usedAt": {
+          "type": "number"
+        },
+        "family": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Authorization code (hashed), single use",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "codeChallenge": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family issued from the code",
+              "type": "string"
+            },
+            "hash": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirectUri": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "usedAt": {
+              "description": "Set when exchanged",
+              "type": "number"
+            }
+          },
+          "required": [
+            "clientId",
+            "codeChallenge",
+            "expiresAt",
+            "hash",
+            "identity",
+            "redirectUri",
+            "scope"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Authorization code (hashed), single use",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "codeChallenge": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family issued from the code",
+              "type": "string"
+            },
+            "hash": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirectUri": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "usedAt": {
+              "description": "Set when exchanged",
+              "type": "number"
+            }
+          },
+          "required": [
+            "clientId",
+            "codeChallenge",
+            "expiresAt",
+            "hash",
+            "identity",
+            "redirectUri",
+            "scope"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Authorization code (hashed), single use",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "codeChallenge": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family issued from the code",
+              "type": "string"
+            },
+            "hash": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirectUri": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "usedAt": {
+              "description": "Set when exchanged",
+              "type": "number"
+            }
+          },
+          "required": [
+            "clientId",
+            "codeChallenge",
+            "expiresAt",
+            "hash",
+            "identity",
+            "redirectUri",
+            "scope"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [
+        "hash"
+      ],
+      "Identifier": "Webda/OAuthCode"
+    },
+    "Webda/OAuthDeviceCode": {
+      "Plural": "OAuthDeviceCodes",
+      "Import": "lib/models.model:OAuthDeviceCode",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "userCode": {
+          "type": "string"
+        },
+        "secretHash": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "requestedScope": {
+          "type": "string"
+        },
+        "status": {
+          "type": "\"pending\" | \"approved\" | \"denied\" | \"consumed\""
+        },
+        "identity": {
+          "type": "GrantIdentity"
+        },
+        "grantedScope": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "hostname": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "lastPolledAt": {
+          "type": "number"
+        },
+        "interval": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Pending device authorization",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "grantedScope": {
+              "type": "string"
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "interval": {
+              "description": "Current polling interval (s), raised by slow_down",
+              "type": "number"
+            },
+            "lastPolledAt": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requestedScope": {
+              "type": "string"
+            },
+            "secretHash": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "denied",
+                "consumed"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "expiresAt",
+            "interval",
+            "requestedScope",
+            "secretHash",
+            "status",
+            "userCode"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Pending device authorization",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "grantedScope": {
+              "type": "string"
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "interval": {
+              "description": "Current polling interval (s), raised by slow_down",
+              "type": "number"
+            },
+            "lastPolledAt": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requestedScope": {
+              "type": "string"
+            },
+            "secretHash": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "denied",
+                "consumed"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "expiresAt",
+            "interval",
+            "requestedScope",
+            "secretHash",
+            "status",
+            "userCode"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Pending device authorization",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "grantedScope": {
+              "type": "string"
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "interval": {
+              "description": "Current polling interval (s), raised by slow_down",
+              "type": "number"
+            },
+            "lastPolledAt": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requestedScope": {
+              "type": "string"
+            },
+            "secretHash": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "denied",
+                "consumed"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "expiresAt",
+            "interval",
+            "requestedScope",
+            "secretHash",
+            "status",
+            "userCode"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [
+        "userCode"
+      ],
+      "Identifier": "Webda/OAuthDeviceCode"
+    },
+    "Webda/OAuthGrant": {
+      "Plural": "OAuthGrants",
+      "Import": "lib/models.model:OAuthGrant",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "lastUsedAt": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Remembered consent of a user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "`<userId>:<clientId>`",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope",
+            "userId",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Remembered consent of a user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "`<userId>:<clientId>`",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope",
+            "userId",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Remembered consent of a user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "`<userId>:<clientId>`",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope",
+            "userId",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/OAuthGrant"
+    }
+  },
   "schemas": {
     "Webda/BinaryFile": {
       "$schema": "http://json-schema.org/draft-07/schema#",

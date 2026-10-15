@@ -7,7 +7,7 @@ import { useCrypto } from "./cryptoservice.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
 import { RevokedAccess } from "../models/revokedaccess.model.js";
 import { covers, formatScope, InvalidScope, parseScope, type Scope } from "../session/scope.js";
-import { registerOperationAuthorizer, unregisterOperationAuthorizer } from "../core/operations.js";
+import { registerOperationAuthorizer } from "../core/operations.js";
 import { scopeAuthorizer } from "./scopeauthorizer.js";
 import { MfaState, type MfaVerification, Session } from "../session/session.js";
 
@@ -40,6 +40,16 @@ export interface IssueOptions {
   accessTtl?: number;
   /** Refresh token lifetime (s), defaults to the `refreshTtl` parameter; kept by the family on refresh */
   refreshTtl?: number;
+  /**
+   * Creation of the family (ms), carried across rotations; defaults to now
+   * @internal set by {@link TokenService.refresh}
+   */
+  createdAt?: number;
+  /**
+   * Last refresh of the family (ms)
+   * @internal set by {@link TokenService.refresh}
+   */
+  lastUsedAt?: number;
 }
 
 /** Claims carried by an access token */
@@ -114,7 +124,9 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   protected sweepTimer?: ReturnType<typeof setInterval>;
 
   /**
-   * Enforce the bearer token scope on every operation
+   * Enforce the bearer token scope on every operation. The authorizer is never unregistered, even on stop: a scoped
+   * bearer must stay restricted while the service drains or reloads (fail closed). It does nothing for sessions
+   * without scopes
    * @override
    */
   resolve(): this {
@@ -142,7 +154,6 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   async stop(): Promise<void> {
     clearInterval(this.sweepTimer);
     this.sweepTimer = undefined;
-    unregisterOperationAuthorizer(scopeAuthorizer);
     await super.stop();
   }
 
@@ -174,6 +185,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     const scope = options.scope ? formatScope(options.scope) : undefined;
     const accessTtl = options.accessTtl ?? this.parameters.accessTtl;
     const refreshToken = randomBytes(32).toString("base64url");
+    const now = Date.now();
     await RefreshToken.create({
       hash: this.hash(refreshToken),
       userId: session.userId,
@@ -188,7 +200,9 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       scope,
       name: options.name,
       accessTtl: options.accessTtl,
-      refreshTtl: options.refreshTtl
+      refreshTtl: options.refreshTtl,
+      createdAt: options.createdAt ?? now,
+      lastUsedAt: options.lastUsedAt
     } as any);
     session.refreshFamily = family;
     // A refreshed session is re-authenticated by its (unrevoked) refresh token
@@ -282,7 +296,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     if (!claims.sub) return false;
     const user = await this.lookupRevoked(`user:${claims.sub}`);
     // Tokens without iatMs fall back to iat, rounded down to the second: rejected when in doubt
-    return user !== undefined && (claims.iatMs ?? (claims.iat ?? 0) * 1000) <= (user.notBefore ?? Infinity);
+    // A token issued in the very ms of the revocation is accepted: a login right after a revocation (MFA confirm)
+    return user !== undefined && (claims.iatMs ?? (claims.iat ?? 0) * 1000) < (user.notBefore ?? Infinity);
   }
 
   /**
@@ -347,7 +362,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     if (stored.revokedAt || stored.expiresAt < Date.now()) {
       throw new TokenInvalid();
     }
-    if ((stored.clientId ?? undefined) !== (options.clientId ?? stored.clientId)) {
+    // A token issued to an OAuth client is only refreshed by that client: never by a first-party (client-less) caller
+    if ((stored.clientId ?? undefined) !== (options.clientId ?? undefined)) {
       throw new TokenInvalid("Refresh token issued to another client");
     }
     if (stored.rotatedAt) {
@@ -386,7 +402,10 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       scope,
       name: stored.name,
       accessTtl: stored.accessTtl,
-      refreshTtl: stored.refreshTtl
+      refreshTtl: stored.refreshTtl,
+      // Written with the new record: a failing write after the rotation would make the client retry a rotated token
+      createdAt: stored.createdAt,
+      lastUsedAt: Date.now()
     });
     // A revocation may have run between our read and the issue: its scan would have missed the new record
     for await (const _ of RefreshToken.iterate("family = ? AND revokedAt IS NOT NULL LIMIT 1", [stored.family])) {
@@ -395,9 +414,6 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       } as any);
       throw new TokenInvalid("Refresh token revoked");
     }
-    await RefreshToken.ref({ hash: this.hash(tokens.refreshToken) } as any).patch({
-      lastUsedAt: Date.now()
-    } as any);
     return { ...tokens, session, scope };
   }
 

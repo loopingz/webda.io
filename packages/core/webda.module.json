@@ -2889,6 +2889,9 @@
         "name": {
           "type": "string"
         },
+        "createdAt": {
+          "type": "number"
+        },
         "lastUsedAt": {
           "type": "number"
         },
@@ -2950,6 +2953,10 @@
             "clientId": {
               "description": "OAuth client the token was issued to",
               "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation of the family, ms since epoch: carried across rotations",
+              "type": "number"
             },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
@@ -3075,6 +3082,10 @@
               "description": "OAuth client the token was issued to",
               "type": "string"
             },
+            "createdAt": {
+              "description": "Creation of the family, ms since epoch: carried across rotations",
+              "type": "number"
+            },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
               "type": "number"
@@ -3198,6 +3209,10 @@
             "clientId": {
               "description": "OAuth client the token was issued to",
               "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation of the family, ms since epoch: carried across rotations",
+              "type": "number"
             },
             "expiresAt": {
               "description": "Expiry, ms since epoch",

@@ -8,6 +8,9 @@ import { RevokedAccess } from "../models/revokedaccess.model.js";
 import { useService } from "../core/hooks.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { InvalidScope } from "../session/scope.js";
+import { listOperationAuthorizers } from "../core/operations.js";
+import { InsufficientScope, scopeAuthorizer } from "./scopeauthorizer.js";
+import { vi } from "vitest";
 
 @suite
 class TokenServiceTest extends WebdaApplicationTest {
@@ -318,6 +321,81 @@ class TokenServiceTest extends WebdaApplicationTest {
     const svc = this.service;
     const first = await svc.issue(this.session(), undefined, { clientId: "c", scope: ["*"] });
     await assert.rejects(() => svc.refresh(first.refreshToken, { clientId: "other" }), TokenInvalid);
+    // Nor a first-party (client-less) refresh
+    await assert.rejects(() => svc.refresh(first.refreshToken), TokenInvalid);
+    // A first-party token is not refreshed by a client either
+    const own = await svc.issue(this.session());
+    await assert.rejects(() => svc.refresh(own.refreshToken, { clientId: "c" }), TokenInvalid);
+    assert.ok(await svc.refresh(own.refreshToken));
+    assert.ok(await svc.refresh(first.refreshToken, { clientId: "c" }));
+  }
+
+  @test
+  async tokenIssuedInTheRevocationMsIsAccepted() {
+    const svc = this.service;
+    const before = await svc.issue(this.session());
+    const now = Date.now() + 1000;
+    const spy = vi.spyOn(Date, "now").mockReturnValue(now);
+    try {
+      // MFA confirm: revokeUser then issue, in the same ms
+      await svc.revokeUser("u1");
+      const fresh = await svc.issue(this.session());
+      assert.ok(await svc.verifyAccess(fresh.accessToken));
+      assert.strictEqual(await svc.verifyAccess(before.accessToken), undefined);
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  @test
+  async rotationRecordsUseAndCreationWithTheNewToken() {
+    const svc = this.service;
+    const first = await svc.issue(this.session(), undefined, { clientId: "c" });
+    const stored = await RefreshToken.ref({ hash: (svc as any).hash(first.refreshToken) } as any).get();
+    assert.ok(stored.createdAt);
+    assert.strictEqual(stored.lastUsedAt, undefined);
+    // No write may follow the rotation: a failure there would make the client retry its rotated token
+    const repo: any = RefreshToken.getRepository();
+    const original = repo.patch.bind(repo);
+    let rotated = false;
+    repo.patch = async (...args: any[]) => {
+      if (rotated) throw new Error("db down after rotation");
+      rotated = true;
+      return original(...args);
+    };
+    let second;
+    try {
+      second = await svc.refresh(first.refreshToken, { clientId: "c" });
+    } finally {
+      repo.patch = original;
+    }
+    const next = await RefreshToken.ref({ hash: (svc as any).hash(second.refreshToken) } as any).get();
+    assert.ok(next.lastUsedAt >= stored.createdAt);
+    // The family keeps its creation time
+    assert.strictEqual(next.createdAt, stored.createdAt);
+    const third = await svc.refresh(second.refreshToken, { clientId: "c" });
+    const last = await RefreshToken.ref({ hash: (svc as any).hash(third.refreshToken) } as any).get();
+    assert.strictEqual(last.createdAt, stored.createdAt);
+  }
+
+  @test
+  async scopeAuthorizerSurvivesStop() {
+    const svc = this.service;
+    try {
+      await svc.stop();
+      assert.ok(listOperationAuthorizers().includes(scopeAuthorizer));
+      const ctx: any = await this.newContext();
+      ctx.newSession();
+      ctx.getSession().login("u1", "a@b.c:email", { provider: "email", amr: ["pwd"] });
+      ctx.getSession().scopes = ["Task.*"];
+      await assert.rejects(
+        () => scopeAuthorizer(ctx, "User.Me", {} as any, { probe: false }),
+        (err: any) => err instanceof InsufficientScope
+      );
+      assert.strictEqual(await scopeAuthorizer(ctx, "Task.Get", {} as any, { probe: false }), true);
+    } finally {
+      await svc.init();
+    }
   }
 
   @test
@@ -345,7 +423,6 @@ class TokenServiceTest extends WebdaApplicationTest {
     const before = await svc.issue(this.session());
     await svc.revokeUser("u1");
     // Same second as the revocation: iat (1 s resolution) cannot order the tokens, iatMs does
-    await new Promise(r => setTimeout(r, 5));
     const after = await svc.issue(this.session());
     assert.strictEqual(await svc.verifyAccess(before.accessToken), undefined);
     assert.ok(await svc.verifyAccess(after.accessToken));
@@ -397,10 +474,10 @@ class TokenServiceTest extends WebdaApplicationTest {
     const svc = this.service;
     const first = await svc.issue(this.session());
     await svc.revokeUser("u1");
-    await new Promise(r => setTimeout(r, 5));
     const second = await svc.issue(this.session());
     assert.ok(await svc.verifyAccess(second.accessToken)); // caches the user hit
-    // another instance revokes again
+    // another instance revokes again, strictly after the second token
+    await new Promise(r => setTimeout(r, 5));
     await RevokedAccess.ref({ key: "user:u1" } as any).patch({ notBefore: Date.now() } as any);
     assert.ok(await svc.verifyAccess(second.accessToken), "still inside the TTL");
     svc.getParameters().revocationCacheTtl = 0.05;

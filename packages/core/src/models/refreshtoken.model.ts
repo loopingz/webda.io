@@ -35,6 +35,8 @@ export class RefreshToken extends Model {
   scope?: string;
   /** Display name, e.g. "webda-cli on remi-mbp" */
   name?: string;
+  /** Creation of the family, ms since epoch: carried across rotations */
+  createdAt?: number;
   /** Last refresh, ms since epoch */
   lastUsedAt?: number;
   /** Access token lifetime of the family (s), when it overrides the TokenService one */

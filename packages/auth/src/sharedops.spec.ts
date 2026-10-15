@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Ident, runAsSystem, useService } from "@webda/core";
+import { Ident, runAsSystem, Session, useService } from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "./test/authtest.js";
 import { addStubProviders, stubProvidersConfig } from "./test/stubprovider.js";
@@ -86,6 +86,19 @@ class SharedOpsTest extends AuthTest {
     const next = await this.op("Auth.Refresh", { refreshToken: res.refreshToken });
     assert.ok(next.accessToken && next.refreshToken !== res.refreshToken);
     assert.strictEqual((next as any).session, undefined);
+  }
+
+  @test
+  async refreshRefusesOAuthClientToken() {
+    const session = new Session();
+    session.login("r2", "r2@email", { provider: "email", amr: ["pwd"] });
+    // A refresh token issued to an OAuth client is refreshed at the OAuth token endpoint, never as a first-party one
+    const issued = await runAsSystem(() =>
+      useService("TokenService").issue(session, undefined, { clientId: "app", scope: ["*", "offline_access"] })
+    );
+    await rejectsWith(() => this.op("Auth.Refresh", { refreshToken: issued.refreshToken }), TokenInvalid);
+    // Still usable by its client
+    assert.ok(await runAsSystem(() => useService("TokenService").refresh(issued.refreshToken, { clientId: "app" })));
   }
 
   @test

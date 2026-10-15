@@ -5,7 +5,9 @@ import { CancelablePromise } from "@webda/utils";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { vi } from "vitest";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   applyDefaultCommand,
@@ -795,5 +797,89 @@ class CliRunCliTest {
     );
     assert.strictEqual(result.status, 0, result.stderr);
     assert.strictEqual(result.stdout.trim(), "function function");
+  }
+}
+
+@suite
+class CliApplicationConfigurationTest {
+  /**
+   * Run the compiled CLI on a minimal application declaring `webda.cli`
+   * @param script - module code run with `cli` (the compiled cli.js path) and `app` (the application folder)
+   * @param args - arguments of the node process
+   * @returns the output (stdout and stderr), undefined when the CLI is not compiled
+   */
+  run(script: string | undefined, args: string[] = []): string | undefined {
+    const lib = fileURLToPath(new URL("../../lib/bin/cli.js", import.meta.url));
+    if (!existsSync(lib)) {
+      return undefined;
+    }
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));
+    try {
+      writeFileSync(
+        join(app, "package.json"),
+        JSON.stringify({
+          name: "mini",
+          version: "1.0.0",
+          type: "module",
+          webda: { cli: { name: "mini-runner", defaultCommand: "hello", exclude: ["ghost"] } }
+        })
+      );
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({
+          $schema: "https://webda.io/schemas/webda.module.v4.json",
+          moddas: {},
+          beans: {},
+          deployers: {},
+          models: {},
+          schemas: {}
+        })
+      );
+      const nodeArgs = script === undefined ? [lib, ...args] : ["--input-type=module", "-e", script, ...args];
+      const result = spawnSync(process.execPath, nodeArgs, {
+        cwd: tmpdir(),
+        env: { ...process.env, CLI: lib, APP: app, WEBDA_APP_PATH: app, FORCE_COLOR: "0" },
+        encoding: "utf-8",
+        timeout: 60000
+      });
+      return `${result.stdout}${result.stderr}`;
+    } finally {
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  runCliUsesTheApplicationNameAndDefaultCommand() {
+    const help = this.run(
+      "const { runCli } = await import(process.env.CLI); await runCli({ appPath: process.env.APP, argv: ['--help'] })"
+    );
+    if (help === undefined) return;
+    assert.ok(help.includes("mini-runner <command> [options]"), help);
+    // include/exclude apply: the unknown entry is reported
+    assert.ok(help.includes("webda.cli.exclude: no command 'ghost'"), help);
+    // No command given: the default one runs
+    const run = this.run(
+      "const { runCli } = await import(process.env.CLI); await runCli({ appPath: process.env.APP, argv: [] })"
+    );
+    assert.ok(run.includes("Unknown command 'hello'"), run);
+    assert.ok(run.includes("Run 'mini-runner --help'"), run);
+    // The options win over the configuration
+    const options = this.run(
+      "const { runCli } = await import(process.env.CLI); await runCli({ appPath: process.env.APP, argv: [], name: 'other', defaultCommand: 'bye' })"
+    );
+    assert.ok(options.includes("Unknown command 'bye'"), options);
+    assert.ok(options.includes("Run 'other --help'"), options);
+  }
+
+  @test
+  webdaCommandKeepsItsNameWithoutDefaultCommand() {
+    const help = this.run(undefined, ["--help"]);
+    if (help === undefined) return;
+    assert.ok(help.includes("webda <command> [options]"), help);
+    assert.ok(help.includes("webda.cli.exclude: no command 'ghost'"), help);
+    const none = this.run(undefined, []);
+    assert.ok(!none.includes("hello"), none);
+    assert.ok(none.includes("Specify a command"), none);
   }
 }

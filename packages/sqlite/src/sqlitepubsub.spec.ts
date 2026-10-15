@@ -157,6 +157,24 @@ class SQLitePubSubTest extends WebdaApplicationTest {
   }
 
   @test
+  async malformedPayloadDoesNotStopDelivery() {
+    const sub = await this.makePeer("sub", { channel: "malformed" });
+    const received: string[] = [];
+    const handle = sub.consume(async message => {
+      received.push(message);
+    });
+    await (sub as any).handle.client.query(
+      "INSERT INTO webda_pubsub (channel, payload, created_at) VALUES (?1, ?2, ?3)",
+      ["malformed", "{invalid", Date.now()]
+    );
+    (sub as any).poll(true);
+    await sub.sendMessage("valid");
+    await waitFor(() => received.length === 1);
+    assert.deepStrictEqual(received, ["valid"]);
+    handle.cancel();
+  }
+
+  @test
   async eventPrototypeRehydratesPlainJson() {
     class Wrapped {
       value!: string;

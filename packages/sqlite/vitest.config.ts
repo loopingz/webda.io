@@ -1,6 +1,6 @@
 /// <reference types="vitest" />
 
-import { defineConfig } from "vite";
+import { defineConfig, normalizePath } from "vite";
 import { resolve } from "path";
 
 export default defineConfig({
@@ -8,7 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts"),
-      "@webda/sql/lib/test": resolve(__dirname, "../sql/src/test/index.ts")
+      "@webda/sql/lib/test": resolve(__dirname, "../sql/src/test/index.ts"),
+      "@webda/sql": resolve(__dirname, "../sql/src/index.ts")
     }
   },
   test: {
@@ -16,8 +17,12 @@ export default defineConfig({
     coverage: {
       enabled: true,
       provider: "v8",
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      allowExternal: true,
+      include: [
+        normalizePath(resolve(__dirname, "src/**/*.ts")),
+        normalizePath(resolve(__dirname, "../sql/src/**/*.ts"))
+      ],
+      exclude: ["**/*.spec.ts", "**/src/index.ts", "**/src/test/**"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

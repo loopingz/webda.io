@@ -245,6 +245,13 @@ abstract class SQLiteStoreSuite extends WebdaApplicationTest {
   }
 
   @test
+  async rawPagesMarksNonObjectDocumentsUnreadable() {
+    await this.client().query("INSERT INTO smoke_idents (uuid, data) VALUES (?1, ?2)", ["broken", "123"]);
+    const page = await this.store.rawPages("smoke_idents", 10);
+    assert.deepStrictEqual(page.rows, [{ table: "smoke_idents", key: "broken", data: {}, unreadable: true }]);
+  }
+
+  @test
   async getRepositoryWrapsInEventRepository() {
     assert.ok(this.store.getRepository(useModel("Webda/OwnerModel")) instanceof EventRepository);
     assert.ok(this.store.getRepositories().every(r => r instanceof SQLRepository));

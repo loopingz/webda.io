@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
 import type { SQLClient, SQLDialect } from "./dialect.js";
 import { sqlString } from "./dialect.js";
 import { SQLRepository } from "./repository.js";
@@ -152,5 +153,46 @@ describe("SQLRepository", () => {
     const q: any = WebdaQL.parse("DELETE LIMIT 1");
     q.limit = "1; DROP TABLE items";
     await expect(repo.deleteMany(q)).rejects.toThrow();
+  });
+
+  it("rejects unsafe attribute paths before building SQL", () => {
+    const { repo, events } = make();
+    expect(() => repo.mapExpressionAttribute(["name'); DROP TABLE items; --"])).toThrow("Invalid attribute path");
+    expect(events).toEqual([]);
+  });
+
+  it("reports missing rows and failed write conditions", async () => {
+    const { repo } = make(0);
+    await expect(repo.update({ uuid: "a", name: "b" })).rejects.toThrow(UpdateConditionFailError);
+    await expect(repo.patch("a", { name: "b" })).rejects.toThrow(UpdateConditionFailError);
+    await expect(repo.delete("a", "name", "old")).rejects.toThrow(UpdateConditionFailError);
+    await expect(repo.removeAttribute("a", "name", "name", "old")).rejects.toThrow(UpdateConditionFailError);
+    await expect(repo.incrementAttributes("a", { count: 1 } as any)).rejects.toThrow(StoreNotFoundError);
+    await expect(repo.upsertItemToCollection("a", "files" as any, { v: 1 } as any)).rejects.toThrow(StoreNotFoundError);
+    await expect(repo.deleteItemFromCollection("a", "files" as any, 0)).rejects.toThrow(StoreNotFoundError);
+  });
+
+  it("refuses statements while the client is disconnected", async () => {
+    const repo = new SQLRepository(
+      Item as any,
+      ["uuid"],
+      () => undefined,
+      "items",
+      undefined,
+      undefined,
+      undefined,
+      new TagDialect()
+    );
+    await expect(repo.get("a")).rejects.toThrow("No SQL client for table items");
+  });
+
+  it("iterates query results and cleans the table", async () => {
+    const { repo, last } = make();
+    const items = [];
+    for await (const item of repo.iterate("name = 'found'")) items.push(item);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toBeInstanceOf(Item);
+    await repo.__clean();
+    expect(last().q).toBe("DELETE FROM items");
   });
 });

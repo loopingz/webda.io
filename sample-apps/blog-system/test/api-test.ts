@@ -5,7 +5,8 @@ import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { listOperations } from "@webda/core/lib/core/operations.js";
 import { useRouter } from "@webda/core/lib/rest/hooks.js";
-import { useApplication } from "@webda/core/lib/application/hooks.js";
+import { useApplication, useModel } from "@webda/core/lib/application/hooks.js";
+import bcrypt from "bcryptjs";
 import { useService } from "@webda/core/lib/core/hooks.js";
 import { WebContext } from "@webda/core/lib/contexts/webcontext.js";
 import { HttpContext } from "@webda/core/lib/contexts/httpcontext.js";
@@ -570,6 +571,54 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
       body: { username: "direct", name: "Direct User" }
     });
     assert.strictEqual(direct.statusCode, 403, direct.body);
+  }
+
+  @test
+  async passwordHashes() {
+    const User: any = useModel("WebdaSample/User");
+    const user = new User();
+    await user.setPassword("a-strong-password");
+    assert.match(user.__password, /^scrypt\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/);
+    assert.strictEqual(await user.verifyPassword("a-strong-password"), true);
+    assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
+    // Hashes written by previous versions (bcrypt) are still accepted
+    user.__password = bcrypt.hashSync("legacy-password", 4);
+    assert.strictEqual(await user.verifyPassword("legacy-password"), true);
+    assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
+    // Broken or missing hashes never match
+    for (const hash of ["scrypt$", "scrypt$c2FsdA==$", undefined]) {
+      user.__password = hash;
+      assert.strictEqual(await user.verifyPassword(""), false, String(hash));
+    }
+  }
+
+  @test
+  async loginDoesNotBlockTheEventLoop() {
+    const { email, password } = await this.register("dave");
+    // The longest gap between two timer ticks while logins run: a synchronous hash (bcryptjs) blocks ~60ms each
+    let last = Date.now();
+    let maxGap = 0;
+    const timer = setInterval(() => {
+      const now = Date.now();
+      maxGap = Math.max(maxGap, now - last);
+      last = now;
+    }, 2);
+    try {
+      const logins = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          this.routerHttp({ method: "PUT", url: "/users/login", body: { email, password } })
+        )
+      );
+      assert.deepStrictEqual(
+        logins.map(l => l.statusCode),
+        [200, 200, 200, 200, 200]
+      );
+    } finally {
+      clearInterval(timer);
+    }
+    // A blocked loop may not tick at all before the logins end
+    maxGap = Math.max(maxGap, Date.now() - last);
+    assert.ok(maxGap < 40, `the event loop was blocked ${maxGap}ms during the logins`);
   }
 
   /** Users: public profile, private email and hash, owner-only changes */

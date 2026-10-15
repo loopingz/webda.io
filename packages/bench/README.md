@@ -95,6 +95,25 @@ Harness options:
 |                      | `maxSubscribers`    | skip bigger fan-outs                                                            |
 | all                  | `emulated`          | results come from an emulator: regression tracking only                         |
 
+## Application benchmark: blog-system
+
+`sample-apps/blog-system/bench/` measures a whole Webda application: requests go through the Router (routing,
+operation resolution, validation, `canAct` / `getPermissionQuery`, audit, store), without the network.
+
+| Scenario           | What                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `blog.domain.<op>` | each operation alone: feed, readPost, tagPage, profile, comment, draft, publish, follow                                                           |
+| `blog.domain.mix`  | weighted mix (35% feed, 30% post pages, 10% tags, 5% profiles, 10% comments, 5% drafts, 3% publish, 2% follow), with and without the AuditService |
+| `blog.login`       | password check of `User.login`                                                                                                                    |
+| `blog.boot`        | load the application, create and initialize the Core (warm, in process)                                                                           |
+
+The blog is seeded deterministically (`smoke`: 30 posts, `quick`: 1,000 posts, `full`: 10,000 posts) in the store
+selected by `WEBDA_BENCH_BLOG_STORE` (`memory`, `fs`).
+
+```bash
+pnpm --filter @webda/sample-blog-system run bench
+```
+
 ## Measurement
 
 - **Closed loop**: N workers each waiting for its operation. Measures throughput.

@@ -147,6 +147,12 @@ class ReportersTest {
     writeFileSync(join(output, "notes.txt"), "x");
     assert.strictEqual(loadResults([output, join(this.tmp, "missing")]).length, 3);
     assert.strictEqual(loadResults([join(output, "store-MemoryStore.json")]).length, 2);
+    // A second runner of the same process writing the same file is merged
+    new JsonReporter(output).report([result({ scenario: "store.other" })]);
+    assert.deepStrictEqual(
+      loadResults([join(output, "store-MemoryStore.json")]).map(r => r.scenario),
+      ["store.get", "x", "store.other"]
+    );
     const previous = process.env.WEBDA_BENCH_OUTPUT;
     try {
       process.env.WEBDA_BENCH_OUTPUT = output;

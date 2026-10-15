@@ -525,6 +525,50 @@ export interface WebdaModule {
 }
 
 /**
+ * The application command-line, the `webda.cli` section of package.json
+ *
+ * @example
+ * ```json
+ * "webda": {
+ *   "cli": {
+ *     "name": "my-runner",
+ *     "defaultCommand": "serve",
+ *     "exclude": ["Webda/HttpServer:serve", "openapi"]
+ *   }
+ * }
+ * ```
+ */
+export interface WebdaCliDescriptor {
+  /**
+   * Program name shown in `--help`, instead of `webda`; also names the generated executable
+   * (`bin/<name>.mjs`). Applied when the CLI runs through `runCli` (the generated executable).
+   */
+  name?: string;
+  /**
+   * Command run when the arguments name none, e.g. `"serve"`. Applied when the CLI runs through `runCli`
+   * (the generated executable), not by `webda`.
+   */
+  defaultCommand?: string;
+  /**
+   * Path of the executable `webdac build` generates, relative to the package root
+   *
+   * @default "bin/<name>.mjs"
+   */
+  bin?: string;
+  /**
+   * Commands available, applied before `exclude`: a command name keeps it with its subcommands
+   * (`"config"` keeps `config encrypt`). Absent: every command.
+   */
+  include?: string[];
+  /**
+   * Commands or command providers removed, applied to `webda` too:
+   * - `"Type:command"` drops one provider (`"Webda/HttpServer:serve"`), e.g. to let a subclass serve instead
+   * - `"command"` drops the command with its subcommands (`"openapi"`, `"config"`)
+   */
+  exclude?: string[];
+}
+
+/**
  * Webda specific metadata for the project
  */
 export interface WebdaPackageDescriptor {
@@ -554,6 +598,11 @@ export interface WebdaPackageDescriptor {
    * Maps capability names to service type names.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * The application command-line: program name, default command, generated executable and
+   * the commands it offers
+   */
+  cli?: WebdaCliDescriptor;
   /**
    * Information on the workspace
    */

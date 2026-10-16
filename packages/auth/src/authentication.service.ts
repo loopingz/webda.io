@@ -412,6 +412,51 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Link an identity to the logged user without replacing their session or issuing credentials.
+   * @param identity - identity proved by a provider
+   * @returns a link acknowledgement
+   */
+  async linkIdentity(identity: ResolvedIdentity): Promise<{ status: "linked" }> {
+    identity = this.applyPolicy(identity);
+    const ctx = useContext<any>();
+    const userId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
+    if (!userId) throw new WebdaError.Unauthorized("Login required");
+    return runAsSystem(async () => {
+      let ident = await this.findIdent(identity.provider, identity.providerUid);
+      if (ident?.getUser()) {
+        if (ident.getUser().toString() !== userId) throw new IdentLinkedElsewhere();
+        return { status: "linked" };
+      }
+      if (ident) {
+        ident.setUser(userId);
+        await ident.save();
+      } else {
+        ident = new (this.getIdentModel())({
+          ...Ident.key(identity.providerUid, identity.provider),
+          email: identity.email ? Ident.normalizeEmail(identity.email) : undefined,
+          __profile: identity.profile,
+          verifiedAt: identity.emailVerified ? new Date() : undefined
+        } as any);
+        ident.setUser(userId);
+        try {
+          await ident.getRepository().create(ident);
+        } catch (err) {
+          if (!/Already exists/.test(`${err instanceof Error ? err.message : err}`)) throw err;
+          const winner = await this.findIdent(identity.provider, identity.providerUid);
+          if (winner?.getUser()?.toString() !== userId) throw new IdentLinkedElsewhere();
+          return { status: "linked" };
+        }
+      }
+      await this.emit("Authentication.Linked", {
+        context: ctx,
+        user: await this.loadUser(userId),
+        ident
+      } as any);
+      return { status: "linked" };
+    });
+  }
+
+  /**
    * Apply the email policy of the identity provider (complete() does it too, idempotently)
    * Lets a provider refuse an identity before creating anything
    * @param identity - resolved identity

@@ -146,6 +146,40 @@
       },
       "Configuration": "lib/services/binary.service:BinaryParameters"
     },
+    "Webda/ClientCertificateFilter": {
+      "Import": "lib/services/clientcertificatefilter.service:ClientCertificateFilter",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "ClientCertificateFilter parameters",
+        "properties": {
+          "paths": {
+            "description": "Regular expressions of the request paths (relative uri without query string) allowed with a verified client\ncertificate, undefined allows every path",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "ClientCertificateFilter"
+      },
+      "Configuration": "lib/services/clientcertificatefilter.service:ClientCertificateFilterParameters",
+      "capabilities": [
+        "request-filter"
+      ]
+    },
     "Webda/ConfigurationService": {
       "Import": "lib/configurations/configuration.service:ConfigurationService",
       "Schema": {
@@ -979,6 +1013,44 @@
             "description": "TLS certificate file path",
             "type": "string"
           },
+          "clientAuth": {
+            "description": "Client certificate request on the TLS port: \"none\" does not ask for one, \"optional\" asks and accepts clients\nwithout one or with an unverified one (see ClientCertificate.verified), \"require\" refuses the TLS handshake of\nclients without a certificate signed by `clientCa`\n\nDefaults to \"optional\" when clientCa is set, \"none\" otherwise",
+            "enum": [
+              "none",
+              "optional",
+              "require"
+            ],
+            "type": "string"
+          },
+          "clientCa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "CA file(s) used to verify client certificates — enables mTLS on the TLS port"
+          },
+          "clientCertHeader": {
+            "description": "Header carrying the client certificate verified by a reverse proxy, disabled when undefined\n\nOnly accepted from `trustedProxies`: a request carrying it from another source is refused (400)",
+            "example": "\"x-forwarded-tls-client-cert\" (Traefik), \"x-ssl-client-cert\" (nginx), \"x-forwarded-client-cert\" (Envoy)",
+            "type": "string"
+          },
+          "clientCertHeaderFormat": {
+            "default": "traefik",
+            "description": "Format of `clientCertHeader`",
+            "enum": [
+              "traefik",
+              "pem-urlencoded",
+              "xfcc"
+            ],
+            "type": "string"
+          },
           "csrfOrigins": {
             "description": "Allowed origin for referer that match\nany of this regexp\n\n{@link OriginFilter }",
             "items": {
@@ -1371,9 +1443,26 @@
             "$ref": "#/definitions/persistence",
             "description": "Persist the data in a file"
           },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
           "slowQueryThreshold": {
             "default": 30000,
-            "description": "Slow query threshold",
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
             "type": "number"
           },
           "strict": {
@@ -1471,6 +1560,50 @@
         "title": "MultiNotificationService"
       },
       "Configuration": "lib/services/notificationservice.service:MultiNotificationParameters"
+    },
+    "Webda/OperationsTransport": {
+      "Import": "lib/rest/operationstransport.service:OperationIdTransport",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters of the operation-id transport",
+        "properties": {
+          "operations": {
+            "default": [
+              "*"
+            ],
+            "description": "List of operations to include/exclude\nSupports wildcards and negation: [\"*\", \"!User.Delete\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "streamKeepAliveInterval": {
+            "default": 20000,
+            "description": "Keep-alive interval of a streamed response, in ms",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/operations",
+            "description": "Route prefix",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "OperationIdTransport"
+      },
+      "Configuration": "lib/rest/operationstransport.service:OperationIdTransportParameters"
     },
     "Webda/PrometheusService": {
       "Import": "lib/services/prometheus.service:PrometheusService",
@@ -1656,7 +1789,7 @@
           },
           "folder": {
             "default": "\".\" + url",
-            "description": "Folder to server",
+            "description": "Folder to serve, a relative path is resolved from the application folder",
             "type": "string"
           },
           "index": {
@@ -1845,6 +1978,16 @@
             "default": 2592000,
             "description": "Refresh token lifetime in seconds",
             "type": "number"
+          },
+          "revocationCacheTtl": {
+            "default": 10,
+            "description": "Seconds a \"not revoked\" answer is cached: bounds how long a revocation done by another instance can be missed",
+            "type": "number"
+          },
+          "revocationCheck": {
+            "default": true,
+            "description": "Reject access tokens whose family or user was revoked",
+            "type": "boolean"
           },
           "type": {
             "description": "Type of the service",
@@ -2825,6 +2968,27 @@
         },
         "revokedAt": {
           "type": "number"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "lastUsedAt": {
+          "type": "number"
+        },
+        "accessTtl": {
+          "type": "number"
+        },
+        "refreshTtl": {
+          "type": "number"
         }
       },
       "Schemas": {
@@ -2864,12 +3028,24 @@
           },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
+            "accessTtl": {
+              "description": "Access token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
+            },
             "amr": {
               "description": "Authentication methods",
               "items": {
                 "type": "string"
               },
               "type": "array"
+            },
+            "clientId": {
+              "description": "OAuth client the token was issued to",
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation of the family, ms since epoch: carried across rotations",
+              "type": "number"
             },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
@@ -2887,6 +3063,10 @@
               "description": "Ident used to log in",
               "type": "string"
             },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
             "mfa": {
               "default": "none",
               "description": "MFA state of the session that issued the token",
@@ -2901,9 +3081,17 @@
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
+            "name": {
+              "description": "Display name, e.g. \"webda-cli on remi-mbp\"",
+              "type": "string"
+            },
             "provider": {
               "description": "Provider used",
               "type": "string"
+            },
+            "refreshTtl": {
+              "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
             },
             "revokedAt": {
               "description": "Set when revoked",
@@ -2912,6 +3100,10 @@
             "rotatedAt": {
               "description": "Set once exchanged",
               "type": "number"
+            },
+            "scope": {
+              "description": "Granted scope (space-separated)",
+              "type": "string"
             },
             "userId": {
               "description": "Owner",
@@ -2964,12 +3156,24 @@
           },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
+            "accessTtl": {
+              "description": "Access token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
+            },
             "amr": {
               "description": "Authentication methods",
               "items": {
                 "type": "string"
               },
               "type": "array"
+            },
+            "clientId": {
+              "description": "OAuth client the token was issued to",
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation of the family, ms since epoch: carried across rotations",
+              "type": "number"
             },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
@@ -2987,6 +3191,10 @@
               "description": "Ident used to log in",
               "type": "string"
             },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
             "mfa": {
               "default": "none",
               "description": "MFA state of the session that issued the token",
@@ -3001,9 +3209,17 @@
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
+            "name": {
+              "description": "Display name, e.g. \"webda-cli on remi-mbp\"",
+              "type": "string"
+            },
             "provider": {
               "description": "Provider used",
               "type": "string"
+            },
+            "refreshTtl": {
+              "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
             },
             "revokedAt": {
               "description": "Set when revoked",
@@ -3012,6 +3228,10 @@
             "rotatedAt": {
               "description": "Set once exchanged",
               "type": "number"
+            },
+            "scope": {
+              "description": "Granted scope (space-separated)",
+              "type": "string"
             },
             "userId": {
               "description": "Owner",
@@ -3064,12 +3284,24 @@
           },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
+            "accessTtl": {
+              "description": "Access token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
+            },
             "amr": {
               "description": "Authentication methods",
               "items": {
                 "type": "string"
               },
               "type": "array"
+            },
+            "clientId": {
+              "description": "OAuth client the token was issued to",
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation of the family, ms since epoch: carried across rotations",
+              "type": "number"
             },
             "expiresAt": {
               "description": "Expiry, ms since epoch",
@@ -3087,6 +3319,10 @@
               "description": "Ident used to log in",
               "type": "string"
             },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
             "mfa": {
               "default": "none",
               "description": "MFA state of the session that issued the token",
@@ -3101,9 +3337,17 @@
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
+            "name": {
+              "description": "Display name, e.g. \"webda-cli on remi-mbp\"",
+              "type": "string"
+            },
             "provider": {
               "description": "Provider used",
               "type": "string"
+            },
+            "refreshTtl": {
+              "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
+              "type": "number"
             },
             "revokedAt": {
               "description": "Set when revoked",
@@ -3112,6 +3356,10 @@
             "rotatedAt": {
               "description": "Set once exchanged",
               "type": "number"
+            },
+            "scope": {
+              "description": "Granted scope (space-separated)",
+              "type": "string"
             },
             "userId": {
               "description": "Owner",
@@ -3236,6 +3484,125 @@
         "uuid"
       ],
       "Identifier": "Webda/RegistryEntry"
+    },
+    "Webda/RevokedAccess": {
+      "Plural": "RevokedAccesses",
+      "Import": "lib/models/revokedaccess.model:RevokedAccess",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "key": {
+          "type": "string"
+        },
+        "notBefore": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Denylist entry for access tokens: `fam:<family>` or `user:<userId>` (with `notBefore`)",
+          "properties": {
+            "expiresAt": {
+              "description": "Removal time (ms): revocation time + access token lifetime",
+              "type": "number"
+            },
+            "key": {
+              "description": "`fam:<family>` or `user:<userId>`",
+              "type": "string"
+            },
+            "notBefore": {
+              "description": "For `user:` entries: tokens issued before (ms) are rejected",
+              "type": "number"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "key"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Denylist entry for access tokens: `fam:<family>` or `user:<userId>` (with `notBefore`)",
+          "properties": {
+            "expiresAt": {
+              "description": "Removal time (ms): revocation time + access token lifetime",
+              "type": "number"
+            },
+            "key": {
+              "description": "`fam:<family>` or `user:<userId>`",
+              "type": "string"
+            },
+            "notBefore": {
+              "description": "For `user:` entries: tokens issued before (ms) are rejected",
+              "type": "number"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "key"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Denylist entry for access tokens: `fam:<family>` or `user:<userId>` (with `notBefore`)",
+          "properties": {
+            "expiresAt": {
+              "description": "Removal time (ms): revocation time + access token lifetime",
+              "type": "number"
+            },
+            "key": {
+              "description": "`fam:<family>` or `user:<userId>`",
+              "type": "string"
+            },
+            "notBefore": {
+              "description": "For `user:` entries: tokens issued before (ms) are rejected",
+              "type": "number"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "key"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "key"
+      ],
+      "Identifier": "Webda/RevokedAccess"
     },
     "Webda/RoleModel": {
       "Plural": "RoleModels",

@@ -1,6 +1,6 @@
 {
   "name": "@webda/fs",
-  "version": "4.0.0-beta.9",
+  "version": "4.0.0-beta.10",
   "description": "Filesystem-based implementations of Store, Binary, and Queue for Webda",
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": {
@@ -15,6 +15,7 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "vitest run",
+    "bench": "vitest run --config vitest.bench.config.ts",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.2",
+    "@webda/bench": "workspace:*",
     "@webda/compiler": "workspace:*",
     "@webda/test": "workspace:*",
     "fs-extra": "^11.0.0",

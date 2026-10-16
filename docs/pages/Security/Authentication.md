@@ -101,7 +101,7 @@ Users, idents and refresh tokens are regular models; map them to a store like an
   "services": {
     "db": {
       "type": "MemoryStore",
-      "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken"]
+      "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"]
     }
   }
 }
@@ -110,6 +110,10 @@ Users, idents and refresh tokens are regular models; map them to a store like an
 A model mapped to no store falls back to the application registry store. That is acceptable for a single instance
 only: **multi-instance deployments must map `Webda/RefreshToken` (and the user and ident models) to a shared store**,
 otherwise a refresh token issued by one instance is unknown to the others and revocation does not reach them.
+Likewise map **`Webda/RevokedAccess`**, the denylist of revoked token families and users (see
+[`@webda/oauth`](../Modules/oauth/README.md#revocation)): on a per-instance store a revocation stays local to the
+instance that performed it. Other instances notice a shared revocation within `TokenService.revocationCacheTtl`
+seconds (default 10).
 
 `Webda/Ident` and `Webda/RefreshToken`, and any application subclass of them (for example a custom `identModel`), are
 never exposed by the `DomainService` (REST, GraphQL, model operations): their fields (`_user`, `verifiedAt`,
@@ -303,6 +307,13 @@ inside a JWT signed with that key, so tampering is detected. Values encrypted be
 while the old key is in the CryptoService registry. Declare it like any behavior: `secret: EncryptedField<MyType>;`.
 **Every instance must share the CryptoService keys** (the `Registry` store): an instance without the key cannot
 decrypt.
+
+## Client certificates
+
+`CertificateProvider` (`Webda/CertificateProvider`, provider `certificate`) authenticates requests presenting a
+verified TLS client certificate, terminated by the `HttpServer` or by a trusted reverse proxy: each request gets a
+stateless session with `amr: ["mtls"]` by default. With `mode: "factor"`, it adds `mtls` only to an existing session
+for the certificate's linked user, for that request. See [Client certificates (mTLS)](./ClientCertificate.md).
 
 ## Tokens
 

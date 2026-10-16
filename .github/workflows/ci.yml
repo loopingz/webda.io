@@ -132,11 +132,11 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        # Codecov compares project coverage with main's full-suite report.
-        # Keep one complete report on PRs; the other Node versions still use affected tests.
+        # Codecov compares project coverage with the full main-branch suite.
+        # Run that same suite once so files outside the affected packages are included.
         run: |
           if [ "${{ matrix.node }}" = "22" ]; then
-            pnpm --no-bail -r run test
+            node scripts/run-affected-tests.mjs test
           else
             node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
           fi

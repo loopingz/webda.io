@@ -23,6 +23,51 @@ import { Service } from "./service.js";
 import * as WebdaError from "../errors/errors.js";
 import { useRouter } from "../rest/hooks.js";
 import { CancelablePromise } from "@webda/utils";
+import * as http2 from "node:http2";
+import { X509Certificate } from "node:crypto";
+import { afterAll } from "vitest";
+import { createTestCertificates } from "../test/certificates.js";
+import type { ClientCertificate } from "../contexts/clientcertificate.js";
+
+const certs = createTestCertificates();
+afterAll(() => certs.cleanup());
+
+/**
+ * @param pem - PEM certificate
+ * @returns the url-encoded base64 DER without armour, as Traefik sends it
+ */
+function traefikHeader(pem: string): string {
+  return encodeURIComponent(pem.replace(/-----(BEGIN|END) CERTIFICATE-----/g, "").replace(/\s/g, ""));
+}
+
+/**
+ * HTTPS request, optionally presenting a client certificate
+ */
+function httpsRequest(
+  port: number,
+  client?: { key: string; cert: string }
+): Promise<{ statusCode: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path: "/mtls-check",
+        method: "GET",
+        rejectUnauthorized: false,
+        ...(client ? { key: nodeFs.readFileSync(client.key), cert: nodeFs.readFileSync(client.cert) } : {})
+      },
+      res => {
+        let body = "";
+        res.on("data", chunk => (body += chunk));
+        res.on("end", () => resolve({ statusCode: res.statusCode!, body }));
+        res.on("error", reject);
+      }
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
 
 /**
  * Minimal SessionManager for testing that returns a plain session
@@ -1128,5 +1173,230 @@ class HttpServerTest extends WebdaApplicationTest {
     } finally {
       TestSessionManager.writeCookie = false;
     }
+  }
+
+  /**
+   * Start a TLS server with client certificate options, recording the client certificate of each request
+   */
+  async startMtls(params: any): Promise<{ server: HttpServer; port: number; seen: (ClientCertificate | undefined)[] }> {
+    const server = new HttpServer(
+      "HttpServerMtls",
+      new HttpServerParameters().load({
+        port: 0,
+        key: certs.server.key,
+        cert: certs.server.cert,
+        trustedProxies: ["127.0.0.1", "::1"],
+        ...params
+      })
+    );
+    this.registerService(server);
+    const seen: (ClientCertificate | undefined)[] = [];
+    const original = server.getContextFromRequest.bind(server);
+    server.getContextFromRequest = async (req, res) => {
+      const ctx = await original(req, res);
+      seen.push((ctx as WebContext)?.getHttpContext().getClientCertificate());
+      return ctx;
+    };
+    await server.start("127.0.0.1", 0);
+    return { server, port: (server.address() as any).port, seen };
+  }
+
+  @test
+  async mtlsRequireRefusesClientsWithoutCertificate() {
+    const { server, port, seen } = await this.startMtls({
+      clientCa: certs.ca.cert,
+      clientAuth: "require",
+      http2: false
+    });
+    try {
+      await assert.rejects(() => httpsRequest(port));
+      await assert.rejects(() => httpsRequest(port, certs.untrusted));
+      assert.deepStrictEqual(seen, []);
+      await httpsRequest(port, certs.client);
+      assert.strictEqual(seen.length, 1);
+      assert.strictEqual(seen[0]?.verified, true);
+      assert.strictEqual(seen[0]?.source, "tls");
+      assert.strictEqual(seen[0]?.subject.CN, "alice");
+    } finally {
+      await server.stop();
+    }
+  }
+
+  @test
+  async mtlsOptionalExposesUnverifiedCertificates() {
+    // clientAuth defaults to optional with a clientCa
+    const { server, port, seen } = await this.startMtls({ clientCa: [certs.ca.cert], http2: false });
+    try {
+      await httpsRequest(port);
+      await httpsRequest(port, certs.untrusted);
+      await httpsRequest(port, certs.client);
+      assert.strictEqual(seen[0], undefined);
+      assert.strictEqual(seen[1]?.verified, false);
+      assert.strictEqual(seen[1]?.subject.CN, "mallory");
+      assert.strictEqual(seen[2]?.verified, true);
+    } finally {
+      await server.stop();
+    }
+  }
+
+  @test
+  async mtlsOverHttp2() {
+    const { server, port, seen } = await this.startMtls({ clientCa: certs.ca.cert });
+    const session = http2.connect(`https://127.0.0.1:${port}`, {
+      rejectUnauthorized: false,
+      key: nodeFs.readFileSync(certs.client.key),
+      cert: nodeFs.readFileSync(certs.client.cert)
+    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const req = session.request({ ":path": "/mtls-check" });
+        req.on("response", () => undefined);
+        req.on("data", () => undefined);
+        req.on("end", () => resolve());
+        req.on("error", reject);
+        req.end();
+      });
+      assert.strictEqual(seen[0]?.verified, true);
+      assert.strictEqual(seen[0]?.subject.CN, "alice");
+    } finally {
+      session.close();
+      await server.stop();
+    }
+  }
+
+  @test
+  async mtlsPlainHttpRedirectStillWorks() {
+    const { server, port } = await this.startMtls({ clientCa: certs.ca.cert, clientAuth: "require" });
+    try {
+      const plain = await httpRequest({
+        hostname: "127.0.0.1",
+        port,
+        path: "/x",
+        method: "GET",
+        headers: { Host: "localhost" }
+      });
+      assert.strictEqual(plain.statusCode, 308);
+    } finally {
+      await server.stop();
+    }
+  }
+
+  @test
+  async mtlsConfigurationErrors() {
+    for (const params of [
+      { key: certs.server.key, cert: certs.server.cert, clientAuth: "require" },
+      { clientCa: certs.ca.cert },
+      { clientAuth: "optional" }
+    ]) {
+      const server = new HttpServer("HttpServerBad", new HttpServerParameters().load({ port: 0, ...params } as any));
+      await assert.rejects(() => server.start("127.0.0.1", 0), /clientCa|require TLS/);
+      await server.stop();
+    }
+    assert.strictEqual(new HttpServerParameters().load({}).clientAuth, "none");
+    assert.strictEqual(new HttpServerParameters().load({ clientCa: "ca.crt" }).clientAuth, "optional");
+    assert.strictEqual(new HttpServerParameters().load({}).clientCertHeaderFormat, "traefik");
+  }
+
+  /**
+   * HttpServer reading the client certificate from a proxy header
+   */
+  proxyServer(params: any = {}): HttpServer {
+    const server = new HttpServer(
+      "HttpServerProxy",
+      new HttpServerParameters().load({
+        trustedProxies: ["127.0.0.1"],
+        clientCertHeader: "X-Forwarded-Tls-Client-Cert",
+        ...params
+      })
+    );
+    (server as any).subnetChecker = createChecker(["127.0.0.1/32"]);
+    server.newContext = (info: any) => HttpServer.prototype.newContext.call(server, info, true);
+    return server;
+  }
+
+  /**
+   * Fake request from an address
+   */
+  fakeRequest(remoteAddress: string, headers: Record<string, string> = {}): any {
+    return {
+      headers: { host: "api.example.com", ...headers },
+      method: "GET",
+      url: "/",
+      socket: { remoteAddress, address: () => ({ port: 18080 }) }
+    };
+  }
+
+  @test
+  async forwardedCertificateFromUntrustedSource() {
+    const server = this.proxyServer();
+    const res: any = { writeHead: (code: number) => (res.code = code) };
+    const header = { "x-forwarded-tls-client-cert": traefikHeader(certs.client.pem) };
+    const ctx = await server.getContextFromRequest(this.fakeRequest("10.1.2.3", header), res);
+    assert.strictEqual(ctx, undefined);
+    assert.strictEqual(res.code, 400);
+    assert.throws(() => server.extractClientCertificate(this.fakeRequest("10.1.2.3", header)), WebdaError.BadRequest);
+  }
+
+  @test
+  async forwardedCertificateFromTrustedProxy() {
+    const server = this.proxyServer();
+    const chain = `${traefikHeader(certs.client.pem)},${traefikHeader(certs.ca.pem)}`;
+    const ctx = (await server.getContextFromRequest(
+      this.fakeRequest("127.0.0.1", { "x-forwarded-tls-client-cert": chain }),
+      createMockStream() as any
+    )) as WebContext;
+    const cert = ctx.getHttpContext().getClientCertificate();
+    assert.strictEqual(cert?.subject.CN, "alice");
+    assert.strictEqual(cert?.verified, true);
+    assert.strictEqual(cert?.source, "proxy");
+    // A repeated header: the last one wins
+    const req = this.fakeRequest("127.0.0.1");
+    req.headers["x-forwarded-tls-client-cert"] = [traefikHeader(certs.untrusted.pem), traefikHeader(certs.bob.pem)];
+    assert.strictEqual(server.extractClientCertificate(req)?.subject.CN, "bob");
+    // Other formats
+    const nginx = this.proxyServer({ clientCertHeader: "x-ssl-client-cert", clientCertHeaderFormat: "pem-urlencoded" });
+    assert.strictEqual(
+      nginx.extractClientCertificate(
+        this.fakeRequest("127.0.0.1", { "x-ssl-client-cert": encodeURIComponent(certs.bob.pem) })
+      )?.subject.CN,
+      "bob"
+    );
+  }
+
+  @test
+  async forwardedCertificateMalformedOrDisabled() {
+    const server = this.proxyServer();
+    assert.strictEqual(
+      server.extractClientCertificate(this.fakeRequest("127.0.0.1", { "x-forwarded-tls-client-cert": "not-a-cert" })),
+      undefined
+    );
+    assert.strictEqual(
+      server.extractClientCertificate(this.fakeRequest("127.0.0.1", { "x-forwarded-tls-client-cert": "" })),
+      undefined
+    );
+    // Without clientCertHeader the header is an ordinary header, even from an unknown source
+    const plain = this.proxyServer({ clientCertHeader: undefined });
+    assert.strictEqual(
+      plain.extractClientCertificate(
+        this.fakeRequest("10.1.2.3", { "x-forwarded-tls-client-cert": traefikHeader(certs.client.pem) })
+      ),
+      undefined
+    );
+    // A socket without TLS peer certificate
+    const req = this.fakeRequest("127.0.0.1");
+    req.socket.getPeerCertificate = () => ({});
+    assert.strictEqual(plain.extractClientCertificate(req), undefined);
+    // A socket certificate is used when no proxy header is configured
+    const peer = { raw: new X509Certificate(certs.client.pem).raw };
+    const direct = this.fakeRequest("127.0.0.1");
+    direct.socket.getPeerCertificate = () => peer;
+    direct.socket.authorized = true;
+    assert.strictEqual(plain.extractClientCertificate(direct)?.source, "tls");
+    // From a trusted proxy, the socket certificate is the proxy's own: never the client's
+    assert.strictEqual(server.extractClientCertificate(direct), undefined);
+    // From another source, the socket certificate is the client's
+    const other = this.fakeRequest("10.1.2.3");
+    other.socket.getPeerCertificate = () => peer;
+    assert.strictEqual(server.extractClientCertificate(other)?.verified, false);
   }
 }

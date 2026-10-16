@@ -6,6 +6,21 @@ import type { IWebContext } from "../contexts/icontext.js";
 import { Route } from "../rest/irest.js";
 import { Service } from "./service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
+import { useApplication } from "../application/hooks.js";
+
+/**
+ * Folder a relative resource folder is resolved from: the application folder, so an executable
+ * started from another directory serves the application files
+ *
+ * @returns the application path, the current directory without application
+ */
+function applicationPath(): string {
+  try {
+    return useApplication()?.getPath() ?? process.cwd();
+  } catch {
+    return process.cwd();
+  }
+}
 
 /**
  * ResourceService parameters
@@ -18,7 +33,7 @@ export class ResourceServiceParameters extends ServiceParameters {
    */
   declare url?: string;
   /**
-   * Folder to server
+   * Folder to serve, a relative path is resolved from the application folder
    *
    * @default "." + url
    */
@@ -127,7 +142,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   resolve() {
     super.resolve();
     this.parameters.with(({ folder }) => {
-      this._resolved = path.resolve(folder);
+      this._resolved = path.resolve(applicationPath(), folder);
       this.fileOnly = !fs.lstatSync(this._resolved).isDirectory();
     });
     return this;

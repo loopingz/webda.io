@@ -8,9 +8,11 @@ on:
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [main, maintenance/v3.x]
+  schedule:
+    - cron: "17 6 * * 0" # Weekly full coverage on Sunday, UTC
 
 concurrency:
-  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  group: "${{ github.workflow }} @ ${{ github.event_name }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -20,11 +22,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["22", "24", "current"]
+        node: ${{ fromJSON(github.event_name == 'schedule' && '["22"]' || '["22","24","current"]') }}
     name: Build with NodeJS v${{ matrix.node }}
     env:
       FORCE_COLOR: 1
-      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      TEST_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
 
     services:
       localstack:
@@ -132,13 +134,13 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        # Codecov compares project coverage with the full main-branch suite.
-        # Run that same suite once so files outside the affected packages are included.
+        # The weekly full run is serial to avoid contention in event-loop latency tests.
+        # Pull requests and pushes use the affected-package selector.
         run: |
-          if [ "${{ matrix.node }}" = "22" ]; then
-            node scripts/run-affected-tests.mjs test
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            pnpm --no-bail -r --workspace-concurrency=1 run test
           else
-            node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
+            node scripts/run-affected-tests.mjs test "$TEST_BASE_SHA"
           fi
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
@@ -148,7 +150,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
       - name: Test app templates
-        run: node scripts/run-affected-tests.mjs test:templates "$PR_BASE_SHA"
+        run: node scripts/run-affected-tests.mjs test:templates "$TEST_BASE_SHA"
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           WEBDA_MONGO_URL: mongodb://root:webda.io@localhost:37017
@@ -169,15 +171,16 @@ jobs:
         run: pnpm run lint
 
       - name: Check with mocha
-        run: node scripts/run-affected-tests.mjs test:mocha "$PR_BASE_SHA"
+        run: node scripts/run-affected-tests.mjs test:mocha "$TEST_BASE_SHA"
 
       - name: Check with jest
-        run: node scripts/run-affected-tests.mjs test:jest "$PR_BASE_SHA"
+        run: node scripts/run-affected-tests.mjs test:jest "$TEST_BASE_SHA"
 
       - name: Check with bun
-        run: node scripts/run-affected-tests.mjs test:bun "$PR_BASE_SHA"
+        run: node scripts/run-affected-tests.mjs test:bun "$TEST_BASE_SHA"
 
       - name: CodeCov
+        if: matrix.node == '22' && (github.event_name == 'pull_request' || github.event_name == 'schedule')
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -32,7 +32,7 @@ function run(command, args) {
   process.exit(result.status ?? 1);
 }
 
-// Push builds retain the full suite. PR builds pass the base commit from the event.
+// Scheduled builds run the full suite. Push and PR builds pass a base commit from the event.
 if (!base) {
   const filters = windows ? [...windowsPackages].flatMap(name => ["--filter", name]) : ["-r"];
   run("pnpm", ["--no-bail", ...filters, "run", script]);
@@ -98,4 +98,6 @@ if (!names.length) {
 }
 
 console.log(`Affected packages for ${script}: ${names.join(", ")}`);
-run("pnpm", ["--no-bail", ...names.flatMap(name => ["--filter", name]), "run", script]);
+// Shared changes can select every package. Run those test suites serially so CPU contention does not skew latency tests.
+const concurrency = sharedChange && script === "test" ? ["--workspace-concurrency=1"] : [];
+run("pnpm", ["--no-bail", ...concurrency, ...names.flatMap(name => ["--filter", name]), "run", script]);

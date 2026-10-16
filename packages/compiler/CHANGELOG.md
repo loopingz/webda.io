@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.10...compiler-v4.0.0-beta.11) (2026-10-16)
+
+
+### Features
+
+* **core:** apply webda.cli include/exclude to operation commands ([#931](https://github.com/loopingz/webda.io/issues/931)) ([7907541](https://github.com/loopingz/webda.io/commit/7907541c29b4c78c76ff1255a79974ca7e610d62))
+
 ## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.9...compiler-v4.0.0-beta.10) (2026-10-15)
 
 

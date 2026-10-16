@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.10...core-v4.0.0-beta.11) (2026-10-16)
+
+
+### Features
+
+* **core:** apply webda.cli include/exclude to operation commands ([#931](https://github.com/loopingz/webda.io/issues/931)) ([7907541](https://github.com/loopingz/webda.io/commit/7907541c29b4c78c76ff1255a79974ca7e610d62))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.11
+    * @webda/models bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
 ## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.9...core-v4.0.0-beta.10) (2026-10-15)
 
 

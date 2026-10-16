@@ -3772,7 +3772,7 @@
           {
             "attribute": "_idents",
             "model": "Webda/Ident",
-            "targetAttribute": "User"
+            "targetAttribute": "_user"
           }
         ],
         "behaviors": [

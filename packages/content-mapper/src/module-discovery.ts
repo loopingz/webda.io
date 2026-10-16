@@ -662,7 +662,7 @@ export interface ModelRelations {
    */
   links?: { attribute: string; model?: string; type: string }[];
   /** Reverse lookups, from `ModelRelated<T, U, "attr">`. */
-  queries?: { attribute: string; model: string; targetAttribute: string }[];
+  queries?: { attribute: string; model: string; targetAttribute?: string }[];
   /** Behaviour-typed attributes. */
   behaviors?: { attribute: string; behavior: string }[];
 }
@@ -724,10 +724,11 @@ export function buildRelations(
     } else if (typeName === "ModelRelated") {
       if (!model) continue;
       relations.queries ??= [];
+      const targetAttribute = typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : undefined;
       relations.queries.push({
         attribute,
         model,
-        targetAttribute: ctx.textOf(owner, typeArguments[1]).replace(/"/g, "")
+        ...(targetAttribute !== undefined ? { targetAttribute } : {})
       });
     } else if (LINK_KINDS[typeName]) {
       relations.links ??= [];

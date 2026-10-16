@@ -1,11 +1,17 @@
 import { QueryValidator } from "@webda/ql";
-import { OperationDefinition, OperationDefinitionInfo, OperationStreaming } from "./icore.js";
+import {
+  OperationDefinition,
+  OperationDefinitionInfo,
+  OperationStreaming,
+  type OperationSubject,
+  type DryRunResult
+} from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
-import { useApplication, useModel } from "../application/hooks.js";
-import { useDynamicService, useModelMetadata, useService } from "./hooks.js";
+import { useApplication, useModel, useParameters } from "../application/hooks.js";
+import { useCore, useDynamicService, useModelMetadata, useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
 import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
@@ -246,15 +252,7 @@ async function* validatedStream(operationId: string, schema: string, source: Asy
   }
 }
 
-/**
- * Target object of an operation, used by listeners such as the audit log
- */
-export type OperationSubject = {
-  /** Model identifier, e.g. `WebdaSample/Post` */
-  model: string;
-  /** Canonical primary key, see `serializeSubjectKey` */
-  key: string;
-};
+export type { OperationSubject, DryRunResult };
 
 /**
  * Serialize a primary key to the canonical string identifying an operation subject.
@@ -584,6 +582,188 @@ export async function resolveArguments(context: OperationContext, operation: Ope
 }
 
 /**
+ * Longest pattern accepted by pattern matching
+ */
+const MAX_PATTERN_LENGTH = 1024;
+
+/**
+ * Convert a glob-like pattern to a RegExp for operation id matching.
+ * `*` matches any characters, `?` matches a single character.
+ * @param pattern - pattern to convert
+ * @returns regular expression
+ */
+function globToRegExp(pattern: string): RegExp {
+  if (pattern.length > MAX_PATTERN_LENGTH) {
+    throw new Error("Operation pattern too long");
+  }
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*")
+    .replace(/\?/g, ".");
+  return new RegExp(`^${escaped}$`);
+}
+
+/**
+ * Check if an operation id matches a glob pattern (e.g. "Billing.*", "User.Delete", "*")
+ * @param pattern - glob pattern
+ * @param operationId - operation id
+ * @returns true if matches
+ */
+export function matchesOperationPattern(pattern: string, operationId: string): boolean {
+  if (pattern === "*" || pattern === operationId) {
+    return true;
+  }
+  return globToRegExp(pattern).test(operationId);
+}
+
+/**
+ * Check if an operation id matches any pattern in a list
+ * @param patterns - array of glob patterns
+ * @param operationId - operation id
+ * @returns true if any pattern matches
+ */
+export function matchesAnyPattern(patterns: string[] | undefined, operationId: string): boolean {
+  if (!patterns || !Array.isArray(patterns) || patterns.length === 0) {
+    return false;
+  }
+  return patterns.some(pattern => matchesOperationPattern(pattern, operationId));
+}
+
+/**
+ * Decide whether an operation is read-only:
+ * - op.mcp?.readOnly if explicitly set (boolean)
+ * - otherwise op.rest?.method === "get" (case-insensitive)
+ * - otherwise /\.(Get|Query)$/.test(id)
+ *
+ * @param id - operation id
+ * @param op - operation definition
+ * @returns true if the operation is read-only
+ */
+export function isReadOnlyOperation(id: string, op?: Partial<OperationDefinition>): boolean {
+  if (op?.mcp && typeof op.mcp === "object" && op.mcp.readOnly !== undefined) {
+    return !!op.mcp.readOnly;
+  }
+  if (
+    op?.rest &&
+    typeof op.rest === "object" &&
+    typeof op.rest.method === "string" &&
+    op.rest.method.toLowerCase() === "get"
+  ) {
+    return true;
+  }
+  return /\.(Get|Query)$/.test(id);
+}
+
+/**
+ * Decide whether an operation call should run in dry-run mode.
+ *
+ * Resolution order:
+ * 1. Already dry: if context.getExtension("dryRun") === true, nested operations stay dry.
+ * 2. Enforce: if operation matches parameters.dryRun.enforce, always dry (wins over exclude).
+ * 3. Exclude: if operation matches parameters.dryRun.exclude, turns off sources 4 & 5 (never overrides enforce).
+ * 4. Global switch: parameters.dryRun.enabled === true.
+ * 5. Per-call request:
+ *    - context.getExtension("requestedDryRun") === true
+ *    - REST header `X-Webda-Dry-Run: true` when parameters.dryRun.allowRequest === true
+ *
+ * @param context - execution context
+ * @param operationId - operation id
+ * @returns true if the call should run in dry mode
+ */
+export function resolveDryRun(context: OperationContext, operationId: string): boolean {
+  if (context?.getExtension?.("dryRun") === true) {
+    return true;
+  }
+
+  let dryRunConfig: any;
+  try {
+    dryRunConfig = useParameters()?.dryRun;
+  } catch {
+    // Outside an application or during bootstrap
+  }
+
+  // 1. Enforce
+  if (matchesAnyPattern(dryRunConfig?.enforce, operationId)) {
+    return true;
+  }
+
+  // Check exclude: turns off sources 2 and 3
+  const isExcluded = matchesAnyPattern(dryRunConfig?.exclude, operationId);
+  if (isExcluded) {
+    return false;
+  }
+
+  // 2. Global switch
+  if (dryRunConfig?.enabled === true) {
+    return true;
+  }
+
+  // 3. Per-call request
+  if (context?.getExtension?.("requestedDryRun") === true) {
+    return true;
+  }
+
+  if (dryRunConfig?.allowRequest === true) {
+    const httpCtx = (context as any)?.getHttpContext?.();
+    const header = httpCtx?.getHeader?.("x-webda-dry-run") ?? (context as any)?.getHeader?.("x-webda-dry-run");
+    if (header === "true" || (Array.isArray(header) && header[0] === "true")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+const SECRET_REGEX = /password|secret|token|credential|authorization/i;
+const SECRET_MASK = "********";
+
+/**
+ * Mask sensitive values in an argument (passwords, tokens, SecretString, etc.)
+ * @param val - value to mask
+ * @param seen - tracking set for circular reference protection
+ * @returns masked value
+ */
+export function maskValue(val: unknown, seen = new WeakSet<object>()): unknown {
+  if (val === null || val === undefined) {
+    return val;
+  }
+  if (typeof val === "object" && val !== null && "getValue" in val && typeof (val as any).getValue === "function") {
+    return SECRET_MASK;
+  }
+  if (typeof val !== "object") {
+    return val;
+  }
+  if (val instanceof Date || val instanceof RegExp) {
+    return val;
+  }
+  if (seen.has(val)) {
+    return "[Circular]";
+  }
+  seen.add(val);
+  if (Array.isArray(val)) {
+    return val.map(item => maskValue(item, seen));
+  }
+  const result: Record<string, unknown> = {};
+  for (const [key, propVal] of Object.entries(val)) {
+    if (SECRET_REGEX.test(key)) {
+      result[key] = SECRET_MASK;
+    } else {
+      result[key] = maskValue(propVal, seen);
+    }
+  }
+  return result;
+}
+
+/**
+ * Mask secrets in an array of arguments
+ * @param args - array of arguments
+ * @returns array with secrets masked
+ */
+export function maskArguments(args: unknown[]): unknown[] {
+  return args.map(arg => maskValue(arg));
+}
+
+/**
  * Call an operation within the framework
  * @param context - the execution context
  * @param operationId - the operation identifier
@@ -596,13 +776,26 @@ export async function callOperation(context: OperationContext, operationId: stri
   // A nested operation declares its own subject; restore the caller's after
   const callerSubject = context.getExtension(DECLARED_SUBJECT);
   context.setExtension(DECLARED_SUBJECT, undefined);
+
+  const isDry = resolveDryRun(context, operationId);
+  const prevRequestedDry = context.getExtension("requestedDryRun");
+  if (isDry) {
+    context.setExtension("dryRun", true);
+    try {
+      context.setHeader?.("X-Webda-Dry-Run", "true");
+    } catch {
+      // Stream or context does not support setHeader
+    }
+  } else if (prevRequestedDry === true) {
+    context.setExtension("requestedDryRun", false);
+  }
+
   try {
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
     context.setExtension("operationContext", operations[operationId].context || {});
     await Promise.all([
-      emitCoreEvent("Webda.BeforeOperation", { context, operationId })
-      //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
+      emitCoreEvent("Webda.BeforeOperation", { context, operationId, dryRun: isDry || undefined })
     ]);
 
     // Resolve arguments from context using the operation's input schema
@@ -613,16 +806,51 @@ export async function callOperation(context: OperationContext, operationId: stri
     // methods that still use the context-based calling convention.
     callArgs = args.length > 0 ? args : [context];
 
+    const opDef = operations[operationId];
+    const dryRunMode = opDef?.dryRun ?? (isReadOnlyOperation(operationId, opDef) ? "execute" : "skip");
+
+    if (isDry && dryRunMode === "skip") {
+      const maskedArgs = maskArguments(args);
+      useLog("INFO", `DRY RUN ${operationId}`, ...maskedArgs);
+      const subject = subjectOf(context, operationId, callArgs);
+      await emitCoreEvent("Webda.OperationDryRun", {
+        context,
+        operationId,
+        arguments: maskedArgs,
+        subject
+      });
+      const dryResult: DryRunResult = {
+        dryRun: true,
+        operationId,
+        arguments: maskedArgs,
+        ...(subject ? { subject } : {})
+      };
+      const streaming = getOperationStreaming(opDef);
+      if (streaming === "server" || streaming === "bidi" || opDef.generator) {
+        context.setExtension("operationStreaming", true);
+      }
+      context.write(dryResult);
+      await Promise.all([
+        emitCoreEvent("Webda.OperationSuccess", {
+          context,
+          operationId,
+          subject,
+          dryRun: true
+        })
+      ]);
+      return;
+    }
+
     // Call the method with resolved arguments, wrapped in runWithContext
     // so that useContext() returns the operation context inside the method.
-    if (operations[operationId].service) {
+    if (opDef.service) {
       result = await runWithContext(context, () =>
-        useService(operations[operationId].service as any)[operations[operationId].method](...callArgs)
+        useService(opDef.service as any)[opDef.method](...callArgs)
       );
-    } else if (operations[operationId].model) {
-      const modelClass = useModel(operations[operationId].model);
-      const method = operations[operationId].method;
-      if (operations[operationId].static === false) {
+    } else if (opDef.model) {
+      const modelClass = useModel(opDef.model);
+      const method = opDef.method;
+      if (opDef.static === false) {
         // Instance method — load the model instance as the caller (a missing object and an object the caller may
         // not read answer the same NotFound; a refused method is Forbidden) and call the method on it
         // The first argument should be the primary key (uuid)
@@ -667,7 +895,8 @@ export async function callOperation(context: OperationContext, operationId: stri
       emitCoreEvent("Webda.OperationSuccess", {
         context,
         operationId,
-        subject: subjectOf(context, operationId, callArgs, result)
+        subject: subjectOf(context, operationId, callArgs, result),
+        dryRun: isDry || undefined
       })
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})
     ]);
@@ -677,7 +906,8 @@ export async function callOperation(context: OperationContext, operationId: stri
         context,
         operationId,
         error: err,
-        subject: subjectOf(context, operationId, callArgs)
+        subject: subjectOf(context, operationId, callArgs),
+        dryRun: isDry || undefined
       })
       //emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
     ]);
@@ -685,6 +915,9 @@ export async function callOperation(context: OperationContext, operationId: stri
   } finally {
     context.setExtension("event", undefined);
     context.setExtension(DECLARED_SUBJECT, callerSubject);
+    if (!isDry && prevRequestedDry === true) {
+      context.setExtension("requestedDryRun", prevRequestedDry);
+    }
   }
 }
 
@@ -743,12 +976,14 @@ export function registerOperation(
     throw new Error(`Operation ${operationId} must have a service or a model`);
   }
   const operations = useInstanceStorage().operations;
+  const dryRunDefault = isReadOnlyOperation(operationId, definition as OperationDefinition) ? "execute" : "skip";
   // Add the operation, defaulting input/output to "void" if not provided
   operations[operationId] = {
     ...definition,
     id: operationId,
     input: definition.input ?? "void",
-    output: definition.output ?? "void"
+    output: definition.output ?? "void",
+    dryRun: definition.dryRun ?? dryRunDefault
   } as OperationDefinitionInfo;
   ["input", "output"]
     .filter(key => operations[operationId][key] && operations[operationId][key] !== "void")
@@ -823,6 +1058,13 @@ interface OperationParameters {
    * MCP transport hints
    */
   mcp?: OperationDefinition["mcp"];
+  /**
+   * How the operation behaves when the call runs in dry mode
+   * - "execute": it has no side effects, so it runs normally (default for read-only operations)
+   * - "delegate": the method is called and handles dry mode itself through `useDryRun()` ("dryable")
+   * - "skip": the method is NOT called; the call is validated, logged and reported (default for everything else)
+   */
+  dryRun?: OperationDefinition["dryRun"];
 }
 
 function Operation<T = {}>(

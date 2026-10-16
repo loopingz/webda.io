@@ -219,9 +219,11 @@ export class AuditService extends Service<AuditServiceParameters> {
     this.unsubscribe();
     this.unsubscribers.push(
       useCoreEvents("Webda.OperationFailure", async evt => {
+        if (evt.dryRun) return;
         await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error, evt.subject);
       }),
       useCoreEvents("Webda.OperationSuccess", async evt => {
+        if (evt.dryRun) return;
         await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), undefined, evt.subject);
       })
     );

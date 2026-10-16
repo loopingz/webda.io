@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { GlobalContext } from "./globalcontext.js";
 import { Context, IContextAware, setContextUpdate } from "./icontext.js";
+import { OperationContext } from "./operationcontext.js";
 
 const globalContext = new GlobalContext();
 // Test are transpiling and creating several instances of 'instancestorage.ts'
@@ -73,4 +74,39 @@ export function runWithContext<T>(context: Context, run: () => T, attach: IConte
     attachModels(attach, undefined);
   }
   return res;
+}
+
+/**
+ * Return whether the current execution context is in dry-run mode
+ * @returns true if dry run is active
+ */
+export function useDryRun(): boolean {
+  try {
+    const ctx = useContext();
+    return ctx?.getExtension?.("dryRun") === true || ctx?.getExtension?.("requestedDryRun") === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Execute a function within a dry-run context
+ * @param fn - the function to execute
+ * @param context - optional context to use
+ * @returns the result of fn
+ */
+export function runDryRun<T>(fn: () => T, context?: Context): T {
+  let ctx = context ?? (storage.getStore()?.context as any);
+  if (!ctx || typeof ctx.setExtension !== "function") {
+    ctx = new OperationContext();
+    ctx.setExtension("requestedDryRun", true);
+    ctx.setExtension("dryRun", true);
+    return runWithContext(ctx, fn);
+  }
+  ctx.setExtension("requestedDryRun", true);
+  ctx.setExtension("dryRun", true);
+  if (context) {
+    return runWithContext(context, fn);
+  }
+  return fn();
 }

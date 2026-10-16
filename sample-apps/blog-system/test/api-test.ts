@@ -581,12 +581,20 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     assert.match(user.__password, /^scrypt\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/);
     assert.strictEqual(await user.verifyPassword("a-strong-password"), true);
     assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
+    const validHash = user.__password;
     // Hashes written by previous versions (bcrypt) are still accepted
     user.__password = bcrypt.hashSync("legacy-password", 4);
     assert.strictEqual(await user.verifyPassword("legacy-password"), true);
     assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
     // Broken or missing hashes never match
-    for (const hash of ["scrypt$", "scrypt$c2FsdA==$", undefined]) {
+    for (const hash of [
+      "scrypt$",
+      "scrypt$c2FsdA==$",
+      `${validHash}$extra`,
+      validHash.replace(/^scrypt\$[^$]+/, "scrypt$not-base64"),
+      validHash.replace(/[^$]+$/, "c2hvcnQ="),
+      undefined
+    ]) {
       user.__password = hash;
       assert.strictEqual(await user.verifyPassword(""), false, String(hash));
     }

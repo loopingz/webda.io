@@ -2,6 +2,12 @@ import { UuidModel, OneToMany, WEBDA_EVENTS, ModelEvents } from "@webda/models";
 import bcrypt from "bcryptjs";
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
+import type { Post } from "./Post.model.js";
+import type { Comment } from "./Comment.model.js";
+import type { UserFollow } from "./UserFollow.model.js";
+import { Operation, useContext, WebdaError } from "@webda/core";
+import type { IOperationContext, OperationContext } from "@webda/core";
+import { bind } from "@webda/ql";
 
 /**
  * Key derivation of the passwords: runs in the libuv thread pool, so hashing never blocks the event loop
@@ -12,12 +18,8 @@ const scrypt = promisify(scryptCallback) as (password: string, salt: Buffer, key
  * Prefix of the scrypt password hashes: `scrypt$<salt>$<key>`, base64
  */
 const SCRYPT_PREFIX = "scrypt$";
-import type { Post } from "./Post.model.js";
-import type { Comment } from "./Comment.model.js";
-import type { UserFollow } from "./UserFollow.model.js";
-import { Operation, useContext, WebdaError } from "@webda/core";
-import type { IOperationContext, OperationContext } from "@webda/core";
-import { bind } from "@webda/ql";
+const SALT_LENGTH = 16;
+const KEY_LENGTH = 64;
 
 /**
  * Events emitted by users, on top of the model events
@@ -60,7 +62,7 @@ export class User extends UuidModel {
   username!: string;
 
   /**
-   * Password hash (bcrypt): private, see `register` and `changePassword`
+   * Password hash (scrypt, or legacy bcrypt): private, see `register` and `changePassword`
    */
   __password?: string;
 
@@ -167,8 +169,8 @@ export class User extends UuidModel {
    * @param password - the clear password
    */
   async setPassword(password: string): Promise<void> {
-    const salt = randomBytes(16);
-    const key = await scrypt(password, salt, 64);
+    const salt = randomBytes(SALT_LENGTH);
+    const key = await scrypt(password, salt, KEY_LENGTH);
     this.__password = `${SCRYPT_PREFIX}${salt.toString("base64")}$${key.toString("base64")}`;
   }
 
@@ -180,18 +182,27 @@ export class User extends UuidModel {
    * @returns true when it matches the stored hash
    */
   async verifyPassword(password: string): Promise<boolean> {
-    if (!this.__password) {
+    if (typeof this.__password !== "string" || !this.__password) {
       return false;
     }
     if (!this.__password.startsWith(SCRYPT_PREFIX)) {
       return bcrypt.compare(password, this.__password);
     }
-    const [salt, hash] = this.__password.substring(SCRYPT_PREFIX.length).split("$");
-    const expected = Buffer.from(hash ?? "", "base64");
-    if (!salt || expected.length === 0) {
+    const parts = this.__password.substring(SCRYPT_PREFIX.length).split("$");
+    if (parts.length !== 2) {
       return false;
     }
-    const key = await scrypt(password, Buffer.from(salt, "base64"), expected.length);
+    const salt = Buffer.from(parts[0], "base64");
+    const expected = Buffer.from(parts[1], "base64");
+    if (
+      salt.length !== SALT_LENGTH ||
+      expected.length !== KEY_LENGTH ||
+      salt.toString("base64") !== parts[0] ||
+      expected.toString("base64") !== parts[1]
+    ) {
+      return false;
+    }
+    const key = await scrypt(password, salt, KEY_LENGTH);
     return timingSafeEqual(key, expected);
   }
 

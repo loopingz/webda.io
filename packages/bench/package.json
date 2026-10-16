@@ -1,6 +1,6 @@
 {
   "name": "@webda/bench",
-  "version": "4.0.0-beta.10",
+  "version": "4.0.0-beta.11",
   "description": "Benchmark framework for Webda abstractions: Store, Queue and Pub/Sub suites shared by every backend",
   "keywords": [
     "webda",

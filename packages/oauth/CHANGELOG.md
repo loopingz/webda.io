@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-beta.10...oauth-v4.0.0-beta.11) (2026-10-16)
+
+
+### Bug Fixes
+
+* **oauth:** copy configured clients without structuredClone ([#929](https://github.com/loopingz/webda.io/issues/929)) ([e2e3301](https://github.com/loopingz/webda.io/commit/e2e330104117554981a966cd94e0d5a0e3dccb58))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+    * @webda/models bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/auth bumped to 4.0.0-beta.11
+    * @webda/compiler bumped to 4.0.0-beta.11
+    * @webda/fs bumped to 4.0.0-beta.11
+
 ## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-beta.9...oauth-v4.0.0-beta.10) (2026-10-15)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.10...grpc-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+    * @webda/core bumped to 4.0.0-beta.11
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.11
+
 ## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.9...grpc-v4.0.0-beta.10) (2026-10-15)
 
 

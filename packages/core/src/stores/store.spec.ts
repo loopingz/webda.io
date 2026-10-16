@@ -947,7 +947,10 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
     }
     assert.strictEqual(events.length, 3);
     assert.strictEqual(events[0].query, "uuid = 'one'");
-    const messages = logger.getLogs().filter(l => l.log?.level === "WARN").map(l => (l.log?.args ?? []).join(" "));
+    const messages = logger
+      .getLogs()
+      .filter(l => l.log?.level === "WARN")
+      .map(l => (l.log?.args ?? []).join(" "));
     assert.ok(messages.some(message => message.includes("1 result, paginated, error: backend timeout")));
     assert.ok(messages.some(message => message.includes("uuid = 'two'") && !message.includes("[")));
     assert.ok(messages.some(message => message.includes("uuid = 'defaults'")));
@@ -955,7 +958,10 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
 
   @test
   async slowQueryThresholdZeroDoesNotEmitEventOrLog() {
-    const store = new MemoryStore("zeroThreshold", { models: ["WebdaTest/AggregationRow"], slowQueryThreshold: 0 } as any);
+    const store = new MemoryStore("zeroThreshold", {
+      models: ["WebdaTest/AggregationRow"],
+      slowQueryThreshold: 0
+    } as any);
     store.resolve();
     await store.init();
     const repo: any = store.getRepository(AggregationRow as any);
@@ -993,7 +999,10 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
 
   @test
   async thresholdBehaviorEmitsEventLogsAndIncrementsCounter() {
-    const store = new MemoryStore("thresholdStore", { models: ["WebdaTest/AggregationRow"], slowQueryThreshold: 50 } as any);
+    const store = new MemoryStore("thresholdStore", {
+      models: ["WebdaTest/AggregationRow"],
+      slowQueryThreshold: 50
+    } as any);
     store.resolve();
     await store.init();
     const repo: any = store.getRepository(AggregationRow as any);
@@ -1043,9 +1052,15 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
     assert.strictEqual(slowEvents[0].query, "uuid = 'slow'");
     assert.strictEqual(slowCounterInc, 1);
 
-    const warnLogs = memoryLogger.getLogs().filter(l => l.log?.level === "WARN").map(l => (l.log?.args ?? []).join(" "));
+    const warnLogs = memoryLogger
+      .getLogs()
+      .filter(l => l.log?.level === "WARN")
+      .map(l => (l.log?.args ?? []).join(" "));
     assert.ok(
-      warnLogs.some(log => log.includes("thresholdStore") && log.includes("WebdaTest/AggregationRow") && log.includes("uuid = 'slow'")),
+      warnLogs.some(
+        log =>
+          log.includes("thresholdStore") && log.includes("WebdaTest/AggregationRow") && log.includes("uuid = 'slow'")
+      ),
       `Expected slow query warning log, got: ${JSON.stringify(warnLogs)}`
     );
   }
@@ -1084,7 +1099,10 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
     assert.ok(slowEvent);
     assert.strictEqual(slowEvent.query, longQuery.slice(0, 20) + "...");
 
-    const warnLogs = memoryLogger.getLogs().filter(l => l.log?.level === "WARN").map(l => (l.log?.args ?? []).join(" "));
+    const warnLogs = memoryLogger
+      .getLogs()
+      .filter(l => l.log?.level === "WARN")
+      .map(l => (l.log?.args ?? []).join(" "));
     assert.ok(
       warnLogs.some(log => log.includes(longQuery.slice(0, 20) + "...")),
       `Expected truncated query in log, got: ${JSON.stringify(warnLogs)}`
@@ -1100,7 +1118,10 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
     for (const model of models) {
       if (!model?.Metadata?.PrimaryKey) continue;
       const repo: any = useRepository(model);
-      assert.ok(typeof repo.monitorOptions?.onQuery === "function", `Repository for ${model.name} should have onQuery configured`);
+      assert.ok(
+        typeof repo.monitorOptions?.onQuery === "function",
+        `Repository for ${model.name} should have onQuery configured`
+      );
       checked++;
     }
     assert.ok(checked > 0, "At least one model repository should be verified");

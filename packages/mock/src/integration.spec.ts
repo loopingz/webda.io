@@ -19,10 +19,7 @@ class User {
 class MockIntegrationTest {
   @test({ name: "generateGraph produces the requested counts with matching types" })
   async graph() {
-    const r = await generateGraph(
-      { User: 4, Product: 6 },
-      { models: [User, Product], seed: 7, mode: "test" }
-    );
+    const r = await generateGraph({ User: 4, Product: 6 }, { models: [User, Product], seed: 7, mode: "test" });
     expect(r.User.length).toBe(4);
     expect(r.Product.length).toBe(6);
     for (const u of r.User as User[]) {

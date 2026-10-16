@@ -218,9 +218,9 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     }
     // Store could have been treated like a normal service with emitter/listener
     // Kept the specific because stores are probably quite chatty
-    this.stores = Object.fromEntries(
-      Object.entries(useCore().getServices()).filter(([, s]) => s instanceof Store)
-    ) as { [key: string]: Store };
+    this.stores = Object.fromEntries(Object.entries(useCore().getServices()).filter(([, s]) => s instanceof Store)) as {
+      [key: string]: Store;
+    };
     for (const i in this.stores) {
       for (const event of storeEvents) {
         this.stores[i].on(<any>event, (data: any) => {

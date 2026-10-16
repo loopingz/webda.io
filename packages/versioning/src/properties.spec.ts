@@ -16,11 +16,9 @@ const jsonValue = fc.letrec(tie => ({
     tie("leaf"),
     fc.array(tie("value"), { maxLength: 5 }),
     // Include the keys jsondiffpatch reserves for its own markers
-    fc.dictionary(
-      fc.oneof(fc.string({ minLength: 1, maxLength: 5 }), fc.constantFrom("_t", "~_t")),
-      tie("value"),
-      { maxKeys: 5 }
-    )
+    fc.dictionary(fc.oneof(fc.string({ minLength: 1, maxLength: 5 }), fc.constantFrom("_t", "~_t")), tie("value"), {
+      maxKeys: 5
+    })
   )
 })).value;
 
@@ -54,7 +52,7 @@ class PropertiesMerge3Test {
   @test({ name: "identity: merge3(x, x, x) is clean and equal to x" })
   identityMerge3IsCleanAndEqualToX() {
     fc.assert(
-      fc.property(jsonValue, (x) => {
+      fc.property(jsonValue, x => {
         const r = merge3(x, x, x);
         expect(r.clean).toEqual(true);
         expect(r.merged).toEqual(x);
@@ -97,9 +95,7 @@ class PropertiesResolveTest {
     fc.assert(
       fc.property(jsonValue, jsonValue, jsonValue, (base, ours, theirs) => {
         const r = merge3(base, ours, theirs);
-        const resolutions = new Map(
-          r.conflicts.map((c) => [c.path, { choose: "ours" } as const])
-        );
+        const resolutions = new Map(r.conflicts.map(c => [c.path, { choose: "ours" } as const]));
         const once = resolve(r, resolutions);
         const twice = resolve(once, resolutions);
         expect(JSON.stringify(twice)).toEqual(JSON.stringify(once));

@@ -352,7 +352,9 @@ class BearerSessionTest extends WebdaApplicationTest {
     registerCertificateResolver({
       mode: "factor",
       resolveCertificate: async cert =>
-        cert.subject.CN === "alice" ? { userId: "u1", identId: "fp:certificate" } : { userId: "other", identId: "other:certificate" }
+        cert.subject.CN === "alice"
+          ? { userId: "u1", identId: "fp:certificate" }
+          : { userId: "other", identId: "other:certificate" }
     });
     try {
       const alone = await manager.load(await this.withCertificate(true));
@@ -379,9 +381,13 @@ class BearerSessionTest extends WebdaApplicationTest {
       next.getHttpContext().setClientCertificate({ subject: { CN: "bob" }, verified: true } as any);
       assert.deepStrictEqual((await manager.load(next)).amr, ["pwd"]);
 
-      const bearer = await manager.load(await this.withCertificate(true, { authorization: `Bearer ${await this.token()}` }));
+      const bearer = await manager.load(
+        await this.withCertificate(true, { authorization: `Bearer ${await this.token()}` })
+      );
       assert.deepStrictEqual(bearer.amr, ["pwd", "mtls"]);
-      const unverified = await manager.load(await this.withCertificate(false, { authorization: `Bearer ${await this.token()}` }));
+      const unverified = await manager.load(
+        await this.withCertificate(false, { authorization: `Bearer ${await this.token()}` })
+      );
       assert.deepStrictEqual(unverified.amr, ["pwd"]);
       const invalid = await manager.load(await this.withCertificate(true, { authorization: "Bearer invalid" }));
       assert.ok(!invalid.isLogged());

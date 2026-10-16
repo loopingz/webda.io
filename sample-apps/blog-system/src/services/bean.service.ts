@@ -1,4 +1,14 @@
-import { Bean, InstanceCache, Operation, RestParameters, Service, ServiceName, useApplication, useLog, useRepository } from "@webda/core";
+import {
+  Bean,
+  InstanceCache,
+  Operation,
+  RestParameters,
+  Service,
+  ServiceName,
+  useApplication,
+  useLog,
+  useRepository
+} from "@webda/core";
 import { User } from "../models/User.model.js";
 import { UserFollow } from "../models/UserFollow.model.js";
 import { getCompletions, fieldsFromSchema, type CompletionField, type CompletionResult } from "@webda/ql";
@@ -15,7 +25,6 @@ export class TestBeanParameters extends Service.Parameters {
  */
 @Bean
 export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends Service<T> {
-
   /**
    * Get the application package name, cached per instance
    * @returns the package name
@@ -29,8 +38,12 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
    * Get the version of the application
    * @returns version of the application
    */
-  @Operation<RestParameters>({ id: "Version.Get", rest: { method: "get", path: "/version" }, description: "Get the version of the application" })
-  async version() : Promise<string> {
+  @Operation<RestParameters>({
+    id: "Version.Get",
+    rest: { method: "get", path: "/version" },
+    description: "Get the version of the application"
+  })
+  async version(): Promise<string> {
     return this.getVersion();
   }
 

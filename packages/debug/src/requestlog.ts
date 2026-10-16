@@ -1,5 +1,3 @@
-
-
 /**
  * The body of a captured request or response.
  *
@@ -47,7 +45,10 @@ export interface RequestLogEntry {
 /**
  * Summary fields returned by the list endpoint — keep this cheap (no bodies, no headers).
  */
-export type RequestLogSummary = Pick<RequestLogEntry, "id" | "method" | "url" | "timestamp" | "statusCode" | "duration">;
+export type RequestLogSummary = Pick<
+  RequestLogEntry,
+  "id" | "method" | "url" | "timestamp" | "statusCode" | "duration"
+>;
 
 /**
  * Optional details that can be attached to an existing entry after capture.

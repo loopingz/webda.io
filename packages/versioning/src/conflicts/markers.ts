@@ -71,11 +71,7 @@ function isConflictSentinel(v: unknown): v is {
   ours: unknown;
   theirs: unknown;
 } {
-  return (
-    v !== null &&
-    typeof v === "object" &&
-    (v as Record<string, unknown>).__conflict === true
-  );
+  return v !== null && typeof v === "object" && (v as Record<string, unknown>).__conflict === true;
 }
 
 /**

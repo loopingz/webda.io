@@ -16,13 +16,7 @@ import { deepmerge } from "deepmerge-ts";
 
 import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice.js";
 import { AuthenticatedEncryption } from "./authenticatedencryption.js";
-import {
-  checkKid,
-  parsePkiValue,
-  PKI_MIN_BITS,
-  PkiKeyring,
-  pkiEncrypter
-} from "./pki.encrypter.js";
+import { checkKid, parsePkiValue, PKI_MIN_BITS, PkiKeyring, pkiEncrypter } from "./pki.encrypter.js";
 import type { ConfigurationEncryption } from "../application/iconfiguration.js";
 import { CodeError } from "../errors/errors.js";
 import { getMachineId, useCore, useService } from "../core/hooks.js";

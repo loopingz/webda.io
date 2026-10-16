@@ -104,8 +104,18 @@ class Merge3ArraysTest {
   @test({ name: "inserts from both sides when arrayId is configured" })
   insertsFromBothSidesWhenArrayIdIsConfigured() {
     const base = { items: [{ id: "1", v: 1 }] };
-    const ours = { items: [{ id: "1", v: 1 }, { id: "2", v: 2 }] };
-    const theirs = { items: [{ id: "1", v: 1 }, { id: "3", v: 3 }] };
+    const ours = {
+      items: [
+        { id: "1", v: 1 },
+        { id: "2", v: 2 }
+      ]
+    };
+    const theirs = {
+      items: [
+        { id: "1", v: 1 },
+        { id: "3", v: 3 }
+      ]
+    };
     const r = merge3(base, ours, theirs, this.cfg);
     expect(r.clean).toBe(true);
     expect(r.merged.items).toEqual(
@@ -193,7 +203,7 @@ class Merge3LineStrategyStringsTest {
     const theirs = { body: "a\nTHEIRS\nc\n" };
     const r = merge3(base, ours, theirs);
     expect(r.clean).toBe(false);
-    const c = r.conflicts.find((c) => c.path === "/body");
+    const c = r.conflicts.find(c => c.path === "/body");
     expect(c).toBeDefined();
     expect(c!.kind).toBe("line");
     // Narrow: c has kind "line", so hunks is required.

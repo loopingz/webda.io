@@ -358,7 +358,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     const meta: any = (this.model as any)?.Metadata;
     const completionFields = this.getCompletionFields();
     const fields = new Set<string>([
-      ...completionFields.map((f) => f.name),
+      ...completionFields.map(f => f.name),
       ...Object.keys(meta?.Reflection ?? {}),
       ...Object.keys(meta?.Schemas?.Stored?.properties ?? {}),
       ...Object.keys(meta?.Schemas?.Input?.properties ?? {}),

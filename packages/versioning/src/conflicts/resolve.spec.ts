@@ -42,11 +42,7 @@ class ResolveTest {
 
   @test({ name: "applies 'text' resolution to a line conflict" })
   appliesTextResolutionToALineConflict() {
-    const r = merge3(
-      { body: "a\nb\nc\n" },
-      { body: "a\nOURS\nc\n" },
-      { body: "a\nTHEIRS\nc\n" }
-    );
+    const r = merge3({ body: "a\nb\nc\n" }, { body: "a\nOURS\nc\n" }, { body: "a\nTHEIRS\nc\n" });
     expect(r.clean).toBe(false);
     const final = resolve(r, new Map([["/body", { text: "a\nRESOLVED\nc\n" }]]));
     expect(final.clean).toBe(true);

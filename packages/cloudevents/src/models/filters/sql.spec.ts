@@ -5,10 +5,7 @@ import { ParseTreeWalker } from "antlr4ts/tree/index.js";
 import { FiltersHelper } from "./index.js";
 import { SqlFilterImplementation, LikeExpression, AttributeExpression, InExpression, ValueExpression } from "./sql.js";
 import { CESQLParserLexer } from "./sql/CESQLParserLexer.js";
-import {
-  CESQLParserParser,
-  BinaryMultiplicativeExpressionContext
-} from "./sql/CESQLParserParser.js";
+import { CESQLParserParser, BinaryMultiplicativeExpressionContext } from "./sql/CESQLParserParser.js";
 import type { CESQLParserListener } from "./sql/CESQLParserListener.js";
 
 const event: CloudEvent<any> = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
@@ -703,7 +700,9 @@ test("ANTLR context accept with empty visitor (visitChildren branch)", () => {
   // Use a visitor that does NOT have the specific visit methods defined
   // This exercises the else branches of accept() methods
   const lexer = new CESQLParserLexer(
-    new ANTLRInputStream(`UPPER(subject) = 'PLOP' AND 2 * 3 + 1 > 5 AND subject LIKE "p%" AND EXISTS topic AND subject IN ("a") AND NOT FALSE AND -1 < (0) OR TRUE XOR FALSE`)
+    new ANTLRInputStream(
+      `UPPER(subject) = 'PLOP' AND 2 * 3 + 1 > 5 AND subject LIKE "p%" AND EXISTS topic AND subject IN ("a") AND NOT FALSE AND -1 < (0) OR TRUE XOR FALSE`
+    )
   );
   const tokenStream = new CommonTokenStream(lexer);
   const parser = new CESQLParserParser(tokenStream);
@@ -820,7 +819,7 @@ test("ANTLR context class getter and accessor methods", () => {
     };
     // Walk using listener to find the context
     const listener: CESQLParserListener = {
-      enterBinaryMultiplicativeExpression: (ctx) => {
+      enterBinaryMultiplicativeExpression: ctx => {
         // Access all token getters
         expect(ctx.STAR()).toBeDefined();
         expect(ctx.DIVIDE()).toBeUndefined();
@@ -839,7 +838,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse("6 / 2 = 3");
     const listener: CESQLParserListener = {
-      enterBinaryMultiplicativeExpression: (ctx) => {
+      enterBinaryMultiplicativeExpression: ctx => {
         expect(ctx.DIVIDE()).toBeDefined();
         expect(ctx.STAR()).toBeUndefined();
         expect(ctx.MODULE()).toBeUndefined();
@@ -852,7 +851,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse("7 % 3 = 1");
     const listener: CESQLParserListener = {
-      enterBinaryMultiplicativeExpression: (ctx) => {
+      enterBinaryMultiplicativeExpression: ctx => {
         expect(ctx.MODULE()).toBeDefined();
         expect(ctx.STAR()).toBeUndefined();
         expect(ctx.DIVIDE()).toBeUndefined();
@@ -865,7 +864,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse("2 + 3 = 5");
     const listener: CESQLParserListener = {
-      enterBinaryAdditiveExpression: (ctx) => {
+      enterBinaryAdditiveExpression: ctx => {
         expect(ctx.PLUS()).toBeDefined();
         expect(ctx.MINUS()).toBeUndefined();
         expect(ctx.expression()).toBeDefined();
@@ -881,7 +880,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse("5 - 2 = 3");
     const listener: CESQLParserListener = {
-      enterBinaryAdditiveExpression: (ctx) => {
+      enterBinaryAdditiveExpression: ctx => {
         expect(ctx.MINUS()).toBeDefined();
         expect(ctx.PLUS()).toBeUndefined();
       }
@@ -902,7 +901,7 @@ test("ANTLR context class getter and accessor methods", () => {
     for (const { sql, getter } of ops) {
       const tree = parse(sql);
       const listener: CESQLParserListener = {
-        enterBinaryComparisonExpression: (ctx) => {
+        enterBinaryComparisonExpression: ctx => {
           // Access all possible comparison token getters
           ctx.EQUAL();
           ctx.NOT_EQUAL();
@@ -932,7 +931,7 @@ test("ANTLR context class getter and accessor methods", () => {
     for (const { sql } of logicOps) {
       const tree = parse(sql);
       const listener: CESQLParserListener = {
-        enterBinaryLogicExpression: (ctx) => {
+        enterBinaryLogicExpression: ctx => {
           ctx.AND();
           ctx.OR();
           ctx.XOR();
@@ -950,7 +949,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`subject LIKE "test"`);
     const listener: CESQLParserListener = {
-      enterLikeExpression: (ctx) => {
+      enterLikeExpression: ctx => {
         expect(ctx.expression()).toBeDefined();
         expect(ctx.LIKE()).toBeDefined();
         expect(ctx.stringLiteral()).toBeDefined();
@@ -965,7 +964,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`subject NOT LIKE "test"`);
     const listener: CESQLParserListener = {
-      enterLikeExpression: (ctx) => {
+      enterLikeExpression: ctx => {
         expect(ctx.NOT()).toBeDefined();
       }
     };
@@ -976,7 +975,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`subject IN ("a", "b")`);
     const listener: CESQLParserListener = {
-      enterInExpression: (ctx) => {
+      enterInExpression: ctx => {
         expect(ctx.expression()).toBeDefined();
         expect(ctx.IN()).toBeDefined();
         expect(ctx.setExpression()).toBeDefined();
@@ -991,7 +990,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`subject NOT IN ("a")`);
     const listener: CESQLParserListener = {
-      enterInExpression: (ctx) => {
+      enterInExpression: ctx => {
         expect(ctx.NOT()).toBeDefined();
       }
     };
@@ -1002,7 +1001,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`EXISTS subject`);
     const listener: CESQLParserListener = {
-      enterExistsExpression: (ctx) => {
+      enterExistsExpression: ctx => {
         expect(ctx.EXISTS()).toBeDefined();
         expect(ctx.identifier()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_expression);
@@ -1015,7 +1014,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`NOT TRUE`);
     const listener: CESQLParserListener = {
-      enterUnaryLogicExpression: (ctx) => {
+      enterUnaryLogicExpression: ctx => {
         expect(ctx.NOT()).toBeDefined();
         expect(ctx.expression()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_expression);
@@ -1028,7 +1027,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`-1 = -1`);
     const listener: CESQLParserListener = {
-      enterUnaryNumericExpression: (ctx) => {
+      enterUnaryNumericExpression: ctx => {
         expect(ctx.MINUS()).toBeDefined();
         expect(ctx.expression()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_expression);
@@ -1041,7 +1040,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`(1 + 2) = 3`);
     const listener: CESQLParserListener = {
-      enterSubExpression: (ctx) => {
+      enterSubExpression: ctx => {
         expect(ctx.LR_BRACKET()).toBeDefined();
         expect(ctx.expression()).toBeDefined();
         expect(ctx.RR_BRACKET()).toBeDefined();
@@ -1055,7 +1054,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`TRUE`);
     const listener: CESQLParserListener = {
-      enterAtomExpression: (ctx) => {
+      enterAtomExpression: ctx => {
         expect(ctx.atom()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_expression);
       }
@@ -1067,7 +1066,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`UPPER("test")`);
     const listener: CESQLParserListener = {
-      enterFunctionInvocationExpression: (ctx) => {
+      enterFunctionInvocationExpression: ctx => {
         expect(ctx.functionIdentifier()).toBeDefined();
         expect(ctx.functionParameterList()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_expression);
@@ -1080,7 +1079,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`TRUE`);
     const listener: CESQLParserListener = {
-      enterBooleanAtom: (ctx) => {
+      enterBooleanAtom: ctx => {
         expect(ctx.booleanLiteral()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_atom);
       }
@@ -1092,7 +1091,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`42 = 42`);
     const listener: CESQLParserListener = {
-      enterIntegerAtom: (ctx) => {
+      enterIntegerAtom: ctx => {
         expect(ctx.integerLiteral()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_atom);
       }
@@ -1104,7 +1103,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`"hello" = "hello"`);
     const listener: CESQLParserListener = {
-      enterStringAtom: (ctx) => {
+      enterStringAtom: ctx => {
         expect(ctx.stringLiteral()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_atom);
       }
@@ -1116,7 +1115,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`subject = "test"`);
     const listener: CESQLParserListener = {
-      enterIdentifierAtom: (ctx) => {
+      enterIdentifierAtom: ctx => {
         expect(ctx.identifier()).toBeDefined();
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_atom);
       }
@@ -1128,7 +1127,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`subject = "test"`);
     const listener: CESQLParserListener = {
-      enterIdentifier: (ctx) => {
+      enterIdentifier: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_identifier);
         // One of these should be defined
         const id = ctx.IDENTIFIER();
@@ -1143,7 +1142,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`UPPER("test")`);
     const listener: CESQLParserListener = {
-      enterFunctionIdentifier: (ctx) => {
+      enterFunctionIdentifier: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_functionIdentifier);
         const id = ctx.IDENTIFIER();
         const fn = ctx.FUNCTION_IDENTIFIER_WITH_UNDERSCORE();
@@ -1157,7 +1156,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`IS_BOOL(TRUE)`);
     const listener: CESQLParserListener = {
-      enterFunctionIdentifier: (ctx) => {
+      enterFunctionIdentifier: ctx => {
         expect(ctx.FUNCTION_IDENTIFIER_WITH_UNDERSCORE()).toBeDefined();
       }
     };
@@ -1168,7 +1167,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`TRUE`);
     const listener: CESQLParserListener = {
-      enterBooleanLiteral: (ctx) => {
+      enterBooleanLiteral: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_booleanLiteral);
         expect(ctx.TRUE()).toBeDefined();
         expect(ctx.FALSE()).toBeUndefined();
@@ -1180,7 +1179,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`FALSE`);
     const listener: CESQLParserListener = {
-      enterBooleanLiteral: (ctx) => {
+      enterBooleanLiteral: ctx => {
         expect(ctx.FALSE()).toBeDefined();
         expect(ctx.TRUE()).toBeUndefined();
       }
@@ -1192,7 +1191,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`"test" = "test"`);
     const listener: CESQLParserListener = {
-      enterStringLiteral: (ctx) => {
+      enterStringLiteral: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_stringLiteral);
         const dq = ctx.DQUOTED_STRING_LITERAL();
         const sq = ctx.SQUOTED_STRING_LITERAL();
@@ -1206,7 +1205,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`42 = 42`);
     const listener: CESQLParserListener = {
-      enterIntegerLiteral: (ctx) => {
+      enterIntegerLiteral: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_integerLiteral);
         expect(ctx.INTEGER_LITERAL()).toBeDefined();
       }
@@ -1218,7 +1217,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`CONCAT("a", "b")`);
     const listener: CESQLParserListener = {
-      enterFunctionParameterList: (ctx) => {
+      enterFunctionParameterList: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_functionParameterList);
         expect(ctx.LR_BRACKET()).toBeDefined();
         expect(ctx.RR_BRACKET()).toBeDefined();
@@ -1237,7 +1236,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`subject IN ("a", "b", "c")`);
     const listener: CESQLParserListener = {
-      enterSetExpression: (ctx) => {
+      enterSetExpression: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_setExpression);
         expect(ctx.LR_BRACKET()).toBeDefined();
         expect(ctx.RR_BRACKET()).toBeDefined();
@@ -1270,7 +1269,7 @@ test("ANTLR context class getter and accessor methods", () => {
   {
     const tree = parse(`TRUE`);
     const listener: CESQLParserListener = {
-      enterBooleanAtom: (ctx) => {
+      enterBooleanAtom: ctx => {
         expect(ctx.ruleIndex).toBe(CESQLParserParser.RULE_atom);
       }
     };

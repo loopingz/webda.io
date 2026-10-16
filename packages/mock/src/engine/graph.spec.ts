@@ -14,22 +14,28 @@ class Order {
 class GraphTest {
   @test({ name: "generates the requested counts per model" })
   async counts() {
-    const r = await generateGraph({ User: 3, Order: 5 }, {
-      models: [User, Order],
-      seed: 1,
-      mode: "test"
-    });
+    const r = await generateGraph(
+      { User: 3, Order: 5 },
+      {
+        models: [User, Order],
+        seed: 1,
+        mode: "test"
+      }
+    );
     expect(r.User.length).toBe(3);
     expect(r.Order.length).toBe(5);
   }
 
   @test({ name: "returns empty arrays for unreferenced models" })
   async unreferenced() {
-    const r = await generateGraph({ User: 2 }, {
-      models: [User, Order],
-      seed: 1,
-      mode: "test"
-    });
+    const r = await generateGraph(
+      { User: 2 },
+      {
+        models: [User, Order],
+        seed: 1,
+        mode: "test"
+      }
+    );
     expect(r.User.length).toBe(2);
     expect(r.Order).toEqual([]);
   }

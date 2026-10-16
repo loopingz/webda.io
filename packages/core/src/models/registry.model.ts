@@ -1,7 +1,4 @@
-import {
-  type Settable,
-  UuidModel
-} from "@webda/models";
+import { type Settable, UuidModel } from "@webda/models";
 
 /**
  * Specific type for registry

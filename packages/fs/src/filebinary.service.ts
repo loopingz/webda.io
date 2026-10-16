@@ -145,9 +145,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @returns file:// URL
    */
   protected getContentUrl(key: string): string {
-    const folder = this.parameters.folder.endsWith("/")
-      ? this.parameters.folder
-      : `${this.parameters.folder}/`;
+    const folder = this.parameters.folder.endsWith("/") ? this.parameters.folder : `${this.parameters.folder}/`;
     const cleanKey = key.replace(/^\/+/, "");
     return `file://${folder}${cleanKey}`;
   }

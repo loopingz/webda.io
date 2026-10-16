@@ -15,8 +15,8 @@ class RenderPatchTest {
     expect(out).toContain("--- base");
     expect(out).toContain("+++ patched");
     expect(out).toContain("@@");
-    expect(out).toContain('-title: old');
-    expect(out).toContain('+title: new');
+    expect(out).toContain("-title: old");
+    expect(out).toContain("+title: new");
   }
 
   @test({ name: "honors custom labels" })

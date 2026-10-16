@@ -126,6 +126,13 @@ jobs:
       - name: Check published package files
         run: node --test scripts/check-package-files.test.mjs
 
+      # Fail fast on style issues before the long build and test steps
+      - name: Check formatting
+        run: pnpm run format
+
+      - name: Lint
+        run: pnpm run lint
+
       - name: Build
         run: pnpm run build # Build is required as we use sample-app for some tests
         env:
@@ -164,9 +171,6 @@ jobs:
 
       - name: Check for circular dependencies
         run: pnpm run deps:graph
-
-      - name: Lint
-        run: pnpm run lint
 
       - name: Check with mocha
         run: node scripts/run-affected-tests.mjs test:mocha "$PR_BASE_SHA"

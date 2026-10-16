@@ -132,7 +132,14 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        run: node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
+        # Codecov compares project coverage with the full main-branch suite.
+        # Run that same suite once so files outside the affected packages are included.
+        run: |
+          if [ "${{ matrix.node }}" = "22" ]; then
+            node scripts/run-affected-tests.mjs test
+          else
+            node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
+          fi
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443

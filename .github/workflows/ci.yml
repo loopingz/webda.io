@@ -132,7 +132,14 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        run: node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
+        # Codecov compares project coverage with main's full-suite report.
+        # Keep one complete report on PRs; the other Node versions still use affected tests.
+        run: |
+          if [ "${{ matrix.node }}" = "22" ]; then
+            pnpm --no-bail -r run test
+          else
+            node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
+          fi
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
@@ -171,6 +178,7 @@ jobs:
         run: node scripts/run-affected-tests.mjs test:bun "$PR_BASE_SHA"
 
       - name: CodeCov
+        if: matrix.node == '22'
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

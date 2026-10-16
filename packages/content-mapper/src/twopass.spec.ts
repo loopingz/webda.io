@@ -41,7 +41,10 @@ describe("runTwoPass", () => {
       rootDir,
       storageModule: "./runtime.js",
       qlModule: "./runtime.js",
-      generators: [...defaultGenerators({ storageModule: "./runtime.js", qlModule: "./runtime.js" }), loadParametersGenerator()]
+      generators: [
+        ...defaultGenerators({ storageModule: "./runtime.js", qlModule: "./runtime.js" }),
+        loadParametersGenerator()
+      ]
     });
     const mailer = [...result.injected.entries()].find(([f]) => f.endsWith("mailer.service.ts"));
     expect(mailer).toBeDefined();
@@ -56,7 +59,12 @@ describe("runTwoPass", () => {
 
   it("agrees with WarmSession, so the build and the editor cannot drift", () => {
     const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
+    const session = new WarmSession({
+      configFile,
+      cwd: fixture,
+      storageModule: "./runtime.js",
+      qlModule: "./runtime.js"
+    });
     try {
       for (const [fileName, buildText] of result.injected) {
         const original = readFileSync(fileName, "utf8");

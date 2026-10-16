@@ -21,7 +21,8 @@ export default defineConfig({
       GCS_API_ENDPOINT: process.env.GCS_API_ENDPOINT ?? "http://localhost:4443",
       PUBSUB_EMULATOR_HOST: process.env.PUBSUB_EMULATOR_HOST ?? "127.0.0.1:8085",
       FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8289",
-      GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS ?? resolve(__dirname, "webda-test.json")
+      GOOGLE_APPLICATION_CREDENTIALS:
+        process.env.GOOGLE_APPLICATION_CREDENTIALS ?? resolve(__dirname, "webda-test.json")
     },
     coverage: {
       enabled: true,

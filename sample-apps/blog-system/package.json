@@ -25,7 +25,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "PW_SLOWMO=500 playwright test --headed",
-    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
   },
   "engines": {
     "node": ">=22.0.0"

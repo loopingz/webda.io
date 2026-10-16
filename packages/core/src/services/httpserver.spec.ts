@@ -16,7 +16,6 @@ import { Router, RouterParameters } from "../rest/router.service.js";
 import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../rest/restoperationstransport.service.js";
 import { HttpContext } from "../contexts/httpcontext.js";
 import { createChecker } from "is-in-subnet";
-import { SessionManager } from "../session/manager.model.js";
 import { Session } from "../session/session.js";
 import { Context } from "../contexts/icontext.js";
 import { Service } from "./service.js";
@@ -634,14 +633,17 @@ class HttpServerTest extends WebdaApplicationTest {
     const { HttpServer: HS } = await import("./httpserver.service.js");
     // Use HttpServer.createConfiguration if available, otherwise test the parameter class
     // The HttpServerParameters class is not exported, but we can test it via HttpServer
-    const server = new HS("test-params", new ServiceParameters().load({
-      requestLimit: 5 * 1024 * 1024,
-      requestTimeout: 30000,
-      trustedProxies: "10.0.0.0/8, 172.16.0.0/12",
-      port: 9999,
-      defaultHeaders: { "X-Custom": "value" },
-      csrfOrigins: ["example.com"]
-    }));
+    const server = new HS(
+      "test-params",
+      new ServiceParameters().load({
+        requestLimit: 5 * 1024 * 1024,
+        requestTimeout: 30000,
+        trustedProxies: "10.0.0.0/8, 172.16.0.0/12",
+        port: 9999,
+        defaultHeaders: { "X-Custom": "value" },
+        csrfOrigins: ["example.com"]
+      })
+    );
     const params = (server as any).parameters;
     assert.ok(params);
   }

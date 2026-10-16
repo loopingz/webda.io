@@ -17,7 +17,6 @@
  * replaced.
  */
 import type { SourceFile } from "typescript/unstable/ast";
-import { SymbolFlags } from "typescript/unstable/sync";
 import * as is from "typescript/unstable/ast/is";
 import { classesOf, isStatic, memberName } from "../context.ts";
 import { ValueImports } from "./imports.ts";

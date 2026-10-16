@@ -1,5 +1,3 @@
-
-
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
@@ -276,7 +274,6 @@ class AuditServiceTest extends WebdaApplicationTest {
     assert.ok(!filteredAudit.shouldAudit("Other.Create", true));
     assert.ok(filteredAudit.shouldAudit("Audit.Create", true));
   }
-
 
   /**
    * The class AuditService saves must be the registered Webda/AuditEntry:

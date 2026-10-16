@@ -30,7 +30,7 @@ class IntegrationTest {
     const afterMarkers = fromGitMarkers(withMarkers, r);
     // body resolved; title + tags still unresolved (sentinels intact)
     expect(afterMarkers.clean).toBe(false);
-    expect(afterMarkers.conflicts.map((c) => c.path).sort()).toEqual(["/tags", "/title"]);
+    expect(afterMarkers.conflicts.map(c => c.path).sort()).toEqual(["/tags", "/title"]);
 
     // Resolve the remaining two via the programmatic API
     const final = resolve(

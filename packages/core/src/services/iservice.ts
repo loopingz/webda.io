@@ -6,14 +6,7 @@ import { AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventem
 import { ServiceParameters } from "./serviceparameters.js";
 
 export type ServiceStates =
-  | "initial"
-  | "resolving"
-  | "resolved"
-  | "errored"
-  | "initializing"
-  | "running"
-  | "stopping"
-  | "stopped";
+  "initial" | "resolving" | "resolved" | "errored" | "initializing" | "running" | "stopping" | "stopped";
 
 /**
  * Define the service state for the application
@@ -29,7 +22,6 @@ export type ServicePartialParameters<T extends ServiceParameters> = DeepPartial<
  */
 export abstract class AbstractService<
   T extends ServiceParameters = ServiceParameters,
-   
   E extends AsyncEventUnknown = {}
 > extends AsyncEventEmitterImpl<E> {
   public readonly name: string;

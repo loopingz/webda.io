@@ -298,7 +298,11 @@ export class HttpServer<
       }
       const webCtx = ctx as WebContext;
       await runWithContext(webCtx, async () => {
-        try { emitCoreEvent("Webda.Request", { context: webCtx }); } catch { /* listener error */ }
+        try {
+          emitCoreEvent("Webda.Request", { context: webCtx });
+        } catch {
+          /* listener error */
+        }
         try {
           await useRouter().execute(webCtx);
         } catch (err) {
@@ -349,7 +353,11 @@ export class HttpServer<
         await webCtx.saveSession();
         // Always emit the Result event — both success and error paths converge
         // here so that subscribers see every request reach a terminal state.
-        try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
+        try {
+          emitCoreEvent("Webda.Result", { context: webCtx });
+        } catch {
+          /* listener error */
+        }
       });
       // Flush response — skip if pipeline/streaming already handled it (a streamed response is ended by its
       // operation, or gone with its client)
@@ -424,7 +432,6 @@ export class HttpServer<
         (handler as any)._webda = true;
         process.on("uncaughtException", handler);
       }
-
 
       if (this.server) {
         this.server.close();
@@ -640,19 +647,22 @@ export class HttpServer<
       socket.setTimeout(TLS_GATE_TIMEOUT, drop);
       // Hand the socket over in this callback's async context, as the TLS
       // server would have: request handling needs Webda's instance storage
-      socket.once("data", AsyncResource.bind((chunk: Buffer) => {
-        socket.off("error", drop);
-        socket.setTimeout(0);
-        socket.pause();
-        socket.unshift(chunk);
-        // 0x16 opens a TLS handshake record
-        if (chunk[0] === 0x16) {
-          handshake.call(tlsServer, socket);
-        } else {
-          redirect.emit("connection", socket);
-        }
-        process.nextTick(() => socket.resume());
-      }));
+      socket.once(
+        "data",
+        AsyncResource.bind((chunk: Buffer) => {
+          socket.off("error", drop);
+          socket.setTimeout(0);
+          socket.pause();
+          socket.unshift(chunk);
+          // 0x16 opens a TLS handshake record
+          if (chunk[0] === 0x16) {
+            handshake.call(tlsServer, socket);
+          } else {
+            redirect.emit("connection", socket);
+          }
+          process.nextTick(() => socket.resume());
+        })
+      );
     });
   }
 
@@ -689,13 +699,21 @@ export class HttpServer<
       execFileSync(
         "openssl",
         [
-          "req", "-x509", "-newkey", "rsa:2048",
-          "-keyout", key,
-          "-out", cert,
-          "-days", "365",
+          "req",
+          "-x509",
+          "-newkey",
+          "rsa:2048",
+          "-keyout",
+          key,
+          "-out",
+          cert,
+          "-days",
+          "365",
           "-nodes",
-          "-subj", "/CN=localhost",
-          "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
+          "-subj",
+          "/CN=localhost",
+          "-addext",
+          "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
         ],
         { stdio: "pipe" }
       );
@@ -807,4 +825,3 @@ export class HttpServer<
     this.contextProviders.unshift(provider);
   }
 }
-

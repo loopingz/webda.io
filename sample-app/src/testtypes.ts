@@ -12,11 +12,11 @@ const core = useCore();
 
 const bean = useCore().getService("beanService");
 useCore().getServices();
-core.getVersion()
-core.getLocales()
+core.getVersion();
+core.getLocales();
 core.getBeans();
 
-const t = app.completeNamespace("Test")
+const t = app.completeNamespace("Test");
 app.getModdas();
 app.getModda("sample-app/BeanService");
 // app.getModda("Unknown"); --- IGNORE ---

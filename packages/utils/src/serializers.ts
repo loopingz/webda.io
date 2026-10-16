@@ -1,14 +1,4 @@
-import {
-  createReadStream,
-  createWriteStream,
-  existsSync,
-  lstatSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  unlinkSync,
-  writeFileSync
-} from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";

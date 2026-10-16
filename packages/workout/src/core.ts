@@ -78,7 +78,7 @@ export function useLogWithContext(level: WorkerLogLevel, context: any, ...args: 
   moduleOutput ??= new WorkerOutput();
   // Add file and line if needed
   if (context.addLogProducerLine) {
-    context = {...context, ...getFileAndLine()};
+    context = { ...context, ...getFileAndLine() };
   }
   // We want to capture the caller line, so we use wrapWithStack
   moduleOutput.logWithContext(level, context, ...args);
@@ -398,10 +398,12 @@ function getFullErrorStack(ex) {
  * Get the file and lines from the current stack trace
  * @returns An array of objects containing file, line, column, and function information
  */
-export function getFileAndLines(): { file: string; line: number; column?: number, function?: string }[] {
+export function getFileAndLines(): { file: string; line: number; column?: number; function?: string }[] {
   const err = new Error();
-  const stacks: { file: string; line: number; column?: number, function?: string }[] = [];
-  const matches = err.stack.matchAll(/\s+at\s+(?<method>[^( ]+)([^(]+)?\((?<filename>.+):(?<line>\d+):(?<column>\d+)\)?$/gm);
+  const stacks: { file: string; line: number; column?: number; function?: string }[] = [];
+  const matches = err.stack.matchAll(
+    /\s+at\s+(?<method>[^( ]+)([^(]+)?\((?<filename>.+):(?<line>\d+):(?<column>\d+)\)?$/gm
+  );
   for (const match of matches) {
     stacks.push({
       file: match.groups.filename,
@@ -417,8 +419,13 @@ export function getFileAndLines(): { file: string; line: number; column?: number
  * Get the caller line and filename
  * @returns the file and line info of the caller
  */
-export function getFileAndLine(): { file: string; line: number; column?: number, function?: string } {
-  return getFileAndLines().find(s => !s.file.includes("/workout/") && !s.function?.includes(".log")) || { file: "unknown", line: 0 };
+export function getFileAndLine(): { file: string; line: number; column?: number; function?: string } {
+  return (
+    getFileAndLines().find(s => !s.file.includes("/workout/") && !s.function?.includes(".log")) || {
+      file: "unknown",
+      line: 0
+    }
+  );
 }
 
 /**

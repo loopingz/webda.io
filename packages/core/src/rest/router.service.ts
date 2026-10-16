@@ -7,7 +7,7 @@ import { Command } from "../services/command.js";
 import { useLog, useOutput } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
 import { useParameters } from "../application/hooks.js";
-import { useDynamicService, useService } from "../core/hooks.js";
+import { useDynamicService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { IWebContext, IOperationContext } from "../contexts/icontext.js";
@@ -113,9 +113,7 @@ export function compileAliasTarget(
         if (val && typeof val === "object") {
           const entries = Object.entries(val);
           if (entries.length === 0) return "";
-          return entries
-            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-            .join("&");
+          return entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
         }
         return "";
       });
@@ -128,10 +126,7 @@ export function compileAliasTarget(
           return "";
         }
         if (isPlus) {
-          return String(val)
-            .split("/")
-            .map(encodeURIComponent)
-            .join("/");
+          return String(val).split("/").map(encodeURIComponent).join("/");
         }
         return encodeURIComponent(String(val));
       });
@@ -150,9 +145,7 @@ export function compileAliasTarget(
   }
 
   const resolve = (ctx: IOperationContext, params: Record<string, any>): string => {
-    let result = parts
-      .map(part => (typeof part === "function" ? part(ctx, params) : part))
-      .join("");
+    let result = parts.map(part => (typeof part === "function" ? part(ctx, params) : part)).join("");
     result = result.replace(/\?&/, "?").replace(/&&+/g, "&").replace(/[?&]$/, "");
     const pathPart = result.split("?")[0];
     if (pathPart.split("/").includes("..")) {
@@ -491,9 +484,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param url - the URL pattern
    * @returns compiled template parser and query param definitions
    */
-  protected compileTemplate(
-    url: string
-  ): Pick<RouteInfo, "_uriTemplateParse" | "_queryParams" | "_queryCatchAll"> {
+  protected compileTemplate(url: string): Pick<RouteInfo, "_uriTemplateParse" | "_queryParams" | "_queryCatchAll"> {
     if (url.indexOf("{") === -1) {
       return {};
     }
@@ -1302,8 +1293,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (!service) continue;
       // @ts-ignore — back-compat for subclasses that still populate this
       const legacy: Record<string, any[]> = service.constructor.routes || {};
-      const fromMetadata: Record<string, any[]> =
-        getMetadata(service.constructor as any)?.["webda.route"] || {};
+      const fromMetadata: Record<string, any[]> = getMetadata(service.constructor as any)?.["webda.route"] || {};
       const routes: Record<string, any[]> = { ...legacy };
       for (const path in fromMetadata) {
         routes[path] = [...(routes[path] || []), ...fromMetadata[path]];

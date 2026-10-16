@@ -437,9 +437,26 @@
             "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20number%3E",
             "description": "Extra PRAGMAs run on open, e.g. { cache_size: -64000 }"
           },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
           "slowQueryThreshold": {
             "default": 30000,
-            "description": "Slow query threshold",
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
             "type": "number"
           },
           "strict": {

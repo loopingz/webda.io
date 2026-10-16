@@ -7,7 +7,6 @@ import {
   MFA,
   runAsSystem,
   totpStep,
-  type User,
   useApplication,
   useSecondFactor,
   useService,

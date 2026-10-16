@@ -105,12 +105,7 @@ export interface CommandOptions {
  * ```
  */
 export const Command = createMethodDecorator(
-  (
-    value: any,
-    context: ClassMethodDecoratorContext,
-    name: string,
-    options: CommandOptions = { description: "" }
-  ) => {
+  (value: any, context: ClassMethodDecoratorContext, name: string, options: CommandOptions = { description: "" }) => {
     context.metadata["webda.commands"] ??= [];
     (context.metadata["webda.commands"] as any[]).push({
       name,

@@ -1,11 +1,6 @@
 import * as assert from "assert";
 import { Readable } from "node:stream";
-import {
-  type ContentStorage,
-  ContentNotFoundError,
-  ContentExistsError,
-  toBuffer
-} from "./content.js";
+import { type ContentStorage, ContentNotFoundError, ContentExistsError } from "./content.js";
 import { streamToBuffer } from "./stream.js";
 
 /**
@@ -38,12 +33,14 @@ export function createByteStream(sizeInBytes: number, chunkSize: number = 64 * 1
  * @param factory - factory returning storage, a base URL prefix, and optional cleanup
  * @returns Contract test runner factory
  */
-export function ContentStorageContract(factory: () => Promise<{
-  storage: ContentStorage;
-  baseUrl: string;
-  isCloud?: boolean;
-  cleanup?: () => Promise<void>;
-}>) {
+export function ContentStorageContract(
+  factory: () => Promise<{
+    storage: ContentStorage;
+    baseUrl: string;
+    isCloud?: boolean;
+    cleanup?: () => Promise<void>;
+  }>
+) {
   return () => {
     let storage: ContentStorage;
     let baseUrl: string;
@@ -211,12 +208,9 @@ export function ContentStorageContract(factory: () => Promise<{
           }
         });
 
-        await assert.rejects(
-          async () => {
-            await storage.putContent(failUrl, failingStream);
-          },
-          /Stream exploded mid-transfer/
-        );
+        await assert.rejects(async () => {
+          await storage.putContent(failUrl, failingStream);
+        }, /Stream exploded mid-transfer/);
 
         if (storage.headContent) {
           const head = await storage.headContent(failUrl);

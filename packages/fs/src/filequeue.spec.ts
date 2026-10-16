@@ -1,4 +1,4 @@
-import { suite, test, only } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
 import { unlinkSync } from "fs";

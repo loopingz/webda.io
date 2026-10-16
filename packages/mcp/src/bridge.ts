@@ -20,7 +20,10 @@ export function toRequest(ctx: WebContext, body?: string, origin?: URL): Request
   }
   const method = http.getMethod();
   const uri = http.getUrl();
-  const url = origin && !/^\w{1,10}:\/\//.test(uri) ? `${origin.origin}${uri.startsWith("/") ? "" : "/"}${uri}` : http.getAbsoluteUrl();
+  const url =
+    origin && !/^\w{1,10}:\/\//.test(uri)
+      ? `${origin.origin}${uri.startsWith("/") ? "" : "/"}${uri}`
+      : http.getAbsoluteUrl();
   return new Request(url, { method, headers, body: method === "POST" ? (body ?? "") : undefined });
 }
 

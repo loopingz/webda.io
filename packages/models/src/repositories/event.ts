@@ -1,5 +1,5 @@
 import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.js";
-import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
+import type { JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/tsc-esm";
 import type { Query as WebdaQLQuery, QueryParameters, AggregationResult } from "@webda/ql";

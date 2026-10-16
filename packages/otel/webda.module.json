@@ -9,7 +9,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
-          "loggerExporter": {
+          "loggerExporter#2": {
             "additionalProperties": false,
             "description": "Logger export\nIf empty it is disabled\n\nValues (url, headers...) can be encrypted with `webda config encrypt`",
             "properties": {
@@ -31,7 +31,7 @@
             },
             "type": "object"
           },
-          "metricExporter": {
+          "metricExporter#2": {
             "additionalProperties": false,
             "properties": {
               "enable": {
@@ -54,6 +54,12 @@
           },
           "traceExporter": {
             "additionalProperties": false,
+            "default": {
+              "enable": true,
+              "sampling": 0.01,
+              "type": "otlp"
+            },
+            "description": "Trace export configuration",
             "properties": {
               "enable": {
                 "default": true,
@@ -95,18 +101,24 @@
             "type": "string"
           },
           "loggerExporter": {
-            "$ref": "#/definitions/loggerExporter",
+            "$ref": "#/definitions/loggerExporter%232",
             "description": "Logger export\nIf empty it is disabled\n\nValues (url, headers...) can be encrypted with `webda config encrypt`"
           },
           "metricExporter": {
-            "$ref": "#/definitions/metricExporter"
+            "$ref": "#/definitions/metricExporter%232"
           },
           "name": {
             "description": "Service name reported to OpenTelemetry, default to the package name",
             "type": "string"
           },
           "traceExporter": {
-            "$ref": "#/definitions/traceExporter"
+            "$ref": "#/definitions/traceExporter",
+            "default": {
+              "enable": true,
+              "sampling": 0.01,
+              "type": "otlp"
+            },
+            "description": "Trace export configuration"
           },
           "type": {
             "description": "Type of the service",

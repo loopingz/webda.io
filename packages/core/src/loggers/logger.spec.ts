@@ -90,7 +90,10 @@ class LoggerParametersTest {
 
   @test
   loggerServiceResolveWithAddLogProducerLine() {
-    const service = new LoggerService("testLoggerSvc", new LoggerServiceParameters().load({ addLogProducerLine: true }));
+    const service = new LoggerService(
+      "testLoggerSvc",
+      new LoggerServiceParameters().load({ addLogProducerLine: true })
+    );
     // resolve should set addLogProducerLine on the output
     service.resolve();
     // Just ensure it doesn't throw

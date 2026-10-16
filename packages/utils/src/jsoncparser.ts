@@ -1,4 +1,3 @@
-
 const COMMENTS = Symbol("comments");
 
 /** Base class for all nodes in a JSONC abstract syntax tree, carrying associated comment metadata. */
@@ -298,7 +297,13 @@ class JSONCProperty extends JSONCNode {
    */
   toString(separator: string = "") {
     return (
-      this[COMMENTS].prefix + this.key.toString() + ":" + this.value.toString() + this[COMMENTS].suffix + separator + this[COMMENTS].endOfLine
+      this[COMMENTS].prefix +
+      this.key.toString() +
+      ":" +
+      this.value.toString() +
+      this[COMMENTS].suffix +
+      separator +
+      this[COMMENTS].endOfLine
     );
   }
 }

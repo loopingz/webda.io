@@ -95,7 +95,7 @@ export function replaceVariables<T = any>(object: T, replacements: Record<string
   if (typeof object === "string") {
     return stringParameter(object, replacements) as T;
   }
-   
+
   return JSON.parse(
     // eslint-disable-next-line func-names
     JSON.stringify(object, function (key: string, value: any) {

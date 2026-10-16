@@ -17,7 +17,7 @@ import { runOperation } from "./streaming.js";
 import { AsyncQueue } from "../core/asyncqueue.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
-import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";

@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/sqlite-v4.0.0-beta.3...sqlite-v4.0.0-beta.4) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/sql bumped to 4.0.0-beta.4
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.12
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/sqlite-v4.0.0-beta.2...sqlite-v4.0.0-beta.3) (2026-10-16)
 
 

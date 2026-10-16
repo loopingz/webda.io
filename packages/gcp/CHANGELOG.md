@@ -117,6 +117,23 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.11...gcp-v4.0.0-beta.12) (2026-10-16)
+
+
+### Bug Fixes
+
+* **core:** Queue.consume waits between receives returning no message ([#920](https://github.com/loopingz/webda.io/issues/920)) ([7a41465](https://github.com/loopingz/webda.io/commit/7a41465f0afbc264e5409dfd491f3a3212408bf2))
+* **gcp:** nack failed messages so GCPQueue and GCPPubSub redeliver them ([#919](https://github.com/loopingz/webda.io/issues/919)) ([25a7503](https://github.com/loopingz/webda.io/commit/25a75033742ca83bd27ef3b27ba66568485b3dcc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.12
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.10...gcp-v4.0.0-beta.11) (2026-10-16)
 
 

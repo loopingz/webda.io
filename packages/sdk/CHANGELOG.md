@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.4...sdk-v4.0.0-beta.5) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/graphql bumped to 4.0.0-beta.12
+    * @webda/grpc bumped to 4.0.0-beta.12
+    * @webda/offline bumped to 4.0.0-beta.12
+  * peerDependencies
+    * @webda/graphql bumped to 4.0.0-beta.12
+    * @webda/grpc bumped to 4.0.0-beta.12
+    * @webda/offline bumped to 4.0.0-beta.12
+
 ## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.3...sdk-v4.0.0-beta.4) (2026-10-16)
 
 

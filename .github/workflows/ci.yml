@@ -134,9 +134,10 @@ jobs:
       - name: Run tests
         # Codecov compares project coverage with the full main-branch suite.
         # Run that same suite once so files outside the affected packages are included.
+        # Avoid cross-package CPU contention in tests that measure event-loop latency.
         run: |
           if [ "${{ matrix.node }}" = "22" ]; then
-            node scripts/run-affected-tests.mjs test
+            pnpm --no-bail -r --workspace-concurrency=1 run test
           else
             node scripts/run-affected-tests.mjs test "$PR_BASE_SHA"
           fi

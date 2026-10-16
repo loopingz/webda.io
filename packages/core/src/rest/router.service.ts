@@ -7,7 +7,7 @@ import { Command } from "../services/command.js";
 import { useLog, useOutput } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
 import { useParameters } from "../application/hooks.js";
-import { useDynamicService, useService } from "../core/hooks.js";
+import { useDynamicService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { IWebContext, IOperationContext } from "../contexts/icontext.js";

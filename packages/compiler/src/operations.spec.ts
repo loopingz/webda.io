@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { generateOperations, OperationsExportFormat } from "./operations.js";
+import { generateOperations } from "./operations.js";
 import { WebdaModule } from "./definition.js";
 
 @suite

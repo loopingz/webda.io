@@ -1,12 +1,7 @@
 import {
-  type Model,
-  type PrimaryKeyType,
-  type Repository,
-  type SelfJSONed,
   type Settable,
   UuidModel
 } from "@webda/models";
-import { useLog } from "@webda/workout";
 
 /**
  * Specific type for registry

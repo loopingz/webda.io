@@ -20,7 +20,7 @@ import {
 import { useLog } from "@webda/workout";
 import * as protoLoader from "@grpc/proto-loader";
 import { existsSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { dirname } from "node:path";
 import { GrpcOperationContext, toGrpcMessage } from "./grpc-context.js";
 import { GrpcStream, GrpcStatus } from "./grpc-stream.js";
 import { generateProto } from "./proto-generator.js";

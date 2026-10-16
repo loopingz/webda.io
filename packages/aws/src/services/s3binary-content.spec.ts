@@ -12,11 +12,9 @@ import {
 import {
   ContentExistsError,
   ContentCredentialNotFoundError,
-  ContentNotFoundError,
   ContentStorages,
   getContent,
-  putContent,
-  toReadable
+  putContent
 } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { ContentStorageContract } from "@webda/utils";

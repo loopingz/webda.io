@@ -10,7 +10,6 @@ import { runAsSystem, runWithContext, useContext } from "../contexts/execution.j
 import * as WebdaError from "../errors/errors.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
-import { OperationDefinition } from "../core/icore.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { registerOperation } from "../core/operations.js";

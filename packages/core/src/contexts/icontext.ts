@@ -3,7 +3,7 @@ import { Writable } from "node:stream";
 
 import { HttpContext } from "./httpcontext.js";
 import { NotEnumerable } from "@webda/tsc-esm";
-import { pipeline, PipelineOptions } from "node:stream/promises";
+import { PipelineOptions } from "node:stream/promises";
 
 /**
  * Context is the object that will be passed to the services

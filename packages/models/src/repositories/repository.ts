@@ -16,7 +16,7 @@ import type {
   ModelClass,
   PrimaryKeyAttributes
 } from "../storable.js";
-import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types.js";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType } from "../types.js";
 import type { ModelRefWithCreate } from "../relations.js";
 
 /** Symbol key for test utilities on a repository (e.g. `clear()`). */

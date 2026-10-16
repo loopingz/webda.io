@@ -7,32 +7,7 @@ import { SqlFilterImplementation, LikeExpression, AttributeExpression, InExpress
 import { CESQLParserLexer } from "./sql/CESQLParserLexer.js";
 import {
   CESQLParserParser,
-  CesqlContext,
-  BinaryMultiplicativeExpressionContext,
-  BinaryAdditiveExpressionContext,
-  BinaryComparisonExpressionContext,
-  BinaryLogicExpressionContext,
-  LikeExpressionContext,
-  InExpressionContext,
-  ExistsExpressionContext,
-  UnaryLogicExpressionContext,
-  UnaryNumericExpressionContext,
-  SubExpressionContext,
-  AtomExpressionContext,
-  FunctionInvocationExpressionContext,
-  ExpressionContext,
-  AtomContext,
-  BooleanAtomContext,
-  IntegerAtomContext,
-  StringAtomContext,
-  IdentifierAtomContext,
-  IdentifierContext,
-  FunctionIdentifierContext,
-  BooleanLiteralContext,
-  StringLiteralContext,
-  IntegerLiteralContext,
-  FunctionParameterListContext,
-  SetExpressionContext
+  BinaryMultiplicativeExpressionContext
 } from "./sql/CESQLParserParser.js";
 import type { CESQLParserListener } from "./sql/CESQLParserListener.js";
 

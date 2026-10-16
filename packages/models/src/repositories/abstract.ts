@@ -1,5 +1,5 @@
-import type { PK, PrimaryKey, PrimaryKeyAttributes, PrimaryKeyType, ModelClass } from "../storable.js";
-import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types.js";
+import type { PK, PrimaryKey, PrimaryKeyType, ModelClass } from "../storable.js";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType } from "../types.js";
 import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.js";
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";

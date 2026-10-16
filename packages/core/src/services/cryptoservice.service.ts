@@ -19,7 +19,6 @@ import { AuthenticatedEncryption } from "./authenticatedencryption.js";
 import {
   checkKid,
   parsePkiValue,
-  PKI_DEFAULT_PUBLIC_KEYS,
   PKI_MIN_BITS,
   PkiKeyring,
   pkiEncrypter

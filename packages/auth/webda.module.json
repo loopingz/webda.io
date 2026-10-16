@@ -146,6 +146,15 @@
             ],
             "type": "string"
           },
+          "mode": {
+            "default": "login",
+            "description": "`factor` only adds `mtls` to a session already authenticated as the certificate's linked user.",
+            "enum": [
+              "login",
+              "factor"
+            ],
+            "type": "string"
+          },
           "roles": {
             "$ref": "#/definitions/Record%3Cstring%2C%20string%5B%5D%3E",
             "description": "Roles of the certificate sessions by subject attribute: `{ \"OU=admins\": [\"admin\"] }` gives the role admin to\ncertificates having an OU admins"
@@ -648,9 +657,11 @@
         },
         {
           "$ref": "#/definitions/%232"
+        },
+        {
+          "$ref": "#/definitions/%233"
         }
       ],
-      "description": "Result of an authentication completion",
       "definitions": {
         "#2": {
           "additionalProperties": false,
@@ -668,6 +679,19 @@
           },
           "required": [
             "methods",
+            "status"
+          ],
+          "type": "object"
+        },
+        "#3": {
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "linked",
+              "type": "string"
+            }
+          },
+          "required": [
             "status"
           ],
           "type": "object"

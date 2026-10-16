@@ -4,9 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, suite, test } from "@webda/test";
 import {
-  ContentExistsError,
   ContentCredentialNotFoundError,
-  ContentNotFoundError,
   ContentStorageNotFoundError,
   ContentStorages,
   FileContentStorage,

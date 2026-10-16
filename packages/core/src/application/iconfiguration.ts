@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from "openapi-types";
-import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
+import type { ProjectInformation, WebdaModule } from "@webda/compiler";
 import type { PkiEncrypterOptions } from "../services/pki.encrypter.js";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 

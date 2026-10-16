@@ -1,7 +1,6 @@
 import {
   ContentCredentialNotFoundError,
   ContentExistsError,
-  ContentNotFoundError,
   ContentStorages,
   getContent,
   putContent

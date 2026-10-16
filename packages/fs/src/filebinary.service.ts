@@ -6,7 +6,6 @@ import {
   BinaryFileInfo,
   BinaryMap,
   BinaryNotFoundError,
-  BinaryService,
   CloudBinary,
   CloudBinaryParameters,
   ContentBody,

@@ -1,7 +1,7 @@
 import type { ArrayElement } from "@webda/tsc-esm";
 import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
-import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
+import type { Helpers, JSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import { deserialize, deserializeRaw, hasSerializer, serialize, serializeRaw, SerializerContext } from "@webda/serialize";
 import { AbstractRepository } from "./abstract.js";
 import { Repository, WEBDA_TEST } from "./repository.js";

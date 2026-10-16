@@ -1,4 +1,4 @@
-import { assertFilterQuery, ComparisonExpression, parse, type Expression } from "./query.js";
+import { assertFilterQuery, ComparisonExpression, parse } from "./query.js";
 import { bind, type QueryParameters } from "./bind.js";
 import { WebdaQLError } from "./webdaql-string.js";
 import {

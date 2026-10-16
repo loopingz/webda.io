@@ -1,5 +1,5 @@
 import { getAtPointer, setAtPointer } from "../engine/patch.js";
-import type { Conflict, MergeResult, Path } from "../types.js";
+import type { Conflict, MergeResult } from "../types.js";
 
 const OPEN = "<<<<<<<";
 const SEP = "=======";

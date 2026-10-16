@@ -3,8 +3,7 @@ import { Readable } from "node:stream";
 import {
   type ContentStorage,
   ContentNotFoundError,
-  ContentExistsError,
-  toBuffer
+  ContentExistsError
 } from "./content.js";
 import { streamToBuffer } from "./stream.js";
 

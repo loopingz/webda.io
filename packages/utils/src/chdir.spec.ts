@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import { readdirSync } from "fs";
-import { deepStrictEqual, rejects, ok } from "assert";
+import { rejects, ok } from "assert";
 import { runWithCurrentDirectory } from "./chdir.js";
 import { getCommonJS } from "./esm.js";
 

@@ -16,7 +16,6 @@ import { Router, RouterParameters } from "../rest/router.service.js";
 import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../rest/restoperationstransport.service.js";
 import { HttpContext } from "../contexts/httpcontext.js";
 import { createChecker } from "is-in-subnet";
-import { SessionManager } from "../session/manager.model.js";
 import { Session } from "../session/session.js";
 import { Context } from "../contexts/icontext.js";
 import { Service } from "./service.js";

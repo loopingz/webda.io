@@ -8,7 +8,7 @@ import { Model, type ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 import { Store } from "../stores/store.js";
 import { Logger } from "../loggers/ilogger.js";
-import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
+import { getUuid, State, StateOptions } from "@webda/utils";
 import { ICore, AbstractService, OperationDefinitionInfo } from "./icore.js";
 import { emitCoreEvent } from "../events/events.js";
 import { useInstanceStorage } from "./instancestorage.js";

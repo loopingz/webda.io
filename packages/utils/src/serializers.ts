@@ -1,6 +1,4 @@
 import {
-  createReadStream,
-  createWriteStream,
   existsSync,
   lstatSync,
   readdirSync,

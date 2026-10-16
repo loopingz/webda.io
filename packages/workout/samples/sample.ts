@@ -1,4 +1,4 @@
-import { useLog, useWorkerOutput, WorkerInputType, WorkerOutput } from "../src/core";
+import { useLog, useWorkerOutput } from "../src/core";
 import { Fork } from "../src/fork";
 import { InteractiveConsoleLogger } from "../src/loggers/interactiveconsole";
 

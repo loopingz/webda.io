@@ -1,5 +1,4 @@
 import {
-  Core,
   Gauge,
   getMachineId,
   Inject,

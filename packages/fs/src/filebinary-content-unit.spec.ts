@@ -1,4 +1,4 @@
-import { ContentNotFoundError, ContentStorages, getContent, putContent } from "@webda/core";
+import { ContentNotFoundError } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { ContentStorageContract } from "@webda/utils";
 import { afterEach, beforeEach, suite, test } from "@webda/test";

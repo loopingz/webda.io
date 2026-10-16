@@ -4,11 +4,9 @@ import { Repository, WEBDA_TEST } from "./repository";
 import { RepositoryTest } from "./repository.spec";
 import { MemoryRepository } from "./memory";
 import type { QueryExecutionInfo } from "./monitoring";
-import { afterAll, suite, test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { SubClassModel, TestModel } from "../model.spec";
-import { FilterAttributes } from "@webda/tsc-esm";
-import { registerRepository } from "./hooks";
 import { parse } from "@webda/ql";
 
 @suite

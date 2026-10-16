@@ -1,4 +1,4 @@
-import { beforeEach, suite, test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Service } from "./service.js";
 import { User } from "../models/user.model.js";

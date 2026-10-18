@@ -106,7 +106,7 @@ class SdkManifestTest extends SampleAppTest {
     // The frozen metadata is left untouched
     assert.strictEqual(
       (useApplication().getModels()["WebdaDemo/Company"] as any).Metadata.Relations.queries[0].targetAttribute,
-      "Company"
+      "company"
     );
     assert.ok(user.operations.includes("User.Get") && user.operations.includes("Users.Query"));
     assert.ok(user.operations.includes("User.Images.GetUrl"));
@@ -271,7 +271,9 @@ class SdkManifestSyntheticTest extends SampleAppTest {
             { attribute: "things", model: "WebdaDemo/SdkThing", targetAttribute: "name" },
             { attribute: "owned", model: "WebdaDemo/SdkInputOnly", targetAttribute: "Owner" },
             { attribute: "bare", model: "WebdaDemo/SdkNoSchema", targetAttribute: "Other" },
-            { attribute: "gone", model: "WebdaDemo/SdkGone", targetAttribute: "Other" }
+            { attribute: "gone", model: "WebdaDemo/SdkGone", targetAttribute: "Other" },
+            { attribute: "untargeted", model: "WebdaDemo/SdkThing" },
+            { attribute: "empty", model: "WebdaDemo/SdkThing", targetAttribute: "" }
           ]
         }
       };
@@ -363,7 +365,7 @@ class SdkManifestSyntheticTest extends SampleAppTest {
       assert.deepStrictEqual(
         other.relations.queries!.map(query => query.targetAttribute),
         // Real attribute kept, matched on the input schema, nothing to match, unknown target
-        ["name", "_owner", "Other", "Other"]
+        ["name", "_owner", "Other", "Other", undefined, ""]
       );
       // Transports: the REST routes are registered once, the GraphQL schema generated
       assert.deepStrictEqual(manifest.transports, {

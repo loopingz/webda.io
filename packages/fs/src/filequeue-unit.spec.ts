@@ -277,6 +277,118 @@ class FileQueueUnitTest {
   }
 
   @test
+  async messageNamesKeepTheOrder() {
+    // Sent in the same millisecond: the sequence keeps the order
+    for (let i = 0; i < 20; i++) {
+      await this.queue.sendMessage({ i });
+    }
+    const files = fs.readdirSync(this.tmpDir).filter(f => f.endsWith(".json"));
+    assert.ok(
+      files.every(f => /^\d{15}-\d{6}-[0-9a-f-]{36}\.json$/.test(f)),
+      files.join(",")
+    );
+    const received: number[] = [];
+    for (let i = 0; i < 20; i++) {
+      const [message] = await this.queue.receiveMessage();
+      received.push(message.Message.i);
+      await this.queue.deleteMessage(message.ReceiptHandle);
+    }
+    assert.deepStrictEqual(
+      received,
+      Array.from({ length: 20 }, (_, i) => i)
+    );
+  }
+
+  @test
+  async legacyMessagesFirst() {
+    await this.queue.sendMessage({ name: "current" });
+    // Messages written by a previous version are named by a random UUID
+    const legacy = ["f0000000-0000-4000-8000-000000000000", "10000000-0000-4000-8000-000000000000"];
+    for (const [i, uid] of legacy.entries()) {
+      fs.writeFileSync(this.queue.getFile(uid), JSON.stringify({ name: `legacy${i}` }));
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    const names: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const [message] = await this.queue.receiveMessage();
+      names.push(message.Message.name);
+    }
+    assert.deepStrictEqual(names, ["legacy0", "legacy1", "current"]);
+    // A legacy file removed since the listing is ignored
+    assert.deepStrictEqual(this.queue["sortMessages"](["deleted.json"]), []);
+  }
+
+  @test
+  async lockedMessagesAreSkippedUntilExpired() {
+    await this.queue.sendMessage({ name: "first" });
+    await this.queue.sendMessage({ name: "second" });
+    const [first] = fs
+      .readdirSync(this.tmpDir)
+      .filter(f => f.endsWith(".json"))
+      .sort();
+    // Locked by another consumer: skipped
+    fs.writeFileSync(path.join(this.tmpDir, `${first}.lock`), "");
+    let [message] = await this.queue.receiveMessage();
+    assert.strictEqual(message.Message.name, "second");
+    // The lock of the first message expires: it is delivered again
+    const old = new Date(Date.now() - 60000);
+    fs.utimesSync(path.join(this.tmpDir, `${first}.lock`), old, old);
+    [message] = await this.queue.receiveMessage();
+    assert.strictEqual(message.Message.name, "first");
+    assert.ok(fs.statSync(path.join(this.tmpDir, `${first}.lock`)).mtimeMs > old.getTime(), "the lock is renewed");
+  }
+
+  @test
+  async messageLockedByAnotherConsumerSinceTheListing() {
+    await this.queue.sendMessage({ name: "first" });
+    await this.queue.sendMessage({ name: "second" });
+    const lock = this.queue["lock"].bind(this.queue);
+    let calls = 0;
+    this.queue["lock"] = (file: string) => {
+      if (calls++ === 0) {
+        // Another consumer creates the lock between the listing and our lock
+        fs.writeFileSync(`${file}.lock`, "");
+      }
+      return lock(file);
+    };
+    const [message] = await this.queue.receiveMessage();
+    assert.strictEqual(message.Message.name, "second");
+  }
+
+  @test
+  async messageDeletedSinceTheListing() {
+    await this.queue.sendMessage({ name: "first" });
+    await this.queue.sendMessage({ name: "second" });
+    const lock = this.queue["lock"].bind(this.queue);
+    let deleted: string;
+    this.queue["lock"] = (file: string) => {
+      const owned = lock(file);
+      if (!deleted) {
+        // Another consumer acknowledged the message between the listing and our read
+        deleted = file;
+        fs.unlinkSync(file);
+      }
+      return owned;
+    };
+    const [message] = await this.queue.receiveMessage();
+    assert.strictEqual(message.Message.name, "second");
+    assert.ok(!fs.existsSync(`${deleted}.lock`), "the lock of the deleted message is removed");
+  }
+
+  @test
+  async filesystemErrorsAreThrown() {
+    // A folder named like a message cannot be read
+    fs.mkdirSync(path.join(this.tmpDir, `${"0".repeat(15)}-000000-broken.json`));
+    await assert.rejects(() => this.queue.receiveMessage(), /EISDIR/);
+    // The queue folder is gone: the lock cannot be created
+    assert.throws(() => this.queue["lock"](path.join(this.tmpDir, "missing", "x.json")), /ENOENT/);
+    // A lock already released counts as released
+    assert.strictEqual(this.queue["releaseExpiredLock"](path.join(this.tmpDir, "none.json.lock")), true);
+    // A lock that cannot be inspected fails the receive
+    assert.throws(() => this.queue["releaseExpiredLock"]("\0invalid"), /ERR_INVALID_ARG_VALUE|null bytes/);
+  }
+
+  @test
   async sizeIgnoresNonJsonFiles() {
     fs.writeFileSync(path.join(this.tmpDir, "notjson.txt"), "hello");
     fs.writeFileSync(path.join(this.tmpDir, "test.json.lock"), "lock");

@@ -1,6 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
+import { useApplication } from "../application/hooks.js";
+import { JSONUtils } from "@webda/utils";
 import { Router, RouterParameters } from "./router.service.js";
 import { runWithContext } from "../contexts/execution.js";
 import { WebContext } from "../contexts/webcontext.js";
@@ -47,6 +49,44 @@ class RouterPrefixTest extends WebdaApplicationTest {
     ctx.newSession();
     await runWithContext(ctx, () => this.router.execute(ctx));
     return ctx;
+  }
+
+  @test
+  async exportOpenAPILeavesTheApplicationSchemasIntact() {
+    // OpenAPI moves definitions to components on its own copy: the application schema keeps them, or the
+    // validation of a model with a nested type fails afterwards (can't resolve #/definitions/...)
+    const app = useApplication();
+    const model = Object.keys(app.getModels())[0];
+    app.getSchemas()[model] = {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      properties: { scene: { $ref: "#/definitions/scene" } },
+      definitions: { scene: { type: "object" } }
+    } as any;
+    // A router without routes: this suite's routes have no executor for completeOpenAPI
+    new Router("OpenAPIRouter", new RouterParameters().load({})).exportOpenAPI();
+    const schema: any = app.getSchema(model);
+    assert.deepStrictEqual(Object.keys(schema.definitions || {}), ["scene"]);
+    assert.strictEqual(schema.$schema, "http://json-schema.org/draft-07/schema#");
+  }
+
+  @test
+  async exportOpenAPIAcceptsJsoncSchemas() {
+    // An application loaded from webda.config.jsonc holds its cachedModules as JSONC proxies, which
+    // structuredClone rejects ("#<Object> could not be cloned")
+    const app = useApplication();
+    const model = Object.keys(app.getModels())[0];
+    app.getSchemas()[model] = JSONUtils.parse(`{
+      // a comment keeps the JSONC tree
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": { "scene": { "$ref": "#/definitions/scene" } },
+      "definitions": { "scene": { "type": "object" } }
+    }`);
+    const openapi: any = new Router("OpenAPIRouter", new RouterParameters().load({})).exportOpenAPI();
+    assert.deepStrictEqual(openapi.components.schemas.scene, { type: "object" });
+    const schema: any = app.getSchema(model);
+    assert.deepStrictEqual(Object.keys(schema.definitions || {}), ["scene"]);
   }
 
   @test

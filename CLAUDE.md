@@ -481,7 +481,7 @@ Repositories are the canonical persistence API. Each model class has exactly one
 {
   "services": {
     "db": {
-      "type": "MemoryStore",  // or DynamoStore, MongoStore, PostgresStore, FileStore
+      "type": "MemoryStore",  // or DynamoStore, MongoStore, PostgresStore, SQLiteStore, FileStore
       "models": ["MyApp/Task", "MyApp/User"]
     }
   }

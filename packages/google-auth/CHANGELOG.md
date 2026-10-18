@@ -184,6 +184,62 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.10...google-auth-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/auth bumped to 4.0.0-beta.11
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.9...google-auth-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/auth bumped to 4.0.0-beta.10
+    * @webda/core bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+    * @webda/content-mapper bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.8...google-auth-v4.0.0-beta.9) (2026-10-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/auth bumped to 4.0.0-beta.9
+    * @webda/core bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+    * @webda/content-mapper bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.7...google-auth-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/auth bumped to 4.0.0-beta.8
+    * @webda/core bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.6...google-auth-v4.0.0-beta.7) (2026-10-11)
 
 

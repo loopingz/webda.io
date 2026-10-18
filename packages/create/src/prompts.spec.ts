@@ -54,6 +54,7 @@ class PromptsTest {
       dir: "/work/my-app",
       store: "memory",
       transports: ["rest"],
+      sdk: false,
       namespace: "MyApp",
       pm: "pnpm",
       install: true,

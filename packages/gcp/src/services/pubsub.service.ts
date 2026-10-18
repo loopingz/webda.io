@@ -105,6 +105,8 @@ export default class GCPPubSubService<
       } catch (err) {
         this.metrics.errors.inc();
         this.log("ERROR", `${this.getName()} consume message error`, err);
+        // Without an answer the client extends the lease until maxExtension (60 min): the message would be stuck
+        message.nack();
       } finally {
         end();
       }

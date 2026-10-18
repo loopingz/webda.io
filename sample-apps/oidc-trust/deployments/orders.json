@@ -1,0 +1,32 @@
+{
+  "$schema": "../.webda/deployment.schema.json",
+  "services": {
+    "HttpServer": {
+      "port": 18081
+    },
+    "CryptoService": {
+      "type": "Webda/CryptoService",
+      "autoCreate": true,
+      "url": "/jwks",
+      "jwt": {
+        "algorithm": "RS256"
+      }
+    },
+    "OIDCIssuer": {
+      "type": "Webda/OIDCIssuer",
+      "issuer": "http://localhost:18081",
+      "name": "orders",
+      "audiences": [
+        "http://localhost:18082"
+      ]
+    },
+    "OIDCClient": {
+      "type": "Webda/OIDCClient",
+      "source": "self"
+    },
+    "Orders": {
+      "type": "OidcTrust/Orders",
+      "billingUrl": "http://localhost:18082"
+    }
+  }
+}

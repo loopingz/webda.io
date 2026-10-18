@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 // Models carry their metadata in `__meta` here, and the app has no service
+const { createFromInput } = vi.hoisted(() => ({ createFromInput: vi.fn() }));
+vi.mock("./mutations.js", async importOriginal => ({ ...(await importOriginal<any>()), createFromInput }));
+
 vi.mock("@webda/core", async importOriginal => ({
   ...(await importOriginal<any>()),
   useModelMetadata: (model: any) => model.__meta,
@@ -15,11 +18,13 @@ import {
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLString,
+  graphql,
   parseValue,
   validateSchema
 } from "graphql";
 import { GraphQLService } from "./graphql.service.js";
 import { AnyScalarType } from "./types/any.js";
+import { restoreInputKeys } from "./names.js";
 
 /**
  * @returns a service double with the converter state
@@ -161,5 +166,91 @@ describe("GraphQL named types", () => {
     ok.generateSchema();
     expect(() => ok.generateSchema()).not.toThrow();
     expect(ok.namedTypes.get("Other").type).toBe(ok.modelsMap["Test/Other"]);
+  });
+
+  /**
+   * @param properties - the properties of the Test/Account model
+   * @returns the service with its schema generated
+   */
+  const accountService = (properties: any) => {
+    const svc = service();
+    const classes: any = {
+      "Test/Account": { __meta: { Identifier: "Test/Account", Plural: "Test/Accounts", Actions: {}, Events: [] } }
+    };
+    const schemas: any = { "Test/Account": { type: "object", properties } };
+    (svc as any).app = {
+      getModels: () => classes,
+      isFinalModel: () => true,
+      getSchema: (i: string) => schemas[i]
+    };
+    (svc as any).parameters = { isIncluded: () => true, exposeMe: false };
+    (svc as any).isExposable = () => true;
+    (svc as any).emit = () => {};
+    svc.generateSchema();
+    return svc;
+  };
+  const simplefin = () => ({
+    uuid: { type: "string" },
+    "available-balance": { type: "string" },
+    org: { type: "object", properties: { name: { type: "string" }, "sfin-url": { type: "string" } } }
+  });
+
+  it("renames the properties whose key is not a GraphQL name, and reads them under the new name", async () => {
+    // JSON keys of an external API (SimpleFIN `available-balance`, `sfin-url`) are valid model properties, not
+    // valid GraphQL names: new GraphQLSchema threw on them and the whole GraphQL service failed to start
+    const svc = accountService(simplefin());
+    expect(validateSchema((svc as any).schema)).toEqual([]);
+    const account = svc.modelsMap["Test/Account"] as GraphQLObjectType;
+    expect(Object.keys(account.getFields()).sort()).toEqual(["availableBalance", "org", "uuid"]);
+    expect(Object.keys((account.getFields().org.type as GraphQLObjectType).getFields())).toEqual(["name", "sfinUrl"]);
+    // A mutation with the GraphQL names stores the original keys, and the result reads them back
+    createFromInput.mockImplementation(async (_model: any, input: any) => input);
+    const res: any = await graphql({
+      schema: (svc as any).schema,
+      source: `mutation { createAccount(Account: { availableBalance: "12.5", org: { name: "Bank", sfinUrl: "https://b" } })
+        { availableBalance org { name sfinUrl } } }`,
+      contextValue: { getCurrentUserId: () => "user" }
+    });
+    expect(res.errors).toBeUndefined();
+    expect(createFromInput.mock.calls[0][1]).toEqual({
+      "available-balance": "12.5",
+      org: { name: "Bank", "sfin-url": "https://b" }
+    });
+    expect(res.data.createAccount).toEqual({ availableBalance: "12.5", org: { name: "Bank", sfinUrl: "https://b" } });
+  });
+
+  it("keeps the real property when a renamed key collides with it, and the first of two renamed keys", () => {
+    const svc = accountService({
+      "available-balance": { type: "string" },
+      availableBalance: { type: "number" },
+      "a-b": { type: "string" },
+      "a.b": { type: "boolean" }
+    });
+    expect(validateSchema((svc as any).schema)).toEqual([]);
+    const fields = (svc.modelsMap["Test/Account"] as GraphQLObjectType).getFields();
+    expect(Object.keys(fields).sort()).toEqual(["aB", "availableBalance"]);
+    // The real availableBalance is the field (default resolver), available-balance is left out
+    expect(fields.availableBalance.resolve).toBeUndefined();
+    expect(fields.availableBalance.extensions.webdaKey).toBeUndefined();
+    expect(fields.aB.resolve({ "a-b": "dash", "a.b": true }, {}, {}, {} as any)).toBe("dash");
+  });
+
+  it("restoreInputKeys writes only the declared fields, under the name the schema gives", () => {
+    const input = new GraphQLInputObjectType({
+      name: "RestoreInput",
+      fields: {
+        availableBalance: { type: GraphQLString, extensions: { webdaKey: "available-balance" } },
+        org: { type: GraphQLString }
+      }
+    });
+    // an unvalidated value: inherited names, __proto__ and undeclared keys never become properties
+    const value = JSON.parse(
+      '{"availableBalance":"1","org":"o","__proto__":{"polluted":true},"constructor":"x","extra":1}'
+    );
+    const restored = restoreInputKeys(input, value);
+    expect(Object.keys(restored).sort()).toEqual(["available-balance", "org"]);
+    expect(restored["available-balance"]).toBe("1");
+    expect(({} as any).polluted).toBeUndefined();
+    expect(Object.getPrototypeOf(restored)).toBe(Object.prototype);
   });
 });

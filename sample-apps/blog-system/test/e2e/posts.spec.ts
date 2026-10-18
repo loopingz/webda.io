@@ -52,4 +52,14 @@ test.describe("Posts panel", () => {
     expect(await waitForToast(page)).toMatch(/deleted/i);
     await expect(rowByKey(page, slug)).toHaveCount(0);
   });
+
+  test("searches posts using WebdaQL with autocomplete", async ({ page }) => {
+    const qlInput = page.locator(".ql-search-input");
+    await expect(qlInput).toBeVisible();
+    await qlInput.fill("status = ");
+    await expect(page.locator(".ql-dropdown")).toBeVisible();
+    await expect(page.locator(".ql-suggestion-item", { hasText: "'published'" })).toBeVisible();
+    await page.locator(".ql-suggestion-item", { hasText: "'published'" }).click();
+    await expect(qlInput).toHaveValue("status = 'published'");
+  });
 });

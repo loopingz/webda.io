@@ -1,5 +1,13 @@
+import { ServiceParameters } from "./runtime.js";
+
+/** Runtime policy of the fixture behavior. */
+export class MfaPolicy extends ServiceParameters {
+  lifetime: number = 60;
+}
+
 /** @WebdaBehavior */
 export class MFA {
+  static Parameters = MfaPolicy;
   secret: string;
 }
 

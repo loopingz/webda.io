@@ -5,12 +5,44 @@ import { decodeCursor, encodeCursor, queryFor, ResourceRegistry } from "./resour
 const Post = { name: "Post" };
 const Follow = { name: "UserFollow" };
 const ops: any = {
-  "Post.Get": { id: "Post.Get", input: "x", output: "y", method: "modelGet", context: { model: Post, pkFields: ["slug"] } },
-  "Posts.Query": { id: "Posts.Query", input: "searchRequest", output: "z", method: "modelQuery", context: { model: Post } },
-  "UserFollow.Get": { id: "UserFollow.Get", input: "x", output: "y", method: "modelGet", context: { model: Follow, pkFields: ["follower", "following"] } },
+  "Post.Get": {
+    id: "Post.Get",
+    input: "x",
+    output: "y",
+    method: "modelGet",
+    context: { model: Post, pkFields: ["slug"] }
+  },
+  "Posts.Query": {
+    id: "Posts.Query",
+    input: "searchRequest",
+    output: "z",
+    method: "modelQuery",
+    context: { model: Post }
+  },
+  "UserFollow.Get": {
+    id: "UserFollow.Get",
+    input: "x",
+    output: "y",
+    method: "modelGet",
+    context: { model: Follow, pkFields: ["follower", "following"] }
+  },
   "Post.Publish": { id: "Post.Publish", input: "x", output: "y", method: "publish" },
-  "Secret.Get": { id: "Secret.Get", input: "x", output: "y", method: "modelGet", hidden: true, context: { model: {}, pkFields: ["id"] } },
-  "Follow.Query": { id: "Follow.Query", input: "x", output: "z", method: "modelQuery", mcp: false, context: { model: Follow } }
+  "Secret.Get": {
+    id: "Secret.Get",
+    input: "x",
+    output: "y",
+    method: "modelGet",
+    hidden: true,
+    context: { model: {}, pkFields: ["id"] }
+  },
+  "Follow.Query": {
+    id: "Follow.Query",
+    input: "x",
+    output: "z",
+    method: "modelQuery",
+    mcp: false,
+    context: { model: Follow }
+  }
 };
 
 @suite
@@ -31,7 +63,10 @@ class ResourceRegistryTest {
   filtersModels() {
     const registry = new ResourceRegistry(["UserFollow"]);
     registry.build(ops);
-    assert.deepStrictEqual(registry.models().map(m => m.name), ["UserFollow"]);
+    assert.deepStrictEqual(
+      registry.models().map(m => m.name),
+      ["UserFollow"]
+    );
   }
 
   @test
@@ -57,7 +92,10 @@ class ResourceRegistryTest {
 
   @test
   cursorsRoundTrip() {
-    assert.deepStrictEqual(decodeCursor(encodeCursor({ model: "Post", token: "abc" })), { model: "Post", token: "abc" });
+    assert.deepStrictEqual(decodeCursor(encodeCursor({ model: "Post", token: "abc" })), {
+      model: "Post",
+      token: "abc"
+    });
     assert.strictEqual(decodeCursor(undefined), undefined);
     assert.strictEqual(decodeCursor("not-base64-json"), undefined);
   }

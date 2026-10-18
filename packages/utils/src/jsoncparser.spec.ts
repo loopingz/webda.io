@@ -41,11 +41,30 @@ class JSONCParserTest {
   }
 
   @test
+  async parseDecimalAndExponentNumbers() {
+    assert.strictEqual(JSONCParser.parse("1.5"), 1.5);
+    assert.strictEqual(JSONCParser.parse("-0.25"), -0.25);
+    assert.strictEqual(JSONCParser.parse("1e3"), 1000);
+    assert.strictEqual(JSONCParser.parse("2.5E-2"), 0.025);
+    assert.strictEqual(JSONCParser.parse("-1e+2"), -100);
+    const result = JSONCParser.parse('{"sentAt": 610.276375, "ratio": 0.5, "list": [1.25, -3.5e1]}');
+    assert.strictEqual(result.sentAt, 610.276375);
+    assert.strictEqual(result.ratio, 0.5);
+    assert.deepStrictEqual(Array.from(result.list), [1.25, -35]);
+    // Decimals survive a stringify round trip
+    assert.strictEqual(JSONCParser.stringify(JSONCParser.parse('{"a": 1.5}')), '{"a": 1.5}');
+  }
+
+  @test
+  async parseInvalidNumber() {
+    for (const invalid of ["-", "1.", "1e", "1e+", "-.5"]) {
+      assert.throws(() => JSONCParser.parse(invalid), /Invalid number at position 0/, invalid);
+    }
+  }
+
+  @test
   async parseUnexpectedKeyword() {
-    assert.throws(
-      () => JSONCParser.parse("nope"),
-      /Unexpected keyword at position/
-    );
+    assert.throws(() => JSONCParser.parse("nope"), /Unexpected keyword at position/);
   }
 
   @test
@@ -108,10 +127,7 @@ class JSONCParserTest {
 
   @test
   async parseUnclosedString() {
-    assert.throws(
-      () => JSONCParser.parse('"unclosed'),
-      /Expected '"' at position/
-    );
+    assert.throws(() => JSONCParser.parse('"unclosed'), /Expected '"' at position/);
   }
 
   @test
@@ -124,54 +140,39 @@ class JSONCParserTest {
 
   @test
   async parseArrayWithTrailingNewlines() {
-    const result = JSONCParser.parse('[\n  1,\n  2\n]');
+    const result = JSONCParser.parse("[\n  1,\n  2\n]");
     assert.deepStrictEqual(Array.from(result), [1, 2]);
   }
 
   @test
   async parseUnclosedObject() {
-    assert.throws(
-      () => JSONCParser.parse('{"key": "value"'),
-      /Expected '}' at position/
-    );
+    assert.throws(() => JSONCParser.parse('{"key": "value"'), /Expected '}' at position/);
   }
 
   @test
   async parseUnclosedArray() {
-    assert.throws(
-      () => JSONCParser.parse('[1, 2, 3'),
-      /Expected ']' at position/
-    );
+    assert.throws(() => JSONCParser.parse("[1, 2, 3"), /Expected ']' at position/);
   }
 
   @test
   async parseInvalidCharacter() {
-    assert.throws(
-      () => JSONCParser.parse('@invalid'),
-      /Unexpected character at position/
-    );
+    assert.throws(() => JSONCParser.parse("@invalid"), /Unexpected character at position/);
   }
 
   @test
   async parseEmptyString() {
-    assert.throws(
-      () => JSONCParser.parse(''),
-      /Unexpected character at position/
-    );
+    assert.throws(() => JSONCParser.parse(""), /Unexpected character at position/);
   }
 
   @test
   async parseObjectMissingColon() {
-    assert.throws(
-      () => JSONCParser.parse('{"key" "value"}'),
-      /Expected ':' at position/
-    );
+    assert.throws(() => JSONCParser.parse('{"key" "value"}'), /Expected ':' at position/);
   }
 
   @test
   async parseCompactArray() {
     // Test array without newlines (single line, covers lines 307-308)
-    const result = JSONCParser.parse('[1,2,3]');
+    const result = JSONCParser.parse("[1,2,3]");
     assert.deepStrictEqual(Array.from(result), [1, 2, 3]);
   }
 
@@ -186,15 +187,15 @@ class JSONCParserTest {
   @test
   async modifyArrayAndPreserveFormat() {
     // Parse, modify, and stringify to test array formatting preservation
-    const parsed = JSONCParser.parse('[1, 2]');
+    const parsed = JSONCParser.parse("[1, 2]");
     parsed.push(3);
     const output = JSONCParser.stringify(parsed);
-    assert.ok(output.includes('3'));
+    assert.ok(output.includes("3"));
   }
 
   @test
   async arrayPop() {
-    const parsed = JSONCParser.parse('[1, 2, 3]');
+    const parsed = JSONCParser.parse("[1, 2, 3]");
     const value = parsed.pop();
     assert.strictEqual(value, 3);
     assert.strictEqual(parsed.length, 2);
@@ -202,7 +203,7 @@ class JSONCParserTest {
 
   @test
   async arrayShift() {
-    const parsed = JSONCParser.parse('[1, 2, 3]');
+    const parsed = JSONCParser.parse("[1, 2, 3]");
     const value = parsed.shift();
     assert.strictEqual(value, 1);
     assert.strictEqual(parsed.length, 2);
@@ -210,7 +211,7 @@ class JSONCParserTest {
 
   @test
   async arrayUnshift() {
-    const parsed = JSONCParser.parse('[2, 3]');
+    const parsed = JSONCParser.parse("[2, 3]");
     parsed.unshift(1);
     assert.strictEqual(parsed[0], 1);
     assert.strictEqual(parsed.length, 3);
@@ -218,33 +219,33 @@ class JSONCParserTest {
 
   @test
   async arraySplice() {
-    const parsed = JSONCParser.parse('[1, 2, 3, 4]');
+    const parsed = JSONCParser.parse("[1, 2, 3, 4]");
     const removed = parsed.splice(1, 2, 10, 20);
     assert.deepStrictEqual(removed, [2, 3]);
     assert.deepStrictEqual(Array.from(parsed), [1, 10, 20, 4]);
     const output = JSONCParser.stringify(parsed);
-    assert.ok(output.includes('10'));
-    assert.ok(output.includes('20'));
-    assert.ok(!output.includes('2') || output.includes('20'));
+    assert.ok(output.includes("10"));
+    assert.ok(output.includes("20"));
+    assert.ok(!output.includes("2") || output.includes("20"));
   }
 
   @test
   async parseEmptyArray() {
     // Covers lines 277-279 (empty array formatting)
-    const result = JSONCParser.parse('[]');
+    const result = JSONCParser.parse("[]");
     assert.strictEqual(result.length, 0);
   }
 
   @test
   async parseEmptyObject() {
-    const result = JSONCParser.parse('{}');
+    const result = JSONCParser.parse("{}");
     assert.deepStrictEqual(result, {});
   }
 
   @test
   async parseArrayWithNewlines() {
     // Parse array with newlines to ensure proper formatting detection
-    const result = JSONCParser.parse('[\n  1,\n  2,\n  3\n]');
+    const result = JSONCParser.parse("[\n  1,\n  2,\n  3\n]");
     assert.deepStrictEqual(Array.from(result), [1, 2, 3]);
   }
 

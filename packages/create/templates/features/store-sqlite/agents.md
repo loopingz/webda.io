@@ -1,0 +1,1 @@
+Data lives in the SQLite file `./.webda/app.sqlite` (ignored by git, created on first run; Node >= 22.13 for `node:sqlite`). Delete the file to reset the data. Tables are created automatically. `Webda/SQLiteQueue` and `Webda/SQLitePubSub` can share the same file.

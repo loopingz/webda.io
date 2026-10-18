@@ -65,7 +65,7 @@ export type PolicyRow = [sub: string, op: string, eft: "allow" | "deny", cond: s
  */
 export type AttachmentRow = [principal: string, sub: string];
 
-const PRINCIPAL = /^(user:.+|group:.+|authenticated|anonymous)$/;
+const PRINCIPAL = /^(user:.+|group:.+|app:.+|app-group:.+|app-issuer:.+|authenticated|authenticated-app|anonymous)$/;
 
 /**
  * @param name - the policy name
@@ -77,7 +77,8 @@ export function policySubject(name: string): string {
 
 /**
  * @param principal - the principal
- * @returns true for `user:<id>`, `group:<name>`, `authenticated` or `anonymous`
+ * @returns true for `user:<id>`, `group:<name>`, `app:<name>`, `app-group:<name>`, `app-issuer:<issuer>`,
+ * `authenticated`, `authenticated-app` or `anonymous`
  */
 export function isValidPrincipal(principal: string): boolean {
   return typeof principal === "string" && PRINCIPAL.test(principal);

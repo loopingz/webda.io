@@ -7,10 +7,12 @@ import * as is from "typescript/unstable/ast/is";
 import { openSession, type Session } from "./context.ts";
 import {
   buildBehaviorActions,
+  buildModelAliases,
   buildCapabilities,
   buildModelActions,
   buildModelPrimaryKey,
   buildModelPrimaryKeySeparator,
+  buildModelShared,
   buildCommands,
   generateWebdaModule,
   getPlural,
@@ -114,6 +116,107 @@ describe("module metadata on a fixture", () => {
     expect(named.own).toEqual({});
   });
 
+  it("records @Shared methods with their source and allowlisted imports", () => {
+    const { methods, errors } = buildModelShared(session.ctx, classOf(session, "shared.ts", "Invoice"), {
+      modelName: "Fixture/Invoice",
+      sharedImports: ["./helpers.js"]
+    });
+    expect(errors).toEqual([]);
+    expect(Object.keys(methods)).toEqual([
+      "isOverdue",
+      "total",
+      "minimum",
+      "label",
+      "withType",
+      "toProxy",
+      "sortByDue",
+      "shorthand"
+    ]);
+    expect(methods.isOverdue).toEqual({
+      source:
+        "isOverdue(now: Date = new Date()): boolean {\n" +
+        '    const late = this.status === "open" && this.due.getTime() < now.getTime();\n' +
+        "    return late && this.total() > Math.max(0, Invoice.minimum());\n" +
+        "  }"
+    });
+    expect(methods.minimum).toEqual({ static: true, source: "static minimum(): number {\n    return 0;\n  }" });
+    expect(methods.label.imports).toEqual({ "./helpers.js": ["formatDate"] });
+    expect(methods.withType.imports).toEqual({ "./helpers.js": ["Money"] });
+    expect(methods.sortByDue.static).toBe(true);
+    expect(methods.toProxy.imports).toBeUndefined();
+    // The decorator is stripped, the JSDoc with it
+    expect(methods.isOverdue.source.startsWith("isOverdue(")).toBe(true);
+  });
+
+  it("fails an impure @Shared method with the offending identifier and module", () => {
+    const { methods, errors } = buildModelShared(session.ctx, classOf(session, "shared.ts", "Impure"), {
+      modelName: "Fixture/Impure",
+      sharedImports: ["./helpers.js"]
+    });
+    expect(Object.keys(methods)).toHaveLength(7);
+    expect(errors).toEqual([
+      `Fixture/Impure.usesContext is @Shared but references 'useContext' from "./decorators.js"`,
+      "Fixture/Impure.usesLocal is @Shared but references 'helper' declared in src/shared.ts",
+      "Fixture/Impure.usesLocal is @Shared but references 'RATE' declared in src/shared.ts",
+      "Fixture/Impure.usesSave is @Shared but references 'this.save()' which is not @Shared",
+      "Fixture/Impure.usesAction is @Shared but references 'this.action()' which is not @Shared",
+      "Fixture/Impure.usesUnknownStatic is @Shared but references 'Impure.nope()' which is not @Shared",
+      "Fixture/Impure.usesSuper is @Shared but references 'super'",
+      "Fixture/Impure.usesUnresolved is @Shared but references 'notDeclaredAnywhere' which cannot be resolved"
+    ]);
+    // A module outside the allowlist is named
+    const strict = buildModelShared(session.ctx, classOf(session, "shared.ts", "Invoice"), {
+      modelName: "Fixture/Invoice",
+      sharedImports: []
+    });
+    expect(strict.errors).toEqual([
+      `Fixture/Invoice.label is @Shared but references 'formatDate' from "./helpers.js"`,
+      `Fixture/Invoice.withType is @Shared but references 'Money' from "./helpers.js"`
+    ]);
+  });
+
+  it("accepts default, renamed and namespace imports, accessors, parameter properties and labels", () => {
+    const { methods, errors } = buildModelShared(session.ctx, classOf(session, "shared-edge.ts", "Edges"), {
+      modelName: "Fixture/Edges",
+      sharedImports: ["./helpers.js", "./default.js"]
+    });
+    expect(Object.keys(methods)).toEqual(["imports", "members", "locals", "impure"]);
+    // A qualified type name (`helpers.Money`) is the namespace import
+    expect(methods.imports.imports).toEqual({
+      "./default.js": ["default as fixtureDefault"],
+      "./helpers.js": ["* as helpers", "formatDate as fmt"]
+    });
+    // No return type annotation, and a parameter decorator is not a reference
+    expect(methods.imports.source.startsWith("imports(money: helpers.Money) {")).toBe(true);
+    expect(methods.members.imports).toBeUndefined();
+    // Only `impure` fails: getter, setter, parameter property, a local type,
+    // `undefined` and labels are all allowed
+    expect(errors).toEqual([
+      "Fixture/Edges.impure is @Shared but references 'this.missing' which is not declared on the model",
+      `Fixture/Edges.impure is @Shared but references 'Day' from "an unknown module"`,
+      // Named like a standard library file, but not shipped by typescript
+      "Fixture/Edges.impure is @Shared but references 'FIXTURE_GLOBAL' declared in src/globals/lib.fixture.d.ts",
+      `Fixture/Edges.impure is @Shared but references 'process' from "@types/node"`
+    ]);
+  });
+
+  it("rejects index-signature members and reads anonymous classes", () => {
+    expect(
+      buildModelShared(session.ctx, classOf(session, "shared-edge.ts", "Indexed"), {
+        modelName: "Fixture/Indexed",
+        sharedImports: []
+      }).errors
+    ).toEqual([
+      "Fixture/Indexed.dynamic is @Shared but references 'this.anything' which is neither an attribute nor a @Shared method"
+    ]);
+    const sf = session.ctx.sourceFiles.find(f => f.fileName.endsWith("shared-edge.ts"))!;
+    const anonymous = sf.statements.find((s): s is ClassDeclaration => is.isClassDeclaration(s) && !s.name)!;
+    expect(buildModelShared(session.ctx, anonymous, { modelName: "Fixture/Default", sharedImports: [] })).toEqual({
+      methods: { anonymous: { source: "anonymous(): number {\n    return 1;\n  }" } },
+      errors: []
+    });
+  });
+
   it("keys model actions by the @Action name option and records the method as handler", () => {
     expect(buildModelActions(session.ctx, classOf(session, "actions.ts", "Jobs"))).toEqual({
       status: { description: "Report", handler: "statusAction" },
@@ -209,6 +312,31 @@ describe("module with a duplicated name", () => {
   });
 });
 
+describe("module model aliases", () => {
+  it("collects every @WebdaAlias, completes the namespace and refuses an alias naming another model", () => {
+    const dir = join(here, "..", "test", "alias-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const { module, errors } = generateWebdaModule(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Garden"
+      });
+      expect(module.models["Garden/Plant"].Aliases).toEqual(["Garden/Flora", "Legacy/Greenery"]);
+      // No tag, no key: committed modules stay byte-identical
+      expect(module.models["Garden/Tree"]).not.toHaveProperty("Aliases");
+      expect(module.models["Garden/Shrub"].Aliases).toEqual(["Garden/Tree"]);
+      expect(errors.filter(error => error.includes("@WebdaAlias"))).toEqual([
+        "Garden/Shrub: @WebdaAlias Garden/Tree is the identifier of another model"
+      ]);
+      expect(buildModelAliases(classOf(session, "garden.model.ts", "Tree"), "Garden")).toEqual([]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
 /**
  * Committed module of a package, when its dependencies are installed.
  * @param relative - repo-relative package directory
@@ -246,6 +374,7 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
       expect(JSON.stringify(got.Actions), `${name} Actions`).toBe(JSON.stringify(entry.Actions));
       expect(JSON.stringify(got.Events), `${name} Events`).toBe(JSON.stringify(entry.Events));
       expect(JSON.stringify(got.PrimaryKey), `${name} PrimaryKey`).toBe(JSON.stringify(entry.PrimaryKey));
+      expect(JSON.stringify(got.Shared), `${name} Shared`).toBe(JSON.stringify(entry.Shared));
     }
   });
 

@@ -1,4 +1,3 @@
-
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { deepFreeze } from "./freeze.js";

@@ -1,0 +1,62 @@
+{
+  "name": "@webda/bench",
+  "version": "4.0.0-beta.11",
+  "description": "Benchmark framework for Webda abstractions: Store, Queue and Pub/Sub suites shared by every backend",
+  "keywords": [
+    "webda",
+    "benchmark",
+    "performance"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/bench"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "bin": {
+    "webda-bench": "lib/bin/webda-bench.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "pretest": "tsc",
+    "bench": "vitest run --config vitest.bench.config.ts",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
+  },
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/models": "workspace:^",
+    "@webda/workout": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@webda/test": "workspace:*",
+    "@webda/utils": "workspace:^",
+    "skott": "^0.35.8",
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

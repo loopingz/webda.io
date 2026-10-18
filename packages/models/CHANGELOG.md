@@ -1,5 +1,75 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.10...models-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.9...models-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **core:** add slow query logger for WebdaQL ([#244](https://github.com/loopingz/webda.io/issues/244)) ([#903](https://github.com/loopingz/webda.io/issues/903)) ([827781d](https://github.com/loopingz/webda.io/commit/827781d30c843e9e0871416f780730eb8ae0ca5d))
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+  * peerDependencies
+    * @webda/utils bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.8...models-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* **ql:** add NOW() time function with duration offset ([#856](https://github.com/loopingz/webda.io/issues/856)) ([#886](https://github.com/loopingz/webda.io/issues/886)) ([653ecd0](https://github.com/loopingz/webda.io/commit/653ecd05327a02c828cae9c7cac02b34af251f67))
+* **ql:** implement WebdaQL code completion and blog-system search ([#685](https://github.com/loopingz/webda.io/issues/685)) ([#894](https://github.com/loopingz/webda.io/issues/894)) ([b89a8ea](https://github.com/loopingz/webda.io/commit/b89a8ea30a5b436f3152b557e8e51b89340c7623))
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+  * peerDependencies
+    * @webda/ql bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.7...models-v4.0.0-beta.8) (2026-10-12)
+
+
+### Features
+
+* **models:** accept JSON filters in query and iterate ([#883](https://github.com/loopingz/webda.io/issues/883)) ([073ff90](https://github.com/loopingz/webda.io/commit/073ff90993c526023f92eadddc38582a3e58ccfb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/serialize bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+    * @webda/tsc-esm bumped to 4.0.0-beta.8
+  * peerDependencies
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.6...models-v4.0.0-beta.7) (2026-10-11)
 
 

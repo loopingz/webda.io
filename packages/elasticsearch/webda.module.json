@@ -14,7 +14,7 @@
             "description": "Index definition",
             "properties": {
               "dateSplit": {
-                "$ref": "#/definitions/indexes%24%5Bkey%3A%20string%5D%24dateSplit",
+                "$ref": "#/definitions/indexes%24%5Bkey%3A%20string%5D%24dateSplit%232",
                 "description": "Split index by date\n\nFollowing Grafana convention"
               },
               "model": {
@@ -38,7 +38,7 @@
             "description": "Indexes to maintain, the key is the index name",
             "type": "object"
           },
-          "indexes$[key: string]$dateSplit": {
+          "indexes$[key: string]$dateSplit#2": {
             "additionalProperties": false,
             "properties": {
               "attribute": {

@@ -1,5 +1,82 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.10...fs-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.11
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.9...fs-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **bench:** benchmarks for Store, Queue, Pub/Sub and the blog-system application ([#914](https://github.com/loopingz/webda.io/issues/914)) ([#916](https://github.com/loopingz/webda.io/issues/916)) ([aed07ef](https://github.com/loopingz/webda.io/commit/aed07ef3efe25cfd6957eb007a3216e181be7681))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+
+
+### Bug Fixes
+
+* **fs:** FileQueue wakes up on new messages instead of sleeping 10s when empty ([#917](https://github.com/loopingz/webda.io/issues/917)) ([4fe2962](https://github.com/loopingz/webda.io/commit/4fe296204c37a61063d27030ce3c816296c9889a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.10
+    * @webda/compiler bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.8...fs-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.9
+    * @webda/ql bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.7...fs-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* enable strict mode in ql, oci, fs and auth ([#874](https://github.com/loopingz/webda.io/issues/874)) ([dec29f6](https://github.com/loopingz/webda.io/commit/dec29f657429eea40a21f0cae901af1e2c46074d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.6...fs-v4.0.0-beta.7) (2026-10-11)
 
 

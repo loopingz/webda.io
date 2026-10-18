@@ -1,4 +1,3 @@
-
 const COMMENTS = Symbol("comments");
 
 /** Base class for all nodes in a JSONC abstract syntax tree, carrying associated comment metadata. */
@@ -298,7 +297,13 @@ class JSONCProperty extends JSONCNode {
    */
   toString(separator: string = "") {
     return (
-      this[COMMENTS].prefix + this.key.toString() + ":" + this.value.toString() + this[COMMENTS].suffix + separator + this[COMMENTS].endOfLine
+      this[COMMENTS].prefix +
+      this.key.toString() +
+      ":" +
+      this.value.toString() +
+      this[COMMENTS].suffix +
+      separator +
+      this[COMMENTS].endOfLine
     );
   }
 }
@@ -702,22 +707,38 @@ function parseJsoncToTree(jsoncString: string): any {
   }
 
   /**
-   * Parse a numeric literal (integer, optionally negative).
+   * Parse a numeric literal: optional minus, integer part, optional fraction and exponent (JSON number grammar).
    *
    * @returns the parsed number value
    */
   function parseNumber(): JSONCValue {
-    let numStr = "";
+    const start = i;
+    const skipDigits = () => {
+      const from = i;
+      while (i < jsoncString.length && jsoncString[i] >= "0" && jsoncString[i] <= "9") {
+        i++;
+      }
+      return i > from;
+    };
     if (jsoncString[i] === "-") {
-      numStr += "-";
       i++;
     }
-    while (i < jsoncString.length && jsoncString[i] >= "0" && jsoncString[i] <= "9") {
-      numStr += jsoncString[i];
+    let valid = skipDigits();
+    if (valid && jsoncString[i] === ".") {
       i++;
+      valid = skipDigits();
     }
-    // Handle decimals and exponents if needed
-    return new JSONCValue(parseFloat(numStr));
+    if (valid && (jsoncString[i] === "e" || jsoncString[i] === "E")) {
+      i++;
+      if (jsoncString[i] === "+" || jsoncString[i] === "-") {
+        i++;
+      }
+      valid = skipDigits();
+    }
+    if (!valid) {
+      throw new Error(`Invalid number at position ${start}`);
+    }
+    return new JSONCValue(Number(jsoncString.substring(start, i)));
   }
 
   /**

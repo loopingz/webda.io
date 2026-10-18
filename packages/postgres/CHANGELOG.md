@@ -96,6 +96,84 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/postgres-v4.0.0-beta.10...postgres-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+    * @webda/sql bumped to 4.0.0-beta.3
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.11
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/postgres-v4.0.0-beta.9...postgres-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **bench:** benchmarks for Store, Queue, Pub/Sub and the blog-system application ([#914](https://github.com/loopingz/webda.io/issues/914)) ([#916](https://github.com/loopingz/webda.io/issues/916)) ([aed07ef](https://github.com/loopingz/webda.io/commit/aed07ef3efe25cfd6957eb007a3216e181be7681))
+* **sqlite:** SQLiteStore, SQLiteQueue, SQLitePubSub on node:sqlite sharing an extracted @webda/sql layer ([#902](https://github.com/loopingz/webda.io/issues/902)) ([e2cdc49](https://github.com/loopingz/webda.io/commit/e2cdc49da423d623ce82ab02b099653f996485a8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/sql bumped to 4.0.0-beta.2
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.10
+    * @webda/compiler bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/postgres-v4.0.0-beta.8...postgres-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* **postgres:** read and migrate Webda 3 data in place ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#895](https://github.com/loopingz/webda.io/issues/895)) ([2186dc7](https://github.com/loopingz/webda.io/commit/2186dc7f77141e2c1fae72e26d0c08a163f2bca7))
+* **ql:** add NOW() time function with duration offset ([#856](https://github.com/loopingz/webda.io/issues/856)) ([#886](https://github.com/loopingz/webda.io/issues/886)) ([653ecd0](https://github.com/loopingz/webda.io/commit/653ecd05327a02c828cae9c7cac02b34af251f67))
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/ql bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/postgres-v4.0.0-beta.7...postgres-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* beta runtime — Postgres client, Redirect Location, OpenAPI copy, REST query 400, GraphQL names, module paths ([#876](https://github.com/loopingz/webda.io/issues/876)) ([8e62b1f](https://github.com/loopingz/webda.io/commit/8e62b1f1f746d4002093ce17987f1a1325bb3de9))
+* enable strict mode in ql, oci, fs and auth ([#874](https://github.com/loopingz/webda.io/issues/874)) ([dec29f6](https://github.com/loopingz/webda.io/commit/dec29f657429eea40a21f0cae901af1e2c46074d))
+* enable strict mode in ten small packages ([#872](https://github.com/loopingz/webda.io/issues/872)) ([ecad571](https://github.com/loopingz/webda.io/commit/ecad571d67963ea4c35b47ddfafc1b91c2d7b12f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/postgres-v4.0.0-beta.6...postgres-v4.0.0-beta.7) (2026-10-11)
 
 

@@ -7,9 +7,58 @@ import { Context, isWebContext } from "../contexts/icontext.js";
 import { getUuid } from "@webda/utils";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Session } from "./session.js";
-import { useService, useUserResolver } from "../core/hooks.js";
+import { useCertificateResolver, useService, useUserResolver } from "../core/hooks.js";
 import { runAsSystem } from "../contexts/execution.js";
 import { type ModelClass, type Repository, UuidModel } from "@webda/models";
+
+/**
+ * Resolve a Bearer token that is not a {@link TokenService} access token (OIDC workload identity, ...)
+ */
+export interface BearerTokenResolver {
+  /**
+   * @param token - the Bearer token
+   * @param context - the context
+   * @returns a logged stateless session, or undefined when the token is not for this resolver
+   */
+  resolveBearer(token: string, context: Context): Promise<Session | undefined>;
+}
+
+/**
+ * Registered Bearer resolvers, tried in order
+ */
+const bearerResolvers: BearerTokenResolver[] = [];
+
+/**
+ * Register a Bearer resolver, tried after the TokenService access tokens
+ *
+ * Registering the same resolver twice is a no-op
+ * @param resolver - the resolver
+ * @returns a function that unregisters the resolver
+ */
+export function registerBearerResolver(resolver: BearerTokenResolver): () => void {
+  if (!bearerResolvers.includes(resolver)) {
+    bearerResolvers.push(resolver);
+  }
+  return () => unregisterBearerResolver(resolver);
+}
+
+/**
+ * Unregister a Bearer resolver
+ * @param resolver - the resolver
+ */
+export function unregisterBearerResolver(resolver: BearerTokenResolver): void {
+  const index = bearerResolvers.indexOf(resolver);
+  if (index >= 0) {
+    bearerResolvers.splice(index, 1);
+  }
+}
+
+/**
+ * @returns the registered Bearer resolvers
+ */
+export function useBearerResolvers(): readonly BearerTokenResolver[] {
+  return bearerResolvers;
+}
 
 /**
  * Manage load and save of sessions
@@ -29,6 +78,8 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
 
   /**
    * Build a stateless session from an access token (any transport)
+   *
+   * TokenService access tokens first, then each registered {@link BearerTokenResolver}: the first session wins
    * @param context - the context
    * @param token - access token
    * @returns the session, anonymous when the token is invalid
@@ -37,14 +88,91 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
     const session = new Session();
     session.stateless = true;
     const claims = await useService("TokenService").verifyAccess(token);
+    if (!claims && token) {
+      for (const resolver of bearerResolvers) {
+        let resolved: Session | undefined;
+        try {
+          resolved = await resolver.resolveBearer(token, context);
+        } catch (err) {
+          this.log("DEBUG", "Bearer resolver failed", err?.message);
+        }
+        if (resolved) {
+          resolved.stateless = true;
+          return resolved;
+        }
+      }
+    }
     if (claims) {
-      session.login(claims.sub, claims.ident, { provider: claims.provider, amr: claims.amr, mfa: claims.mfa });
+      session.login(claims.sub, claims.ident, {
+        provider: claims.provider,
+        amr: claims.amr,
+        mfa: claims.mfa,
+        mfaVerifications: claims.mfaVerifications
+      });
       session.roles = claims.roles;
       session.refreshFamily = claims.fam;
       session.authAt = claims.authAt;
+      if (typeof claims.scope === "string") {
+        session.scopes = claims.scope.split(" ").filter(Boolean);
+      }
+      if (claims.client_id) {
+        session.clientId = claims.client_id;
+      }
       if (await this.isOutdated(session)) {
         session.logout();
       }
+    }
+    return session;
+  }
+
+  /**
+   * Build a stateless session from the verified client certificate of the request
+   *
+   * Needs a registered certificate resolver (see `registerCertificateResolver`), the session uses the provider
+   * "certificate" and the authentication method "mtls"
+   * @param context - the context
+   * @returns the session, undefined when no verified certificate resolves to a user
+   */
+  async loadFromCertificate(context: Context): Promise<Session | undefined> {
+    const resolver = useCertificateResolver();
+    const cert = isWebContext(context) ? context.getHttpContext()?.getClientCertificate?.() : undefined;
+    if (!resolver || resolver.mode === "factor" || !cert?.verified) {
+      return undefined;
+    }
+    let resolution: Awaited<ReturnType<typeof resolver.resolveCertificate>>;
+    try {
+      resolution = await resolver.resolveCertificate(cert, context);
+    } catch (err) {
+      this.log("WARN", "Cannot resolve the client certificate, certificate ignored", err?.message);
+      return undefined;
+    }
+    if (!resolution) {
+      return undefined;
+    }
+    const session = new Session();
+    session.stateless = true;
+    session.login(resolution.userId, resolution.identId, { provider: "certificate", amr: ["mtls"] });
+    session.roles = resolution.roles;
+    return session;
+  }
+
+  /**
+   * Add the certificate as a request-scoped factor only when it belongs to the session's user.
+   * @param context - request context
+   * @param session - session authenticated by a cookie or Bearer token
+   * @returns the session with the additional factor when it matches
+   */
+  async addCertificateFactor(context: Context, session: Session): Promise<Session> {
+    const resolver = useCertificateResolver();
+    const cert = isWebContext(context) ? context.getHttpContext()?.getClientCertificate?.() : undefined;
+    if (!resolver || !cert?.verified || !session.userId || session.isApplication()) return session;
+    try {
+      const resolution = await resolver.resolveCertificate(cert, context);
+      if (resolution?.userId === session.userId) {
+        session.addTransientAmr("mtls");
+      }
+    } catch (err) {
+      this.log("WARN", "Cannot resolve the client certificate, certificate ignored", err?.message);
     }
     return session;
   }
@@ -137,7 +265,13 @@ export class CookieSessionManager<
     // A Bearer scheme is authoritative: an invalid token yields an anonymous session, never the cookie
     const authorization = context.getHttpContext().getHeader("authorization");
     if (typeof authorization === "string" && /^bearer(\s|$)/i.test(authorization)) {
-      return this.loadFromToken(context, authorization.substring(7).trim());
+      const session = await this.loadFromToken(context, authorization.substring(7).trim());
+      return useCertificateResolver()?.mode === "factor" ? this.addCertificateFactor(context, session) : session;
+    }
+    // A verified client certificate of a known user comes next: an unknown one falls back to the cookie
+    if (useCertificateResolver()?.mode !== "factor") {
+      const certSession = await this.loadFromCertificate(context);
+      if (certSession) return certSession;
     }
     const session = new Session();
     const cookie = await SecureCookie.load(
@@ -155,11 +289,14 @@ export class CookieSessionManager<
     } else {
       Object.assign(session, cookie);
     }
+    // Only bearer sessions carry a token scope: a browser session is never restricted
+    delete session.scopes;
+    delete session.clientId;
     // A password change ends the sessions authenticated before it
     if (await this.isOutdated(session)) {
       session.logout();
     }
-    return session;
+    return useCertificateResolver()?.mode === "factor" ? this.addCertificateFactor(context, session) : session;
   }
 
   /**
@@ -172,18 +309,21 @@ export class CookieSessionManager<
     if (session.stateless) {
       return;
     }
+    const storedSession = session.transientAmr?.length
+      ? Object.assign(new Session(), session, { amr: session.getPersistentAmr() })
+      : session;
     // If store is found session info are stored in db
     if (this.sessionModel) {
       if (await this.sessionModel.exists(session.uuid)) {
         await this.sessionModel.update({
           uuid: session.uuid,
-          session,
+          session: storedSession,
           ttl: Date.now() + this.parameters.cookie.maxAge * 1000
         });
       } else {
         await this.sessionModel.create({
           uuid: session.uuid,
-          session,
+          session: storedSession,
           ttl: Date.now() + this.parameters.cookie.maxAge * 1000
         });
       }
@@ -199,7 +339,7 @@ export class CookieSessionManager<
     SecureCookie.save(
       this.parameters.cookie.name,
       context,
-      session,
+      storedSession,
       SecretString.unwrap(this.parameters.jwt),
       this.parameters.cookie
     );

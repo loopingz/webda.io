@@ -1,7 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import axios from "axios";
-import { Histogram } from "prom-client";
 import { WebdaApplicationTest } from "../test/application.js";
 import { HttpContext } from "../contexts/httpcontext.js";
 import { UnpackedConfiguration } from "../application/iconfiguration.js";

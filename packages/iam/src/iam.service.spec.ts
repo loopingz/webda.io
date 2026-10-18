@@ -5,6 +5,7 @@ import {
   registerOperation,
   registerSchema,
   Service,
+  Session,
   unregisterOperationAuthorizer,
   useApplication,
   useCore,
@@ -160,6 +161,76 @@ class IAMServiceTest extends IAMTest {
     );
     await assert.rejects(
       () => this.call(new IAMContext({ uuid: "u2" }, { status: "draft" }), "Tasks.Update"),
+      WebdaError.Forbidden
+    );
+  }
+
+  /**
+   * Context of an application session
+   * @param principal - the application principal
+   * @param claims - the token claims
+   * @returns the context
+   */
+  appContext(principal: string, claims: Record<string, unknown> = {}): IAMContext {
+    const ctx = new IAMContext(undefined, { status: "draft" });
+    const session = new Session();
+    session.loginApplication({
+      principal,
+      issuer: "https://orders.example.com",
+      subject: `app:${principal}`,
+      groups: ["internal"],
+      claims
+    });
+    ctx.setSession(session);
+    return ctx;
+  }
+
+  @test
+  async applicationPrincipals() {
+    const request = await (this.service as any).buildRequest(
+      this.appContext("orders", { env: "prod" }),
+      "Tasks.Update",
+      {
+        probe: true
+      }
+    );
+    assert.deepStrictEqual(request.principals, [
+      "app:orders",
+      "app-issuer:https://orders.example.com",
+      "app-group:internal",
+      "authenticated-app"
+    ]);
+    assert.strictEqual(request.ctx.user, undefined);
+    assert.strictEqual(request.ctx.application.principal, "orders");
+    assert.strictEqual(request.ctx.application.claims.env, "prod");
+    assert.ok(Object.isFrozen(request.ctx.application.claims));
+    // An application is not "authenticated" (users) nor "anonymous"
+    await assert.rejects(() => this.call(this.appContext("orders"), "Tasks.Update"), WebdaError.Forbidden);
+    await IAMPolicyAttachment.create({ principal: "app:orders", policy: "TaskEditor" } as any);
+    await this.service.reload();
+    await this.call(this.appContext("orders"), "Tasks.Update");
+    await assert.rejects(() => this.call(this.appContext("billing"), "Tasks.Update"), WebdaError.Forbidden);
+  }
+
+  @test
+  async applicationGroupsIssuerAndClaims() {
+    await IAMPolicy.create({
+      name: "ProdApps",
+      statements: [
+        { effect: "allow", operations: ["Tasks.Public"], condition: "r.ctx.application.claims.env == 'prod'" }
+      ]
+    } as any);
+    await IAMPolicyAttachment.create({ principal: "authenticated-app", policy: "ProdApps" } as any);
+    await this.service.reload();
+    await this.call(this.appContext("any", { env: "prod" }), "Tasks.Public");
+    await assert.rejects(() => this.call(this.appContext("any", { env: "dev" }), "Tasks.Public"), WebdaError.Forbidden);
+    await assert.rejects(() => this.call(this.appContext("any"), "Tasks.Update"), WebdaError.Forbidden);
+    await IAMPolicyAttachment.create({ principal: "app-group:internal", policy: "TaskEditor" } as any);
+    await this.service.reload();
+    await this.call(this.appContext("any"), "Tasks.Update");
+    // Users never get the application principals
+    await assert.rejects(
+      () => this.call(new IAMContext({ uuid: "u9" }, { status: "draft" }), "Tasks.Update"),
       WebdaError.Forbidden
     );
   }

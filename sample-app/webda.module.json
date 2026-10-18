@@ -1537,7 +1537,12 @@
       "PrimaryKey": [
         "uuid"
       ],
-      "Identifier": "WebdaDemo/Company"
+      "Identifier": "WebdaDemo/Company",
+      "Shared": {
+        "hasPermission": {
+          "source": "hasPermission(permission: string): boolean {\n    return ((this.permissions ?? []) as string[]).includes(permission);\n  }"
+        }
+      }
     },
     "WebdaDemo/Computer": {
       "Plural": "Computers",
@@ -3074,7 +3079,16 @@
       "PrimaryKey": [
         "uuid"
       ],
-      "Identifier": "WebdaDemo/Project"
+      "Identifier": "WebdaDemo/Project",
+      "Shared": {
+        "displayName": {
+          "source": "displayName(): string {\n    return this.type ? `${this.name} (${this.type})` : this.name;\n  }"
+        },
+        "sortByName": {
+          "static": true,
+          "source": "static sortByName<T extends { name: string }>(projects: T[]): T[] {\n    return [...projects].sort((a, b) => a.name.localeCompare(b.name));\n  }"
+        }
+      }
     },
     "WebdaDemo/Student": {
       "Plural": "Students",
@@ -4226,6 +4240,10 @@
           {
             "attribute": "password",
             "behavior": "Webda/Password"
+          },
+          {
+            "attribute": "mfa",
+            "behavior": "Webda/MFA"
           }
         ],
         "queries": [
@@ -4283,6 +4301,15 @@
         "password": {
           "type": "Password"
         },
+        "mfa": {
+          "type": "MFA"
+        },
+        "_mfaAttempts": {
+          "type": "number"
+        },
+        "_lastMfaAttemptAt": {
+          "type": "number"
+        },
         "displayName": {
           "type": "string"
         },
@@ -4305,7 +4332,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/Password",
+              "WebdaBehavior": "Webda/MFA",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4403,6 +4430,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
+            },
             "company": {
               "ModelLink": "but implies a Cascade delete",
               "description": "Company the user belongs to",
@@ -4431,6 +4466,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "mfa": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Multi-Factor Authentication credentials"
+            },
             "name": {
               "description": "User's display name",
               "type": "string"
@@ -4449,6 +4488,7 @@
             }
           },
           "required": [
+            "_mfaAttempts",
             "company",
             "displayName",
             "images",
@@ -4464,7 +4504,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/Password",
+              "WebdaBehavior": "Webda/MFA",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4475,6 +4515,14 @@
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
+            },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
             },
             "company": {
               "ModelLink": "but implies a Cascade delete",
@@ -4495,6 +4543,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "mfa": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Multi-Factor Authentication credentials"
+            },
             "name": {
               "description": "User's display name",
               "type": "string"
@@ -4510,6 +4562,7 @@
             }
           },
           "required": [
+            "_mfaAttempts",
             "company",
             "displayName",
             "name",
@@ -4523,7 +4576,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/Password",
+              "WebdaBehavior": "Webda/MFA",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4621,6 +4674,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_lastMfaAttemptAt": {
+              "description": "Timestamp (ms) of the last counted MFA attempt",
+              "type": "number"
+            },
+            "_mfaAttempts": {
+              "description": "MFA attempts counted since last success",
+              "type": "number"
+            },
             "company": {
               "ModelLink": "but implies a Cascade delete",
               "description": "Company the user belongs to",
@@ -4649,6 +4710,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "mfa": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Multi-Factor Authentication credentials"
+            },
             "name": {
               "description": "User's display name",
               "type": "string"
@@ -4667,6 +4732,7 @@
             }
           },
           "required": [
+            "_mfaAttempts",
             "company",
             "displayName",
             "images",

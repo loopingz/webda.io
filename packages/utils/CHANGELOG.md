@@ -1,5 +1,35 @@
 # Changelog
 
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.9...utils-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+
+
+### Bug Fixes
+
+* **utils:** parse decimal and exponent numbers in JSONCParser ([#915](https://github.com/loopingz/webda.io/issues/915)) ([f6487b0](https://github.com/loopingz/webda.io/commit/f6487b0c3c5e822e285ad7a97bbf3b9f91b8fb81))
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.8...utils-v4.0.0-beta.9) (2026-10-14)
+
+
+### Features
+
+* **sdk:** typed frontend SDK over REST, GraphQL, gRPC and offline ([#850](https://github.com/loopingz/webda.io/issues/850)) ([#885](https://github.com/loopingz/webda.io/issues/885)) ([4d68a6a](https://github.com/loopingz/webda.io/commit/4d68a6ade4e5a12c3a836979dd04f5184b172b72))
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.7...utils-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.6...utils-v4.0.0-beta.7) (2026-10-11)
 
 

@@ -1,5 +1,41 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.10...cloudevents-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.9...cloudevents-v4.0.0-beta.10) (2026-10-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.8...cloudevents-v4.0.0-beta.9) (2026-10-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.7...cloudevents-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.6...cloudevents-v4.0.0-beta.7) (2026-10-11)
 
 

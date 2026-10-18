@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import yargs, { type Argv, type Options } from "yargs";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { JSONSchema7 } from "json-schema";
-import { isMainModule } from "@webda/tsc-esm";
 import { Application, installConfigurationFactories } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import {
   collectServiceCommands,
+  getCliConfiguration,
   executeServiceCommand,
+  selectOperations,
   type ServiceCommandInfo,
   type ServiceCommandTarget
 } from "../services/servicecommands.js";
@@ -16,6 +18,7 @@ import { getDeploymentUnitServices, mergeDeploymentUnits } from "../application/
 import { DEPLOYER_CAPABILITY } from "../deployers/deployer.js";
 import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
+import { STORE_CAPABILITY } from "../stores/capability.js";
 import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
@@ -562,9 +565,10 @@ const OPTIONAL_COMMANDS: Record<string, string[]> = {
  *
  * @param command - the command typed
  * @param available - top-level commands of the application
+ * @param program - the program name
  * @returns the message, with the package to install when the command ships in one
  */
-export function unknownCommandMessage(command: string, available: string[]): string {
+export function unknownCommandMessage(command: string, available: string[], program: string = "webda"): string {
   const lines = [`Unknown command '${command}'.`];
   const packages = OPTIONAL_COMMANDS[command];
   if (packages) {
@@ -572,7 +576,10 @@ export function unknownCommandMessage(command: string, available: string[]): str
       `'webda ${command}' is provided by ${packages.join(" or ")}: add it to your dependencies (pnpm add -D ${packages[0]}).`
     );
   }
-  lines.push(`Available commands: ${[...new Set(available)].sort().join(", ")}`, "Run 'webda --help' for details.");
+  lines.push(
+    `Available commands: ${[...new Set(available)].sort().join(", ")}`,
+    `Run '${program} --help' for details.`
+  );
   return lines.join("\n");
 }
 
@@ -600,18 +607,54 @@ export function ensureCommandServices(app: Application, services: ServiceCommand
   const appConfig = app.getConfiguration();
   appConfig.services ??= {};
   for (const svc of services) {
-    // Deployers only come from the units of the selected deployment
-    if (isDeployerType(app, svc.type)) {
+    // Deployers only come from the units of the selected deployment, stores only from the configuration
+    if (isDeployerType(app, svc.type) || isStoreType(app, svc.type)) {
       continue;
     }
     const hasProvider =
       Object.values(appConfig.services).some(
-        (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
+        (cfg: any) =>
+          cfg.type === svc.type || cfg.type === svc.type.split("/").pop() || isSubclassType(app, cfg.type, svc.type)
       ) || appConfig.services[svc.name];
     if (!hasProvider) {
       appConfig.services[svc.name] = { type: svc.type };
     }
   }
+}
+
+/**
+ * Whether a configured service type is a subclass of the type declaring a command: it inherits the command, so no
+ * instance of the declaring type is added (e.g. `Loopingz/AuthorizerService extends Webda/Authentication`)
+ *
+ * @param app - the loaded Application
+ * @param type - the configured service type
+ * @param parent - the type declaring the command
+ * @returns true when both classes are known and `type` extends `parent`
+ */
+export function isSubclassType(app: Pick<Application, "getModda">, type: string, parent: string): boolean {
+  if (!type || typeof app.getModda !== "function") {
+    return false;
+  }
+  try {
+    const clazz: any = app.getModda(type);
+    const parentClass: any = app.getModda(parent);
+    return typeof clazz === "function" && typeof parentClass === "function" && clazz.prototype instanceof parentClass;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a service type is a store, from its compiled capabilities
+ *
+ * @param app - the loaded Application
+ * @param type - the service type
+ * @returns true if the type declares the store capability
+ */
+export function isStoreType(app: Pick<Application, "getModules">, type: string): boolean {
+  const modules = app.getModules?.();
+  const entry = modules?.moddas?.[type] ?? modules?.beans?.[type];
+  return (entry?.capabilities ?? []).includes(STORE_CAPABILITY);
 }
 
 /**
@@ -950,20 +993,132 @@ async function runWithWatch(
   await new Promise(() => {});
 }
 
-// Main entry point when run directly
-const isMain = isMainModule(import.meta);
-if (isMain) {
-  const appPath = resolve(process.env.WEBDA_APP_PATH || ".");
+/**
+ * Options of {@link runCli}
+ */
+export interface RunCliOptions {
+  /**
+   * Application folder, the one containing `package.json` and `webda.module.json`
+   *
+   * @default process.env.WEBDA_APP_PATH, then the current directory
+   */
+  appPath?: string;
+  /**
+   * Command-line arguments, without the node executable and the script
+   *
+   * @default process.argv.slice(2)
+   */
+  argv?: string[];
+  /**
+   * Command to run when the arguments name none (no argument, or only options), e.g. `"serve"`
+   *
+   * `--help` and `--version` alone keep showing the global help and version.
+   *
+   * @default webda.cli.defaultCommand of the application package.json
+   */
+  defaultCommand?: string;
+  /**
+   * Program name shown in `--help`
+   *
+   * @default webda.cli.name of the application package.json, then "webda"
+   */
+  name?: string;
+}
+
+/**
+ * Options that print something instead of running a command: no default command is added before them
+ */
+const NO_DEFAULT_COMMAND_OPTIONS = ["--help", "--version"];
+
+/**
+ * Insert the default command when the arguments name none
+ *
+ * A bare word is the command, unless it follows an option taking a value: a global one
+ * (`--service <names>`), or any option when `commands` is given and the word is not one of them
+ * (`--port 3000`). Without `commands`, only arguments that are all options get the default command.
+ *
+ * @param argv - the CLI arguments, the deployment option already extracted
+ * @param defaultCommand - the command to insert, space-separated for a subcommand
+ * @param commands - the top-level commands available, to tell an option value from a command
+ * @returns the arguments to parse
+ */
+export function applyDefaultCommand(argv: string[], defaultCommand?: string, commands?: string[]): string[] {
+  if (!defaultCommand) {
+    return argv;
+  }
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--") {
+      break;
+    }
+    if (NO_DEFAULT_COMMAND_OPTIONS.includes(arg)) {
+      return argv;
+    }
+    if (arg.startsWith("-")) {
+      continue;
+    }
+    if (commands?.includes(arg)) {
+      return argv;
+    }
+    const previous = argv[i - 1];
+    const optionValue =
+      previous?.startsWith("-") &&
+      !previous.includes("=") &&
+      (GLOBAL_OPTIONS_WITH_VALUE.includes(previous) || commands !== undefined);
+    if (!optionValue) {
+      // A command, even an unknown one: let the CLI report it
+      return argv;
+    }
+  }
+  return [...defaultCommand.split(" ").filter(word => word), ...argv];
+}
+
+/**
+ * Run the Webda CLI: load the application, parse the arguments and run the command
+ *
+ * This is what the executable generated by `webdac build` from the `webda.cli` section of the
+ * application package.json runs:
+ *
+ * ```js
+ * #!/usr/bin/env node
+ * import { fileURLToPath } from "node:url";
+ * import { runCli } from "@webda/core/lib/bin/cli.js";
+ * await runCli({ appPath: fileURLToPath(new URL("..", import.meta.url)) });
+ * ```
+ *
+ * The program name and default command come from `webda.cli` (`name`, `defaultCommand`) unless given
+ * in `options`. The command selection of `webda.cli` (`include`, `exclude`) applies to the `webda`
+ * command as well, to the service commands and the operation commands alike, see
+ * {@link collectServiceCommands} and {@link selectOperations}.
+ *
+ * The process exits once the command completes (or fails, or is interrupted by SIGINT/SIGTERM).
+ *
+ * @param options - application folder, arguments, default command and program name
+ * @returns once the command is parsed and started (the process exits when it completes)
+ */
+export async function runCli(options: RunCliOptions = {}): Promise<void> {
+  return runCommandLine(options, true);
+}
+
+/**
+ * Run the CLI
+ *
+ * @param options - application folder, arguments, default command and program name
+ * @param applicationCli - use the program name and default command of the application `webda.cli`
+ *   configuration: true through {@link runCli}, false for the `webda` command
+ */
+async function runCommandLine(options: RunCliOptions, applicationCli: boolean): Promise<void> {
+  const appPath = resolve(options.appPath ?? (process.env.WEBDA_APP_PATH || "."));
+  const rawArgv = options.argv ?? process.argv.slice(2);
   await runWithInstanceStorage({}, async () => {
     // Ensure console output is available before anything else
-    const rawArgv = process.argv.slice(2);
     new ConsoleLogger(useWorkerOutput(), undefined, undefined, resolveLogStream(rawArgv, !!process.stdout.isTTY));
     if (shouldPatchConsole(rawArgv)) {
       patchConsole();
     }
     try {
       // The deployment is applied when loading the application
-      const { deployment, argv: cliArgv } = extractDeploymentArgument(rawArgv);
+      const { deployment, argv: extractedArgv } = extractDeploymentArgument(rawArgv);
       const app = loadApplication(appPath);
       if (deployment) {
         app.setCurrentDeployment(deployment);
@@ -971,8 +1126,23 @@ if (isMain) {
       useInstanceStorage().application = app;
       await app.load();
 
+      // Operation commands, if operations.json exists, selected by webda.cli like the service commands
+      const opsPath = join(appPath, ".webda", "operations.json");
+      let ops: OperationsFile | undefined = existsSync(opsPath)
+        ? JSON.parse(readFileSync(opsPath, "utf-8"))
+        : undefined;
+      const selection = getCliConfiguration(app);
+      const operationIds = ops ? Object.values(ops.operations).map(op => op.id) : [];
+
       // Collect service commands from webda.module.json
-      const serviceCommands = collectServiceCommands(app);
+      const serviceCommands = collectServiceCommands(app, selection, operationIds);
+      if (ops) {
+        const selected = new Set(selectOperations(operationIds, selection));
+        ops = {
+          ...ops,
+          operations: Object.fromEntries(Object.entries(ops.operations).filter(([, op]) => selected.has(op.id)))
+        };
+      }
 
       // Track which command was matched so we know whether to boot Core
       let matchedCommand:
@@ -983,14 +1153,25 @@ if (isMain) {
       // Detect if @webda/compiler is available for --watch support
       let hasCompiler = false;
       try {
-        createRequire(join(resolve(appPath), "package.json")).resolve("@webda/compiler");
+        createRequire(join(appPath, "package.json")).resolve("@webda/compiler");
         hasCompiler = true;
       } catch {
         // @webda/compiler not installed
       }
 
+      const available = [
+        ...Object.keys(serviceCommands).map(name => name.split(" ")[0]),
+        ...(ops ? [...groupOperations(ops.operations).keys()].map(group => group.toLowerCase()) : [])
+      ];
+      const cliConfiguration = applicationCli ? selection : undefined;
+      const cliArgv = applyDefaultCommand(extractedArgv, options.defaultCommand ?? cliConfiguration?.defaultCommand, [
+        ...available,
+        "completion"
+      ]);
+
       // Build the CLI with operations (if available) and service commands
-      const cli = yargs(cliArgv).scriptName("webda").usage("$0 <command> [options]");
+      const program = options.name ?? cliConfiguration?.name ?? "webda";
+      const cli = yargs(cliArgv).scriptName(program).usage("$0 <command> [options]");
 
       // Extracted from raw argv before loading the application; declared here for --help
       cli.option("deployment", {
@@ -1025,11 +1206,8 @@ if (isMain) {
         matchedCommand = { type: "service", name: cmdName, args };
       });
 
-      // Add operation commands if operations.json exists
-      const opsPath = join(resolve(appPath), ".webda", "operations.json");
-      let ops: OperationsFile | undefined;
-      if (existsSync(opsPath)) {
-        ops = JSON.parse(readFileSync(opsPath, "utf-8"));
+      // Add operation commands
+      if (ops) {
         const groups = groupOperations(ops.operations);
         for (const [group, operations] of groups) {
           cli.command(group.toLowerCase(), `${group} operations`, groupY => {
@@ -1069,12 +1247,8 @@ if (isMain) {
       if (!matchedCommand) {
         // yargs reports a missing command or action itself, but accepts an unknown command silently
         const command = String(parsed._[0] ?? "");
-        const available = [
-          ...Object.keys(serviceCommands).map(name => name.split(" ")[0]),
-          ...(ops ? [...groupOperations(ops.operations).keys()].map(group => group.toLowerCase()) : [])
-        ];
         if (command && !available.includes(command)) {
-          console.error(unknownCommandMessage(command, available));
+          console.error(unknownCommandMessage(command, available, program));
         }
         process.exit(1);
       }
@@ -1179,4 +1353,23 @@ if (isMain) {
       process.exit(1);
     }
   });
+}
+
+/**
+ * Whether this module is the script node started, rather than imported by an application executable
+ *
+ * @returns true when run as `node lib/bin/cli.js` (or through the launcher)
+ */
+function isRunDirectly(): boolean {
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    // No script path (node -e, REPL): imported
+    return false;
+  }
+}
+
+// Main entry point when run directly
+if (isRunDirectly()) {
+  await runCommandLine({}, false);
 }

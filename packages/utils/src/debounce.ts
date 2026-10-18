@@ -1,5 +1,3 @@
-
-
 /**
  * Options for debounce behavior
  */
@@ -262,4 +260,3 @@ export function debounce<T extends (...args: any[]) => any>(
 
   return debounced as DebouncedFunction<T>;
 }
-

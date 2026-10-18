@@ -108,8 +108,7 @@
                     "type": "string"
                   }
                 ],
-                "description": "The preferred read preference (ReadPreference.PRIMARY, ReadPreference.PRIMARY_PREFERRED, ReadPreference.SECONDARY, ReadPreference.SECONDARY_PREFERRED, ReadPreference.NEAREST).",
-                "public": true
+                "description": "The preferred read preference (ReadPreference.PRIMARY, ReadPreference.PRIMARY_PREFERRED, ReadPreference.SECONDARY, ReadPreference.SECONDARY_PREFERRED, ReadPreference.NEAREST)."
               },
               "retryWrites": {
                 "default": false,
@@ -227,8 +226,7 @@
                     "type": "string"
                   }
                 ],
-                "description": "The write concern",
-                "public": true
+                "description": "The write concern"
               },
               "wtimeout": {
                 "description": "The write concern timeout.",
@@ -242,11 +240,20 @@
             "public": true,
             "type": "object"
           },
-          "modelAliases": {
-            "additionalProperties": {
-              "type": "string"
+          "typeCheck#2": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
             },
-            "description": "Model Aliases to allow easier rename of Model",
             "type": "object"
           }
         },
@@ -275,25 +282,11 @@
             "description": "Mongo Database Options",
             "see": "https://www.npmjs.com/package/mongodb"
           },
-          "defaultModel": {
-            "default": true,
-            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
-            "type": "boolean"
-          },
-          "forceModel": {
-            "default": false,
-            "description": "If set, Store will ignore the __type",
-            "type": "boolean"
-          },
           "maxGroups": {
             "default": 10000,
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
             "minimum": 1,
             "type": "number"
-          },
-          "modelAliases": {
-            "$ref": "#/definitions/modelAliases",
-            "description": "Model Aliases to allow easier rename of Model"
           },
           "models": {
             "default": [
@@ -322,9 +315,26 @@
               "tlsCertificateKeyFilePassword"
             ]
           },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
           "slowQueryThreshold": {
             "default": 30000,
-            "description": "Slow query threshold",
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
             "type": "number"
           },
           "strict": {
@@ -335,6 +345,10 @@
           "type": {
             "description": "Type of the service",
             "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck%232",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
           },
           "openapi": {
             "type": "object",

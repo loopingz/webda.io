@@ -1,8 +1,15 @@
 import type { ArrayElement } from "@webda/tsc-esm";
 import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
-import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
-import { deserialize, serialize, serializeRaw } from "@webda/serialize";
+import type { Helpers, JSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
+import {
+  deserialize,
+  deserializeRaw,
+  hasSerializer,
+  serialize,
+  serializeRaw,
+  SerializerContext
+} from "@webda/serialize";
 import { AbstractRepository } from "./abstract.js";
 import { Repository, WEBDA_TEST } from "./repository.js";
 
@@ -167,10 +174,16 @@ export class MemoryRepository<
    * @returns serialized object
    */
   serialize(item: InstanceType<T>): string {
-    const typeIdentifier = (item as any)?.constructor?.Metadata?.Identifier;
-    if (!typeIdentifier) {
+    const currentIdentifier = (item as any)?.constructor?.Metadata?.Identifier;
+    if (!currentIdentifier) {
       return serialize(item);
     }
+    // A row loaded with a stored type that did not resolve keeps it: never rewritten to a guess
+    const loadedType = Object.getOwnPropertyDescriptor(item, "__type")?.value;
+    const typeIdentifier =
+      typeof loadedType === "string" && !this.typeResolver().resolveStoredType(loadedType)
+        ? loadedType
+        : currentIdentifier;
     const raw = serializeRaw(item);
     // serializeRaw returns either { value, $serializer } for objects with
     // metadata, or just the raw value for primitives. Models always come back
@@ -215,14 +228,16 @@ export class MemoryRepository<
     let raw: any;
     try {
       raw = JSON.parse(item);
-      if (raw && typeof raw === "object") {
-        typeFromEnvelope = (raw as any).__type;
+      if (raw && typeof raw === "object" && typeof raw.__type === "string") {
+        typeFromEnvelope = raw.__type;
       }
     } catch {
       // Non-JSON or malformed; skip the stamp — instance is still usable.
     }
-    const instance = (this.isPlainRow(raw) ? this.hydratePlainRow(raw) : deserialize(item)) as InstanceType<T>;
-    const stamped = typeFromEnvelope ?? (this.model as any)?.Metadata?.Identifier;
+    const instance = (
+      this.isPlainRow(raw) ? this.hydratePlainRow(raw) : this.deserializeEnvelope(item, raw, typeFromEnvelope)
+    ) as InstanceType<T>;
+    const stamped = this.currentTypeOf(instance, typeFromEnvelope);
     if (stamped) {
       Object.defineProperty(instance, "__type", {
         value: stamped,
@@ -232,6 +247,46 @@ export class MemoryRepository<
       });
     }
     return instance;
+  }
+
+  /**
+   * Deserialize a serializer envelope
+   *
+   * A row written under a model's former identifier (renamed, see `@WebdaAlias`) names a serializer that no longer
+   * exists: it is deserialized with the serializer of the class its `__type` resolves to.
+   * @param item - the stored string
+   * @param raw - the parsed envelope
+   * @param stored - the stored `__type`
+   * @returns the instance
+   */
+  protected deserializeEnvelope(item: string, raw: any, stored?: string): any {
+    const serializerType = raw?.$serializer?.type;
+    if (stored !== undefined && typeof serializerType === "string" && !hasSerializer(serializerType)) {
+      const clazz = this.findModelClass(stored);
+      if (clazz && hasSerializer(clazz)) {
+        return deserializeRaw({
+          ...raw,
+          $serializer: { ...raw.$serializer, type: SerializerContext.globalContext.getSerializer(clazz).type }
+        });
+      }
+    }
+    return deserialize(item);
+  }
+
+  /**
+   * The `__type` to attach to a loaded instance: the current identifier of its class, the stored value when it is
+   * unknown or ambiguous (never rewritten to a guess), the repository model identifier for an untyped row
+   * @param instance - the loaded instance
+   * @param stored - the stored `__type`
+   * @returns the value to attach
+   */
+  protected currentTypeOf(instance: any, stored?: string): string | undefined {
+    const modelIdentifier = (this.model as any)?.Metadata?.Identifier;
+    if (stored === undefined) return modelIdentifier;
+    if (!modelIdentifier) return stored;
+    const resolver = this.typeResolver();
+    if (!resolver.resolveStoredType(stored)) return stored;
+    return resolver.getIdentifier(instance?.constructor) ?? instance?.constructor?.Metadata?.Identifier ?? stored;
   }
 
   /**
@@ -253,30 +308,25 @@ export class MemoryRepository<
   }
 
   /**
-   * Find the class to hydrate a row typed `identifier`: the repository model, one of its transitive subclasses,
-   * or the repository model for one of its ancestors
-   * @param identifier - model identifier
-   * @returns the class, `this.model` when it carries no Metadata, or undefined when unrelated
+   * Find the class to hydrate a row typed `identifier` (a Webda 3 legacy form included): the resolved model when it
+   * is the repository model or one of its transitive subclasses, the repository model for an ancestor type or an
+   * unknown or ambiguous type
+   * @param identifier - stored `__type`
+   * @returns the class, `this.model` when it carries no Metadata, or undefined for an unrelated model
    */
   protected findModelClass(identifier: string): any {
     const root: any = this.model;
     if (!root?.Metadata?.Identifier) {
       return root;
     }
-    const seen = new Set<any>();
-    const queue: any[] = [root];
-    while (queue.length) {
-      const clazz = queue.shift();
-      if (!clazz || seen.has(clazz)) continue;
-      seen.add(clazz);
-      if (clazz.Metadata?.Identifier === identifier) return clazz;
-      queue.push(...(clazz.Metadata?.Subclasses ?? []));
-    }
+    const resolver = this.typeResolver();
+    const resolved: any = resolver.resolveStoredType(identifier);
+    // Unknown or ambiguous with an application resolver: loaded as the repository model, its stored type is kept;
+    // the exact-only fallback (model unknown to the application) keeps refusing what it cannot resolve
+    if (!resolved) return resolver.exactOnly ? undefined : root;
+    if (resolver.family(root).includes(resolved)) return resolved;
     // An ancestor-typed row (e.g. written before an application subclassed the model) is read as this model
-    for (let parent = Object.getPrototypeOf(root); parent && parent !== Function.prototype;) {
-      if (parent.Metadata?.Identifier === identifier) return root;
-      parent = Object.getPrototypeOf(parent);
-    }
+    if (root.prototype instanceof resolved) return root;
     return undefined;
   }
 
@@ -289,7 +339,7 @@ export class MemoryRepository<
    */
   protected hydratePlainRow(raw: any): InstanceType<T> {
     const { __type, ...data } = raw;
-    const clazz: any = __type === undefined ? this.model : this.findModelClass(__type);
+    const clazz: any = typeof __type === "string" ? this.findModelClass(__type) : this.model;
     if (!clazz) {
       throw new Error(`Row of type '${__type}' does not belong to ${(this.model as any)?.Metadata?.Identifier}`);
     }
@@ -304,7 +354,7 @@ export class MemoryRepository<
 
   /**
    * Collect the WebdaQL class-filter identifier list — `this.model`'s
-   * identifier and every transitive descendant carried in `Metadata.Subclasses`.
+   * identifier and every transitive descendant.
    *
    * Returns `undefined` when the model carries no `Metadata` (plain unit-test
    * classes that didn't go through `Application.setModelMetadata`). In that
@@ -316,14 +366,8 @@ export class MemoryRepository<
   protected buildClassFilterIdentifiers(): string[] | undefined {
     const meta: any = (this.model as any)?.Metadata;
     if (!meta?.Identifier) return undefined;
-
-    const ids: string[] = [meta.Identifier];
-    const subclasses: any[] = Array.isArray(meta.Subclasses) ? meta.Subclasses : [];
-    for (const sub of subclasses) {
-      const id = sub?.Metadata?.Identifier;
-      if (typeof id === "string" && !ids.includes(id)) ids.push(id);
-    }
-    return ids;
+    // Metadata.Subclasses lists direct subclasses only: the resolver walks them transitively
+    return this.typeResolver().identifiersOf(this.model);
   }
 
   /**
@@ -417,8 +461,10 @@ export class MemoryRepository<
    * List the storage keys that may belong to this model
    *
    * A storage shared by several models holds foreign entries whose key shape can be invalid for this
-   * repository: they are skipped from the stored envelope `__type` before any parsing. Entries without a
-   * readable stamp (legacy rows, corrupted payloads) are kept so any error on them still surfaces.
+   * repository: they are skipped from the stored `__type` before any parsing. Entries are kept when their stored
+   * `__type` belongs to the model (legacy forms included). Untyped entries, and entries typed as a strict ancestor
+   * of the table root, belong to the table root and its ancestors. Unreadable entries are kept so their error
+   * surfaces.
    * @param ids - class identifiers (model and subclasses), undefined to keep everything
    * @returns the keys to evaluate
    */
@@ -428,12 +474,15 @@ export class MemoryRepository<
     return keys.filter(key => {
       const raw = this.storage.get(key);
       if (typeof raw !== "string") return true;
+      let type: unknown;
       try {
-        const type = JSON.parse(raw)?.__type;
-        return typeof type !== "string" || ids.includes(type);
+        type = JSON.parse(raw)?.__type;
       } catch {
+        // Unreadable: kept so the error surfaces
         return true;
       }
+      // Legacy forms resolve to their model; untyped and ancestor-typed rows belong to the table root and ancestors
+      return this.belongsToModel(typeof type === "string" ? type : undefined);
     });
   }
 
@@ -606,9 +655,13 @@ export class MemoryRepository<
   /** @override */
   async delete<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
-    _conditionField?: K | null,
-    _condition?: any
+    conditionField?: K | null,
+    condition?: any
   ): Promise<void> {
+    if (conditionField) {
+      // Read, check and delete without yielding so the condition acts as an atomic compare-and-delete
+      this.checkCondition(this.getSync(primaryKey), conditionField, condition);
+    }
     this.storage.delete(this.getPrimaryKey(primaryKey).toString());
   }
 

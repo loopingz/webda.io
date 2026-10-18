@@ -1,4 +1,3 @@
-import { DeployerResources, OperationContext } from "@webda/core";
 //import { Deployer } from "@webda/shell";
 
 /**

@@ -1,16 +1,7 @@
 export const VERSION = "4.0.0-beta.1";
 
 // Types
-export type {
-  Delta,
-  Path,
-  Strategy,
-  UnifiedDiff,
-  Conflict,
-  ConflictKind,
-  MergeResult,
-  Resolution
-} from "./types.js";
+export type { Delta, Path, Strategy, UnifiedDiff, Conflict, ConflictKind, MergeResult, Resolution } from "./types.js";
 export type { VersioningConfig } from "./config.js";
 
 // Errors

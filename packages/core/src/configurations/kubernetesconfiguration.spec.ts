@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { mkdirSync, unlinkSync, symlinkSync } from "fs";
 import pkg from "fs-extra";
 import * as path from "path";
-import { useCoreEvents, useDynamicService, useService } from "../index.js";
+import { useCoreEvents, useDynamicService } from "../index.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { getCommonJS } from "@webda/utils";
 const { emptyDirSync, outputFileSync } = pkg;

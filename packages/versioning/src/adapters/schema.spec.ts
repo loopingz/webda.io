@@ -12,8 +12,18 @@ class SchemaAdapterTest {
     });
 
     const base = { items: [{ id: "1", n: 1 }] };
-    const ours = { items: [{ id: "1", n: 1 }, { id: "2", n: 2 }] };
-    const theirs = { items: [{ id: "1", n: 1 }, { id: "3", n: 3 }] };
+    const ours = {
+      items: [
+        { id: "1", n: 1 },
+        { id: "2", n: 2 }
+      ]
+    };
+    const theirs = {
+      items: [
+        { id: "1", n: 1 },
+        { id: "3", n: 3 }
+      ]
+    };
 
     const r = adapter.merge3(base, ours, theirs);
     expect(r.clean).toBe(true);

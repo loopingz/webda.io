@@ -1,9 +1,10 @@
 import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.js";
-import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
+import type { JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/tsc-esm";
 import type { Query as WebdaQLQuery, QueryParameters, AggregationResult } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type { QueryMonitorOptions } from "./monitoring.js";
 import { WEBDA_TEST } from "./repository.js";
 
 /**
@@ -29,6 +30,17 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     separator?: string
   ) {
     super(model, pks, separator);
+  }
+
+  /**
+   * Set the table root on the wrapped repository too: it filters the untyped rows
+   * @param root - the model owning the untyped rows of the storage
+   * @returns this
+   */
+  setTableRoot(root?: ModelClass): this {
+    super.setTableRoot(root);
+    this.repository.setTableRoot(root);
+    return this;
   }
 
   /**
@@ -74,7 +86,12 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       query = (await import("@webda/ql")).bind(query, params);
     }
     await this.emit("Query", { query } as any);
-    const res = await this.repository.query(query);
+    const res = await this.monitor(
+      "query",
+      query,
+      () => this.repository.query(query),
+      r => ({ count: r.results.length, paginated: !!r.continuationToken })
+    );
     await this.emit("Queried", { ...res, query } as any);
     return res;
   }
@@ -89,7 +106,40 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     if (params !== undefined) {
       query = (await import("@webda/ql")).bind(query, params);
     }
-    yield* this.repository.iterate(query);
+    const model = (this.model as any).Metadata?.Identifier ?? this.model.name;
+    const iterator = this.repository.iterate(query)[Symbol.asyncIterator]();
+    let totalDuration = 0;
+    let count = 0;
+    let error: Error | undefined;
+
+    try {
+      while (true) {
+        const start = performance.now();
+        let step: IteratorResult<InstanceType<T>>;
+        try {
+          step = await iterator.next();
+        } catch (err: any) {
+          totalDuration += performance.now() - start;
+          error = err;
+          throw err;
+        }
+        totalDuration += performance.now() - start;
+        if (step.done) {
+          break;
+        }
+        count++;
+        yield step.value;
+      }
+    } finally {
+      this.safeOnQuery({
+        operation: "iterate",
+        model,
+        query,
+        duration: totalDuration,
+        count,
+        error
+      });
+    }
   }
 
   /**
@@ -112,7 +162,13 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       spec = { ...spec, filter: (await import("@webda/ql")).bind(spec.filter, params) as any };
     }
     await this.emit("Aggregate", { query: spec } as any);
-    const res = await this.repository.aggregate(spec);
+    const queryStr = JSON.stringify(spec);
+    const res = await this.monitor(
+      "aggregate",
+      queryStr,
+      () => this.repository.aggregate(spec),
+      r => r.rows.length
+    );
     await this.emit("Aggregated", { query: spec, ...res } as any);
     return res;
   }
@@ -127,6 +183,14 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
 
   /**
+   * Configure monitoring on the event wrapper only (not on the inner repository)
+   * @override
+   */
+  configureMonitoring(options: Partial<QueryMonitorOptions>): void {
+    super.configureMonitoring(options);
+  }
+
+  /**
    * Delete in bulk through the underlying repository
    *
    * Bulk operations emit no per-object event: see {@link Repository.deleteMany}.
@@ -135,7 +199,16 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @returns the number of objects deleted
    */
   async deleteMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
-    return this.repository.deleteMany(statement, params);
+    let bound = typeof statement === "string" ? statement : JSON.stringify(statement);
+    if (typeof statement === "string" && params !== undefined) {
+      bound = (await import("@webda/ql")).bind(statement, params);
+    }
+    return this.monitor(
+      "deleteMany",
+      bound,
+      () => this.repository.deleteMany(statement, params),
+      r => r
+    );
   }
 
   /**
@@ -147,7 +220,16 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @returns the number of objects updated
    */
   async updateMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
-    return this.repository.updateMany(statement, params);
+    let bound = typeof statement === "string" ? statement : JSON.stringify(statement);
+    if (typeof statement === "string" && params !== undefined) {
+      bound = (await import("@webda/ql")).bind(statement, params);
+    }
+    return this.monitor(
+      "updateMany",
+      bound,
+      () => this.repository.updateMany(statement, params),
+      r => r
+    );
   }
 
   /**

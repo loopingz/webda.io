@@ -1,4 +1,4 @@
-import type { ModelMetadata, ModelGraphBinaryDefinition } from "@webda/compiler";
+import type { ModelMetadata } from "@webda/compiler";
 import type { Model, ModelClass } from "@webda/models";
 import type { OmitByTypeRecursive } from "@webda/tsc-esm";
 import type { HttpMethodType } from "../contexts/httpcontext.js";

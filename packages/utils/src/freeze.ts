@@ -1,4 +1,3 @@
-
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze
 /**
  * Recursively freeze an object and all of its nested object/function properties.

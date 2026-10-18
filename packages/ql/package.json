@@ -1,6 +1,6 @@
 {
   "name": "@webda/ql",
-  "version": "4.0.0-beta.6",
+  "version": "4.0.0-beta.8",
   "description": "WebdaQL module",
   "keywords": [
     "webda"
@@ -26,6 +26,7 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
+    "antlr4-c3": "3.1.1",
     "antlr4ts": "0.5.0-alpha.4"
   },
   "devDependencies": {

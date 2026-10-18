@@ -3,6 +3,100 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.10...core-v4.0.0-beta.11) (2026-10-16)
+
+
+### Features
+
+* **core:** apply webda.cli include/exclude to operation commands ([#931](https://github.com/loopingz/webda.io/issues/931)) ([7907541](https://github.com/loopingz/webda.io/commit/7907541c29b4c78c76ff1255a79974ca7e610d62))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.11
+    * @webda/models bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.9...core-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+* **auth:** TLS client certificate (mTLS) authentication ([#834](https://github.com/loopingz/webda.io/issues/834)) ([#899](https://github.com/loopingz/webda.io/issues/899)) ([5bf7996](https://github.com/loopingz/webda.io/commit/5bf7996fb9ac76506f8d1f2311f7e4453159e54e))
+* **core:** add slow query logger for WebdaQL ([#244](https://github.com/loopingz/webda.io/issues/244)) ([#903](https://github.com/loopingz/webda.io/issues/903)) ([827781d](https://github.com/loopingz/webda.io/commit/827781d30c843e9e0871416f780730eb8ae0ca5d))
+* **core:** route aliases in Router ([#684](https://github.com/loopingz/webda.io/issues/684)) ([#908](https://github.com/loopingz/webda.io/issues/908)) ([b5f48f9](https://github.com/loopingz/webda.io/commit/b5f48f98f2ca05846653b1042ffcb930070d7981))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+* **oidc:** @webda/oidc workload identity and trust between applications ([#832](https://github.com/loopingz/webda.io/issues/832)) ([#896](https://github.com/loopingz/webda.io/issues/896)) ([51719bf](https://github.com/loopingz/webda.io/commit/51719bf07b9abcc798c9191c385c4e11365561d4))
+* webda.cli in package.json — command selection, runCli and a generated app executable ([#927](https://github.com/loopingz/webda.io/issues/927)) ([10f68c6](https://github.com/loopingz/webda.io/commit/10f68c658f417cc102cab45f235ca82aa8d6d345))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.10
+    * @webda/models bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+    * @webda/content-mapper bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.8...core-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* **postgres:** read and migrate Webda 3 data in place ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#895](https://github.com/loopingz/webda.io/issues/895)) ([2186dc7](https://github.com/loopingz/webda.io/commit/2186dc7f77141e2c1fae72e26d0c08a163f2bca7))
+* **ql:** add NOW() time function with duration offset ([#856](https://github.com/loopingz/webda.io/issues/856)) ([#886](https://github.com/loopingz/webda.io/issues/886)) ([653ecd0](https://github.com/loopingz/webda.io/commit/653ecd05327a02c828cae9c7cac02b34af251f67))
+* **sdk:** typed frontend SDK over REST, GraphQL, gRPC and offline ([#850](https://github.com/loopingz/webda.io/issues/850)) ([#885](https://github.com/loopingz/webda.io/issues/885)) ([4d68a6a](https://github.com/loopingz/webda.io/commit/4d68a6ade4e5a12c3a836979dd04f5184b172b72))
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.9
+    * @webda/models bumped to 4.0.0-beta.9
+    * @webda/ql bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+    * @webda/content-mapper bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.7...core-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* beta runtime — Postgres client, Redirect Location, OpenAPI copy, REST query 400, GraphQL names, module paths ([#876](https://github.com/loopingz/webda.io/issues/876)) ([8e62b1f](https://github.com/loopingz/webda.io/commit/8e62b1f1f746d4002093ce17987f1a1325bb3de9))
+* enable strict mode in ql, oci, fs and auth ([#874](https://github.com/loopingz/webda.io/issues/874)) ([dec29f6](https://github.com/loopingz/webda.io/commit/dec29f657429eea40a21f0cae901af1e2c46074d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.8
+    * @webda/models bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/tsc-esm bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.6...core-v4.0.0-beta.7) (2026-10-11)
 
 

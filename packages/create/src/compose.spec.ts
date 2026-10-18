@@ -29,6 +29,8 @@ class ComposeTest {
     assert.deepStrictEqual(overlayNames("memory", ["rest"]), []);
     assert.deepStrictEqual(overlayNames("postgres", ["mcp", "rest", "graphql"]), ["store-postgres", "graphql", "mcp"]);
     assert.deepStrictEqual(overlayNames("file", ["grpc"]), ["store-file", "grpc"]);
+    assert.deepStrictEqual(overlayNames("file", ["rest", "grpc"], true), ["store-file", "grpc", "sdk"]);
+    assert.deepStrictEqual(overlayNames("memory", ["rest"], true), ["sdk"]);
   }
 
   @test

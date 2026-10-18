@@ -1,5 +1,4 @@
 import { AbstractService } from "../services/iservice.js";
-import { Configuration } from "../application/iconfiguration.js";
 import { Context, ContextProviderInfo } from "../contexts/icontext.js";
 import { IWebContext } from "../contexts/icontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";

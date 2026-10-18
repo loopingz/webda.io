@@ -1,6 +1,6 @@
 {
   "name": "@webda/cloudevents",
-  "version": "4.0.0-beta.7",
+  "version": "4.0.0-beta.11",
   "description": "Discovery and Subscriptions for CloudEvents",
   "keywords": [
     "cloudevents",

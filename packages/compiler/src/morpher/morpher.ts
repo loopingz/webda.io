@@ -3,7 +3,6 @@ import { updateImports } from "./imports.js";
 import { removeFilterRegistrations } from "./capabilities.js";
 import { useLog, useWorkerOutput } from "@webda/workout";
 import { diffLines } from "diff";
-import { EventEmitter } from "stream";
 
 // Replace all imports
 // Specify after a : the exported name to replace

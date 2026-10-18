@@ -3,72 +3,11 @@ import * as assert from "node:assert";
 import pg from "pg";
 import { AndExpression, escape, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
 import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
-import { EventRepository, MemoryRepository, useModel } from "@webda/core";
+import { EventRepository, MemoryRepository, UpdateConditionFailError, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
 
-/** A model without metadata */
-class Row {
-  uuid: string;
-  [key: string]: any;
-  /**
-   * @param data - initial data
-   */
-  constructor(data?: any) {
-    Object.assign(this, data);
-  }
-}
-
-/** Parent and child models sharing one table */
-class Animal extends Row {
-  static Metadata = { Identifier: "Test/Animal", Subclasses: [] as any[] };
-}
-class Dog extends Animal {
-  static Metadata = { Identifier: "Test/Dog", Subclasses: [] as any[] };
-}
-class Cat extends Animal {
-  static Metadata = { Identifier: "Test/Cat", Subclasses: [] as any[] };
-}
-Animal.Metadata.Subclasses.push(Dog, Cat);
-
-/** Two unrelated models sharing a table */
-class AggA extends Row {
-  static Metadata = { Identifier: "Test/AggA", Subclasses: [] as any[] };
-}
-class AggB extends Row {
-  static Metadata = { Identifier: "Test/AggB", Subclasses: [] as any[] };
-}
-
-/** Rows covering numbers, booleans, strings, missing fields, nulls and type mismatches */
-export const PARITY_ROWS = [
-  { uuid: "r1", n: 1, s: "x", b: true, tags: ["x", 1] },
-  { uuid: "r2", n: 5, s: "abc", b: false, tags: ["y"] },
-  { uuid: "r3" },
-  { uuid: "r4", n: "abc", s: 1, b: "true", tags: "x" },
-  { uuid: "r5", s: null }
-];
-/** Queries whose results must be the same on every store */
-export const PARITY_QUERIES = [
-  "n < 2",
-  "n <= 1",
-  "n = 1",
-  "n != 1",
-  "n > 1",
-  "n >= 5",
-  "n IN [1, 5]",
-  "n = 'abc'",
-  "b = TRUE",
-  "b = FALSE",
-  "b != TRUE",
-  "s = 'x'",
-  "s != 'x'",
-  "s = 1",
-  "s LIKE 'a%'",
-  "s IS NULL",
-  "n IS NOT NULL",
-  "tags CONTAINS 'x'",
-  "n < 2 OR b = TRUE"
-];
+import { AggA, AggB, Animal, Cat, Dog, PARITY_QUERIES, PARITY_ROWS, Row } from "@webda/sql/lib/test";
 
 const params = {
   postgresqlServer: {
@@ -235,6 +174,28 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     assert.deepStrictEqual(await uuids("email IS NULL"), ["missing", "null"]);
     assert.deepStrictEqual(await uuids("email IS NOT NULL"), ["set"]);
     assert.deepStrictEqual(await uuids("email IS NULL AND uuid = 'null'"), ["null"]);
+  }
+
+  /**
+   * A write condition on an absent field (`patch(key, data, field, undefined)`, a compare-and-set that writes the field
+   * once) must match the missing key: rendered as `= NULL` it never matched
+   */
+  @test
+  async writeConditionOnAbsentField() {
+    const repo = this.store!.getRepositories().find(r => r instanceof PostgresRepository)!;
+    await this.store!.getClient().query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, [
+      "a",
+      JSON.stringify({ uuid: "a" })
+    ]);
+    await repo.patch("a", { usedAt: 1 }, "usedAt", undefined);
+    assert.strictEqual((await repo.get("a")).usedAt, 1);
+    // The field is now set: the same compare-and-set fails
+    await assert.rejects(() => repo.patch("a", { usedAt: 2 }, "usedAt", undefined), UpdateConditionFailError);
+    assert.strictEqual((await repo.get("a")).usedAt, 1);
+    await repo.patch("a", { usedAt: 3 }, "usedAt", 1);
+    assert.strictEqual((await repo.get("a")).usedAt, 3);
+    await repo.delete("a", "missing", undefined);
+    assert.strictEqual(await repo.exists("a"), false);
   }
 
   /**
@@ -652,11 +613,24 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveTableMultiModelIgnoresParametersTable() {
+  async resolveTableMultiModelSharesParametersTable() {
+    // As Webda 3: every model of the store lives in `table`, unless `tables` maps it elsewhere
     const store = new PostgresStore("multiTable", {
-      models: ["Webda/OwnerModel", "Webda/User"],
-      table: "idents"
+      models: ["Webda/OwnerModel", "Webda/User", "Webda/Ident"],
+      table: "idents",
+      tables: { "Webda/Ident": "own_idents" }
     });
+    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "idents");
+    assert.strictEqual(store.resolveTable(useModel("Webda/User")), "idents");
+    assert.strictEqual(store.resolveTable(useModel("Webda/Ident")), "own_idents");
+    // Untyped rows of a table belong to the first model stored in it
+    assert.strictEqual(store.resolveTableModel(useModel("Webda/User")), "Webda/OwnerModel");
+    assert.strictEqual(store.resolveTableModel(useModel("Webda/Ident")), "Webda/Ident");
+  }
+
+  @test
+  async resolveTableMultiModelWithoutTableDerivesEach() {
+    const store = new PostgresStore("multiDerived", { models: ["Webda/OwnerModel", "Webda/User"] });
     assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "webda_ownermodel");
     assert.strictEqual(store.resolveTable(useModel("Webda/User")), "webda_user");
   }
@@ -671,11 +645,13 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveTableSingleModelTableIsNotSharedWithFallbackModels() {
-    // Registry-like store: the configured model keeps `table`, a model routed to it as fallback does not
+  async resolveTableIsSharedWithFallbackModels() {
+    // Registry-like store: a model routed to it as fallback is stored in `table`, where Webda 3 wrote it; its untyped
+    // rows still belong to the configured model
     const store = new PostgresStore("fallbackTable", { models: ["Webda/RegistryEntry"], table: "registry" });
     assert.strictEqual(store.resolveTable(useModel("Webda/RegistryEntry")), "registry");
-    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "webda_ownermodel");
+    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "registry");
+    assert.strictEqual(store.resolveTableModel(useModel("Webda/OwnerModel")), "Webda/RegistryEntry");
   }
 
   @test
@@ -683,7 +659,7 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
     // Load the parameters as the application does, so autoCreateTable gets its default (true)
     const store = new PostgresStore(
       "fallbackCreate",
-      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry" })
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"] })
     );
     store.resolve();
     const statements: string[] = [];
@@ -724,7 +700,7 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   async fallbackRepositorySkipsCreateWhenAutoCreateDisabled() {
     const store = new PostgresStore(
       "fallbackNoCreate",
-      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry", autoCreateTable: false })
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], autoCreateTable: false })
     );
     store.resolve();
     const statements: string[] = [];
@@ -811,5 +787,59 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
     const repos = store.getRepositories();
     assert.ok(repos.length >= 1);
     assert.ok(repos.every(r => r instanceof PostgresRepository));
+  }
+
+  @test
+  async repositoryObtainedBeforeInitUsesTheClientOfInit() {
+    const store = new PostgresStore(
+      "earlyRepository",
+      new PostgresParameters().load({ models: ["Webda/OwnerModel"], table: "idents" })
+    );
+    store.resolve();
+    // Store.computeStores() runs from the init() of the first store to initialize and asks every store,
+    // initialized or not, for its repositories: the cached repository predates this store's client
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
+    const statements: string[] = [];
+    store.client = {
+      query: async (q: string) => {
+        statements.push(q);
+        return { rows: [], rowCount: 1 };
+      }
+    } as any;
+    // init() continues with checkTable(): the DDL goes through the repository created above
+    await store.checkTable();
+    assert.strictEqual(statements.length, 1);
+    assert.match(statements[0], /^CREATE TABLE IF NOT EXISTS idents /);
+    await repo.create({ _type: "google" } as any);
+    assert.strictEqual(statements.length, 2);
+    assert.ok(statements[1].startsWith("INSERT INTO idents("));
+  }
+
+  @test
+  async repositoryFollowsTheClientAcrossStopAndInit() {
+    const store = new PostgresStore(
+      "reinitRepository",
+      new PostgresParameters().load({ models: ["Webda/OwnerModel"], table: "idents", autoCreateTable: false })
+    );
+    store.resolve();
+    const statements: { client: string; q: string }[] = [];
+    const fakeClient = (name: string) =>
+      ({
+        query: async (q: string) => {
+          statements.push({ client: name, q });
+          return { rows: [], rowCount: 0 };
+        }
+      }) as any;
+    store.client = fakeClient("first");
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
+    await repo.exists("x");
+    // stop() drops the client and a later init() connects another one: the cached repository must use it
+    await store.stop();
+    store.client = fakeClient("second");
+    await repo.exists("x");
+    assert.deepStrictEqual(
+      statements.map(s => s.client),
+      ["first", "second"]
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { CharStreams, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
+import { CharStreams, CommonTokenStream, RecognitionException, Recognizer } from "antlr4ts";
 import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree/index.js";
 import { WebdaQLLexer } from "./WebdaQLLexer.js";
 import {
@@ -22,6 +22,7 @@ import {
   LikeExpressionContext,
   LimitExpressionContext,
   MetricItemContext,
+  NowFunctionContext,
   NumberLiteralContext,
   OffsetExpressionContext,
   OrLogicExpressionContext,
@@ -53,6 +54,172 @@ import { escapeValue, WebdaQLError } from "./webdaql-string.js";
 type value = boolean | string | number;
 
 /**
+ * A value computed at evaluation time
+ */
+export abstract class DynamicValue {
+  abstract readonly name: string;
+  /**
+   * Resolve dynamic value to a concrete scalar
+   * @returns resolved scalar value
+   */
+  abstract resolve(): value;
+  /**
+   * String representation
+   * @returns WQL string
+   */
+  abstract toString(): string;
+}
+
+/**
+ * Dynamic value representing the current timestamp (in milliseconds since epoch) with an optional duration offset
+ */
+export class NowValue extends DynamicValue {
+  readonly name = "NOW";
+
+  /**
+   * @param offsetMs - offset in milliseconds to add to Date.now()
+   * @param raw - original duration string literal (if parsed from one)
+   */
+  constructor(
+    public readonly offsetMs: number = 0,
+    public readonly raw?: string
+  ) {
+    super();
+  }
+
+  /**
+   * Resolve to current timestamp + offset
+   * @returns timestamp in milliseconds
+   */
+  resolve(): number {
+    return Date.now() + this.offsetMs;
+  }
+
+  /**
+   * String representation of NOW function call
+   * @returns WQL NOW function string
+   */
+  toString(): string {
+    if (this.raw !== undefined && this.raw !== "") {
+      return `NOW('${this.raw}')`;
+    }
+    if (this.offsetMs !== 0) {
+      if (this.offsetMs % 1000 === 0) {
+        return `NOW('${this.offsetMs / 1000}s')`;
+      }
+      return `NOW('${this.offsetMs}ms')`;
+    }
+    return "NOW()";
+  }
+}
+
+/**
+ * Supported duration units and their factor in seconds
+ */
+const DURATION_UNITS: Record<string, number> = {
+  s: 1,
+  sec: 1,
+  secs: 1,
+  second: 1,
+  seconds: 1,
+  m: 60,
+  min: 60,
+  mins: 60,
+  minute: 60,
+  minutes: 60,
+  h: 3600,
+  hr: 3600,
+  hour: 3600,
+  hours: 3600,
+  d: 86400,
+  day: 86400,
+  days: 86400,
+  mo: 86400 * 30,
+  mon: 86400 * 30,
+  month: 86400 * 30,
+  months: 86400 * 30,
+  y: 86400 * 365,
+  yr: 86400 * 365,
+  year: 86400 * 365,
+  years: 86400 * 365,
+  ms: 0.001,
+  msec: 0.001,
+  msecs: 0.001,
+  millisecond: 0.001,
+  milliseconds: 0.001
+};
+
+/**
+ * Parse a duration string or numeric seconds into milliseconds.
+ *
+ * Supports an optional leading sign (`+` or `-`), and composite parts like `1d2h`, `10m`, `30`, `1.5h`.
+ * Numeric inputs are treated as seconds.
+ *
+ * @param input - duration string or numeric seconds
+ * @returns duration offset in milliseconds
+ * @throws {WebdaQLError} if the format or unit is invalid
+ */
+export function parseDurationToMs(input: number | string): number {
+  if (typeof input === "number") {
+    if (!Number.isFinite(input)) {
+      throw new WebdaQLError(`Invalid duration: ${input}`);
+    }
+    return Math.round(input * 1000);
+  }
+  const raw = String(input).trim();
+  if (!raw) {
+    throw new WebdaQLError("Duration value cannot be empty");
+  }
+
+  let sign = 1;
+  let rest = raw;
+  if (rest.startsWith("-")) {
+    sign = -1;
+    rest = rest.slice(1).trim();
+  } else if (rest.startsWith("+")) {
+    rest = rest.slice(1).trim();
+  }
+  if (!rest) {
+    throw new WebdaQLError(`Invalid duration format: ${raw}`);
+  }
+
+  const re = /(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?/g;
+  let totalSeconds = 0;
+  let matched = false;
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+
+  while ((m = re.exec(rest)) !== null) {
+    const skipped = rest.slice(lastIndex, m.index).trim();
+    if (skipped) {
+      throw new WebdaQLError(`Invalid duration format: ${raw}`);
+    }
+    matched = true;
+    lastIndex = re.lastIndex;
+
+    const num = parseFloat(m[1]);
+    const unitStr = m[2];
+    if (unitStr) {
+      const u = unitStr.toLowerCase();
+      const factor = DURATION_UNITS[u];
+      if (factor === undefined) {
+        throw new WebdaQLError(`Unsupported duration unit: ${unitStr}`);
+      }
+      totalSeconds += num * factor;
+    } else {
+      totalSeconds += num;
+    }
+  }
+
+  const trailing = rest.slice(lastIndex).trim();
+  if (!matched || trailing) {
+    throw new WebdaQLError(`Invalid duration format: ${raw}`);
+  }
+
+  return Math.round(sign * totalSeconds * 1000);
+}
+
+/**
  * Kind of statement a query is: a plain filter is an implicit `SELECT` of every field
  */
 export type QueryType = "SELECT" | "DELETE" | "UPDATE";
@@ -63,8 +230,10 @@ export type QueryType = "SELECT" | "DELETE" | "UPDATE";
 export interface Assignment {
   /** Field path (dot-notation for nested attributes) */
   field: string;
-  /** Value to assign */
+  /** Value to assign (evaluated at access time if dynamic) */
   value: value;
+  /** Raw parsed value or DynamicValue */
+  rawValue?: value | DynamicValue;
 }
 
 /**
@@ -327,9 +496,19 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the assignment
    */
   visitAssignment(ctx: AssignmentContext): Assignment {
+    const raw = this.visit(ctx.getChild(2)) as unknown as value | DynamicValue;
+    if (raw instanceof DynamicValue) {
+      return {
+        field: ctx.identifier().text,
+        rawValue: raw,
+        get value(): value {
+          return raw.resolve();
+        }
+      };
+    }
     return {
       field: ctx.identifier().text,
-      value: this.visit(ctx.getChild(2)) as unknown as value
+      value: raw
     };
   }
 
@@ -419,7 +598,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    */
   getComparison(ctx: AndLogicExpressionContext | OrLogicExpressionContext): any[] {
     const res = [];
-    // eslint-disable-next-line prefer-const
+
     let left = ctx.getChild(0);
     let right = ctx.getChild(2);
     if (right instanceof SubExpressionContext) {
@@ -598,6 +777,35 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
+   * Visit a NOW() function call with optional duration offset
+   * @param ctx - the now function context
+   * @returns the NowValue
+   */
+  visitNowFunction(ctx: NowFunctionContext): NowValue {
+    const stringLiteral = ctx.stringLiteral();
+    if (stringLiteral) {
+      const raw = unescapeStringLiteral(stringLiteral.text);
+      const offsetMs = parseDurationToMs(raw);
+      return new NowValue(offsetMs, raw);
+    }
+    const integerLiteral = ctx.integerLiteral();
+    if (integerLiteral) {
+      const seconds = parseInt(integerLiteral.text);
+      return new NowValue(seconds * 1000, integerLiteral.text);
+    }
+    const numberLiteral = ctx.numberLiteral();
+    if (numberLiteral) {
+      const seconds = parseFloat(numberLiteral.text);
+      return new NowValue(Math.round(seconds * 1000), numberLiteral.text);
+    }
+    const parameter = ctx.parameter();
+    if (parameter) {
+      return this.visitParameter(parameter);
+    }
+    return new NowValue(0);
+  }
+
+  /**
    * A `?` or `:name` placeholder reaching evaluation was never bound
    * @param ctx - the parameter context
    * @throws {WebdaQLError} always: use `bind()` or pass the parameters to `query()`
@@ -674,6 +882,10 @@ export abstract class Expression<T = string> {
    * @param depth
    */
   abstract toString(depth?: number): string;
+  /**
+   * Check whether the expression depends on dynamic values (such as NOW())
+   */
+  abstract isDynamic(): boolean;
 }
 
 /**
@@ -704,9 +916,9 @@ export const UNARY_COMPARISON_OPERATORS: readonly ComparisonOperator[] = ["IS NU
  */
 export class ComparisonExpression<T extends ComparisonOperator = ComparisonOperator> extends Expression<T> {
   /**
-   * Right side of the comparison
+   * Right side of the comparison (raw parsed value, possibly DynamicValue)
    */
-  value: value | value[] | null;
+  rawValue: value | (value | DynamicValue)[] | DynamicValue | null;
   /**
    * Attribute to read from the object (split by .)
    */
@@ -714,12 +926,47 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
   /**
    * @param operator - comparison operator
    * @param attribute - dot-notation path to the object property (e.g. `"user.name"`)
-   * @param value - literal value or array of values (for IN operator) to compare against
+   * @param rawValue - literal value, DynamicValue, or array of values (for IN operator) to compare against
    */
-  constructor(operator: T, attribute: string, value: value | any[] | null) {
+  constructor(operator: T, attribute: string, rawValue: value | any[] | DynamicValue | null) {
     super(operator);
-    this.value = value;
+    this.rawValue = rawValue;
     this.attribute = attribute.split(".");
+  }
+
+  /**
+   * Resolved value at evaluation time
+   * @returns the resolved scalar or array value
+   */
+  get value(): value | value[] | null {
+    if (this.rawValue instanceof DynamicValue) {
+      return this.rawValue.resolve();
+    }
+    if (Array.isArray(this.rawValue)) {
+      return this.rawValue.map(v => (v instanceof DynamicValue ? v.resolve() : v));
+    }
+    return this.rawValue;
+  }
+
+  /**
+   * Set the raw value
+   * @param val - new value
+   */
+  set value(val: value | (value | DynamicValue)[] | DynamicValue | null) {
+    this.rawValue = val;
+  }
+
+  /**
+   * @override
+   */
+  isDynamic(): boolean {
+    if (this.rawValue instanceof DynamicValue) {
+      return true;
+    }
+    if (Array.isArray(this.rawValue)) {
+      return this.rawValue.some(v => v instanceof DynamicValue);
+    }
+    return false;
   }
 
   /**
@@ -792,7 +1039,17 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * @override
    */
   eval(target: any): boolean {
-    const left = ComparisonExpression.getAttributeValue(target, this.attribute);
+    let left = ComparisonExpression.getAttributeValue(target, this.attribute);
+    // WebdaQL has no date literal: a date compared with a string compares as its ISO 8601 form, the way it is
+    // serialized; comparisons with numbers keep the native Date behavior
+    if (
+      left instanceof Date &&
+      !isNaN(left.getTime()) &&
+      this.operator !== "LIKE" &&
+      (typeof this.value === "string" || (Array.isArray(this.value) && this.value.some(v => typeof v === "string")))
+    ) {
+      left = left.toISOString();
+    }
     switch (this.operator) {
       case "=":
         // ignore strong type on purpose
@@ -834,10 +1091,14 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * Serialize a value to its WebdaQL string representation
    *
    * Strings are double-quoted, booleans are uppercased, arrays are bracket-wrapped.
+   * Dynamic values serialize to their canonical function call string (e.g. `NOW('-10m')`).
    * @param value - the value to serialize
    * @returns the serialized string
    */
-  toStringValue(value: value | value[] | null): string {
+  toStringValue(value: value | (value | DynamicValue)[] | DynamicValue | null): string {
+    if (value instanceof DynamicValue) {
+      return value.toString();
+    }
     if (Array.isArray(value)) {
       return `[${value.map(v => this.toStringValue(v)).join(", ")}]`;
     }
@@ -873,7 +1134,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
     if (UNARY_COMPARISON_OPERATORS.includes(this.operator)) {
       return `${this.toStringAttribute()} ${this.toStringOperator()}`;
     }
-    return `${this.toStringAttribute()} ${this.toStringOperator()} ${this.toStringValue(this.value)}`;
+    return `${this.toStringAttribute()} ${this.toStringOperator()} ${this.toStringValue(this.rawValue)}`;
   }
 }
 
@@ -905,6 +1166,13 @@ export abstract class LogicalExpression<T> extends Expression<T> {
       return "( " + this.children.map(c => c.toString(depth + 1)).join(` ${this.operator} `) + " )";
     }
     return this.children.map(c => c.toString(depth + 1)).join(` ${this.operator} `);
+  }
+
+  /**
+   * @override
+   */
+  isDynamic(): boolean {
+    return this.children.some(c => c.isDynamic());
   }
 }
 
@@ -996,6 +1264,13 @@ export class BooleanExpression extends Expression<"TRUE" | "FALSE"> {
   toString(): string {
     return this.operator;
   }
+
+  /**
+   * @override
+   */
+  isDynamic(): boolean {
+    return false;
+  }
 }
 
 /**
@@ -1060,18 +1335,48 @@ function throwingErrorListener(sql: string) {
 }
 
 /**
- * Create a lexer and a parser for a query, both throwing on errors
- * @param sql - the query string
- * @returns the lexer and the parser
+ * Options for creating an ANTLR WebdaQL parser
  */
-function createParser(sql: string): { lexer: WebdaQLLexer; parser: WebdaQLParserParser } {
+export interface CreateParserOptions {
+  /** If true, error listeners that throw on syntax errors are omitted */
+  tolerant?: boolean;
+}
+
+/**
+ * Create a lexer and a parser for a query
+ * @param sql - the query string
+ * @param options - parser options
+ * @returns the lexer, parser and token stream
+ */
+export function createParser(
+  sql: string,
+  options?: CreateParserOptions
+): { lexer: WebdaQLLexer; parser: WebdaQLParserParser; tokens: CommonTokenStream } {
   const lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
   lexer.removeErrorListeners();
-  lexer.addErrorListener(throwingErrorListener(sql));
-  const parser = new WebdaQLParserParser(new CommonTokenStream(lexer));
+  if (!options?.tolerant) {
+    lexer.addErrorListener(throwingErrorListener(sql));
+  }
+  const tokens = new CommonTokenStream(lexer);
+  const parser = new WebdaQLParserParser(tokens);
   parser.removeErrorListeners();
-  parser.addErrorListener(throwingErrorListener(sql));
-  return { lexer, parser };
+  if (!options?.tolerant) {
+    parser.addErrorListener(throwingErrorListener(sql));
+  }
+  return { lexer, parser, tokens };
+}
+
+/**
+ * Create a tolerant lexer and parser that do not throw on syntax errors
+ * @param sql - the query string
+ * @returns the lexer, parser and token stream
+ */
+export function createTolerantParser(sql: string): {
+  lexer: WebdaQLLexer;
+  parser: WebdaQLParserParser;
+  tokens: CommonTokenStream;
+} {
+  return createParser(sql, { tolerant: true });
 }
 
 /**
@@ -1245,6 +1550,14 @@ export class QueryValidator {
    */
   eval(target: any) {
     return this.query.filter.eval(target);
+  }
+
+  /**
+   * Check whether this query's filter contains any dynamic values
+   * @returns true if any child comparison holds a DynamicValue
+   */
+  isDynamic(): boolean {
+    return this.query.filter.isDynamic();
   }
 
   /**
@@ -1546,7 +1859,7 @@ export function stringifyQuery(query: Omit<Query, "toString">): string {
   if (query.type === "DELETE") {
     head = "DELETE";
   } else if (query.type === "UPDATE") {
-    head = `UPDATE SET ${(query.assignments ?? []).map(a => new ComparisonExpression("=", a.field, a.value).toString()).join(", ")}`;
+    head = `UPDATE SET ${(query.assignments ?? []).map(a => new ComparisonExpression("=", a.field, a.rawValue ?? a.value).toString()).join(", ")}`;
   } else if (query.aggregation) {
     const metrics = Object.entries(query.aggregation.metrics).map(([alias, metric]) => {
       if (metric.fn === "COUNT_DISTINCT") {
@@ -1585,7 +1898,7 @@ const FIELD_SEGMENT = /^[A-Za-z0-9_]+$/;
  * @returns the dotted path
  * @throws {WebdaQLError} when a segment is empty or holds anything but letters, digits and `_`
  */
-function checkFieldPath(field: unknown): string {
+export function checkFieldPath(field: unknown): string {
   // Copy first: what is checked is what is printed, whatever the object does on later reads
   const segments = Array.isArray(field) ? snapshot(field) : typeof field === "string" ? field.split(".") : undefined;
   if (!segments?.length || segments.some(segment => typeof segment !== "string" || !FIELD_SEGMENT.test(segment))) {
@@ -1615,6 +1928,9 @@ function snapshot<V>(value: readonly V[]): V[] {
  * @throws {WebdaQLError} for anything but a string, a finite number or a boolean
  */
 function checkScalar(value: unknown): string {
+  if (value instanceof DynamicValue) {
+    return value.toString();
+  }
   if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
     throw new WebdaQLError(`Invalid value in WebdaQL query: ${typeof value}`);
   }
@@ -1654,7 +1970,7 @@ function printExpression(expression: unknown, nested: boolean): string {
   if (expression instanceof ComparisonExpression) {
     const attribute = checkFieldPath(expression.attribute);
     const operator: unknown = expression.operator;
-    const value: unknown = expression.value;
+    const value: unknown = expression.rawValue !== undefined ? expression.rawValue : expression.value;
     if (typeof operator !== "string") {
       throw new WebdaQLError("Invalid operator in WebdaQL query");
     }
@@ -1715,7 +2031,7 @@ export function normalizeQuery(query: Partial<Query>): Query {
     head = `UPDATE SET ${assignments
       .map(a => {
         const field = a?.field;
-        const value = a?.value;
+        const value = a?.rawValue ?? a?.value;
         return `${checkFieldPath(field)} = ${checkScalar(value)}`;
       })
       .join(", ")}`;

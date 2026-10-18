@@ -5,6 +5,7 @@ import * as nodeFs from "node:fs";
 import * as nodeOs from "node:os";
 import * as nodePath from "node:path";
 import { ResourceServiceParameters } from "./resource.service.js";
+import { runWithInstanceStorage } from "../core/instancestorage.js";
 
 /**
  * Unit coverage for the @Route decorators and parameter loading on
@@ -62,13 +63,41 @@ class ResourceUnitTest {
   }
 
   @test
+  async relativeFolderResolvesFromTheApplication() {
+    // An application executable started from another directory serves the application files
+    const mod = await import("./resource.service.js");
+    const appDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-resource-app-"));
+    try {
+      nodeFs.mkdirSync(nodePath.join(appDir, "webui"));
+      const application: any = { getPath: () => appDir };
+      await runWithInstanceStorage({ application }, async () => {
+        const svc: any = new (mod.ResourceService as any)(
+          "ResourceApp",
+          new ResourceServiceParameters().load({ url: "/ui", folder: "./webui" })
+        );
+        svc.resolve();
+        assert.strictEqual(svc._resolved, nodePath.join(appDir, "webui"));
+        assert.strictEqual(svc.fileOnly, false);
+        // An absolute folder is kept
+        const absolute: any = new (mod.ResourceService as any)(
+          "ResourceAbs",
+          new ResourceServiceParameters().load({ url: "/abs", folder: nodePath.join(appDir, "webui") })
+        );
+        absolute.resolve();
+        assert.strictEqual(absolute._resolved, nodePath.join(appDir, "webui"));
+      });
+    } finally {
+      nodeFs.rmSync(appDir, { recursive: true, force: true });
+    }
+  }
+
+  @test
   async serveRoutesAreRegisteredViaDecorator() {
     // Import triggers the decorators on _serve
     const mod = await import("./resource.service.js");
-    const routes: Record<string, any[]> =
-      getMetadata(mod.ResourceService as any)?.["webda.route"] || {};
-    assert.ok(routes["."], "Expected @Route(\".\") on _serve");
-    assert.ok(routes["./{+resource}"], "Expected @Route(\"./{+resource}\") on _serve");
+    const routes: Record<string, any[]> = getMetadata(mod.ResourceService as any)?.["webda.route"] || {};
+    assert.ok(routes["."], 'Expected @Route(".") on _serve');
+    assert.ok(routes["./{+resource}"], 'Expected @Route("./{+resource}") on _serve');
     assert.strictEqual(routes["."][0].openapi.get.operationId, "getResource");
     assert.strictEqual(routes["./{+resource}"][0].openapi.get.operationId, "getResources");
   }
@@ -114,8 +143,12 @@ class ResourceUnitTest {
     );
     const headers: Record<string, string> = {};
     const ctx: any = {
-      setHeader: (k: string, v: string) => { headers[k] = v; },
-      redirect: (url: string) => { headers["Location"] = url; },
+      setHeader: (k: string, v: string) => {
+        headers[k] = v;
+      },
+      redirect: (url: string) => {
+        headers["Location"] = url;
+      },
       getHttpContext: () => ({ getAbsoluteUrl: (suffix: string) => `http://host${suffix}` })
     };
     svc._redirect(ctx);

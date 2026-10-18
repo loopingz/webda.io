@@ -1,7 +1,15 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { createHash } from "crypto";
-import { argumentsSimpleKey, CacheMap, CacheOptions, CacheStorage, createCacheAnnotation, ObjectCache, ProcessCache } from "./cache";
+import {
+  argumentsSimpleKey,
+  CacheMap,
+  CacheOptions,
+  CacheStorage,
+  createCacheAnnotation,
+  ObjectCache,
+  ProcessCache
+} from "./cache";
 import { AsyncLocalStorage } from "async_hooks";
 
 const storage = new AsyncLocalStorage();
@@ -276,7 +284,9 @@ class CacheTest {
     // Objects with toJSON
     const objWithToJSON = {
       value: 123,
-      toJSON() { return { value: this.value }; }
+      toJSON() {
+        return { value: this.value };
+      }
     };
     assert.strictEqual(typeof argumentsHash([objWithToJSON]), "string");
 
@@ -288,7 +298,9 @@ class CacheTest {
 
     // Custom toString (not default Object.prototype.toString)
     class CustomClass {
-      toString() { return "custom"; }
+      toString() {
+        return "custom";
+      }
     }
     assert.strictEqual(typeof argumentsHash([new CustomClass()]), "string");
 
@@ -998,7 +1010,10 @@ class CacheTest {
     const storage: CacheStorage = cacheHost["caches"].get(svc);
     const keys = Array.from(storage.keys());
     // Simple keys are human-readable (no base64 digest)
-    assert.ok(keys.every(k => !k.match(/[A-Za-z0-9+/]{40,}={0,2}$/)), "keys should not look like base64 hashes");
+    assert.ok(
+      keys.every(k => !k.match(/[A-Za-z0-9+/]{40,}={0,2}$/)),
+      "keys should not look like base64 hashes"
+    );
   }
 
   @test

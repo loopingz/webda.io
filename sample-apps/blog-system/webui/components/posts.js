@@ -1,7 +1,7 @@
 import { h } from "https://esm.sh/preact@10.25.4";
 import { useState, useEffect, useRef } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
-import { posts, binaries } from "../api.js";
+import { posts, binaries, ql } from "../api.js";
 import { useDebounced } from "../hooks.js";
 import { HistoryButton } from "./audit.js";
 
@@ -354,17 +354,154 @@ function mediaIndicator(p) {
   `;
 }
 
+/**
+ * WebdaQL Search Input with live code completion powered by @webda/ql
+ */
+function QLSearchField({ value, onChange, onSearch, model = "WebdaSample/Post" }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef(null);
+
+  const fetchCompletions = async (text, caret) => {
+    try {
+      const res = await ql.complete(text, caret, model);
+      if (res?.items?.length) {
+        setSuggestions(res.items);
+        setShowDropdown(true);
+        setActiveIndex(0);
+      } else {
+        setSuggestions([]);
+        setShowDropdown(false);
+      }
+    } catch {
+      setSuggestions([]);
+      setShowDropdown(false);
+    }
+  };
+
+  const applySuggestion = (item) => {
+    if (!item) return;
+    const input = inputRef.current;
+    const current = value || "";
+    const [start, end] = item.range;
+    const nextVal = current.slice(0, start) + item.insertText + current.slice(end);
+    onChange(nextVal);
+    const nextCaret = start + item.insertText.length;
+    setShowDropdown(false);
+    setSuggestions([]);
+    setTimeout(() => {
+      if (input) {
+        input.focus();
+        input.setSelectionRange(nextCaret, nextCaret);
+        fetchCompletions(nextVal, nextCaret);
+      }
+    }, 10);
+  };
+
+  const handleInput = (e) => {
+    const val = e.target.value;
+    const caret = e.target.selectionStart ?? val.length;
+    onChange(val);
+    fetchCompletions(val, caret);
+  };
+
+  const handleKeyDown = (e) => {
+    if (showDropdown && suggestions.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex((prev) => (prev + 1) % suggestions.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        applySuggestion(suggestions[activeIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowDropdown(false);
+        return;
+      }
+    }
+    if (e.key === "Enter") {
+      onSearch();
+    }
+  };
+
+  const handleFocus = (e) => {
+    const caret = e.target.selectionStart ?? (value || "").length;
+    fetchCompletions(value || "", caret);
+  };
+
+  const handleBlur = () => {
+    setTimeout(() => {
+      setShowDropdown(false);
+    }, 200);
+  };
+
+  return html`
+    <div class="ql-search-wrapper">
+      <input
+        ref=${inputRef}
+        class="ql-search-input"
+        placeholder="WebdaQL query (e.g. status = 'published' AND viewCount > 10)..."
+        value=${value}
+        onInput=${handleInput}
+        onKeyDown=${handleKeyDown}
+        onFocus=${handleFocus}
+        onBlur=${handleBlur}
+      />
+      ${showDropdown && suggestions.length > 0 && html`
+        <div class="ql-dropdown">
+          ${suggestions.map((item, idx) => html`
+            <div
+              key=${item.label + idx}
+              class="ql-suggestion-item ${idx === activeIndex ? "active" : ""}"
+              onMouseDown=${(e) => {
+                e.preventDefault();
+                applySuggestion(item);
+              }}
+            >
+              <span class="ql-suggestion-label">${item.label}</span>
+              ${item.detail && html`<span class="ql-suggestion-detail">${item.detail}</span>`}
+              <span class="ql-kind-badge ql-kind-${item.kind}">${item.kind}</span>
+            </div>
+          `)}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+const QUICK_QUERIES = [
+  { label: "Published posts", query: "status = 'published'" },
+  { label: "Drafts", query: "status = 'draft'" },
+  { label: "Popular posts", query: "viewCount > 0 ORDER BY viewCount DESC" },
+  { label: "Archived", query: "status = 'archived'" },
+];
+
 export function PostsPanel({ notify }) {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
-  const filter = useDebounced(search);
+  const [qlQuery, setQlQuery] = useState("");
+  const [mode, setMode] = useState("ql"); // "ql" | "text"
+  const debouncedSearch = useDebounced(search);
+  const debouncedQl = useDebounced(qlQuery);
   const [editing, setEditing] = useState(null); // null | "new" | post object
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await posts.list(filter);
+      const q = mode === "ql" ? qlQuery : "";
+      const textFilter = mode === "text" ? debouncedSearch : "";
+      const res = await posts.list(textFilter, q);
       setItems(res?.results || []);
     } catch (e) {
       notify(e.message, "error");
@@ -372,7 +509,9 @@ export function PostsPanel({ notify }) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [filter]);
+  useEffect(() => {
+    load();
+  }, [debouncedSearch, debouncedQl, mode]);
 
   const handleSave = async (form) => {
     try {
@@ -406,12 +545,71 @@ export function PostsPanel({ notify }) {
   return html`
     <div>
       <div class="toolbar">
-        <input placeholder="Search posts..." value=${search} onInput=${(e) => setSearch(e.target.value)} />
+        ${mode === "ql" ? html`
+          <${QLSearchField}
+            value=${qlQuery}
+            onChange=${setQlQuery}
+            onSearch=${load}
+            model="WebdaSample/Post"
+          />
+        ` : html`
+          <input
+            placeholder="Search posts..."
+            value=${search}
+            onInput=${(e) => setSearch(e.target.value)}
+          />
+        `}
+        <button
+          class="btn btn-ghost btn-sm"
+          onClick=${() => {
+            if (mode === "ql") {
+              setMode("text");
+              setQlQuery("");
+            } else {
+              setMode("ql");
+              setSearch("");
+            }
+          }}
+          title="Toggle search mode"
+        >
+          ${mode === "ql" ? "Switch to Text Search" : "Switch to WebdaQL"}
+        </button>
+        ${(qlQuery || search) && html`
+          <button
+            class="btn btn-ghost btn-sm"
+            onClick=${() => {
+              setQlQuery("");
+              setSearch("");
+            }}
+          >
+            Clear
+          </button>
+        `}
         <button class="btn btn-primary" onClick=${() => setEditing("new")}>+ New Post</button>
         <button class="btn btn-ghost" onClick=${load}>Refresh</button>
       </div>
+
+      ${mode === "ql" && html`
+        <div class="ql-quick-pills">
+          <span>Quick queries:</span>
+          ${QUICK_QUERIES.map(
+            (p) => html`
+              <button
+                key=${p.label}
+                class="ql-pill"
+                onClick=${() => {
+                  setQlQuery(p.query);
+                }}
+              >
+                ${p.label}
+              </button>
+            `
+          )}
+        </div>
+      `}
+
       ${items.length === 0 ? html`
-        <div class="empty">${loading ? "Loading..." : "No posts yet. Create one!"}</div>
+        <div class="empty">${loading ? "Loading..." : "No posts yet. Create one or adjust your filter!"}</div>
       ` : html`
         <table>
           <thead>
@@ -425,24 +623,38 @@ export function PostsPanel({ notify }) {
             </tr>
           </thead>
           <tbody>
-            ${items.map(p => html`
-              <tr key=${p.slug}>
-                <td>${p.title}</td>
-                <td class="mono">${p.slug}</td>
-                <td>
-                  <span class="badge ${p.status === "published" ? "badge-green" : p.status === "draft" ? "badge-yellow" : "badge-red"}">
-                    ${p.status}
-                  </span>
-                </td>
-                <td>${mediaIndicator(p)}</td>
-                <td>${p.viewCount || 0}</td>
-                <td>
-                  <button class="btn btn-ghost btn-sm" onClick=${() => setEditing(p)}>Edit</button>
-                  <${HistoryButton} model="WebdaSample/Post" objectKey=${p.slug} notify=${notify} />
-                  <button class="btn btn-danger btn-sm" style="margin-left:4px" onClick=${() => handleDelete(p.slug)}>Delete</button>
-                </td>
-              </tr>
-            `)}
+            ${items.map(
+              (p) => html`
+                <tr key=${p.slug}>
+                  <td>${p.title}</td>
+                  <td class="mono">${p.slug}</td>
+                  <td>
+                    <span
+                      class="badge ${p.status === "published"
+                        ? "badge-green"
+                        : p.status === "draft"
+                          ? "badge-yellow"
+                          : "badge-red"}"
+                    >
+                      ${p.status}
+                    </span>
+                  </td>
+                  <td>${mediaIndicator(p)}</td>
+                  <td>${p.viewCount || 0}</td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm" onClick=${() => setEditing(p)}>Edit</button>
+                    <${HistoryButton} model="WebdaSample/Post" objectKey=${p.slug} notify=${notify} />
+                    <button
+                      class="btn btn-danger btn-sm"
+                      style="margin-left:4px"
+                      onClick=${() => handleDelete(p.slug)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              `
+            )}
           </tbody>
         </table>
       `}

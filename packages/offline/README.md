@@ -220,6 +220,86 @@ failed) and `INTERNAL`.
   `Transport` (`pull`, `push`, `snapshot` and an optional `watch`) interfaces. A transport throws a
   `TransportError(status, message)`, with status `0` for network errors.
 
+## Encrypted local replica
+
+`EncryptedStorage` wraps any `StorageAdapter` and encrypts the record data at rest with a random AES-256-GCM data key.
+The data key is stored only wrapped (AES-KW), once per `KeyProvider`. `PasskeyKeyProvider` derives the wrapping key
+from a passkey through the WebAuthn PRF extension, so the replica can only be read after the user verifies with the
+passkey.
+
+```ts
+import {
+  OfflineClient,
+  IndexedDBStorage,
+  EncryptedStorage,
+  PasskeyKeyProvider,
+  HttpTransport
+} from "@webda/offline/client";
+
+const storage = new EncryptedStorage(new IndexedDBStorage("myapp"));
+const provider = new PasskeyKeyProvider({ credentialId, label: "myapp-v1" });
+
+// Prompts the user; the client is created only once the storage is unlocked
+await storage.unlock(provider);
+const client = new OfflineClient({ storage, transport, scopes });
+await client.start();
+
+// When the data is closed (sign-out, idle timeout...)
+client.stop();
+storage.lock();
+```
+
+While the storage is locked reading or writing records fails with an `EncryptedStorageError` (`LOCKED`). Other codes are
+`DECRYPT` (wrong key or tampered data), `NO_KEY` (no wrapped key for this provider), `LAST_PROVIDER` and `RESERVED`
+(the `__encryption.` meta namespace belongs to the storage).
+
+### Registering a passkey
+
+Create the credential with the PRF extension, then keep its credential id (base64url) for the provider:
+
+```ts
+const cred = await navigator.credentials.create({
+  publicKey: {
+    /* rp, user, challenge, pubKeyCredParams... */
+    authenticatorSelection: { userVerification: "required", residentKey: "preferred" },
+    extensions: PasskeyKeyProvider.prfRegistrationExtension("myapp-v1")
+  }
+});
+```
+
+The first `unlock(provider)` on an empty storage generates the data key and wraps it for that provider. The same
+`label` must be used at registration and at every unlock: it is the PRF input and the HKDF `info`.
+
+### Several passkeys
+
+A device can accept several passkeys (a second authenticator, a backup). While unlocked, add or remove providers:
+
+```ts
+await storage.addProvider(new PasskeyKeyProvider({ credentialId: other, label: "myapp-v1" })); // prompts for `other`
+await storage.removeProvider("passkey:" + other);
+await storage.providers(); // ids of the registered providers
+```
+
+`removeProvider` refuses to remove the last provider (`LAST_PROVIDER`), so the data cannot be locked away by mistake.
+
+### Recovery
+
+The local data is a replica of the server. If every provider is lost, nothing can be recovered locally: call
+`storage.clear()` (allowed while locked, it removes the records, the wrapped keys and the sync metadata), register a new passkey,
+`unlock` it and let the client resync.
+
+### Limits
+
+- Only record data is encrypted. Record ids, model references and states (synced, pending, conflicted...) remain readable
+  by anyone with access to the IndexedDB database.
+- The data is in clear in memory while the storage is unlocked. Locking drops the data key, but cannot wipe memory
+  already handed to the application.
+- A `KeyProvider` must return a non-extractable AES-KW `CryptoKey`, so the key-encryption key never leaves the browser's crypto layer.
+- PRF support varies between browsers, platforms and authenticators. Check `await PasskeyKeyProvider.isSupported()`
+  and fall back when it is false, for example to online-only with no local replica. A `false` is not final on every
+  browser, as `unlock` is the authority and throws `PasskeyKeyProviderError` (`PRF_UNSUPPORTED`).
+- A user cancel currently surfaces as the browser's `NotAllowedError`, not as a `PasskeyKeyProviderError`.
+
 ## Limitations
 
 - `_rev` is strictly checked only on `Sync.Push` writes. Concurrent non-push server writes may produce a duplicate

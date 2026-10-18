@@ -1,18 +1,11 @@
-import {
-  EventRepository,
-  InstanceCache,
-  SecretString,
-  useApplication,
-  useCore,
-  useModel,
-  useModelMetadata
-} from "@webda/core";
-import type { ModelClass, Repository } from "@webda/core";
+import { Command, SecretString, useApplication, useCore, useModelMetadata } from "@webda/core";
+import type { MigratableStore, ModelClass } from "@webda/core";
+import type { SQLDialect } from "@webda/sql";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
+import { PostgresDialect } from "./dialect.js";
 import { acquirePool, releasePool } from "./pgpool.js";
 import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js";
-import { useLog } from "@webda/workout";
 
 /*
  * Ideas:
@@ -41,11 +34,6 @@ export class PostgresParameters extends SQLStoreParameters {
    */
   postgresqlServer?: ClientConfig | PoolConfig;
   /**
-   * Auto create table if not exists
-   * @default true
-   */
-  autoCreateTable?: boolean;
-  /**
    * View name prefix
    * @default ""
    * @pattern /^[a-zA-Z_][a-zA-Z0-9_]*$/
@@ -62,24 +50,15 @@ export class PostgresParameters extends SQLStoreParameters {
   views?: string[];
 
   /**
-   * Per-model table name overrides.
-   * Maps a model identifier (e.g. "Webda/User") to a custom table name.
-   * When not specified, defaults are: primary model → `table`, others → identifier lowercased with "/" → "_".
-   */
-  tables?: { [modelIdentifier: string]: string };
-
-  /**
    * @override
    * @param params - raw parameters
    * @returns this
    */
   load(params: any): this {
     super.load(params);
-    this.autoCreateTable ??= true;
     this.usePool ??= false;
     this.viewPrefix ??= "";
     this.views ??= [".*"];
-    this.tables ??= {};
     return this;
   }
 }
@@ -100,29 +79,49 @@ export class PostgresParameters extends SQLStoreParameters {
  *
  * @WebdaModda
  */
-export class PostgresStore<K extends PostgresParameters = PostgresParameters> extends SQLStore<K> {
+export class PostgresStore<K extends PostgresParameters = PostgresParameters>
+  extends SQLStore<K>
+  implements MigratableStore
+{
   client: pg.Client | pg.Pool;
   /**
    * True when {@link client} is a shared pool acquired from the registry.
    * Tracked so {@link stop} only releases pools it took a refcount on.
    */
   protected ownsPool = false;
+
   /**
-   * Pending or completed `CREATE TABLE IF NOT EXISTS` per table name, so each table is
-   * created once even when several repositories share it or statements run concurrently.
+   * @override
    */
-  protected tablesReady = new Map<string, Promise<void>>();
+  protected createDialect(): SQLDialect {
+    return new PostgresDialect();
+  }
+
+  /**
+   * @override
+   */
+  protected createRepository<T extends ModelClass>(
+    model: T,
+    table: string,
+    tableModel: string | undefined
+  ): PostgresRepository<T> {
+    const meta = useModelMetadata(model);
+    const repo: PostgresRepository<T> = new PostgresRepository<T>(
+      model,
+      meta.PrimaryKey,
+      () => this.client,
+      table,
+      meta.PrimaryKeySeparator,
+      () => this.ensureTable(repo),
+      tableModel
+    );
+    return repo;
+  }
 
   /**
    * @override
    */
   async init(): Promise<this> {
-    if (this.parameters.table && (this.parameters.models?.length ?? 0) > 1) {
-      useLog(
-        "WARN",
-        `PostgresStore "${this.getName()}": parameters.table is ignored when more than one model is configured. Use parameters.tables[id] instead.`
-      );
-    }
     if (this.parameters.usePool) {
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
@@ -148,115 +147,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       });
     }
     this.client = undefined as any;
-    this.tablesReady.clear();
     await super.stop();
-  }
-
-  /**
-   * Resolve the table name for a given model class.
-   *
-   * Resolution order:
-   * 1. `parameters.tables[meta.Identifier]` — explicit per-model override
-   * 2. Single-model back-compat: when only one model is configured, `parameters.table` maps to it
-   *    (and to its subclasses) — not to models routed to this store as fallback
-   * 3. Default — model identifier lowercased with "/" replaced by "_"
-   *
-   * @param model - the model class to resolve the table for
-   * @returns the table name
-   */
-  resolveTable(model: ModelClass): string {
-    const meta = useModelMetadata(model);
-    if (!meta) {
-      return this.parameters.table;
-    }
-    // Explicit per-model override
-    if (this.parameters.tables?.[meta.Identifier]) {
-      return this.parameters.tables[meta.Identifier];
-    }
-    // Single-model back-compat: parameters.table maps to the one model and its hierarchy
-    if (
-      this.parameters.models?.length === 1 &&
-      this.parameters.table &&
-      (this.parameters.models[0] === meta.Identifier || this.handleModel(model) >= 0)
-    ) {
-      return this.parameters.table;
-    }
-    // Default derivation
-    return meta.Identifier.toLowerCase().replace(/\//g, "_");
-  }
-
-  /**
-   * The model a table was declared for, owner of the rows written before `__type` stamping:
-   * the configured model of a single-model `table`, otherwise the model itself (its own or explicit table)
-   * @param model - the model class
-   * @returns the model identifier
-   */
-  resolveTableModel(model: ModelClass): string | undefined {
-    const meta = useModelMetadata(model);
-    if (!meta) {
-      return undefined;
-    }
-    if (
-      !this.parameters.tables?.[meta.Identifier] &&
-      this.parameters.models?.length === 1 &&
-      this.parameters.table &&
-      (this.parameters.models[0] === meta.Identifier || this.handleModel(model) >= 0)
-    ) {
-      return this.parameters.models[0];
-    }
-    return meta.Identifier;
-  }
-
-  /**
-   * Stamp `__type` on the rows written before stamping, with the model each table was declared for
-   *
-   * Idempotent: run it once after upgrading, before relying on the class filter of shared tables (rows without
-   * `__type` are read as the table model until then).
-   * @returns the number of rows stamped
-   */
-  async backfillTypes(): Promise<number> {
-    let count = 0;
-    for (const repo of this.getRepositories()) {
-      count += await repo.backfillTypes();
-    }
-    return count;
-  }
-
-  /**
-   * Ensure all managed model tables exist (one per model in the hierarchy).
-   * When `autoCreateTable` is false, this is a no-op.
-   */
-  async checkTable() {
-    if (!this.parameters.autoCreateTable) {
-      return;
-    }
-    // Delegate the per-model DDL to each PostgresRepository.setupTable().
-    // ensureTable deduplicates by table name so shared-table models don't issue redundant DDL.
-    for (const repo of this.getRepositories()) {
-      await this.ensureTable(repo);
-    }
-  }
-
-  /**
-   * Ensure the table backing a repository exists, once per table name.
-   * Repositories await it before their first statement, so models routed to this store
-   * after init (e.g. Registry fallback in Store.computeStores) get their table too.
-   * When `autoCreateTable` is false, this is a no-op.
-   * @param repo - the repository whose table to create
-   */
-  async ensureTable(repo: PostgresRepository<any>): Promise<void> {
-    if (!this.parameters.autoCreateTable) {
-      return;
-    }
-    const table = repo.getTable();
-    let ready = this.tablesReady.get(table);
-    if (!ready) {
-      ready = repo.setupTable();
-      this.tablesReady.set(table, ready);
-      // Allow a retry after a failed creation
-      ready.catch(() => this.tablesReady.get(table) === ready && this.tablesReady.delete(table));
-    }
-    await ready;
   }
 
   /**
@@ -268,53 +159,34 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   }
 
   /**
-   * Build and return a PostgresRepository for the given model, using the
-   * per-model table name resolved by `resolveTable`. The repository ensures its
-   * table exists (see {@link ensureTable}) before its first statement.
-   *
-   * The result is cached per model class via `@InstanceCache`.
-   * @param model - the model class
-   * @returns a repository backed by this store's pg connection
-   */
-  @InstanceCache()
-  getRepository<T extends ModelClass>(model: T): Repository<T> {
-    const meta = useModelMetadata(model);
-    const table = this.resolveTable(model);
-    const inner: PostgresRepository<T> = new PostgresRepository<T>(
-      model,
-      meta.PrimaryKey,
-      this.client as any,
-      table,
-      meta.PrimaryKeySeparator,
-      () => this.ensureTable(inner),
-      this.resolveTableModel(model)
-    );
-    // Wrap in EventRepository so typed CRUD events fire; consumers reach them
-    // via useRepository(model).on(...).
-    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
-  }
-
-  /**
    * Return the underlying PostgresRepository for each model this store manages,
    * unwrapping the EventRepository produced by {@link getRepository}.
    * @returns the per-model PostgresRepository instances
    */
   getRepositories(): PostgresRepository<any>[] {
-    const repos: PostgresRepository<any>[] = [];
-    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
-      let model: ModelClass | undefined;
-      try {
-        model = useModel(modelId);
-      } catch {
-        continue;
-      }
-      if (!model) {
-        continue;
-      }
-      const repo: any = this.getRepository(model);
-      repos.push((repo.repository ?? repo) as PostgresRepository<any>);
-    }
-    return repos;
+    return super.getRepositories() as PostgresRepository<any>[];
+  }
+
+  /**
+   * Rewrite the Webda 3 types of the store to their Webda 4 identifiers
+   * @param dryRun - only count the rows to migrate, write nothing
+   * @param batch - rows per page
+   * @param allowUnknown - exit with 0 even when rows keep an unknown or ambiguous type
+   * @returns the exit code
+   */
+  @Command("migrate", {
+    description: "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+    phase: "initialized"
+  })
+  async migrate(
+    /** @description Only count the rows to migrate, write nothing */
+    dryRun: boolean = false,
+    /** @description Rows per page */
+    batch: number = 500,
+    /** @description Exit with 0 even when rows keep an unknown or ambiguous type */
+    allowUnknown: boolean = false
+  ): Promise<number> {
+    return this.migrateCommand(dryRun, batch, allowUnknown);
   }
 
   /**
@@ -383,26 +255,6 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       } catch (err) {
         this.log("ERROR", err);
       }
-    }
-  }
-
-  /**
-   * Delete all rows from all managed tables (used in tests).
-   */
-  async __clean(): Promise<void> {
-    const tables = new Set<string>([this.parameters.table]);
-    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
-      try {
-        const model = useModel(modelId);
-        if (model) {
-          tables.add(this.resolveTable(model));
-        }
-      } catch {
-        // skip unreachable models
-      }
-    }
-    for (const table of tables) {
-      await this.client.query(`DELETE FROM ${table}`);
     }
   }
 }

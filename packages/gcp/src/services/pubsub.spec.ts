@@ -126,4 +126,37 @@ class GCPPubSubTest extends WebdaApplicationTest {
       /Bad code\?/
     );
   }
+
+  @test
+  async failedMessageIsRedelivered() {
+    const pubsub = this.pubsub;
+    const name = `test-${getMachineId()}-redelivery-${Date.now()}`;
+    this.subscriptions.push(name);
+    vi.spyOn(pubsub, "getSubscriptionName").mockImplementation(() => name);
+    const marker = `redelivery-${Date.now()}`;
+    const deliveries: string[] = [];
+    let consumer: CancelablePromise;
+    await new Promise<void>(resolve => {
+      consumer = pubsub.consume(
+        async (event: any) => {
+          if (event !== marker) return;
+          deliveries.push(event);
+          if (deliveries.length === 1) {
+            throw new Error("First delivery fails");
+          }
+        },
+        undefined,
+        () => resolve()
+      );
+    });
+    await pubsub.sendMessage(<any>marker);
+    // Nacked: delivered again right away, not after the lease extensions (up to 60 minutes)
+    for (let i = 0; i < 40 && deliveries.length < 2; i++) {
+      await this.sleep(250);
+    }
+    const cancelled = assert.rejects(() => consumer, /Cancelled/);
+    await consumer.cancel();
+    await cancelled;
+    assert.strictEqual(deliveries.length >= 2, true, `delivered ${deliveries.length} time(s)`);
+  }
 }

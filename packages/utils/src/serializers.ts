@@ -1,14 +1,4 @@
-import {
-  createReadStream,
-  createWriteStream,
-  existsSync,
-  lstatSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  unlinkSync,
-  writeFileSync
-} from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
@@ -17,6 +7,7 @@ import { useLog } from "@webda/workout";
 import { YAMLProxy } from "./yamlproxy.js";
 import { JSONCParser as JSONC } from "./jsoncparser.js";
 import { dirname } from "node:path";
+import { defaultFileContentStorage } from "./content.js";
 
 /** Options controlling directory traversal behaviour. */
 type WalkerOptionsType = {
@@ -254,14 +245,14 @@ export const FileUtils: StorageFinder & {
    * @override
    */
   getWriteStream: async (path: string) => {
-    return createWriteStream(path);
+    return defaultFileContentStorage.getWriteStream(path);
   },
 
   /**
    * @override
    */
   getReadStream: async (path: string) => {
-    return createReadStream(path);
+    return defaultFileContentStorage.getContent(path);
   },
   /**
    * Synchronously walk the directory tree and call `processor` for each file (or directory if `includeDir` is set).

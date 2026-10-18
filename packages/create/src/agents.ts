@@ -5,6 +5,7 @@ const MARKER = "<!-- WEBDA:APP -->";
 const STORE_LINES: Record<Store, string> = {
   memory: "Store: in memory (`Webda/MemoryStore`), persisted to `.registry` between runs",
   file: "Store: JSON files (`Webda/FileStore`) in `./data`",
+  sqlite: "Store: SQLite (`Webda/SQLiteStore` on node:sqlite), file `./.webda/app.sqlite`",
   mongodb: "Store: MongoDB (`Webda/MongoStore`), connection from `WEBDA_MONGO_URL`",
   postgres:
     "Store: PostgreSQL (`Webda/PostgresStore`), connection from `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`"

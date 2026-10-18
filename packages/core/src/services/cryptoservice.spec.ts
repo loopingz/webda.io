@@ -1,10 +1,10 @@
-import { suite, test, todo } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import jwt from "jsonwebtoken";
-import * as sinon from "sinon";
+import * as jose from "jose";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
-import { JSONUtils, sleep } from "@webda/utils";
+import { JSONUtils } from "@webda/utils";
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
 import * as util from "node:util";
 import {
@@ -74,21 +74,90 @@ class CryptoServiceTest extends WebdaApplicationTest {
   }
 
   @test
-  @todo
   async jwks() {
     const crypto = useCrypto();
-    crypto.getParameters().url = "/jwk";
-    await crypto.resolve().init();
-    const ctx = await this.newContext();
-    await this.execute(ctx, "test.webda.io", "GET", "/jwk");
-    let body = JSON.parse(<string>ctx.getResponseBody());
     this.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
-
-    assert.strictEqual(body.keys.length, 1);
+    // Start from a valid current key whatever the previous tests did
     await crypto.rotate();
-    await this.execute(ctx, "test.webda.io", "GET", "/jwk");
-    body = JSON.parse(<string>ctx.getResponseBody());
-    assert.strictEqual(body.keys.length, 2);
+    const ctx = await this.newContext();
+    await crypto.serveJWKS(ctx);
+    let body = JSON.parse(<string>ctx.getResponseBody());
+    assert.match(String(ctx.getResponseHeaders()["Cache-Control"]), /^public, max-age=\d+$/);
+    const count = body.keys.length;
+    assert.ok(count >= 1);
+    const oldToken = await crypto.jwtSign({ sub: "old" }, { algorithm: "RS256" });
+    await crypto.rotate();
+    const newToken = await crypto.jwtSign({ sub: "new" }, { algorithm: "RS256" });
+    const ctx2 = await this.newContext();
+    await crypto.serveJWKS(ctx2);
+    body = JSON.parse(<string>ctx2.getResponseBody());
+    assert.strictEqual(body.keys.length, count + 1);
+    // The published kid is the one written by jwtSign
+    assert.strictEqual(jose.decodeProtectedHeader(newToken).kid, `A${crypto.current}`);
+    // A third-party library verifies both the old and the new tokens from the published set
+    const keySet = jose.createLocalJWKSet(body);
+    assert.strictEqual((await jose.jwtVerify(oldToken, keySet)).payload.sub, "old");
+    assert.strictEqual((await jose.jwtVerify(newToken, keySet)).payload.sub, "new");
+  }
+
+  @test
+  async jwksNoSymmetricMaterial() {
+    const crypto = useCrypto();
+    this.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
+    await crypto.rotate();
+    const { keys } = crypto.getJWKS();
+    const serialized = JSON.stringify(keys);
+    for (const id of Object.keys(crypto.keys)) {
+      assert.ok(!serialized.includes(crypto.keys[id].symetric), "symmetric key must not be published");
+    }
+    for (const key of keys) {
+      assert.notStrictEqual(key.kty, "oct");
+      assert.strictEqual(key.k, undefined);
+      assert.strictEqual(key.d, undefined, "private part must not be published");
+      assert.strictEqual(key.use, "sig");
+      assert.ok(key.kid.startsWith("A"));
+      // Default algorithm is HS256: no alg advertised
+      assert.strictEqual(key.alg, undefined);
+    }
+    // HS* tokens cannot be verified with the published set
+    const hsToken = await crypto.jwtSign({ sub: "x" });
+    await assert.rejects(() => jose.jwtVerify(hsToken, jose.createLocalJWKSet({ keys } as any)));
+  }
+
+  @test
+  async jwksAlgorithmAndMaxAge() {
+    const crypto = useCrypto();
+    const params = crypto.getParameters();
+    const previous = { ...params.jwt };
+    const lifespan = params.keyActiveLifespan;
+    try {
+      params.jwt.algorithm = "RS256";
+      assert.ok(crypto.getJWKS().keys.every(k => k.alg === "RS256"));
+      params.keyActiveLifespan = undefined;
+      assert.strictEqual(crypto.getJWKSMaxAge(), 600);
+      params.keyActiveLifespan = 24 * 30;
+      assert.strictEqual(crypto.getJWKSMaxAge(), 3600);
+      params.keyActiveLifespan = 0.01;
+      assert.strictEqual(crypto.getJWKSMaxAge(), 60);
+    } finally {
+      params.jwt = previous;
+      params.keyActiveLifespan = lifespan;
+    }
+  }
+
+  @test
+  async jwksUrl() {
+    const crypto = useCrypto();
+    const params: any = crypto.getParameters();
+    const url = params.url;
+    try {
+      params.url = undefined;
+      assert.strictEqual(crypto.getJWKSUrl(), undefined);
+      params.url = "/jwks";
+      assert.strictEqual(crypto.getJWKSUrl(), "/jwks");
+    } finally {
+      params.url = url;
+    }
   }
 
   @test

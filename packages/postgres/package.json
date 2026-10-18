@@ -1,6 +1,6 @@
 {
   "name": "@webda/postgres",
-  "version": "4.0.0-beta.7",
+  "version": "4.0.0-beta.11",
   "description": "Implements Postgres on webda",
   "keywords": [
     "postgres",
@@ -21,6 +21,7 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "vitest run",
+    "bench": "vitest run --config vitest.bench.config.ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
@@ -29,6 +30,7 @@
   "dependencies": {
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
+    "@webda/sql": "workspace:*",
     "@webda/utils": "workspace:*",
     "@webda/workout": "workspace:*",
     "pg": "^8.20.0"
@@ -49,6 +51,7 @@
     "@types/node": "25.5.0",
     "@types/pg": "^8.11.10",
     "@vitest/coverage-v8": "^4.1.2",
+    "@webda/bench": "workspace:*",
     "@webda/compiler": "workspace:^",
     "@webda/test": "workspace:*",
     "jscodeshift": "^17.3.0",

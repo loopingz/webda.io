@@ -7,6 +7,8 @@ import {
   type Model,
   type ModelClass,
   type PrimaryKey,
+  type QueryExecutionInfo,
+  type QueryMonitorOptions,
   type Repository
 } from "@webda/models";
 import { ServiceParameters } from "../services/serviceparameters.js";
@@ -14,10 +16,39 @@ import { Service } from "../services/service.js";
 import * as WebdaQL from "@webda/ql";
 import type { WebdaQLString } from "@webda/ql";
 import { useApplication, useModel, useModelId } from "../application/hooks.js";
-import { useLog } from "../loggers/hooks.js";
+import { useLog, useOutput } from "../loggers/hooks.js";
+import type { WorkerLogLevel } from "@webda/workout";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
-import { InstanceCache } from "../cache/cache.js";
+import { randomUUID } from "node:crypto";
+import { classifyStoredType, UNREADABLE, UNTYPED } from "../application/model-types.js";
+import { useRegistry } from "../models/registry.model.js";
+import {
+  DEFAULT_MIGRATION_BATCH,
+  DEFAULT_TYPE_CHECK_ROWS,
+  DEFAULT_MIGRATION_LEASE,
+  emptyProgress,
+  emptyTableReport,
+  formatMigrationReport,
+  incrementCount,
+  MigrationAlreadyRunning,
+  migrationTotals,
+  scanRawRows,
+  summarizeStoredTypes,
+  MigrationUnsupported,
+  toMigrationProgress,
+  type MigrationContext,
+  type MigrationLease,
+  type MigrationOptions,
+  type MigrationPatcher,
+  type MigrationProgress,
+  type MigrationReport,
+  type RawPage,
+  type RawPatch,
+  type RawTable,
+  type StoredTypeCounts,
+  type TypeCheckSummary
+} from "./migration.js";
 
 /** Error thrown when an item is not found in a store */
 export class StoreNotFoundError extends WebdaError.CodeError {
@@ -248,24 +279,24 @@ export class StoreParameters extends ServiceParameters {
    */
   strict?: boolean;
   /**
-   * When __type model not found, use the model
-   * If strict is setup this parameter is not used
-   *
-   * @default true
-   */
-  defaultModel?: boolean;
-  /**
-   * If set, Store will ignore the __type
-   *
-   * @default false
-   */
-  forceModel?: boolean;
-  /**
-   * Slow query threshold
+   * Duration in ms above which a query is considered slow.
+   * Set to 0 to disable slow query detection.
    *
    * @default 30000
    */
-  slowQueryThreshold: number;
+  slowQueryThreshold?: number;
+  /**
+   * Log level used for slow queries
+   *
+   * @default "WARN"
+   */
+  slowQueryLogLevel?: WorkerLogLevel;
+  /**
+   * Maximum length of the query string written to logs / events (longer queries are truncated)
+   *
+   * @default 1024
+   */
+  slowQueryMaxLength?: number;
   /**
    * What to do when an aggregation on this store cannot run natively and must
    * stream every matching object through memory
@@ -281,16 +312,27 @@ export class StoreParameters extends ServiceParameters {
    */
   maxGroups?: number;
   /**
-   * Model Aliases to allow easier rename of Model
+   * Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found
    */
-  modelAliases?: { [key: string]: string };
+  typeCheck?: {
+    /**
+     * @default true
+     */
+    enabled?: boolean;
+    /**
+     * Rows scanned at most by stores without a native count; beyond, the counts are "at least"
+     *
+     * @default 10000
+     */
+    maxRows?: number;
+  };
   /**
    * Disable default memory cache
    */
   noCache?: boolean;
 
   /**
-   * Load store parameters with defaults for model type, strict mode, and aliases
+   * Load store parameters with defaults for models, strict mode and the startup type check
    * @param params - the service parameters
    * @returns the result
    */
@@ -335,10 +377,10 @@ export class StoreParameters extends ServiceParameters {
     // or `parameters.additionalModels` keeps working. In the legacy-input branch
     // `super.load(params)` already set both via Object.assign, so the `??=` is a no-op.
     this.strict ??= false;
-    this.defaultModel ??= true;
-    this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
-    this.modelAliases ??= {};
+    this.slowQueryLogLevel ??= "WARN";
+    this.slowQueryMaxLength ??= 1024;
+    this.typeCheck = { enabled: true, maxRows: 10000, ...(this.typeCheck ?? {}) };
     return this;
   }
 }
@@ -355,6 +397,7 @@ export type StoreEvents = {
   "Store.PatchUpdated": EventStorePatchUpdated;
   "Store.Updated": EventStoreUpdated;
   "Store.Deleted": EventStoreDeleted;
+  "Store.SlowQuery": QueryExecutionInfo & { store: string };
 };
 
 /**
@@ -370,6 +413,7 @@ export type StoreEvents = {
  *   Store.Get: When getting the object
  *   Store.Action: When an action will be done on an object
  *   Store.Actioned: When an action has been done on an object
+ *   Store.SlowQuery: When a query takes longer than slowQueryThreshold
  *
  * @internal — Subclassed by store packages only. App code never references a
  * Store directly: use `useRepository(Model)` or static model methods
@@ -450,6 +494,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       const repository = currentStore.getRepository(model);
       // Optional: repositories of third-party stores may predate aggregation
       repository.configureAggregation?.(currentStore.getAggregationOptions());
+      repository.configureMonitoring?.(currentStore.getQueryMonitorOptions());
       registerRepository(model, repository as any);
       useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
     }
@@ -530,13 +575,65 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
-   * Log a slow query (placeholder for future implementation)
-   * @param _query - the query to execute
-   * @param _reason - the reason
-   * @param _time - the time
+   * Query monitor options applied to the repositories of this store
+   * @returns the options for repository query monitoring
    */
-  logSlowQuery(_query: string, _reason: string, _time: number) {
-    // TODO Need to implement: https://github.com/loopingz/webda.io/issues/202
+  getQueryMonitorOptions(): QueryMonitorOptions {
+    return {
+      onQuery: info => this.onQueryExecuted(info)
+    };
+  }
+
+  /**
+   * Handle query execution reported by a repository
+   * @param info - the execution information
+   */
+  onQueryExecuted(info: QueryExecutionInfo): void {
+    try {
+      this.metrics.queries?.labels?.({ operation: info.operation, model: info.model })?.observe(info.duration);
+    } catch {
+      // Ignore metric errors
+    }
+    const threshold = this.parameters.slowQueryThreshold;
+    if (threshold && threshold > 0 && info.duration >= threshold) {
+      try {
+        this.metrics.slow_queries_total?.labels?.({ operation: info.operation, model: info.model })?.inc();
+      } catch {
+        // Ignore metric errors
+      }
+      this.logSlowQuery(info);
+    }
+  }
+
+  /**
+   * Log a slow query and emit the Store.SlowQuery event
+   * @param info - execution details of the query
+   */
+  logSlowQuery(info: QueryExecutionInfo) {
+    const maxLen = this.parameters.slowQueryMaxLength ?? 1024;
+    const query = info.query && info.query.length > maxLen ? info.query.slice(0, maxLen) + "..." : info.query;
+    const level = this.parameters.slowQueryLogLevel ?? "WARN";
+    const duration = Math.round(info.duration);
+    const bracketParts: string[] = [];
+    if (info.count !== undefined) {
+      bracketParts.push(`${info.count} result${info.count === 1 ? "" : "s"}`);
+    }
+    if (info.paginated) {
+      bracketParts.push("paginated");
+    }
+    if (info.error) {
+      bracketParts.push(`error: ${info.error.message}`);
+    }
+    const bracket = bracketParts.length > 0 ? ` [${bracketParts.join(", ")}]` : "";
+    useLog(
+      level,
+      `Slow query on store ${this.getName()} (${info.model}, ${info.operation}) took ${duration}ms${bracket}: ${query}`
+    );
+    this.emit("Store.SlowQuery", {
+      ...info,
+      query,
+      store: this.getName()
+    });
   }
 
   /**
@@ -545,7 +642,14 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   async init(): Promise<this> {
     Store.computeStores();
-    return super.init();
+    await super.init();
+    try {
+      await this.checkStoredTypes();
+    } catch (err) {
+      // The check informs, it never fails startup
+      this.log("WARN", `Cannot check the stored types of ${this.getName()}: ${err?.message ?? err}`);
+    }
+    return this;
   }
 
   /**
@@ -559,8 +663,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       labelNames: ["operation"]
     });
     this.metrics.slow_queries_total = this.getMetric(Counter, {
-      name: "slow_queries",
-      help: "Number of slow queries encountered"
+      name: "slow_queries_total",
+      help: "Number of slow queries encountered",
+      labelNames: ["operation", "model"]
     });
     // this.metrics.cache_invalidations = this.getMetric(Counter, {
     //   name: "cache_invalidations",
@@ -572,7 +677,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     // });
     this.metrics.queries = this.getMetric(Histogram, {
       name: "queries",
-      help: "Query duration"
+      help: "Query duration",
+      labelNames: ["operation", "model"],
+      buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000]
     });
   }
 
@@ -582,6 +689,443 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   getModels(): ModelClass[] {
     return this._models;
+  }
+
+  /**
+   * Tables of this store for raw access, each with the model owning its untyped rows
+   *
+   * Stores without raw access return undefined: `webda migrate` and the startup type check skip them.
+   * @returns the tables, or undefined when the store has no raw access
+   */
+  getRawTables(): RawTable[] | undefined {
+    return undefined;
+  }
+
+  /**
+   * Read a page of raw rows of a table: no type filter, no hydration
+   * @param _table - table name, from {@link getRawTables}
+   * @param _batchSize - rows per page
+   * @param _token - token of the previous page
+   * @returns the page
+   */
+  async rawPages(_table: string, _batchSize: number, _token?: string): Promise<RawPage> {
+    throw new MigrationUnsupported(this.getName());
+  }
+
+  /**
+   * Set top-level fields of a raw row: no type filter, no hydration, no event
+   * @param _table - table name, from {@link getRawTables}
+   * @param _key - storage key of the row
+   * @param _patch - fields to set
+   */
+  async rawPatch(_table: string, _key: string, _patch: RawPatch): Promise<void> {
+    throw new MigrationUnsupported(this.getName());
+  }
+
+  /**
+   * Model owning the untyped rows of a single-table store: the first model of `models`
+   * @returns the model, undefined when unknown
+   */
+  protected getTableRoot(): ModelClass | undefined {
+    if (this._models[0]) return this._models[0];
+    const identifier = this.parameters?.models?.[0];
+    if (!identifier) return undefined;
+    try {
+      return useModel(identifier);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Refuse a table that is not the single table of this store
+   * @param table - the requested table
+   */
+  protected checkSingleTable(table: string): void {
+    if (table !== this.getName()) {
+      throw new Error(`Unknown table ${table} in store ${this.getName()}`);
+    }
+  }
+
+  /**
+   * @param name - migration name
+   * @returns the Registry entry of the migration
+   */
+  protected migrationId(name: string): string {
+    return `storeMigration.${this.getName()}.${name}`;
+  }
+
+  /**
+   * @param name - migration name
+   * @returns the stored progress, undefined when the migration never ran
+   */
+  async getMigrationProgress(name: string): Promise<MigrationProgress | undefined> {
+    const id = this.migrationId(name);
+    if (!(await useRegistry().exists(id))) {
+      return undefined;
+    }
+    return toMigrationProgress(await useRegistry().get(id));
+  }
+
+  /**
+   * Forget the progress of a migration: the next run starts over
+   * @param name - migration name
+   */
+  async deleteMigrationProgress(name: string): Promise<void> {
+    const id = this.migrationId(name);
+    if (await useRegistry().exists(id)) {
+      await useRegistry().delete(id);
+    }
+  }
+
+  /**
+   * Take the lease of a migration: free, or expired (a crashed runner)
+   * @param name - migration name
+   * @param leaseDuration - lease duration in ms
+   * @returns the lease
+   * @throws MigrationAlreadyRunning when another runner holds a live lease
+   */
+  protected async acquireMigrationLease(
+    name: string,
+    leaseDuration: number = DEFAULT_MIGRATION_LEASE
+  ): Promise<MigrationLease> {
+    const registry = useRegistry();
+    const id = this.migrationId(name);
+    const owner = randomUUID();
+    if (!(await registry.exists(id))) {
+      try {
+        await (registry as any).create({ uuid: id, ...emptyProgress() });
+      } catch {
+        // Another runner created it first: the conditional patch below decides
+      }
+    }
+    const entry: any = await registry.get(id);
+    const current = Number(entry.leaseUntil ?? 0);
+    const now = Date.now();
+    if (current > now) {
+      throw new MigrationAlreadyRunning(id, entry.owner, current);
+    }
+    const leaseUntil = now + leaseDuration;
+    try {
+      await registry.patch(id, { leaseUntil, owner }, "leaseUntil", entry.leaseUntil);
+    } catch (err) {
+      const competitor = await this.competingMigrationLease(id, entry.owner, Number(entry.leaseUntil ?? 0), owner);
+      if (competitor) throw new MigrationAlreadyRunning(id, competitor.owner, competitor.leaseUntil);
+      throw err;
+    }
+    return { id, owner, leaseUntil, leaseDuration, progress: toMigrationProgress(entry) };
+  }
+
+  /**
+   * After a failed conditional patch, tell a competing runner from any other Registry failure
+   * @param id - Registry entry of the migration
+   * @param owner - lease owner the patch expected
+   * @param leaseUntil - lease end the patch expected
+   * @param self - owner of this runner: a lease it holds is not a competitor's
+   * @returns the lease of another runner when the lease changed under the patch, undefined otherwise (the entry is
+   *   unchanged, held by this runner, or cannot be read)
+   */
+  protected async competingMigrationLease(
+    id: string,
+    owner: string | undefined,
+    leaseUntil: number,
+    self: string
+  ): Promise<{ owner?: string; leaseUntil: number } | undefined> {
+    let latest: any;
+    try {
+      latest = await useRegistry().get(id);
+    } catch {
+      return undefined;
+    }
+    const latestUntil = Number(latest?.leaseUntil ?? 0);
+    if (latest?.owner === self || (latest?.owner === owner && latestUntil === leaseUntil)) {
+      return undefined;
+    }
+    return { owner: latest?.owner, leaseUntil: latestUntil };
+  }
+
+  /**
+   * Save the progress and renew the lease, conditionally on the lease this runner holds
+   * @param lease - the lease
+   * @param update - progress fields to set
+   * @throws MigrationAlreadyRunning when the lease was taken over, the Registry error otherwise
+   */
+  protected async saveMigrationProgress(lease: MigrationLease, update: Partial<MigrationProgress>): Promise<void> {
+    // Always a new value: a runner that lost its lease fails the condition
+    const leaseUntil = Math.max(Date.now() + lease.leaseDuration, lease.leaseUntil + 1);
+    const progress: MigrationProgress = {
+      ...lease.progress,
+      ...update,
+      updatedAt: Date.now(),
+      leaseUntil,
+      owner: lease.owner
+    };
+    try {
+      await useRegistry().patch(lease.id, progress, "leaseUntil", lease.leaseUntil);
+    } catch (err) {
+      const competitor = await this.competingMigrationLease(lease.id, lease.owner, lease.leaseUntil, lease.owner);
+      if (competitor) throw new MigrationAlreadyRunning(lease.id, competitor.owner, competitor.leaseUntil);
+      throw err;
+    }
+    lease.leaseUntil = leaseUntil;
+    lease.progress = progress;
+  }
+
+  /**
+   * Renew the lease before writing a page
+   * @param lease - the lease
+   */
+  protected async renewMigrationLease(lease: MigrationLease): Promise<void> {
+    await this.saveMigrationProgress(lease, {});
+  }
+
+  /**
+   * Release the lease, saving the last progress; a lease lost meanwhile is left to its new owner
+   * @param lease - the lease
+   * @param update - progress fields to set
+   * @throws the Registry error when the release failed while the lease was still this runner's
+   */
+  protected async releaseMigrationLease(lease: MigrationLease, update: Partial<MigrationProgress> = {}): Promise<void> {
+    const progress: MigrationProgress = {
+      ...lease.progress,
+      ...update,
+      updatedAt: Date.now(),
+      leaseUntil: 0,
+      owner: lease.owner
+    };
+    try {
+      await useRegistry().patch(lease.id, progress, "leaseUntil", lease.leaseUntil);
+      lease.progress = progress;
+      lease.leaseUntil = 0;
+    } catch (err) {
+      if (!(await this.competingMigrationLease(lease.id, lease.owner, lease.leaseUntil, lease.owner))) throw err;
+      this.log("WARN", `Migration ${lease.id}: lease lost before release, the other runner owns the progress`);
+    }
+  }
+
+  /**
+   * Run a migration on every raw row of every table of the store, the rows the type filter excludes included
+   *
+   * Resumable: the progress is saved in the Registry after each page and an interrupted run continues from it.
+   * Exclusive: a lease (renewed every page) makes a second runner fail fast with {@link MigrationAlreadyRunning}.
+   * Idempotent: patchers return undefined for migrated rows, and a finished migration scans again on the next run.
+   * @param name - migration name
+   * @param patcher - computes the patch of a row
+   * @param options - batch size, dry run, lease duration
+   * @returns the report
+   */
+  async migration(name: string, patcher: MigrationPatcher, options: MigrationOptions = {}): Promise<MigrationReport> {
+    const tables = this.getRawTables();
+    if (!tables) {
+      throw new MigrationUnsupported(this.getName());
+    }
+    const batchSize =
+      Math.max(1, Math.floor(Number(options.batchSize ?? DEFAULT_MIGRATION_BATCH))) || DEFAULT_MIGRATION_BATCH;
+    const dryRun = !!options.dryRun;
+    const report: MigrationReport = { store: this.getName(), name, tables: {}, resumed: false, dryRun };
+    let lease: MigrationLease | undefined;
+    if (!dryRun) {
+      lease = await this.acquireMigrationLease(name, options.leaseDuration);
+    }
+    let resumeTable: string | undefined;
+    let resumeToken: string | undefined;
+    if (lease) {
+      const previous = lease.progress;
+      if (!previous.done && previous.table !== undefined && tables.some(table => table.name === previous.table)) {
+        report.resumed = true;
+        report.tables = structuredClone(previous.tables);
+        resumeTable = previous.table;
+        resumeToken = previous.continuationToken;
+      } else {
+        lease.progress = emptyProgress();
+      }
+    }
+    try {
+      let reached = resumeTable === undefined;
+      for (const table of tables) {
+        let token: string | undefined;
+        if (!reached) {
+          if (table.name !== resumeTable) continue;
+          reached = true;
+          // Progress is saved after each page: no token means this table was finished
+          if (resumeToken === undefined) continue;
+          token = resumeToken;
+        }
+        const tableReport = (report.tables[table.name] ??= emptyTableReport());
+        const context: MigrationContext = {
+          change: (from, to) => incrementCount(tableReport.byChange, `${from} → ${to}`),
+          unknown: type => incrementCount(tableReport.unknown, type)
+        };
+        do {
+          const page = await this.rawPages(table.name, batchSize, token);
+          const patches: { key: string; patch: RawPatch }[] = [];
+          for (const row of page.rows) {
+            tableReport.scanned++;
+            const patch = await patcher(row, context);
+            if (patch !== undefined) {
+              tableReport.updated++;
+              patches.push({ key: row.key, patch });
+            }
+          }
+          if (lease && patches.length) {
+            // A runner that lost its lease stops here, before writing
+            await this.renewMigrationLease(lease);
+            for (const { key, patch } of patches) {
+              await this.rawPatch(table.name, key, patch);
+            }
+          }
+          token = page.continuationToken;
+          if (lease) {
+            await this.saveMigrationProgress(lease, {
+              table: table.name,
+              continuationToken: token,
+              ...migrationTotals(report)
+            });
+          }
+        } while (token);
+      }
+    } catch (err) {
+      if (lease) {
+        // The failure of the run wins over a failure to release
+        await this.releaseMigrationLease(lease).catch(releaseError =>
+          this.log("ERROR", `Migration ${lease.id}: cannot release the lease`, releaseError)
+        );
+      }
+      throw err;
+    }
+    if (lease) await this.releaseMigrationLease(lease, { done: true, ...migrationTotals(report) });
+    const totals = migrationTotals(report);
+    this.log(
+      "INFO",
+      `Migration ${name}${dryRun ? " (dry run)" : ""}: ${totals.scanned} rows scanned, ${totals.updated} ${
+        dryRun ? "to update" : "updated"
+      }, ${totals.unknown} left untouched`
+    );
+    return report;
+  }
+
+  /**
+   * Patcher of the built-in `types` migration: untyped rows get the table root identifier, legacy types their
+   * current identifier; unknown, ambiguous and unreadable rows are counted and left as they are
+   * @returns the patcher
+   */
+  protected typesPatcher(): MigrationPatcher {
+    const roots = new Map((this.getRawTables() ?? []).map(table => [table.name, table.root]));
+    return (row, context) => {
+      if (row.unreadable) {
+        context.unknown(UNREADABLE);
+        return undefined;
+      }
+      const type = classifyStoredType(row.data.__type, roots.get(row.table));
+      switch (type.kind) {
+        case "legacy":
+        case "untyped":
+          if (!type.to) return undefined;
+          context.change(type.from, type.to);
+          return { __type: type.to };
+        case "unknown":
+        case "ambiguous":
+          context.unknown(type.from);
+          return undefined;
+        default:
+          return undefined;
+      }
+    };
+  }
+
+  /**
+   * Rewrite the Webda 3 types of every row to the current identifiers (the built-in `types` migration)
+   *
+   * Stores with a native bulk update override this method and return the same report.
+   * @param options - batch size, dry run, lease duration
+   * @returns the report
+   */
+  async migrateTypes(options: MigrationOptions = {}): Promise<MigrationReport> {
+    return this.migration("types", this.typesPatcher(), options);
+  }
+
+  /**
+   * Count the rows by stored `__type`, scanning at most `maxRows` rows
+   *
+   * Stores able to `GROUP BY` override it with an exact count.
+   * @param maxRows - scan limit
+   * @returns the counts
+   */
+  async countStoredTypes(maxRows: number): Promise<StoredTypeCounts> {
+    const tables = this.getRawTables() ?? [];
+    const result: StoredTypeCounts = { tables: {}, truncated: false };
+    for (const table of tables) result.tables[table.name] = {};
+    result.truncated = await scanRawRows(
+      (table, size, token) => this.rawPages(table, size, token),
+      tables,
+      maxRows,
+      row => {
+        const key = row.unreadable
+          ? UNREADABLE
+          : typeof row.data.__type === "string" && row.data.__type !== ""
+            ? row.data.__type
+            : UNTYPED;
+        incrementCount(result.tables[row.table], key);
+      }
+    );
+    return result;
+  }
+
+  /**
+   * Startup type check: one WARN when rows hold legacy, untyped or unknown types
+   * @returns the summary, undefined when disabled or the store has no raw access
+   */
+  async checkStoredTypes(): Promise<TypeCheckSummary | undefined> {
+    const tables = this.getRawTables();
+    const options = this.parameters.typeCheck;
+    if (!tables || options?.enabled === false) {
+      return undefined;
+    }
+    const maxRows = options?.maxRows ?? DEFAULT_TYPE_CHECK_ROWS;
+    const counts = await this.countStoredTypes(maxRows);
+    const summary = summarizeStoredTypes(
+      this.getName(),
+      counts,
+      new Map(tables.map(table => [table.name, table.root])),
+      maxRows
+    );
+    if (summary.message) {
+      this.log("WARN", summary.message);
+    }
+    return summary;
+  }
+
+  /**
+   * Body of the `migrate` command of the stores: run the `types` migration and print its report
+   *
+   * Stores declare `@Command("migrate", { phase: "initialized" }) migrate(dryRun = false, batch = 500,
+   * allowUnknown = false)` calling this method: composable commands pass their arguments by position.
+   * @param dryRun - count, write nothing
+   * @param batch - rows per page
+   * @param allowUnknown - exit with 0 even when rows keep an unknown or ambiguous type
+   * @returns the exit code
+   */
+  async migrateCommand(
+    dryRun: boolean = false,
+    batch: number = DEFAULT_MIGRATION_BATCH,
+    allowUnknown: boolean = false
+  ): Promise<number> {
+    if (!this.getRawTables()) {
+      this.log("WARN", `Store ${this.getName()} cannot run migrations yet: skipped`);
+      return 0;
+    }
+    const report = await this.migrateTypes({ dryRun: !!dryRun, batchSize: Number(batch) || DEFAULT_MIGRATION_BATCH });
+    useOutput(formatMigrationReport(report));
+    const unknown = migrationTotals(report).unknown;
+    if (unknown > 0 && !allowUnknown) {
+      this.log(
+        "ERROR",
+        `${unknown} rows of ${this.getName()} keep an unknown or ambiguous type: declare a @WebdaAlias on the ` +
+          "model they belong to, or pass --allow-unknown"
+      );
+      return 1;
+    }
+    return 0;
   }
 
   /**

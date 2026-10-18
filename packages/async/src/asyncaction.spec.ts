@@ -2,6 +2,7 @@ import { HttpContext, OperationContext, useModelMetadata, useParameters, useRout
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as crypto from "node:crypto";
+import * as sinon from "sinon";
 import { AsyncTest } from "../test/fixture.js";
 import { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "./asyncaction.model.js";
 
@@ -59,13 +60,18 @@ class AsyncActionTest extends AsyncTest {
   @test
   async getHookUrl() {
     const action = new AsyncAction({ uuid: "hook" });
-    assert.strictEqual(action.getHookUrl(), `http://localhost:18080${useRouter().getModelUrl(action)}/hook/status`);
-    // Without an apiUrl the url is relative
+    const route = sinon.stub(useRouter(), "getModelUrl").returns("/asyncactions");
     const apiUrl = useParameters().apiUrl;
-    delete useParameters().apiUrl;
     try {
-      assert.strictEqual(action.getHookUrl(), `${useRouter().getModelUrl(action)}/hook/status`);
+      assert.strictEqual(action.getHookUrl(), "http://localhost:18080/asyncactions/hook/status");
+      delete useParameters().apiUrl;
+      assert.strictEqual(action.getHookUrl(), "/asyncactions/hook/status");
+      route.returns(undefined);
+      assert.throws(() => action.getHookUrl(), /route is unavailable/);
+      action.uuid = undefined;
+      assert.throws(() => action.getHookUrl(), /no identifier/);
     } finally {
+      route.restore();
       useParameters().apiUrl = apiUrl;
     }
   }

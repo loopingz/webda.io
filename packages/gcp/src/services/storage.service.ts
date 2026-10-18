@@ -502,7 +502,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       await this.putContent(url, await file.get(), {
         metadata: {
           ...file.metadata,
-          proof: file.challenge
+          proof: file.challenge!
         },
         contentLength: file.size,
         contentType: file.mimetype

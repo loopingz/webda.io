@@ -299,12 +299,18 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
 
   /**
    * Build a SQL WHERE sub-expression from a write-condition.
+   *
+   * An `undefined` or `null` expected value means the field is absent: it is matched with `IS NULL`, as `= NULL` is
+   * never true in SQL (a missing key and a JSON null both read as NULL)
    * @param writeCondition - the expected value
    * @param writeConditionField - the field to check
    * @param params - the existing params array (will be extended in place)
    * @returns the SQL AND clause
    */
   getQueryCondition(writeCondition: any, writeConditionField: string, params: any[]): string {
+    if (writeCondition === undefined || writeCondition === null) {
+      return ` AND ${this.dialect.keyText(writeConditionField)} IS NULL`;
+    }
     const condition = writeCondition instanceof Date ? writeCondition.toISOString() : writeCondition;
     params.push(condition);
     return ` AND ${this.dialect.keyText(writeConditionField)}=${this.dialect.placeholder(params.length)}`;

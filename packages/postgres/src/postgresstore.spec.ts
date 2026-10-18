@@ -3,7 +3,7 @@ import * as assert from "node:assert";
 import pg from "pg";
 import { AndExpression, escape, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
 import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
-import { EventRepository, MemoryRepository, useModel } from "@webda/core";
+import { EventRepository, MemoryRepository, UpdateConditionFailError, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
 
@@ -174,6 +174,28 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     assert.deepStrictEqual(await uuids("email IS NULL"), ["missing", "null"]);
     assert.deepStrictEqual(await uuids("email IS NOT NULL"), ["set"]);
     assert.deepStrictEqual(await uuids("email IS NULL AND uuid = 'null'"), ["null"]);
+  }
+
+  /**
+   * A write condition on an absent field (`patch(key, data, field, undefined)`, a compare-and-set that writes the field
+   * once) must match the missing key: rendered as `= NULL` it never matched
+   */
+  @test
+  async writeConditionOnAbsentField() {
+    const repo = this.store!.getRepositories().find(r => r instanceof PostgresRepository)!;
+    await this.store!.getClient().query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, [
+      "a",
+      JSON.stringify({ uuid: "a" })
+    ]);
+    await repo.patch("a", { usedAt: 1 }, "usedAt", undefined);
+    assert.strictEqual((await repo.get("a")).usedAt, 1);
+    // The field is now set: the same compare-and-set fails
+    await assert.rejects(() => repo.patch("a", { usedAt: 2 }, "usedAt", undefined), UpdateConditionFailError);
+    assert.strictEqual((await repo.get("a")).usedAt, 1);
+    await repo.patch("a", { usedAt: 3 }, "usedAt", 1);
+    assert.strictEqual((await repo.get("a")).usedAt, 3);
+    await repo.delete("a", "missing", undefined);
+    assert.strictEqual(await repo.exists("a"), false);
   }
 
   /**

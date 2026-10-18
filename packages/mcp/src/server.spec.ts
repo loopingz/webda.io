@@ -1,6 +1,16 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { registerFeatureFlagProvider, registerOperation, registerOperationAuthorizer, Session, unregisterFeatureFlagProvider, unregisterOperationAuthorizer, useApplication, useInstanceStorage, FeatureFlagProvider } from "@webda/core";
+import {
+  registerFeatureFlagProvider,
+  registerOperation,
+  registerOperationAuthorizer,
+  Session,
+  unregisterFeatureFlagProvider,
+  unregisterOperationAuthorizer,
+  useApplication,
+  useInstanceStorage,
+  FeatureFlagProvider
+} from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { BrokenModel, GadgetModel, WideModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
@@ -26,7 +36,13 @@ class McpServerTest extends McpFixtureTest {
     const session = new Session();
     if (user) session.login(user, user);
     if (roles) session.roles = roles;
-    const server = createMcpServer({ info: { name: "test", version: "1.0.0" }, tools, resources, maxOutputBytes: 1024, getSession: () => session });
+    const server = createMcpServer({
+      info: { name: "test", version: "1.0.0" },
+      tools,
+      resources,
+      maxOutputBytes: 1024,
+      getSession: () => session
+    });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await server.connect(serverTransport);
     const client = new Client({ name: "spec", version: "1.0.0" });

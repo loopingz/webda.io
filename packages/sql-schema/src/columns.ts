@@ -16,10 +16,6 @@ export interface ScalarMapping {
    */
   nullable: boolean;
   enum?: string[];
-  /**
-   * Enum values that are not strings, left out of `enum`
-   */
-  ignoredEnumValues?: unknown[];
 }
 
 /**
@@ -109,16 +105,11 @@ function mapString(schema: JSONSchemaLike, reflectedType: string | undefined): O
       ? { kind: "varchar", length: schema.maxLength }
       : { kind: "text" };
   const values = schema.enum ?? (typeof schema.const === "string" ? [schema.const] : undefined);
-  if (!values) {
+  // A text column can only check text values
+  if (!values?.every((value): value is string => typeof value === "string")) {
     return { type };
   }
-  const strings = values.filter((value): value is string => typeof value === "string");
-  const ignored = values.filter(value => typeof value !== "string");
-  return {
-    type,
-    enum: [...new Set(strings)],
-    ...(ignored.length ? { ignoredEnumValues: ignored } : {})
-  };
+  return { type, enum: [...new Set(values)] };
 }
 
 /**

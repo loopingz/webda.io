@@ -35,6 +35,28 @@ function model(
 
 const uuid: JSONSchemaLike = { type: "string" };
 
+type Relations = NonNullable<SchemaModelMetadata["Relations"]>;
+type Link = NonNullable<Relations["links"]>[number];
+
+/**
+ * A compiled link
+ * @param attribute - the attribute
+ * @param model - the target identifier
+ * @param type - the link type
+ * @returns the link
+ */
+function link(attribute: string, model: string | undefined, type = "LINK"): Link {
+  return { attribute, ...(model ? { model } : {}), type };
+}
+
+/**
+ * @param list - compiled links
+ * @returns the Relations holding them
+ */
+function links(...list: Link[]): { Relations: Relations } {
+  return { Relations: { links: list } };
+}
+
 /**
  * The User / Post / Comment / Tag sample of #838
  * @returns the models
@@ -51,21 +73,12 @@ function blog(): SchemaModelMetadata[] {
         _creationDate: { type: "string", format: "date-time" },
         tags: { type: "array", items: { allOf: [{ type: "object" }, { type: "object" }] } }
       },
-      {
-        Relations: { links: [{ attribute: "author", model: "MyApp/User", type: "LINK" }] },
-        Reflection: {
-          author: { type: "ModelLink", typeParameters: ["User"] },
-          tags: { type: "ManyToMany", typeParameters: ["Tag"] }
-        }
-      }
+      links(link("author", "MyApp/User"), link("tags", "MyApp/Tag", "LINKS_ARRAY"))
     ),
     model(
       "MyApp/Comment",
       { uuid, post: { type: "string" }, body: { type: "string" } },
-      {
-        Relations: { parent: { attribute: "post", model: "MyApp/Post" } },
-        Reflection: { post: { type: "ModelParent", typeParameters: ["Post"] } }
-      }
+      { Relations: { parent: { attribute: "post", model: "MyApp/Post" } } }
     ),
     model("MyApp/Tag", { uuid, label: { type: "string" } })
   ];
@@ -223,7 +236,8 @@ describe("RelationalSchemaBuilder", () => {
             mixed: { type: ["string", "number"] },
             optionalUnion: { anyOf: [{ type: "integer" }, { type: "null" }] },
             union: { anyOf: [{ type: "integer" }, { type: "string" }] },
-            status: { type: "string", enum: ["draft", "published", true] },
+            status: { type: "string", enum: ["draft", "published"] },
+            mixedEnum: { type: "string", enum: ["a", 1] },
             untypedEnum: { enum: ["a", "b"] },
             constant: { const: "fixed" },
             binary: { $ref: "#/definitions/Binary" },
@@ -256,51 +270,57 @@ describe("RelationalSchemaBuilder", () => {
     expect(byName.optionalUnion).toMatchObject({ type: { kind: "bigint" }, nullable: true });
     expect(byName.union.type.kind).toBe("json");
     expect(byName.status).toMatchObject({ type: { kind: "text" }, enum: ["draft", "published"], nullable: false });
+    // A text column only checks text values
+    expect(byName.mixedEnum.type.kind).toBe("text");
+    expect(byName.mixedEnum.enum).toBeUndefined();
     expect(byName.untypedEnum).toMatchObject({ type: { kind: "text" }, enum: ["a", "b"] });
     expect(byName.constant).toMatchObject({ type: { kind: "text" }, enum: ["fixed"] });
     expect(byName.binary.type.kind).toBe("json");
     expect(byName.anything.type.kind).toBe("json");
     expect(byName.optional.nullable).toBe(true);
-    expect(plan.warnings).toEqual([
-      expect.objectContaining({ code: "IGNORED_ENUM_VALUE", model: "MyApp/Scalars", attribute: "status" })
-    ]);
+    expect(plan.warnings).toEqual([]);
     expect(
       buildSchemaPlan([model("MyApp/N", { uuid, ratio: { type: "number" } })], { numericAsDecimal: true }).tables[0]
         .columns[1].type
     ).toEqual({ kind: "decimal" });
   });
 
-  it("recognizes the relation aliases from Reflection, and the ModelRelated attribute", () => {
+  it("maps every compiled relation kind", () => {
     const plan = buildSchemaPlan([
       model("WebdaSample/User", { uuid }),
       model(
         "WebdaSample/Profile",
-        { uuid, owner: { type: "string" }, friend: { type: "string" }, buddy: { type: "string" } },
         {
-          // The compiler leaves Relations empty for aliases
+          uuid,
+          owner: { type: "string" },
+          friend: { type: "string" },
+          buddy: { type: "string" },
+          reflected: { type: "string" }
+        },
+        {
+          Relations: {
+            parent: { attribute: "owner", model: "WebdaSample/User" },
+            links: [link("friend", "WebdaSample/User"), link("buddy", "WebdaSample/User")],
+            queries: [{ attribute: "posts", model: "WebdaSample/Post", targetAttribute: "profile" }],
+            maps: [{ attribute: "mapped", model: "WebdaSample/Post" }]
+          },
+          // Relations does not tell a OneToOne from a ModelLink; a relation only in Reflection is not one
           Reflection: {
-            owner: { type: "BelongTo", typeParameters: ["User"] },
             friend: { type: "OneToOne", typeParameters: ["User"] },
             buddy: { type: "ManyToOne", typeParameters: ["User"] },
-            posts: { type: "OneToMany", typeParameters: ["Post", "Profile", '"profile"'] },
-            mapped: { type: "ModelsMapped", typeParameters: ["Post"] }
+            reflected: { type: "ModelLink", typeParameters: ["User"] }
           },
           required: ["uuid", "owner"]
         }
       ),
-      model(
-        "WebdaSample/Post",
-        { uuid, profile: { type: "string" } },
-        {
-          Relations: { queries: [{ attribute: "unused", model: "WebdaSample/User", targetAttribute: "Post" }] },
-          Reflection: { profile: { type: "RelateTo", typeParameters: ["Profile"] } }
-        }
-      )
+      model("WebdaSample/Post", { uuid, profile: { type: "string" } }, links(link("profile", "WebdaSample/Profile")))
     ]);
     const kinds = Object.fromEntries(plan.relations.map(r => [`${r.model}.${r.attribute}`, r]));
     expect(kinds["WebdaSample/Profile.owner"]).toMatchObject({ kind: "parent", onDelete: "CASCADE" });
     expect(kinds["WebdaSample/Profile.friend"]).toMatchObject({ kind: "link", unique: true, onDelete: "NO ACTION" });
     expect(kinds["WebdaSample/Profile.buddy"]).toMatchObject({ kind: "link" });
+    expect(kinds["WebdaSample/Profile.buddy"].unique).toBeUndefined();
+    expect(kinds["WebdaSample/Profile.reflected"]).toBeUndefined();
     expect(kinds["WebdaSample/Profile.posts"]).toEqual({
       model: "WebdaSample/Profile",
       attribute: "posts",
@@ -311,12 +331,12 @@ describe("RelationalSchemaBuilder", () => {
     });
     expect(kinds["WebdaSample/Profile.mapped"]).toMatchObject({ kind: "map", storage: { kind: "none" } });
     expect(kinds["WebdaSample/Post.profile"]).toMatchObject({ kind: "link", target: "WebdaSample/Profile" });
-    expect(kinds["WebdaSample/Post.unused"]).toMatchObject({ kind: "query", targetAttribute: "Post" });
     expect(columns(plan, "webdasample_profile")).toEqual([
       "uuid text",
       "owner text",
       "friend text null",
       "buddy text null",
+      "reflected text null",
       "__type text",
       "_extra json null"
     ]);
@@ -337,16 +357,13 @@ describe("RelationalSchemaBuilder", () => {
         {
           PrimaryKey: ["post", "tag"],
           PrimaryKeySeparator: ":",
-          Reflection: {
-            post: { type: "BelongTo", typeParameters: ["Post"] },
-            tag: { type: "RelateTo", typeParameters: ["Tag"] }
-          }
+          Relations: { parent: { attribute: "post", model: "MyApp/Post" }, links: [link("tag", "MyApp/Tag")] }
         }
       ),
       model(
         "MyApp/Like",
         { uuid, postTag: { type: "string" } },
-        { Reflection: { postTag: { type: "ModelLink", typeParameters: ["PostTag"] } }, required: ["uuid"] }
+        { ...links(link("postTag", "MyApp/PostTag")), required: ["uuid"] }
       )
     ]);
     // Key columns take the type of the referenced key
@@ -490,26 +507,22 @@ describe("RelationalSchemaBuilder", () => {
   });
 
   it("records an inherited relation once, and rejects a conflicting redeclaration", () => {
-    const reflection = { owner: { type: "ModelLink", typeParameters: ["User"] } };
+    const owner = links(link("owner", "MyApp/User"));
     const user = model("MyApp/User", { uuid });
     const other = model("MyApp/Other", { uuid });
-    const base = model("MyApp/Base", { uuid, owner: { type: "string" } }, { Reflection: reflection });
-    const child = model(
-      "MyApp/Child",
-      { uuid, owner: { type: "string" } },
-      { Ancestors: ["MyApp/Base"], Reflection: reflection }
-    );
+    const base = model("MyApp/Base", { uuid, owner: { type: "string" } }, owner);
+    const child = model("MyApp/Child", { uuid, owner: { type: "string" } }, { Ancestors: ["MyApp/Base"], ...owner });
     const plan = buildSchemaPlan([user, base, child]);
     expect(plan.relations.filter(r => r.attribute === "owner")).toHaveLength(1);
     expect(plan.foreignKeys).toHaveLength(1);
     expect(plan.warnings).toEqual([]);
     // An inherited junction is planned once
     const tags = { tags: { type: "array" } as JSONSchemaLike };
-    const tagReflection = { tags: { type: "ModelLinksSimpleArray", typeParameters: ["User"] } };
+    const tagLinks = links(link("tags", "MyApp/User", "LINKS_SIMPLE_ARRAY"));
     const junction = buildSchemaPlan([
       user,
-      model("MyApp/Base", { uuid, ...tags }, { Reflection: tagReflection }),
-      model("MyApp/Child", { uuid, ...tags }, { Ancestors: ["MyApp/Base"], Reflection: tagReflection })
+      model("MyApp/Base", { uuid, ...tags }, tagLinks),
+      model("MyApp/Child", { uuid, ...tags }, { Ancestors: ["MyApp/Base"], ...tagLinks })
     ]);
     expect(junction.tables.map(t => t.name).pop()).toBe("myapp_base_tags");
     expect(junction.tables).toHaveLength(3);
@@ -517,7 +530,7 @@ describe("RelationalSchemaBuilder", () => {
     const conflicting = model(
       "MyApp/Child",
       { uuid, owner: { type: "string" } },
-      { Ancestors: ["MyApp/Base"], Reflection: { owner: { type: "ModelLink", typeParameters: ["Other"] } } }
+      { Ancestors: ["MyApp/Base"], ...links(link("owner", "MyApp/Other")) }
     );
     expect(() => buildSchemaPlan([user, other, base, conflicting])).toThrow(/owner is a link to MyApp\/Other/);
   });
@@ -527,18 +540,9 @@ describe("RelationalSchemaBuilder", () => {
       model(
         "MyApp/A",
         { uuid, b: { type: "string" }, manager: { type: "string" } },
-        {
-          Reflection: {
-            b: { type: "ModelLink", typeParameters: ["B"] },
-            manager: { type: "ModelLink", typeParameters: ["A"] }
-          }
-        }
+        links(link("b", "MyApp/B"), link("manager", "MyApp/A"))
       ),
-      model(
-        "MyApp/B",
-        { uuid, a: { type: "string" } },
-        { Reflection: { a: { type: "ModelLink", typeParameters: ["A"] } } }
-      )
+      model("MyApp/B", { uuid, a: { type: "string" } }, links(link("a", "MyApp/A")))
     ]);
     expect(plan.tables.map(t => t.name)).toEqual(["myapp_b", "myapp_a"]);
     expect(plan.foreignKeys.map(f => `${f.table}.${f.columns}->${f.references.table}`)).toEqual([
@@ -554,13 +558,11 @@ describe("RelationalSchemaBuilder", () => {
         model(
           "MyApp/Post",
           { uuid, author: { type: "string" }, ghost: { type: "string" }, tags: { type: "array" } },
-          {
-            Reflection: {
-              author: { type: "ModelLink", typeParameters: ["User"] },
-              ghost: { type: "ModelLink", typeParameters: ["Ghost"] },
-              tags: { type: "ModelLinksSimpleArray", typeParameters: ["Tag"] }
-            }
-          }
+          links(
+            link("author", "MyApp/User"),
+            link("ghost", "MyApp/Ghost"),
+            link("tags", "MyApp/Tag", "LINKS_SIMPLE_ARRAY")
+          )
         )
       ],
       {
@@ -596,22 +598,13 @@ describe("RelationalSchemaBuilder", () => {
     ]);
   });
 
-  it("resolves class names in the namespace of the declaring model, and warns when ambiguous", () => {
-    const link = (target: string) => ({ Reflection: { owner: { type: "ModelLink", typeParameters: [target] } } });
-    const models = [model("A/User", { uuid }), model("B/User", { uuid })];
-    const local = buildSchemaPlan([...models, model("A/Post", { uuid, owner: { type: "string" } }, link("User"))]);
-    expect(local.relations[0].target).toBe("A/User");
-    const ambiguous = buildSchemaPlan([...models, model("C/Post", { uuid, owner: { type: "string" } }, link("User"))]);
-    expect(ambiguous.relations[0].target).toBeUndefined();
-    expect(ambiguous.warnings).toEqual([expect.objectContaining({ code: "AMBIGUOUS_TARGET", attribute: "owner" })]);
+  it("warns when a link has no target", () => {
+    // A link declared on a generic base class has no model
     const missing = buildSchemaPlan([
-      model(
-        "C/Post",
-        { uuid, owner: { type: "string" } },
-        { Relations: { links: [{ attribute: "owner", type: "LINK" }] } }
-      )
+      model("C/Post", { uuid, owner: { type: "string" } }, links(link("owner", undefined)))
     ]);
     expect(missing.warnings).toEqual([expect.objectContaining({ code: "UNRESOLVED_TARGET", attribute: "owner" })]);
+    expect(columns(missing, "c_post")[1]).toBe("owner text");
   });
 
   it("applies the layout options", () => {
@@ -642,9 +635,7 @@ describe("RelationalSchemaBuilder", () => {
       model(
         `MyApp/${long}`,
         { uuid, [`${long}Owner`]: { type: "string" } },
-        {
-          Reflection: { [`${long}Owner`]: { type: "ModelLink", typeParameters: [long] } }
-        }
+        links(link(`${long}Owner`, `MyApp/${long}`))
       )
     ]);
     for (const name of [...plan.foreignKeys, ...plan.indexes].map(c => c.name)) {
@@ -669,7 +660,7 @@ describe("RelationalSchemaBuilder", () => {
           model(
             "MyApp/Post",
             { uuid, tags: { type: "array" } },
-            { Reflection: { tags: { type: "ModelLinksSimpleArray", typeParameters: ["Tag"] } } }
+            links(link("tags", "MyApp/Tag", "LINKS_SIMPLE_ARRAY"))
           ),
           model("MyApp/Tag", { uuid }, {}),
           model("MyApp/PostTags", { uuid }, {})
@@ -682,7 +673,7 @@ describe("RelationalSchemaBuilder", () => {
         model(
           "MyApp/Post",
           { uuid, tags: { type: "array", items: { type: "object", properties: { key: { type: "string" } } } } },
-          { Reflection: { tags: { type: "ModelLinksMap", typeParameters: ["Tag"] } } }
+          links(link("tags", "MyApp/Tag", "LINKS_MAP"))
         ),
         model("MyApp/Tag", { uuid })
       ])
@@ -723,7 +714,17 @@ describe("RelationalSchemaBuilder", () => {
       if (module.includes("blog")) {
         expect(columns(plan, "webdasample_posttag").slice(0, 2)).toEqual(["post varchar(250)", "tag varchar(50)"]);
         expect(table(plan, "webdasample_post_tags").junction?.kind).toBe("linksArray");
-        expect(plan.foreignKeys.find(f => f.name === "fk_webdasample_comment_post")?.onDelete).toBe("CASCADE");
+        // ManyToOne: a link
+        expect(plan.foreignKeys.find(f => f.name === "fk_webdasample_comment_post")?.onDelete).toBe("NO ACTION");
+        expect(plan.relations.find(r => r.model === "WebdaSample/Tag" && r.attribute === "posts")).toMatchObject({
+          kind: "query",
+          targetAttribute: "tags"
+        });
+        expect(table(plan, "webdasample_post").columns.find(c => c.name === "status")?.enum).toEqual([
+          "draft",
+          "published",
+          "archived"
+        ]);
       }
     });
   }

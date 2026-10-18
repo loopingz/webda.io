@@ -90,7 +90,7 @@ export interface IndexPlan {
 }
 
 /**
- * Kind of a relation, from `Metadata.Relations` or the relation type written in the model
+ * Kind of a relation, from `Metadata.Relations` (the compiler records the aliases as the type they resolve to)
  *
  * - `parent`: `ModelParent` / `BelongTo`
  * - `link`: `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne`
@@ -222,7 +222,7 @@ export interface SchemaLayoutOptions {
  * A warning raised while building, for the store to log
  */
 export interface SchemaWarning {
-  code: "CROSS_STORE_REFERENCE" | "UNRESOLVED_TARGET" | "AMBIGUOUS_TARGET" | "IGNORED_ENUM_VALUE" | "MAPPED_ATTRIBUTE";
+  code: "CROSS_STORE_REFERENCE" | "UNRESOLVED_TARGET";
   model: string;
   attribute?: string;
   message: string;

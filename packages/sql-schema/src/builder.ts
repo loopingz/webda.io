@@ -1,6 +1,6 @@
 import { columnName, constraintName, identifier, mapScalar, typeToString, widestType } from "./columns.js";
 import type { DeclaredRelation, JSONSchemaLike, SchemaModelMetadata } from "./metadata.js";
-import { ModelIndex, declaredRelations, referenceIdentifier } from "./metadata.js";
+import { declaredRelations, referenceIdentifier, shortName } from "./metadata.js";
 import type {
   ColumnPlan,
   ColumnType,
@@ -151,7 +151,7 @@ export function buildSchemaPlan(
  */
 class PlanBuilder {
   private readonly handled = new Map<string, SchemaModelMetadata>();
-  private readonly index: ModelIndex;
+  private readonly known = new Map<string, SchemaModelMetadata>();
   private readonly tableNames = new Map<string, string>();
   private readonly drafts = new Map<string, TableDraft>();
   private readonly keyColumnsCache = new Map<string, KeyColumn[]>();
@@ -179,7 +179,9 @@ class PlanBuilder {
     for (const meta of [...models].sort((a, b) => a.Identifier.localeCompare(b.Identifier))) {
       this.handled.set(meta.Identifier, meta);
     }
-    this.index = new ModelIndex([...this.handled.values(), ...(options.knownModels ?? [])]);
+    for (const meta of [...(options.knownModels ?? []), ...this.handled.values()]) {
+      this.known.set(meta.Identifier, meta);
+    }
   }
 
   /**
@@ -312,16 +314,7 @@ class PlanBuilder {
       this.warn("UNRESOLVED_TARGET", meta, relation.attribute, `No target model declared for ${relation.attribute}`);
       return undefined;
     }
-    const target = this.index.resolve(relation.target, meta);
-    if (target === "ambiguous") {
-      this.warn(
-        "AMBIGUOUS_TARGET",
-        meta,
-        relation.attribute,
-        `Several models are named ${relation.target}: use its identifier`
-      );
-      return undefined;
-    }
+    const target = this.known.get(relation.target);
     if (!target) {
       this.warn("UNRESOLVED_TARGET", meta, relation.attribute, `Unknown target model ${relation.target}`);
     }
@@ -390,7 +383,7 @@ class PlanBuilder {
     relation: DeclaredRelation,
     warn = true
   ): (KeyColumn & { keyPart?: string })[] {
-    const target = warn ? this.resolveTarget(meta, relation) : this.quietTarget(meta, relation);
+    const target = warn ? this.resolveTarget(meta, relation) : this.quietTarget(relation);
     const keys = target ? this.keyColumnsOf(target) : [];
     if (keys.length <= 1) {
       const fallback = mapScalar(this.fieldSchema(meta, relation.attribute).schema, undefined, this.layout).type;
@@ -410,13 +403,11 @@ class PlanBuilder {
   }
 
   /**
-   * @param meta - the declaring model
    * @param relation - the relation
    * @returns the target, without warning
    */
-  private quietTarget(meta: SchemaModelMetadata, relation: DeclaredRelation): SchemaModelMetadata | undefined {
-    const target = relation.target ? this.index.resolve(relation.target, meta) : undefined;
-    return target === "ambiguous" ? undefined : target;
+  private quietTarget(relation: DeclaredRelation): SchemaModelMetadata | undefined {
+    return relation.target ? this.known.get(relation.target) : undefined;
   }
 
   /**
@@ -508,14 +499,6 @@ class PlanBuilder {
           continue;
         }
         const mapping = mapScalar(schema, meta.Reflection?.[field]?.type, this.layout);
-        if (mapping.ignoredEnumValues) {
-          this.warn(
-            "IGNORED_ENUM_VALUE",
-            meta,
-            field,
-            `Enum values ${mapping.ignoredEnumValues.map(v => JSON.stringify(v)).join(", ")} of ${field} are not strings: left out of the check`
-          );
-        }
         const name = this.column(field);
         this.checkReserved(reserved, draft, meta, name);
         this.addColumn(draft, meta, {
@@ -562,7 +545,7 @@ class PlanBuilder {
     details: Partial<RelationPlan> = {}
   ): RelationPlan | undefined {
     const key = `${draft.name}\0${relation.attribute}`;
-    const target = details.target ?? this.quietTarget(meta, relation)?.Identifier;
+    const target = details.target ?? this.quietTarget(relation)?.Identifier;
     const existing = this.relationKeys.get(key);
     if (existing) {
       if (existing.kind !== relation.kind || existing.target !== target) {
@@ -616,7 +599,7 @@ class PlanBuilder {
       this.addRelation(draft, meta, relation, { kind: "columns", columns: names });
       return;
     }
-    const target = this.quietTarget(meta, relation);
+    const target = this.quietTarget(relation);
     const onDelete: DeletePolicy = relation.kind === "parent" ? "CASCADE" : "NO ACTION";
     const foreignKey = this.constraintTo(draft.name, names, meta, relation, target, onDelete);
     const separator = columns.length > 1 ? this.separatorOf(target) : undefined;
@@ -761,9 +744,9 @@ class PlanBuilder {
       throw new SchemaBuildError(`Junction table ${name} of ${meta.Identifier}.${relation.attribute} already exists`);
     }
     const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
-    const ownerPrefix = this.column(lowerFirst(ModelIndex.shortName(draft.members[0])));
+    const ownerPrefix = this.column(lowerFirst(shortName(draft.members[0])));
     let targetPrefix = this.column(
-      lowerFirst(target ? ModelIndex.shortName(target) : (relation.target ?? relation.attribute).split("/").pop()!)
+      lowerFirst(target ? shortName(target) : (relation.target ?? relation.attribute).split("/").pop()!)
     );
     if (targetPrefix === ownerPrefix) {
       targetPrefix = this.column(relation.attribute);

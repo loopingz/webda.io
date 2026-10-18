@@ -72,7 +72,35 @@ function diff(
  */
 const block = (code: SchemaChange["code"]) => ({ category: "BLOCK", code });
 
-const link = (target: string, type = "ModelLink") => ({ type, typeParameters: [target] });
+/**
+ * Link type compiled for each written relation type
+ */
+const COMPILED: { [type: string]: string } = {
+  ModelLink: "LINK",
+  OneToOne: "LINK",
+  ModelLinksSimpleArray: "LINKS_SIMPLE_ARRAY",
+  ManyToMany: "LINKS_ARRAY"
+};
+
+/**
+ * Relations as compiled, with the written types in Reflection
+ * @param relations - attribute, target class name and written type of each relation
+ * @returns the metadata fragment
+ */
+function relate(...relations: [attribute: string, target: string, type?: string][]): Partial<SchemaModelMetadata> {
+  const compiled: NonNullable<SchemaModelMetadata["Relations"]> = {};
+  const reflection: NonNullable<SchemaModelMetadata["Reflection"]> = {};
+  for (const [attribute, target, type = "ModelLink"] of relations) {
+    const model = `MyApp/${target}`;
+    if (type === "ModelParent") {
+      compiled.parent = { attribute, model };
+    } else {
+      (compiled.links ??= []).push({ attribute, model, type: COMPILED[type] });
+    }
+    reflection[attribute] = { type, typeParameters: [target] };
+  }
+  return { Relations: compiled, Reflection: reflection };
+}
 
 describe("compareSchemaPlans", () => {
   it("finds nothing between identical plans", () => {
@@ -93,7 +121,7 @@ describe("compareSchemaPlans", () => {
           },
           {
             required: ["uuid", "summary"],
-            Reflection: { owner: link("User"), tags: link("Tag", "ModelLinksSimpleArray") }
+            ...relate(["owner", "User"], ["tags", "Tag", "ModelLinksSimpleArray"])
           }
         ),
         model("MyApp/Tag", {})
@@ -110,10 +138,7 @@ describe("compareSchemaPlans", () => {
 
   it("accepts removals: the storage stays for the live version", () => {
     expect(
-      diff(
-        [...post({ title: { type: "string" }, owner: { type: "string" } }, { Reflection: { owner: link("User") } })],
-        [user]
-      )
+      diff([...post({ title: { type: "string" }, owner: { type: "string" } }, relate(["owner", "User"]))], [user])
     ).toEqual([]);
   });
 
@@ -168,7 +193,7 @@ describe("compareSchemaPlans", () => {
 
   it("blocks a relation kind change", () => {
     const owner = (type: string, schema: JSONSchemaLike = { type: "string" }) =>
-      post({ owner: schema }, { Reflection: { owner: link("User", type) } });
+      post({ owner: schema }, relate(["owner", "User", type]));
     // link -> parent: same column, other semantics
     expect(diff(owner("ModelLink"), owner("ModelParent"))).toEqual(
       expect.arrayContaining([block("RELATION_KIND_CHANGED"), block("DELETE_POLICY_CHANGED")])
@@ -184,12 +209,12 @@ describe("compareSchemaPlans", () => {
   });
 
   it("blocks a relation target change", () => {
-    const owner = (target: string) => post({ owner: { type: "string" } }, { Reflection: { owner: link(target) } });
+    const owner = (target: string) => post({ owner: { type: "string" } }, relate(["owner", target]));
     expect(diff(owner("User"), owner("Team"))).toEqual([block("RELATION_TARGET_CHANGED")]);
   });
 
   it("blocks a delete policy change, except between NO ACTION and RESTRICT", () => {
-    const v1 = buildSchemaPlan(post({ owner: { type: "string" } }, { Reflection: { owner: link("User") } }));
+    const v1 = buildSchemaPlan(post({ owner: { type: "string" } }, relate(["owner", "User"])));
     const withPolicy = (onDelete: "RESTRICT" | "SET NULL") => ({
       ...v1,
       relations: v1.relations.map(r => (r.attribute === "owner" ? { ...r, onDelete } : r))
@@ -231,18 +256,15 @@ describe("compareSchemaPlans", () => {
 
   it("blocks a column changing meaning", () => {
     expect(
-      diff(
-        post({ owner: { type: "string" } }),
-        post({ owner: { type: "string" } }, { Reflection: { owner: link("User") } })
-      )
+      diff(post({ owner: { type: "string" } }), post({ owner: { type: "string" } }, relate(["owner", "User"])))
     ).toEqual([block("COLUMN_ROLE_CHANGED")]);
   });
 
   it("warns on a new unique index", () => {
     expect(
       diff(
-        post({ owner: { type: "string" } }, { Reflection: { owner: link("User") } }),
-        post({ owner: { type: "string" } }, { Reflection: { owner: link("User", "OneToOne") } })
+        post({ owner: { type: "string" } }, relate(["owner", "User"])),
+        post({ owner: { type: "string" } }, relate(["owner", "User", "OneToOne"]))
       )
     ).toEqual([{ category: "WARN", code: "UNIQUE_INDEX_ADDED" }]);
   });

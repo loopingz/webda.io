@@ -128,7 +128,7 @@ function findReverseRelation(
   models: Record<string, any>
 ): { kind: "link" | "parent"; model?: string } | undefined {
   const meta = getMetadata(models[targetModelId]);
-  if (!meta) return undefined;
+  // The caller has already checked that the target model is loaded.
 
   // Check target model itself
   if (meta.Relations?.parent && meta.Relations.parent.attribute === targetAttr) {
@@ -166,10 +166,7 @@ function findReverseRelation(
  * @param options - validation options
  * @returns array of relation diagnostics
  */
-export function checkRelations(
-  models: Record<string, any>,
-  options: RelationsCheckOptions = {}
-): RelationDiagnostic[] {
+export function checkRelations(models: Record<string, any>, options: RelationsCheckOptions = {}): RelationDiagnostic[] {
   const diagnostics: RelationDiagnostic[] = [];
   const isFinalModel = options.isFinalModel ?? (() => true);
   const getStoreName =

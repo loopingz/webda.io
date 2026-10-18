@@ -103,6 +103,12 @@ describe("SQLRepository", () => {
       "UPDATE items SET data = CASE WHEN HASTYPE THEN TYPED((MERGE(data, ?1)), KEPT(?3)) ELSE MERGE(data, ?1) END WHERE uuid=?2 AND K(name)=?4"
     );
     expect(last().values).toEqual([JSON.stringify({ name: "b" }), "a", "{}", "x"]);
+    // An absent field is matched with IS NULL, never bound: `= NULL` is never true
+    await repo.patch("a", { usedAt: 1 } as any, "usedAt" as any, undefined);
+    expect(last().q).toMatch(/ WHERE uuid=\?2 AND K\(usedAt\) IS NULL$/);
+    expect(last().values).toEqual([JSON.stringify({ usedAt: 1 }), "a", "{}"]);
+    await repo.delete("a", "name", null);
+    expect(last().q).toMatch(/ AND K\(name\) IS NULL$/);
     await repo.removeAttribute("a", "name" as any);
     expect(last().q).toBe("UPDATE items SET data = REMOVE(?1) WHERE uuid=?2");
     await repo.incrementAttributes("a", { count: 2 } as any);

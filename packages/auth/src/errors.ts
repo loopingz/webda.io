@@ -1,5 +1,14 @@
 import { WebdaError } from "@webda/core";
-export { InvalidIdent, PasswordPolicyError, TokenInvalid } from "@webda/core";
+// MFA errors and Throttled live in core: the MFA behavior raises them on any model
+export {
+  InvalidIdent,
+  InvalidMfaCode,
+  MfaAlreadyEnabled,
+  MfaNotEnabled,
+  PasswordPolicyError,
+  Throttled,
+  TokenInvalid
+} from "@webda/core";
 
 /** An account already owns this email; log in to link (409) */
 export class AccountExists extends WebdaError.HttpError {
@@ -57,14 +66,6 @@ export class TokenExpired extends WebdaError.HttpError {
   }
 }
 
-/** Too many attempts (429) */
-export class Throttled extends WebdaError.HttpError {
-  /** @param message - error message */
-  constructor(message: string = "Too many attempts") {
-    super(message, 429);
-  }
-}
-
 /** The email domain is not allowed for this provider (403) */
 export class EmailDomainNotAllowed extends WebdaError.HttpError {
   /** @param message - error message */
@@ -78,5 +79,13 @@ export class UnsupportedMediaType extends WebdaError.HttpError {
   /** @param message - error message */
   constructor(message: string = "Content-Type must be application/json") {
     super(message, 415);
+  }
+}
+
+/** Session is not awaiting second-factor verification (401) */
+export class MfaNotPending extends WebdaError.HttpError {
+  /** @param message - error message */
+  constructor(message: string = "MFA verification is not pending") {
+    super(message, 401);
   }
 }

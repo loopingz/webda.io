@@ -3,6 +3,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { BEHAVIOR_PARENT_KEY } from "./generators/behaviors.ts";
+import { generateWebdaModule } from "./module.ts";
+import { openSession } from "./context.ts";
 import { WarmSession } from "./session.ts";
 import { runTwoPass } from "./twopass.ts";
 
@@ -16,7 +18,12 @@ const configFile = join(fixture, "tsconfig.json");
  * @returns generated text
  */
 function transform(name: string): string {
-  const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
+  const session = new WarmSession({
+    configFile,
+    cwd: fixture,
+    storageModule: "./runtime.js",
+    qlModule: "./runtime.js"
+  });
   try {
     const file = join(fixture, "src", name);
     return session.transform(file, readFileSync(file, "utf8")).text;
@@ -47,12 +54,41 @@ describe("behaviours", () => {
     expect(text).toMatch(/protected __hydrateBehaviors\(rawData\?: any\): void/);
     expect(text).toContain("if (!(v instanceof MFA))");
     expect(text).toMatch(/\{ instance: this, attribute: "mfa" \}/);
+    expect(text).toContain("(Holder.prototype as any).__hydrateBehaviors?.call(this, rawData)");
+    expect(text).toMatch(/\{ instance: this, attribute: "paymentMfa" \}/);
+  });
+
+  it("generates parameter schemas and exports for models, behaviors and inherited declarations", () => {
+    const session = openSession(configFile, fixture);
+    try {
+      const { module } = generateWebdaModule(session.ctx, { appPath: fixture, namespace: "Fixture" });
+      expect(module.behaviors["Fixture/MFA"].Schema.properties.lifetime.type).toBe("number");
+      expect(module.behaviors["Fixture/MFA"].Configuration).toContain("MfaPolicy");
+    } finally {
+      session.dispose();
+    }
+    const modelRoot = join(here, "..", "test", "separator-fixture");
+    const modelSession = openSession(join(modelRoot, "tsconfig.json"), modelRoot);
+    try {
+      const { module } = generateWebdaModule(modelSession.ctx, { appPath: modelRoot, namespace: "Fixture" });
+      const model = module.models["Fixture/Keyed"];
+      expect(model.Schema.properties.limit.type).toBe("number");
+      expect(model.Configuration).toContain("KeyedParameters");
+      expect(module.models["Fixture/KeyedChild"].Configuration).toBe(model.Configuration);
+    } finally {
+      modelSession.dispose();
+    }
   });
 
   it("produces code that type-checks, which emit-time transforms never had to", () => {
     // The original ran after checking, so implicit-any indexing was invisible.
     // Generated source is checked like any other, and was not clean at first.
-    const result = runTwoPass({ configFile, rootDir: join(fixture, "src"), storageModule: "./runtime.js", qlModule: "./runtime.js" });
+    const result = runTwoPass({
+      configFile,
+      rootDir: join(fixture, "src"),
+      storageModule: "./runtime.js",
+      qlModule: "./runtime.js"
+    });
     expect(result.diagnostics).toEqual([]);
     expect(result.editCounts.behaviors).toBeGreaterThan(0);
   });

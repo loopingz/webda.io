@@ -111,6 +111,31 @@ class GCPQueueTest extends QueueTest {
   }
 
   @test
+  async failedMessageIsRedelivered() {
+    const queue = await this.getQueue("consumer");
+    await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
+      ackDeadlineSeconds: 10
+    });
+    const deliveries: number[] = [];
+    const consumer = queue.consume(async (event: any) => {
+      deliveries.push(event.attempt);
+      if (deliveries.length === 1) {
+        throw new Error("First delivery fails");
+      }
+    });
+    await this.sleep(500);
+    await queue.sendMessage({ attempt: 1 });
+    // Nacked: delivered again right away, not after the lease extensions (up to 60 minutes)
+    for (let i = 0; i < 40 && deliveries.length < 2; i++) {
+      await this.sleep(250);
+    }
+    const cancelled = assert.rejects(() => consumer, /Cancelled/);
+    await consumer.cancel();
+    await cancelled;
+    assert.deepStrictEqual(deliveries.slice(0, 2), [1, 1]);
+  }
+
+  @test
   async receiveError() {
     const queue = await this.getQueue("consumer");
     await assert.rejects(() => queue.receiveMessage(), /You can only use receiveMessage in 'receiver' mode/);

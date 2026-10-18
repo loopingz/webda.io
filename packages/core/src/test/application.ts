@@ -17,7 +17,7 @@ import { sleep } from "@webda/utils";
 import { DeepPartial } from "@webda/tsc-esm";
 import { useApplication } from "../application/hooks.js";
 import { useRouter } from "../rest/hooks.js";
-import { ServiceName, ServicesMap, useCore, useModelStore, useService } from "../core/hooks.js";
+import { ServiceName, ServicesMap, useCore, useService } from "../core/hooks.js";
 import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects.js";
 import { Application } from "../application/application.js";
 import { useLog } from "@webda/workout";

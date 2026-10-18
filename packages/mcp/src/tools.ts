@@ -80,15 +80,16 @@ export function operationToTool(id: string, op: OperationDefinition, resolve: Sc
     }
     wrapped = true;
   }
-  const description =
-    [op.summary, op.description].filter(Boolean).join("\n\n") || `Call operation ${id}`;
+  const description = [op.summary, op.description].filter(Boolean).join("\n\n") || `Call operation ${id}`;
   const tool: Tool = {
     name: id,
     description: op.deprecated ? `${description} (deprecated)` : description,
     inputSchema: inputSchema as Tool["inputSchema"],
     annotations: {
-      readOnlyHint: hints.readOnly ?? (op.rest !== false && op.rest?.method === "get" ? true : /\.(Get|Query)$/.test(id)),
-      destructiveHint: hints.destructive ?? (op.rest !== false && op.rest?.method === "delete" ? true : id.endsWith(".Delete"))
+      readOnlyHint:
+        hints.readOnly ?? (op.rest !== false && op.rest?.method === "get" ? true : /\.(Get|Query)$/.test(id)),
+      destructiveHint:
+        hints.destructive ?? (op.rest !== false && op.rest?.method === "delete" ? true : id.endsWith(".Delete"))
     }
   };
   if (hints.title) {

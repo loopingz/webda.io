@@ -234,7 +234,10 @@ export class CompletionTest {
 
     // Unclosed double-quoted string
     const unclosed = complete('status = "op|');
-    assert.deepStrictEqual(unclosed.items.map(i => i.label), ["'open'"]);
+    assert.deepStrictEqual(
+      unclosed.items.map(i => i.label),
+      ["'open'"]
+    );
     assert.strictEqual(unclosed.prefix, "op");
 
     // Completed double-quoted string with caret after

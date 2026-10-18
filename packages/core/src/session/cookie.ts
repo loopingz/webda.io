@@ -28,7 +28,7 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
    * When provided a domain is setting the cookie to be available to all subdomains
    */
   domain?: string | true;
-  
+
   /**
    * Duration storage
    */
@@ -44,7 +44,7 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
    * Get the max age in seconds, defaulting to 7 days
    * @returns the result number
    */
-  get maxAge() : number {
+  get maxAge(): number {
     return this._maxAge?.toSeconds() ?? 86400 * 7;
   }
   /**
@@ -184,7 +184,7 @@ export class SecureCookie {
     let cookieName = name;
     let limit;
     const mapLength = cookieSerialize(name, "", <CookieSerializeOptions>params).length;
-    for (let i = 0; i < value.length; ) {
+    for (let i = 0; i < value.length;) {
       limit = SPLIT - mapLength;
       if (j > 1) {
         cookieName = `${name}${j}`;

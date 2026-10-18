@@ -68,7 +68,10 @@ class GrpcBuildDispatchIntegrationTest {
     const mod = JSON.parse(readFileSync(GRPC_MODULE_JSON, "utf-8"));
     const entry = mod?.moddas?.["Webda/GrpcService"];
     assert.ok(entry, "Webda/GrpcService missing from moddas");
-    assert.ok(entry?.commands?.build, "Webda/GrpcService is missing a build command — did the @BuildCommand decorator get removed?");
+    assert.ok(
+      entry?.commands?.build,
+      "Webda/GrpcService is missing a build command — did the @BuildCommand decorator get removed?"
+    );
   }
 
   @test
@@ -79,7 +82,10 @@ class GrpcBuildDispatchIntegrationTest {
     const mod = JSON.parse(readFileSync(GRPC_MODULE_JSON, "utf-8"));
 
     const configured = listConfiguredServiceTypes(configPath, "Webda");
-    assert.ok(configured.includes("Webda/GrpcService"), `Expected Webda/GrpcService in configured types, got: ${configured.join(", ")}`);
+    assert.ok(
+      configured.includes("Webda/GrpcService"),
+      `Expected Webda/GrpcService in configured types, got: ${configured.join(", ")}`
+    );
 
     assert.strictEqual(
       shouldDispatchBuildHooks(mod, configured),

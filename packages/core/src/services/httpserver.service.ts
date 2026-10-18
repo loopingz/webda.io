@@ -1,4 +1,5 @@
 import { Service } from "./service.js";
+import { InsufficientScope } from "./scopeauthorizer.js";
 import { Command } from "./command.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
@@ -23,6 +24,14 @@ import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { AsyncResource } from "node:async_hooks";
 import { join } from "node:path";
+import { X509Certificate } from "node:crypto";
+import type { TLSSocket } from "node:tls";
+import {
+  type ClientCertificate,
+  type ClientCertificateHeaderFormat,
+  parseClientCertificateHeader,
+  toClientCertificate
+} from "../contexts/clientcertificate.js";
 
 /**
  * How long a connection to a TLS port may stay silent before it is dropped,
@@ -111,6 +120,33 @@ export class HttpServerParameters extends ServiceParameters {
   autoTls?: boolean;
 
   /**
+   * CA file(s) used to verify client certificates — enables mTLS on the TLS port
+   */
+  clientCa?: string | string[];
+  /**
+   * Client certificate request on the TLS port: "none" does not ask for one, "optional" asks and accepts clients
+   * without one or with an unverified one (see ClientCertificate.verified), "require" refuses the TLS handshake of
+   * clients without a certificate signed by `clientCa`
+   *
+   * Defaults to "optional" when clientCa is set, "none" otherwise
+   */
+  clientAuth?: "none" | "optional" | "require";
+  /**
+   * Header carrying the client certificate verified by a reverse proxy, disabled when undefined
+   *
+   * Only accepted from `trustedProxies`: a request carrying it from another source is refused (400)
+   *
+   * @example "x-forwarded-tls-client-cert" (Traefik), "x-ssl-client-cert" (nginx), "x-forwarded-client-cert" (Envoy)
+   */
+  clientCertHeader?: string;
+  /**
+   * Format of `clientCertHeader`
+   *
+   * @default "traefik"
+   */
+  clientCertHeaderFormat?: ClientCertificateHeaderFormat;
+
+  /**
    * Load parameters with defaults for request limits, timeouts, and proxy configuration
    * @param params - the service parameters
    * @returns this for chaining
@@ -123,6 +159,8 @@ export class HttpServerParameters extends ServiceParameters {
     if (typeof params.trustedProxies === "string") {
       this.trustedProxies = params.trustedProxies.split(",").map(n => n.trim());
     }
+    this.clientAuth ??= this.clientCa ? "optional" : "none";
+    this.clientCertHeaderFormat ??= "traefik";
     return this;
   }
 }
@@ -260,7 +298,11 @@ export class HttpServer<
       }
       const webCtx = ctx as WebContext;
       await runWithContext(webCtx, async () => {
-        try { emitCoreEvent("Webda.Request", { context: webCtx }); } catch { /* listener error */ }
+        try {
+          emitCoreEvent("Webda.Request", { context: webCtx });
+        } catch {
+          /* listener error */
+        }
         try {
           await useRouter().execute(webCtx);
         } catch (err) {
@@ -268,6 +310,10 @@ export class HttpServer<
           // A Redirect carries its target: without the Location header the client only gets the JSON body
           if (err instanceof WebdaError.Redirect && err.location && !webCtx.hasFlushedHeaders?.()) {
             webCtx.setHeader("Location", err.location);
+          }
+          // RFC 6750: tell the client which scope the refused operation needs
+          if (err instanceof InsufficientScope && !webCtx.hasFlushedHeaders?.()) {
+            webCtx.setHeader("WWW-Authenticate", `Bearer error="insufficient_scope", scope="${err.operation}"`);
           }
           const method = webCtx.getHttpContext().getMethod();
           const url = webCtx.getHttpContext().getUrl();
@@ -298,7 +344,8 @@ export class HttpServer<
                 message: err?.message ?? String(err)
               };
               if (err?.details !== undefined) body.details = err.details;
-              webCtx.write({ error: body });
+              // RFC 6750 clients read the OAuth error object itself: `{ error, operation }`
+              webCtx.write(err instanceof InsufficientScope ? err.details : { error: body });
             }
           }
         }
@@ -306,7 +353,11 @@ export class HttpServer<
         await webCtx.saveSession();
         // Always emit the Result event — both success and error paths converge
         // here so that subscribers see every request reach a terminal state.
-        try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
+        try {
+          emitCoreEvent("Webda.Result", { context: webCtx });
+        } catch {
+          /* listener error */
+        }
       });
       // Flush response — skip if pipeline/streaming already handled it (a streamed response is ended by its
       // operation, or gone with its client)
@@ -382,7 +433,6 @@ export class HttpServer<
         process.on("uncaughtException", handler);
       }
 
-
       if (this.server) {
         this.server.close();
       }
@@ -404,7 +454,8 @@ export class HttpServer<
         const tlsOptions = {
           key: readFileSync(params.key),
           cert: readFileSync(params.cert),
-          allowHTTP1: true
+          allowHTTP1: true,
+          ...this.getClientAuthOptions(params)
         };
         let tlsServer: Server | Http2SecureServer;
         if (params.http2 !== false) {
@@ -421,6 +472,8 @@ export class HttpServer<
         }
         this.redirectPlainHttp(tlsServer);
         this.server = tlsServer;
+      } else if (params.clientCa || (params.clientAuth ?? "none") !== "none") {
+        throw new Error("clientCa/clientAuth require TLS: set key and cert (or autoTls)");
       } else if (params.h2c) {
         // Prior-knowledge HTTP/2 cleartext — for gRPC clients without TLS.
         this.isHttp2 = true;
@@ -466,6 +519,74 @@ export class HttpServer<
         server.once("error", onError);
       });
     }
+  }
+
+  /**
+   * TLS options requesting and verifying client certificates
+   * @param params - the server parameters
+   * @returns the options to merge in the TLS server options
+   * @throws Error when a client certificate is requested without CA to verify it
+   */
+  protected getClientAuthOptions(params: HttpServerParameters): {
+    ca?: Buffer[];
+    requestCert?: boolean;
+    rejectUnauthorized?: boolean;
+  } {
+    const clientAuth = params.clientAuth ?? (params.clientCa ? "optional" : "none");
+    if (clientAuth === "none") {
+      return {};
+    }
+    if (!params.clientCa) {
+      throw new Error(`clientAuth "${clientAuth}" requires clientCa`);
+    }
+    const files = Array.isArray(params.clientCa) ? params.clientCa : [params.clientCa];
+    return {
+      ca: files.map(file => readFileSync(file)),
+      requestCert: true,
+      rejectUnauthorized: clientAuth === "require"
+    };
+  }
+
+  /**
+   * Client certificate of a request: forwarded by a trusted proxy in `clientCertHeader`, or presented on the TLS
+   * socket
+   *
+   * With `clientCertHeader`, a request from a trusted proxy only uses the header: the socket certificate is the
+   * proxy's own (re-encrypted backend connection), never the client's
+   * @param req - the incoming message
+   * @returns the certificate, undefined when none was presented
+   * @throws WebdaError.BadRequest when `clientCertHeader` comes from a source that is not a trusted proxy
+   */
+  extractClientCertificate(req: IncomingMessage): ClientCertificate | undefined {
+    const header = this.parameters.clientCertHeader?.toLowerCase();
+    const forwarded = header ? req.headers[header] : undefined;
+    const trusted = header ? this.isProxyTrusted(req.socket?.remoteAddress) : false;
+    if (forwarded !== undefined) {
+      if (!trusted) {
+        this.log("WARN", `${header} header set from an unknown source: ${req.socket?.remoteAddress}`);
+        throw new WebdaError.BadRequest(`${header} header set from an unknown source`);
+      }
+      const value = Array.isArray(forwarded) ? forwarded[forwarded.length - 1] : forwarded;
+      try {
+        const x509 = parseClientCertificateHeader(value, this.parameters.clientCertHeaderFormat);
+        return x509 ? toClientCertificate(x509, true, "proxy") : undefined;
+      } catch (err) {
+        this.log("WARN", `Cannot parse the client certificate of ${header}`, err?.message);
+        return undefined;
+      }
+    }
+    if (trusted) {
+      return undefined;
+    }
+    const socket = req.socket as TLSSocket;
+    if (typeof socket?.getPeerCertificate !== "function") {
+      return undefined;
+    }
+    const peer = socket.getPeerCertificate(false);
+    if (!peer?.raw) {
+      return undefined;
+    }
+    return toClientCertificate(new X509Certificate(peer.raw), socket.authorized === true, "tls");
   }
 
   /**
@@ -526,19 +647,22 @@ export class HttpServer<
       socket.setTimeout(TLS_GATE_TIMEOUT, drop);
       // Hand the socket over in this callback's async context, as the TLS
       // server would have: request handling needs Webda's instance storage
-      socket.once("data", AsyncResource.bind((chunk: Buffer) => {
-        socket.off("error", drop);
-        socket.setTimeout(0);
-        socket.pause();
-        socket.unshift(chunk);
-        // 0x16 opens a TLS handshake record
-        if (chunk[0] === 0x16) {
-          handshake.call(tlsServer, socket);
-        } else {
-          redirect.emit("connection", socket);
-        }
-        process.nextTick(() => socket.resume());
-      }));
+      socket.once(
+        "data",
+        AsyncResource.bind((chunk: Buffer) => {
+          socket.off("error", drop);
+          socket.setTimeout(0);
+          socket.pause();
+          socket.unshift(chunk);
+          // 0x16 opens a TLS handshake record
+          if (chunk[0] === 0x16) {
+            handshake.call(tlsServer, socket);
+          } else {
+            redirect.emit("connection", socket);
+          }
+          process.nextTick(() => socket.resume());
+        })
+      );
     });
   }
 
@@ -575,13 +699,21 @@ export class HttpServer<
       execFileSync(
         "openssl",
         [
-          "req", "-x509", "-newkey", "rsa:2048",
-          "-keyout", key,
-          "-out", cert,
-          "-days", "365",
+          "req",
+          "-x509",
+          "-newkey",
+          "rsa:2048",
+          "-keyout",
+          key,
+          "-out",
+          cert,
+          "-days",
+          "365",
           "-nodes",
-          "-subj", "/CN=localhost",
-          "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
+          "-subj",
+          "/CN=localhost",
+          "-addext",
+          "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
         ],
         { stdio: "pipe" }
       );
@@ -638,8 +770,20 @@ export class HttpServer<
       ? Object.fromEntries(Object.entries(req.headers).filter(([k]) => !k.startsWith(":")))
       : req.headers;
 
+    let clientCertificate: ClientCertificate | undefined;
+    try {
+      clientCertificate = this.extractClientCertificate(req);
+    } catch (err) {
+      if (err instanceof WebdaError.BadRequest) {
+        res?.writeHead(400);
+        return;
+      }
+      throw err;
+    }
+
     const httpContext = new HttpContext(vhost, <HttpMethodType>req.method, req.url, protocol, port, headers as any);
     httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket?.remoteAddress));
+    httpContext.setClientCertificate(clientCertificate);
 
     if (["PUT", "PATCH", "POST", "DELETE"].includes(req.method)) {
       httpContext.setBody(req);
@@ -681,4 +825,3 @@ export class HttpServer<
     this.contextProviders.unshift(provider);
   }
 }
-

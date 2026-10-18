@@ -3,8 +3,6 @@ import * as assert from "assert";
 import { vi } from "vitest";
 import { bind } from "./bind.js";
 import {
-  DynamicValue,
-  NowValue,
   parse,
   parseDurationToMs,
   PartialValidator,

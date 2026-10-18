@@ -66,10 +66,7 @@ export class LogsPanel implements Panel {
   private saveState(): void {
     try {
       mkdirSync(".webda", { recursive: true });
-      writeFileSync(
-        LogsPanel.STATE_FILE,
-        JSON.stringify({ logLevel: LogsPanel.LOG_LEVELS[this.levelFilter] })
-      );
+      writeFileSync(LogsPanel.STATE_FILE, JSON.stringify({ logLevel: LogsPanel.LOG_LEVELS[this.levelFilter] }));
     } catch {
       /* non-fatal — TUI keeps working without persistence */
     }
@@ -150,9 +147,7 @@ export class LogsPanel implements Panel {
    */
   private getFilteredEntries(): LogEntry[] {
     // Always filter by minimum level
-    let result = this.entries.filter(
-      entry => LogsPanel.LOG_LEVELS.indexOf(entry.level) >= this.levelFilter
-    );
+    let result = this.entries.filter(entry => LogsPanel.LOG_LEVELS.indexOf(entry.level) >= this.levelFilter);
     // Apply text search if active
     if (this.searchQuery) {
       const lq = this.searchQuery.toLowerCase();
@@ -327,7 +322,8 @@ export class LogsPanel implements Panel {
         // Message (truncated to fit)
         const prefixLen = 2 + 12 + 1 + 6 + 1;
         const maxMsgLen = Math.max(10, width - prefixLen);
-        const msg = entry.message.length > maxMsgLen ? entry.message.substring(0, maxMsgLen - 3) + "..." : entry.message;
+        const msg =
+          entry.message.length > maxMsgLen ? entry.message.substring(0, maxMsgLen - 3) + "..." : entry.message;
         term(` ${msg}`);
 
         if (isCurrent) {

@@ -19,7 +19,7 @@ import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
 import { State } from "@webda/utils";
 import { ServiceState, ServiceStates } from "./iservice.js";
-import { DecoratorPropertyParameters, getMetadata } from "@webda/decorators";
+import { getMetadata } from "@webda/decorators";
 
 /**
  * Represent a Inject annotation

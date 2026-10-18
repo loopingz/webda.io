@@ -8,7 +8,6 @@ import {
   Inject,
   Service,
   ServiceParameters,
-  Store,
   useModel,
   useModelMetadata,
   WebContext,
@@ -28,7 +27,6 @@ type InvitationAuthentication = IAuthenticationService & {
   on(event: string, listener: (evt: any) => any): any;
 };
 import type { NotificationService } from "@webda/core";
-import { ModelRef, ModelRefWithCreate, Repository } from "@webda/models";
 
 interface InvitationAnswerBody {
   accept: boolean;

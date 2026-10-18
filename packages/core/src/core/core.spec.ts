@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { useApplication, useCoreEvents, useRegistry, WebContext, Bean } from "../index.js";
+import { useCoreEvents, useRegistry, WebContext, Bean } from "../index.js";
 import { WebdaInternalTest } from "../test/index.js";
 import { JSONUtils } from "@webda/utils";
 import { MemoryRepository } from "@webda/models";

@@ -1,9 +1,16 @@
 {
+  "$schema": "../.webda/deployment.schema.json",
   "uuid": "Production",
   "parameters": {
-    "website": { "path": "./wui", "url": "prod.webda-demo.com" },
+    "website": {
+      "path": "./wui",
+      "url": "prod.webda-demo.com"
+    },
     "requestLimit": "1mb",
-    "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "\\w+\\.facebook\\.com"],
+    "csrfOrigins": [
+      "^accounts\\.google\\.\\w{2,}$",
+      "\\w+\\.facebook\\.com"
+    ],
     "region": "eu-west-1",
     "accessKeyId": "PROD_KEY",
     "secretAccessKey": "PROD_SECRET",
@@ -28,32 +35,29 @@
     {
       "name": "WebdaSampleApplication",
       "type": "Webda/CloudFormationDeployer",
-
       "AssetsBucket": "webda-sample-app-artifacts",
       "FargateCluster": "webda-demo",
-
       "Tags": {
         "test": "webda3"
       },
-
       "Certificates": {
         "sampleapp.webda.io": {
-          "alt": ["*.sampleapp.webda.io"]
+          "alt": [
+            "*.sampleapp.webda.io"
+          ]
         }
       },
-
       "Lambda": {
         "FunctionName": "webda-sample-app",
         "Tags": {
           "updater": "test"
         }
       },
-
       "Resources": {},
-
       "APIGateway": {},
-      "APIGatewayDomain": { "DomainName": "api.sampleapp.webda.io" },
-
+      "APIGatewayDomain": {
+        "DomainName": "api.sampleapp.webda.io"
+      },
       "Statics": [
         {
           "DomainName": "sampleapp.webda.io",
@@ -61,13 +65,13 @@
           "Source": "wui"
         }
       ],
-
       "Docker": "",
-
       "Workers": [
         {
           "FargateCluster": "webda-demo",
-          "FargateService": { "Name": "webda-demo-workers" },
+          "FargateService": {
+            "Name": "webda-demo-workers"
+          },
           "FargateTaskDefinition": {}
         }
       ]

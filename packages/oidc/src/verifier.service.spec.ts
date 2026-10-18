@@ -228,7 +228,9 @@ class OIDCVerifierTest extends OIDCTest {
     const verifier = await this.addVerifier({
       trustedIssuers: [{ issuer: ISSUER, jwksUri: `${ISSUER}/jwks`, audiences: ["urn:billing"], maxTokenAge: 60 }]
     });
-    assert.ok(await verifier.verify(await this.idp.sign({ aud: "urn:billing", exp: Math.floor(Date.now() / 1000) + 60 })));
+    assert.ok(
+      await verifier.verify(await this.idp.sign({ aud: "urn:billing", exp: Math.floor(Date.now() / 1000) + 60 }))
+    );
     assert.strictEqual(await verifier.verify(await this.idp.sign({ aud: "urn:billing" })), undefined, "maxTokenAge");
     assert.strictEqual(await verifier.verify(await this.idp.sign()), undefined, "default audience replaced");
     assert.deepStrictEqual(this.idp.calls, [`${ISSUER}/jwks`]);

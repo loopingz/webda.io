@@ -1,5 +1,31 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.10...models-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.9...models-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **core:** add slow query logger for WebdaQL ([#244](https://github.com/loopingz/webda.io/issues/244)) ([#903](https://github.com/loopingz/webda.io/issues/903)) ([827781d](https://github.com/loopingz/webda.io/commit/827781d30c843e9e0871416f780730eb8ae0ca5d))
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+  * peerDependencies
+    * @webda/utils bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.8...models-v4.0.0-beta.9) (2026-10-14)
 
 

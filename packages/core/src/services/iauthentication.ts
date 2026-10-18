@@ -15,7 +15,7 @@ export interface ProviderInfo {
   /**
    * Provider type
    */
-  type: "password" | "oauth" | "passwordless";
+  type: "password" | "oauth" | "passwordless" | "certificate";
   /**
    * URL to start the authentication flow (oauth, passwordless)
    */
@@ -74,6 +74,11 @@ export interface IAuthenticationService extends Service {
    * @param identity resolved by a provider
    */
   complete(identity: ResolvedIdentity): Promise<AuthResult>;
+  /**
+   * Complete a second factor challenge (MFA) within the current pending session
+   * @param amr authentication methods used (e.g. ["totp"], ["recovery"])
+   */
+  completeSecondFactor(amr: string[]): Promise<AuthResult>;
   /**
    * Logout the current session
    */
@@ -191,6 +196,24 @@ export interface EventAuthenticationUnlinked<T extends User = User> extends Even
 }
 
 /**
+ * Emitted for MFA lifecycle events (enabled, disabled, verified, failed)
+ */
+export interface EventAuthenticationMfa<T extends User = User> extends EventWithContext {
+  /**
+   * User
+   */
+  user: T;
+  /**
+   * User identifier
+   */
+  userId?: string;
+  /**
+   * Factor method (e.g. "totp", "recovery")
+   */
+  method?: string;
+}
+
+/**
  * Authentication events map
  */
 export type AuthenticationEvents = {
@@ -203,4 +226,8 @@ export type AuthenticationEvents = {
   "Authentication.LoginFailed": EventAuthenticationLoginFailed;
   "Authentication.Linked": EventAuthenticationLinked;
   "Authentication.Unlinked": EventAuthenticationUnlinked;
+  "Authentication.MfaEnabled": EventAuthenticationMfa;
+  "Authentication.MfaDisabled": EventAuthenticationMfa;
+  "Authentication.MfaVerified": EventAuthenticationMfa;
+  "Authentication.MfaFailed": EventAuthenticationMfa;
 };

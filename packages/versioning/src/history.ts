@@ -119,10 +119,7 @@ export async function hash(vp: VersionedPatch): Promise<string> {
  * @param meta - optional metadata (timestamp, author, message); `id` is computed automatically
  * @returns a `VersionedPatch` with a content-addressed `id` field set
  */
-export async function commit(
-  delta: Delta,
-  meta: Omit<VersionedPatchMeta, "id"> = {}
-): Promise<VersionedPatch> {
+export async function commit(delta: Delta, meta: Omit<VersionedPatchMeta, "id"> = {}): Promise<VersionedPatch> {
   const stub = wrap(delta, meta);
   const id = await hash(stub);
   return { ...stub, id };

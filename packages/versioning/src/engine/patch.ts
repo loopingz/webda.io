@@ -81,11 +81,7 @@ export function patch<T>(a: T, delta: Delta): T {
     for (const [path, hunks] of Object.entries(delta.stringHunks)) {
       const base = getAtPointer(result, path);
       if (typeof base !== "string") {
-        throw new VersioningError(
-          "STRATEGY_MISMATCH",
-          `patch: expected string at ${path}, got ${typeof base}`,
-          path
-        );
+        throw new VersioningError("STRATEGY_MISMATCH", `patch: expected string at ${path}, got ${typeof base}`, path);
       }
       result = setAtPointerMut(result, path, lineApply(base, hunks));
     }

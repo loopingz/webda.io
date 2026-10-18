@@ -126,6 +126,9 @@ class StatesTest {
     const service = new ChildService();
     const result = service.method();
     assert.strictEqual(result, "child");
-    assert.ok(["childDone", "done"].includes(service.getState()), `State should be childDone or done, got ${service.getState()}`);
+    assert.ok(
+      ["childDone", "done"].includes(service.getState()),
+      `State should be childDone or done, got ${service.getState()}`
+    );
   }
 }

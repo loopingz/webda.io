@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { vi } from "vitest";
-import { request as httpRequest, createServer, Server } from "node:http";
+import { request as httpRequest, createServer } from "node:http";
 import { WebSocket } from "ws";
 import { WS_PROTOCOL, WS_TOKEN_PREFIX, buildDebugUrl, isAllowedOrigin, allowedOrigins } from "./security.js";
 

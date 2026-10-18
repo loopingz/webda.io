@@ -219,6 +219,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
       } catch (err) {
         this.metrics.errors.inc();
         this.log("ERROR", `Message ${message.ackId}`, err);
+        // Without an answer the client extends the lease until maxExtension (60 min): the message would be stuck
+        message.nack();
       }
     };
     return new CancelablePromise(

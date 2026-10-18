@@ -3,6 +3,10 @@
 
 const lightCodeTheme = require("prism-react-renderer").themes.github;
 const darkCodeTheme = require("prism-react-renderer").themes.dracula;
+const docsBaseUrl = process.env.DOCS_BASE_URL || "/";
+const docsLane = docsBaseUrl === "/" ? "latest" : docsBaseUrl.replaceAll("/", "");
+/** @type {{label: string, path: string}[]} */
+const versions = require("./static/versions.json");
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -13,7 +17,8 @@ const config = {
   url: "https://webda.io",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: "/",
+  baseUrl: docsBaseUrl,
+  noIndex: docsLane !== "latest",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -86,6 +91,15 @@ const config = {
         { name: "keywords", content: "webda, typescript, framework" },
         { name: "twitter:card", content: "summary_large_image" }
       ],
+      ...(docsLane === "latest"
+        ? {}
+        : {
+            announcementBar: {
+              id: `docs-${docsLane}`,
+              content: `You are viewing documentation for ${docsLane}. <a href="/">See the latest docs here.</a>`,
+              isCloseable: false
+            }
+          }),
       navbar: {
         title: "Webda.io",
         logo: {
@@ -116,6 +130,12 @@ const config = {
             activeBasePath: "contribute",
             label: "Contribute",
             position: "right"
+          },
+          {
+            type: "dropdown",
+            label: `Docs: ${docsLane}`,
+            position: "right",
+            items: versions.map(({ label, path }) => ({ label, href: `https://webda.io${path}` }))
           },
           {
             href: "https://github.com/loopingz/webda.io",

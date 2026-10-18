@@ -1,6 +1,6 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep, resolve, isAbsolute } from "node:path";
 
 /**

@@ -1,5 +1,5 @@
 import { UuidModel } from "../src/model";
-import { BelongTo, ManyToMany, ManyToOne, ModelRef, ModelRelated, OneToMany, RelateTo } from "../src/relations";
+import { BelongTo, ManyToMany, ModelRelated, RelateTo } from "../src/relations";
 
 /** Social network user with friendships, posts, comments, and preferences. */
 class User extends UuidModel {

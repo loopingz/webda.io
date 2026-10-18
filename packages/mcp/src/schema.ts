@@ -66,7 +66,10 @@ function inlineNode(node: any, resolve: SchemaResolver, defs: JsonSchema[], seen
     }
     const { $ref, ...siblings } = node;
     const scopes = target.definitions || target.$defs ? [...defs, target.definitions ?? target.$defs] : defs;
-    return { ...inlineNode(target, resolve, scopes, [...seen, name], maxDepth), ...inlineNode(siblings, resolve, defs, seen, maxDepth) };
+    return {
+      ...inlineNode(target, resolve, scopes, [...seen, name], maxDepth),
+      ...inlineNode(siblings, resolve, defs, seen, maxDepth)
+    };
   }
   const out: JsonSchema = {};
   for (const [key, value] of Object.entries(node)) {

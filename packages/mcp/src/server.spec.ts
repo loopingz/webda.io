@@ -1,6 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { registerOperation, registerOperationAuthorizer, Session, unregisterOperationAuthorizer, useApplication, useInstanceStorage } from "@webda/core";
+import {
+  registerOperation,
+  registerOperationAuthorizer,
+  Session,
+  unregisterOperationAuthorizer,
+  useApplication,
+  useInstanceStorage
+} from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { BrokenModel, GadgetModel, WideModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
@@ -24,7 +31,13 @@ class McpServerTest extends McpFixtureTest {
     resources.build(ops);
     const session = new Session();
     if (user) session.login(user, user);
-    const server = createMcpServer({ info: { name: "test", version: "1.0.0" }, tools, resources, maxOutputBytes: 1024, getSession: () => session });
+    const server = createMcpServer({
+      info: { name: "test", version: "1.0.0" },
+      tools,
+      resources,
+      maxOutputBytes: 1024,
+      getSession: () => session
+    });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await server.connect(serverTransport);
     const client = new Client({ name: "spec", version: "1.0.0" });
@@ -133,8 +146,14 @@ class McpServerTest extends McpFixtureTest {
     const result = await client.callTool({ name: "Fixture.Count", arguments: { n: 3 } }, undefined, {
       onprogress: p => progress.push(p)
     });
-    assert.deepStrictEqual(progress.map(p => p.progress), [1, 2, 3]);
-    assert.deepStrictEqual(progress.map(p => p.total), [3, 3, 3]);
+    assert.deepStrictEqual(
+      progress.map(p => p.progress),
+      [1, 2, 3]
+    );
+    assert.deepStrictEqual(
+      progress.map(p => p.total),
+      [3, 3, 3]
+    );
     assert.deepStrictEqual(JSON.parse(progress[0].message), { index: 1, total: 3 });
     assert.deepStrictEqual(JSON.parse((result.content[0] as any).text).items.length, 3);
   }
@@ -143,7 +162,10 @@ class McpServerTest extends McpFixtureTest {
   async readsAndListsResources() {
     const client = await this.connect();
     const templates = await client.listResourceTemplates();
-    assert.deepStrictEqual(templates.resourceTemplates.map(t => t.uriTemplate), ["webda://Thing/{slug}"]);
+    assert.deepStrictEqual(
+      templates.resourceTemplates.map(t => t.uriTemplate),
+      ["webda://Thing/{slug}"]
+    );
     const read = await client.readResource({ uri: "webda://Thing/a%2Fb%20c" });
     assert.deepStrictEqual(JSON.parse((read.contents[0] as any).text), { slug: "a/b c", label: "Encoded" });
     await assert.rejects(client.readResource({ uri: "webda://Thing/missing" }), /Resource not found/);

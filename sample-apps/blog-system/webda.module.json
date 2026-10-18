@@ -6,6 +6,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for the TestBean service",
         "properties": {
           "service": {
             "enum": [
@@ -55,6 +56,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for the Publisher service",
         "properties": {
           "type": {
             "description": "Type of the service",
@@ -1297,7 +1299,7 @@
               "type": "string"
             },
             "__password": {
-              "description": "Password hash (bcrypt): private, see `register` and `changePassword`",
+              "description": "Password hash (scrypt, or legacy bcrypt): private, see `register` and `changePassword`",
               "type": "string"
             },
             "bio": {
@@ -1362,7 +1364,7 @@
               "type": "string"
             },
             "__password": {
-              "description": "Password hash (bcrypt): private, see `register` and `changePassword`",
+              "description": "Password hash (scrypt, or legacy bcrypt): private, see `register` and `changePassword`",
               "type": "string"
             },
             "bio": {
@@ -1705,7 +1707,7 @@
           "type": "string"
         },
         "__password": {
-          "description": "Password hash (bcrypt): private, see `register` and `changePassword`",
+          "description": "Password hash (scrypt, or legacy bcrypt): private, see `register` and `changePassword`",
           "type": "string"
         },
         "bio": {

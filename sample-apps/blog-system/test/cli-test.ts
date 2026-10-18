@@ -69,7 +69,7 @@ class BlogSystemCliTest {
 
   @test
   publisherPublish() {
-    const output = runWebda('publisher publish --message hello');
+    const output = runWebda("publisher publish --message hello");
     // The operation should complete without error
     assert.ok(typeof output === "string", "Command should produce string output");
   }

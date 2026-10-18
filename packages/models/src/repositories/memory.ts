@@ -1,8 +1,15 @@
 import type { ArrayElement } from "@webda/tsc-esm";
 import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
-import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
-import { deserialize, deserializeRaw, hasSerializer, serialize, serializeRaw, SerializerContext } from "@webda/serialize";
+import type { Helpers, JSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
+import {
+  deserialize,
+  deserializeRaw,
+  hasSerializer,
+  serialize,
+  serializeRaw,
+  SerializerContext
+} from "@webda/serialize";
 import { AbstractRepository } from "./abstract.js";
 import { Repository, WEBDA_TEST } from "./repository.js";
 
@@ -648,9 +655,13 @@ export class MemoryRepository<
   /** @override */
   async delete<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
-    _conditionField?: K | null,
-    _condition?: any
+    conditionField?: K | null,
+    condition?: any
   ): Promise<void> {
+    if (conditionField) {
+      // Read, check and delete without yielding so the condition acts as an atomic compare-and-delete
+      this.checkCondition(this.getSync(primaryKey), conditionField, condition);
+    }
     this.storage.delete(this.getPrimaryKey(primaryKey).toString());
   }
 

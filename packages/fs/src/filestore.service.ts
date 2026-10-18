@@ -159,7 +159,10 @@ class FileBackedMap extends Map<string, string> {
  * @category CoreServices
  * @WebdaModda
  */
-export class FileStore<K extends FileStoreParameters = FileStoreParameters> extends Store<K> implements MigratableStore {
+export class FileStore<K extends FileStoreParameters = FileStoreParameters>
+  extends Store<K>
+  implements MigratableStore
+{
   static EXTENSION = ".json";
 
   /**

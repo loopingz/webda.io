@@ -18,7 +18,9 @@
     "build": "webdac build",
     "webda": "webda",
     "orders": "webda -d orders serve",
-    "billing": "webda -d billing serve"
+    "billing": "webda -d billing serve",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
   },
   "engines": {
     "node": ">=22.0.0"

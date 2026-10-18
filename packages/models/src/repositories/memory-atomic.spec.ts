@@ -89,4 +89,16 @@ class MemoryAtomicTest {
     assert.strictEqual(({} as any).polluted, undefined);
     assert.strictEqual(({} as any).x, undefined);
   }
+
+  @test
+  async conditionalDeleteChecksTheCondition() {
+    const repo = new MemoryRepository(Counter, ["uuid"], ":", new Map());
+    await repo.create(new Counter({ uuid: "c" } as any));
+    await assert.rejects(() => repo.delete("c", "count" as any, 1), /Condition failed/);
+    assert.ok(await repo.exists("c"));
+    await repo.delete("c", "count" as any, 0);
+    assert.ok(!(await repo.exists("c")));
+    // Without a condition a missing object is not an error
+    await repo.delete("c");
+  }
 }

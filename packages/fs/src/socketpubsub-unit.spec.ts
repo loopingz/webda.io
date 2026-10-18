@@ -209,12 +209,9 @@ class SocketPubSubUnitTest {
     }
     const broker = await this.makePeer("broker");
     const received: Wrapped[] = [];
-    const sub = broker.consume(
-      async (msg: Wrapped) => {
-        received.push(msg);
-      },
-      Wrapped
-    );
+    const sub = broker.consume(async (msg: Wrapped) => {
+      received.push(msg);
+    }, Wrapped);
 
     await broker.sendMessage({ value: "hi" } as any);
     await waitFor(() => received.length >= 1);
@@ -269,5 +266,4 @@ class SocketPubSubUnitTest {
     assert.deepStrictEqual(received, ["before-death", "after-takeover"]);
     sub.cancel();
   }
-
 }

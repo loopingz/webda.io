@@ -94,7 +94,9 @@ class McpStdioTest extends McpFixtureTest {
     const { protocol, restore } = reserveStdout(stdout, stderr);
     try {
       stdout.write("a log line\n");
-      await new Promise<void>((resolve, reject) => protocol.write('{"jsonrpc":"2.0"}\n', err => (err ? reject(err) : resolve())));
+      await new Promise<void>((resolve, reject) =>
+        protocol.write('{"jsonrpc":"2.0"}\n', err => (err ? reject(err) : resolve()))
+      );
       assert.strictEqual(read(stdout), '{"jsonrpc":"2.0"}\n');
       assert.strictEqual(read(stderr), "a log line\n");
     } finally {

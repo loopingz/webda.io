@@ -42,11 +42,7 @@ export function selectPhase(
  * @param cmdName - name of the command being dispatched.
  * @param cmdInfo - merged command info from `collectServiceCommands`.
  */
-export async function bootCoreForCommand(
-  core: Core,
-  cmdName: string,
-  cmdInfo: ServiceCommandInfo
-): Promise<void> {
+export async function bootCoreForCommand(core: Core, cmdName: string, cmdInfo: ServiceCommandInfo): Promise<void> {
   const phase = selectPhase(cmdInfo.phases, cmdName);
   if (phase === "application") {
     throw new Error(`Command '${cmdName}' runs without Core, use executeApplicationCommand`);

@@ -63,6 +63,16 @@ export class FileSizeTest {
   }
 
   @test
+  numericSyntax() {
+    assert.strictEqual(+new FileSize(".5 KB"), 512);
+    assert.strictEqual(+new FileSize("0001.25 KB"), 1280);
+    assert.strictEqual(+new FileSize(" 1 KB "), 1024);
+    for (const value of ["1.", ".", "1.2.3 KB", "0".repeat(100_000) + "!"]) {
+      assert.throws(() => new FileSize(value), /Invalid file size/);
+    }
+  }
+
+  @test
   testNoUnit() {
     // Test string number without unit (defaults to bytes)
     assert.strictEqual(+new FileSize("1024"), 1024);

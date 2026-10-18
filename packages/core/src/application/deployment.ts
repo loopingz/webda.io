@@ -38,6 +38,8 @@ export interface Deployment {
    * Services configuration overriding the application services
    */
   services?: Record<string, any>;
+  /** Model and behavior policies overriding the application configuration. */
+  models?: Configuration["models"];
   /**
    * Parameters shared by every unit, each unit can override them
    */
@@ -108,6 +110,9 @@ export function applyDeployment<T extends Configuration>(configuration: T, deplo
         ? overrideMerge(configuration.services[name], service)
         : service;
     }
+  }
+  if (deployment.models) {
+    configuration.models = overrideMerge(configuration.models ?? {}, deployment.models);
   }
   return configuration;
 }

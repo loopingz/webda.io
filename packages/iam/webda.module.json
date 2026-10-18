@@ -355,22 +355,7 @@
         }
       },
       "Actions": {},
-      "Events": [
-        "Create",
-        "PartialUpdate",
-        "Delete",
-        "Update",
-        "Patch",
-        "Query",
-        "Aggregate",
-        "Created",
-        "PartialUpdated",
-        "Deleted",
-        "Patched",
-        "Updated",
-        "Queried",
-        "Aggregated"
-      ],
+      "Events": [],
       "PrimaryKey": [
         "name"
       ],
@@ -406,7 +391,7 @@
               "type": "string"
             },
             "principal": {
-              "description": "`user:<uuid>`, `group:<name>`, `authenticated` or `anonymous`",
+              "description": "`user:<uuid>`, `group:<name>`, `authenticated`, `anonymous`, or for applications `app:<name>`,\n`app-group:<name>`, `app-issuer:<issuer>` and `authenticated-app`",
               "type": "string"
             },
             "uuid": {
@@ -435,7 +420,7 @@
               "type": "string"
             },
             "principal": {
-              "description": "`user:<uuid>`, `group:<name>`, `authenticated` or `anonymous`",
+              "description": "`user:<uuid>`, `group:<name>`, `authenticated`, `anonymous`, or for applications `app:<name>`,\n`app-group:<name>`, `app-issuer:<issuer>` and `authenticated-app`",
               "type": "string"
             },
             "uuid": {
@@ -464,7 +449,7 @@
               "type": "string"
             },
             "principal": {
-              "description": "`user:<uuid>`, `group:<name>`, `authenticated` or `anonymous`",
+              "description": "`user:<uuid>`, `group:<name>`, `authenticated`, `anonymous`, or for applications `app:<name>`,\n`app-group:<name>`, `app-issuer:<issuer>` and `authenticated-app`",
               "type": "string"
             },
             "uuid": {
@@ -483,22 +468,7 @@
         }
       },
       "Actions": {},
-      "Events": [
-        "Create",
-        "PartialUpdate",
-        "Delete",
-        "Update",
-        "Patch",
-        "Query",
-        "Aggregate",
-        "Created",
-        "PartialUpdated",
-        "Deleted",
-        "Patched",
-        "Updated",
-        "Queried",
-        "Aggregated"
-      ],
+      "Events": [],
       "PrimaryKey": [
         "uuid"
       ],

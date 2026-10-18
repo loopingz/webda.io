@@ -4,15 +4,7 @@
  * @see https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go
  */
 export type TransformCaseType =
-  | "none"
-  | "camelCase"
-  | "ENV_VAR"
-  | "snake_case"
-  | "PascalCase"
-  | "kebab-case"
-  | "UPPERCASE"
-  | "lowercase";
-
+  "none" | "camelCase" | "ENV_VAR" | "snake_case" | "PascalCase" | "kebab-case" | "UPPERCASE" | "lowercase";
 
 /**
  * Transform a string to a different case style.

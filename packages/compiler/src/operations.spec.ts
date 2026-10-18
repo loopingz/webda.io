@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { generateOperations, OperationsExportFormat } from "./operations.js";
+import { generateOperations } from "./operations.js";
 import { WebdaModule } from "./definition.js";
 
 @suite
@@ -80,7 +80,11 @@ class OperationsTest {
 
     // Schemas should include referenced schemas
     // Instance action schemas are not referenced (input is "uuidRequest"), so they are not included
-    assert.strictEqual(result.schemas["MyApp/Task.archive.input"], undefined, "Instance action input schema not referenced");
+    assert.strictEqual(
+      result.schemas["MyApp/Task.archive.input"],
+      undefined,
+      "Instance action input schema not referenced"
+    );
     assert.notStrictEqual(result.schemas["MyApp/Task.archive.output"], undefined);
     assert.notStrictEqual(result.schemas["MyApp/Task.publish.input"], undefined);
     assert.notStrictEqual(result.schemas["MyApp/Task"], undefined, "Model input schema should be included");
@@ -114,11 +118,7 @@ class OperationsTest {
     const result = generateOperations(mod);
 
     // Bean operation
-    assert.notStrictEqual(
-      result.operations["NotificationService.SendAlert"],
-      undefined,
-      "Bean operation should exist"
-    );
+    assert.notStrictEqual(result.operations["NotificationService.SendAlert"], undefined, "Bean operation should exist");
     assert.strictEqual(result.operations["NotificationService.SendAlert"].input, "NotificationService.sendAlert.input");
     assert.strictEqual(
       result.operations["NotificationService.SendAlert"].output,
@@ -194,7 +194,11 @@ class OperationsTest {
 
     // Model custom action (global)
     assert.notStrictEqual(result.operations["User.Login"], undefined);
-    assert.strictEqual(result.operations["User.Login"].input, "MyApp/User.login.input", "Global action should use its own input schema");
+    assert.strictEqual(
+      result.operations["User.Login"].input,
+      "MyApp/User.login.input",
+      "Global action should use its own input schema"
+    );
 
     // Bean operation
     assert.notStrictEqual(result.operations["Mailer.Send"], undefined);

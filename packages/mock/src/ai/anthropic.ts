@@ -24,9 +24,7 @@ export class AnthropicProvider implements AIProvider {
   async complete(prompt: string, options?: { maxTokens?: number }): Promise<string> {
     const apiKey = this.opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        "AnthropicProvider: no apiKey configured and ANTHROPIC_API_KEY is not set in env"
-      );
+      throw new Error("AnthropicProvider: no apiKey configured and ANTHROPIC_API_KEY is not set in env");
     }
     // Lazy-load the SDK so the package does not require it at import time.
     const mod: any = await import("@anthropic-ai/sdk");

@@ -340,9 +340,7 @@ export async function checkLegacyTypeMigration(harness: LegacyTypesHarness): Pro
   assert.strictEqual(report.resumed, false);
   assert.deepStrictEqual(sumMigrationReport(report), expected);
   assert.ok(
-    formatMigrationReport(report)
-      .split("\n")
-      .includes(`    ambiguous ${LEGACY_TYPE_AMBIGUOUS_ROW.data.__type}: 1`),
+    formatMigrationReport(report).split("\n").includes(`    ambiguous ${LEGACY_TYPE_AMBIGUOUS_ROW.data.__type}: 1`),
     "the report lists the ambiguous type"
   );
   const rows = await readRawRows(store, table);

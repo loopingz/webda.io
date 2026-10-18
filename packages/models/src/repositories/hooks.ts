@@ -1,5 +1,5 @@
 import type { ModelRefWithCreate } from "../relations.js";
-import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable.js";
+import { SettablePrimaryKey, type ModelClass } from "../storable.js";
 import { Helpers, PropertyPaths } from "../types.js";
 import type { Repository } from "./repository.js";
 import type { AggregationResult, FindOptions, ModelFilter, QueryParameters, WebdaQLString } from "@webda/ql";

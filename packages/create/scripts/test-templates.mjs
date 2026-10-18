@@ -14,6 +14,7 @@ const repoRoot = join(packageDir, "..", "..");
 export const APPS = [
   { name: "memory-rest", flags: ["--store", "memory", "--transports", "rest"], env: {} },
   { name: "file-rest", flags: ["--store", "file", "--transports", "rest"], env: {} },
+  { name: "sqlite-rest", flags: ["--store", "sqlite", "--transports", "rest"], env: {} },
   {
     name: "mongodb-rest",
     flags: ["--store", "mongodb", "--transports", "rest"],

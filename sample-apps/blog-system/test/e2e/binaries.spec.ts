@@ -42,7 +42,10 @@ function blockWithLabel(page: Page, label: string) {
 }
 
 async function deletePost(page: Page, slug: string): Promise<void> {
-  await page.locator(".modal-actions .btn-ghost", { hasText: "Close" }).click().catch(() => {});
+  await page
+    .locator(".modal-actions .btn-ghost", { hasText: "Close" })
+    .click()
+    .catch(() => {});
   await rowByKey(page, slug).locator("button", { hasText: "Delete" }).click();
   await waitForToast(page);
 }
@@ -96,9 +99,7 @@ test.describe("Posts.mainImage (single Binary)", () => {
     // or a "fell back to direct POST" message depending on what the binary
     // service returns. Match the umbrella keywords so the spec is robust
     // against backend-store swaps.
-    expect(await waitForToast(page)).toMatch(
-      /(uploaded|signed url|instant link|direct post|already known)/i
-    );
+    expect(await waitForToast(page)).toMatch(/(uploaded|signed url|instant link|direct post|already known)/i);
     await expect(block.locator(".badge", { hasText: "attached" })).toBeVisible();
 
     // Challenge uploads ship name/mimetype in the JSON body, so the stored
@@ -239,9 +240,7 @@ test.describe("Posts.images (Binaries collection)", () => {
       buffer: TINY_PNG
     });
     await block.locator("button", { hasText: "Add (challenge)" }).click();
-    expect(await waitForToast(page)).toMatch(
-      /(pushed|signed url|instant link|direct post|already known)/i
-    );
+    expect(await waitForToast(page)).toMatch(/(pushed|signed url|instant link|direct post|already known)/i);
     await expect(block.locator(".badge")).toHaveText(/1 item/);
   });
 });

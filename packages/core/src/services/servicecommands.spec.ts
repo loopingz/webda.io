@@ -1,8 +1,14 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { ensureCommandServices, resolveCapabilities } from "../bin/cli.js";
-import { collectServiceCommands, executeServiceCommand } from "./servicecommands.js";
+import {
+  collectServiceCommands,
+  executeServiceCommand,
+  operationCommandName,
+  selectOperations
+} from "./servicecommands.js";
 import { CancelablePromise } from "@webda/utils";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
 @suite
 class CollectServiceCommandsTest {
@@ -202,6 +208,23 @@ class CollectServiceCommandsTest {
     } as any;
     const commands = collectServiceCommands(app);
     assert.deepStrictEqual(commands.openapi.requires, []);
+  }
+
+  @test
+  commandWithoutArgumentMetadata() {
+    const app = {
+      getModules: () => ({
+        moddas: { "MyApp/Runner": { commands: { run: { description: "Run", method: "run" } } } },
+        beans: {},
+        deployers: {}
+      })
+    } as any;
+    const commands = collectServiceCommands(app);
+    assert.deepStrictEqual(commands.run.args, {});
+    assert.deepStrictEqual(
+      commands.run.services.map(service => service.name),
+      ["MyApp/Runner"]
+    );
   }
 }
 
@@ -793,5 +816,278 @@ class ExecuteServiceCommandInstanceFilterTest {
     assert.strictEqual(await executeServiceCommand("deploy", cmdInfo, {}, services, ["CloudFormationDeployer"]), 0);
     assert.deepStrictEqual(calls.sort(), ["Other", "Stack"]);
     assert.strictEqual(await executeServiceCommand("deploy", cmdInfo, {}, services, ["Unknown"]), 1);
+  }
+}
+
+/**
+ * Capture the warnings logged while running `fn`
+ * @param fn - the code to run
+ * @returns the warning lines
+ */
+function captureWarnings<T>(fn: () => T): { result: T; warnings: string[] } {
+  const memoryLogger = new MemoryLogger(useWorkerOutput());
+  let result: T;
+  try {
+    result = fn();
+  } finally {
+    memoryLogger.close();
+  }
+  const warnings = memoryLogger
+    .getLogs()
+    .map(l => l.log)
+    .filter(l => l?.level === "WARN")
+    .map(l => l.args.join(" "));
+  return { result, warnings };
+}
+
+/**
+ * An application stub with `Webda/HttpServer` serving `serve(bind, port)`, an application subclass
+ * `Loopingz/RunnerHttpServer` serving `serve(bind, port, connect)` and a few other commands
+ * @param cli - the `webda.cli` section of package.json
+ * @returns the application stub
+ */
+function cliApp(cli?: any): any {
+  const serve = (method: string, args: any) => ({ serve: { description: "Serve", method, args } });
+  return {
+    getPackageDescription: () => ({ name: "app", webda: cli ? { cli } : {} }),
+    getModules: () => ({
+      moddas: {
+        "Webda/HttpServer": {
+          commands: serve("serve", {
+            bind: { type: "string", default: "127.0.0.1" },
+            port: { type: "number", default: 18080 }
+          })
+        },
+        "Loopingz/RunnerHttpServer": {
+          commands: serve("serve", {
+            bind: { type: "string", default: "127.0.0.1" },
+            port: { type: "number", default: 18080 },
+            connect: { type: "string", default: "wss://hub" }
+          })
+        },
+        "Webda/Configurer": {
+          commands: {
+            "config encrypt": { description: "", method: "encrypt", args: {} },
+            "config decrypt": { description: "", method: "decrypt", args: {} },
+            openapi: { description: "", method: "openapi", args: {} }
+          }
+        }
+      },
+      beans: {},
+      deployers: {}
+    })
+  };
+}
+
+@suite
+class CliConfigurationTest {
+  @test
+  noConfigurationKeepsEverything() {
+    const cmds = collectServiceCommands(cliApp());
+    assert.deepStrictEqual(Object.keys(cmds).sort(), ["config decrypt", "config encrypt", "openapi", "serve"]);
+    assert.deepStrictEqual(
+      cmds.serve.services.map(s => s.name),
+      ["Webda/HttpServer", "Loopingz/RunnerHttpServer"]
+    );
+  }
+
+  @test
+  excludeProviderOrCommand() {
+    const { result: cmds, warnings } = captureWarnings(() =>
+      collectServiceCommands(cliApp({ exclude: ["Webda/HttpServer:serve", "config", "openapi"] }))
+    );
+    assert.deepStrictEqual(Object.keys(cmds), ["serve"]);
+    assert.deepStrictEqual(
+      cmds.serve.services.map(s => s.name),
+      ["Loopingz/RunnerHttpServer"]
+    );
+    assert.deepStrictEqual(cmds.serve.phases, [undefined]);
+    assert.deepStrictEqual(Object.keys(cmds.serve.args), ["bind", "port", "connect"]);
+    assert.deepStrictEqual(warnings, []);
+    // A short type name, one subcommand, and every provider of a command
+    const other = collectServiceCommands(cliApp({ exclude: ["HttpServer:serve", "config encrypt"] }));
+    assert.deepStrictEqual(
+      other.serve.services.map(s => s.name),
+      ["Loopingz/RunnerHttpServer"]
+    );
+    assert.ok(other["config decrypt"] && !other["config encrypt"]);
+    const none = collectServiceCommands(
+      cliApp({ exclude: ["Webda/HttpServer:serve", "Loopingz/RunnerHttpServer:serve"] })
+    );
+    assert.strictEqual(none.serve, undefined);
+  }
+
+  @test
+  includeThenExclude() {
+    const cmds = collectServiceCommands(cliApp({ include: ["serve", "config"], exclude: ["config decrypt"] }));
+    assert.deepStrictEqual(Object.keys(cmds).sort(), ["config encrypt", "serve"]);
+  }
+
+  @test
+  unknownEntriesWarn() {
+    const { result: cmds, warnings } = captureWarnings(() =>
+      collectServiceCommands(cliApp({ include: ["serve", "nope"], exclude: ["Webda/Missing:serve", "ghost"] }))
+    );
+    assert.deepStrictEqual(Object.keys(cmds), ["serve"]);
+    assert.strictEqual(warnings.length, 3, warnings.join("\n"));
+    assert.ok(warnings.some(w => w.includes("'nope'")));
+    assert.ok(warnings.some(w => w.includes("'Webda/Missing'")));
+    assert.ok(warnings.some(w => w.includes("'ghost'")));
+  }
+
+  @test
+  explicitSelectionWinsOverThePackage() {
+    const cmds = collectServiceCommands(cliApp({ exclude: ["serve"] }), { include: ["openapi"] });
+    assert.deepStrictEqual(Object.keys(cmds), ["openapi"]);
+  }
+
+  @test
+  operationCommandNames() {
+    assert.strictEqual(operationCommandName("RunnerAuth.Login"), "runnerauth login");
+    assert.strictEqual(operationCommandName("Task.Sub.Get"), "task sub.get");
+  }
+
+  @test
+  includeSelectsOperations() {
+    const ids = ["RunnerAuth.Login", "RunnerAuth.Status", "AcpRelay.Connect"];
+    // Absent selection: every operation
+    assert.deepStrictEqual(selectOperations(ids, undefined), ids);
+    // An include listing only @Command names drops every operation group
+    assert.deepStrictEqual(selectOperations(ids, { include: ["serve", "login", "logout"] }), []);
+    // A group keeps all its operations, in any case; "group action" keeps one
+    assert.deepStrictEqual(selectOperations(ids, { include: ["RunnerAuth"] }), [
+      "RunnerAuth.Login",
+      "RunnerAuth.Status"
+    ]);
+    assert.deepStrictEqual(selectOperations(ids, { include: ["acprelay connect", "runnerauth status"] }), [
+      "RunnerAuth.Status",
+      "AcpRelay.Connect"
+    ]);
+    // "group" is matched on whole words
+    assert.deepStrictEqual(selectOperations(ids, { include: ["runner"] }), []);
+  }
+
+  @test
+  excludeSelectsOperations() {
+    const ids = ["RunnerAuth.Login", "RunnerAuth.Status", "AcpRelay.Connect"];
+    assert.deepStrictEqual(selectOperations(ids, { exclude: ["runnerauth"] }), ["AcpRelay.Connect"]);
+    assert.deepStrictEqual(selectOperations(ids, { exclude: ["RunnerAuth Login"] }), [
+      "RunnerAuth.Status",
+      "AcpRelay.Connect"
+    ]);
+    // The provider form only selects @Command providers
+    assert.deepStrictEqual(selectOperations(ids, { exclude: ["RunnerAuth:login", "Webda/HttpServer:serve"] }), ids);
+    assert.deepStrictEqual(selectOperations(ids, { include: ["runnerauth"], exclude: ["runnerauth status"] }), [
+      "RunnerAuth.Login"
+    ]);
+  }
+
+  @test
+  entriesMatchingOperationsDoNotWarn() {
+    const ids = ["RunnerAuth.Login", "AcpRelay.Connect"];
+    const { result: cmds, warnings } = captureWarnings(() =>
+      collectServiceCommands(
+        cliApp({ include: ["serve", "runnerauth", "AcpRelay connect", "nope"], exclude: ["acprelay", "ghost"] }),
+        undefined,
+        ids
+      )
+    );
+    assert.deepStrictEqual(Object.keys(cmds), ["serve"]);
+    // Only the entries matching neither a command nor an operation are reported
+    assert.strictEqual(warnings.length, 2, warnings.join("\n"));
+    assert.ok(warnings.some(w => w.includes("webda.cli.include: no command 'nope'")));
+    assert.ok(warnings.some(w => w.includes("webda.cli.exclude: no command 'ghost'")));
+    // Without the operations, the operation entries are reported
+    const { warnings: without } = captureWarnings(() =>
+      collectServiceCommands(cliApp({ include: ["serve", "runnerauth"], exclude: ["acprelay"] }))
+    );
+    assert.strictEqual(without.length, 2, without.join("\n"));
+    // An operation excluded after the include is still matched by the include: no warning
+    const { warnings: dropped } = captureWarnings(() =>
+      collectServiceCommands(cliApp({ include: ["runnerauth"], exclude: ["runnerauth login"] }), undefined, ids)
+    );
+    assert.deepStrictEqual(dropped, []);
+  }
+
+  @test
+  async subclassServesOnceWhenTheBaseProviderIsExcluded() {
+    const calls: string[] = [];
+    class HttpServer {
+      constructor(private name: string) {}
+      getName() {
+        return this.name;
+      }
+      async serve(...args: any[]) {
+        calls.push(`base:${this.name}:${args.join(",")}`);
+      }
+    }
+    class RunnerHttpServer extends HttpServer {
+      async serve(bind: string, port: number, connect: string) {
+        calls.push(`runner:${bind},${port},${connect}`);
+      }
+    }
+    const services: any = { HttpServer: new RunnerHttpServer("HttpServer") };
+    const cmds = collectServiceCommands(cliApp({ exclude: ["Webda/HttpServer:serve"] }));
+    assert.strictEqual(
+      await executeServiceCommand("serve", cmds.serve, { port: 3000, connect: "wss://other" }, services),
+      0
+    );
+    assert.deepStrictEqual(calls, ["runner:127.0.0.1,3000,wss://other"]);
+
+    // Without the exclusion, the inherited provider runs it a second time: the reason to exclude it
+    calls.length = 0;
+    const all = collectServiceCommands(cliApp());
+    await executeServiceCommand("serve", all.serve, { port: 3000 }, services);
+    assert.strictEqual(calls.length, 2);
+
+    // An excluded type is not added to the configuration to run the command
+    const config = { services: {} as any };
+    const moddas: any = { "Webda/HttpServer": HttpServer, "Loopingz/RunnerHttpServer": RunnerHttpServer };
+    ensureCommandServices(
+      { getConfiguration: () => config, getModda: (name: string) => moddas[name] } as any,
+      cmds.serve.services
+    );
+    assert.deepStrictEqual(config.services, {
+      "Loopingz/RunnerHttpServer": { type: "Loopingz/RunnerHttpServer" }
+    });
+  }
+
+  @test
+  mismatchedArgumentsWarn() {
+    const app = (a: any, b: any) =>
+      ({
+        getModules: () => ({
+          moddas: {
+            "MyApp/A": { commands: { sync: { description: "", method: "sync", args: a } } },
+            "MyApp/B": { commands: { sync: { description: "", method: "sync", args: b } } }
+          },
+          beans: {},
+          deployers: {}
+        })
+      }) as any;
+    // Aligned parameters, the second provider adding one: no warning
+    assert.deepStrictEqual(
+      captureWarnings(() =>
+        collectServiceCommands(app({ x: { type: "string" } }, { x: { type: "string" }, y: { type: "number" } }))
+      ).warnings,
+      []
+    );
+    // Same name at another position
+    let { warnings } = captureWarnings(() =>
+      collectServiceCommands(app({ x: { type: "string" }, y: { type: "number" } }, { y: { type: "number" } }))
+    );
+    assert.strictEqual(warnings.length, 1, warnings.join("\n"));
+    assert.ok(warnings[0].includes("'y'") && warnings[0].includes("MyApp/B"));
+    // Another parameter at the same position
+    ({ warnings } = captureWarnings(() =>
+      collectServiceCommands(app({ x: { type: "string" } }, { z: { type: "string" } }))
+    ));
+    assert.strictEqual(warnings.length, 1, warnings.join("\n"));
+    // Same name and position, another type
+    ({ warnings } = captureWarnings(() =>
+      collectServiceCommands(app({ x: { type: "string" } }, { x: { type: "number" } }))
+    ));
+    assert.strictEqual(warnings.length, 1, warnings.join("\n"));
+    assert.ok(warnings[0].includes("number"));
   }
 }

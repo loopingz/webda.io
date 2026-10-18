@@ -1,6 +1,14 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { canSend, isLocked, markSent, recordFailure, resetFailures, type LoginAttempts } from "./throttle.js";
+import {
+  canSend,
+  countAttempt,
+  isLocked,
+  markSent,
+  recordFailure,
+  resetFailures,
+  type LoginAttempts
+} from "./throttle.js";
 
 @suite
 class ThrottleTest {
@@ -31,5 +39,11 @@ class ThrottleTest {
     assert.ok(canSend(undefined as any, 1000));
     assert.strictEqual(recordFailure(undefined as any, 1)._loginAttempts, 1);
     assert.deepStrictEqual(markSent(undefined as any, 2), { lastSentAt: 2 });
+  }
+
+  @test
+  async countAttemptReExported() {
+    // Implemented and tested in @webda/core
+    assert.strictEqual(typeof countAttempt, "function");
   }
 }

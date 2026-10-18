@@ -1,24 +1,31 @@
 import * as fs from "fs";
-import { join } from "path";
+import { join, resolve, sep } from "path";
 import { Readable } from "stream";
 import {
   BinaryFile,
   BinaryFileInfo,
   BinaryMap,
   BinaryNotFoundError,
-  BinaryService,
   CloudBinary,
   CloudBinaryParameters,
+  ContentBody,
+  ContentGetOptions,
+  ContentInfo,
+  ContentNotFoundError,
+  ContentPutOptions,
   CoreModel,
   CoreModelWithBinary,
   CryptoService,
+  defaultFileContentStorage,
   Inject,
   MemoryBinaryFile,
   OperationContext,
+  parseContentUrl,
+  useModel,
+  useModelId,
   WebContext,
   WebdaError
 } from "@webda/core";
-import { useModel, useModelId } from "@webda/core";
 
 /**
  * What an upload token attaches once the content is stored and verified: the object, its binary attribute and the
@@ -97,6 +104,7 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  * @WebdaModda
  */
 export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends CloudBinary<T> {
+  readonly schemes = ["file"];
   /**
    * Used for hmac
    */
@@ -113,10 +121,97 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
+   * Validate that url is safe and under folder
+   * @param url - URL to validate
+   * @returns resolved absolute path
+   */
+  private checkPath(url: string): string {
+    const { key } = parseContentUrl(url);
+    const absPath = resolve(key);
+    const absFolder = resolve(this.parameters.folder);
+
+    if (key.includes("..")) {
+      const folderWithSep = absFolder.endsWith(sep) ? absFolder : absFolder + sep;
+      if (!absPath.startsWith(folderWithSep) && absPath !== absFolder) {
+        throw new ContentNotFoundError(`Path traversal rejected: ${url}`);
+      }
+    }
+    return absPath;
+  }
+
+  /**
+   * Helper that builds file:// URL under this.parameters.folder
+   * @param key - relative key
+   * @returns file:// URL
+   */
+  protected getContentUrl(key: string): string {
+    const folder = this.parameters.folder.endsWith("/") ? this.parameters.folder : `${this.parameters.folder}/`;
+    const cleanKey = key.replace(/^\/+/, "");
+    return `file://${folder}${cleanKey}`;
+  }
+
+  /**
+   * Get content read stream
+   * @param url - content URL
+   * @param options - get options
+   * @returns Readable stream
+   */
+  async getContent(url: string, options?: ContentGetOptions): Promise<Readable> {
+    const path = this.checkPath(url);
+    return defaultFileContentStorage.getContent(path, options);
+  }
+
+  /**
+   * Put content to filesystem
+   * @param url - content URL
+   * @param body - content body
+   * @param options - put options
+   * @returns Content info
+   */
+  async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
+    const path = this.checkPath(url);
+    const res = await defaultFileContentStorage.putContent(path, body, options);
+    if (this.metrics && (this.metrics as any).upload) {
+      (this.metrics as any).upload.inc();
+    }
+    return {
+      ...res,
+      url
+    };
+  }
+
+  /**
+   * Head content metadata
+   * @param url - content URL
+   * @returns Content info or undefined
+   */
+  async headContent(url: string): Promise<ContentInfo | undefined> {
+    const path = this.checkPath(url);
+    const res = await defaultFileContentStorage.headContent(path);
+    if (!res) return undefined;
+    return {
+      ...res,
+      url
+    };
+  }
+
+  /**
+   * Delete content
+   * @param url - content URL
+   */
+  async deleteContent(url: string): Promise<void> {
+    const path = this.checkPath(url);
+    await defaultFileContentStorage.deleteContent(path);
+  }
+
+  /**
    * Create the storage folder if needed
    */
   computeParameters() {
     super.computeParameters();
+    if (this.parameters.folder && !this.parameters.folder.endsWith("/")) {
+      this.parameters.folder += "/";
+    }
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder, { recursive: true });
     }
@@ -216,11 +311,15 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async _get(info: BinaryMap): Promise<Readable> {
     const hash = info.hash;
     if (!hash) throw new WebdaError.BadRequest("Missing binary hash");
-    const path = this._getPath(hash, "data");
-    if (!fs.existsSync(path)) {
-      throw new BinaryNotFoundError(hash, this.getName());
+    const url = this.getContentUrl(this._getKey(hash, "data"));
+    try {
+      return await this.getContent(url);
+    } catch (err: any) {
+      if (err instanceof ContentNotFoundError) {
+        throw new BinaryNotFoundError(hash, this.getName());
+      }
+      throw err;
     }
-    return fs.createReadStream(path);
   }
 
   /**

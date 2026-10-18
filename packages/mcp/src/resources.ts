@@ -54,7 +54,12 @@ export class ResourceRegistry {
         continue;
       }
       const query = Object.entries(ops).find(
-        ([qid, q]) => qid.endsWith(".Query") && !q.hidden && q.mcp !== false && q.context?.model !== undefined && q.context.model === op.context.model
+        ([qid, q]) =>
+          qid.endsWith(".Query") &&
+          !q.hidden &&
+          q.mcp !== false &&
+          q.context?.model !== undefined &&
+          q.context.model === op.context.model
       );
       this.entries.push({ name, getOperationId: id, queryOperationId: query?.[0], pkFields: pkFields.map(String) });
     }

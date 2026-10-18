@@ -22,7 +22,7 @@ export interface MainDeps {
 
 const HELP = `Usage: npm create @webda <directory> [-- options]
 
-  --store memory|file|mongodb|postgres   default memory
+  --store memory|file|sqlite|mongodb|postgres   default memory
   --transports rest,graphql,grpc,mcp     default rest
   --sdk                                  generate a typed frontend SDK (@webda/sdk)
   --namespace <PascalCase>               default from the directory name

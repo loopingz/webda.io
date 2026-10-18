@@ -163,11 +163,15 @@ export class ModelsPanel extends ScrollablePanel {
     const rel = model.relations || {};
     const relLines: string[] = [];
     if (rel.parent) relLines.push(`    parent    ${rel.parent.attribute.padEnd(20)} → ${rel.parent.model}`);
-    (rel.links || []).forEach((l: any) => relLines.push(`    ${(l.type || "link").padEnd(10)} ${l.attribute.padEnd(20)} → ${l.model}`));
+    (rel.links || []).forEach((l: any) =>
+      relLines.push(`    ${(l.type || "link").padEnd(10)} ${l.attribute.padEnd(20)} → ${l.model}`)
+    );
     (rel.queries || []).forEach((q: any) => relLines.push(`    query     ${q.attribute.padEnd(20)} → ${q.model}`));
     (rel.maps || []).forEach((m: any) => relLines.push(`    map       ${m.attribute.padEnd(20)} → ${m.model}`));
     (rel.children || []).forEach((c: string) => relLines.push(`    child     ${"".padEnd(20)} → ${c}`));
-    (rel.binaries || []).forEach((b: any) => relLines.push(`    binary    ${b.attribute.padEnd(20)}   (${b.cardinality})`));
+    (rel.binaries || []).forEach((b: any) =>
+      relLines.push(`    binary    ${b.attribute.padEnd(20)}   (${b.cardinality})`)
+    );
 
     if (relLines.length > 0) {
       addText("  Relations:", "bold");

@@ -82,11 +82,7 @@ export function renderPatch(base: unknown, delta: Delta, options: RenderOptions 
  * @param options - passed through to `renderPatch`
  * @returns formatted string (always ends with a newline when non-empty)
  */
-export function renderCommit(
-  base: unknown,
-  vp: VersionedPatch,
-  options: RenderOptions = {}
-): string {
+export function renderCommit(base: unknown, vp: VersionedPatch, options: RenderOptions = {}): string {
   const lines: string[] = [];
   if (vp.id) lines.push(`commit ${vp.id}`);
   if (vp.author) lines.push(`Author: ${vp.author}`);

@@ -55,13 +55,18 @@ class BlogSystemMcpTest {
       for (const expected of ["Post.Create", "Post.Get", "Posts.Query", "Post.Delete", "User.Login"]) {
         assert.ok(names.includes(expected), `${expected} missing from ${names.join(", ")}`);
       }
-      assert.ok(tools.every(t => t.outputSchema === undefined), "tools must not declare an outputSchema");
+      assert.ok(
+        tools.every(t => t.outputSchema === undefined),
+        "tools must not declare an outputSchema"
+      );
       const templates = (await client.listResourceTemplates()).resourceTemplates.map(t => t.uriTemplate);
       assert.ok(templates.includes("webda://Post/{slug}"));
       assert.ok(templates.includes("webda://UserFollow/{follower}/{following}"));
 
       // Post.Create input comes from its tool inputSchema: slug, title and content (no author required)
-      const createProps = Object.keys((tools.find(t => t.name === "Post.Create")!.inputSchema.properties ?? {}) as object);
+      const createProps = Object.keys(
+        (tools.find(t => t.name === "Post.Create")!.inputSchema.properties ?? {}) as object
+      );
       for (const field of ["slug", "title", "content"]) {
         assert.ok(createProps.includes(field), `Post.Create input lacks ${field}`);
       }

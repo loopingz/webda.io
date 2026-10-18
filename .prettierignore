@@ -6,3 +6,15 @@ coverage
 # Template tokens (__APP_NAME__) must survive formatting
 packages/create/templates/**/*.md
 packages/create/agent/AGENTS.md
+
+# Generated or scratch sources (mirrors eslint.config.js ignores)
+vendor
+.webda.d.ts
+packages/debug/webui
+packages/debug-ui/dist
+packages/compiler/test
+packages/compiler/other.ts
+packages/content-mapper/test
+packages/mapper
+packages/cloudevents/src/models/filters/sql/CESQL*.ts
+packages/ql/src/WebdaQL*.ts

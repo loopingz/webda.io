@@ -7,11 +7,7 @@ import { toGitMarkers, fromGitMarkers } from "./markers.js";
 class ToGitMarkersTest {
   @test({ name: "embeds markers in line conflicts" })
   embedsMarkersInLineConflicts() {
-    const r = merge3(
-      { body: "a\nb\nc\n" },
-      { body: "a\nOURS\nc\n" },
-      { body: "a\nTHEIRS\nc\n" }
-    );
+    const r = merge3({ body: "a\nb\nc\n" }, { body: "a\nOURS\nc\n" }, { body: "a\nTHEIRS\nc\n" });
     const withMarkers = toGitMarkers(r) as { body: string };
     expect(withMarkers.body).toContain("<<<<<<<");
     expect(withMarkers.body).toContain("OURS");
@@ -40,11 +36,7 @@ class ToGitMarkersTest {
 class FromGitMarkersTest {
   @test({ name: "reconstructs a clean MergeResult when all conflicts are resolved" })
   reconstructsACleanMergeResultWhenAllConflictsAreResolved() {
-    const r = merge3(
-      { body: "a\nb\nc\n" },
-      { body: "a\nOURS\nc\n" },
-      { body: "a\nTHEIRS\nc\n" }
-    );
+    const r = merge3({ body: "a\nb\nc\n" }, { body: "a\nOURS\nc\n" }, { body: "a\nTHEIRS\nc\n" });
     const edited = { body: "a\nRESOLVED\nc\n" };
     const final = fromGitMarkers(edited, r);
     expect(final.clean).toBe(true);
@@ -53,11 +45,7 @@ class FromGitMarkersTest {
 
   @test({ name: "reports still-unresolved conflicts when markers remain" })
   reportsStillUnresolvedConflictsWhenMarkersRemain() {
-    const r = merge3(
-      { body: "a\nb\nc\n" },
-      { body: "a\nOURS\nc\n" },
-      { body: "a\nTHEIRS\nc\n" }
-    );
+    const r = merge3({ body: "a\nb\nc\n" }, { body: "a\nOURS\nc\n" }, { body: "a\nTHEIRS\nc\n" });
     const withMarkers = toGitMarkers(r); // still contains markers
     const final = fromGitMarkers(withMarkers, r);
     expect(final.clean).toBe(false);

@@ -168,8 +168,14 @@ class McpServerTest extends McpFixtureTest {
     const result = await client.callTool({ name: "Fixture.Count", arguments: { n: 3 } }, undefined, {
       onprogress: p => progress.push(p)
     });
-    assert.deepStrictEqual(progress.map(p => p.progress), [1, 2, 3]);
-    assert.deepStrictEqual(progress.map(p => p.total), [3, 3, 3]);
+    assert.deepStrictEqual(
+      progress.map(p => p.progress),
+      [1, 2, 3]
+    );
+    assert.deepStrictEqual(
+      progress.map(p => p.total),
+      [3, 3, 3]
+    );
     assert.deepStrictEqual(JSON.parse(progress[0].message), { index: 1, total: 3 });
     assert.deepStrictEqual(JSON.parse((result.content[0] as any).text).items.length, 3);
   }
@@ -178,7 +184,10 @@ class McpServerTest extends McpFixtureTest {
   async readsAndListsResources() {
     const client = await this.connect();
     const templates = await client.listResourceTemplates();
-    assert.deepStrictEqual(templates.resourceTemplates.map(t => t.uriTemplate), ["webda://Thing/{slug}"]);
+    assert.deepStrictEqual(
+      templates.resourceTemplates.map(t => t.uriTemplate),
+      ["webda://Thing/{slug}"]
+    );
     const read = await client.readResource({ uri: "webda://Thing/a%2Fb%20c" });
     assert.deepStrictEqual(JSON.parse((read.contents[0] as any).text), { slug: "a/b c", label: "Encoded" });
     await assert.rejects(client.readResource({ uri: "webda://Thing/missing" }), /Resource not found/);

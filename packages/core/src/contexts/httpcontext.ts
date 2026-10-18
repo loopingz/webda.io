@@ -2,6 +2,7 @@ import { parse as cookieParse } from "cookie";
 import { type IncomingHttpHeaders } from "http";
 import { Readable } from "stream";
 import { HttpError, UnsupportedMediaType } from "../errors/errors.js";
+import type { ClientCertificate } from "./clientcertificate.js";
 
 export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 /**
@@ -71,6 +72,10 @@ export class HttpContext {
   host: string;
   body: Buffer | Readable | undefined;
   cookies: any;
+  /**
+   * Client certificate presented with the request (mTLS), if any
+   */
+  clientCertificate?: ClientCertificate;
 
   /**
    * URI prefix in case it is exposed through something that prefix the uri
@@ -143,6 +148,26 @@ export class HttpContext {
    */
   getClientIp(): string {
     return this.clientIp;
+  }
+
+  /**
+   * Set the client certificate presented with the request
+   * @param cert - the certificate, undefined to remove it
+   * @returns this for chaining
+   */
+  setClientCertificate(cert: ClientCertificate | undefined): this {
+    this.clientCertificate = cert;
+    return this;
+  }
+
+  /**
+   * Get the client certificate presented with the request
+   *
+   * Check `verified` before trusting it: an unverified certificate was not checked against a trusted CA
+   * @returns the certificate, undefined when none was presented
+   */
+  getClientCertificate(): ClientCertificate | undefined {
+    return this.clientCertificate;
   }
 
   /**

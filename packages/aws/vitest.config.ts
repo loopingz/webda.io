@@ -7,7 +7,7 @@ export default defineConfig({
   clearScreen: false,
   resolve: {
     alias: {
-      "@webda/core/lib/queues/queue.spec": resolve(__dirname, "../core/src/queues/queue.spec.ts"),
+      "@webda/core/lib/queues/queue.spec": resolve(__dirname, "../core/src/queues/queue.spec.ts")
     }
   },
   test: {
@@ -18,7 +18,7 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      exclude: ["src/**/*.spec.ts", "src/**/*.bench.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

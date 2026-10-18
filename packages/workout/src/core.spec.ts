@@ -1,6 +1,14 @@
 import { describe, it, beforeEach } from "vitest";
 import * as assert from "assert";
-import { useLog, useOutput, useWorkerOutput, WorkerInput, WorkerInputType, WorkerOutput, WorkerProgress } from "./core.js";
+import {
+  useLog,
+  useOutput,
+  useWorkerOutput,
+  WorkerInput,
+  WorkerInputType,
+  WorkerOutput,
+  WorkerProgress
+} from "./core.js";
 
 function mapper([msg]) {
   const res = {};
@@ -33,9 +41,10 @@ describe("WorkerOutputTest", () => {
 
   it("testOutput", async () => {
     output.output('{"raw": true}');
-    assert.deepStrictEqual(calls.map(m => ({ type: m[0].type, data: m[0].data })), [
-      { type: "output", data: '{"raw": true}' }
-    ]);
+    assert.deepStrictEqual(
+      calls.map(m => ({ type: m[0].type, data: m[0].data })),
+      [{ type: "output", data: '{"raw": true}' }]
+    );
   });
 
   it("testUseOutput", async () => {
@@ -43,9 +52,10 @@ describe("WorkerOutputTest", () => {
     try {
       useWorkerOutput(output);
       useOutput("result");
-      assert.deepStrictEqual(calls.map(m => ({ type: m[0].type, data: m[0].data })), [
-        { type: "output", data: "result" }
-      ]);
+      assert.deepStrictEqual(
+        calls.map(m => ({ type: m[0].type, data: m[0].data })),
+        [{ type: "output", data: "result" }]
+      );
     } finally {
       useWorkerOutput(previous);
     }

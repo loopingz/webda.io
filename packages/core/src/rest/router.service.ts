@@ -7,10 +7,10 @@ import { Command } from "../services/command.js";
 import { useLog, useOutput } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
 import { useParameters } from "../application/hooks.js";
-import { useDynamicService, useService } from "../core/hooks.js";
+import { useDynamicService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
-import { IWebContext } from "../contexts/icontext.js";
+import { IWebContext, IOperationContext } from "../contexts/icontext.js";
 import { Service } from "../services/service.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
@@ -21,6 +21,145 @@ import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { getOperationFeatureFlags } from "../services/featureflags.js";
+import * as WebdaError from "../errors/errors.js";
+
+/** Mode used to serve an alias */
+export type RouteAliasMode = "rewrite" | "redirect";
+
+/** Full definition of a route alias */
+export interface RouteAliasDefinition {
+  /**
+   * Target URL, relative to the application (routePrefix is applied like routes)
+   * Supports ${user.id} and ${params.<name>} placeholders
+   */
+  target: string;
+  /** Methods the alias applies to @default all methods */
+  methods?: HttpMethodType[];
+  /** rewrite: served in-process, redirect: HTTP redirect to the target @default "rewrite" */
+  mode?: RouteAliasMode;
+  /** Status code used in redirect mode @default 302 */
+  redirectCode?: 301 | 302 | 307 | 308;
+  /** Document the alias in OpenAPI @default true for rewrite, false for redirect */
+  openapi?: boolean;
+}
+
+/**
+ * Entry structure for URI template matching
+ */
+export interface TemplateMatchEntry {
+  _uriTemplateParse?: any;
+  _queryParams?: { name: string; required: boolean }[];
+  _queryCatchAll?: string;
+}
+
+/**
+ * Compiled route alias representation for router internal matching
+ */
+export interface CompiledAlias extends TemplateMatchEntry {
+  rawUrl: string;
+  url: string;
+  definition: RouteAliasDefinition;
+  target: ReturnType<typeof compileAliasTarget>;
+}
+
+/**
+ * Compile an alias target into a fast resolver
+ *
+ * Supported placeholders:
+ * - `${user.id}`: `ctx.getCurrentUserId()`, throws Unauthorized (401) if undefined
+ * - `${params.<name>}`: parameter from alias template (`{name}`, `{+name}`, `{?name}`), empty string if undefined
+ * - `${params.<name>*}`: catch-all query object serialized as `key=value&...`, empty string if undefined
+ *
+ * @param alias - the alias URL template
+ * @param target - the target URL pattern
+ * @returns compiled resolver with `requiresUser` flag and `resolve` function
+ */
+export function compileAliasTarget(
+  alias: string,
+  target: string
+): {
+  requiresUser: boolean;
+  resolve: (ctx: IOperationContext, params: Record<string, any>) => string;
+} {
+  let requiresUser = false;
+  const parts: (string | ((ctx: IOperationContext, params: Record<string, any>) => string))[] = [];
+  let lastIndex = 0;
+  let placeholderStart = target.indexOf("${", lastIndex);
+
+  while (placeholderStart !== -1) {
+    const placeholderEnd = target.indexOf("}", placeholderStart + 2);
+    if (placeholderEnd === -1) {
+      throw new WebdaError.CodeError(
+        "INVALID_ALIAS_TARGET",
+        `Unclosed placeholder in alias "${alias}" target "${target}"`
+      );
+    }
+    if (placeholderStart > lastIndex) {
+      parts.push(target.substring(lastIndex, placeholderStart));
+    }
+    const expr = target.substring(placeholderStart + 2, placeholderEnd);
+    if (expr === "user.id") {
+      requiresUser = true;
+      parts.push((ctx: IOperationContext) => {
+        const userId = ctx?.getCurrentUserId?.();
+        if (userId === undefined || userId === null || userId === "") {
+          throw new WebdaError.Unauthorized("User required for alias target");
+        }
+        return encodeURIComponent(String(userId));
+      });
+    } else if (/^params\.[a-zA-Z0-9_]+\*$/.test(expr)) {
+      const paramName = expr.substring("params.".length, expr.length - 1);
+      parts.push((_ctx: IOperationContext, params: Record<string, any>) => {
+        const val = params?.[paramName];
+        if (val && typeof val === "object") {
+          const entries = Object.entries(val);
+          if (entries.length === 0) return "";
+          return entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
+        }
+        return "";
+      });
+    } else if (/^params\.[a-zA-Z0-9_]+$/.test(expr)) {
+      const paramName = expr.substring("params.".length);
+      const isPlus = alias.includes(`{+${paramName}}`);
+      parts.push((_ctx: IOperationContext, params: Record<string, any>) => {
+        const val = params?.[paramName];
+        if (val === undefined || val === null) {
+          return "";
+        }
+        if (isPlus) {
+          return String(val).split("/").map(encodeURIComponent).join("/");
+        }
+        return encodeURIComponent(String(val));
+      });
+    } else {
+      throw new WebdaError.CodeError(
+        "INVALID_ALIAS_TARGET",
+        `Invalid placeholder "\${${expr}}" in alias "${alias}" target "${target}"`
+      );
+    }
+    lastIndex = placeholderEnd + 1;
+    placeholderStart = target.indexOf("${", lastIndex);
+  }
+
+  if (lastIndex < target.length) {
+    parts.push(target.substring(lastIndex));
+  }
+
+  const resolve = (ctx: IOperationContext, params: Record<string, any>): string => {
+    let result = parts.map(part => (typeof part === "function" ? part(ctx, params) : part)).join("");
+    result = result.replace(/\?&/, "?").replace(/&&+/g, "&").replace(/[?&]$/, "");
+    const pathPart = result.split("?")[0];
+    if (pathPart.split("/").includes("..")) {
+      throw new WebdaError.BadRequest("Path traversal not allowed in alias target");
+    }
+    return result;
+  };
+
+  return {
+    requiresUser,
+    resolve
+  };
+}
 
 /** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
@@ -28,6 +167,31 @@ export class RouterParameters extends ServiceParameters {
    * Display a WARNING if a route is overriden
    */
   overrideWarning?: boolean;
+  /**
+   * Route aliases: key is the alias URL template, value the target
+   * @example { "/me": "/users/${user.id}" }
+   */
+  aliases?: Record<string, string | RouteAliasDefinition>;
+
+  /**
+   * Load parameters and normalize aliases
+   * @param params - service parameters to load
+   * @returns this for chaining
+   */
+  override load(params: any = {}): this {
+    super.load(params);
+    if (this.aliases) {
+      const normalized: Record<string, RouteAliasDefinition> = {};
+      for (const [key, val] of Object.entries(this.aliases)) {
+        const def: RouteAliasDefinition =
+          typeof val === "string" ? { target: val, mode: "rewrite" } : { mode: "rewrite", ...val };
+        compileAliasTarget(key, def.target);
+        normalized[key] = def;
+      }
+      this.aliases = normalized;
+    }
+    return this;
+  }
 }
 
 /**
@@ -46,6 +210,14 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   protected pathMap: { url: string; config: RouteInfo }[];
   protected models: Map<string, string> = new Map();
+  /**
+   * Route aliases configuration
+   */
+  protected aliases: Record<string, RouteAliasDefinition> = {};
+  /**
+   * Compiled route aliases
+   */
+  protected aliasMap: CompiledAlias[] = [];
   /**
    * Request filters to apply
    */
@@ -79,6 +251,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   resolve() {
     // Register as the instance router
     useInstanceStorage().router = this;
+    if (this.parameters.aliases) {
+      for (const [key, val] of Object.entries(this.parameters.aliases)) {
+        this.aliases[key] = val as RouteAliasDefinition;
+      }
+    }
     // Discover routes + filters once every service is resolved and initialized
     useCoreEvents("Webda.Init.Services", services => {
       const list = Object.values(services) as unknown as Service[];
@@ -191,10 +368,47 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
-   * Reinit all routes
+   * Add a route alias dynamically
+   *
+   * @param url - the alias URL pattern
+   * @param def - target URL or RouteAliasDefinition
+   */
+  addAlias(url: string, def: string | RouteAliasDefinition): void {
+    const normalized: RouteAliasDefinition =
+      typeof def === "string" ? { target: def, mode: "rewrite" } : { mode: "rewrite", ...def };
+    compileAliasTarget(url, normalized.target);
+    this.aliases[url] = normalized;
+    if (this.getState() === "running") {
+      this.remapRoutes();
+    }
+  }
+
+  /**
+   * Remove a route alias dynamically
+   *
+   * @param url - the alias URL pattern to remove
+   */
+  removeAlias(url: string): void {
+    delete this.aliases[url];
+    if (this.getState() === "running") {
+      this.remapRoutes();
+    }
+  }
+
+  /**
+   * Return all registered route aliases
+   *
+   * @returns map of alias URLs to definitions
+   */
+  getAliases(): Record<string, RouteAliasDefinition> {
+    return { ...this.aliases };
+  }
+
+  /**
+   * Reinit all routes and aliases
    *
    * It will readd the URITemplates if needed
-   * Sort all routes again
+   * Sort all routes and aliases again
    */
   public remapRoutes() {
     // Might need to ensure each routes is prefixed
@@ -222,6 +436,27 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       });
     }
     this.pathMap.sort(this.comparePath);
+
+    // Rebuild aliasMap
+    this.aliasMap = [];
+    for (const url in this.aliases) {
+      const def = this.aliases[url];
+      const finalUrl = this.getFinalUrl(url);
+      if (this.routes[finalUrl]) {
+        useLog("WARN", `Alias ${finalUrl} shadows route ${finalUrl}`);
+      }
+      useLog("TRACE", `Add alias ${finalUrl} -> ${def.target}`);
+      const compiledTarget = compileAliasTarget(url, def.target);
+      const templateInfo = this.compileTemplate(finalUrl);
+      this.aliasMap.push({
+        rawUrl: url,
+        url: finalUrl,
+        definition: def,
+        target: compiledTarget,
+        ...templateInfo
+      });
+    }
+    this.aliasMap.sort(this.comparePath);
   }
 
   /**
@@ -246,50 +481,72 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
+   * Compile a URI template with optional query parameter handling
+   * @param url - the URL pattern
+   * @returns compiled template parser and query param definitions
+   */
+  protected compileTemplate(url: string): Pick<RouteInfo, "_uriTemplateParse" | "_queryParams" | "_queryCatchAll"> {
+    if (url.indexOf("{") === -1) {
+      return {};
+    }
+    const idx = url.indexOf("{?");
+    let queryOptional = true;
+    let _queryParams: { name: string; required: boolean }[] | undefined;
+    let _queryCatchAll: string | undefined;
+    let _uriTemplateParse: any;
+
+    if (idx >= 0) {
+      const query = url.substring(idx + 2, url.length - 1);
+      _queryParams = [];
+      query.split(",").forEach(q => {
+        if (q.endsWith("*")) {
+          _queryCatchAll = q.substring(0, q.length - 1);
+          return;
+        } else if (q.endsWith("+")) {
+          _queryCatchAll = q.substring(0, q.length - 1);
+          queryOptional = false;
+          return;
+        } else if (q.endsWith("?")) {
+          _queryParams.push({ name: q.substring(0, q.length - 1), required: false });
+        } else {
+          queryOptional = false;
+          _queryParams.push({ name: q, required: true });
+        }
+      });
+      const templates = [uriTemplates(url.substring(0, idx) + "?{+URITemplateQuery}")];
+      const pathTemplate = uriTemplates(url.substring(0, idx));
+      if (queryOptional) {
+        templates.push(pathTemplate);
+      }
+      _uriTemplateParse = {
+        fromUri: (testUrl: string) => {
+          return templates.reduce((v, t) => (v ? v : t.fromUri(testUrl)), undefined);
+        },
+        varNames: [...pathTemplate.varNames, ..._queryParams.map(q => q.name)]
+      };
+    } else {
+      _uriTemplateParse = uriTemplates(url);
+    }
+    return {
+      _uriTemplateParse,
+      _queryParams,
+      _queryCatchAll
+    };
+  }
+
+  /**
    * @hidden
    * @param config - the configuration
    */
   protected initURITemplates(config: Map<string, RouteInfo[]>): void {
-    // Prepare tbe URI parser
+    // Prepare the URI parser
     for (const map in config) {
-      if (map.indexOf("{") !== -1) {
+      const compiled = this.compileTemplate(map);
+      if (compiled._uriTemplateParse) {
         config[map].forEach((e: RouteInfo) => {
-          const idx = map.indexOf("{?");
-          let queryOptional = true;
-          if (idx >= 0) {
-            const query = map.substring(idx + 2, map.length - 1);
-            e._queryParams = [];
-            query.split(",").forEach(q => {
-              if (q.endsWith("*")) {
-                e._queryCatchAll = q.substring(0, q.length - 1);
-                return;
-              } else if (q.endsWith("+")) {
-                e._queryCatchAll = q.substring(0, q.length - 1);
-                queryOptional = false;
-                return;
-              } else if (q.endsWith("?")) {
-                e._queryParams.push({ name: q.substring(0, q.length - 1), required: false });
-              } else {
-                queryOptional = false;
-                e._queryParams.push({ name: q, required: true });
-              }
-            });
-            // We do not use uri-templates for query parsing
-            //map = map.substring(0, idx) + "?{+URITemplateQuery}";
-            const templates = [uriTemplates(map.substring(0, idx) + "?{+URITemplateQuery}")];
-            const pathTemplate = uriTemplates(map.substring(0, idx));
-            if (queryOptional) {
-              templates.push(pathTemplate);
-            }
-            e._uriTemplateParse = {
-              fromUri: (url: string) => {
-                return templates.reduce((v, t) => (v ? v : t.fromUri(url)), undefined);
-              },
-              varNames: [...pathTemplate.varNames, ...e._queryParams.map(q => q.name)]
-            };
-          } else {
-            e._uriTemplateParse = uriTemplates(map);
-          }
+          e._uriTemplateParse = compiled._uriTemplateParse;
+          e._queryParams = compiled._queryParams;
+          e._queryCatchAll = compiled._queryCatchAll;
         });
       }
     }
@@ -309,9 +566,107 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
-   * Get all method for a specific url
-   * @param config - the configuration
+   * Match a URL against an entry (route or alias)
+   * @param entry - route or alias info
+   * @param routeUrl - the route or alias URL template
+   * @param finalUrl - the incoming request URL
+   * @returns extracted parameters map, or undefined if no match
+   */
+  protected matchTemplate(
+    entry: TemplateMatchEntry,
+    routeUrl: string,
+    finalUrl: string
+  ): Record<string, any> | undefined {
+    const target = this.getMatchTarget(routeUrl, finalUrl);
+    // If url is strictly equal
+    if (routeUrl === target) {
+      return {};
+    }
+
+    if (entry._uriTemplateParse === undefined) {
+      return undefined;
+    }
+    const parse_result = entry._uriTemplateParse.fromUri(target, { strict: true });
+    if (parse_result !== undefined) {
+      const parseUrl = new URL(`http://localhost${finalUrl}`);
+      if (entry._queryCatchAll) {
+        parse_result[entry._queryCatchAll] = {};
+        parseUrl.searchParams.forEach((v, k) => {
+          if (!entry._queryParams?.find(q => q.name === k)) {
+            parse_result[entry._queryCatchAll][k] = v;
+          }
+        });
+      }
+      // Check for each params
+      let mandatoryParams = true;
+      entry._queryParams?.forEach(q => {
+        if (!parseUrl.searchParams.has(q.name)) {
+          mandatoryParams &&= !q.required;
+          return;
+        }
+        parse_result[q.name] = parseUrl.searchParams.get(q.name);
+      });
+      // Skip if we miss mandatory params
+      if (!mandatoryParams) {
+        return undefined;
+      }
+      if (parse_result.URITemplateQuery) {
+        delete parse_result.URITemplateQuery;
+      }
+      return parse_result;
+    }
+    return undefined;
+  }
+
+  /**
+   * Resolve an incoming URL against route aliases
+   * @param ctx - the operation context
    * @param method - the HTTP method
+   * @param url - the URL to resolve (relative to prefix)
+   * @returns resolved alias target and metadata, or undefined
+   */
+  public resolveAlias(
+    ctx: IWebContext,
+    method: HttpMethodType,
+    url: string
+  ): { alias: string; url: string; mode: RouteAliasMode; redirectCode?: number } | undefined {
+    const finalUrl = this.getFinalUrl(url);
+    for (const aliasEntry of this.aliasMap) {
+      if (aliasEntry.definition.methods && !aliasEntry.definition.methods.includes(method)) {
+        continue;
+      }
+      const params = this.matchTemplate(
+        aliasEntry,
+        aliasEntry.url,
+        aliasEntry.rawUrl.startsWith("//") ? url : finalUrl
+      );
+      if (params !== undefined) {
+        let resolvedTarget = aliasEntry.target.resolve(ctx, params);
+        // Query string propagation: if the alias template does not declare a query ({?...}),
+        // append the original request query string to the target.
+        if (!aliasEntry.url.includes("{?")) {
+          const qIdx = url.indexOf("?");
+          if (qIdx !== -1) {
+            const queryStr = url.substring(qIdx + 1);
+            if (queryStr) {
+              const sep = resolvedTarget.includes("?") ? "&" : "?";
+              resolvedTarget = `${resolvedTarget}${sep}${queryStr}`;
+            }
+          }
+        }
+        return {
+          alias: aliasEntry.rawUrl,
+          url: resolvedTarget,
+          mode: aliasEntry.definition.mode as RouteAliasMode,
+          redirectCode: aliasEntry.definition.redirectCode
+        };
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Get all method for a specific url
    * @param url - the URL
    * @returns the list of results
    */
@@ -331,6 +686,40 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       }
 
       map.methods.forEach(m => methods.add(m));
+    }
+    for (const aliasEntry of this.aliasMap) {
+      const params = this.matchTemplate(
+        aliasEntry,
+        aliasEntry.url,
+        aliasEntry.rawUrl.startsWith("//") ? url : finalUrl
+      );
+      if (params !== undefined) {
+        const placeholderCtx = aliasEntry.target.requiresUser
+          ? ({ getCurrentUserId: () => "__placeholder__" } as any)
+          : ({} as any);
+        try {
+          const resolvedTarget = aliasEntry.target.resolve(placeholderCtx, params);
+          const targetFinalUrl = this.getFinalUrl(resolvedTarget);
+          for (const i in this.pathMap) {
+            const routeUrl = this.pathMap[i].url;
+            const map = this.pathMap[i].config;
+            const target = this.getMatchTarget(routeUrl, targetFinalUrl);
+            if (
+              routeUrl === target ||
+              (map._uriTemplateParse !== undefined &&
+                map._uriTemplateParse.fromUri(target, { strict: true }) !== undefined)
+            ) {
+              map.methods.forEach(m => {
+                if (!aliasEntry.definition.methods || aliasEntry.definition.methods.includes(m)) {
+                  methods.add(m);
+                }
+              });
+            }
+          }
+        } catch {
+          // ignore error during method discovery
+        }
+      }
     }
     return Array.from(methods);
   }
@@ -354,45 +743,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         continue;
       }
 
-      const target = this.getMatchTarget(routeUrl, finalUrl);
-      // If url is strictly equal
-      if (routeUrl === target) {
-        return map;
-      }
-
-      // If the url
-      if (map._uriTemplateParse === undefined) {
-        continue;
-      }
-      const parse_result = map._uriTemplateParse.fromUri(target, { strict: true });
-      if (parse_result !== undefined) {
-        const parseUrl = new URL(`http://localhost${finalUrl}`);
-        if (map._queryCatchAll) {
-          parse_result[map._queryCatchAll] = {};
-          parseUrl.searchParams.forEach((v, k) => {
-            if (!map._queryParams?.find(q => q.name === k)) {
-              parse_result[map._queryCatchAll][k] = v;
-            }
-          });
+      const params = this.matchTemplate(map, routeUrl, finalUrl);
+      if (params !== undefined) {
+        if (map._uriTemplateParse !== undefined && routeUrl !== this.getMatchTarget(routeUrl, finalUrl)) {
+          ctx.setParameters(params);
         }
-        // Check for each params
-        let mandatoryParams = true;
-        map._queryParams?.forEach(q => {
-          if (!parseUrl.searchParams.has(q.name)) {
-            mandatoryParams &&= !q.required;
-            return;
-          }
-          parse_result[q.name] = parseUrl.searchParams.get(q.name);
-        });
-        // Skip if we miss mandatory params
-        if (!mandatoryParams) {
-          continue;
-        }
-        if (parse_result.URITemplateQuery) {
-          delete parse_result.URITemplateQuery;
-        }
-        ctx.setParameters(parse_result);
-
         return map;
       }
     }
@@ -512,7 +867,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
             description,
             summary,
             operationId,
-            requestBody
+            requestBody,
+            parameters: route.openapi[method.toLowerCase()]?.parameters
           };
           if (operationId) {
             const flags = getOperationFeatureFlags(operationId);
@@ -544,6 +900,113 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         });
       });
     }
+
+    // Document aliases
+    const routePaths = Object.keys(openapi.paths);
+    for (const aliasEntry of this.aliasMap) {
+      const def = aliasEntry.definition;
+      const isHidden = def.openapi === false || (def.mode === "redirect" && def.openapi !== true);
+      if (isHidden && skipHidden) {
+        continue;
+      }
+      let path = aliasEntry.url;
+      if (path.indexOf("{?") >= 0) {
+        path = path.substring(0, path.indexOf("{?"));
+      }
+      openapi.paths[path] = openapi.paths[path] || {};
+      const aliasDeclaredPathParams: string[] = [];
+      if (aliasEntry._uriTemplateParse) {
+        openapi.paths[path].parameters = [];
+        aliasEntry._uriTemplateParse.varNames.forEach(varName => {
+          const queryParam = aliasEntry._queryParams?.find(i => i.name === varName);
+          if (queryParam) {
+            openapi.paths[path].parameters.push({
+              name: varName,
+              in: "query",
+              required: queryParam.required,
+              schema: {
+                type: "string"
+              }
+            });
+            return;
+          }
+          const cleanName = varName.replace(/[^a-zA-Z0-9._$-]/g, "");
+          aliasDeclaredPathParams.push(cleanName);
+          openapi.paths[path].parameters.push({
+            name: cleanName,
+            in: "path",
+            required: true,
+            schema: {
+              type: "string"
+            }
+          });
+        });
+      }
+
+      if (def.mode === "redirect") {
+        const methodsToCheck = def.methods || ["GET"];
+        methodsToCheck.forEach(m => {
+          openapi.paths[path][m.toLowerCase()] = {
+            summary: `Redirect to ${def.target}`,
+            responses: {
+              [def.redirectCode || 302]: {
+                description: `Redirect to ${def.target}`
+              }
+            }
+          };
+        });
+        continue;
+      }
+
+      // Rewrite mode: sample expansion of target
+      const sampleUrl = def.target.replace(/\$\{[^}]+\}/g, "sample");
+      const targetOperations: { method: HttpMethodType; op: OpenAPIV3.OperationObject }[] = [];
+      const allMethods: HttpMethodType[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+      const allowedMethods = def.methods ? def.methods : allMethods;
+
+      for (const p of routePaths) {
+        const pTemplate = uriTemplates(p);
+        const samplePath = sampleUrl.split("?")[0];
+        if (p === samplePath || pTemplate.fromUri(samplePath, { strict: true }) !== undefined) {
+          for (const m of allowedMethods) {
+            const candidateOp = openapi.paths[p]?.[m.toLowerCase()];
+            if (candidateOp) {
+              targetOperations.push({ method: m, op: JSON.parse(JSON.stringify(candidateOp)) });
+            }
+          }
+        }
+      }
+
+      if (targetOperations.length > 0) {
+        for (const { method, op } of targetOperations) {
+          if (op.operationId) {
+            op.operationId = `${op.operationId}Alias`;
+          }
+          op.description = op.description ? `Alias of ${def.target}: ${op.description}` : `Alias of ${def.target}`;
+          if (op.parameters) {
+            op.parameters = op.parameters.filter(param => {
+              if ("in" in param && param.in === "path") {
+                return aliasDeclaredPathParams.includes(param.name);
+              }
+              return true;
+            });
+          }
+          openapi.paths[path][method.toLowerCase()] = op;
+        }
+      } else {
+        const methodsToEmit = def.methods || ["GET"];
+        for (const m of methodsToEmit) {
+          openapi.paths[path][m.toLowerCase()] = {
+            summary: `Alias of ${def.target}`,
+            responses: {
+              200: {
+                description: "Operation success"
+              }
+            }
+          };
+        }
+      }
+    }
   }
 
   /**
@@ -568,9 +1031,22 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       return;
     }
 
-    const info = this.getRouteFromUrl(ctx, method, url);
+    let targetUrl = url;
+    const resolved = this.resolveAlias(ctx, method, url);
+    if (resolved) {
+      if (resolved.mode === "redirect") {
+        const redirectUrl = httpContext.getAbsoluteUrl(resolved.url);
+        const code = resolved.redirectCode || 302;
+        ctx.writeHead(code, { Location: redirectUrl });
+        return;
+      }
+      ctx.setExtension("routeAlias", { alias: resolved.alias, target: resolved.url });
+      targetUrl = resolved.url;
+    }
+
+    const info = this.getRouteFromUrl(ctx, method, targetUrl);
     if (!info) {
-      this.writeNotFound(ctx, method, url);
+      this.writeNotFound(ctx, method, targetUrl);
       return;
     }
 
@@ -827,8 +1303,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (!service) continue;
       // @ts-ignore — back-compat for subclasses that still populate this
       const legacy: Record<string, any[]> = service.constructor.routes || {};
-      const fromMetadata: Record<string, any[]> =
-        getMetadata(service.constructor as any)?.["webda.route"] || {};
+      const fromMetadata: Record<string, any[]> = getMetadata(service.constructor as any)?.["webda.route"] || {};
       const routes: Record<string, any[]> = { ...legacy };
       for (const path in fromMetadata) {
         routes[path] = [...(routes[path] || []), ...fromMetadata[path]];

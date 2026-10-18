@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.8...content-mapper-v4.0.0-beta.9) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+
 ## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.7...content-mapper-v4.0.0-beta.8) (2026-10-14)
 
 

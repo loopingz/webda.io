@@ -4,7 +4,6 @@ import unusedImports from "eslint-plugin-unused-imports";
 import jsdoc from "eslint-plugin-jsdoc";
 
 export default [
-  eslintConfigPrettier,
   ...tseslint.configs.recommended,
   {
     ignores: [
@@ -13,7 +12,8 @@ export default [
       "**/reports/**",
       "**/coverage/**",
       "**/vendor/**",
-      "packages/debug/webui/**", "packages/debug-ui/dist/**",
+      "packages/debug/webui/**",
+      "packages/debug-ui/dist/**",
       "packages/compiler/test/**",
       "packages/content-mapper/test/**",
       "packages/compiler/other.ts",
@@ -29,8 +29,9 @@ export default [
       jsdoc
     },
     files: ["**/*.ts", "**/*.tsx"],
-    ignores: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**"],
+    ignores: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**"],
     rules: {
+      "unused-imports/no-unused-imports": "error",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unsafe-declaration-merging": "off",
       "@typescript-eslint/no-unused-vars": ["off", { varsIgnorePattern: "^_", argsIgnorePattern: "^_" }],
@@ -65,8 +66,9 @@ export default [
     plugins: {
       "unused-imports": unusedImports
     },
-    files: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**"],
+    files: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**"],
     rules: {
+      "unused-imports/no-unused-imports": "error",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unsafe-declaration-merging": "off",
       "@typescript-eslint/no-unused-vars": ["off", { varsIgnorePattern: "^_", argsIgnorePattern: "^_" }],
@@ -89,5 +91,7 @@ export default [
     rules: {
       "jsdoc/require-param": ["error", { checkDestructured: false, enableFixer: false, checkTypesPattern: "^$" }]
     }
-  }
+  },
+  // Must stay last: turns off any rule that conflicts with Prettier
+  eslintConfigPrettier
 ];

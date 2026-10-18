@@ -8,7 +8,7 @@ import { Model, type ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 import { Store } from "../stores/store.js";
 import { Logger } from "../loggers/ilogger.js";
-import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
+import { getUuid, State, StateOptions } from "@webda/utils";
 import { ICore, AbstractService, OperationDefinitionInfo } from "./icore.js";
 import { emitCoreEvent } from "../events/events.js";
 import { useInstanceStorage } from "./instancestorage.js";
@@ -171,14 +171,14 @@ export class Core implements ICore {
    * registered by the loaded modules.
    */
   protected async decryptConfiguration() {
-    // Only the services and parameters can hold secrets, not the cached modules
-    const { services, parameters } = this.applicationConfiguration;
-    const decrypted = await CryptoService.decryptConfiguration({ services, parameters }, [], {
+    // Runtime configuration may hold secrets; cached module metadata must not.
+    const { services, parameters, models } = this.applicationConfiguration;
+    const decrypted = await CryptoService.decryptConfiguration({ services, parameters, models }, [], {
       settings: parameters?.configurationEncryption,
       appPath: this.application.getPath()
     });
     // Keep the configuration untouched when nothing was encrypted
-    if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters })) {
+    if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters, models })) {
       return;
     }
     this.applicationConfiguration = { ...this.applicationConfiguration, ...decrypted };

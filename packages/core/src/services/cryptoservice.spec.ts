@@ -2,10 +2,9 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import jwt from "jsonwebtoken";
 import * as jose from "jose";
-import * as sinon from "sinon";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
-import { JSONUtils, sleep } from "@webda/utils";
+import { JSONUtils } from "@webda/utils";
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
 import * as util from "node:util";
 import {

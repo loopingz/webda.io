@@ -14,6 +14,7 @@ export * from "./contexts/icontext.js";
 export * from "./contexts/execution.js";
 export * from "./contexts/webcontext.js";
 export * from "./contexts/httpcontext.js";
+export * from "./contexts/clientcertificate.js";
 export * from "./contexts/streamingcontext.js";
 export * from "./contexts/websocketcontext.js";
 export * from "./contexts/globalcontext.js";
@@ -52,6 +53,10 @@ export * from "./models/registry.model.js";
 export * from "./models/user.model.js";
 export * from "./models/password.model.js";
 export * from "./models/encrypted.model.js";
+export * from "./models/mfa.model.js";
+export * from "./utils/totp.js";
+export * from "./utils/throttle.js";
+export * from "./errors/mfa.js";
 export * from "./models/coremodel.model.js";
 export * from "./models/ownermodel.model.js";
 export * from "./models/rolemodel.model.js";
@@ -86,6 +91,7 @@ export * from "./services/secretscheck.js";
 export * from "./services/pki.encrypter.js";
 export * from "./services/token.service.js";
 export * from "./models/refreshtoken.model.js";
+export * from "./models/revokedaccess.model.js";
 export * from "./services/serviceparameters.js";
 export * from "./services/cron.service.js";
 export * from "./services/command.js";
@@ -94,10 +100,12 @@ export * from "./services/icryptoservice.js";
 export * from "./configurations/fileconfiguration.service.js";
 export * from "./services/audit.model.js";
 export * from "./services/service.js";
+export * from "./services/clientcertificatefilter.service.js";
 export * from "./services/binary.service.js";
 export * from "./configurations/configuration.service.js";
 export * from "./rest/irest.js";
 export * from "./rest/restoperationstransport.service.js";
+export * from "./rest/operationstransport.service.js";
 export * from "./services/operationstransport.js";
 export * from "./rest/router.service.js";
 export * from "./rest/hooks.js";
@@ -105,6 +113,7 @@ export * from "./rest/originfilter.js";
 export * from "./session/manager.model.js";
 export * from "./session/cookie.js";
 export * from "./session/session.js";
+export * from "./session/scope.js";
 export * from "./templates/templates.js";
 
 export * from "./services/iservice.js";
@@ -116,3 +125,22 @@ export * from "./services/featureflags.js";
 export * from "./services/featureflags.service.js";
 export { escape, WebdaQLError } from "@webda/ql";
 export type { WebdaQLStatement, WebdaQLString } from "@webda/ql";
+
+export * from "./application/parameters.js";
+export * from "./application/modelconfiguration.js";
+export {
+  getContent,
+  putContent,
+  parseContentUrl,
+  lookupMimeType,
+  toReadable,
+  ContentStorages,
+  FileContentStorage,
+  defaultFileContentStorage,
+  MemoryContentStorage,
+  ContentNotFoundError,
+  ContentExistsError,
+  ContentCredentialNotFoundError,
+  ContentStorageNotFoundError
+} from "@webda/utils";
+export type { ContentBody, ContentPutOptions, ContentGetOptions, ContentInfo, ContentStorage } from "@webda/utils";

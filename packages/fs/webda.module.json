@@ -9,6 +9,20 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
+          "contentStorage#2": {
+            "additionalProperties": false,
+            "properties": {
+              "default": {
+                "default": false,
+                "type": "boolean"
+              },
+              "register": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
           "models": {
             "additionalProperties": {
               "items": {
@@ -22,6 +36,9 @@
         },
         "description": "Configuration parameters for the filesystem-backed binary storage service.",
         "properties": {
+          "contentStorage": {
+            "$ref": "#/definitions/contentStorage%232"
+          },
           "folder": {
             "description": "Define the folder to store objects in",
             "type": "string"
@@ -104,9 +121,32 @@
             "description": "Where to store the queue",
             "type": "string"
           },
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
           "maxConsumers": {
             "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
+            "type": "number"
+          },
+          "pollInterval": {
+            "default": 100,
+            "description": "Interval between two checks of the folder while waiting for a message, in milliseconds",
+            "type": "number"
+          },
+          "timeout": {
+            "default": 10,
+            "description": "Number of seconds to wait for a message when the queue is empty, before returning no message\n\nA message sent by this service ends the wait immediately; messages written by other processes are picked up\nwithin `pollInterval`.",
             "type": "number"
           },
           "type": {
@@ -203,9 +243,26 @@
             "description": "Disable default memory cache",
             "type": "boolean"
           },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
           "slowQueryThreshold": {
             "default": 30000,
-            "description": "Slow query threshold",
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
             "type": "number"
           },
           "strict": {

@@ -186,9 +186,9 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
     const all = listFullOperations();
     // Sanity: standard CRUD still wires up — we didn't break the loop.
     assert.ok(all["Brand.Get"], "expected base CRUD to still register");
-    // No behavior-shaped operations should leak from a model with no behaviors.
+    // Only the real User MFA has Verify; models without behaviors must not gain Verify or Set.
     const behaviorIds = Object.keys(all).filter(k => k.endsWith(".Verify") || k.endsWith(".Set"));
-    assert.deepStrictEqual(behaviorIds, [], `unexpected behavior ops: ${behaviorIds.join(",")}`);
+    assert.deepStrictEqual(behaviorIds, ["User.Mfa.Verify"], `unexpected behavior ops: ${behaviorIds.join(",")}`);
   }
 
   /**

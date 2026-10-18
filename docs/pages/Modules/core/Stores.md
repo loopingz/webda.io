@@ -166,7 +166,8 @@ await post.save();
 |---------|-------------|---------|
 | `@webda/core` | `MemoryStore` | In-memory (dev/test) |
 | `@webda/mongodb` | `MongoStore` | MongoDB |
-| `@webda/postgres` | `PostgresStore` | PostgreSQL |
+| `@webda/postgres` | `PostgresStore` | PostgreSQL (JSONB, on `@webda/sql`) |
+| `@webda/sqlite` | `SQLiteStore` | SQLite on `node:sqlite`, in memory or a file (on `@webda/sql`) |
 | `@webda/aws` | `DynamoStore` | Amazon DynamoDB |
 | `@webda/elasticsearch` | `ElasticSearchStore` | Elasticsearch |
 | `@webda/fs` | `FileStore` | Local filesystem |

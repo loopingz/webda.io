@@ -93,9 +93,26 @@
             "description": "Disable default memory cache",
             "type": "boolean"
           },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
           "slowQueryThreshold": {
             "default": 30000,
-            "description": "Slow query threshold",
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
             "type": "number"
           },
           "strict": {
@@ -1055,9 +1072,22 @@
         },
         "description": "GCPQueue Parameters",
         "properties": {
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
           "maxConsumers": {
             "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
           "mode": {
@@ -1115,6 +1145,1677 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
+          "Agent": {
+            "additionalProperties": false,
+            "description": "An `Agent` is responsible for managing connection persistence\nand reuse for HTTP clients. It maintains a queue of pending requests\nfor a given host and port, reusing a single socket connection for each\nuntil the queue is empty, at which time the socket is either destroyed\nor put into a pool where it is kept to be used again for requests to the\nsame host and port. Whether it is destroyed or pooled depends on the `keepAlive` `option`.\n\nPooled connections have TCP Keep-Alive enabled for them, but servers may\nstill close idle connections, in which case they will be removed from the\npool and a new connection will be made when a new HTTP request is made for\nthat host and port. Servers may also refuse to allow multiple requests\nover the same connection, in which case the connection will have to be\nremade for every request and cannot be pooled. The `Agent` will still make\nthe requests to that server, but each one will occur over a new connection.\n\nWhen a connection is closed by the client or the server, it is removed\nfrom the pool. Any unused sockets in the pool will be unrefed so as not\nto keep the Node.js process running when there are no outstanding requests.\n(see `socket.unref()`).\n\nIt is good practice, to `destroy()` an `Agent` instance when it is no\nlonger in use, because unused sockets consume OS resources.\n\nSockets are removed from an agent when the socket emits either\na `'close'` event or an `'agentRemove'` event. When intending to keep one\nHTTP request open for a long time without keeping it in the agent, something\nlike the following may be done:\n\n```js\nhttp.get(options, (res) => {\n  // Do stuff\n}).on('socket', (socket) => {\n  socket.emit('agentRemove');\n});\n```\n\nAn agent may also be used for an individual request. By providing `{agent: false}` as an option to the `http.get()` or `http.request()` functions, a one-time use `Agent` with default options\nwill be used\nfor the client connection.\n\n`agent:false`:\n\n```js\nhttp.get({\n  hostname: 'localhost',\n  port: 80,\n  path: '/',\n  agent: false,  // Create a new agent just for this one request\n}, (res) => {\n  // Do stuff with response\n});\n```\n\n`options` in [`socket.connect()`](https://nodejs.org/docs/latest-v25.x/api/net.html#socketconnectoptions-connectlistener) are also supported.\n\nTo configure any of them, a custom {@link Agent} instance must be created.\n\n```js\nimport http from 'node:http';\nconst keepAliveAgent = new http.Agent({ keepAlive: true });\noptions.agent = keepAliveAgent;\nhttp.request(options, onResponseCallback)\n```",
+            "properties": {
+              "maxFreeSockets": {
+                "description": "By default set to 256. For agents with `keepAlive` enabled, this\nsets the maximum number of sockets that will be left open in the free\nstate.",
+                "since": "v0.11.7",
+                "type": "number"
+              },
+              "maxSockets": {
+                "description": "By default set to `Infinity`. Determines how many concurrent sockets the agent\ncan have open per origin. Origin is the returned value of `agent.getName()`.",
+                "since": "v0.3.6",
+                "type": "number"
+              },
+              "maxTotalSockets": {
+                "description": "By default set to `Infinity`. Determines how many concurrent sockets the agent\ncan have open. Unlike `maxSockets`, this parameter applies across all origins.",
+                "since": "v14.5.0, v12.19.0",
+                "type": "number"
+              }
+            },
+            "required": [
+              "maxFreeSockets",
+              "maxSockets",
+              "maxTotalSockets"
+            ],
+            "since": "v0.3.4",
+            "type": "object"
+          },
+          "AwsClientOptions": {
+            "additionalProperties": false,
+            "description": "AWS credentials JSON interface. This is used for AWS workloads.",
+            "properties": {
+              "apiKey": {
+                "description": "An API key to use, optional.",
+                "type": "string"
+              },
+              "audience": {
+                "description": "The Security Token Service audience, which is usually the fully specified\nresource name of the workload or workforce pool provider.",
+                "type": "string"
+              },
+              "aws_security_credentials_supplier": {
+                "$ref": "#/definitions/AwsSecurityCredentialsSupplier",
+                "description": "The AWS security credentials supplier to call to retrieve the AWS region\nand AWS security credentials. Either this or a valid credential source\nmust be specified."
+              },
+              "client_id": {
+                "description": "Client ID of the service account from the console.",
+                "type": "string"
+              },
+              "client_secret": {
+                "description": "Client secret of the service account from the console.",
+                "type": "string"
+              },
+              "cloud_resource_manager_url": {
+                "example": "https://cloudresourcemanager.googleapis.com/v1/projects/",
+                "type": "string"
+              },
+              "credential_source": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%233%24credential_source",
+                "description": "Object containing options to retrieve AWS security credentials. A valid credential\nsource or a aws security credentials supplier should be specified."
+              },
+              "credentials": {
+                "$ref": "#/definitions/Credentials"
+              },
+              "eagerRefreshThresholdMillis": {
+                "description": "The expiration threshold in milliseconds before forcing token refresh of\nunexpired tokens.",
+                "type": "number"
+              },
+              "forceRefreshOnFailure": {
+                "default": false,
+                "description": "Whether to attempt to refresh tokens on status 401/403 responses\neven if an attempt is made to refresh the token preemptively based\non the expiry_date.",
+                "type": "boolean"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "project_id": {
+                "type": "string"
+              },
+              "quotaProjectId": {
+                "type": "string"
+              },
+              "quota_project_id": {
+                "type": "string"
+              },
+              "scopes": {
+                "description": "The scopes to request during the authorization grant.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "service_account_impersonation": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%233%24service_account_impersonation",
+                "description": "Object containing additional options for service account impersonation."
+              },
+              "service_account_impersonation_url": {
+                "description": "The URL for the service account impersonation request. This URL is required\nfor some APIs. If this URL is not available, the access token from the\nSecurity Token Service is used directly.",
+                "type": "string"
+              },
+              "subject_token_type": {
+                "description": "The Security Token Service subject token type based on the OAuth 2.0\ntoken exchange spec. Expected values include:\n* 'urn:ietf:params:oauth:token-type:jwt'\n* 'urn:ietf:params:aws:token-type:aws4_request'\n* 'urn:ietf:params:oauth:token-type:saml2'\n* 'urn:ietf:params:oauth:token-type:id_token'",
+                "type": "string"
+              },
+              "token_info_url": {
+                "description": "The endpoint used to retrieve account related information.",
+                "type": "string"
+              },
+              "token_url": {
+                "description": "The Security Token Service token URL used to exchange the third party token\nfor a GCP access token. If not provided, will default to\n'https://sts.googleapis.com/v1/token'",
+                "type": "string"
+              },
+              "transporter": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Gaxios"
+                  },
+                  {
+                    "$ref": "#/definitions/Transporter"
+                  }
+                ],
+                "description": "A `Gaxios` or `Transporter` instance to use for `AuthClient` requests."
+              },
+              "transporterOptions": {
+                "$ref": "#/definitions/GaxiosOptions",
+                "description": "Provides default options to the transporter, such as {@link GaxiosOptions.agent`agent`} or\n {@link GaxiosOptions.retryConfig`retryConfig`}."
+              },
+              "type": {
+                "description": "Credential type, should always be 'external_account'.",
+                "type": "string"
+              },
+              "universeDomain": {
+                "type": "string"
+              },
+              "universe_domain": {
+                "type": "string"
+              },
+              "workforce_pool_user_project": {
+                "description": "The workforce pool user project. Required when using a workforce identity\npool.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "audience",
+              "subject_token_type"
+            ],
+            "type": "object"
+          },
+          "AwsSecurityCredentialsSupplier": {
+            "additionalProperties": false,
+            "description": "Supplier interface for AWS security credentials. This can be implemented to\nreturn an AWS region and AWS security credentials. These credentials can\nthen be exchanged for a GCP token by an {@link AwsClient}.",
+            "type": "object"
+          },
+          "ClientRequest": {
+            "additionalProperties": false,
+            "description": "This object is created internally and returned from {@link request}. It\nrepresents an _in-progress_ request whose header has already been queued. The\nheader is still mutable using the `setHeader(name, value)`, `getHeader(name)`, `removeHeader(name)` API. The actual header will\nbe sent along with the first data chunk or when calling `request.end()`.\n\nTo get the response, add a listener for `'response'` to the request object. `'response'` will be emitted from the request object when the response\nheaders have been received. The `'response'` event is executed with one\nargument which is an instance of {@link IncomingMessage}.\n\nDuring the `'response'` event, one can add listeners to the\nresponse object; particularly to listen for the `'data'` event.\n\nIf no `'response'` handler is added, then the response will be\nentirely discarded. However, if a `'response'` event handler is added,\nthen the data from the response object **must** be consumed, either by\ncalling `response.read()` whenever there is a `'readable'` event, or\nby adding a `'data'` handler, or by calling the `.resume()` method.\nUntil the data is consumed, the `'end'` event will not fire. Also, until\nthe data is read it will consume memory that can eventually lead to a\n'process out of memory' error.\n\nFor backward compatibility, `res` will only emit `'error'` if there is an `'error'` listener registered.\n\nSet `Content-Length` header to limit the response body size.\nIf `response.strictContentLength` is set to `true`, mismatching the `Content-Length` header value will result in an `Error` being thrown,\nidentified by `code:``'ERR_HTTP_CONTENT_LENGTH_MISMATCH'`.\n\n`Content-Length` value should be in bytes, not characters. Use `Buffer.byteLength()` to determine the length of the body in bytes.",
+            "properties": {
+              "aborted": {
+                "default": false,
+                "deprecated": true,
+                "description": "The `request.aborted` property will be `true` if the request has\nbeen aborted.",
+                "since": "v0.11.14",
+                "type": "boolean"
+              },
+              "chunkedEncoding": {
+                "default": false,
+                "type": "boolean"
+              },
+              "destroyed": {
+                "default": false,
+                "description": "Is `true` after `writable.destroy()` has been called.",
+                "since": "v8.0.0",
+                "type": "boolean"
+              },
+              "finished": {
+                "default": false,
+                "deprecated": true,
+                "type": "boolean"
+              },
+              "host": {
+                "description": "The request host.",
+                "since": "v14.5.0, v12.19.0",
+                "type": "string"
+              },
+              "maxHeadersCount": {
+                "description": "Limits maximum response headers count. If set to 0, no limit will be applied.",
+                "type": "number"
+              },
+              "method": {
+                "description": "The request method.",
+                "since": "v0.1.97",
+                "type": "string"
+              },
+              "path": {
+                "description": "The request path.",
+                "since": "v0.4.0",
+                "type": "string"
+              },
+              "protocol": {
+                "description": "The request protocol.",
+                "since": "v14.5.0, v12.19.0",
+                "type": "string"
+              },
+              "reusedSocket": {
+                "default": false,
+                "description": "When sending request through a keep-alive enabled agent, the underlying socket\nmight be reused. But if server closes connection at unfortunate time, client\nmay run into a 'ECONNRESET' error.\n\n```js\nimport http from 'node:http';\nconst agent = new http.Agent({ keepAlive: true });\n\n// Server has a 5 seconds keep-alive timeout by default\nhttp\n  .createServer((req, res) => {\n    res.write('hello\\n');\n    res.end();\n  })\n  .listen(3000);\n\nsetInterval(() => {\n  // Adapting a keep-alive agent\n  http.get('http://localhost:3000', { agent }, (res) => {\n    res.on('data', (data) => {\n      // Do nothing\n    });\n  });\n}, 5000); // Sending request on 5s interval so it's easy to hit idle timeout\n```\n\nBy marking a request whether it reused socket or not, we can do\nautomatic error retry base on it.\n\n```js\nimport http from 'node:http';\nconst agent = new http.Agent({ keepAlive: true });\n\nfunction retriableRequest() {\n  const req = http\n    .get('http://localhost:3000', { agent }, (res) => {\n      // ...\n    })\n    .on('error', (err) => {\n      // Check if retry is needed\n      if (req.reusedSocket &#x26;&#x26; err.code === 'ECONNRESET') {\n        retriableRequest();\n      }\n    });\n}\n\nretriableRequest();\n```",
+                "since": "v13.0.0, v12.16.0",
+                "type": "boolean"
+              },
+              "sendDate": {
+                "default": false,
+                "type": "boolean"
+              },
+              "shouldKeepAlive": {
+                "default": false,
+                "type": "boolean"
+              },
+              "useChunkedEncodingByDefault": {
+                "default": false,
+                "type": "boolean"
+              },
+              "writable": {
+                "default": false,
+                "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+                "since": "v11.4.0",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "host",
+              "maxHeadersCount",
+              "method",
+              "path",
+              "protocol"
+            ],
+            "since": "v0.1.17",
+            "type": "object"
+          },
+          "Credentials": {
+            "additionalProperties": false,
+            "properties": {
+              "access_token": {
+                "description": "A token that can be sent to a Google API.",
+                "type": "string"
+              },
+              "expiry_date": {
+                "description": "The time in ms at which this token is thought to expire.",
+                "type": "number"
+              },
+              "id_token": {
+                "description": "A JWT that contains identity information about the user that is digitally signed by Google.",
+                "type": "string"
+              },
+              "refresh_token": {
+                "description": "This field is only present if the access_type parameter was set to offline in the authentication request. For details, see Refresh tokens.",
+                "type": "string"
+              },
+              "scope": {
+                "description": "The scopes of access granted by the access_token expressed as a list of space-delimited, case-sensitive strings.",
+                "type": "string"
+              },
+              "token_type": {
+                "description": "Identifies the type of token returned. At this time, this field always has the value Bearer.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Dict<string>": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "Dict<string[]>": {
+            "additionalProperties": {
+              "items": {},
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "Error": {
+            "additionalProperties": false,
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "stack": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message",
+              "name"
+            ],
+            "type": "object"
+          },
+          "Gaxios": {
+            "additionalProperties": false,
+            "properties": {
+              "__#7@#private": {},
+              "defaults": {
+                "$ref": "#/definitions/GaxiosOptions",
+                "description": "Default HTTP options that will be used for every HTTP request."
+              },
+              "interceptors": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%234%24transporter%231%24interceptors",
+                "description": "Interceptors"
+              }
+            },
+            "required": [
+              "__#7@#private",
+              "defaults",
+              "interceptors"
+            ],
+            "type": "object"
+          },
+          "GaxiosInterceptorManager<GaxiosOptions>": {
+            "additionalProperties": false,
+            "description": "Class to manage collections of GaxiosInterceptors for both requests and responses.",
+            "type": "object"
+          },
+          "GaxiosInterceptorManager<GaxiosResponse<any>>": {
+            "additionalProperties": false,
+            "description": "Class to manage collections of GaxiosInterceptors for both requests and responses.",
+            "type": "object"
+          },
+          "GaxiosMultipartOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "content": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/Readable"
+                  }
+                ]
+              },
+              "headers": {
+                "$ref": "#/definitions/Headers"
+              }
+            },
+            "required": [
+              "content",
+              "headers"
+            ],
+            "type": "object"
+          },
+          "GaxiosOptions": {
+            "additionalProperties": false,
+            "description": "Request options that are used to form the request.",
+            "properties": {
+              "agent": {
+                "$ref": "#/definitions/Agent"
+              },
+              "baseURL": {
+                "type": "string"
+              },
+              "baseUrl": {
+                "deprecated": true,
+                "type": "string"
+              },
+              "body": {},
+              "cert": {
+                "type": "string"
+              },
+              "data": {},
+              "errorRedactor": {
+                "const": false,
+                "default": false,
+                "description": "An experimental error redactor.",
+                "experimental": true,
+                "remarks": "This does not replace the requirement for an active Data Loss Prevention (DLP) provider. For DLP suggestions, see:\n- https://cloud.google.com/sensitive-data-protection/docs/redacting-sensitive-data#dlp_deidentify_replace_infotype-nodejs\n- https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference#credentials_and_secrets",
+                "type": "boolean"
+              },
+              "follow": {
+                "type": "number"
+              },
+              "headers": {
+                "$ref": "#/definitions/Headers"
+              },
+              "key": {
+                "type": "string"
+              },
+              "maxContentLength": {
+                "description": "The maximum size of the http response content in bytes allowed.",
+                "type": "number"
+              },
+              "maxRedirects": {
+                "description": "The maximum number of redirects to follow. Defaults to 20.",
+                "type": "number"
+              },
+              "method": {
+                "enum": [
+                  "GET",
+                  "HEAD",
+                  "POST",
+                  "DELETE",
+                  "PUT",
+                  "CONNECT",
+                  "OPTIONS",
+                  "TRACE",
+                  "PATCH"
+                ],
+                "type": "string"
+              },
+              "multipart": {
+                "description": "A collection of parts to send as a `Content-Type: multipart/related` request.",
+                "items": {
+                  "$ref": "#/definitions/GaxiosMultipartOptions"
+                },
+                "type": "array"
+              },
+              "noProxy": {
+                "description": "A list for excluding traffic for proxies.\nAvailable via `process.env.NO_PROXY` as well as a common-separated list of strings - merged with any local `noProxy` rules.\n\n- When provided a string, it is matched by\n  - Wildcard `*.` and `.` matching are available. (e.g. `.example.com` or `*.example.com`)\n- When provided a URL, it is matched by the `.origin` property.\n  - For example, requesting `https://example.com` with the following `noProxy`s would result in a no proxy use:\n    - new URL('https://example.com')\n    - new URL('https://example.com:443')\n  - The following would be used with a proxy:\n    - new URL('http://example.com:80')\n    - new URL('https://example.com:8443')\n- When provided a regular expression it is used to match the stringified URL",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "format": "regex",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "see": "{@link GaxiosOptions.proxy}",
+                "type": "array"
+              },
+              "params": {},
+              "proxy": {
+                "description": "An optional proxy to use for requests.\nAvailable via `process.env.HTTP_PROXY` and `process.env.HTTPS_PROXY` as well - with a preference for the this config option when multiple are available.\nThe {@link GaxiosOptions.agent`agent`} option overrides this.",
+                "see": [
+                  "{@link GaxiosOptions.noProxy}",
+                  "{@link GaxiosOptions.agent}"
+                ],
+                "type": "string"
+              },
+              "responseType": {
+                "enum": [
+                  "arraybuffer",
+                  "blob",
+                  "json",
+                  "text",
+                  "stream",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "retry": {
+                "default": false,
+                "type": "boolean"
+              },
+              "retryConfig": {
+                "$ref": "#/definitions/RetryConfig"
+              },
+              "signal": {},
+              "size": {
+                "type": "number"
+              },
+              "timeout": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Headers": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "IdentityPoolClientOptions": {
+            "additionalProperties": false,
+            "description": "Url-sourced/file-sourced credentials json interface.\nThis is used for K8s and Azure workloads.",
+            "properties": {
+              "apiKey": {
+                "description": "An API key to use, optional.",
+                "type": "string"
+              },
+              "audience": {
+                "description": "The Security Token Service audience, which is usually the fully specified\nresource name of the workload or workforce pool provider.",
+                "type": "string"
+              },
+              "client_id": {
+                "description": "Client ID of the service account from the console.",
+                "type": "string"
+              },
+              "client_secret": {
+                "description": "Client secret of the service account from the console.",
+                "type": "string"
+              },
+              "cloud_resource_manager_url": {
+                "example": "https://cloudresourcemanager.googleapis.com/v1/projects/",
+                "type": "string"
+              },
+              "credential_source": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%232%24credential_source",
+                "description": "Object containing options to retrieve identity pool credentials. A valid credential\nsource or a subject token supplier must be specified."
+              },
+              "credentials": {
+                "$ref": "#/definitions/Credentials"
+              },
+              "eagerRefreshThresholdMillis": {
+                "description": "The expiration threshold in milliseconds before forcing token refresh of\nunexpired tokens.",
+                "type": "number"
+              },
+              "forceRefreshOnFailure": {
+                "default": false,
+                "description": "Whether to attempt to refresh tokens on status 401/403 responses\neven if an attempt is made to refresh the token preemptively based\non the expiry_date.",
+                "type": "boolean"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "project_id": {
+                "type": "string"
+              },
+              "quotaProjectId": {
+                "type": "string"
+              },
+              "quota_project_id": {
+                "type": "string"
+              },
+              "scopes": {
+                "description": "The scopes to request during the authorization grant.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "service_account_impersonation": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%232%24service_account_impersonation",
+                "description": "Object containing additional options for service account impersonation."
+              },
+              "service_account_impersonation_url": {
+                "description": "The URL for the service account impersonation request. This URL is required\nfor some APIs. If this URL is not available, the access token from the\nSecurity Token Service is used directly.",
+                "type": "string"
+              },
+              "subject_token_supplier": {
+                "$ref": "#/definitions/SubjectTokenSupplier",
+                "description": "The subject token supplier to call to retrieve the subject token to exchange\nfor a GCP access token. Either this or a valid credential source should\nbe specified."
+              },
+              "subject_token_type": {
+                "description": "The Security Token Service subject token type based on the OAuth 2.0\ntoken exchange spec. Expected values include:\n* 'urn:ietf:params:oauth:token-type:jwt'\n* 'urn:ietf:params:aws:token-type:aws4_request'\n* 'urn:ietf:params:oauth:token-type:saml2'\n* 'urn:ietf:params:oauth:token-type:id_token'",
+                "type": "string"
+              },
+              "token_info_url": {
+                "description": "The endpoint used to retrieve account related information.",
+                "type": "string"
+              },
+              "token_url": {
+                "description": "The Security Token Service token URL used to exchange the third party token\nfor a GCP access token. If not provided, will default to\n'https://sts.googleapis.com/v1/token'",
+                "type": "string"
+              },
+              "transporter": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Gaxios"
+                  },
+                  {
+                    "$ref": "#/definitions/Transporter"
+                  }
+                ],
+                "description": "A `Gaxios` or `Transporter` instance to use for `AuthClient` requests."
+              },
+              "transporterOptions": {
+                "$ref": "#/definitions/GaxiosOptions",
+                "description": "Provides default options to the transporter, such as {@link GaxiosOptions.agent`agent`} or\n {@link GaxiosOptions.retryConfig`retryConfig`}."
+              },
+              "type": {
+                "description": "Credential type, should always be 'external_account'.",
+                "type": "string"
+              },
+              "universeDomain": {
+                "type": "string"
+              },
+              "universe_domain": {
+                "type": "string"
+              },
+              "workforce_pool_user_project": {
+                "description": "The workforce pool user project. Required when using a workforce identity\npool.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "audience",
+              "subject_token_type"
+            ],
+            "type": "object"
+          },
+          "IncomingHttpHeaders": {
+            "additionalProperties": {},
+            "properties": {
+              "accept": {
+                "type": "string"
+              },
+              "accept-encoding": {
+                "type": "string"
+              },
+              "accept-language": {
+                "type": "string"
+              },
+              "accept-patch": {
+                "type": "string"
+              },
+              "accept-ranges": {
+                "type": "string"
+              },
+              "access-control-allow-credentials": {
+                "type": "string"
+              },
+              "access-control-allow-headers": {
+                "type": "string"
+              },
+              "access-control-allow-methods": {
+                "type": "string"
+              },
+              "access-control-allow-origin": {
+                "type": "string"
+              },
+              "access-control-expose-headers": {
+                "type": "string"
+              },
+              "access-control-max-age": {
+                "type": "string"
+              },
+              "access-control-request-headers": {
+                "type": "string"
+              },
+              "access-control-request-method": {
+                "type": "string"
+              },
+              "age": {
+                "type": "string"
+              },
+              "allow": {
+                "type": "string"
+              },
+              "alt-svc": {
+                "type": "string"
+              },
+              "authorization": {
+                "type": "string"
+              },
+              "cache-control": {
+                "type": "string"
+              },
+              "connection": {
+                "type": "string"
+              },
+              "content-disposition": {
+                "type": "string"
+              },
+              "content-encoding": {
+                "type": "string"
+              },
+              "content-language": {
+                "type": "string"
+              },
+              "content-length": {
+                "type": "string"
+              },
+              "content-location": {
+                "type": "string"
+              },
+              "content-range": {
+                "type": "string"
+              },
+              "content-type": {
+                "type": "string"
+              },
+              "cookie": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              },
+              "etag": {
+                "type": "string"
+              },
+              "expect": {
+                "type": "string"
+              },
+              "expires": {
+                "type": "string"
+              },
+              "forwarded": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string"
+              },
+              "if-match": {
+                "type": "string"
+              },
+              "if-modified-since": {
+                "type": "string"
+              },
+              "if-none-match": {
+                "type": "string"
+              },
+              "if-unmodified-since": {
+                "type": "string"
+              },
+              "last-modified": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "origin": {
+                "type": "string"
+              },
+              "pragma": {
+                "type": "string"
+              },
+              "proxy-authenticate": {
+                "type": "string"
+              },
+              "proxy-authorization": {
+                "type": "string"
+              },
+              "public-key-pins": {
+                "type": "string"
+              },
+              "range": {
+                "type": "string"
+              },
+              "referer": {
+                "type": "string"
+              },
+              "retry-after": {
+                "type": "string"
+              },
+              "sec-fetch-dest": {
+                "type": "string"
+              },
+              "sec-fetch-mode": {
+                "type": "string"
+              },
+              "sec-fetch-site": {
+                "type": "string"
+              },
+              "sec-fetch-user": {
+                "type": "string"
+              },
+              "sec-websocket-accept": {
+                "type": "string"
+              },
+              "sec-websocket-extensions": {
+                "type": "string"
+              },
+              "sec-websocket-key": {
+                "type": "string"
+              },
+              "sec-websocket-protocol": {
+                "type": "string"
+              },
+              "sec-websocket-version": {
+                "type": "string"
+              },
+              "set-cookie": {
+                "items": {},
+                "type": "array"
+              },
+              "strict-transport-security": {
+                "type": "string"
+              },
+              "tk": {
+                "type": "string"
+              },
+              "trailer": {
+                "type": "string"
+              },
+              "transfer-encoding": {
+                "type": "string"
+              },
+              "upgrade": {
+                "type": "string"
+              },
+              "user-agent": {
+                "type": "string"
+              },
+              "vary": {
+                "type": "string"
+              },
+              "via": {
+                "type": "string"
+              },
+              "warning": {
+                "type": "string"
+              },
+              "www-authenticate": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "IncomingMessage": {
+            "additionalProperties": false,
+            "description": "An `IncomingMessage` object is created by {@link Server} or {@link ClientRequest} and passed as the first argument to the `'request'` and `'response'` event respectively. It may be used to\naccess response\nstatus, headers, and data.\n\nDifferent from its `socket` value which is a subclass of `stream.Duplex`, the `IncomingMessage` itself extends `stream.Readable` and is created separately to\nparse and emit the incoming HTTP headers and payload, as the underlying socket\nmay be reused multiple times in case of keep-alive.",
+            "properties": {
+              "aborted": {
+                "default": false,
+                "deprecated": true,
+                "description": "The `message.aborted` property will be `true` if the request has\nbeen aborted.",
+                "since": "v10.1.0",
+                "type": "boolean"
+              },
+              "complete": {
+                "default": false,
+                "description": "The `message.complete` property will be `true` if a complete HTTP message has\nbeen received and successfully parsed.\n\nThis property is particularly useful as a means of determining if a client or\nserver fully transmitted a message before a connection was terminated:\n\n```js\nconst req = http.request({\n  host: '127.0.0.1',\n  port: 8080,\n  method: 'POST',\n}, (res) => {\n  res.resume();\n  res.on('end', () => {\n    if (!res.complete)\n      console.error(\n        'The connection was terminated while the message was still being sent');\n  });\n});\n```",
+                "since": "v0.3.0",
+                "type": "boolean"
+              },
+              "connection": {
+                "$ref": "#/definitions/Socket",
+                "deprecated": true,
+                "description": "Alias for `message.socket`.",
+                "since": "v0.1.90"
+              },
+              "destroyed": {
+                "default": false,
+                "description": "Is `true` after `readable.destroy()` has been called.",
+                "since": "v8.0.0",
+                "type": "boolean"
+              },
+              "headers": {
+                "$ref": "#/definitions/IncomingHttpHeaders",
+                "description": "The request/response headers object.\n\nKey-value pairs of header names and values. Header names are lower-cased.\n\n```js\n// Prints something like:\n//\n// { 'user-agent': 'curl/7.22.0',\n//   host: '127.0.0.1:8000',\n//   accept: '*' }\nconsole.log(request.headers);\n```\n\nDuplicates in raw headers are handled in the following ways, depending on the\nheader name:\n\n* Duplicates of `age`, `authorization`, `content-length`, `content-type`, `etag`, `expires`, `from`, `host`, `if-modified-since`, `if-unmodified-since`, `last-modified`, `location`,\n`max-forwards`, `proxy-authorization`, `referer`, `retry-after`, `server`, or `user-agent` are discarded.\nTo allow duplicate values of the headers listed above to be joined,\nuse the option `joinDuplicateHeaders` in {@link request} and {@link createServer}. See RFC 9110 Section 5.3 for more\ninformation.\n* `set-cookie` is always an array. Duplicates are added to the array.\n* For duplicate `cookie` headers, the values are joined together with `; `.\n* For all other headers, the values are joined together with `, `.",
+                "since": "v0.1.5"
+              },
+              "headersDistinct": {
+                "$ref": "#/definitions/Dict%3Cstring%5B%5D%3E",
+                "description": "Similar to `message.headers`, but there is no join logic and the values are\nalways arrays of strings, even for headers received just once.\n\n```js\n// Prints something like:\n//\n// { 'user-agent': ['curl/7.22.0'],\n//   host: ['127.0.0.1:8000'],\n//   accept: ['*'] }\nconsole.log(request.headersDistinct);\n```",
+                "since": "v18.3.0, v16.17.0"
+              },
+              "httpVersion": {
+                "description": "In case of server request, the HTTP version sent by the client. In the case of\nclient response, the HTTP version of the connected-to server.\nProbably either `'1.1'` or `'1.0'`.\n\nAlso `message.httpVersionMajor` is the first integer and `message.httpVersionMinor` is the second.",
+                "since": "v0.1.1",
+                "type": "string"
+              },
+              "httpVersionMajor": {
+                "type": "number"
+              },
+              "httpVersionMinor": {
+                "type": "number"
+              },
+              "method": {
+                "description": "**Only valid for request obtained from {@link Server}.**\n\nThe request method as a string. Read only. Examples: `'GET'`, `'DELETE'`.",
+                "since": "v0.1.1",
+                "type": "string"
+              },
+              "rawHeaders": {
+                "description": "The raw request/response headers list exactly as they were received.\n\nThe keys and values are in the same list. It is _not_ a\nlist of tuples. So, the even-numbered offsets are key values, and the\nodd-numbered offsets are the associated values.\n\nHeader names are not lowercased, and duplicates are not merged.\n\n```js\n// Prints something like:\n//\n// [ 'user-agent',\n//   'this is invalid because there can be only one',\n//   'User-Agent',\n//   'curl/7.22.0',\n//   'Host',\n//   '127.0.0.1:8000',\n//   'ACCEPT',\n//   '*' ]\nconsole.log(request.rawHeaders);\n```",
+                "items": {
+                  "type": "string"
+                },
+                "since": "v0.11.6",
+                "type": "array"
+              },
+              "rawTrailers": {
+                "description": "The raw request/response trailer keys and values exactly as they were\nreceived. Only populated at the `'end'` event.",
+                "items": {
+                  "type": "string"
+                },
+                "since": "v0.11.6",
+                "type": "array"
+              },
+              "readable": {
+                "default": false,
+                "description": "Is `true` if it is safe to call {@link read}, which means\nthe stream has not been destroyed or emitted `'error'` or `'end'`.",
+                "since": "v11.4.0",
+                "type": "boolean"
+              },
+              "readableFlowing": {
+                "default": false,
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "since": "v9.4.0",
+                "type": "boolean"
+              },
+              "socket": {
+                "$ref": "#/definitions/Socket",
+                "description": "The `net.Socket` object associated with the connection.\n\nWith HTTPS support, use `request.socket.getPeerCertificate()` to obtain the\nclient's authentication details.\n\nThis property is guaranteed to be an instance of the `net.Socket` class,\na subclass of `stream.Duplex`, unless the user specified a socket\ntype other than `net.Socket` or internally nulled.",
+                "since": "v0.3.0"
+              },
+              "statusCode": {
+                "description": "**Only valid for response obtained from {@link ClientRequest}.**\n\nThe 3-digit HTTP response status code. E.G. `404`.",
+                "since": "v0.1.1",
+                "type": "number"
+              },
+              "statusMessage": {
+                "description": "**Only valid for response obtained from {@link ClientRequest}.**\n\nThe HTTP response status message (reason phrase). E.G. `OK` or `Internal Server Error`.",
+                "since": "v0.11.10",
+                "type": "string"
+              },
+              "trailers": {
+                "$ref": "#/definitions/Dict%3Cstring%3E",
+                "description": "The request/response trailers object. Only populated at the `'end'` event.",
+                "since": "v0.3.0"
+              },
+              "trailersDistinct": {
+                "$ref": "#/definitions/Dict%3Cstring%5B%5D%3E",
+                "description": "Similar to `message.trailers`, but there is no join logic and the values are\nalways arrays of strings, even for headers received just once.\nOnly populated at the `'end'` event.",
+                "since": "v18.3.0, v16.17.0"
+              },
+              "url": {
+                "description": "**Only valid for request obtained from {@link Server}.**\n\nRequest URL string. This contains only the URL that is present in the actual\nHTTP request. Take the following request:\n\n```http\nGET /status?name=ryan HTTP/1.1\nAccept: text/plain\n```\n\nTo parse the URL into its parts:\n\n```js\nnew URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`);\n```\n\nWhen `request.url` is `'/status?name=ryan'` and `process.env.HOST` is undefined:\n\n```console\n$ node\n> new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`);\nURL {\n  href: 'http://localhost/status?name=ryan',\n  origin: 'http://localhost',\n  protocol: 'http:',\n  username: '',\n  password: '',\n  host: 'localhost',\n  hostname: 'localhost',\n  port: '',\n  pathname: '/status',\n  search: '?name=ryan',\n  searchParams: URLSearchParams { 'name' => 'ryan' },\n  hash: ''\n}\n```\n\nEnsure that you set `process.env.HOST` to the server's host name, or consider replacing this part entirely. If using `req.headers.host`, ensure proper\nvalidation is used, as clients may specify a custom `Host` header.",
+                "since": "v0.1.90",
+                "type": "string"
+              }
+            },
+            "required": [
+              "connection",
+              "headers",
+              "headersDistinct",
+              "httpVersion",
+              "httpVersionMajor",
+              "httpVersionMinor",
+              "rawHeaders",
+              "rawTrailers",
+              "socket",
+              "trailers",
+              "trailersDistinct"
+            ],
+            "since": "v0.1.17",
+            "type": "object"
+          },
+          "JWTInput": {
+            "additionalProperties": false,
+            "properties": {
+              "client_email": {
+                "type": "string"
+              },
+              "client_id": {
+                "type": "string"
+              },
+              "client_secret": {
+                "type": "string"
+              },
+              "private_key": {
+                "type": "string"
+              },
+              "private_key_id": {
+                "type": "string"
+              },
+              "project_id": {
+                "type": "string"
+              },
+              "quota_project_id": {
+                "type": "string"
+              },
+              "refresh_token": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "universe_domain": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "PluggableAuthClientOptions": {
+            "additionalProperties": false,
+            "description": "Defines the credential source portion of the configuration for PluggableAuthClient.\n\n<p>Command is the only required field. If timeout_millis is not specified, the library will\ndefault to a 30-second timeout.\n\n<pre>\nSample credential source for Pluggable Auth Client:\n{\n  ...\n  \"credential_source\": {\n    \"executable\": {\n      \"command\": \"/path/to/get/credentials.sh --arg1=value1 --arg2=value2\",\n      \"timeout_millis\": 5000,\n      \"output_file\": \"/path/to/generated/cached/credentials\"\n    }\n  }\n}\n</pre>",
+            "properties": {
+              "apiKey": {
+                "description": "An API key to use, optional.",
+                "type": "string"
+              },
+              "audience": {
+                "description": "The Security Token Service audience, which is usually the fully specified\nresource name of the workload or workforce pool provider.",
+                "type": "string"
+              },
+              "client_id": {
+                "description": "Client ID of the service account from the console.",
+                "type": "string"
+              },
+              "client_secret": {
+                "description": "Client secret of the service account from the console.",
+                "type": "string"
+              },
+              "cloud_resource_manager_url": {
+                "example": "https://cloudresourcemanager.googleapis.com/v1/projects/",
+                "type": "string"
+              },
+              "credential_source": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%234%24credential_source"
+              },
+              "credentials": {
+                "$ref": "#/definitions/Credentials"
+              },
+              "eagerRefreshThresholdMillis": {
+                "description": "The expiration threshold in milliseconds before forcing token refresh of\nunexpired tokens.",
+                "type": "number"
+              },
+              "forceRefreshOnFailure": {
+                "default": false,
+                "description": "Whether to attempt to refresh tokens on status 401/403 responses\neven if an attempt is made to refresh the token preemptively based\non the expiry_date.",
+                "type": "boolean"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "project_id": {
+                "type": "string"
+              },
+              "quotaProjectId": {
+                "type": "string"
+              },
+              "quota_project_id": {
+                "type": "string"
+              },
+              "scopes": {
+                "description": "The scopes to request during the authorization grant.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "service_account_impersonation": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%234%24service_account_impersonation",
+                "description": "Object containing additional options for service account impersonation."
+              },
+              "service_account_impersonation_url": {
+                "description": "The URL for the service account impersonation request. This URL is required\nfor some APIs. If this URL is not available, the access token from the\nSecurity Token Service is used directly.",
+                "type": "string"
+              },
+              "subject_token_type": {
+                "description": "The Security Token Service subject token type based on the OAuth 2.0\ntoken exchange spec. Expected values include:\n* 'urn:ietf:params:oauth:token-type:jwt'\n* 'urn:ietf:params:aws:token-type:aws4_request'\n* 'urn:ietf:params:oauth:token-type:saml2'\n* 'urn:ietf:params:oauth:token-type:id_token'",
+                "type": "string"
+              },
+              "token_info_url": {
+                "description": "The endpoint used to retrieve account related information.",
+                "type": "string"
+              },
+              "token_url": {
+                "description": "The Security Token Service token URL used to exchange the third party token\nfor a GCP access token. If not provided, will default to\n'https://sts.googleapis.com/v1/token'",
+                "type": "string"
+              },
+              "transporter": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Gaxios"
+                  },
+                  {
+                    "$ref": "#/definitions/Transporter"
+                  }
+                ],
+                "description": "A `Gaxios` or `Transporter` instance to use for `AuthClient` requests."
+              },
+              "transporterOptions": {
+                "$ref": "#/definitions/GaxiosOptions",
+                "description": "Provides default options to the transporter, such as {@link GaxiosOptions.agent`agent`} or\n {@link GaxiosOptions.retryConfig`retryConfig`}."
+              },
+              "type": {
+                "description": "Credential type, should always be 'external_account'.",
+                "type": "string"
+              },
+              "universeDomain": {
+                "type": "string"
+              },
+              "universe_domain": {
+                "type": "string"
+              },
+              "workforce_pool_user_project": {
+                "description": "The workforce pool user project. Required when using a workforce identity\npool.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "audience",
+              "credential_source",
+              "subject_token_type"
+            ],
+            "type": "object"
+          },
+          "ReadOnlyDict<ClientRequest[]>": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/definitions/ClientRequest"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "ReadOnlyDict<Socket[]>": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/definitions/Socket"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "Readable": {
+            "additionalProperties": false,
+            "properties": {
+              "destroyed": {
+                "default": false,
+                "description": "Is `true` after `readable.destroy()` has been called.",
+                "since": "v8.0.0",
+                "type": "boolean"
+              },
+              "readable": {
+                "default": false,
+                "description": "Is `true` if it is safe to call {@link read}, which means\nthe stream has not been destroyed or emitted `'error'` or `'end'`.",
+                "since": "v11.4.0",
+                "type": "boolean"
+              },
+              "readableFlowing": {
+                "default": false,
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "since": "v9.4.0",
+                "type": "boolean"
+              }
+            },
+            "since": "v0.9.4",
+            "type": "object"
+          },
+          "Record<string, Pick<StorageOptions, \"credentials\" | \"keyFilename\" | \"projectId\">>": {
+            "additionalProperties": {
+              "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "RetryConfig": {
+            "additionalProperties": false,
+            "description": "Configuration for the Gaxios `request` method.",
+            "properties": {
+              "currentRetryAttempt": {
+                "description": "The number of retries already attempted.",
+                "type": "number"
+              },
+              "httpMethodsToRetry": {
+                "description": "The HTTP Methods that will be automatically retried.\nDefaults to ['GET','PUT','HEAD','OPTIONS','DELETE']",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "maxRetryDelay": {
+                "type": "number"
+              },
+              "noResponseRetries": {
+                "description": "When there is no response, the number of retries to attempt. Defaults to 2.",
+                "type": "number"
+              },
+              "retry": {
+                "description": "The number of times to retry the request.  Defaults to 3.",
+                "type": "number"
+              },
+              "retryDelay": {
+                "description": "The amount of time to initially delay the retry, in ms.  Defaults to 100ms.",
+                "type": "number"
+              },
+              "retryDelayMultiplier": {
+                "type": "number"
+              },
+              "statusCodesToRetry": {
+                "description": "The HTTP response status codes that will automatically be retried.\nDefaults to: [[100, 199], [408, 408], [429, 429], [500, 599]]",
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "timeOfFirstRequest": {
+                "description": "Time that the initial request was made. Users should not set this directly.",
+                "type": "number"
+              },
+              "totalTimeout": {
+                "description": "The length of time to keep retrying in ms. The last sleep period will\nbe shortened as necessary, so that the last retry runs at deadline (and not\nconsiderably beyond it).  The total time starting from when the initial\nrequest is sent, after which an error will be returned, regardless of the\nretrying attempts made meanwhile. Defaults to Number.MAX_SAFE_INTEGER indicating to effectively\nignore totalTimeout.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "Socket": {
+            "additionalProperties": false,
+            "description": "This class is an abstraction of a TCP socket or a streaming `IPC` endpoint\n(uses named pipes on Windows, and Unix domain sockets otherwise). It is also\nan `EventEmitter`.\n\nA `net.Socket` can be created by the user and used directly to interact with\na server. For example, it is returned by {@link createConnection},\nso the user can use it to talk to the server.\n\nIt can also be created by Node.js and passed to the user when a connection\nis received. For example, it is passed to the listeners of a `'connection'` event emitted on a {@link Server}, so the user can use\nit to interact with the client.",
+            "properties": {
+              "allowHalfOpen": {
+                "default": false,
+                "description": "If `false` then the stream will automatically end the writable side when the\nreadable side ends. Set initially by the `allowHalfOpen` constructor option,\nwhich defaults to `true`.\n\nThis can be changed manually to change the half-open behavior of an existing\n`Duplex` stream instance, but must be changed before the `'end'` event is emitted.",
+                "since": "v0.9.4",
+                "type": "boolean"
+              },
+              "readable": {
+                "default": false,
+                "description": "Is `true` if it is safe to call {@link read}, which means\nthe stream has not been destroyed or emitted `'error'` or `'end'`.",
+                "since": "v11.4.0",
+                "type": "boolean"
+              },
+              "readableFlowing": {
+                "default": false,
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "since": "v9.4.0",
+                "type": "boolean"
+              },
+              "writable": {
+                "default": false,
+                "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+                "since": "v11.4.0",
+                "type": "boolean"
+              }
+            },
+            "since": "v0.3.4",
+            "type": "object"
+          },
+          "SubjectTokenSupplier": {
+            "additionalProperties": false,
+            "description": "Supplier interface for subject tokens. This can be implemented to\nreturn a subject token which can then be exchanged for a GCP token by an\n{@link IdentityPoolClient}.",
+            "type": "object"
+          },
+          "Transporter": {
+            "additionalProperties": false,
+            "properties": {
+              "defaults": {
+                "$ref": "#/definitions/GaxiosOptions"
+              }
+            },
+            "type": "object"
+          },
+          "contentStorage": {
+            "additionalProperties": false,
+            "properties": {
+              "default": {
+                "default": false,
+                "type": "boolean"
+              },
+              "register": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]": {
+            "additionalProperties": false,
+            "description": "From T, pick a set of properties whose keys are in the union K",
+            "properties": {
+              "credentials": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/JWTInput"
+                  },
+                  {
+                    "$ref": "#/definitions/IdentityPoolClientOptions"
+                  },
+                  {
+                    "$ref": "#/definitions/AwsClientOptions"
+                  },
+                  {
+                    "$ref": "#/definitions/PluggableAuthClientOptions"
+                  }
+                ],
+                "description": "Object containing client_email and private_key properties, or the\nexternal account client options.\nCannot be used with {@link GoogleAuthOptions.apiKey`apiKey`}.",
+                "remarks": "**Important**: If you accept a credential configuration (credential JSON/File/Stream) from an external source for authentication to Google Cloud, you must validate it before providing it to any Google API or library. Providing an unvalidated credential configuration to Google APIs can compromise the security of your systems and data. For more information, refer to {@link https://cloud.google.com/docs/authentication/external/externally-sourced-credentials Validate credential configurations from external sources}."
+              },
+              "keyFilename": {
+                "description": "Path to a .json, .pem, or .p12 key file",
+                "type": "string"
+              },
+              "projectId": {
+                "description": "Your project ID.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#2$credential_source": {
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "description": "The file location to read the subject token from. Either this or a URL\nshould be specified.",
+                "type": "string"
+              },
+              "format": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%232%24credential_source%24format",
+                "description": "The format that the subject token is in the file or the URL response.\nIf not provided, will default to reading the text string directly."
+              },
+              "headers": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%232%24credential_source%24headers",
+                "description": "Optional headers to send on the request to the specified URL."
+              },
+              "url": {
+                "description": "The URL to call to retrieve the subject token. Either this or a file\nlocation should be specified.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#2$credential_source$format": {
+            "additionalProperties": false,
+            "properties": {
+              "subject_token_field_name": {
+                "description": "The field name containing the subject token value if the type is 'json'.",
+                "type": "string"
+              },
+              "type": {
+                "description": "The format type. Can either be 'text' or 'json'.",
+                "enum": [
+                  "json",
+                  "text"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#2$credential_source$headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#2$service_account_impersonation": {
+            "additionalProperties": false,
+            "properties": {
+              "token_lifetime_seconds": {
+                "description": "The desired lifetime of the impersonated service account access token.\nIf not provided, the default lifetime will be 3600 seconds.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#2$transporter#1$interceptors": {
+            "additionalProperties": false,
+            "description": "Interceptors",
+            "properties": {
+              "request": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosOptions%3E"
+              },
+              "response": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosResponse%3Cany%3E%3E"
+              }
+            },
+            "required": [
+              "request",
+              "response"
+            ],
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#3$credential_source": {
+            "additionalProperties": false,
+            "properties": {
+              "environment_id": {
+                "description": "AWS environment ID. Currently only 'AWS1' is supported.",
+                "type": "string"
+              },
+              "imdsv2_session_token_url": {
+                "description": "The imdsv2 session token url is used to fetch session token from AWS\nwhich is later sent through headers for metadata requests. If the\nfield is missing, then session token won't be fetched and sent with\nthe metadata requests.\nThe session token is required for IMDSv2 but optional for IMDSv1",
+                "type": "string"
+              },
+              "region_url": {
+                "description": "The EC2 metadata URL to retrieve the current AWS region from. If this is\nnot provided, the region should be present in the AWS_REGION or AWS_DEFAULT_REGION\nenvironment variables.",
+                "type": "string"
+              },
+              "regional_cred_verification_url": {
+                "description": "The regional GetCallerIdentity action URL, used to determine the account\nID and its roles.",
+                "type": "string"
+              },
+              "url": {
+                "description": "The EC2 metadata URL to retrieve AWS security credentials. If this is not provided,\nthe credentials should be present in the AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,\nand AWS_SESSION_TOKEN environment variables.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "environment_id",
+              "regional_cred_verification_url"
+            ],
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#3$service_account_impersonation": {
+            "additionalProperties": false,
+            "properties": {
+              "token_lifetime_seconds": {
+                "description": "The desired lifetime of the impersonated service account access token.\nIf not provided, the default lifetime will be 3600 seconds.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#3$transporter#1$interceptors": {
+            "additionalProperties": false,
+            "description": "Interceptors",
+            "properties": {
+              "request": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosOptions%3E"
+              },
+              "response": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosResponse%3Cany%3E%3E"
+              }
+            },
+            "required": [
+              "request",
+              "response"
+            ],
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#4$credential_source": {
+            "additionalProperties": false,
+            "properties": {
+              "executable": {
+                "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D%24credentials%234%24credential_source%24executable"
+              }
+            },
+            "required": [
+              "executable"
+            ],
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#4$credential_source$executable": {
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "description": "The command used to retrieve the 3rd party token.",
+                "type": "string"
+              },
+              "output_file": {
+                "description": "An optional output file location that will be checked for a cached response\nfrom a previous run of the executable.",
+                "type": "string"
+              },
+              "timeout_millis": {
+                "description": "The timeout for executable to run in milliseconds. If none is provided it\nwill be set to the default timeout of 30 seconds.",
+                "type": "number"
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#4$service_account_impersonation": {
+            "additionalProperties": false,
+            "properties": {
+              "token_lifetime_seconds": {
+                "description": "The desired lifetime of the impersonated service account access token.\nIf not provided, the default lifetime will be 3600 seconds.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]$credentials#4$transporter#1$interceptors": {
+            "additionalProperties": false,
+            "description": "Interceptors",
+            "properties": {
+              "request": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosOptions%3E"
+              },
+              "response": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosResponse%3Cany%3E%3E"
+              }
+            },
+            "required": [
+              "request",
+              "response"
+            ],
+            "type": "object"
+          },
+          "credentials#2$credential_source": {
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "description": "The file location to read the subject token from. Either this or a URL\nshould be specified.",
+                "type": "string"
+              },
+              "format": {
+                "$ref": "#/definitions/credentials%232%24credential_source%24format",
+                "description": "The format that the subject token is in the file or the URL response.\nIf not provided, will default to reading the text string directly."
+              },
+              "headers": {
+                "$ref": "#/definitions/credentials%232%24credential_source%24headers",
+                "description": "Optional headers to send on the request to the specified URL."
+              },
+              "url": {
+                "description": "The URL to call to retrieve the subject token. Either this or a file\nlocation should be specified.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "credentials#2$credential_source$format": {
+            "additionalProperties": false,
+            "properties": {
+              "subject_token_field_name": {
+                "description": "The field name containing the subject token value if the type is 'json'.",
+                "type": "string"
+              },
+              "type": {
+                "description": "The format type. Can either be 'text' or 'json'.",
+                "enum": [
+                  "json",
+                  "text"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          "credentials#2$credential_source$headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "credentials#2$service_account_impersonation": {
+            "additionalProperties": false,
+            "properties": {
+              "token_lifetime_seconds": {
+                "description": "The desired lifetime of the impersonated service account access token.\nIf not provided, the default lifetime will be 3600 seconds.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "credentials#2$transporter#1$interceptors": {
+            "additionalProperties": false,
+            "description": "Interceptors",
+            "properties": {
+              "request": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosOptions%3E"
+              },
+              "response": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosResponse%3Cany%3E%3E"
+              }
+            },
+            "required": [
+              "request",
+              "response"
+            ],
+            "type": "object"
+          },
+          "credentials#3$credential_source": {
+            "additionalProperties": false,
+            "properties": {
+              "environment_id": {
+                "description": "AWS environment ID. Currently only 'AWS1' is supported.",
+                "type": "string"
+              },
+              "imdsv2_session_token_url": {
+                "description": "The imdsv2 session token url is used to fetch session token from AWS\nwhich is later sent through headers for metadata requests. If the\nfield is missing, then session token won't be fetched and sent with\nthe metadata requests.\nThe session token is required for IMDSv2 but optional for IMDSv1",
+                "type": "string"
+              },
+              "region_url": {
+                "description": "The EC2 metadata URL to retrieve the current AWS region from. If this is\nnot provided, the region should be present in the AWS_REGION or AWS_DEFAULT_REGION\nenvironment variables.",
+                "type": "string"
+              },
+              "regional_cred_verification_url": {
+                "description": "The regional GetCallerIdentity action URL, used to determine the account\nID and its roles.",
+                "type": "string"
+              },
+              "url": {
+                "description": "The EC2 metadata URL to retrieve AWS security credentials. If this is not provided,\nthe credentials should be present in the AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,\nand AWS_SESSION_TOKEN environment variables.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "environment_id",
+              "regional_cred_verification_url"
+            ],
+            "type": "object"
+          },
+          "credentials#3$service_account_impersonation": {
+            "additionalProperties": false,
+            "properties": {
+              "token_lifetime_seconds": {
+                "description": "The desired lifetime of the impersonated service account access token.\nIf not provided, the default lifetime will be 3600 seconds.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "credentials#3$transporter#1$interceptors": {
+            "additionalProperties": false,
+            "description": "Interceptors",
+            "properties": {
+              "request": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosOptions%3E"
+              },
+              "response": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosResponse%3Cany%3E%3E"
+              }
+            },
+            "required": [
+              "request",
+              "response"
+            ],
+            "type": "object"
+          },
+          "credentials#4$credential_source": {
+            "additionalProperties": false,
+            "properties": {
+              "executable": {
+                "$ref": "#/definitions/credentials%234%24credential_source%24executable"
+              }
+            },
+            "required": [
+              "executable"
+            ],
+            "type": "object"
+          },
+          "credentials#4$credential_source$executable": {
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "description": "The command used to retrieve the 3rd party token.",
+                "type": "string"
+              },
+              "output_file": {
+                "description": "An optional output file location that will be checked for a cached response\nfrom a previous run of the executable.",
+                "type": "string"
+              },
+              "timeout_millis": {
+                "description": "The timeout for executable to run in milliseconds. If none is provided it\nwill be set to the default timeout of 30 seconds.",
+                "type": "number"
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "type": "object"
+          },
+          "credentials#4$service_account_impersonation": {
+            "additionalProperties": false,
+            "properties": {
+              "token_lifetime_seconds": {
+                "description": "The desired lifetime of the impersonated service account access token.\nIf not provided, the default lifetime will be 3600 seconds.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "credentials#4$transporter#1$interceptors": {
+            "additionalProperties": false,
+            "description": "Interceptors",
+            "properties": {
+              "request": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosOptions%3E"
+              },
+              "response": {
+                "$ref": "#/definitions/GaxiosInterceptorManager%3CGaxiosResponse%3Cany%3E%3E"
+              }
+            },
+            "required": [
+              "request",
+              "response"
+            ],
+            "type": "object"
+          },
           "models": {
             "additionalProperties": {
               "items": {
@@ -1132,8 +2833,36 @@
             "description": "Bucket to store binaries in",
             "type": "string"
           },
+          "contentStorage": {
+            "$ref": "#/definitions/contentStorage"
+          },
+          "credentialProfiles": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20Pick%3CStorageOptions%2C%20%22credentials%22%20%7C%20%22keyFilename%22%20%7C%20%22projectId%22%3E%3E",
+            "description": "Named credentials selectable through `?credential=<name>` in content URLs."
+          },
+          "credentials": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/JWTInput"
+              },
+              {
+                "$ref": "#/definitions/IdentityPoolClientOptions"
+              },
+              {
+                "$ref": "#/definitions/AwsClientOptions"
+              },
+              {
+                "$ref": "#/definitions/PluggableAuthClientOptions"
+              }
+            ],
+            "description": "Default service account credentials, otherwise application default credentials are used."
+          },
           "endpoint": {
             "description": "Specify endpoint for GCS",
+            "type": "string"
+          },
+          "keyFilename": {
+            "description": "Path to the default service account key file.",
             "type": "string"
           },
           "maxFileSize": {
@@ -1147,6 +2876,10 @@
             "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
           },
           "prefix": {
+            "type": "string"
+          },
+          "projectId": {
+            "description": "Project used with the default credentials.",
             "type": "string"
           },
           "type": {

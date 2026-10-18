@@ -20,6 +20,7 @@ sample-apps/*/src/**/*.d.ts.map
 node_modules
 lib
 reports
+bench-results
 .nyc_output
 dist
 diagrams

@@ -14,11 +14,11 @@ import { useCore, useModelMetadata } from "../core/hooks.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { callOperation, canCallOperation, getOperationStreaming } from "../core/operations.js";
 import { isOperationEnabled } from "../services/featureflags.js";
+import { runOperation } from "./streaming.js";
 import { AsyncQueue } from "../core/asyncqueue.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
-import { RestStreamingOperationContext, type RestStreamFormat } from "../contexts/restcontext.js";
-import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
@@ -513,74 +513,7 @@ export class RESTOperationsTransport<
    * @returns a promise settled once the operation is done (a stream: once the response is over)
    */
   protected async runOperation(context: WebContext, operationId: string): Promise<void> {
-    const response = context._stream as any;
-    if (
-      getOperationStreaming(useInstanceStorage().operations?.[operationId]) !== "server" ||
-      typeof response?.writeHead !== "function"
-    ) {
-      return callOperation(context, operationId);
-    }
-    return this.streamOperation(context, operationId, response);
-  }
-
-  /**
-   * Stream a server-streaming operation: NDJSON, or server-sent events when the client accepts them
-   *
-   * The streaming context is built here, from the request's context, rather than by the HttpServer: only these routes
-   * need it, and permissions, validation and events still go through `callOperation` on the request's input. Until the
-   * first chunk an error is a normal HTTP error (thrown to the HttpServer); after it, the error is the last event or
-   * line of the stream.
-   * @param context - the request context
-   * @param operationId - the operation
-   * @param response - the HTTP response
-   * @returns a promise settled once the response is over
-   */
-  protected async streamOperation(context: WebContext, operationId: string, response: ServerResponse): Promise<void> {
-    const accept = context.getHttpContext().getUniqueHeader("accept", "") ?? "";
-    const format: RestStreamFormat = accept.includes("text/event-stream") ? "sse" : "ndjson";
-    const stream = new RestStreamingOperationContext(
-      context.getHttpContext(),
-      response,
-      format,
-      context.getSession(),
-      this.parameters.streamKeepAliveInterval,
-      context.getResponseHeaders(),
-      context.getSetCookieHeaders()
-    );
-    await stream.init();
-    stream.setParameters(context.getParameters());
-    stream.startKeepAlive();
-    try {
-      await callOperation(stream, operationId);
-    } catch (err: any) {
-      stream.stopKeepAlive();
-      // The client went away: nothing to tell
-      if (stream.isCancelled || stream.disconnected) return stream.finish();
-      // Nothing sent yet: a normal HTTP error response
-      if (!stream.hasStarted) {
-        stream.abortBeforeStart();
-        throw err;
-      }
-      const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
-      const clientError = status >= 400 && status < 500;
-      if (!clientError) useLog("ERROR", `[REST ${operationId}] streamed operation threw:`, err);
-      await stream.writeError(clientError ? String(err.message ?? "Error") : "Internal server error", status || 500);
-      return stream.finish();
-    }
-    stream.stopKeepAlive();
-    if (stream.isCancelled) return stream.finish();
-    if (!stream.getExtension("operationStreaming")) {
-      // Not a generator after all: a normal response, with the status and headers the operation set
-      if (stream.statusCode && stream.statusCode !== 204) context.statusCode = stream.statusCode;
-      for (const [name, value] of Object.entries(stream.getResponseHeaders())) context.setHeader(name, <any>value);
-      const output = stream.getOutput();
-      if (output !== undefined) {
-        context.setHeader("Content-type", "application/json");
-        context.write(output);
-      }
-      return;
-    }
-    return stream.finish(true);
+    return runOperation(context, operationId, this.parameters.streamKeepAliveInterval);
   }
 
   /**

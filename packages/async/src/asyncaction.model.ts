@@ -43,8 +43,7 @@ const JOB_HEADERS = ["X-Job-Hash", "X-Job-Time"];
  */
 function hasJobHeaders(context: IOperationContext): context is WebContext {
   return (
-    context instanceof WebContext &&
-    JOB_HEADERS.every(h => context.getHttpContext()?.getUniqueHeader(h) !== undefined)
+    context instanceof WebContext && JOB_HEADERS.every(h => context.getHttpContext()?.getUniqueHeader(h) !== undefined)
   );
 }
 

@@ -75,8 +75,20 @@ class ThrottlerTest {
     let resolver2: () => void;
 
     // Queue two promises with explicit resolvers
-    const p1 = t.queue(() => new Promise<void>(resolve => { resolver1 = resolve; }), "Task1");
-    const p2 = t.queue(() => new Promise<void>(resolve => { resolver2 = resolve; }), "Task2");
+    const p1 = t.queue(
+      () =>
+        new Promise<void>(resolve => {
+          resolver1 = resolve;
+        }),
+      "Task1"
+    );
+    const p2 = t.queue(
+      () =>
+        new Promise<void>(resolve => {
+          resolver2 = resolve;
+        }),
+      "Task2"
+    );
 
     // Wait for first task to start executing
     await new Promise(resolve => setImmediate(resolve));

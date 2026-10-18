@@ -1,4 +1,5 @@
 {
+  "$schema": "../.webda/deployment.schema.json",
   "services": {
     "HttpServer": {
       "port": 18082
@@ -17,19 +18,33 @@
     },
     "IAMStore": {
       "type": "Webda/MemoryStore",
-      "models": ["Webda/IAMPolicy", "Webda/IAMPolicyAttachment"]
+      "models": [
+        "Webda/IAMPolicy",
+        "Webda/IAMPolicyAttachment"
+      ]
     },
     "IAM": {
       "type": "Webda/IAMService",
-      "scope": ["Invoices.*"],
+      "scope": [
+        "Invoices.*"
+      ],
       "policies": [
         {
           "name": "InvoiceWriter",
-          "statements": [{ "effect": "allow", "operations": ["Invoices.Create"] }]
+          "statements": [
+            {
+              "effect": "allow",
+              "operations": [
+                "Invoices.Create"
+              ]
+            }
+          ]
         }
       ],
       "attachments": {
-        "app:orders": ["InvoiceWriter"]
+        "app:orders": [
+          "InvoiceWriter"
+        ]
       }
     },
     "Billing": {

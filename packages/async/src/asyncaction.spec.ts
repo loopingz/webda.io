@@ -20,10 +20,7 @@ class AsyncActionTest extends AsyncTest {
     context.getHttpContext()!.headers["x-job-hash"] = "hash";
     context.getHttpContext()!.headers["x-job-time"] = "time";
     await assert.rejects(() => action.checkAct(context, "get_binary"), /Invalid Job HMAC/);
-    context.getHttpContext()!.headers["x-job-hash"] = crypto
-      .createHmac("sha256", "test")
-      .update("time")
-      .digest("hex");
+    context.getHttpContext()!.headers["x-job-hash"] = crypto.createHmac("sha256", "test").update("time").digest("hex");
     await action.checkAct(context, "get_binary");
     assert.strictEqual(context.getExtension("asyncJob"), action);
     await assert.rejects(() => action.statusAction(new OperationContext()), /Only WebContext can call this action/);

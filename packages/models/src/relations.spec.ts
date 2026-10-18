@@ -7,8 +7,7 @@ import {
   ModelRefCustomMap,
   JunctionLink,
   ModelRef,
-  ModelParent,
-  RelationData
+  ModelParent
 } from "./relations";
 import { MemoryRepository } from "./repositories/memory";
 import { suite, test } from "@webda/test";
@@ -16,7 +15,6 @@ import * as assert from "node:assert";
 import { PrimaryKeyEquals, WEBDA_PLURAL, WEBDA_PRIMARY_KEY, WEBDA_STORAGE } from "./storable";
 import { registerRepository } from "./repositories/hooks";
 import { track } from "../../utils/lib/dirty";
-import { Test } from "mocha";
 
 class TestSimpleModel extends UuidModel {
   name: string;

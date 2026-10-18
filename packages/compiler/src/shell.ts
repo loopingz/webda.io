@@ -272,14 +272,7 @@ Fork(
                 getModules: () => mod,
                 completeNamespace: (name: string) => (name.includes("/") ? name : `${namespace}/${name}`)
               };
-              generateConfigurationSchemas(
-                app,
-                undefined,
-                undefined,
-                undefined,
-                configPath,
-                project.getAppPath("deployments")
-              );
+              generateConfigurationSchemas(app, undefined, undefined, undefined, configPath);
             } catch (err) {
               useWorkerOutput().log("WARN", "Cannot generate configuration schemas", err.message);
             }

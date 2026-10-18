@@ -106,10 +106,10 @@ function insertSchemaProperty(content: string, reference: string): string {
       start++;
     } else if (content.startsWith("//", start)) {
       const end = content.indexOf("\n", start + 2);
-      start = end === -1 ? content.length : end + 1;
+      start = end + 1;
     } else if (content.startsWith("/*", start)) {
       const end = content.indexOf("*/", start + 2);
-      start = end === -1 ? content.length : end + 2;
+      start = end + 2;
     } else {
       // ensureSchemaReference has already parsed and validated the root object.
       start++;

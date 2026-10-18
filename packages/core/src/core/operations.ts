@@ -11,7 +11,7 @@ import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel, useParameters } from "../application/hooks.js";
-import { useCore, useDynamicService, useModelMetadata, useService } from "./hooks.js";
+import { useDynamicService, useModelMetadata, useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
 import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
@@ -794,9 +794,7 @@ export async function callOperation(context: OperationContext, operationId: stri
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
     context.setExtension("operationContext", operations[operationId].context || {});
-    await Promise.all([
-      emitCoreEvent("Webda.BeforeOperation", { context, operationId, dryRun: isDry || undefined })
-    ]);
+    await Promise.all([emitCoreEvent("Webda.BeforeOperation", { context, operationId, dryRun: isDry || undefined })]);
 
     // Resolve arguments from context using the operation's input schema
     const args = await resolveArguments(context, operations[operationId]);
@@ -844,9 +842,7 @@ export async function callOperation(context: OperationContext, operationId: stri
     // Call the method with resolved arguments, wrapped in runWithContext
     // so that useContext() returns the operation context inside the method.
     if (opDef.service) {
-      result = await runWithContext(context, () =>
-        useService(opDef.service as any)[opDef.method](...callArgs)
-      );
+      result = await runWithContext(context, () => useService(opDef.service as any)[opDef.method](...callArgs));
     } else if (opDef.model) {
       const modelClass = useModel(opDef.model);
       const method = opDef.method;

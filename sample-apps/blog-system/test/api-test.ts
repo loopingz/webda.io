@@ -627,7 +627,9 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     // Check scheduling, not wall-clock latency: busy CI runners can pause timers
     // for more than 40ms even while the password work runs in the thread pool.
     let yielded = false;
-    const tick = setImmediate(() => { yielded = true; });
+    const tick = setImmediate(() => {
+      yielded = true;
+    });
     try {
       assert.strictEqual(await user.verifyPassword(password), true);
       assert.ok(yielded, "password verification must yield to the event loop");
@@ -639,7 +641,10 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
         this.routerHttp({ method: "PUT", url: "/users/login", body: { email, password } })
       )
     );
-    assert.deepStrictEqual(logins.map(l => l.statusCode), [200, 200, 200, 200, 200]);
+    assert.deepStrictEqual(
+      logins.map(l => l.statusCode),
+      [200, 200, 200, 200, 200]
+    );
   }
 
   /** Users: public profile, private email and hash, owner-only changes */

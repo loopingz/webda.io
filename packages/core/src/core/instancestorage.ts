@@ -23,6 +23,10 @@ export type InstanceStorage = Partial<{
   interruptables: Set<{ cancel: () => Promise<void> }>;
   // Awaited operation authorizers (see registerOperationAuthorizer)
   operationAuthorizers: Set<(...args: any[]) => Promise<any>>;
+  // Feature flag providers (see registerFeatureFlagProvider)
+  featureFlagProviders: { provider: any; priority: number }[];
+  // Feature flags pattern mappings (see registerOperationFeatureFlag)
+  operationFeatureFlags: { pattern: string; flag: string }[];
   // Second factor methods available to the MFA behavior (see registerSecondFactor)
   secondFactors: Map<string, SecondFactorProvider>;
   loginMfa: LoginMfaPolicy;
@@ -60,6 +64,8 @@ export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn
       router: undefined,
       interruptables: new Set(),
       operationAuthorizers: new Set(),
+      featureFlagProviders: [],
+      operationFeatureFlags: [],
       ...instanceStorage
     },
     fn

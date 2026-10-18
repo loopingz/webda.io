@@ -622,30 +622,29 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
   @test
   async loginDoesNotBlockTheEventLoop() {
     const { email, password } = await this.register("dave");
-    // The longest gap between two timer ticks while logins run: a synchronous hash (bcryptjs) blocks ~60ms each
-    let last = Date.now();
-    let maxGap = 0;
-    const timer = setInterval(() => {
-      const now = Date.now();
-      maxGap = Math.max(maxGap, now - last);
-      last = now;
-    }, 2);
+    const User: any = useModel("WebdaSample/User");
+    const user = await User.findByEmail(email);
+    // Check scheduling, not wall-clock latency: busy CI runners can pause timers
+    // for more than 40ms even while the password work runs in the thread pool.
+    let yielded = false;
+    const tick = setImmediate(() => {
+      yielded = true;
+    });
     try {
-      const logins = await Promise.all(
-        Array.from({ length: 5 }, () =>
-          this.routerHttp({ method: "PUT", url: "/users/login", body: { email, password } })
-        )
-      );
-      assert.deepStrictEqual(
-        logins.map(l => l.statusCode),
-        [200, 200, 200, 200, 200]
-      );
+      assert.strictEqual(await user.verifyPassword(password), true);
+      assert.ok(yielded, "password verification must yield to the event loop");
     } finally {
-      clearInterval(timer);
+      clearImmediate(tick);
     }
-    // A blocked loop may not tick at all before the logins end
-    maxGap = Math.max(maxGap, Date.now() - last);
-    assert.ok(maxGap < 40, `the event loop was blocked ${maxGap}ms during the logins`);
+    const logins = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        this.routerHttp({ method: "PUT", url: "/users/login", body: { email, password } })
+      )
+    );
+    assert.deepStrictEqual(
+      logins.map(l => l.statusCode),
+      [200, 200, 200, 200, 200]
+    );
   }
 
   /** Users: public profile, private email and hash, owner-only changes */

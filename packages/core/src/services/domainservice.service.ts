@@ -807,6 +807,9 @@ export class DomainService<
             method: (actions[name].method || "PUT").toLowerCase(),
             path: actions[name].global ? name : `{uuid}/${name}`
           };
+          if (actions[name].featureFlag !== undefined) {
+            info.featureFlag = actions[name].featureFlag;
+          }
           registerOperation(id, info);
         });
 
@@ -859,6 +862,7 @@ export class DomainService<
           output: hasSchema(outputSchema) ? outputSchema : "void",
           summary: `${actionCap} on ${name}.${behaviorRel.attribute}`,
           tags: [name],
+          featureFlag: actionMeta.featureFlag,
           rest: {
             method,
             path

@@ -156,6 +156,72 @@ subscription {
 }
 ```
 
+## Feature flags
+
+Operations can be gated by a named feature flag. When a flag evaluates to off for the caller, the operation behaves as if it did not exist: transports omit it from listings (`canCallOperation()` returns `false`) and direct invocations fail with `404 NotFound` (`"<id> Unknown"`), hiding validation schemas and permissions.
+
+### Declaring a flag on an operation
+
+In code, use `@Operation({ featureFlag: "flag-name" })` or `@Action({ featureFlag: "flag-name" })`. Setting `featureFlag: true` automatically uses the operation's id as the flag name:
+
+```ts
+@Operation({ featureFlag: "new-checkout" })
+async checkout(cart: Cart): Promise<Order> { ... }
+
+@Operation({ featureFlag: true }) // flag name = "Orders.Export"
+async export(): Promise<Url> { ... }
+```
+
+Model `@Action`s support `featureFlag` as well, propagated by the compiler into operation metadata:
+
+```ts
+@Action({ featureFlag: "bulk-archive" })
+async bulkArchive() { ... }
+```
+
+### Configuration mapping
+
+Flags can also be attached to operations via configuration without modifying code. This is particularly useful for DomainService CRUD operations (`Posts.Create`, `Users.Delete`, etc.):
+
+```jsonc
+{
+  "services": {
+    "featureFlags": {
+      "type": "Webda/FeatureFlags",
+      "flags": {
+        "safe-delete": false
+      },
+      "operations": {
+        "Posts.Delete": "safe-delete",
+        "Admin.*": "admin-v2"
+      }
+    }
+  }
+}
+```
+
+If an operation has both a code flag and a configuration mapping, **all** flags must evaluate to true for the operation to be enabled.
+
+### NotFound semantics and transport gating
+
+- **Fail closed**: By default, if no provider recognizes a flag, the flag is off.
+- **REST**: Routes remain registered, but invocations return `404 NotFound`. WebSocket upgrade requests return `404` when gated by an inactive flag. The OpenAPI specification retains the operation and annotates it with `x-webda-feature-flag: <flag>`.
+- **MCP**: Disabled operations are omitted from `listTools` for callers who do not satisfy the flag.
+- **GraphQL**: Disabled operations fail subscriptions with `NOT_FOUND`.
+- **Audit / Events**: When a disabled operation is called, `Webda.OperationDisabled` is emitted (`{ context, operationId, flag }`) and `operation_disabled_total` is incremented. Neither `Webda.BeforeOperation` nor `Webda.OperationFailure` is emitted.
+
+### Programmatic flag evaluation
+
+Business logic can check feature flags directly using `isFeatureEnabled()`:
+
+```ts
+import { isFeatureEnabled } from "@webda/core";
+
+if (await isFeatureEnabled("new-pricing")) {
+  // use new calculation
+}
+```
+
 ## Calling operations from a frontend
 
 [`@webda/sdk`](../Modules/sdk/README.md) generates a typed client from the operations of the application: every

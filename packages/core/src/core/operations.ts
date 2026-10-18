@@ -16,6 +16,9 @@ import { checkStaticModelPermission, loadModelForAction } from "../models/permis
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
+import { getOperationFeatureFlags, isFeatureEnabled, isOperationEnabled } from "../services/featureflags.js";
+import { useMetric } from "../metrics/metrics.js";
+import { Counter } from "prom-client";
 
 /**
  * Check if an operation can be executed with the current context
@@ -148,6 +151,9 @@ export async function canCallOperation(
     return false;
   }
   try {
+    if (!(await isOperationEnabled(context, operationId, operation))) {
+      return false;
+    }
     if (!checkOperationPermission(context, operationId, operation)) {
       return false;
     }
@@ -480,7 +486,31 @@ function coerceMergedToSchema(schema: any, merged: Record<string, any>): void {
 async function checkOperation(context: OperationContext, operationId: string) {
   context.setExtension("operationResolvedInput", undefined);
   const operations = useInstanceStorage().operations;
-  if (!checkOperationPermission(context, operationId, operations[operationId])) {
+  const operation = operations[operationId];
+  if (!operation) {
+    throw new WebdaError.NotFound(`${operationId} Unknown`);
+  }
+  const flags = getOperationFeatureFlags(operationId, operation);
+  if (flags.length > 0) {
+    for (const flag of flags) {
+      const enabled = await isFeatureEnabled(flag, { context, operationId });
+      if (!enabled) {
+        context.setExtension("operationDisabled", true);
+        emitCoreEvent("Webda.OperationDisabled", { context, operationId, flag });
+        try {
+          useMetric<Counter>(Counter, {
+            name: "operation_disabled_total",
+            help: "Total number of disabled operation calls",
+            labelNames: ["operation", "flag"]
+          })?.inc?.({ operation: operationId, flag });
+        } catch {
+          // Metrics optional / not initialized
+        }
+        throw new WebdaError.NotFound(`${operationId} Unknown`);
+      }
+    }
+  }
+  if (!checkOperationPermission(context, operationId, operation)) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
   if (hasStreamedInput(operations[operationId])) {
@@ -672,17 +702,20 @@ export async function callOperation(context: OperationContext, operationId: stri
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})
     ]);
   } catch (err) {
-    await Promise.all([
-      emitCoreEvent("Webda.OperationFailure", {
-        context,
-        operationId,
-        error: err,
-        subject: subjectOf(context, operationId, callArgs)
-      })
-      //emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
-    ]);
+    if (!context.getExtension("operationDisabled")) {
+      await Promise.all([
+        emitCoreEvent("Webda.OperationFailure", {
+          context,
+          operationId,
+          error: err,
+          subject: subjectOf(context, operationId, callArgs)
+        })
+        //emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
+      ]);
+    }
     throw err;
   } finally {
+    context.setExtension("operationDisabled", undefined);
     context.setExtension("event", undefined);
     context.setExtension(DECLARED_SUBJECT, callerSubject);
   }
@@ -697,7 +730,8 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
   const operations = useInstanceStorage().operations;
   Object.keys(operations).forEach(o => {
     list[o] = {
-      ...operations[o]
+      ...operations[o],
+      featureFlags: getOperationFeatureFlags(o, operations[o])
     };
     delete list[o].service;
     delete list[o].method;
@@ -711,7 +745,15 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
  * @returns operations map with all fields
  */
 export function listFullOperations(): { [key: string]: OperationDefinition } {
-  return { ...useInstanceStorage().operations };
+  const list = {};
+  const operations = useInstanceStorage().operations;
+  Object.keys(operations).forEach(o => {
+    list[o] = {
+      ...operations[o],
+      featureFlags: getOperationFeatureFlags(o, operations[o])
+    };
+  });
+  return list;
 }
 
 /**
@@ -726,6 +768,10 @@ export function registerOperation(
   // Check operation naming convention
   if (!operationId.match(/^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/)) {
     throw new Error(`OperationId ${operationId} must match ^([A-Z][A-Za-z0-9]*.)*([A-Z][a-zA-Z0-9]*)$`);
+  }
+
+  if (definition.featureFlag === true) {
+    definition.featureFlag = operationId;
   }
 
   // Check if service and method exist
@@ -823,6 +869,12 @@ interface OperationParameters {
    * MCP transport hints
    */
   mcp?: OperationDefinition["mcp"];
+  /**
+   * Feature flag gating the operation. When the flag is off for the caller
+   * the operation answers NotFound and is left out of listings.
+   * `true` uses the operation id as flag name.
+   */
+  featureFlag?: string | true;
 }
 
 function Operation<T = {}>(

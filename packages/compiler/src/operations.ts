@@ -14,6 +14,7 @@ export interface OperationEntry {
   id: string;
   input: string;
   output: string;
+  featureFlag?: string | true;
 }
 
 /**
@@ -137,6 +138,9 @@ function processModelOperations(
     if (mod.schemas?.[outputSchema]) {
       entry.output = outputSchema;
       result.schemas[outputSchema] = mod.schemas[outputSchema];
+    }
+    if (actions[action].featureFlag !== undefined) {
+      entry.featureFlag = actions[action].featureFlag;
     }
     addOperation(result, id, entry);
   }

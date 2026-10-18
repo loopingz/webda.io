@@ -1,25 +1,122 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
-import {
-  checkRelations,
-  clearLoggedDiagnostics,
-  logDiagnostic,
-  type RelationDiagnostic
-} from "./relations-check.js";
-import { Application } from "./application.js";
-import { Store } from "../stores/store.js";
+import { checkRelations, clearLoggedDiagnostics, logDiagnostic, type RelationDiagnostic } from "./relations-check.js";
 import { TestApplication } from "../test/objects.js";
-import { MemoryStore } from "../stores/memorystore.js";
 import { Core } from "../core/core.js";
 import { User } from "../models/user.model.js";
 import { Ident } from "../models/ident.model.js";
-import { ModelLink, ModelRelated } from "@webda/models";
+import { ModelLink } from "@webda/models";
 
 @suite
 class RelationsCheckPureTest {
   beforeEach() {
     clearLoggedDiagnostics();
+  }
+
+  @test
+  supportsParentsInheritedLinksAndUnresolvedMetadata() {
+    for (const ancestor of [false, true]) {
+      for (const kind of ["parent", "links"]) {
+        for (const target of ["A", undefined, { Identifier: "A" }]) {
+          const relation =
+            kind === "parent"
+              ? { parent: { attribute: "owner", model: target } }
+              : { links: [{ attribute: "owner", model: target }] };
+          const models: any = {
+            A: { Relations: { queries: [{ attribute: "items", model: "B", targetAttribute: "owner" }] } },
+            B: {
+              Ancestors: ancestor ? ["Missing", { Metadata: { Identifier: "Base" } }, undefined] : [],
+              Relations: ancestor ? {} : relation
+            },
+            Base: { Relations: relation },
+            Empty: undefined
+          };
+          assert.deepStrictEqual(checkRelations(models), []);
+        }
+      }
+    }
+    assert.deepStrictEqual(
+      checkRelations({
+        A: {
+          Ancestors: {},
+          Relations: { queries: [{ attribute: "items", model: "Missing", targetAttribute: "owner" }] }
+        }
+      }),
+      []
+    );
+  }
+
+  @test
+  inheritsQueriesAndMapsWhileHonoringSubclassOverrides() {
+    const models: any = {
+      Base: {
+        Relations: {
+          queries: [{ attribute: "items", model: "Missing", targetAttribute: "old" }, { model: "B" }],
+          maps: [{ attribute: "mapped", model: { Identifier: "B" }, targetLink: "owner" }, { model: "B" }]
+        }
+      },
+      A: {
+        Identifier: "A",
+        Ancestors: ["Base", "Unknown"],
+        Relations: {
+          queries: [
+            { attribute: "items", model: { Metadata: { Identifier: "B" } }, targetAttribute: "owner" },
+            { model: "B" }
+          ],
+          maps: [{ attribute: "localMap", model: "B", targetLink: "owner" }, { model: "B" }]
+        }
+      },
+      B: { Relations: { parent: { attribute: "owner", model: "A" } } }
+    };
+    assert.deepStrictEqual(
+      checkRelations(models).map(d => [d.sourceModel, d.sourceAttribute, d.code]),
+      [["Base", "mapped", "R3"]]
+    );
+  }
+
+  @test
+  validatesInheritedTargetsInStaticAndStoreModes() {
+    const models = {
+      A: {
+        Identifier: "A",
+        Ancestors: ["Base"],
+        Relations: { queries: [{ attribute: "items", model: "B", targetAttribute: "owner" }] }
+      },
+      Base: { Identifier: "Base" },
+      B: { Relations: { links: [{ attribute: "owner", model: "Base" }] } }
+    };
+    assert.deepStrictEqual(checkRelations(models), []);
+    assert.deepStrictEqual(checkRelations(models, { deferStoreCheck: true }), []);
+    assert.deepStrictEqual(checkRelations(models, { isFinalModel: () => false, staticOnly: true }), []);
+    assert.deepStrictEqual(
+      checkRelations(models, { staticOnly: true }).map(d => [d.code, d.level]),
+      [["R4", "WARN"]]
+    );
+    for (const store of [undefined, "shared", { getName: () => "shared" }]) {
+      const diagnostics = checkRelations(models, { getStore: () => store });
+      assert.strictEqual(diagnostics[0].code, "R4");
+      assert.ok(diagnostics[0].message.includes(store ? "shared" : "Registry"));
+    }
+  }
+
+  @test
+  reportsMissingInheritedBackReferencesAndUntargetedDiagnostics() {
+    const models = {
+      A: { Relations: { queries: [{ attribute: "items", model: "B", targetAttribute: "owner" }] } },
+      B: { Ancestors: ["Empty", "Other"], Relations: {} },
+      Empty: {},
+      Other: { Relations: { links: [{ attribute: "different", model: "A" }] } }
+    };
+    assert.strictEqual(checkRelations(models)[0].code, "R2");
+    logDiagnostic({
+      code: "R1",
+      level: "DEBUG",
+      message: "untargeted",
+      sourceModel: "A",
+      sourceAttribute: "items",
+      targetModel: "B"
+    });
   }
 
   @test
@@ -81,7 +178,7 @@ class RelationsCheckPureTest {
     assert.strictEqual(diagnostics.length, 1);
     assert.strictEqual(diagnostics[0].code, "R2");
     assert.strictEqual(diagnostics[0].level, "WARN");
-    assert.ok(diagnostics[0].message.includes("no link or parent named \"nonexistentCompany\""));
+    assert.ok(diagnostics[0].message.includes('no link or parent named "nonexistentCompany"'));
   }
 
   @test
@@ -261,7 +358,11 @@ class RelationsCheckPureTest {
         "App/User._idents expects Webda/Ident._user to reference App/User, but it references Webda/User (stores: Users vs Registry)."
       )
     );
-    assert.ok(r5.message.includes("Override `_user: ModelLink<App/User>` in Webda/Ident or add \"Webda/User\" to the Users store models."));
+    assert.ok(
+      r5.message.includes(
+        'Override `_user: ModelLink<App/User>` in Webda/Ident or add "Webda/User" to the Users store models.'
+      )
+    );
   }
 
   @test

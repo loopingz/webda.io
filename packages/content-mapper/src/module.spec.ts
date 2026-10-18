@@ -18,6 +18,7 @@ import {
   getPlural,
   sortObject
 } from "./module.ts";
+import { buildRelations } from "./module-discovery.ts";
 import { actionNameOption, namespaceOf } from "./schema/project.ts";
 import { handle } from "./schema/worker.ts";
 
@@ -353,6 +354,27 @@ function committedModule(relative: string): any {
  * committed files are written by the TypeScript 6 generator, so matching them
  * is evidence for the port rather than a restatement of it.
  */
+describe("reverse relation attribute metadata", () => {
+  it("keeps explicit attributes and omits unspecified ones in the discovery helper", () => {
+    const dir = join(here, "..", "test", "parity-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const relations = buildRelations(
+        session.ctx,
+        undefined,
+        classOf(session, "book.model.ts", "Book"),
+        name => `Test/${name}`
+      );
+      expect(relations.queries).toEqual([
+        { attribute: "siblings", model: "Test/Book", targetAttribute: "author" },
+        { attribute: "related", model: "Test/Book" }
+      ]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
 describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])("module for %s", relative => {
   const root = join(repo, relative);
   const committed = committedModule(relative);
@@ -374,6 +396,7 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
       expect(JSON.stringify(got.Actions), `${name} Actions`).toBe(JSON.stringify(entry.Actions));
       expect(JSON.stringify(got.Events), `${name} Events`).toBe(JSON.stringify(entry.Events));
       expect(JSON.stringify(got.PrimaryKey), `${name} PrimaryKey`).toBe(JSON.stringify(entry.PrimaryKey));
+      expect(JSON.stringify(got.Shared), `${name} Shared`).toBe(JSON.stringify(entry.Shared));
     }
   });
 

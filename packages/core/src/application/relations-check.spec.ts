@@ -1,3 +1,4 @@
+import { Store } from "../stores/store.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
@@ -561,6 +562,36 @@ class StoreRoutingIntegrationTest {
             'Override `_user: ModelLink<WebdaDemo/CustomUser>` in Webda/Ident or add "Webda/User" to the Users store models.'
           )
         );
+        // Legacy metadata can refer to an ancestor by an alias absent from the
+        // final model dictionary. Resolve it through the application's model lookup.
+        const originalGetModel = app.getModel.bind(app);
+        const ident = app.getModels()["Webda/Ident"] as any;
+        const originalMetadata = ident.Metadata;
+        try {
+          CustomUser.Metadata.Ancestors = ["Alias/Ancestor"] as any;
+          ident.Metadata = {
+            ...originalMetadata,
+            Relations: { links: [{ attribute: "_user", model: "Alias/Ancestor" }] }
+          };
+          for (const resolved of [
+            User,
+            { Metadata: { Identifier: "Detached" }, getRepository: () => ({ _store: {} }) },
+            { Metadata: { Identifier: "Detached" }, getRepository: () => undefined },
+            { Metadata: { Identifier: "Detached" } },
+            undefined
+          ]) {
+            (app as any).getModel = (id: string) => {
+              if (id !== "Alias/Ancestor") return originalGetModel(id);
+              if (!resolved) throw new Error("Missing ancestor");
+              return resolved;
+            };
+            clearLoggedDiagnostics();
+            Store.computeStores();
+          }
+        } finally {
+          (app as any).getModel = originalGetModel;
+          ident.Metadata = originalMetadata;
+        }
       } finally {
         logger.close();
         await core?.stop();

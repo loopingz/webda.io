@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
 import * as assert from "node:assert";
 import { EventEmitter } from "node:events";
 import { GCPQueue } from "./queue.service.js";

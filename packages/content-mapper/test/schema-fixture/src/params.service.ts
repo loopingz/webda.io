@@ -126,6 +126,8 @@ export class BroadParameters extends ServiceParameters implements Retryable {
    * @enum gold
    */
   loose: string;
+  /** @enum 1 */
+  scalarEnum: string;
   /** A string or a class documented as a string. */
   masked: string | Masked;
   /** The class first: the property keeps its own description. */

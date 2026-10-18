@@ -181,6 +181,7 @@ describe("SchemaConverter", () => {
     expect(properties.tier.enum).toEqual(["gold", "silver"]);
     // A payload that is not a list is ignored
     expect(properties.loose.enum).toBeUndefined();
+    expect(properties.scalarEnum.enum).toBeUndefined();
   });
 
   it("collapses union branches that differ only by annotations", () => {

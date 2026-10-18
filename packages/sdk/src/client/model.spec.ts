@@ -39,7 +39,11 @@ const EXTRA_MODELS: ModelsManifest = {
   },
   "App/Comment": {
     ...MODELS["App/Comment"],
-    queries: [{ attribute: "replies", model: "App/Reply", targetAttribute: "comment" }]
+    queries: [
+      { attribute: "replies", model: "App/Reply", targetAttribute: "comment" },
+      { attribute: "untargeted", model: "App/Reply" },
+      { attribute: "emptyTarget", model: "App/Reply", targetAttribute: "" }
+    ]
   },
   "App/Reply": {
     id: "App/Reply",
@@ -176,6 +180,8 @@ describe("Related", () => {
     // Resolved from the cached owner
     api.client.cache.setEntity("App/Comment", "c1", { uuid: "c1", task: "t1" });
     const comment = await api.Comment.get("c1", { cache: "force-cache" });
+    expect(comment).not.toHaveProperty("untargeted");
+    expect(comment).not.toHaveProperty("emptyTarget");
     const page = await comment.replies.query("text = 'a'");
     expect(api.calls.at(-1)).toMatchObject({
       id: "Reply.Query",

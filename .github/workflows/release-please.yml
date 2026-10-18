@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - main
-      - maintenance/v3
+      - maintenance/v3.x
   workflow_dispatch:
     inputs:
       publish_ref:
@@ -89,6 +89,11 @@ jobs:
   docs:
     needs: release-please
     if: ${{ needs.release-please.outputs.releases_created == 'true' || inputs.publish_ref }}
+    strategy:
+      # Add a branch and its lanes here when a new major version is maintained.
+      matrix:
+        lane: ${{ fromJSON('{"main":["latest","v4"],"maintenance/v3.x":["v3"]}')[github.ref_name] }}
     uses: ./.github/workflows/docs.yml
     with:
       ref: ${{ github.sha }}
+      lane: ${{ matrix.lane }}

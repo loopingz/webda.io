@@ -217,7 +217,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
    * @param field - the field to check
    * @param condition - the expected value
    */
-  protected checkFirestoreCondition(uid: string, data: any, field: string, condition: any): void {
+  protected checkFirestoreCondition(uid: string, data: any, field: string | undefined, condition: any): void {
     if (!field) {
       return;
     }
@@ -296,19 +296,19 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
       if (!doc.exists) {
         throw new StoreNotFoundError(docRef.id as any, this.collection);
       }
-      this.checkFirestoreCondition(docRef.id, doc.data() ?? {}, conditionField ?? "", condition);
+      this.checkFirestoreCondition(docRef.id, doc.data()!, conditionField, condition);
       t.set(docRef, update, { merge });
     });
   }
 
   /** @override */
   async update(data: any, conditionField?: any, condition?: any): Promise<void> {
-    await this.setDocument(false, data, data, conditionField ?? "", condition);
+    await this.setDocument(false, data, data, conditionField, condition);
   }
 
   /** @override */
   async patch(primaryKey: any, data: any, conditionField?: any, condition?: any): Promise<void> {
-    await this.setDocument(true, primaryKey, data, conditionField ?? "", condition);
+    await this.setDocument(true, primaryKey, data, conditionField, condition);
   }
 
   /** @override */
@@ -317,7 +317,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     await this.firestore.runTransaction(async t => {
       const doc = await t.get(docRef);
       if (conditionField) {
-        this.checkFirestoreCondition(docRef.id, doc.data() ?? {}, conditionField ?? "", condition);
+        this.checkFirestoreCondition(docRef.id, doc.data()!, conditionField, condition);
       }
       t.delete(docRef);
     });
@@ -331,7 +331,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
       if (!doc.exists) {
         throw new StoreNotFoundError(docRef.id as any, this.collection);
       }
-      this.checkFirestoreCondition(docRef.id, doc.data() ?? {}, conditionField ?? "", condition);
+      this.checkFirestoreCondition(docRef.id, doc.data()!, conditionField, condition);
       t.update(docRef, {
         [attribute]: FieldValue.delete()
       });
@@ -376,7 +376,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
         if (!doc.exists) {
           throw new StoreNotFoundError(docRef.id as any, this.collection);
         }
-        const data = doc.data() ?? {};
+        const data = doc.data()!;
         data[prop] ??= [];
         if (itemWriteCondition !== undefined) {
           this.checkFirestoreCondition(docRef.id, data[prop][index], itemWriteConditionField, itemWriteCondition);
@@ -414,7 +414,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
       if (!doc.exists) {
         throw new StoreNotFoundError(docRef.id as any, this.collection);
       }
-      const data = doc.data() ?? {};
+      const data = doc.data()!;
       const items: any[] = Array.isArray(data[prop]) ? data[prop] : [];
       if (index < 0 || index >= items.length) {
         return;
@@ -534,7 +534,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     });
 
     // OrderBy have quite some complexity with FireStore
-    query = this.handleOrderBy(query, parsedQuery.orderBy ?? [], rangeAttribute);
+    query = this.handleOrderBy(query, parsedQuery.orderBy, rangeAttribute);
 
     const res = await query.limit(limit).get();
     let results = res.docs.map(d => this.fromFirestore(d.data()));
@@ -557,7 +557,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
    */
   handleOrderBy(
     query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>,
-    orderBy: WebdaQL.OrderBy[],
+    orderBy: WebdaQL.OrderBy[] | undefined,
     rangeAttribute: string | undefined
   ): FirebaseFirestore.Query<FirebaseFirestore.DocumentData> {
     // Manage order if index
@@ -595,7 +595,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     orderBy
       .filter(order => order.field !== rangeAttribute)
       .forEach(order => {
-        if (!orders || orders[order.field]?.has(<OrderByDirection>order.direction.toLowerCase())) {
+        if (!orders || orders[order.field].has(<OrderByDirection>order.direction.toLowerCase())) {
           query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
         } else {
           this.log("WARN", "Skip orderBy as the direction does not match index");

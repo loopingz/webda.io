@@ -133,7 +133,7 @@ export class GCSFinder implements StorageFinder {
       for (const file of res[0]) {
         processor(`${path}${file.name}`);
       }
-      pageToken = res[1].pageToken;
+      pageToken = res[1]?.pageToken;
     } while (pageToken);
   }
 

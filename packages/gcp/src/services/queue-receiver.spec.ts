@@ -2,10 +2,24 @@ import { suite, test } from "@webda/test";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import * as assert from "node:assert";
 import { EventEmitter } from "node:events";
+import GCPPubSubService from "./pubsub.service.js";
 import { GCPQueue } from "./queue.service.js";
 
 @suite
 class QueueReceiverTest extends WebdaApplicationTest {
+  @test
+  async rejectsCallsAfterStoppingTheClient() {
+    const queue = await this.addService(GCPQueue, { mode: "receiver" });
+    await queue.stop();
+    await assert.rejects(() => queue.sendMessage({}), /not initialized/);
+    await assert.rejects(() => queue.receiveMessage(), /not initialized/);
+    assert.throws(() => queue.consume(async () => {}), /not initialized/);
+    const pubsub = await this.addService(GCPPubSubService, { topic: "unit" });
+    await pubsub.stop();
+    await assert.rejects(() => pubsub.sendMessage({}), /not initialized/);
+    assert.throws(() => pubsub.consume(async () => {}), /not initialized/);
+  }
+
   @test
   async resolvesTheCurrentReceiverBeforePreparingTheNext() {
     const queue = await this.addService(GCPQueue, { mode: "receiver", timeout: 10 });

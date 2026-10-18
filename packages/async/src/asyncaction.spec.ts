@@ -23,6 +23,12 @@ class AsyncActionTest extends AsyncTest {
     await assert.rejects(() => action.checkAct(context, "get_binary"), /Invalid Job HMAC/);
     context.getHttpContext()!.headers["x-job-hash"] = crypto.createHmac("sha256", "test").update("time").digest("hex");
     await action.checkAct(context, "get_binary");
+    const verify = sinon.stub(action, "verifyJobRequest").rejects("non-error");
+    verify.callsFake(async () => {
+      throw "non-error";
+    });
+    assert.strictEqual(await action.canAct(context, "status"), "non-error");
+    verify.restore();
     assert.strictEqual(context.getExtension("asyncJob"), action);
     await assert.rejects(() => action.statusAction(new OperationContext()), /Only WebContext can call this action/);
   }

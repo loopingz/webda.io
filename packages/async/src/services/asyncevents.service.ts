@@ -147,7 +147,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    */
   resolve(): this {
     super.resolve();
-    Object.keys(this.parameters.queues ?? {}).forEach(key => {
+    Object.keys(this.parameters.queues).forEach(key => {
       // Define default as first queue
       if (!this._defaultQueue) {
         this._defaultQueue = key;
@@ -197,10 +197,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
     if (!this._async) {
       throw Error("EventService is not configured for asynchronous");
     }
-    if (!queue) {
-      queue = this._defaultQueue;
-    }
-    const selectedQueue = queue ?? this._defaultQueue;
+    const selectedQueue = queue || this._defaultQueue;
     if (!selectedQueue) throw new Error("EventService requires a queue for async events");
     const mapper = new AsyncEvent(service, event).getMapper();
     if (!this._callbacks[mapper]) {

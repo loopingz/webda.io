@@ -137,8 +137,7 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
     this.receiverPromise ??= new Promise<MessageReceipt<L>[]>(res => {
       this.receiverResolve = res;
     });
-    if (!resolve) throw new Error("Queue receiver was not initialized");
-    return resolve;
+    return resolve!;
   }
 
   /**
@@ -227,10 +226,10 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
         message.nack();
       }
     };
+    const subscription = this.subscription;
     return new CancelablePromise(
       async () => {
-        if (!this.subscription) throw new Error("Subscription is not initialized");
-        this.subscription.on("message", msgHandler);
+        subscription.on("message", msgHandler);
       },
       async () => {
         this.subscription?.removeListener("message", msgHandler);

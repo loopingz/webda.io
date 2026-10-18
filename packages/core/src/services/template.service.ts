@@ -322,10 +322,8 @@ export class TemplateService<T extends TemplateServiceParameters = TemplateServi
 
       for (const loc of candidateLocales) {
         for (const ext of exts) {
-          const engineMatch = this.getEngineForExtension(ext);
-          if (!engineMatch) {
-            continue;
-          }
+          // Extensions come from registered engines, so every extension has a match.
+          const engineMatch = this.getEngineForExtension(ext)!;
 
           if (isMultiPart) {
             // Multi-part template paths

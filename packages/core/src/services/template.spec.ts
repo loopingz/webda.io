@@ -1,3 +1,8 @@
+import { useCore } from "../core/hooks.js";
+import * as sinon from "sinon";
+import juice from "juice";
+import { runWithInstanceStorage } from "../core/instancestorage.js";
+import { useApplication } from "../application/hooks.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "node:fs";
@@ -8,12 +13,19 @@ import {
   TemplateNotFoundError,
   TemplateService,
   TemplateServiceParameters,
+  MailerParameters,
+  ServiceParameters,
   useService
 } from "../index.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { DebugMailer } from "./debugmailer.service.js";
 import { Mailer } from "./mailer.service.js";
 import type { TemplateEngine } from "../templates/itemplate.js";
+
+// Application installs generated configuration factories when loading modules.
+// Keep the standalone factories to verify their compatibility before installation.
+const createDebugMailerConfiguration = DebugMailer.createConfiguration;
+const filterDebugMailerParameters = DebugMailer.filterParameters;
 
 @suite
 class TemplateServiceTest extends WebdaApplicationTest {
@@ -422,6 +434,165 @@ class TemplateServiceTest extends WebdaApplicationTest {
       await service.renderString("{{name}}", { name: "Ada" }, { escape: value => `[${value}]` }),
       "[Ada]"
     );
+  }
+
+  @test
+  async preservesManualMessagePartsAndSupportsMissingRenderer() {
+    const dir = this.createTempDir("webda-partial-mail-");
+    for (const part of ["subject", "html"]) {
+      fs.mkdirSync(path.join(dir, part));
+      fs.writeFileSync(path.join(dir, part, `${part}.mustache`), part);
+    }
+    await this.addService(TemplateService, { folders: [dir] }, "PartialTemplates");
+    const mailer = await this.addService(DebugMailer, { templateService: "PartialTemplates" });
+    await mailer.send({ template: "subject", html: "manual html", text: "manual text" });
+    await mailer.send({ template: "html" });
+    assert.strictEqual(mailer.sent[0].html, "manual html");
+    assert.strictEqual(mailer.sent[0].text, "manual text");
+    assert.strictEqual(mailer.sent[1].html, "html");
+    assert.ok(createDebugMailerConfiguration({ templateService: "PartialTemplates" }) instanceof ServiceParameters);
+    assert.deepStrictEqual(filterDebugMailerParameters({ templateService: "PartialTemplates" }), {
+      templateService: "PartialTemplates"
+    });
+    const renderer = (mailer as any).templateService;
+    (mailer as any).templateService = undefined;
+    assert.strictEqual(mailer.getTemplateService().getName(), "PartialTemplates");
+    delete mailer.getParameters().templateService;
+    assert.strictEqual(mailer.getTemplateService().getName(), "TemplateService");
+    mailer.getParameters().templateService = "PartialTemplates";
+    assert.strictEqual(
+      runWithInstanceStorage({}, () => mailer.getTemplateService()),
+      undefined
+    );
+    await runWithInstanceStorage({}, async () => {
+      await mailer.send({ template: "subject" });
+      assert.strictEqual(mailer.hasNotificationSync("subject"), false);
+    });
+    (mailer as any).templateService = renderer;
+  }
+
+  @test
+  async handlesCssFallbacksAndDisappearingTemplateServices() {
+    const mailer = await this.addService(Mailer, {}, "CssMailer");
+    const html = "<style>p { color: red; }</style><p>Hello</p>";
+    mailer.getParameters().emailTemplateOptions = undefined;
+    assert.ok((await (mailer as any).inlineCss(html)).includes('style="color: red;"'));
+    mailer.getParameters().emailTemplateOptions = { juiceResources: {} };
+    const resources = sinon.stub(juice, "juiceResources");
+    try {
+      resources.callsFake((_html, _options, callback) => callback(new Error("Resource unavailable"), ""));
+      assert.ok((await (mailer as any).inlineCss(html)).includes('style="color: red;"'));
+      resources.throws(new Error("CSS parser failed"));
+      assert.strictEqual(await (mailer as any).inlineCss(html), html);
+    } finally {
+      resources.restore();
+    }
+    const template = mailer._getTemplate("PASSPORT_EMAIL_RECOVERY");
+    const renderer = sinon.stub(mailer, "getTemplateService").returns(undefined);
+    try {
+      await assert.rejects(() => template.renderAll("PASSPORT_EMAIL_RECOVERY", {}), /No TemplateService/);
+    } finally {
+      renderer.restore();
+    }
+    assert.ok(mailer.loadParameters({}) instanceof MailerParameters);
+    const legacyEngineOnly = await this.addService(Mailer, { templatesEngine: "mustache" }, "EngineOnlyMailer");
+    assert.ok(legacyEngineOnly.getTemplateService());
+  }
+
+  @test
+  async selectsPreferredEnginesAndSupportsEmptyFolderConfiguration() {
+    const dir = this.createTempDir("webda-multiple-engines-");
+    fs.writeFileSync(path.join(dir, "item.shared"), "unused");
+    for (const name of ["first", "preferred"]) {
+      TemplateService.registerEngine(name, { extensions: ["shared"], compile: () => () => name });
+    }
+    const service = await this.addService(
+      TemplateService,
+      { folders: [dir], engine: "preferred", engines: { missing: {}, first: {} } },
+      "PreferredTemplates"
+    );
+    assert.strictEqual(await service.render("item"), "preferred");
+    service.clearCache();
+    service.getParameters().engine = "unregistered";
+    assert.strictEqual(await service.render("item"), "first");
+    assert.strictEqual((service as any).getEngineForExtension("unknown"), undefined);
+    assert.ok(service.loadParameters({}) instanceof TemplateServiceParameters);
+    service.getParameters().folders = undefined;
+    await service.init();
+    assert.strictEqual(await service.has("item"), false);
+    assert.strictEqual(await service.has("missing/part"), false);
+    assert.deepStrictEqual(await service.list(), []);
+    await assert.rejects(() => service.renderAll("item"), TemplateNotFoundError);
+    service.getParameters().engine = undefined;
+    assert.strictEqual(await service.renderString("Hello {{name}}", { name: "Ada" }), "Hello Ada");
+  }
+
+  @test
+  async handlesApplicationAndLocaleFallbacks() {
+    const service = useService("TemplateService") as TemplateService;
+    const app = useApplication();
+    const base = sinon.stub(app, "getPath").returns(undefined);
+    try {
+      assert.strictEqual((service as any).getBasePath(), process.cwd());
+      base.throws(new Error("Application path unavailable"));
+      assert.strictEqual((service as any).getBasePath(), process.cwd());
+    } finally {
+      base.restore();
+    }
+    runWithInstanceStorage({}, () => {
+      assert.strictEqual((service as any).getBasePath(), process.cwd());
+      assert.strictEqual((service as any).getDefaultLocale(), undefined);
+    });
+    const locales = sinon.stub(useCore(), "getLocales").returns(["fr"]);
+    try {
+      assert.deepStrictEqual((service as any).getCandidateLocales("fr"), ["fr", undefined]);
+      locales.throws(new Error("Locales unavailable"));
+      assert.strictEqual((service as any).getDefaultLocale(), undefined);
+    } finally {
+      locales.restore();
+    }
+  }
+
+  @test
+  async ignoresUnsupportedFilesAndFindsPrefixedPartials() {
+    const dir = this.createTempDir("webda-template-files-");
+    fs.mkdirSync(path.join(dir, "partials"));
+    fs.writeFileSync(path.join(dir, "partials", "_footer.mustache"), "footer");
+    fs.writeFileSync(path.join(dir, "item.mustache"), "{{> partials/footer}}");
+    fs.writeFileSync(path.join(dir, "readme.txt"), "unsupported");
+    fs.mkdirSync(path.join(dir, "empty"));
+    fs.symlinkSync(path.join(dir, "empty"), path.join(dir, "linked"), "junction");
+    fs.mkdirSync(path.join(dir, "notice", "fr"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "notice", "de"));
+    fs.writeFileSync(path.join(dir, "notice", ".hidden.mustache"), "private");
+    fs.writeFileSync(path.join(dir, "notice", "subject.mustache"), "subject");
+    fs.writeFileSync(path.join(dir, "notice", "note.txt"), "unsupported");
+    fs.writeFileSync(path.join(dir, "notice", "fr", "text.mustache"), "text");
+    fs.writeFileSync(path.join(dir, "notice", "fr", "_hidden.mustache"), "private");
+    fs.writeFileSync(path.join(dir, "notice", "fr", ".hidden.mustache"), "private");
+    fs.writeFileSync(path.join(dir, "notice", "fr", "note.txt"), "unsupported");
+    fs.mkdirSync(path.join(dir, "notice", "fr", "nested"));
+    const service = await this.addService(
+      TemplateService,
+      { folders: [path.join(dir, "missing"), path.join(dir, "readme.txt"), dir] },
+      "FileTemplates"
+    );
+    assert.strictEqual(await service.render("item"), "footer");
+    assert.strictEqual(
+      await service.renderString(
+        "{{missing}}{{nullable}}{{text}}",
+        { nullable: null, text: "plain" },
+        { escape: false }
+      ),
+      "plain"
+    );
+    assert.strictEqual(await service.has("empty"), false);
+    assert.deepStrictEqual(await service.list(), ["item", "notice"]);
+    assert.deepStrictEqual(await service.renderAll("notice", {}, { locale: "fr" }), {
+      subject: "subject",
+      text: "text"
+    });
+    await assert.rejects(() => service.renderAll("empty"), TemplateNotFoundError);
   }
 
   @test

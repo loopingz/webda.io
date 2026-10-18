@@ -32,7 +32,8 @@ export class MustacheEngine implements TemplateEngine {
       const mergedOptions = { ...options, ...renderOptions, partials: mergedPartials };
       const config: any = {};
       if (mergedOptions?.escape === false) {
-        config.escape = (value: any) => (value === undefined || value === null ? "" : String(value));
+        // Mustache omits null and undefined values before calling the escape function.
+        config.escape = String;
       } else if (typeof mergedOptions?.escape === "function") {
         config.escape = mergedOptions.escape;
       }

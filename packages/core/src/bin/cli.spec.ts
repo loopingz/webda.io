@@ -1,3 +1,5 @@
+import { Core } from "../core/core.js";
+import { useDryRun } from "../contexts/execution.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import type { JSONSchema7 } from "json-schema";
@@ -842,6 +844,68 @@ class CliRunCliTest {
 
 @suite
 class CliApplicationConfigurationTest {
+  @test
+  async operationDispatchCarriesTheDryRunContext() {
+    const app = mkdtempSync(join(tmpdir(), "webda-cli-dry-"));
+    const observed: boolean[] = [];
+    const service = {
+      hello: () => {
+        observed.push(useDryRun());
+      },
+      withInput: (value: string) => {
+        assert.strictEqual(value, "hello");
+        observed.push(useDryRun());
+      }
+    };
+    const init = vi.spyOn(Core.prototype, "init").mockResolvedValue(undefined as any);
+    const stop = vi.spyOn(Core.prototype, "stop").mockResolvedValue(undefined);
+    const services = vi.spyOn(Core.prototype, "getServices").mockReturnValue({ Runner: service } as any);
+    const get = vi
+      .spyOn(Core.prototype, "getService")
+      .mockImplementation((name: any) => (name === "Runner" ? (service as any) : undefined));
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      writeFileSync(join(app, "package.json"), JSON.stringify({ name: "mini", version: "1.0.0", type: "module" }));
+      writeFileSync(join(app, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+      writeFileSync(
+        join(app, "webda.module.json"),
+        JSON.stringify({ moddas: {}, beans: {}, deployers: {}, models: {}, schemas: {} })
+      );
+      mkdirSync(join(app, ".webda"));
+      writeFileSync(
+        join(app, ".webda", "operations.json"),
+        JSON.stringify({
+          operations: {
+            "Runner.Hello": { id: "Runner.Hello", input: "void", output: "void" },
+            "Runner.WithInput": { id: "Runner.WithInput", input: "message", output: "void" }
+          },
+          schemas: { message: { type: "object", properties: { value: { type: "string" } } } }
+        })
+      );
+      for (const flags of [[], ["--dry-run"]]) {
+        await runCli({ appPath: app, argv: ["runner", "hello", "--console-patch=false", ...flags] });
+        await new Promise<void>(resolve => setImmediate(resolve));
+      }
+      await runCli({
+        appPath: app,
+        argv: ["runner", "withinput", "--console-patch=false", "--json", '{"value":"hello"}', "--dry-run"]
+      });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assert.deepStrictEqual(observed, [false, true, true]);
+      assert.deepStrictEqual(
+        exit.mock.calls.map(call => call[0]),
+        [0, 0, 0]
+      );
+    } finally {
+      exit.mockRestore();
+      get.mockRestore();
+      services.mockRestore();
+      stop.mockRestore();
+      init.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
   @test
   async runCliLoadsApplicationConfigurationInProcess() {
     const app = mkdtempSync(join(tmpdir(), "webda-cli-app-"));

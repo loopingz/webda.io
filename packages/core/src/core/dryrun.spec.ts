@@ -1,3 +1,4 @@
+import { useInstanceStorage } from "./instancestorage.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
@@ -13,11 +14,22 @@ import {
   registerOperationAuthorizer,
   unregisterOperationAuthorizer,
   isReadOnlyOperation,
+  matchesOperationPattern,
+  matchesAnyPattern,
+  maskValue,
+  resolveDryRun,
   type DryRunResult
 } from "./operations.js";
 import { registerSchema, hasSchema } from "../schemas/hooks.js";
 import { useApplication } from "../application/hooks.js";
-import { useDryRun, runDryRun, runAsSystem } from "../contexts/execution.js";
+import {
+  useDryRun,
+  runDryRun,
+  runAsSystem,
+  runWithContext,
+  useCurrentUser,
+  useCurrentUserId
+} from "../contexts/execution.js";
 import { useCoreEvents } from "../events/events.js";
 import { AuditService } from "../services/audit.model.js";
 import { useWorkerOutput, type WorkerMessage } from "@webda/workout";
@@ -105,6 +117,7 @@ class DryRunTest extends WebdaApplicationTest {
       await audit.stop();
     }
     this.targetService?.reset();
+    useApplication().getConfiguration().parameters.dryRun = { allowRequest: false };
     await super.afterEach();
   }
 
@@ -230,6 +243,108 @@ class DryRunTest extends WebdaApplicationTest {
 
     assert.strictEqual(isReadOnlyOperation("User.Get", { mcp: { readOnly: false } } as any), false);
     assert.strictEqual(isReadOnlyOperation("User.Delete", { mcp: { readOnly: true } } as any), true);
+  }
+
+  @test
+  matchingAndMaskingHandleBoundaryInputs() {
+    assert.throws(() => matchesOperationPattern("x".repeat(1025), "other"), /too long/);
+    assert.strictEqual(matchesOperationPattern("Task.???", "Task.Get"), true);
+    assert.strictEqual(matchesAnyPattern(undefined, "Task.Get"), false);
+    assert.strictEqual(matchesAnyPattern("*" as any, "Task.Get"), false);
+    assert.strictEqual(matchesAnyPattern([], "Task.Get"), false);
+    const cyclic: any = { password: "secret", data: [null, undefined, 1, { token: "hidden" }] };
+    cyclic.self = cyclic;
+    assert.deepStrictEqual(maskValue(cyclic), {
+      password: "********",
+      data: [null, undefined, 1, { token: "********" }],
+      self: "[Circular]"
+    });
+    assert.strictEqual(maskValue({ getValue: () => "secret" }), "********");
+    assert.deepStrictEqual(maskValue({ getValue: "ordinary" }), { getValue: "ordinary" });
+    const date = new Date();
+    const pattern = /x/;
+    assert.strictEqual(maskValue(date), date);
+    assert.strictEqual(maskValue(pattern), pattern);
+  }
+
+  @test
+  async explicitRequestsAndHeaderVariantsResolveDryRun() {
+    const config = useApplication().getConfiguration();
+    config.parameters.dryRun = { allowRequest: true };
+    const ctx = new OperationContext();
+    ctx.setExtension("requestedDryRun", true);
+    assert.strictEqual(resolveDryRun(ctx, "User.Delete"), true);
+    await runWithContext(ctx, () => runDryRun(() => assert.strictEqual(useDryRun(), true)));
+    for (const header of ["true", ["true"], "false", ["false"], undefined]) {
+      const expected = header === "true" || (Array.isArray(header) && header[0] === "true");
+      assert.strictEqual(resolveDryRun({ getHeader: () => header } as any, "User.Delete"), expected);
+      assert.strictEqual(
+        resolveDryRun({ getHttpContext: () => ({ getHeader: () => header }) } as any, "User.Delete"),
+        expected
+      );
+    }
+    assert.strictEqual(resolveDryRun(undefined, "User.Delete"), false);
+  }
+
+  @test
+  async excludesRestoreRequestedStateAndSkippedStreamsStayStreams() {
+    this.registerOps();
+    const config = useApplication().getConfiguration();
+    config.parameters.dryRun = { exclude: ["User.Delete"] };
+    const excluded = new OperationContext();
+    excluded.setExtension("requestedDryRun", true);
+    await callOperation(excluded, "User.Delete");
+    assert.strictEqual(this.targetService.called.deleteUser, 1);
+    assert.strictEqual(excluded.getExtension("requestedDryRun"), true);
+    config.parameters.dryRun = { enabled: true };
+    for (const [index, definition] of [
+      { streaming: "server" },
+      { streaming: "bidi" },
+      { generator: true },
+      {}
+    ].entries()) {
+      const id = `Dry.Stream${index}`;
+      registerOperation(id, { service: "DryTarget", method: "deleteUser", input: "void", ...definition } as any);
+      const ctx = new OperationContext();
+      if (definition.streaming === "bidi") ctx.setExtension("operationInputStream", (async function* incoming() {})());
+      ctx.setHeader = () => {
+        throw new Error("Headers unavailable");
+      };
+      await callOperation(ctx, id);
+      assert.strictEqual(ctx.getExtension("operationStreaming"), index < 3 ? true : undefined);
+      assert.strictEqual(JSON.parse(ctx.getOutput()).dryRun, true);
+    }
+  }
+
+  @test
+  async implicitWritePoliciesRetainTheSubjectAndContextHelpers() {
+    this.registerOps();
+    registerOperation("Dry.Subject", {
+      service: "DryTarget",
+      method: "deleteUser",
+      input: "void",
+      context: { model: "Webda/User" }
+    } as any);
+    const ctx = new OperationContext();
+    ctx.parameters = { uuid: "subject-id" };
+    ctx.setExtension("requestedDryRun", true);
+    ctx.getCurrentUserId = () => "subject-id";
+    const user = { uuid: "subject-id" };
+    ctx.getCurrentUser = async () => user as any;
+    await runWithContext(ctx, async () => {
+      assert.strictEqual(useCurrentUserId(), "subject-id");
+      assert.strictEqual(await useCurrentUser(), user);
+    });
+    delete useInstanceStorage().operations["Dry.Subject"].dryRun;
+    await callOperation(ctx, "Dry.Subject");
+    assert.deepStrictEqual(JSON.parse(ctx.getOutput()).subject, { model: "Webda/User", key: "subject-id" });
+    assert.strictEqual(this.targetService.called.deleteUser, undefined);
+    registerOperation("Dry.Get", { service: "DryTarget", method: "getUser", input: "void" } as any);
+    delete useInstanceStorage().operations["Dry.Get"].dryRun;
+    const read = new OperationContext();
+    read.setExtension("requestedDryRun", true);
+    await callOperation(read, "Dry.Get");
+    assert.strictEqual(this.targetService.called.getUser, 1);
   }
 
   @test

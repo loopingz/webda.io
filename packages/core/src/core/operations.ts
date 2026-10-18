@@ -805,7 +805,7 @@ export async function callOperation(context: OperationContext, operationId: stri
     callArgs = args.length > 0 ? args : [context];
 
     const opDef = operations[operationId];
-    const dryRunMode = opDef?.dryRun ?? (isReadOnlyOperation(operationId, opDef) ? "execute" : "skip");
+    const dryRunMode = opDef.dryRun ?? (isReadOnlyOperation(operationId, opDef) ? "execute" : "skip");
 
     if (isDry && dryRunMode === "skip") {
       const maskedArgs = maskArguments(args);

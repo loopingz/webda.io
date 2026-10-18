@@ -25,7 +25,7 @@ export function useDryRun(): boolean {
  */
 export function runDryRun<T>(fn: () => T, context?: Context): T {
   let ctx = context ?? (useContext() as any);
-  if (!ctx || typeof ctx.setExtension !== "function") {
+  if (!ctx || ctx.isGlobalContext() || typeof ctx.setExtension !== "function") {
     ctx = new OperationContext();
     ctx.setExtension("requestedDryRun", true);
     ctx.setExtension("dryRun", true);

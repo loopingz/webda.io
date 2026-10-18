@@ -13,16 +13,13 @@ import {
   registerOperationAuthorizer,
   unregisterOperationAuthorizer,
   isReadOnlyOperation,
-  type DryRunResult,
-  type OperationSubject,
-  setOperationSubject
+  type DryRunResult
 } from "./operations.js";
 import { registerSchema, hasSchema } from "../schemas/hooks.js";
 import { useApplication } from "../application/hooks.js";
-import { useDryRun, runDryRun } from "../contexts/execution.js";
+import { useDryRun, runDryRun, runAsSystem } from "../contexts/execution.js";
 import { useCoreEvents } from "../events/events.js";
 import { AuditService } from "../services/audit.model.js";
-import { SecretString } from "../services/cryptoservice.service.js";
 import { useWorkerOutput, type WorkerMessage } from "@webda/workout";
 import * as WebdaError from "../errors/errors.js";
 
@@ -87,6 +84,19 @@ class DryRunTargetService extends Service {
 
 @suite
 class DryRunTest extends WebdaApplicationTest {
+  @test
+  async createsAnIsolatedContextOutsideAnOperation() {
+    await runAsSystem(async () => {
+      assert.strictEqual(useDryRun(), false);
+      await runDryRun(async () => {
+        assert.strictEqual(useDryRun(), true);
+        await Promise.resolve();
+        assert.strictEqual(useDryRun(), true);
+      });
+      assert.strictEqual(useDryRun(), false);
+    });
+  }
+
   targetService!: DryRunTargetService;
   audits: AuditService[] = [];
 
@@ -260,7 +270,10 @@ class DryRunTest extends WebdaApplicationTest {
 
       // INFO log contains DRY RUN User.Delete
       const dryLog = messages.find(
-        m => m.type === "log" && m.log?.level === "INFO" && m.log?.args?.some(part => String(part).includes("DRY RUN User.Delete"))
+        m =>
+          m.type === "log" &&
+          m.log?.level === "INFO" &&
+          m.log?.args?.some(part => String(part).includes("DRY RUN User.Delete"))
       );
       assert.ok(dryLog, "Expected an INFO log containing 'DRY RUN User.Delete'");
     } finally {
@@ -366,10 +379,7 @@ class DryRunTest extends WebdaApplicationTest {
 
     try {
       const ctx = new OperationContext();
-      await assert.rejects(
-        () => runDryRun(() => callOperation(ctx, "User.Delete"), ctx),
-        WebdaError.Forbidden
-      );
+      await assert.rejects(() => runDryRun(() => callOperation(ctx, "User.Delete"), ctx), WebdaError.Forbidden);
     } finally {
       unregisterOperationAuthorizer(authorizer);
     }

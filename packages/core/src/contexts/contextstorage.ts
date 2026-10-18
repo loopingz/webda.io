@@ -74,4 +74,3 @@ export function runWithContext<T>(context: Context, run: () => T, attach: IConte
   }
   return res;
 }
-

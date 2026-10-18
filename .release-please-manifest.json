@@ -36,6 +36,7 @@
   "packages/sdk": "4.0.0-beta.4",
   "packages/serialize": "4.0.0-beta.7",
   "packages/sql": "4.0.0-beta.3",
+  "packages/sql-schema": "4.0.0-beta.0",
   "packages/sqlite": "4.0.0-beta.3",
   "packages/test": "4.0.0-beta.7",
   "packages/tsc-esm": "4.0.0-beta.8",

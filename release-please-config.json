@@ -45,6 +45,7 @@
     "packages/sdk": {},
     "packages/serialize": {},
     "packages/sql": {},
+    "packages/sql-schema": {},
     "packages/sqlite": {},
     "packages/test": {},
     "packages/tsc-esm": {},

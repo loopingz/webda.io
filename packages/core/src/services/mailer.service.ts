@@ -198,7 +198,7 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
       return this.templateService;
     }
     try {
-      return useService("TemplateService");
+      return useService(this.parameters["templateService"] ?? "TemplateService");
     } catch {
       return undefined as any;
     }
@@ -379,7 +379,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
       const juiceResources = (juice as any).juiceResources;
       const juiceOptions = this.parameters.emailTemplateOptions?.juiceResources;
       if (juiceOptions && typeof juiceResources === "function") {
-        return await new Promise<string>((resolve) => {
+        return await new Promise<string>(resolve => {
           juiceResources(html, juiceOptions, (err: any, inlinedHtml: string) => {
             if (err) return resolve((juice as any)(html));
             resolve(inlinedHtml);

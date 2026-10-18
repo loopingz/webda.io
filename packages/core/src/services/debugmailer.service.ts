@@ -1,11 +1,17 @@
 import { ServiceParameters } from "./serviceparameters.js";
 import { AbstractMailer } from "./mailer.service.js";
 
+/** Configuration of the template renderer used by the debug mailer. */
+export class DebugMailerParameters extends ServiceParameters {
+  /** TemplateService bean to use, defaulting to TemplateService. */
+  templateService?: string;
+}
+
 /**
  * Fake Service to help debug mail expedition
  * @WebdaModda
  */
-export class DebugMailer extends AbstractMailer {
+export class DebugMailer extends AbstractMailer<DebugMailerParameters> {
   sent: any[] = [];
 
   /**
@@ -14,7 +20,7 @@ export class DebugMailer extends AbstractMailer {
    * @returns the result
    */
   static createConfiguration(params: any): any {
-    return new ServiceParameters().load(params);
+    return new DebugMailerParameters().load(params);
   }
 
   /**

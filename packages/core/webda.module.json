@@ -799,8 +799,12 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
-        "description": "Interface to specify the Service parameters",
+        "description": "Configuration of the template renderer used by the debug mailer.",
         "properties": {
+          "templateService": {
+            "description": "TemplateService bean to use, defaulting to TemplateService.",
+            "type": "string"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"
@@ -816,7 +820,7 @@
         "type": "object",
         "title": "DebugMailer"
       },
-      "Configuration": "lib/services/serviceparameters:ServiceParameters"
+      "Configuration": "lib/services/debugmailer.service:DebugMailerParameters"
     },
     "Webda/DomainService": {
       "Import": "lib/services/domainservice.service:DomainService",

@@ -8,11 +8,12 @@ import {
   TemplateNotFoundError,
   TemplateService,
   TemplateServiceParameters,
-  useCore,
   useService
 } from "../index.js";
 import { WebdaApplicationTest } from "../test/application.js";
-import type { CompiledTemplate, TemplateEngine, TemplateRenderOptions } from "../templates/itemplate.js";
+import { DebugMailer } from "./debugmailer.service.js";
+import { Mailer } from "./mailer.service.js";
+import type { TemplateEngine } from "../templates/itemplate.js";
 
 @suite
 class TemplateServiceTest extends WebdaApplicationTest {
@@ -330,6 +331,100 @@ class TemplateServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async debugMailerRendersAllPartsAndKeepsManualMessages() {
+    const dir = this.createTempDir("webda-debug-mail-");
+    fs.mkdirSync(path.join(dir, "notice"));
+    for (const part of ["subject", "html", "text"]) {
+      fs.writeFileSync(path.join(dir, "notice", `${part}.mustache`), `${part}: {{name}}`);
+    }
+    await this.addService(TemplateService, { folders: [dir] }, "DebugTemplates");
+    const mailer = await this.addService(DebugMailer, { templateService: "DebugTemplates" } as any);
+    assert.strictEqual(mailer.getParameters()["templateService"], "DebugTemplates");
+    assert.strictEqual(mailer.getTemplateService().getName(), "DebugTemplates");
+    assert.strictEqual(await mailer.getTemplateService().has("notice"), true);
+    const message: any = { template: "notice", replacements: { name: "Ada" } };
+    await mailer.send(message);
+    assert.strictEqual(message.subject, "subject: Ada");
+    assert.strictEqual(message.html, "html: Ada");
+    assert.strictEqual(message.text, "text: Ada");
+    assert.ok(message.replacements.now instanceof Date);
+    await mailer.send({ subject: "manual" });
+    await mailer.send({ template: "missing" });
+    assert.strictEqual(mailer.sent.length, 3);
+    assert.strictEqual(mailer.sent[1].subject, "manual");
+    assert.strictEqual(await mailer.hasNotification("notice"), true);
+  }
+
+  @test
+  async legacyMailerUsesItsOwnTemplateFolders() {
+    const dir = this.createTempDir("webda-legacy-mail-");
+    fs.mkdirSync(path.join(dir, "notice"));
+    fs.writeFileSync(path.join(dir, "notice", "subject.mustache"), "Hello {{name}}");
+    const mailer = await this.addService(Mailer, { templates: dir }, "LegacyMailer");
+    const sent: any[] = [];
+    mailer._transporter = {
+      sendMail: async message => {
+        sent.push(message);
+      }
+    };
+    assert.strictEqual(await mailer.hasNotification("notice"), true);
+    assert.strictEqual(await mailer.hasNotification("missing"), false);
+    await mailer.send({ template: "notice", replacements: { name: "Ada" } });
+    assert.strictEqual(sent[0].subject, "Hello Ada");
+    assert.notStrictEqual(mailer.getTemplateService(), useService("TemplateService"));
+  }
+
+  @test
+  async loadedEnginesCacheClearAndRenderFailures() {
+    const dir = this.createTempDir("webda-loaded-engine-");
+    fs.writeFileSync(path.join(dir, "item.loaded"), "first");
+    TemplateService.registerEngine("loaded", {
+      extensions: ["loaded"],
+      compile: () => {
+        throw new Error("compile failed");
+      },
+      load: async filename => {
+        const source = fs.readFileSync(filename, "utf8");
+        return data => {
+          if (data?.fail) throw new Error("render failed");
+          return source;
+        };
+      }
+    });
+    const service = await this.addService(
+      TemplateService,
+      { folders: [path.join(dir, "missing"), dir] },
+      "LoadedTemplates"
+    );
+    assert.strictEqual(await service.render("item"), "first");
+    fs.writeFileSync(path.join(dir, "item.loaded"), "second");
+    assert.strictEqual(await service.render("item"), "first");
+    await assert.rejects(() => service.render("item", { fail: true }), /render failed/);
+    service.clearCache();
+    assert.strictEqual(await service.render("item"), "second");
+    service.clearCache();
+    await assert.rejects(() => service.render("item", { fail: true }), /render failed/);
+    await assert.rejects(() => service.renderString("item", {}, { engine: "loaded" }), /compile failed/);
+  }
+
+  @test
+  async localeSubfoldersAndCustomEscaping() {
+    const dir = this.createTempDir("webda-locale-parts-");
+    fs.mkdirSync(path.join(dir, "notice", "fr"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "notice", "fr", "subject.mustache"), "Bonjour {{name}}");
+    fs.writeFileSync(path.join(dir, "notice", "text.fr.mustache"), "Texte {{name}}");
+    const service = await this.addService(TemplateService, { folders: [dir] }, "LocaleTemplates");
+    assert.deepStrictEqual(await service.renderAll("notice", { name: "Ada" }, { locale: "fr" }), {
+      subject: "Bonjour Ada",
+      text: "Texte Ada"
+    });
+    assert.strictEqual(
+      await service.renderString("{{name}}", { name: "Ada" }, { escape: value => `[${value}]` }),
+      "[Ada]"
+    );
+  }
+
+  @test
   async mailerExistingTemplatesRenderSame() {
     const mailer = useService("TrueMailer" as any) as any;
     if (mailer) {
@@ -341,7 +436,7 @@ class TemplateServiceTest extends WebdaApplicationTest {
       });
       assert.strictEqual(res.subject, "Webda.io - Password recovery");
       assert.ok(res.text.includes("This is a verification email"));
-      assert.ok(res.html.includes("Webda<span class=\"orange\">.io</span>"));
+      assert.ok(res.html.includes('Webda<span class="orange">.io</span>'));
     }
   }
 }

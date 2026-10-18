@@ -112,10 +112,20 @@ export class BroadParameters extends ServiceParameters implements Retryable {
   createdAt: string;
   /**
    * TypeScript parses this payload as a type expression, so 6.x saw an empty
-   * tag. Reproduced, or the value would land in `enum`.
+   * tag. The values land in `enum`.
    * @enum ["a", "b"]
    */
   channel: string;
+  /**
+   * The tag replaces the values of the union.
+   * @enum ["gold", "silver"]
+   */
+  tier: "gold" | "silver" | "bronze";
+  /**
+   * Not a list of values: ignored.
+   * @enum gold
+   */
+  loose: string;
   /** A string or a class documented as a string. */
   masked: string | Masked;
   /** The class first: the property keeps its own description. */

@@ -33,6 +33,7 @@ import {
   outputTarget,
   packageOf,
   reflectAttributes,
+  relationTypeOf,
   type DiscoveredObject,
   type DiscoveryOptions,
   type ReflectedAttribute,
@@ -1261,7 +1262,7 @@ function processModels(
 
       const attribute = property.name;
       const typeArguments: any[] = (typeNode as any).typeArguments ?? [];
-      const typeName = text(ctx, (typeNode as any).typeName);
+      const typeName = relationTypeOf(text(ctx, (typeNode as any).typeName));
       const addLink = (type: string) => {
         relations.links ??= [];
         relations.links.push({ attribute, model: modelOf(typeArguments[0]), type });
@@ -1270,6 +1271,12 @@ function processModels(
         case "ModelParent": {
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find parent model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          if (relations.parent) {
+            errors.push(
+              `${name} has two parents, ${relations.parent.attribute} and ${attribute}: a model has one ModelParent ` +
+                `(BelongTo) at most, use ModelLink (ManyToOne) for the other`
+            );
+          }
           relations.parent = { attribute, model };
           break;
         }
@@ -1280,7 +1287,8 @@ function processModels(
           relations.queries.push({
             attribute,
             model,
-            targetAttribute: typeArguments[1] ? text(ctx, typeArguments[1]).replace(/"/g, "") : undefined
+            // ModelRelated<T, L, K>: K is the attribute of T linking back
+            targetAttribute: typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined
           });
           break;
         }

@@ -110,7 +110,7 @@ jobs:
         run: yarn run build
 
       - name: Run tests
-        run: yarn run test --exclude @webda/aws --exclude @webda/shell --exclude @webda/gcp
+        run: yarn run test --exclude @webda/aws --exclude @webda/shell --exclude @webda/gcp --output-style=stream
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

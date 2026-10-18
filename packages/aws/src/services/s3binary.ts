@@ -157,7 +157,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       command = new PutObjectCommand(params);
     }
     // Create new client as the implementation is an ugly middleware
-    return getSignedUrl(new S3(this.parameters), command, params);
+    // The browser uploads the body after signing. Do not sign the SDK's
+    // default checksum of an empty body; Content-MD5 already verifies the upload.
+    return getSignedUrl(new S3({ requestChecksumCalculation: "WHEN_REQUIRED", ...this.parameters }), command, params);
   }
 
   /**

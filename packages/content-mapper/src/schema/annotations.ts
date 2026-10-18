@@ -76,23 +76,21 @@ export function secretKeywordValue(text: string): true | string[] {
 /**
  * Tags whose payload TypeScript consumes as a type expression, braces or not.
  *
- * `parseEnumTag` and `parseThisTag` call `parseJSDocTypeExpression` with
- * `mayOmitBraces: true`, so `@enum ["draft", "published"]` parses the array
- * as a *type* and leaves the comment empty. The 6.x services layer reported
- * that empty text; 7.1 hands back the raw payload instead.
+ * `parseThisTag` calls `parseJSDocTypeExpression` with `mayOmitBraces: true`,
+ * so the payload parses as a *type* and the comment is empty. The 6.x
+ * services layer reported that empty text; 7.1 hands back the raw payload
+ * instead, which is dropped to keep the 6.x output.
  *
- * Reproducing 6.x here is deliberate. Webda's annotation layer turns an
- * unrecognised tag into a keyword of its own name, so the raw payload would
- * start populating `enum` — which is arguably what the author meant, and is
- * also a behaviour change that produces nonsense where the union already
- * supplied an `enum` (the two get concatenated). It belongs in its own
- * commit, not in a port whose contract is byte-identical output.
+ * `@enum` used to be listed too: its empty text then read as `true` and was
+ * appended to the `enum` a union type supplies (`["draft", "published",
+ * true]`). Its raw payload is kept instead, and {@link applyDocs} reads it as
+ * the list of values.
  *
  * `@type` is deliberately absent: `parseTypeTag` requires braces, so
  * `@type number | string` keeps its text in both versions — and the
  * committed schemas contain it.
  */
-const TYPE_EXPRESSION_TAGS = ["enum", "this"];
+const TYPE_EXPRESSION_TAGS = ["this"];
 
 /** A JSDoc comment and its tags, already rendered to text. */
 export interface SymbolDocs {
@@ -157,6 +155,17 @@ export function applyDocs(
     if (Annotations.boolean.includes(tag.name as never) || Annotations.string.includes(tag.name as never)) continue;
     if (tag.name === "secret") {
       target[SECRET_KEYWORD] = secretKeywordValue(tag.text);
+      continue;
+    }
+    if (tag.name === "enum") {
+      // `@enum ["a", "b"]` lists the values: it replaces the enum a union may
+      // already supply. Any other payload is not a list of values.
+      try {
+        const values = JSON.parse(tag.text);
+        if (Array.isArray(values)) target.enum = values;
+      } catch {
+        // Not JSON: ignored
+      }
       continue;
     }
     let value: unknown;

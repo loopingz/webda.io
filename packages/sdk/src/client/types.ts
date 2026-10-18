@@ -120,7 +120,7 @@ export interface ModelQueryDescriptor {
   attribute: string;
   model: string;
   /** Attribute of the target model holding this model's id */
-  targetAttribute: string;
+  targetAttribute?: string;
 }
 
 /** What the runtime needs to know about a model */

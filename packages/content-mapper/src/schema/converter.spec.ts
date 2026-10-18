@@ -172,14 +172,16 @@ describe("SchemaConverter", () => {
     expect(properties.createdAt).toBeUndefined();
   });
 
-  it("ignores an @enum payload, which 6.x parsed as a type expression", () => {
-    // `parseEnumTag` omits braces, so the payload never reached the comment
-    // text. Letting it through would populate `enum` from the tag — a
-    // behaviour change, not a port.
-    // `true` is what an empty tag payload becomes, and is what the
-    // committed schemas contain.
-    expect(properties.channel.enum).toBe(true);
+  it("reads the values of an @enum tag", () => {
+    // 6.x parsed the payload as a type expression and saw an empty tag, read
+    // as `true` and appended to the enum of a union: `["a", "b", true]`
+    expect(properties.channel.enum).toEqual(["a", "b"]);
     expect(properties.channel.type).toBe("string");
+    // The tag replaces the values of the union
+    expect(properties.tier.enum).toEqual(["gold", "silver"]);
+    // A payload that is not a list is ignored
+    expect(properties.loose.enum).toBeUndefined();
+    expect(properties.scalarEnum.enum).toBeUndefined();
   });
 
   it("collapses union branches that differ only by annotations", () => {

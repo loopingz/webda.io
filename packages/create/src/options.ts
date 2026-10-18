@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 
-export type Store = "memory" | "file" | "mongodb" | "postgres";
-export const STORES: Store[] = ["memory", "file", "mongodb", "postgres"];
+export type Store = "memory" | "file" | "sqlite" | "mongodb" | "postgres";
+export const STORES: Store[] = ["memory", "file", "sqlite", "mongodb", "postgres"];
 export type Transport = "rest" | "graphql" | "grpc" | "mcp";
 export const TRANSPORTS: Transport[] = ["rest", "graphql", "grpc", "mcp"];
 export type PackageManager = "pnpm" | "npm" | "yarn";

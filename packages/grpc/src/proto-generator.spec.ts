@@ -67,7 +67,10 @@ class ProtoGeneratorTest {
     assert.ok(result.includes("message PostResponse {"), "Should create PostResponse message");
     // Should create rpcs
     assert.ok(result.includes("rpc Create(Post) returns (PostResponse);"), "Should create Create rpc");
-    assert.ok(result.includes("rpc Get(google.protobuf.Empty) returns (PostResponse);"), "Should create Get rpc with Empty input");
+    assert.ok(
+      result.includes("rpc Get(google.protobuf.Empty) returns (PostResponse);"),
+      "Should create Get rpc with Empty input"
+    );
   }
 
   @test
@@ -124,7 +127,10 @@ class ProtoGeneratorTest {
     };
 
     const result = generateProto(operations, {});
-    assert.ok(result.includes("service DefaultService {"), "Should create DefaultService for operations without a dot prefix");
+    assert.ok(
+      result.includes("service DefaultService {"),
+      "Should create DefaultService for operations without a dot prefix"
+    );
     assert.ok(result.includes("rpc Health(google.protobuf.Empty)"), "Should use opId as rpcName");
   }
 

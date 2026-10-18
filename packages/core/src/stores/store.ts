@@ -7,6 +7,8 @@ import {
   type Model,
   type ModelClass,
   type PrimaryKey,
+  type QueryExecutionInfo,
+  type QueryMonitorOptions,
   type Repository
 } from "@webda/models";
 import { ServiceParameters } from "../services/serviceparameters.js";
@@ -15,6 +17,7 @@ import * as WebdaQL from "@webda/ql";
 import type { WebdaQLString } from "@webda/ql";
 import { useApplication, useModel, useModelId } from "../application/hooks.js";
 import { useLog, useOutput } from "../loggers/hooks.js";
+import type { WorkerLogLevel } from "@webda/workout";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { randomUUID } from "node:crypto";
@@ -277,11 +280,24 @@ export class StoreParameters extends ServiceParameters {
    */
   strict?: boolean;
   /**
-   * Slow query threshold
+   * Duration in ms above which a query is considered slow.
+   * Set to 0 to disable slow query detection.
    *
    * @default 30000
    */
-  slowQueryThreshold: number;
+  slowQueryThreshold?: number;
+  /**
+   * Log level used for slow queries
+   *
+   * @default "WARN"
+   */
+  slowQueryLogLevel?: WorkerLogLevel;
+  /**
+   * Maximum length of the query string written to logs / events (longer queries are truncated)
+   *
+   * @default 1024
+   */
+  slowQueryMaxLength?: number;
   /**
    * What to do when an aggregation on this store cannot run natively and must
    * stream every matching object through memory
@@ -363,6 +379,8 @@ export class StoreParameters extends ServiceParameters {
     // `super.load(params)` already set both via Object.assign, so the `??=` is a no-op.
     this.strict ??= false;
     this.slowQueryThreshold ??= 30000;
+    this.slowQueryLogLevel ??= "WARN";
+    this.slowQueryMaxLength ??= 1024;
     this.typeCheck = { enabled: true, maxRows: 10000, ...(this.typeCheck ?? {}) };
     return this;
   }
@@ -380,6 +398,7 @@ export type StoreEvents = {
   "Store.PatchUpdated": EventStorePatchUpdated;
   "Store.Updated": EventStoreUpdated;
   "Store.Deleted": EventStoreDeleted;
+  "Store.SlowQuery": QueryExecutionInfo & { store: string };
 };
 
 /**
@@ -395,6 +414,7 @@ export type StoreEvents = {
  *   Store.Get: When getting the object
  *   Store.Action: When an action will be done on an object
  *   Store.Actioned: When an action has been done on an object
+ *   Store.SlowQuery: When a query takes longer than slowQueryThreshold
  *
  * @internal — Subclassed by store packages only. App code never references a
  * Store directly: use `useRepository(Model)` or static model methods
@@ -478,6 +498,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       (repository as any)._store = currentStore;
       // Optional: repositories of third-party stores may predate aggregation
       repository.configureAggregation?.(currentStore.getAggregationOptions());
+      repository.configureMonitoring?.(currentStore.getQueryMonitorOptions());
       registerRepository(model, repository as any);
       useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
     }
@@ -578,13 +599,65 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
-   * Log a slow query (placeholder for future implementation)
-   * @param _query - the query to execute
-   * @param _reason - the reason
-   * @param _time - the time
+   * Query monitor options applied to the repositories of this store
+   * @returns the options for repository query monitoring
    */
-  logSlowQuery(_query: string, _reason: string, _time: number) {
-    // TODO Need to implement: https://github.com/loopingz/webda.io/issues/202
+  getQueryMonitorOptions(): QueryMonitorOptions {
+    return {
+      onQuery: info => this.onQueryExecuted(info)
+    };
+  }
+
+  /**
+   * Handle query execution reported by a repository
+   * @param info - the execution information
+   */
+  onQueryExecuted(info: QueryExecutionInfo): void {
+    try {
+      this.metrics.queries?.labels?.({ operation: info.operation, model: info.model })?.observe(info.duration);
+    } catch {
+      // Ignore metric errors
+    }
+    const threshold = this.parameters.slowQueryThreshold;
+    if (threshold && threshold > 0 && info.duration >= threshold) {
+      try {
+        this.metrics.slow_queries_total?.labels?.({ operation: info.operation, model: info.model })?.inc();
+      } catch {
+        // Ignore metric errors
+      }
+      this.logSlowQuery(info);
+    }
+  }
+
+  /**
+   * Log a slow query and emit the Store.SlowQuery event
+   * @param info - execution details of the query
+   */
+  logSlowQuery(info: QueryExecutionInfo) {
+    const maxLen = this.parameters.slowQueryMaxLength ?? 1024;
+    const query = info.query && info.query.length > maxLen ? info.query.slice(0, maxLen) + "..." : info.query;
+    const level = this.parameters.slowQueryLogLevel ?? "WARN";
+    const duration = Math.round(info.duration);
+    const bracketParts: string[] = [];
+    if (info.count !== undefined) {
+      bracketParts.push(`${info.count} result${info.count === 1 ? "" : "s"}`);
+    }
+    if (info.paginated) {
+      bracketParts.push("paginated");
+    }
+    if (info.error) {
+      bracketParts.push(`error: ${info.error.message}`);
+    }
+    const bracket = bracketParts.length > 0 ? ` [${bracketParts.join(", ")}]` : "";
+    useLog(
+      level,
+      `Slow query on store ${this.getName()} (${info.model}, ${info.operation}) took ${duration}ms${bracket}: ${query}`
+    );
+    this.emit("Store.SlowQuery", {
+      ...info,
+      query,
+      store: this.getName()
+    });
   }
 
   /**
@@ -614,8 +687,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       labelNames: ["operation"]
     });
     this.metrics.slow_queries_total = this.getMetric(Counter, {
-      name: "slow_queries",
-      help: "Number of slow queries encountered"
+      name: "slow_queries_total",
+      help: "Number of slow queries encountered",
+      labelNames: ["operation", "model"]
     });
     // this.metrics.cache_invalidations = this.getMetric(Counter, {
     //   name: "cache_invalidations",
@@ -627,7 +701,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     // });
     this.metrics.queries = this.getMetric(Histogram, {
       name: "queries",
-      help: "Query duration"
+      help: "Query duration",
+      labelNames: ["operation", "model"],
+      buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000]
     });
   }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/create-v4.0.0-beta.8...create-v4.0.0-beta.9) (2026-10-15)
+
+
+### Features
+
+* **sqlite:** SQLiteStore, SQLiteQueue, SQLitePubSub on node:sqlite sharing an extracted @webda/sql layer ([#902](https://github.com/loopingz/webda.io/issues/902)) ([e2cdc49](https://github.com/loopingz/webda.io/commit/e2cdc49da423d623ce82ab02b099653f996485a8))
+
 ## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/create-v4.0.0-beta.7...create-v4.0.0-beta.8) (2026-10-14)
 
 

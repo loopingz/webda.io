@@ -1,6 +1,5 @@
 import { CoreModel, OperationContext, Shared } from "@webda/core";
 import { ModelRelated } from "@webda/models";
-import { NotEnumerable } from "@webda/tsc-esm";
 import type { Project } from "./project.model.js";
 import type { User } from "./user.model.js";
 import { WEBDA_PLURAL } from "@webda/models";

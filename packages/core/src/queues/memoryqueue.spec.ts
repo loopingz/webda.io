@@ -168,6 +168,95 @@ class MemoryQueueTest extends QueueTest {
     assert.strictEqual(op, 2, 'It should have been run in parallel so op=2 as *2 will happen after =1"');
   }
 
+  /**
+   * Consume a queue whose receiveMessage is replaced, for a duration
+   *
+   * @param params - queue parameters
+   * @param receive - the receiveMessage replacement
+   * @param durationMs - how long to consume
+   * @returns the number of receives and the time the cancellation took
+   */
+  async consumeFor(params: any, receive: (call: number) => Promise<any[]>, durationMs: number) {
+    const queue: Queue = new MemoryQueue("idle", params);
+    queue.initMetrics();
+    let calls = 0;
+    queue.receiveMessage = async () => receive(++calls);
+    queue.deleteMessage = async () => {};
+    const consumer = queue.consume(async () => {});
+    await this.sleep(durationMs);
+    const start = Date.now();
+    await consumer.cancel();
+    await consumer;
+    return { calls, cancelMs: Date.now() - start, queue };
+  }
+
+  @test
+  async idleConsumerDoesNotSpin() {
+    // An empty queue answering immediately (PostgresQueue, AMQPQueue) was polled thousands of times per second
+    const { calls } = await this.consumeFor({ idleDelayer: { type: "linear", interval: 50 } }, async () => [], 300);
+    assert.ok(calls >= 3 && calls <= 8, `${calls} receives in 300ms, expected about 6`);
+  }
+
+  @test
+  async idleDelayBacksOffUpToTheMaximum() {
+    const queue = new MemoryQueue("idle", {} as any);
+    // Default: exponential from 50ms
+    assert.deepStrictEqual(
+      [1, 2, 3, 4].map(n => queue.getIdleDelay(n)),
+      [50, 100, 200, 400]
+    );
+    assert.strictEqual(new MemoryQueueParameters().load().maxIdleDelay, undefined, "250ms is applied by consume");
+    // 10, 20, 40 then capped at 40ms: about 3 + (400 - 70) / 40 receives
+    const { calls } = await this.consumeFor(
+      { idleDelayer: { type: "exponential", interval: 10 }, maxIdleDelay: 40 },
+      async () => [],
+      400
+    );
+    assert.ok(calls >= 7 && calls <= 14, `${calls} receives in 400ms, expected about 11`);
+  }
+
+  @test
+  async longPollingIsNotDelayed() {
+    // A receive already waiting longer than the idle delay is not followed by an extra wait
+    const { calls } = await this.consumeFor(
+      { idleDelayer: { type: "linear", interval: 50 } },
+      async () => {
+        await this.sleep(100);
+        return [];
+      },
+      560
+    );
+    assert.ok(calls >= 5, `${calls} receives in 560ms, expected 5 or 6`);
+  }
+
+  @test
+  async cancelDuringIdleWait() {
+    const { calls, cancelMs } = await this.consumeFor(
+      { idleDelayer: { type: "linear", interval: 10000 }, maxIdleDelay: 10000 },
+      async () => [],
+      50
+    );
+    assert.strictEqual(calls, 1);
+    assert.ok(cancelMs < 1000, `cancel took ${cancelMs}ms, the idle wait should be interrupted`);
+  }
+
+  @test
+  async idleDelayResetsAfterAMessage() {
+    // Empty receives wait 20ms, 40ms; the third receive gets a message; the fourth starts the backoff again at 20ms
+    const times: number[] = [];
+    await this.consumeFor(
+      { idleDelayer: { type: "exponential", interval: 20 }, maxConsumers: 1 },
+      async call => {
+        times.push(Date.now());
+        return call === 3 ? [{ ReceiptHandle: "m", Message: {} }] : [];
+      },
+      200
+    );
+    assert.ok(times.length >= 5, `${times.length} receives`);
+    const gap = times[4] - times[3];
+    assert.ok(gap >= 15 && gap < 60, `the wait after the message should be back to 20ms, got ${gap}ms`);
+  }
+
   @test
   async basic() {
     const queue: MemoryQueue = <MemoryQueue>this.queue;

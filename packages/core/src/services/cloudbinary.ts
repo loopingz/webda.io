@@ -1,12 +1,25 @@
 import { posix } from "path";
+import { Readable } from "node:stream";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from "./binary.service.js";
+import {
+  ContentStorage,
+  ContentStorages,
+  type ContentBody,
+  type ContentPutOptions,
+  type ContentGetOptions,
+  type ContentInfo
+} from "@webda/utils";
 
 /**
  * Default binary parameters
  */
 export class CloudBinaryParameters extends BinaryParameters {
   prefix?: string;
+  contentStorage?: {
+    register?: boolean;
+    default?: boolean;
+  } = { register: true, default: false };
 
   /**
    * Load parameters with an empty prefix default
@@ -16,6 +29,10 @@ export class CloudBinaryParameters extends BinaryParameters {
   load(params: any): this {
     super.load(params);
     this.prefix ??= "";
+    this.contentStorage = {
+      register: params?.contentStorage?.register ?? true,
+      default: params?.contentStorage?.default ?? false
+    };
     return this;
   }
 }
@@ -23,7 +40,77 @@ export class CloudBinaryParameters extends BinaryParameters {
 /**
  * CloudBinary abstraction
  */
-export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryParameters> extends BinaryService<T> {
+export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryParameters>
+  extends BinaryService<T>
+  implements ContentStorage
+{
+  /**
+   * Schemes handled, without ':' e.g. ["s3"], ["gs", "gcs"]
+   */
+  abstract readonly schemes: string[];
+
+  /**
+   * Get content read stream
+   */
+  abstract getContent(url: string, options?: ContentGetOptions): Promise<Readable>;
+
+  /**
+   * Put content stream, buffer or string
+   */
+  abstract putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo>;
+
+  /**
+   * Head content metadata
+   */
+  headContent?(url: string): Promise<ContentInfo | undefined>;
+
+  /**
+   * Delete content
+   */
+  deleteContent?(url: string): Promise<void>;
+
+  /**
+   * Get bucket to register in ContentStorages
+   * @returns bucket name or undefined
+   */
+  getContentBucket(): string | undefined {
+    return (this.parameters as any).bucket;
+  }
+
+  /**
+   * Build <scheme>://<bucket>/<key>
+   * @param key - object key
+   * @returns content URL
+   */
+  protected getContentUrl(key: string): string {
+    const scheme = this.schemes[0] || "s3";
+    const bucket = this.getContentBucket();
+    const cleanKey = key.replace(/^\/+/, "");
+    return bucket ? `${scheme}://${bucket}/${cleanKey}` : `${scheme}:/${cleanKey}`;
+  }
+
+  /**
+   * @override
+   */
+  async init(): Promise<this> {
+    await super.init();
+    if (this.parameters.contentStorage?.register !== false) {
+      ContentStorages.register(this, {
+        bucket: this.getContentBucket(),
+        default: this.parameters.contentStorage?.default
+      });
+    }
+    return this;
+  }
+
+  /**
+   * @override
+   */
+  async stop(): Promise<void> {
+    ContentStorages.unregister(this);
+    await super.stop();
+  }
+
   /**
    * Get a UrlFromObject
    *
@@ -44,7 +131,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    */
   _getKey(hash: string, suffix: string = "data"): string {
     // Object storage keys always use "/", whatever the platform
-    return posix.join(`${this.parameters.prefix}`, hash, suffix);
+    return posix.join(this.parameters.prefix || "", hash, suffix);
   }
 
   /**

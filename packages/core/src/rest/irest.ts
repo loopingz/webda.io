@@ -4,6 +4,7 @@ import { HttpMethodType } from "../contexts/httpcontext.js";
 import { createMethodDecorator, DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext.js";
 import type { Repository } from "@webda/models";
+import type { RouteAliasDefinition, RouteAliasMode } from "./router.service.js";
 
 /**
  * Define overridable OpenAPI description
@@ -210,6 +211,26 @@ export interface IRouter {
   registerRequestFilter(filter: RequestFilter);
   registerCORSFilter(filter: CORSFilter);
   execute(context: IWebContext): Promise<void>;
+  /**
+   * Add a route alias dynamically
+   */
+  addAlias(url: string, def: string | RouteAliasDefinition): void;
+  /**
+   * Remove a route alias dynamically
+   */
+  removeAlias(url: string): void;
+  /**
+   * Return all registered route aliases
+   */
+  getAliases(): Record<string, RouteAliasDefinition>;
+  /**
+   * Resolve an incoming URL against route aliases
+   */
+  resolveAlias(
+    ctx: IWebContext,
+    method: HttpMethodType,
+    url: string
+  ): { alias: string; url: string; mode: RouteAliasMode; redirectCode?: number } | undefined;
   /**
    * Auto-discover services with request-filter and cors-filter capabilities
    */

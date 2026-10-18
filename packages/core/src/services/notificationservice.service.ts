@@ -1,4 +1,4 @@
-import { ServiceName, useDynamicService, useService } from "../core/hooks.js";
+import { ServiceName, useDynamicService } from "../core/hooks.js";
 import { AbstractService } from "../core/icore.js";
 import type { Ident } from "../models/ident.model.js";
 import type { User } from "../models/user.model.js";

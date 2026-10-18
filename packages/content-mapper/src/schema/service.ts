@@ -80,6 +80,33 @@ export function findParametersNode(
 }
 
 /**
+ * Find a model or behavior's static Parameters declaration, including inherited declarations.
+ * @param declaration - configurable class
+ * @param checker - type checker
+ * @param project - active project
+ * @returns parameter class declaration
+ */
+export function findStaticParametersDeclaration(
+  declaration: ClassDeclaration,
+  checker: Checker,
+  project: Project
+): ClassDeclaration | undefined {
+  for (const cls of classChain(declaration, checker, project)) {
+    for (const member of cls.members) {
+      if (
+        !is.isPropertyDeclaration(member) ||
+        !is.isIdentifier(member.name) ||
+        member.name.text !== "Parameters" ||
+        !member.modifiers?.some(modifier => modifier.kind === SyntaxKind.StaticKeyword)
+      )
+        continue;
+      return resolveClass(checker.getTypeAtLocation(member.initializer ?? member), project);
+    }
+  }
+  return undefined;
+}
+
+/**
  * Generate a service's `Schema` entry.
  * @param declaration - the service class
  * @param options - checker, project and post-processing switches

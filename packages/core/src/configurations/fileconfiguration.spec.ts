@@ -4,7 +4,7 @@ import { existsSync, unlinkSync, writeFileSync } from "fs";
 import { WebdaApplicationTest } from "../test/application.js";
 import { getCommonJS } from "@webda/utils";
 import { FileConfigurationService } from "./fileconfiguration.service.js";
-import { useDynamicService, useService } from "../core/hooks.js";
+import { useDynamicService } from "../core/hooks.js";
 import { useCoreEvents } from "../events/events.js";
 const { __dirname } = getCommonJS(import.meta.url);
 

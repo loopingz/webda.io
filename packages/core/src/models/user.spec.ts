@@ -1,9 +1,9 @@
-import { beforeAll, suite, test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { User } from "./user.model.js";
 import { SimpleUser } from "./simpleuser.model.js";
 import { WebdaApplicationTest } from "../test/application";
-import { MemoryRepository, registerRepository, useRepository } from "@webda/models";
+import { MemoryRepository, registerRepository } from "@webda/models";
 
 @suite
 class UserTest extends WebdaApplicationTest {

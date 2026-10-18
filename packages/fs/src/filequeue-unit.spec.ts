@@ -211,6 +211,72 @@ class FileQueueUnitTest {
   }
 
   @test
+  defaultWaitParameters() {
+    const params = new FileQueueParameters().load({ folder: this.tmpDir });
+    assert.strictEqual(params.timeout, 10);
+    assert.strictEqual(params.pollInterval, 100);
+    const custom = new FileQueueParameters().load({ folder: this.tmpDir, timeout: 0, pollInterval: 5 });
+    assert.strictEqual(custom.timeout, 0);
+    assert.strictEqual(custom.pollInterval, 5);
+  }
+
+  @test
+  async emptyQueueReturnsAfterTimeout() {
+    const queue = createFileQueue(this.tmpDir, { timeout: 0.05, pollInterval: 10 });
+    let start = Date.now();
+    assert.deepStrictEqual(await queue.receiveMessage(), []);
+    const elapsed = Date.now() - start;
+    assert.ok(elapsed >= 40 && elapsed < 1000, `waited ${elapsed}ms, expected about 50ms`);
+    // No wait at all with a zero timeout
+    const noWait = createFileQueue(this.tmpDir, { timeout: 0 });
+    start = Date.now();
+    assert.deepStrictEqual(await noWait.receiveMessage(), []);
+    assert.ok(Date.now() - start < 40);
+  }
+
+  @test
+  async waitingReceiverWokenUpBySend() {
+    // A poll interval longer than the test: only the wake-up can deliver the message in time
+    const queue = createFileQueue(this.tmpDir, { timeout: 5, pollInterval: 60000 });
+    const start = Date.now();
+    setTimeout(() => queue.sendMessage({ wake: "up" }), 20);
+    const messages = await queue.receiveMessage();
+    assert.deepStrictEqual(
+      messages.map(m => m.Message),
+      [{ wake: "up" }]
+    );
+    assert.ok(Date.now() - start < 1000, "the receiver should not wait for the poll interval");
+    assert.strictEqual(queue["waiters"].size, 0, "waiters are removed once woken up");
+  }
+
+  @test
+  async waitingReceiverPicksUpMessagesOfOtherProcesses() {
+    const receiver = createFileQueue(this.tmpDir, { timeout: 5, pollInterval: 20 });
+    // Another service on the same folder, like another process: it cannot wake the receiver up
+    const sender = createFileQueue(this.tmpDir);
+    const start = Date.now();
+    setTimeout(() => sender.sendMessage({ from: "other" }), 30);
+    const messages = await receiver.receiveMessage();
+    assert.deepStrictEqual(
+      messages.map(m => m.Message),
+      [{ from: "other" }]
+    );
+    assert.ok(Date.now() - start < 1000, "the message should be picked up by the next poll");
+  }
+
+  @test
+  async concurrentWaitingReceivers() {
+    const queue = createFileQueue(this.tmpDir, { timeout: 5, pollInterval: 60000 });
+    const receivers = [queue.receiveMessage(), queue.receiveMessage()];
+    await new Promise(resolve => setTimeout(resolve, 10));
+    assert.strictEqual(queue["waiters"].size, 2);
+    await queue.sendMessage({ n: 1 });
+    await queue.sendMessage({ n: 2 });
+    const received = (await Promise.all(receivers)).map(messages => messages[0]?.Message?.n).sort();
+    assert.deepStrictEqual(received, [1, 2]);
+  }
+
+  @test
   async sizeIgnoresNonJsonFiles() {
     fs.writeFileSync(path.join(this.tmpDir, "notjson.txt"), "hello");
     fs.writeFileSync(path.join(this.tmpDir, "test.json.lock"), "lock");

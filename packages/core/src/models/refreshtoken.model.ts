@@ -1,5 +1,5 @@
 import { Model, WEBDA_PRIMARY_KEY } from "@webda/models";
-import type { MfaState } from "../session/session.js";
+import type { MfaState, MfaVerification } from "../session/session.js";
 
 /**
  * Stored refresh token (only its SHA-256 hash)
@@ -19,6 +19,8 @@ export class RefreshToken extends Model {
   amr: string[] = [];
   /** MFA state of the session that issued the token */
   mfa: MfaState = "none";
+  /** Scoped MFA verifications; refreshing does not advance their timestamps. */
+  mfaVerifications?: Record<string, MfaVerification>;
   /** Rotation family */
   family: string;
   /** Expiry, ms since epoch */
@@ -27,4 +29,18 @@ export class RefreshToken extends Model {
   rotatedAt?: number;
   /** Set when revoked */
   revokedAt?: number;
+  /** OAuth client the token was issued to */
+  clientId?: string;
+  /** Granted scope (space-separated) */
+  scope?: string;
+  /** Display name, e.g. "webda-cli on remi-mbp" */
+  name?: string;
+  /** Creation of the family, ms since epoch: carried across rotations */
+  createdAt?: number;
+  /** Last refresh, ms since epoch */
+  lastUsedAt?: number;
+  /** Access token lifetime of the family (s), when it overrides the TokenService one */
+  accessTtl?: number;
+  /** Refresh token lifetime of the family (s), when it overrides the TokenService one */
+  refreshTtl?: number;
 }

@@ -5,7 +5,6 @@ import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
 import { useApplication } from "../application/hooks.js";
 import { Application } from "../application/application.js";
-import { useModel } from "../application/hooks.js";
 
 @suite
 class Schema {

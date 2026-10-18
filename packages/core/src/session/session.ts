@@ -5,6 +5,13 @@ import { NotEnumerable } from "@webda/tsc-esm";
  */
 export type MfaState = "none" | "pending" | "verified";
 
+/** Verification of one MFA operation on one owner, with its original timestamp. */
+export interface MfaVerification {
+  method: string;
+  verifiedAt: number;
+  owner: string;
+}
+
 /**
  * Options for {@link Session.login}
  */
@@ -12,6 +19,7 @@ export interface LoginOptions {
   provider?: string;
   amr?: string[];
   mfa?: MfaState;
+  mfaVerifications?: Record<string, MfaVerification>;
 }
 
 /**
@@ -74,10 +82,15 @@ export class Session {
    */
   amr?: string[];
 
+  /** Authentication methods verified only for this request */
+  @NotEnumerable
+  transientAmr?: string[];
+
   /**
    * MFA state of the session
    */
   mfa?: MfaState;
+  mfaVerifications?: Record<string, MfaVerification>;
 
   /**
    * Refresh token family identifier
@@ -89,6 +102,17 @@ export class Session {
    * the last password change of its user is loaded as anonymous
    */
   authAt?: number;
+
+  /**
+   * Operation globs the bearer token is restricted to (OAuth scope); undefined means unrestricted. Never set on
+   * cookie sessions.
+   */
+  scopes?: string[];
+
+  /**
+   * OAuth client the bearer token was issued to
+   */
+  clientId?: string;
 
   /**
    * Application (workload) identity when authenticated by OIDC: mutually exclusive with userId
@@ -115,7 +139,9 @@ export class Session {
     this.identUsed = identUsed;
     this.provider = options.provider;
     this.amr = options.amr ?? [];
+    delete this.transientAmr;
     this.mfa = options.mfa ?? "none";
+    this.mfaVerifications = options.mfaVerifications ?? {};
   }
   /**
    * Login an application (workload identity): the session becomes stateless and has no user
@@ -149,9 +175,13 @@ export class Session {
     delete this.roles;
     delete this.provider;
     delete this.amr;
+    delete this.transientAmr;
     delete this.mfa;
+    delete this.mfaVerifications;
     delete this.refreshFamily;
     delete this.authAt;
+    delete this.scopes;
+    delete this.clientId;
   }
 
   /**
@@ -176,6 +206,21 @@ export class Session {
    */
   isDirty(): boolean {
     return this.changed;
+  }
+
+  /**
+   * Add a method proved only for the current request.
+   * @param method - authentication method
+   */
+  addTransientAmr(method: string): void {
+    if (this.amr?.includes(method)) return;
+    this.amr = [...(this.amr ?? []), method];
+    this.transientAmr = [...(this.transientAmr ?? []), method];
+  }
+
+  /** @returns authentication methods safe to persist in a cookie or token */
+  getPersistentAmr(): string[] {
+    return (this.amr ?? []).filter(method => !this.transientAmr?.includes(method));
   }
 
   /**

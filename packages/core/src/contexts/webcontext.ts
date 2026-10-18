@@ -414,7 +414,11 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
     }
     await super.flushHeaders();
     // Write to ServerResponse if the stream supports writeHead (not a WritableStreamBuffer)
-    if (this._stream && !(this._stream instanceof WritableStreamBuffer) && typeof (this._stream as any).writeHead === "function") {
+    if (
+      this._stream &&
+      !(this._stream instanceof WritableStreamBuffer) &&
+      typeof (this._stream as any).writeHead === "function"
+    ) {
       this.headersFlushed = true;
       (this._stream as any).writeHead(this.statusCode || 200, headers);
     }

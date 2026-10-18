@@ -78,8 +78,7 @@ export type Serializer<T = any> = {
    * ```
    */
   constructorType:
-    | (Constructor<T> & { deserialize?: (obj: any, metadata: any, context: SerializerContext) => T })
-    | null;
+    (Constructor<T> & { deserialize?: (obj: any, metadata: any, context: SerializerContext) => T }) | null;
   /**
    * Converts an object to a JSON-compatible representation.
    *

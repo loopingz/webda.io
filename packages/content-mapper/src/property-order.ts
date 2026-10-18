@@ -110,7 +110,12 @@ function orderedNames(ctx: AnalysisContext, type: Type | undefined, depth = 0): 
 
   for (const handle of symbol.declarations ?? []) {
     const declaration = handle.resolve(ctx.project);
-    if (declaration && (is.isClassDeclaration(declaration) || is.isInterfaceDeclaration(declaration) || is.isClassExpression(declaration))) {
+    if (
+      declaration &&
+      (is.isClassDeclaration(declaration) ||
+        is.isInterfaceDeclaration(declaration) ||
+        is.isClassExpression(declaration))
+    ) {
       ownNames(declaration).forEach(add);
     }
   }

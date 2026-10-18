@@ -1004,9 +1004,26 @@
             "description": "Number of items to retrieve per scan page",
             "type": "number"
           },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
           "slowQueryThreshold": {
             "default": 30000,
-            "description": "Slow query threshold",
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
             "type": "number"
           },
           "strict": {
@@ -1270,6 +1287,49 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
+          "Record<string, { accessKeyId: string | SecretString; secretAccessKey: string | SecretString; sessionToken?: string | SecretString; }>": {
+            "additionalProperties": {
+              "$ref": "#/definitions/credentialProfiles%24%5Bkey%3A%20string%5D"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "contentStorage": {
+            "additionalProperties": false,
+            "properties": {
+              "default": {
+                "default": false,
+                "type": "boolean"
+              },
+              "register": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "credentialProfiles$[key: string]": {
+            "additionalProperties": false,
+            "properties": {
+              "accessKeyId": {
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "secretAccessKey": {
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "sessionToken": {
+                "type": "string",
+                "x-webda-secret": true
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          },
           "credentials": {
             "additionalProperties": false,
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
@@ -1317,6 +1377,13 @@
           "bucket": {
             "description": "Bucket to store the binaries in",
             "type": "string"
+          },
+          "contentStorage": {
+            "$ref": "#/definitions/contentStorage"
+          },
+          "credentialProfiles": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20%7B%20accessKeyId%3A%20string%20%7C%20SecretString%3B%20secretAccessKey%3A%20string%20%7C%20SecretString%3B%20sessionToken%3F%3A%20string%20%7C%20SecretString%3B%20%7D%3E",
+            "description": "Named credentials selectable through `?credential=<name>` in content URLs."
           },
           "credentials": {
             "$ref": "#/definitions/credentials",
@@ -1444,9 +1511,22 @@
             "description": "Custom endpoint (localstack, minio, ...)",
             "type": "string"
           },
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
           "maxConsumers": {
             "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
           "queue": {

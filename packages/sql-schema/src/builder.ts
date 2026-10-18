@@ -164,7 +164,6 @@ class PlanBuilder {
   private readonly models: { [identifier: string]: ModelPlan } = {};
   private readonly modelColumns = new Map<string, Set<string>>();
   private readonly warnings: SchemaWarning[] = [];
-  private readonly warned = new Set<string>();
 
   /**
    * @param layout - the layout options
@@ -281,13 +280,9 @@ class PlanBuilder {
    * @param attribute - the attribute
    * @param message - the message
    */
-  private warn(code: SchemaWarning["code"], meta: SchemaModelMetadata, attribute: string | undefined, message: string) {
-    const key = `${code}:${meta.Identifier}:${attribute}`;
-    if (this.warned.has(key)) {
-      return;
-    }
-    this.warned.add(key);
-    this.warnings.push({ code, model: meta.Identifier, ...(attribute ? { attribute } : {}), message });
+  private warn(code: SchemaWarning["code"], meta: SchemaModelMetadata, attribute: string, message: string) {
+    // Each model/attribute is visited once by buildTable.
+    this.warnings.push({ code, model: meta.Identifier, attribute, message });
   }
 
   /**
@@ -711,9 +706,7 @@ class PlanBuilder {
    */
   private addIndex(table: string, columns: string[], unique: boolean): void {
     const name = constraintName(unique ? "uq" : "idx", table, columns);
-    if (!this.indexes.has(name)) {
-      this.indexes.set(name, { name, table, columns, unique });
-    }
+    this.indexes.set(name, { name, table, columns, unique });
   }
 
   /**
@@ -923,7 +916,7 @@ class PlanBuilder {
         return;
       }
       state.set(name, "visiting");
-      for (const dependency of dependencies.get(name) ?? []) {
+      for (const dependency of dependencies.get(name)!) {
         visit(dependency);
       }
       state.set(name, "done");

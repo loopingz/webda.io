@@ -1,3 +1,5 @@
+import { mapScalar, widestType } from "./columns.js";
+import { declaredRelations } from "./metadata.js";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -728,4 +730,123 @@ describe("RelationalSchemaBuilder", () => {
       }
     });
   }
+});
+
+describe("relational metadata boundary cases", () => {
+  it("types recursive primary-key references without recursing forever", () => {
+    const plan = buildSchemaPlan([
+      model(
+        "App/Recursive",
+        { owner: { type: "object" } },
+        { PrimaryKey: ["owner"], ...links(link("owner", "App/Recursive")) }
+      )
+    ]);
+    expect(plan.tables[0].primaryKey).toEqual(["owner"]);
+    expect(plan.tables[0].columns[0].type).toEqual({ kind: "text" });
+  });
+
+  it("uses text references for external models with missing keys and unknown junction targets", () => {
+    const external = model("External/NoKey", {}, { PrimaryKey: undefined });
+    const plan = buildSchemaPlan(
+      [
+        model(
+          "App/Owner",
+          { uuid, ref: { type: "object" }, refs: { type: "array" } },
+          links(link("ref", "External/NoKey"), link("refs", undefined, "LINKS_ARRAY"))
+        )
+      ],
+      { knownModels: [external] }
+    );
+    expect(plan.tables.find(t => t.name === "app_owner")!.columns.find(c => c.name === "ref")!.type).toEqual({
+      kind: "text"
+    });
+    expect(plan.tables.find(t => t.junction)!.columns.some(c => c.role === "target" && c.type.kind === "text")).toBe(
+      true
+    );
+    expect(
+      buildSchemaPlan([
+        model("App/Owner", { uuid, ref: { type: "object" } }, links(link("ref", undefined)))
+      ]).tables[0].columns.find(c => c.name === "ref")!.type
+    ).toEqual({ kind: "text" });
+  });
+
+  it("merges shared enum columns and keeps wider parent types", () => {
+    const plan = buildSchemaPlan([
+      model("App/Base", { uuid, value: { type: "string", maxLength: 30, enum: ["a"] } }),
+      model("App/Child", { uuid, value: { type: "string", maxLength: 10, enum: ["b"] } }, { Ancestors: ["App/Base"] })
+    ]);
+    expect(plan.tables[0].columns.find(c => c.name === "value")).toMatchObject({
+      type: { kind: "varchar", length: 30 },
+      enum: ["a", "b"]
+    });
+    expect(widestType({ kind: "text" }, { kind: "varchar", length: 10 })).toEqual({ kind: "text" });
+  });
+
+  it("types external composite keys and composite junction targets", () => {
+    for (const separator of [undefined, ":"]) {
+      const target = model(
+        "External/Composite",
+        { a: uuid, b: uuid },
+        { PrimaryKey: ["a", "b"], PrimaryKeySeparator: separator }
+      );
+      const owner = model(
+        "App/Owner",
+        { uuid, ref: uuid, refs: { type: "array" } },
+        links(link("ref", target.Identifier), link("refs", target.Identifier, "LINKS_SIMPLE_ARRAY"))
+      );
+      const plan = buildSchemaPlan([owner], { knownModels: [target] });
+      expect(plan.relations.find(r => r.attribute === "ref")!.keySeparator).toBe(separator ?? "_");
+      expect(
+        plan.tables
+          .find(t => t.junction)!
+          .columns.filter(c => c.role === "target")
+          .map(c => c.keyPart)
+      ).toEqual(["a", "b"]);
+    }
+  });
+
+  it("rejects junction attribute collisions and preserves their enums", () => {
+    const owner = (properties: any) =>
+      model(
+        "App/Owner",
+        { uuid, refs: { type: "array", items: { type: "object", properties, required: Object.keys(properties) } } },
+        links(link("refs", "App/Target", "LINKS_ARRAY"))
+      );
+    const target = model("App/Target", { uuid });
+    expect(() => buildSchemaPlan([owner({ owner: uuid }), target])).toThrow(/conflicts with the junction column/);
+    const plan = buildSchemaPlan([owner({ status: { type: "string", enum: ["a", "b"] } }), target]);
+    expect(plan.tables.find(t => t.junction)!.columns.find(c => c.name === "status")!.enum).toEqual(["a", "b"]);
+  });
+
+  it("ignores unknown link kinds and null-only union branches", () => {
+    expect(declaredRelations(model("App/M", { uuid }, links(link("x", "App/M", "FUTURE_KIND")))).size).toBe(0);
+    expect(
+      mapScalar({ anyOf: [{ const: null }, { type: "string" }] }, undefined, {
+        columnNaming: "preserve",
+        extraColumn: "_extra",
+        foreignKeys: true,
+        numericAsDecimal: false
+      })
+    ).toMatchObject({ type: { kind: "text" }, nullable: true });
+  });
+});
+
+describe("compound reference identities", () => {
+  it("derives separators when one logical key expands into several physical columns", () => {
+    const composite = model("App/Composite", { a: uuid, b: uuid }, { PrimaryKey: ["a", "b"] });
+    const indirect = model(
+      "App/Indirect",
+      { ref: uuid },
+      { PrimaryKey: ["ref"], ...links(link("ref", "App/Composite")) }
+    );
+    const owner = model("App/Owner", { uuid, ref: uuid }, links(link("ref", "App/Indirect")));
+    const plan = buildSchemaPlan([composite, indirect, owner]);
+    expect(plan.relations.find(r => r.model === "App/Owner")!.keySeparator).toBe("_");
+  });
+
+  it("does not duplicate the discriminator when metadata includes it as its only key", () => {
+    const plan = buildSchemaPlan([model("App/Singleton", { __type: uuid }, { PrimaryKey: ["__type"] })]);
+    expect(plan.tables[0].columns.filter(c => c.name === "__type")).toHaveLength(1);
+    expect(plan.models["App/Singleton"].columns).toContain("__type");
+  });
 });

@@ -325,3 +325,36 @@ describe("planHash", () => {
     );
   });
 });
+
+describe("persisted plan compatibility boundaries", () => {
+  it("reports role changes even when one side has no logical field name", () => {
+    const before = buildSchemaPlan([user]);
+    const after = structuredClone(before);
+    after.tables[0].columns[0].role = "target";
+    after.tables[0].columns[0].field = "";
+    expect(
+      compareSchemaPlans([{ version: "live", plan: before }], after).some(c => c.code === "COLUMN_ROLE_CHANGED")
+    ).toBe(true);
+    expect(
+      compareSchemaPlans([{ version: "live", plan: after }], before).some(c => c.code === "COLUMN_ROLE_CHANGED")
+    ).toBe(true);
+  });
+
+  it("reports junction and missing delete-policy changes in both directions", () => {
+    const before = buildSchemaPlan(
+      post({ author: { type: "string" } }, { Relations: { parent: { attribute: "author", model: "MyApp/User" } } })
+    );
+    const after = structuredClone(before);
+    after.relations[0].storage = { kind: "junction", table: "different_junction" };
+    delete after.relations[0].onDelete;
+    expect(
+      compareSchemaPlans([{ version: "live", plan: before }], after).some(c => c.code === "RELATION_KIND_CHANGED")
+    ).toBe(true);
+    expect(
+      compareSchemaPlans([{ version: "live", plan: before }], after).some(c => c.code === "DELETE_POLICY_CHANGED")
+    ).toBe(true);
+    expect(
+      compareSchemaPlans([{ version: "live", plan: after }], before).some(c => c.code === "DELETE_POLICY_CHANGED")
+    ).toBe(true);
+  });
+});

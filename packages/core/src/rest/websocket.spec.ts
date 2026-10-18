@@ -240,6 +240,23 @@ class WebSocketOperationTest extends WebdaApplicationTest {
   }
 
   @test
+  async refusesUpgradesRejectedByRequestFilters() {
+    const url = await this.url();
+    const router = useRouter();
+    const check = router.checkRequest;
+    router.checkRequest = async () => false;
+    try {
+      const ws = new WebSocket(`ws://${url}/ws/connect`);
+      const status = await new Promise<number>(resolve =>
+        ws.on("unexpected-response", (_req, res) => resolve(res.statusCode!))
+      );
+      assert.strictEqual(status, 403);
+    } finally {
+      router.checkRequest = check;
+    }
+  }
+
+  @test
   async refusesAForbiddenUpgrade() {
     const ws = new WebSocket(`ws://${await this.url()}/ws/guarded`);
     const status = await new Promise<number>(resolve =>

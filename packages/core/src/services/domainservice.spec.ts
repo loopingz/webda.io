@@ -597,6 +597,21 @@ class DomainServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async modelActionFeatureFlagsAreRegistered() {
+    const { Classroom } = this.setupClassroomRepos();
+    const metadata = useModelMetadata(Classroom);
+    metadata.Actions["flaggedAction"] = { handler: "test", featureFlag: "classroom-action" } as any;
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      assert.strictEqual((listOperations()["Classroom.FlaggedAction"] as any).featureFlag, "classroom-action");
+    } finally {
+      delete metadata.Actions["flaggedAction"];
+      delete getStorage().operations["Classroom.FlaggedAction"];
+    }
+  }
+
+  @test
   async modelActionNamed() {
     // `@Action({ name: "exposed" })` on a method `test`: the compiler keys the
     // action by its name and records the method as `handler`

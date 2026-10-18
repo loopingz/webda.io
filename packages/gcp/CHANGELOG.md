@@ -117,6 +117,90 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.10...gcp-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.11
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.9...gcp-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **bench:** benchmarks for Store, Queue, Pub/Sub and the blog-system application ([#914](https://github.com/loopingz/webda.io/issues/914)) ([#916](https://github.com/loopingz/webda.io/issues/916)) ([aed07ef](https://github.com/loopingz/webda.io/commit/aed07ef3efe25cfd6957eb007a3216e181be7681))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.10
+    * @webda/compiler bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.8...gcp-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/ql bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.7...gcp-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.6...gcp-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* stable and documented configuration secret encryption ([#837](https://github.com/loopingz/webda.io/issues/837)) ([55fad94](https://github.com/loopingz/webda.io/commit/55fad94e96537c0b44ade1cdfb88e4b5e6c6035b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.5...gcp-v4.0.0-beta.6) (2026-10-09)
 
 

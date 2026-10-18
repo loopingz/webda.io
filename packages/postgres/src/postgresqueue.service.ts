@@ -48,6 +48,7 @@ export class PostgresQueueParameters extends QueueParameters {
    * to PG* environment variables.
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret password,connectionString
    */
   postgresqlServer?: ClientConfig | PoolConfig;
   /**
@@ -211,7 +212,7 @@ export default class PostgresQueueService<
     );
     return res.rows.map(row => ({
       ReceiptHandle: row.id,
-      Message: proto ? Object.assign(new proto(), row.payload) : (row.payload as L)
+      Message: proto ? Object.assign(new proto() as L & object, row.payload) : (row.payload as L)
     }));
   }
 

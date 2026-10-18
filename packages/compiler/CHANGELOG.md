@@ -1,5 +1,81 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.10...compiler-v4.0.0-beta.11) (2026-10-16)
+
+
+### Features
+
+* **core:** apply webda.cli include/exclude to operation commands ([#931](https://github.com/loopingz/webda.io/issues/931)) ([7907541](https://github.com/loopingz/webda.io/commit/7907541c29b4c78c76ff1255a79974ca7e610d62))
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.9...compiler-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+* **compiler:** auto add schema to config and deployment files ([#551](https://github.com/loopingz/webda.io/issues/551)) ([#906](https://github.com/loopingz/webda.io/issues/906)) ([4d96ba8](https://github.com/loopingz/webda.io/commit/4d96ba85bb443f4ab888a12df77579c26cdfb427))
+* webda.cli in package.json — command selection, runCli and a generated app executable ([#927](https://github.com/loopingz/webda.io/issues/927)) ([10f68c6](https://github.com/loopingz/webda.io/commit/10f68c658f417cc102cab45f235ca82aa8d6d345))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.8...compiler-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* **sdk:** typed frontend SDK over REST, GraphQL, gRPC and offline ([#850](https://github.com/loopingz/webda.io/issues/850)) ([#885](https://github.com/loopingz/webda.io/issues/885)) ([4d68a6a](https://github.com/loopingz/webda.io/commit/4d68a6ade4e5a12c3a836979dd04f5184b172b72))
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.7...compiler-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.7
+
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.6...compiler-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* **core:** pki configuration encrypter and default encrypter ([#851](https://github.com/loopingz/webda.io/issues/851)) ([8777e06](https://github.com/loopingz/webda.io/commit/8777e063e1f4ef580cb21b447e63ff6e1d7e973c))
+
+
+### Bug Fixes
+
+* publish webda.module.json with debug, models, cloudevents and compiler ([#849](https://github.com/loopingz/webda.io/issues/849)) ([db9e967](https://github.com/loopingz/webda.io/commit/db9e967c2da4dc5d2e116a2a6d62c9cb46853fac))
+* support Windows paths when loading and building modules ([#827](https://github.com/loopingz/webda.io/issues/827)) ([0d88747](https://github.com/loopingz/webda.io/commit/0d8874761196fcf09ac72bf9dc5bb31f8cfb87e1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.5...compiler-v4.0.0-beta.6) (2026-10-09)
 
 

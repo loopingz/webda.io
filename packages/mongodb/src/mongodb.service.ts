@@ -32,6 +32,7 @@ export class MongoParameters extends StoreParameters {
    * https://docs.mongodb.com/manual/reference/connection-string
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret auth.password,tlsCertificateKeyFilePassword
    */
   options?: any;
   /**
@@ -166,7 +167,7 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   protected toDocument(
     item: any,
     key: string,
-    fallbackType: string | undefined = (this.model as any).Metadata?.Identifier
+    fallbackType: string | null | undefined = (this.model as any).Metadata?.Identifier
   ): any {
     const doc = JSON.parse(JSON.stringify(item));
     doc._id = key;
@@ -254,7 +255,7 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
       try {
         await (await this.getCollection()).insertOne(this.toDocument(item, key));
       } catch (err) {
-        if (err?.code === 11000) {
+        if (typeof err === "object" && err !== null && "code" in err && err.code === 11000) {
           throw new Error(`Already exists: ${key}`);
         }
         throw err;
@@ -643,13 +644,13 @@ export class MongoStore<K extends MongoParameters = MongoParameters> extends Sto
   /**
    * Connect promise
    */
-  protected _connectPromise: Promise<Collection<Document>> = undefined;
+  protected _connectPromise?: Promise<Collection<Document>>;
   /**
    * Client
    */
-  _client: MongoClient;
-  _db: Db;
-  _collection: Collection<Document>;
+  _client?: MongoClient;
+  _db?: Db;
+  _collection?: Collection<Document>;
 
   /**
    * Connect to MongoDB if not already connected

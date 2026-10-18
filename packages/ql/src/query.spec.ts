@@ -23,7 +23,7 @@ const targets = [
 class QueryTest {
   @test
   dev() {
-    const queryMap = {
+    const queryMap: Record<string, string | boolean | null> = {
       "a = 1 AND b = 2 AND c = 3 AND d = 4": "a = 1 AND b = 2 AND c = 3 AND d = 4",
       "a = 1 AND (b = 2 AND c = 3) AND d = 4": "a = 1 AND b = 2 AND c = 3 AND d = 4",
       "a = 1 AND ((b = 2 AND c = 3) AND d = 4)": "a = 1 AND b = 2 AND c = 3 AND d = 4",
@@ -82,7 +82,7 @@ class QueryTest {
   prependQuery() {
     // merge method is tested through the prependQuery helper
 
-    const strictEqual = (arg1, arg2) => {
+    const strictEqual = (arg1: string, arg2: string) => {
       // Ensure it is parsable
       new WebdaQL.QueryValidator(arg1);
       assert.deepStrictEqual(arg1, arg2);
@@ -437,7 +437,7 @@ class QueryTest {
     const tree = parser.webdaql();
 
     const visited: string[] = [];
-    const listener: WebdaQLParserListener = {};
+    const listener: WebdaQLParserListener & Record<string, () => void> = {};
     // Dynamically add all enter/exit methods to track visits
     for (const rule of parser.ruleNames) {
       const capitalized = rule.charAt(0).toUpperCase() + rule.slice(1);
@@ -462,6 +462,7 @@ class QueryTest {
     // Access children of the parse tree: a plain filter query, not a statement
     assert.strictEqual(tree.statement(), undefined);
     const filterQuery = tree.filterQuery();
+    assert.ok(filterQuery);
     assert.ok(filterQuery.expression());
     const orderExpr = filterQuery.orderExpression();
     assert.ok(orderExpr);

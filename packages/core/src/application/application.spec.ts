@@ -1,11 +1,15 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as path from "path";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { Application, UnpackedApplication, useApplication, validateModelSchema } from "../index.js";
 import { CoreModel } from "../models/coremodel.model.js";
 import { User } from "../models/user.model.js";
 import { WebdaInternalTest, TestInternalApplication } from "../test/internal.js";
 import { FileUtils, getCommonJS } from "@webda/utils";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
+import { useLogger } from "../loggers/hooks.js";
 import { TestApplication } from "../test/objects.js";
 import { WebdaApplicationTest } from "../test/application.js";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -91,7 +95,11 @@ class ApplicationTest extends WebdaInternalTest {
     assert.strictEqual(app.getSchema("fake"), 666);
     // "?" suffix should return schema without required
     // @ts-ignore
-    app.baseConfiguration.cachedModules.schemas["typed"] = { type: "object", properties: { a: { type: "string" } }, required: ["a"] };
+    app.baseConfiguration.cachedModules.schemas["typed"] = {
+      type: "object",
+      properties: { a: { type: "string" } },
+      required: ["a"]
+    };
     const optional = app.getSchema("typed?");
     assert.ok(optional);
     assert.strictEqual(optional.required, undefined);
@@ -207,6 +215,75 @@ class ApplicationTest extends WebdaInternalTest {
   }
 
   @test
+  async loadModuleResolvesDependencyFilesLikeNode() {
+    // The compiler writes a dependency's file as `node_modules/<package>/<path>`, relative to the module folder.
+    // In a pnpm (or Bazel rules_js) layout the dependency is not nested in the package: it is a sibling, found
+    // like Node does, in the node_modules of a parent folder
+    const root = mkdtempSync(path.join(tmpdir(), "webda-module-"));
+    const modules = path.join(root, "node_modules");
+    const write = (file: string, content: string) => {
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, content);
+    };
+    write(path.join(modules, "dep-params", "package.json"), JSON.stringify({ name: "dep-params", type: "module" }));
+    write(
+      path.join(modules, "dep-params", "lib", "params.js"),
+      "export class DepParams { load(p) { Object.assign(this, p); return this; } }"
+    );
+    const moduleDir = path.join(modules, "mod");
+    write(path.join(moduleDir, "package.json"), JSON.stringify({ name: "mod", type: "module" }));
+    write(path.join(moduleDir, "lib", "svc.js"), "export class Svc {}");
+    const app = new TestInternalApplication(__dirname + "/../../test/config.json");
+    const logs = new MemoryLogger(app.getWorkerOutput(), "ERROR");
+    try {
+      await app.loadModule(
+        <any>{
+          moddas: {
+            "Test/PnpmLayout": {
+              Import: "lib/svc:Svc",
+              Configuration: "node_modules/dep-params/lib/params:DepParams"
+            }
+          },
+          models: {},
+          schemas: {}
+        },
+        moduleDir
+      );
+      assert.deepStrictEqual(
+        logs.getMessages().map(m => m.log?.args.join(" ")),
+        []
+      );
+      const modda: any = app.getModdas()["Test/PnpmLayout"];
+      assert.strictEqual(modda.createConfiguration({}).constructor.name, "DepParams");
+      // The webda.module.json of a dependency is rebased on the application folder: same lookup
+      const moduleFile = path.join(moduleDir, "webda.module.json");
+      writeFileSync(
+        moduleFile,
+        JSON.stringify({
+          $schema: "https://webda.io/schemas/webda.module.v4.json",
+          moddas: {
+            "Test/PnpmLayout": {
+              Import: "lib/svc:Svc",
+              Configuration: "node_modules/dep-params/lib/params:DepParams"
+            }
+          },
+          models: {},
+          schemas: {}
+        })
+      );
+      const rebased: any = app.loadWebdaModule(moduleFile).moddas["Test/PnpmLayout"];
+      assert.strictEqual(
+        path.resolve(app.getPath(), rebased.Configuration),
+        path.join(modules, "dep-params", "lib", "params:DepParams")
+      );
+      assert.strictEqual(path.resolve(app.getPath(), rebased.Import), path.join(moduleDir, "lib", "svc:Svc"));
+    } finally {
+      logs.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  @test
   async configurationFactoriesNotInherited() {
     const app = new TestInternalApplication(__dirname + "/../../test/config.json");
     class ParentModda {}
@@ -311,5 +388,24 @@ class ApplicationTest extends WebdaInternalTest {
     const instance = new User();
     const ByInstance = useModel(instance as any);
     assert.strictEqual(ByInstance, ByString, "instance lookup must equal string lookup");
+  }
+}
+
+/**
+ * The services log to the global output, where the CLI and Lambda console loggers are attached
+ */
+@suite
+class ApplicationDefaultOutputTest {
+  @test
+  async servicesLogToGlobalOutput() {
+    const app = new Application({ version: 4, parameters: {}, services: {} });
+    assert.strictEqual(app.getWorkerOutput(), useWorkerOutput());
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      useLogger("SampleService").log("INFO", "visible service log");
+    } finally {
+      memoryLogger.close();
+    }
+    assert.ok(JSON.stringify(memoryLogger.getLogs()).includes("visible service log"));
   }
 }

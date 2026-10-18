@@ -2,7 +2,7 @@
 
 This module is part of Webda Application Framework that allows you to quickly develop applications with all modern prerequisites: Security, Extensibility, GraphQL, REST, CloudNative [https://webda.io](https://webda.io)
 
-<img src="https://webda.io/images/webda.svg" width="128" />
+<img src="https://webda.io/img/webda.svg" width="128" />
 
 ![CI](https://github.com/loopingz/webda.io/workflows/CI/badge.svg)
 
@@ -128,6 +128,7 @@ Instance operations become `POST /models/:key/method`; static operations become 
 - [Permissions](../../docs/pages/Modules/models/Permissions.md)
 
 <!-- README_FOOTER -->
+
 ## Sponsors
 
 <!--
@@ -136,12 +137,12 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 Arize AI is a machine learning observability and model monitoring platform. It helps you visualize, monitor, and explain your machine learning models. [Learn more](https://arize.com)
 
-[<img src="https://arize.com/hubfs/arize/brand/arize-logomark-1.png" width="200">](https://arize.com)
+[<img src="https://webda.io/img/sponsors/arize.svg" width="200">](https://arize.com)
 
 Loopingz is a software development company that provides consulting and development services. [Learn more](https://loopingz.com)
 
-[<img src="https://loopingz.com/images/logo.png" width="200">](https://loopingz.com)
+[<img src="https://webda.io/img/sponsors/loopingz.png" width="200">](https://loopingz.com)
 
 Tellae is an innovative consulting firm specialized in cities transportation issues. We provide our clients, both public and private, with solutions to support your strategic and operational decisions. [Learn more](https://tellae.fr)
 
-[<img src="https://tellae.fr/" width="200">](https://tellae.fr)
+[<img src="https://webda.io/img/sponsors/tellae.svg" width="200">](https://tellae.fr)

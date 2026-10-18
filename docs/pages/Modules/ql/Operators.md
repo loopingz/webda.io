@@ -9,14 +9,14 @@ WebdaQL supports comparison operators, logical operators, and special-form opera
 
 ## Comparison operators
 
-| Operator | Meaning | Example |
-|----------|---------|---------|
-| `=` | Equal | `status = 'published'` |
-| `!=` | Not equal | `status != 'draft'` |
-| `>` | Greater than | `viewCount > 1000` |
-| `>=` | Greater than or equal | `viewCount >= 100` |
-| `<` | Less than | `viewCount < 10` |
-| `<=` | Less than or equal | `rating <= 5` |
+| Operator | Meaning               | Example                |
+| -------- | --------------------- | ---------------------- |
+| `=`      | Equal                 | `status = 'published'` |
+| `!=`     | Not equal             | `status != 'draft'`    |
+| `>`      | Greater than          | `viewCount > 1000`     |
+| `>=`     | Greater than or equal | `viewCount >= 100`     |
+| `<`      | Less than             | `viewCount < 10`       |
+| `<=`     | Less than or equal    | `rating <= 5`          |
 
 All comparison operators work on strings, integers, and booleans.
 
@@ -41,6 +41,19 @@ rating > 3
 featured = TRUE
 deleted = FALSE
 ```
+
+### Timestamp comparison with NOW()
+
+Use `NOW()` on the right-hand side of comparison operators to compare against dynamic timestamps in milliseconds:
+
+```
+createdAt > NOW('-1d')          -- created in the past 24 hours
+expiresAt <= NOW()              -- expired
+authAt > NOW('-5m')             -- authenticated within the last 5 minutes
+updatedAt < NOW('-1d12h')       -- updated more than 36 hours ago
+```
+
+`NOW()` takes an optional duration offset string (e.g., `'-10m'`, `'+1d'`), millisecond number (e.g., `-60000`), or parameter placeholder (`NOW(?)`). It evaluates dynamically whenever the query runs.
 
 ## Logical operators
 
@@ -72,10 +85,10 @@ Use parentheses to control evaluation order. AND binds more tightly than OR in W
 
 Pattern matching for strings. Two wildcard characters:
 
-| Wildcard | Meaning |
-|----------|---------|
-| `_` | Exactly one character |
-| `%` | Zero or more characters |
+| Wildcard | Meaning                 |
+| -------- | ----------------------- |
+| `_`      | Exactly one character   |
+| `%`      | Zero or more characters |
 
 ```
 title LIKE "Intro%"        -- starts with "Intro"
@@ -90,7 +103,7 @@ import * as WebdaQL from "@webda/ql";
 
 const v = new WebdaQL.QueryValidator('title LIKE "Intro%"');
 console.log(v.eval({ title: "Introduction to Webda" })); // true
-console.log(v.eval({ title: "Advanced Webda" }));        // false
+console.log(v.eval({ title: "Advanced Webda" })); // false
 ```
 
 ## IN operator
@@ -113,7 +126,7 @@ flag IN [TRUE, FALSE]
 ```typescript
 const v = new WebdaQL.QueryValidator("status IN ['published', 'archived']");
 console.log(v.eval({ status: "published" })); // true
-console.log(v.eval({ status: "draft" }));     // false
+console.log(v.eval({ status: "draft" })); // false
 ```
 
 ## CONTAINS operator
@@ -128,7 +141,7 @@ categories CONTAINS 'webda'
 ```typescript
 const v = new WebdaQL.QueryValidator("tags CONTAINS 'typescript'");
 console.log(v.eval({ tags: ["typescript", "webda"] })); // true
-console.log(v.eval({ tags: ["javascript"] }));          // false
+console.log(v.eval({ tags: ["javascript"] })); // false
 ```
 
 In MongoDB, CONTAINS translates to the same syntax as `=` on an array field (MongoDB checks if the array contains the value).
@@ -144,9 +157,9 @@ author.email IS NOT NULL
 
 ```typescript
 const v = new WebdaQL.QueryValidator("deletedAt IS NULL");
-console.log(v.eval({}));                  // true
+console.log(v.eval({})); // true
 console.log(v.eval({ deletedAt: null })); // true
-console.log(v.eval({ deletedAt: 0 }));    // false
+console.log(v.eval({ deletedAt: 0 })); // false
 ```
 
 `NULL` is not a value: `field = NULL` is a syntax error, use `field IS NULL`.
@@ -164,9 +177,7 @@ ORDER BY viewCount DESC, createdAt ASC
 ```typescript
 import * as WebdaQL from "@webda/ql";
 
-const validator = new WebdaQL.QueryValidator(
-  "status = 'published' ORDER BY createdAt DESC, title ASC"
-);
+const validator = new WebdaQL.QueryValidator("status = 'published' ORDER BY createdAt DESC, title ASC");
 const query = validator.getQuery();
 console.log(query.orderBy);
 // [

@@ -70,7 +70,12 @@ function handle(message: any): void {
           accessorsForAll: !!params.options?.accessorsForAll
         });
         projects.set(params.projectHandle, { session, transforms: 0, timings: [] });
-        log("openProject", params.configFileName, `startup=${session.startupMs.toFixed(0)}ms`, `files=${session.fileCount}`);
+        log(
+          "openProject",
+          params.configFileName,
+          `startup=${session.startupMs.toFixed(0)}ms`,
+          `files=${session.fileCount}`
+        );
         result = {};
         break;
       }
@@ -120,7 +125,8 @@ function handle(message: any): void {
     if (id !== undefined) send({ jsonrpc: "2.0", id, result });
   } catch (error: any) {
     log("ERROR", method, error?.stack ?? String(error));
-    if (id !== undefined) send({ jsonrpc: "2.0", id, error: { code: -32603, message: String(error?.message ?? error) } });
+    if (id !== undefined)
+      send({ jsonrpc: "2.0", id, error: { code: -32603, message: String(error?.message ?? error) } });
   }
 }
 

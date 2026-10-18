@@ -1,0 +1,123 @@
+/* Frame and cloud never move; the pieces slide in underneath the cloud, then the active one grows. */
+.logo {
+  width: min(280px, 100%);
+  aspect-ratio: 1;
+}
+
+.logo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.frame {
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .frame {
+  opacity: 0.28;
+}
+
+.cloud {
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(10, 14, 40, 0.22));
+}
+
+.models {
+  --origin: 64px 64px;
+}
+.deployments {
+  --origin: 192px 64px;
+}
+.services {
+  --origin: 64px 192px;
+}
+.integrations {
+  --origin: 192px 192px;
+}
+
+/* Each piece slides in from its own side, one after the other (last lands at ASSEMBLY_MS) */
+.assembling .slot {
+  animation: slideIn 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.assembling .models {
+  --from: translate(-230px, 0);
+  animation-delay: 0.1s;
+}
+.assembling .deployments {
+  --from: translate(0, -230px);
+  animation-delay: 0.3s;
+}
+.assembling .integrations {
+  --from: translate(230px, 0);
+  animation-delay: 0.5s;
+}
+.assembling .services {
+  --from: translate(0, 230px);
+  animation-delay: 0.7s;
+}
+
+@keyframes slideIn {
+  0% {
+    transform: var(--from);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Pieces grow from the centre of their quadrant, so neighbours stay aligned */
+.piece {
+  transform-box: view-box;
+  transform-origin: var(--origin);
+  transition:
+    transform 0.3s ease-in-out,
+    opacity 0.3s ease-in-out,
+    filter 0.3s ease-in-out;
+}
+
+.focused .piece {
+  opacity: 0.62;
+}
+
+.focused .piece.enlarged {
+  opacity: 1;
+  transform: scale(1.16);
+  filter: drop-shadow(0 8px 14px rgba(10, 14, 40, 0.35));
+}
+
+/* Once assembled the pieces are buttons for their domain: a moderate grow on hover */
+.interactive .slot {
+  cursor: pointer;
+  outline: none;
+}
+
+.interactive .piece.hovered:not(.enlarged),
+.interactive .slot:focus-visible .piece:not(.enlarged) {
+  opacity: 0.9;
+  transform: scale(1.07);
+}
+
+.interactive .piece.hovered.enlarged,
+.interactive .slot:focus-visible .piece.enlarged {
+  transform: scale(1.2);
+}
+
+.interactive .slot:focus-visible .piece {
+  filter: drop-shadow(0 0 3px var(--ifm-color-primary));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assembling .slot {
+    animation: none;
+  }
+  .piece {
+    transition: none;
+  }
+}

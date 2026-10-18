@@ -26,6 +26,7 @@ class OptionsTest {
       dir: "my-app",
       store: "postgres",
       transports: ["rest", "graphql"],
+      sdk: false,
       namespace: "Shop",
       pm: "pnpm",
       install: false,
@@ -58,7 +59,7 @@ class OptionsTest {
 
   @test
   rejectsInvalidValuesListingValidOnes() {
-    assert.throws(() => parseCliArgs(["a", "--store", "mysql"]), /memory, file, mongodb, postgres/);
+    assert.throws(() => parseCliArgs(["a", "--store", "mysql"]), /memory, file, sqlite, mongodb, postgres/);
     assert.throws(() => parseCliArgs(["a", "--transports", "rest,soap"]), /rest, graphql, grpc, mcp/);
     assert.throws(() => parseCliArgs(["a", "--pm", "bun"]), /pnpm, npm, yarn/);
     assert.throws(() => parseCliArgs(["a", "--namespace", "my-app"]), /namespace/);

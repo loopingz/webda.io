@@ -5,7 +5,7 @@ import type { Session, WebContext } from "@webda/core";
  *
  * Implementations throw `WebdaError.Unauthorized` to reject the request.
  * Configure a service implementing it through the McpService `authenticator`
- * parameter; spec 2 adds an OAuth bearer-token implementation.
+ * parameter; see McpOAuthAuthenticator for the OAuth bearer-token implementation.
  */
 export interface McpAuthenticator {
   /**

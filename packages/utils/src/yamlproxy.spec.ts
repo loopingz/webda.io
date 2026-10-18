@@ -29,6 +29,21 @@ class YAMLProxyTest {
   }
 
   @test
+  mapsInArray() {
+    const yaml = "units:\n  - name: a # first\n    auth:\n      pass: x\n  - [1, 2]\n";
+    const obj = YAMLProxy.parse(yaml);
+    assert.strictEqual(obj.units[0].name, "a");
+    assert.strictEqual(obj.units[0].auth.pass, "x");
+    assert.deepStrictEqual(obj.units[1].toJSON(), [1, 2]);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(obj)).units, [{ name: "a", auth: { pass: "x" } }, [1, 2]]);
+    // Writes reach the document and keep its comments
+    obj.units[0].auth.pass = "y";
+    const output = YAMLProxy.stringify(obj);
+    assert.ok(output.includes("pass: y"));
+    assert.ok(output.includes("# first"));
+  }
+
+  @test
   arrayPush() {
     const yaml = "items:\n  - one\n  - two";
     const obj = YAMLProxy.parse(yaml);
@@ -143,11 +158,10 @@ class YAMLProxyTest {
   }
 
   @test
-  nestedSequenceThrows() {
-    // Line 49: getYAMLNode reaches the isSeq branch for a nested array,
-    // but YAMLArray constructor expects a Pair (not a bare YAMLSeq)
+  nestedSequence() {
+    // A sequence inside a sequence is wrapped like a pair
     const yaml = "items:\n  - - a\n    - b";
-    assert.throws(() => YAMLProxy.parse(yaml));
+    assert.deepStrictEqual([...YAMLProxy.parse(yaml).items[0]], ["a", "b"]);
   }
 
   @test

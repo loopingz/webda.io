@@ -101,7 +101,7 @@ describe("HostedApp", () => {
     assert.strictEqual(window.sessionStorage.getItem("webda.debug.token"), null);
     assert.strictEqual(window.localStorage.getItem("webda.debug.port"), "18181");
     assert.strictEqual(container.querySelector("iframe"), null);
-    assert.ok(container.querySelector(".wdbg-hosted-bar"));
+    assert.ok(container.querySelector(".wdbg-navbar"));
   });
 
   it("relaysAllowlistedEventsToASandboxedIframe", async () => {
@@ -130,6 +130,43 @@ describe("HostedApp", () => {
     const serialized = JSON.stringify(posted);
     assert.ok(!serialized.includes(TOKEN) && !serialized.includes("18181") && !serialized.includes("sample-app"));
     assert.ok(posted.some(m => (m as { event: string }).event === "config_view"));
+  });
+
+  it("showsTheDocsNavbarWithMyApplicationAsCurrentPage", async () => {
+    installFetch(healthyRoutes(), { token: TOKEN });
+    installWebSocket();
+    window.history.replaceState(null, "", `/debug/?port=18181#token=${TOKEN}`);
+    const { container } = render(<HostedApp />);
+    await screen.findByText("sample-app");
+    const nav = screen.getByRole("navigation", { name: "Documentation" });
+    const links = [...nav.querySelectorAll("a")].map(a => [a.textContent, a.getAttribute("href")]);
+    assert.deepStrictEqual(links, [
+      ["Webda.io", "/"],
+      ["Quick Start", "/docs/QuickStart"],
+      ["Concepts", "/docs/Concepts"],
+      ["Typedoc", "/typedoc/core/"],
+      ["My Application", "/debug/"],
+      ["Contribute", "/contribute/Contribute"],
+      ["", "https://github.com/loopingz/webda.io"]
+    ]);
+    assert.strictEqual(screen.getByRole("link", { name: "My Application" }).getAttribute("aria-current"), "page");
+    assert.ok(screen.getByRole("link", { name: "GitHub repository" }));
+    assert.strictEqual(container.querySelector(".wdbg-hosted-bar"), null, "the old bar is gone");
+  });
+
+  it("sharesTheThemeChoiceWithTheDocsSite", async () => {
+    installFetch(healthyRoutes(), { token: TOKEN });
+    installWebSocket();
+    window.localStorage.setItem("theme", "light");
+    window.history.replaceState(null, "", `/debug/?port=18181#token=${TOKEN}`);
+    render(<HostedApp />);
+    await screen.findByText("sample-app");
+    await act(async () => {
+      screen.getByRole("button", { name: "Switch to dark mode" }).click();
+    });
+    assert.strictEqual(window.localStorage.getItem("theme"), "dark");
+    assert.strictEqual(document.documentElement.getAttribute("data-theme"), "dark");
+    assert.ok(screen.getByRole("button", { name: "Switch to light mode" }).querySelector("svg"), "icon, not a glyph");
   });
 
   it("createsNoIframeWhenTheSessionOptedOut", async () => {

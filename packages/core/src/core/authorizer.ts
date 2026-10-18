@@ -1,7 +1,6 @@
-
 /**
  * Give your opinion about an action
- * 
+ *
  * You have 3 choices:
  *  - yes: the action is allowed
  *  - no: the action is denied
@@ -11,11 +10,11 @@ export type AuthorizerFunction = (...args: any[]) => boolean | Promise<boolean>;
 
 /**
  * Check authorizer functions
- * 
+ *
  * Return true if one of the authorizer allow the action
  * Return false if all authorizer deny the action
  * Throw exeption if one of the authorizer return a hard no
- * 
+ *
  * @param authorizer - the authorizer function
  * @param args - additional arguments
  * @returns true if the condition is met

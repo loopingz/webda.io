@@ -10,6 +10,7 @@ class Task extends UuidModel {
   title: string = "";
   owner?: string;
   priority: number = 0;
+  due?: Date;
 
   constructor(data?: Partial<Task>) {
     super(data);
@@ -53,6 +54,42 @@ class QueryParametersTest {
     assert.deepStrictEqual(this.uuids((await Task.query("owner IN ?", [["alice", "bob"]])).results), ["t1", "t2"]);
     // Injection attempts stay a value
     assert.deepStrictEqual((await Task.query("owner = ?", ["' OR TRUE OR owner = '"])).results, []);
+  }
+
+  @test
+  async jsonFilterMatchesWebdaQL() {
+    const fromFilter = await Task.query(
+      { owner: "alice", priority: { $gte: 1 } },
+      { orderBy: [{ field: "priority", direction: "DESC" }], limit: 10 }
+    );
+    const fromWebdaQL = await Task.query("owner = 'alice' AND priority >= 1 ORDER BY priority DESC LIMIT 10");
+    assert.deepStrictEqual(this.uuids(fromFilter.results), ["t1"]);
+    assert.deepStrictEqual(this.uuids(fromFilter.results), this.uuids(fromWebdaQL.results));
+    assert.deepStrictEqual(this.uuids((await Task.query({ owner: "bob" })).results), ["t2"]);
+    assert.deepStrictEqual(this.uuids((await Task.query({ $or: [{ owner: "bob" }, { owner: null }] })).results), [
+      "t2",
+      "t3"
+    ]);
+    const iterated: string[] = [];
+    for await (const task of Task.iterate(
+      { priority: { $gt: 1 } },
+      { orderBy: [{ field: "priority", direction: "DESC" }] }
+    )) {
+      iterated.push(task.uuid);
+    }
+    assert.deepStrictEqual(iterated, ["t3", "t2"]);
+  }
+
+  @test
+  async jsonFilterOnDates() {
+    await this.repo.patch("t1", { due: new Date("2026-01-01T00:00:00.000Z") });
+    await this.repo.patch("t2", { due: new Date("2026-06-01T00:00:00.000Z") });
+    const due = new Date("2026-03-01T00:00:00.000Z");
+    assert.deepStrictEqual(this.uuids((await Task.query({ due: { $lt: due } })).results), ["t1"]);
+    assert.deepStrictEqual(this.uuids((await Task.query({ due: { $gte: due } })).results), ["t2"]);
+    assert.deepStrictEqual(this.uuids((await Task.query({ due: new Date("2026-06-01T00:00:00.000Z") })).results), [
+      "t2"
+    ]);
   }
 
   @test

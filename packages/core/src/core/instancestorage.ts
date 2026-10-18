@@ -1,10 +1,10 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { Configuration } from "../application/iconfiguration.js";
-import { OperationDefinitionInfo, ICore } from "./icore.js";
+import { OperationDefinitionInfo } from "./icore.js";
 import { ContextProvider } from "../contexts/icontext.js";
 import { IRouter } from "../rest/irest.js";
 import type { Application } from "../application/application.js";
 import type { Core } from "./core.js";
+import type { LoginMfaPolicy, SecondFactorProvider } from "../models/mfa.model.js";
 
 export type InstanceStorage = Partial<{
   // Used to store the application
@@ -23,6 +23,9 @@ export type InstanceStorage = Partial<{
   interruptables: Set<{ cancel: () => Promise<void> }>;
   // Awaited operation authorizers (see registerOperationAuthorizer)
   operationAuthorizers: Set<(...args: any[]) => Promise<any>>;
+  // Second factor methods available to the MFA behavior (see registerSecondFactor)
+  secondFactors: Map<string, SecondFactorProvider>;
+  loginMfa: LoginMfaPolicy;
 }>;
 
 // Test are transpiling and creating several instances of 'instancestorage.ts'
@@ -114,4 +117,3 @@ export function registerInteruptableProcess(process: { cancel: () => Promise<voi
 export function unregisterInteruptableProcess(process: { cancel: () => Promise<void> }) {
   useInstanceStorage().interruptables.delete(process);
 }
-

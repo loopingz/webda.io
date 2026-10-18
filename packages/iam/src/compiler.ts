@@ -65,7 +65,7 @@ export type PolicyRow = [sub: string, op: string, eft: "allow" | "deny", cond: s
  */
 export type AttachmentRow = [principal: string, sub: string];
 
-const PRINCIPAL = /^(user:.+|group:.+|authenticated|anonymous)$/;
+const PRINCIPAL = /^(user:.+|group:.+|app:.+|app-group:.+|app-issuer:.+|authenticated|authenticated-app|anonymous)$/;
 
 /**
  * @param name - the policy name
@@ -77,7 +77,8 @@ export function policySubject(name: string): string {
 
 /**
  * @param principal - the principal
- * @returns true for `user:<id>`, `group:<name>`, `authenticated` or `anonymous`
+ * @returns true for `user:<id>`, `group:<name>`, `app:<name>`, `app-group:<name>`, `app-issuer:<issuer>`,
+ * `authenticated`, `authenticated-app` or `anonymous`
  */
 export function isValidPrincipal(principal: string): boolean {
   return typeof principal === "string" && PRINCIPAL.test(principal);
@@ -116,7 +117,7 @@ export function validateStatements(statements: unknown): PolicyStatement[] {
       try {
         analyzeCondition(statement.condition);
       } catch (err) {
-        throw new PolicyCompileError(`${where}: ${err.message}`);
+        throw new PolicyCompileError(`${where}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   });
@@ -137,7 +138,7 @@ export function validatePolicyDocument(doc: unknown): PolicyDocument {
   try {
     validateStatements(policy.statements);
   } catch (err) {
-    throw new PolicyCompileError(`Policy ${policy.name}: ${err.message}`);
+    throw new PolicyCompileError(`Policy ${policy.name}: ${err instanceof Error ? err.message : String(err)}`);
   }
   return policy;
 }

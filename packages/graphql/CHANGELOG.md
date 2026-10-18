@@ -134,6 +134,98 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.10...graphql-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+    * @webda/runtime bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.9...graphql-v4.0.0-beta.10) (2026-10-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/runtime bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.8...graphql-v4.0.0-beta.9) (2026-10-14)
+
+
+### Features
+
+* **sdk:** typed frontend SDK over REST, GraphQL, gRPC and offline ([#850](https://github.com/loopingz/webda.io/issues/850)) ([#885](https://github.com/loopingz/webda.io/issues/885)) ([4d68a6a](https://github.com/loopingz/webda.io/commit/4d68a6ade4e5a12c3a836979dd04f5184b172b72))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/ql bumped to 4.0.0-beta.8
+    * @webda/runtime bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.7...graphql-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* beta runtime — Postgres client, Redirect Location, OpenAPI copy, REST query 400, GraphQL names, module paths ([#876](https://github.com/loopingz/webda.io/issues/876)) ([8e62b1f](https://github.com/loopingz/webda.io/commit/8e62b1f1f746d4002093ce17987f1a1325bb3de9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/runtime bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.6...graphql-v4.0.0-beta.7) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* GraphQL now exposes every non-CRUD operation by default (opt out with exposeOperations: []); titled nested input types are renamed <title>Input; the Object scalar no longer JSON-parses string variables; duplicate GraphQL type/field names are startup errors; operations declaring grpc.streaming: "client" | "bidi" now receive an async iterable of messages instead of a collected array.
+
+### Features
+
+* **offline:** offline sync of models with conflict management (@webda/offline) ([#833](https://github.com/loopingz/webda.io/issues/833)) ([98df6ee](https://github.com/loopingz/webda.io/commit/98df6eeae0a17cdd984a6bc2c5a393543a58dcdf))
+* streaming operations on gRPC, WebSocket and GraphQL ([#829](https://github.com/loopingz/webda.io/issues/829)) ([e67bfea](https://github.com/loopingz/webda.io/commit/e67bfea1984e32ad7172e486602cb532369e62f5))
+
+
+### Bug Fixes
+
+* **graphql:** serialize ISO string and timestamp values in Date scalar ([#840](https://github.com/loopingz/webda.io/issues/840)) ([a140203](https://github.com/loopingz/webda.io/commit/a1402035de07f42906365c92778d62c6a36914cc)), closes [#603](https://github.com/loopingz/webda.io/issues/603)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/runtime bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.5...graphql-v4.0.0-beta.6) (2026-10-09)
 
 

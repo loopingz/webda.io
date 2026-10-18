@@ -116,7 +116,7 @@ function parseCondition(expression: string): any {
   try {
     return parse(expression);
   } catch (err) {
-    throw new PolicyCompileError(`Invalid condition: ${err?.message ?? err}`);
+    throw new PolicyCompileError(`Invalid condition: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

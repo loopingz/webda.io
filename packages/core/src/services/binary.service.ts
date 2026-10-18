@@ -1559,7 +1559,9 @@ export abstract class BinaryService<
    *
    * @param args - additional arguments
    */
-  async putRedirectUrl(...args: any): Promise<{ url: string; method?: string; headers?: { [key: string]: string } }> {
+  async putRedirectUrl(
+    ...args: any
+  ): Promise<{ url: string; method?: string; headers?: { [key: string]: string } } | undefined> {
     // Dont handle the redirect url
     throw new WebdaError.NotFound("No redirect url");
   }

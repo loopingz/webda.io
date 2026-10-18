@@ -51,7 +51,7 @@ export async function verifyEmailToken(token: string, purpose: EmailTokenPurpose
   try {
     claims = await useCrypto().jwtVerify(token, { audience: AUDIENCE });
   } catch (err) {
-    if (err?.name === "TokenExpiredError") {
+    if (err instanceof Error && err.name === "TokenExpiredError") {
       throw new TokenExpired();
     }
     throw new TokenInvalid();

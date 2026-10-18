@@ -23,6 +23,12 @@ async function archive(entries: TarEntry[], mtime = 0): Promise<Buffer> {
 @suite
 class TarTest {
   @test
+  async missingFileContent() {
+    await assert.rejects(() => archive([{ path: "missing", type: "file", mode: 0o644 }]), /neither content nor source/);
+    assert.ok((await archive([{ path: "empty", type: "file", mode: 0o644, content: Buffer.alloc(0) }])).length);
+  }
+
+  @test
   sortAndDirectories() {
     const entries = withDirectories([
       { path: "app/x-y", type: "file", mode: 0o644, content: Buffer.from("1") },

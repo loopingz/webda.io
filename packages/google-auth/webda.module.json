@@ -75,7 +75,8 @@
           },
           "client_secret": {
             "description": "Google OAuth client secret\n\nCan be encrypted with `webda config encrypt`",
-            "type": "string"
+            "type": "string",
+            "x-webda-secret": true
           },
           "hostedDomain": {
             "description": "Only accept Google Workspace accounts of this domain (the `hd` claim of the ID token); also sent as a hint to\nthe account chooser",
@@ -88,6 +89,9 @@
           },
           "redirects": {
             "$ref": "#/definitions/OAuthRedirects",
+            "default": {
+              "success": "/"
+            },
             "description": "Browser redirects of the callback"
           },
           "scope": {

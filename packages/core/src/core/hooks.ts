@@ -12,6 +12,8 @@ import { useModel } from "../application/hooks.js";
 import type { Core } from "./core.js";
 import type { SessionManager } from "../session/manager.model.js";
 import type { IUser } from "../models/types.js";
+import type { ClientCertificate } from "../contexts/clientcertificate.js";
+import type { Context } from "../contexts/icontext.js";
 const { machineIdSync } = pkg;
 
 /**
@@ -152,4 +154,53 @@ export function registerUserResolver(resolver: UserResolver | undefined): void {
  */
 export function useUserResolver(): UserResolver {
   return userResolver;
+}
+
+/**
+ * User authenticated by a client certificate
+ */
+export interface CertificateResolution {
+  /**
+   * User id
+   */
+  userId: string;
+  /**
+   * Ident used
+   */
+  identId: string;
+  /**
+   * Roles of the session
+   */
+  roles?: string[];
+}
+
+/**
+ * Resolves a verified client certificate into a user
+ */
+export interface CertificateResolver {
+  /** Whether a certificate authenticates on its own or adds a factor to an existing session */
+  readonly mode?: "login" | "factor";
+  /**
+   * @param cert - verified client certificate
+   * @param context - context of the request
+   * @returns the user authenticated by the certificate, undefined when the certificate is unknown or refused
+   */
+  resolveCertificate(cert: ClientCertificate, context: Context): Promise<CertificateResolution | undefined>;
+}
+
+let certificateResolver: CertificateResolver | undefined;
+
+/**
+ * Register the client certificate resolver (undefined removes it: client certificates then authenticate nobody)
+ * @param resolver - resolver
+ */
+export function registerCertificateResolver(resolver: CertificateResolver | undefined): void {
+  certificateResolver = resolver;
+}
+
+/**
+ * @returns the active client certificate resolver, if any
+ */
+export function useCertificateResolver(): CertificateResolver | undefined {
+  return certificateResolver;
 }

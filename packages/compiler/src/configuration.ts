@@ -1,7 +1,7 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, relative, sep } from "node:path";
+import { basename, dirname, join, relative, sep, resolve, isAbsolute } from "node:path";
 
 /**
  * File extensions of configuration and deployment files
@@ -145,7 +145,7 @@ export interface ConfigSchemaApplication {
   getSchema(type: string): JSONSchema7;
   getDeployers(): { [key: string]: any };
   getConfiguration(): { services: { [key: string]: any } };
-  getModules(): { beans?: { [key: string]: any } };
+  getModules(): { beans?: { [key: string]: any }; models?: Record<string, any>; behaviors?: Record<string, any> };
   completeNamespace(name: string): string;
 }
 
@@ -181,6 +181,11 @@ export function generateConfigurationSchemas(
   configFile?: string,
   deploymentsDir?: string
 ): void {
+  const projectDir = configFile ? dirname(resolve(configFile)) : process.cwd();
+  const absFilename = isAbsolute(filename) ? filename : resolve(projectDir, filename);
+  const absDeploymentFilename = isAbsolute(deploymentFilename)
+    ? deploymentFilename
+    : resolve(projectDir, deploymentFilename);
   // Build the base configuration schema structure
   let res: JSONSchema7 = {
     type: "object",
@@ -255,7 +260,41 @@ export function generateConfigurationSchemas(
   };
   Object.keys(app.getModdas()).forEach(addServiceSchema("ServiceType"));
   Object.keys(app.getModules().beans || {}).forEach(addServiceSchema("BeanType"));
-  FileUtils.save(res, filename);
+  // Model and behavior policies use their own parameter schemas, never instance input schemas.
+  const modelSchemas: JSONSchema7 = { type: "object", additionalProperties: false, properties: {} };
+  const parameterSchema = (id: string, source?: JSONSchema7): JSONSchema7 => {
+    if (!source) return { type: "object", additionalProperties: true };
+    const prefix = `Parameters$${Buffer.from(id).toString("hex")}$`;
+    const schema: JSONSchema7 = JSON.parse(
+      JSON.stringify(source).replaceAll("#/definitions/", `#/definitions/${prefix}`)
+    );
+    for (const [name, definition] of Object.entries(schema.definitions ?? {})) {
+      res.definitions[prefix + name] = definition;
+    }
+    delete schema.definitions;
+    if (!full) delete schema.required;
+    return schema;
+  };
+  const modules = app.getModules();
+  for (const [id, metadata] of Object.entries(modules.models ?? {})) {
+    const behaviors: JSONSchema7 = { type: "object", additionalProperties: false, properties: {} };
+    for (const relation of metadata.Relations?.behaviors ?? []) {
+      behaviors.properties[relation.attribute] = parameterSchema(
+        `${id}/${relation.attribute}`,
+        modules.behaviors?.[relation.behavior]?.Schema
+      );
+    }
+    modelSchemas.properties[id] = {
+      type: "object",
+      additionalProperties: false,
+      properties: { parameters: parameterSchema(id, metadata.Schema), behaviors }
+    };
+  }
+  res.properties.models = modelSchemas;
+  if (!existsSync(dirname(absFilename))) {
+    mkdirSync(dirname(absFilename), { recursive: true });
+  }
+  FileUtils.save(res, absFilename);
   // Build the deployment schema
   // Ensure builtin deployers are there
   const definitions = JSONUtils.duplicate(res.definitions);
@@ -267,6 +306,7 @@ export function generateConfigurationSchemas(
         type: "object",
         additionalProperties: true
       },
+      models: modelSchemas,
       resources: {
         type: "object",
         additionalProperties: true
@@ -318,14 +358,24 @@ export function generateConfigurationSchemas(
       definition["required"] = ["type"];
     }
   });
-  FileUtils.save(res, deploymentFilename);
-
-  // Ensure $schema is set in the configuration file
-  if (configFile) {
-    ensureSchemaReference(configFile, filename);
+  if (!existsSync(dirname(absDeploymentFilename))) {
+    mkdirSync(dirname(absDeploymentFilename), { recursive: true });
   }
-  // Ensure $schema is set in every deployment file
-  if (deploymentsDir) {
-    listDeploymentFiles(deploymentsDir).forEach(file => ensureSchemaReference(file, deploymentFilename));
+  FileUtils.save(res, absDeploymentFilename);
+
+  if (configFile) {
+    ensureSchemaReference(configFile, absFilename);
+  }
+  const targetDeploymentsDir = deploymentsDir
+    ? resolve(projectDir, deploymentsDir)
+    : configFile
+      ? join(projectDir, "deployments")
+      : undefined;
+  if (targetDeploymentsDir && existsSync(targetDeploymentsDir)) {
+    FileUtils.walkSync(targetDeploymentsDir, filePath => {
+      if (CONFIGURATION_EXTENSIONS.some(ext => filePath.endsWith(ext))) {
+        ensureSchemaReference(filePath, absDeploymentFilename);
+      }
+    });
   }
 }

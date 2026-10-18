@@ -12,11 +12,39 @@ export class FileQueueParameters extends QueueParameters {
    *
    * @default 30
    */
-  expire?: number;
+  expire: number;
   /**
    * Where to store the queue
    */
   folder: string;
+  /**
+   * Number of seconds to wait for a message when the queue is empty, before returning no message
+   *
+   * A message sent by this service ends the wait immediately; messages written by other processes are picked up
+   * within `pollInterval`.
+   *
+   * @default 10
+   */
+  timeout?: number;
+  /**
+   * Interval between two checks of the folder while waiting for a message, in milliseconds
+   *
+   * @default 100
+   */
+  pollInterval?: number;
+
+  /**
+   * Load parameters with expiration in seconds.
+   * @param params - raw parameters
+   * @returns this instance
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    this.expire ??= 30;
+    this.timeout ??= 10;
+    this.pollInterval ??= 100;
+    return this;
+  }
 
   /** Set default expiration to 30 seconds and convert to milliseconds. */
   default() {
@@ -31,6 +59,11 @@ export class FileQueueParameters extends QueueParameters {
  * @WebdaModda
  */
 export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> extends Queue<T, K> {
+  /**
+   * Receivers waiting for a message, woken up by {@link sendMessage}
+   */
+  protected waiters = new Set<() => void>();
+
   /**
    * @override
    */
@@ -69,7 +102,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   /**
    * @override
    */
-  async sendMessage(params) {
+  async sendMessage(params: T) {
     let uid = randomUUID();
     let file = this.getFile(uid);
     while (fs.existsSync(file)) {
@@ -77,12 +110,51 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
       file = this.getFile(uid);
     }
     JSONUtils.saveFile(params, file);
+    // Wake up the receivers waiting for a message
+    [...this.waiters].forEach(wake => wake());
   }
 
   /**
-   * @override
+   * Receive the oldest message not locked, waiting up to `timeout` seconds when the queue is empty
+   *
+   * @param proto - class of the message
+   * @returns the message, or an empty array when none arrived in time
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
+    const deadline = Date.now() + (this.parameters.timeout ?? 10) * 1000;
+    let messages = this.pickMessage(proto);
+    while (messages.length === 0 && Date.now() < deadline) {
+      await this.waitForMessage(Math.min(this.parameters.pollInterval ?? 100, deadline - Date.now()));
+      messages = this.pickMessage(proto);
+    }
+    return messages;
+  }
+
+  /**
+   * Wait until a message is sent by this service or the delay elapsed
+   *
+   * @param ms - maximum wait in milliseconds
+   * @returns a promise resolved when woken up or after the delay
+   */
+  protected waitForMessage(ms: number): Promise<void> {
+    return new Promise(resolve => {
+      const wake = () => {
+        clearTimeout(timer);
+        this.waiters.delete(wake);
+        resolve();
+      };
+      const timer = setTimeout(wake, ms);
+      this.waiters.add(wake);
+    });
+  }
+
+  /**
+   * Lock and read the oldest message not locked
+   *
+   * @param proto - class of the message
+   * @returns the message, or an empty array when every message is locked
+   */
+  protected pickMessage<L>(proto?: { new (): L }): MessageReceipt<L>[] {
     const files = fs
       .readdirSync(this.parameters.folder)
       .filter(f => f.endsWith(".json"))
@@ -110,8 +182,8 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
         }
         return -1;
       });
-    if (files.length) {
-      const el = files.shift();
+    const el = files.shift();
+    if (el) {
       fs.writeFileSync(el.path + ".lock", "");
       return [
         {
@@ -119,8 +191,6 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
           Message: this.unserialize(fs.readFileSync(el.path).toString(), proto)
         }
       ];
-    } else {
-      await new Promise(resolve => setTimeout(resolve, 10000));
     }
     return [];
   }
@@ -128,7 +198,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   /**
    * @override
    */
-  async deleteMessage(receipt) {
+  async deleteMessage(receipt: string) {
     const file = this.getFile(receipt);
     if (fs.existsSync(file)) {
       fs.unlinkSync(file);
@@ -142,6 +212,9 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    * @inheritdoc
    */
   async __clean() {
-    (await import("fs-extra")).emptyDirSync(this.parameters.folder);
+    fs.mkdirSync(this.parameters.folder, { recursive: true });
+    for (const entry of fs.readdirSync(this.parameters.folder)) {
+      fs.rmSync(`${this.parameters.folder}/${entry}`, { recursive: true, force: true });
+    }
   }
 }

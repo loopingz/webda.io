@@ -1,6 +1,6 @@
 {
   "name": "@webda/models",
-  "version": "4.0.0-beta.6",
+  "version": "4.0.0-beta.11",
   "description": "Webda Models implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -27,7 +27,8 @@
   ],
   "files": [
     "lib",
-    "package.json"
+    "package.json",
+    "webda.module.json"
   ],
   "author": "loopingz",
   "license": "LGPL-3.0-only",

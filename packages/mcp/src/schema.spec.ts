@@ -20,7 +20,10 @@ class InlineSchemaTest {
 
   @test
   inlinesExternalSchemasThroughResolver() {
-    const schema = { type: "object", properties: { results: { type: "array", items: { $ref: "#/definitions/WebdaSample/Post" } } } };
+    const schema = {
+      type: "object",
+      properties: { results: { type: "array", items: { $ref: "#/definitions/WebdaSample/Post" } } }
+    };
     const out = inlineSchema(schema, name =>
       name === "WebdaSample/Post" ? { type: "object", properties: { slug: { type: "string" } } } : undefined
     );
@@ -46,7 +49,10 @@ class InlineSchemaTest {
 
   @test
   stripsSchemaMetaKeys() {
-    const out = inlineSchema({ $schema: "http://json-schema.org/draft-07/schema#", $id: "x", type: "object" }, () => undefined);
+    const out = inlineSchema(
+      { $schema: "http://json-schema.org/draft-07/schema#", $id: "x", type: "object" },
+      () => undefined
+    );
     assert.deepStrictEqual(out, { type: "object" });
   }
 

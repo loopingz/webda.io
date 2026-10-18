@@ -1,4 +1,4 @@
-import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import { WorkerLogLevel, WorkerOutput, useWorkerOutput } from "@webda/workout";
 import type {
   CachedModule,
   Configuration,
@@ -14,11 +14,10 @@ import type { Modda } from "../services/iservice.js";
 import type { ModelDefinition } from "../models/types.js";
 import { setLogContext } from "../loggers/hooks.js";
 import { FileUtils, parseImportDescriptor, State, toImportSpecifier } from "@webda/utils";
-import { existsSync, lstatSync, Mode, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, resolve, dirname, isAbsolute } from "node:path";
 import * as WebdaError from "../errors/errors.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { isModelClass, type Model, type ModelClass, type Storable } from "@webda/models";
 import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache.js";
@@ -26,6 +25,7 @@ import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
 import { applyDeployment, getDeploymentFile, loadDeployment, type Deployment } from "./deployment.js";
 import type { BehaviorMetadata } from "@webda/compiler";
+import { installModelTypes } from "./model-types.js";
 
 /**
  * Define a static member that only belongs to `target`
@@ -85,6 +85,33 @@ export function installConfigurationFactories(
     (params: any = {}) => new configurationClass().load(filterParameters(params)),
     (params: any = {}) => new configurationClass().load(params)
   );
+}
+
+/**
+ * Path of a file referenced by a webda.module.json
+ *
+ * The compiler writes a dependency's file as `node_modules/<package>/<path>`, relative to the module folder. The
+ * dependency is not always nested in it: pnpm (and Bazel rules_js) install it as a sibling of the package, so it
+ * is looked up like Node does, in the `node_modules` of the module folder then of each parent folder.
+ * @param moduleFolder - the folder of the webda.module.json
+ * @param info - the `path:export` descriptor
+ * @returns the descriptor joined to the folder holding the file (to the module folder when not found)
+ */
+export function resolveModuleFile(moduleFolder: string, info: string): string {
+  const target = join(moduleFolder, info);
+  if (!/^node_modules[\\/]/.test(info)) {
+    return target;
+  }
+  const { file } = parseImportDescriptor(info);
+  let folder = moduleFolder;
+  while (!existsSync(join(folder, file)) && !existsSync(join(folder, file + ".js"))) {
+    const up = dirname(folder);
+    if (up === folder) {
+      return target;
+    }
+    folder = up;
+  }
+  return join(folder, info);
 }
 
 export type ApplicationState = "initial" | "loading" | "ready";
@@ -194,7 +221,8 @@ export class Application {
    * @param logger - the logger instance
    */
   constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
-    this.logger = logger || new WorkerOutput();
+    // Default to the global output, where the console loggers (CLI, Lambda) are attached
+    this.logger = logger || useWorkerOutput();
     setLogContext(this.logger);
     // If configuration is a programmatic object (usually for tests)
     if (typeof file !== "string") {
@@ -603,6 +631,7 @@ export class Application {
 
   /**
    * Add a new model
+   * The stored type resolver is rebuilt.
    *
    * @param name - the name to use
    * @param model - the model to use
@@ -635,10 +664,10 @@ export class Application {
     }
     this.models[name] = model;
     if (metadata) {
-      // Get ancestor?
-      const superClass = Object.getPrototypeOf(model);
-      model.Metadata = Object.freeze(metadata);
+      model.Metadata = Object.freeze({ Aliases: [], ...metadata });
     }
+    // Stored types resolve against the new model map
+    installModelTypes(this);
     return this;
   }
 
@@ -801,6 +830,16 @@ export class Application {
   }
 
   /**
+   * Path of a file referenced by a module, see {@link resolveModuleFile}
+   * @param parent - the module folder
+   * @param info - the `path:export` descriptor of the module
+   * @returns the descriptor with the path resolved
+   */
+  protected getModuleFilePath(parent: string, info: string): string {
+    return resolveModuleFile(parent, info);
+  }
+
+  /**
    * Load the module,
    *
    * @protected
@@ -813,23 +852,22 @@ export class Application {
     const info: Omit<CachedModule, "project"> = module;
     const sectionLoader = async (section: Section) => {
       for (const key in info[section]) {
-        this[section][key] ??= await this.importFile(join(parent, info[section][key].Import));
+        const importPath = this.getModuleFilePath(parent, info[section][key].Import);
+        this[section][key] ??= await this.importFile(importPath);
         if (!this[section][key]) {
-          this.log(
-            "ERROR",
-            `Cannot load ${section.substring(0, section.length - 1)} ${key} from ${join(parent, info[section][key].Import)}`
-          );
+          this.log("ERROR", `Cannot load ${section.substring(0, section.length - 1)} ${key} from ${importPath}`);
           continue;
         }
         if (section === "beans" || section === "moddas") {
           // Load the parameters automatically
-          const configurationClass = info[section][key].Configuration
-            ? await this.importFile(join(parent, info[section][key].Configuration))
-            : ServiceParameters;
+          const configurationPath = info[section][key].Configuration
+            ? this.getModuleFilePath(parent, info[section][key].Configuration)
+            : undefined;
+          const configurationClass = configurationPath ? await this.importFile(configurationPath) : ServiceParameters;
           if (!configurationClass) {
             this.log(
               "ERROR",
-              `Cannot load configuration for ${section.substring(0, section.length - 1)} ${key} from ${join(parent, info[section][key].Configuration)}`
+              `Cannot load configuration for ${section.substring(0, section.length - 1)} ${key} from ${configurationPath}`
             );
             continue;
           }
@@ -882,12 +920,16 @@ export class Application {
       this.models[m].registerSerializer(true, m);
       this.models[m].Metadata = Object.freeze({
         ...info[m],
+        // Generated only when the model declares @WebdaAlias
+        Aliases: info[m].Aliases ?? [],
         // Runtime: resolve strings to model classes for backward compat
         // ModelMetadata types these as string[] but core resolves them to classes
         Ancestors: info[m].Ancestors.map(s => this.models[s]) as any,
         Subclasses: info[m].Subclasses.map(s => this.models[s]) as any
       });
     }
+    // Stored types (Webda 3 short, lower-case and aliased forms) resolve against the loaded models
+    installModelTypes(this);
   }
 
   /**

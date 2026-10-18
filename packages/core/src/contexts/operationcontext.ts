@@ -6,6 +6,7 @@ import { NotEnumerable } from "@webda/tsc-esm";
 import sanitize from "sanitize-html";
 import { JSONUtils } from "@webda/utils";
 import { useLog } from "../loggers/hooks.js";
+import { HttpError } from "../errors/errors.js";
 import { runAsSystem } from "./execution.js";
 import { IUser } from "../models/types.js";
 import { useUserResolver } from "../core/hooks.js";
@@ -185,10 +186,11 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
       }
       return obj;
     };
+    let data: string | undefined;
     try {
       // TODO define this
       const { requestLimit, requestTimeout } = { requestLimit: 10 * 1024 * 1024, requestTimeout: 60000 };
-      const data = await this.getRawInputAsString(requestLimit, requestTimeout);
+      data = await this.getRawInputAsString(requestLimit, requestTimeout);
       if (sanitizedOptions.raw === true) {
         return JSON.parse(data || sanitizedOptions.defaultValue);
       }
@@ -198,7 +200,11 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
       }
       this._sanitized = recursiveSanitize(JSON.parse(data), sanitizedOptions);
     } catch (err) {
-      useLog("ERROR", err, `Body: '${await this.getRawInputAsString()}'`);
+      // Unsupported charset, oversized or timed out body are client errors to report
+      if (err instanceof HttpError) {
+        throw err;
+      }
+      useLog("ERROR", err, `Body: '${data}'`);
       this._sanitized = sanitizedOptions.defaultValue;
     }
     return this._sanitized;

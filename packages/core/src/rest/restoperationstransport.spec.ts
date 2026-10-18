@@ -464,6 +464,94 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async nestedRoutesDropTheParentIdFromTheValidatedInput() {
+    const transport = new RESTOperationsTransport(
+      "TestRESTTransportNestedInput",
+      new RESTOperationsTransportParameters().load({ url: "/ni/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    const User = useModel<any>("User");
+    registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    const Company = useModel<any>("Company");
+    registerRepository(Company, new MemoryRepository(Company, ["uuid"]));
+    const parent = (await Company.create({ name: "parent" })).getUUID();
+    // The model schema has additionalProperties: false; the `pid.0` path parameter must not reach the validation
+    const created = await this.routerHttp<any>({
+      method: "POST",
+      url: `/ni/companies/${parent}/users`,
+      body: { name: "nested" }
+    });
+    assert.strictEqual(created.company, parent);
+    const { uuid } = created;
+    const patched = await this.routerHttp<any>({
+      method: "PATCH",
+      url: `/ni/companies/${parent}/users/${uuid}`,
+      body: { name: "patched" }
+    });
+    assert.strictEqual(patched.name, "patched");
+    const updated = await this.routerHttp<any>({
+      method: "PUT",
+      url: `/ni/companies/${parent}/users/${uuid}`,
+      body: { name: "updated", company: parent }
+    });
+    assert.strictEqual(updated.name, "updated");
+    const got = await this.routerHttp<any>({ method: "GET", url: `/ni/companies/${parent}/users/${uuid}` });
+    assert.strictEqual(got.name, "updated");
+    await this.routerHttp({ method: "DELETE", url: `/ni/companies/${parent}/users/${uuid}` });
+    assert.strictEqual(
+      (await User.query("")).results.some((u: any) => u.uuid === uuid),
+      false
+    );
+  }
+
+  @test
+  async queryBodyNotJsonHTTP() {
+    const transport = new RESTOperationsTransport(
+      "TestRESTTransportQueryBody",
+      new RESTOperationsTransportParameters().load({ url: "/qb/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    const User = useModel<any>("User");
+    registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    await User.create({ uuid: "u-qb", name: "qb", company: "c1" });
+    // A malformed JSON body (here unescaped quotes) is a client error, not a 500 "reading 'q' of undefined"
+    await assert.rejects(
+      () =>
+        this.routerHttp({
+          method: "PUT",
+          url: "/qb/companies/c1/users",
+          body: '{"q":"name = "qb""}',
+          headers: { "content-type": "application/json" }
+        }),
+      (err: any) => err instanceof WebdaError.BadRequest
+    );
+    // A JSON body that is not an object carries no query either
+    await assert.rejects(
+      () => this.routerHttp({ method: "PUT", url: "/qb/companies/c1/users", body: "null" }),
+      (err: any) => err instanceof WebdaError.BadRequest
+    );
+    // No body at all queries everything, like {"q": ""}
+    const all = await this.routerHttp<{ results: any[] }>({ method: "PUT", url: "/qb/companies/c1/users" });
+    assert.deepStrictEqual(
+      all.results.map(r => r.uuid),
+      ["u-qb"]
+    );
+    const escaped = await this.routerHttp<{ results: any[] }>({
+      method: "PUT",
+      url: "/qb/companies/c1/users",
+      body: { q: 'name = "qb"' }
+    });
+    assert.deepStrictEqual(
+      escaped.results.map(r => r.uuid),
+      ["u-qb"]
+    );
+  }
+
+  @test
   async queryInvalidQueryHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportInvalidQ",

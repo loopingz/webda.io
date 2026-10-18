@@ -42,7 +42,11 @@ class PostgresQueueTest {
    * @param overrides - extra parameter overrides
    * @returns the initialized service
    */
-  async makeQueue(name: string, table: string, overrides: Partial<PostgresQueueParameters> = {}): Promise<PostgresQueueService> {
+  async makeQueue(
+    name: string,
+    table: string,
+    overrides: Partial<PostgresQueueParameters> = {}
+  ): Promise<PostgresQueueService> {
     const p = new PostgresQueueParameters().load({ ...params, table, batchSize: 5, ...overrides });
     const service = new PostgresQueueService(name, p);
     await service.init();

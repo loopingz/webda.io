@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from "openapi-types";
-import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
+import type { ProjectInformation, WebdaModule } from "@webda/compiler";
+import type { PkiEncrypterOptions } from "../services/pki.encrypter.js";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
 /**
@@ -32,10 +33,41 @@ export type StaticWebsite = {
   catchAll?: boolean;
 };
 
+/**
+ * Settings of the configuration secrets encryption, `parameters.configurationEncryption`
+ *
+ * They are never encrypted. A deployment can override them, to use other keys for example.
+ */
+export interface ConfigurationEncryption {
+  /**
+   * Encrypter used by the values written `encrypt:<value>` or `sencrypt:<value>`
+   *
+   * `webda config encrypt` always writes the encrypter in the encrypted value, so changing it
+   * does not break the existing values.
+   */
+  default?: string;
+  /**
+   * Options of each encrypter, by encrypter name
+   */
+  encrypters?: {
+    /**
+     * Options of the `pki` encrypter
+     */
+    pki?: PkiEncrypterOptions;
+    [name: string]: any;
+  };
+}
+
 export type ServiceGroup = {
   services?: any;
   parameters: any;
 };
+
+/** Runtime policies for a model and its behavior attributes, separate from persisted instance data. */
+export interface ModelConfiguration {
+  parameters?: Record<string, any>;
+  behaviors?: Record<string, Record<string, any>>;
+}
 
 export type UnpackedConfiguration = {
   version: 4;
@@ -69,6 +101,8 @@ export type UnpackedConfiguration = {
    * Services configuration
    */
   services?: Record<string, any>;
+  /** Model configuration keyed by fully qualified model identifier. */
+  models?: Record<string, ModelConfiguration>;
   /**
    * Global parameters
    *
@@ -101,6 +135,12 @@ export type UnpackedConfiguration = {
           config?: { [key: string]: any };
           prefix?: string;
         };
+    /**
+     * Configuration secrets encryption: default encrypter and encrypters options
+     *
+     * It cannot hold encrypted values.
+     */
+    configurationEncryption?: ConfigurationEncryption;
     /**
      * Allow any other type of parameters
      */

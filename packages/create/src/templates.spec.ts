@@ -92,6 +92,7 @@ class TemplatesTest {
   async storesReplaceTheRegistry() {
     const expected = {
       file: { type: "Webda/FileStore", folder: "./data" },
+      sqlite: { type: "Webda/SQLiteStore", table: "registry", persistence: { path: "./.webda/app.sqlite" } },
       mongodb: { type: "Webda/MongoStore", collection: "registry" },
       postgres: { type: "Webda/PostgresStore", table: "registry" }
     };
@@ -101,7 +102,9 @@ class TemplatesTest {
       assert.deepStrictEqual(config.services.Registry, registry, store);
       const deps = JSON.parse(files.get("package.json")).dependencies;
       assert.ok(
-        Object.keys(deps).some(name => ["@webda/fs", "@webda/mongo", "@webda/postgres"].includes(name)),
+        Object.keys(deps).some(name =>
+          ["@webda/fs", "@webda/sqlite", "@webda/mongo", "@webda/postgres"].includes(name)
+        ),
         store
       );
     }
@@ -122,5 +125,17 @@ class TemplatesTest {
     const graphqlOnly = JSON.parse((await render({ transports: ["graphql"] })).get("webda.config.json")).services;
     assert.strictEqual(graphqlOnly.RESTService, undefined);
     assert.ok(graphqlOnly.HttpServer, "the HTTP server stays for GraphQL");
+  }
+
+  @test
+  async sdkAddsTheGeneratorAndItsDependency() {
+    const files = await render({ sdk: true });
+    const services = JSON.parse(files.get("webda.config.json")).services;
+    assert.deepStrictEqual(services.SdkGenerator, { type: "Webda/SdkGenerator", outDir: "sdk" });
+    assert.ok(JSON.parse(files.get("package.json")).dependencies["@webda/sdk"]);
+    assert.match(files.get("AGENTS.md"), /frontend SDK/);
+    const without = await render({});
+    assert.strictEqual(JSON.parse(without.get("webda.config.json")).services.SdkGenerator, undefined);
+    assert.strictEqual(JSON.parse(without.get("package.json")).dependencies["@webda/sdk"], undefined);
   }
 }

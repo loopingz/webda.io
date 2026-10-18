@@ -1,11 +1,25 @@
-import { UuidModel, OneToMany, WEBDA_EVENTS, ModelEvents } from "@webda/models";
+import { UuidModel, OneToMany, WEBDA_EVENTS, WEBDA_STORAGE, ModelEvents } from "@webda/models";
 import bcrypt from "bcryptjs";
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import type { Post } from "./Post.model.js";
 import type { Comment } from "./Comment.model.js";
 import type { UserFollow } from "./UserFollow.model.js";
 import { Operation, useContext, WebdaError } from "@webda/core";
 import type { IOperationContext, OperationContext } from "@webda/core";
 import { bind } from "@webda/ql";
+
+/**
+ * Key derivation of the passwords: runs in the libuv thread pool, so hashing never blocks the event loop
+ * (bcryptjs is pure JavaScript: a cost 10 hash blocks the process for about 60ms)
+ */
+const scrypt = promisify(scryptCallback) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
+/**
+ * Prefix of the scrypt password hashes: `scrypt$<salt>$<key>`, base64
+ */
+const SCRYPT_PREFIX = "scrypt$";
+const SALT_LENGTH = 16;
+const KEY_LENGTH = 64;
 
 /**
  * Events emitted by users, on top of the model events
@@ -48,7 +62,7 @@ export class User extends UuidModel {
   username!: string;
 
   /**
-   * Password hash (bcrypt): private, see `register` and `changePassword`
+   * Password hash (scrypt, or legacy bcrypt): private, see `register` and `changePassword`
    */
   __password?: string;
 
@@ -136,33 +150,75 @@ export class User extends UuidModel {
   }
 
   /**
-   * Client representation: private fields are never sent; the email is added for the owner only
-   * @returns the public user
+   * JSON form of the user, written by the stores and sent in the responses
+   *
+   * The stores serialize models through `toJSON`: it must keep every field, private ones included, or they are not
+   * persisted (the password hash, the email, the dates). The responses strip the `__` fields (public audience of
+   * `JSONUtils.stringify`), so they never leave the server. The owner also gets its email as `email`: derived for
+   * the current viewer, never taken from a stored copy.
+   * @returns the user fields
    */
   toJSON(): any {
-    const { __password: _hash, __email: email, ...profile } = this as any;
+    // Same fields as the toJSON the content mapper generates for the other models: the own fields and the values held
+    // in WEBDA_STORAGE by the generated accessors (dates)
+    const json: any = {};
+    for (const key of Object.keys(this)) {
+      json[key] = (this as any)[key];
+    }
+    Object.assign(json, (this as any)[WEBDA_STORAGE]);
+    delete json.email;
     let viewer: string | undefined;
     try {
       viewer = useContext()?.getCurrentUserId();
     } catch {
-      // Outside a request: public view
+      // Outside a request: no viewer
     }
-    return viewer === this.getUUID() ? { ...profile, email } : profile;
+    if (viewer && viewer === this.getUUID() && this.__email) {
+      json.email = this.__email;
+    }
+    return json;
   }
 
   /**
+   * Hash and set the password (scrypt, in the thread pool)
    * @param password - the clear password
    */
-  setPassword(password: string): void {
-    this.__password = bcrypt.hashSync(password, 10);
+  async setPassword(password: string): Promise<void> {
+    const salt = randomBytes(SALT_LENGTH);
+    const key = await scrypt(password, salt, KEY_LENGTH);
+    this.__password = `${SCRYPT_PREFIX}${salt.toString("base64")}$${key.toString("base64")}`;
   }
 
   /**
+   * Check a password against the stored hash, in constant time
+   *
+   * Hashes written by previous versions (bcrypt) are still accepted.
    * @param password - the clear password
    * @returns true when it matches the stored hash
    */
-  verifyPassword(password: string): boolean {
-    return !!this.__password && bcrypt.compareSync(password, this.__password);
+  async verifyPassword(password: string): Promise<boolean> {
+    if (typeof this.__password !== "string" || !this.__password) {
+      return false;
+    }
+    if (!this.__password.startsWith(SCRYPT_PREFIX)) {
+      return bcrypt.compare(password, this.__password);
+    }
+    const parts = this.__password.substring(SCRYPT_PREFIX.length).split("$");
+    if (parts.length !== 2) {
+      return false;
+    }
+    const salt = Buffer.from(parts[0], "base64");
+    const expected = Buffer.from(parts[1], "base64");
+    if (
+      salt.length !== SALT_LENGTH ||
+      expected.length !== KEY_LENGTH ||
+      salt.toString("base64") !== parts[0] ||
+      expected.toString("base64") !== parts[1]
+    ) {
+      return false;
+    }
+    const key = await scrypt(password, salt, KEY_LENGTH);
+    return timingSafeEqual(key, expected);
   }
 
   /**
@@ -199,7 +255,7 @@ export class User extends UuidModel {
     user.username = username;
     user.name = name;
     user.__email = email;
-    user.setPassword(password);
+    await user.setPassword(password);
     user.createdAt = new Date();
     user.updatedAt = user.createdAt;
     await user.save();
@@ -217,7 +273,7 @@ export class User extends UuidModel {
   @Operation()
   static async login(email: string, password: string): Promise<boolean> {
     const user = await User.findByEmail(email);
-    if (!user || !user.verifyPassword(password)) {
+    if (!user || !(await user.verifyPassword(password))) {
       throw new WebdaError.Forbidden("Invalid email or password");
     }
     useContext().getSession()?.login(user.getUUID(), "email");
@@ -246,13 +302,13 @@ export class User extends UuidModel {
   @Operation()
   async changePassword(): Promise<void> {
     const { current, next } = await useContext<OperationContext<{ current: string; next: string }>>().getInput();
-    if (!this.verifyPassword(current)) {
+    if (!(await this.verifyPassword(current))) {
       throw new WebdaError.Forbidden("Invalid password");
     }
     if (!next || next.length < 8) {
       throw new WebdaError.BadRequest("A password of at least 8 characters is required");
     }
-    this.setPassword(next);
+    await this.setPassword(next);
     await this.save();
   }
 

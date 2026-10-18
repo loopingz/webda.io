@@ -1,5 +1,76 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.10...mock-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/models bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.11
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.9...mock-v4.0.0-beta.10) (2026-10-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/models bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.10
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.8...mock-v4.0.0-beta.9) (2026-10-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/models bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.9
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.7...mock-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/models bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.6...mock-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* stable and documented configuration secret encryption ([#837](https://github.com/loopingz/webda.io/issues/837)) ([55fad94](https://github.com/loopingz/webda.io/commit/55fad94e96537c0b44ade1cdfb88e4b5e6c6035b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/models bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.5...mock-v4.0.0-beta.6) (2026-10-09)
 
 

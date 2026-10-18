@@ -50,43 +50,43 @@ export class SyncServiceParameters extends ServiceParameters {
    * How long change-log entries are kept; older cursors trigger a resync
    * @default "30d"
    */
-  retention?: string;
+  retention: string;
   /**
    * Maximum scopes per request
    * @default 20
    */
-  maxScopes?: number;
+  maxScopes: number;
   /**
    * Maximum length of a scope query
    * @default 1024
    */
-  maxQueryLength?: number;
+  maxQueryLength: number;
   /**
    * Maximum change-log entries or objects returned per Sync.Pull / Sync.Snapshot page
    * @default 500
    */
-  pageSize?: number;
+  pageSize: number;
   /**
    * Maximum mutations accepted per Sync.Push request (clients batch with `pushBatchSize`, 100 by default)
    * @default 100
    */
-  maxMutations?: number;
+  maxMutations: number;
   /**
    * Window re-read by the next pull, covering clock skew between servers
    * @default "5s"
    */
-  overlap?: string;
+  overlap: string;
   /**
    * Debounce of the watch hints, in milliseconds
    * @default 250
    */
-  watchDebounce?: number;
+  watchDebounce: number;
   /**
    * Interval of the heartbeats yielded by an idle Sync.Watch, in milliseconds (0 disables them).
    * They let the transport notice a closed client and release the watcher.
    * @default 25000
    */
-  watchKeepAlive?: number;
+  watchKeepAlive: number;
 
   /**
    * @param params - the raw parameters
@@ -292,9 +292,16 @@ export class SyncService extends Service<SyncServiceParameters> {
    * @param key - the canonical key
    * @param step - the step to run
    */
-  protected async safely(modelId: string, key: string, step: () => Promise<void>): Promise<void> {
+  protected async safely(
+    modelId: string,
+    key: string | undefined,
+    step: (key: string) => Promise<void>
+  ): Promise<void> {
     try {
-      await step();
+      if (key === undefined) {
+        throw new WebdaError.CodeError("SYNC_MISSING_KEY", "Cannot log a sync change without a complete primary key");
+      }
+      await step(key);
     } catch (err) {
       this.log("ERROR", `SyncService: change-log entry lost for ${modelId} ${key}`, err);
     }
@@ -334,24 +341,23 @@ export class SyncService extends Service<SyncServiceParameters> {
         this.revved.add(increments);
       },
       Created: ({ object_id, object }) =>
-        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "upsert", object?._rev)),
+        this.safely(modelId, keyOf(object_id), key => this.append(modelId, key, "upsert", object?._rev)),
       Updated: ({ object_id, object }) =>
-        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "upsert", object?._rev)),
+        this.safely(modelId, keyOf(object_id), key => this.append(modelId, key, "upsert", object?._rev)),
       Patched: ({ object_id, object }) =>
-        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "upsert", object?._rev)),
+        this.safely(modelId, keyOf(object_id), key => this.append(modelId, key, "upsert", object?._rev)),
       PartialUpdated: async ({ object_id, partial_update }) => {
         if (this.ownBumps.has(partial_update?.increments)) return;
-        await this.safely(modelId, keyOf(object_id), async () => {
+        await this.safely(modelId, keyOf(object_id), async key => {
           if (!partial_update?.increments) {
             const bump = [{ property: "_rev", value: 1 }];
             this.ownBumps.add(bump);
             await repo.incrementAttributes(object_id, bump);
           }
-          await this.append(modelId, keyOf(object_id), "upsert");
+          await this.append(modelId, key, "upsert");
         });
       },
-      Deleted: ({ object_id }) =>
-        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "delete"))
+      Deleted: ({ object_id }) => this.safely(modelId, keyOf(object_id), key => this.append(modelId, key, "delete"))
     };
     for (const [event, listener] of Object.entries(listeners)) {
       repo.on(event, listener);
@@ -446,8 +452,12 @@ export class SyncService extends Service<SyncServiceParameters> {
    * @returns the object as sent to clients
    */
   protected toSynced(modelId: string, object: any): SyncedObject {
+    const key = serializeSubjectKey(this.pkFields(modelId), object);
+    if (key === undefined) {
+      throw new WebdaError.CodeError("SYNC_MISSING_KEY", "Cannot sync an object without a complete primary key");
+    }
     return {
-      ref: { model: modelId, key: serializeSubjectKey(this.pkFields(modelId), object) },
+      ref: { model: modelId, key },
       rev: object._rev ?? 0,
       object: typeof object.toDTO === "function" ? object.toDTO() : object
     };
@@ -795,6 +805,7 @@ export class SyncService extends Service<SyncServiceParameters> {
         }
         await new Promise(resolve => setTimeout(resolve, this.parameters.watchDebounce));
         const cursor = pending;
+        if (cursor === undefined) continue;
         pending = undefined;
         last = cursor;
         yield { cursor };

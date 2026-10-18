@@ -2,7 +2,7 @@
 
 This module is part of Webda Application Framework that allows you to quickly develop applications with all modern prerequisites: Security, Extensibility, GraphQL, REST, CloudNative [https://webda.io](https://webda.io)
 
-<img src="https://webda.io/images/webda.svg" width="128" />
+<img src="https://webda.io/img/webda.svg" width="128" />
 
 ![CI](https://github.com/loopingz/webda.io/workflows/CI/badge.svg)
 
@@ -13,9 +13,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-# @webda/runtime
-
-> Webda runtime service bundle — router, cluster coordination, proxy, invitation system, version endpoint, migration store, and core utility models bundled for use in any Webda deployment.
+> Webda runtime service bundle — router, cluster coordination, proxy, invitation system, version endpoint, and core utility models bundled for use in any Webda deployment.
 
 ## When to use it
 
@@ -39,10 +37,6 @@ pnpm add @webda/runtime
 - `InvitationService` — Token-based invitation/join-code system for model membership ([source](./src/services/invitationservice.ts))
 - `ProxyService` — HTTP reverse proxy that forwards requests matching a URL prefix to an upstream host ([source](./src/services/proxy.ts))
 - `VersionService` — Exposes a `/version` endpoint returning the application name and version ([source](./src/services/version.ts))
-
-### Stores
-
-- `MigrationStore` — Wraps another store and runs model migrations on read ([source](./src/stores/migration.ts))
 
 ### Utility models
 
@@ -74,6 +68,7 @@ pnpm add @webda/runtime
 - Related: [`@webda/core`](../core) for the base `Service` and `Store` classes; [`@webda/amqp`](../amqp) or [`@webda/gcp`](../gcp) as the pub/sub backend for `ClusterService`.
 
 <!-- README_FOOTER -->
+
 ## Sponsors
 
 <!--
@@ -82,12 +77,12 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 Arize AI is a machine learning observability and model monitoring platform. It helps you visualize, monitor, and explain your machine learning models. [Learn more](https://arize.com)
 
-[<img src="https://arize.com/hubfs/arize/brand/arize-logomark-1.png" width="200">](https://arize.com)
+[<img src="https://webda.io/img/sponsors/arize.svg" width="200">](https://arize.com)
 
 Loopingz is a software development company that provides consulting and development services. [Learn more](https://loopingz.com)
 
-[<img src="https://loopingz.com/images/logo.png" width="200">](https://loopingz.com)
+[<img src="https://webda.io/img/sponsors/loopingz.png" width="200">](https://loopingz.com)
 
 Tellae is an innovative consulting firm specialized in cities transportation issues. We provide our clients, both public and private, with solutions to support your strategic and operational decisions. [Learn more](https://tellae.fr)
 
-[<img src="https://tellae.fr/" width="200">](https://tellae.fr)
+[<img src="https://webda.io/img/sponsors/tellae.svg" width="200">](https://tellae.fr)

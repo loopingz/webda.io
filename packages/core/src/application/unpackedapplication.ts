@@ -1,7 +1,7 @@
 import { WorkerOutput } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as fs from "fs";
-import { Application } from "./application.js";
+import { Application, resolveModuleFile } from "./application.js";
 import {
   type CachedModule,
   type Configuration,
@@ -434,10 +434,11 @@ export class UnpackedApplication extends Application {
           return;
         }
         for (const key in module[SectionEnum[p]]) {
-          const relBase = relative(this.getPath(), dirname(moduleFile));
-          module[SectionEnum[p]][key].Import = join(relBase, module[SectionEnum[p]][key].Import);
+          // Relative to the application, the files of a dependency looked up like Node does
+          const rebase = (info: string) => relative(this.getPath(), resolveModuleFile(dirname(moduleFile), info));
+          module[SectionEnum[p]][key].Import = rebase(module[SectionEnum[p]][key].Import);
           if (module[SectionEnum[p]][key].Configuration) {
-            module[SectionEnum[p]][key].Configuration = join(relBase, module[SectionEnum[p]][key].Configuration);
+            module[SectionEnum[p]][key].Configuration = rebase(module[SectionEnum[p]][key].Configuration);
           }
         }
       });

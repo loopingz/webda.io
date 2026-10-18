@@ -37,6 +37,7 @@ These packages form the backbone of the framework. Most applications depend on a
 | [content-mapper](./content-mapper/README.md) | TypeScript content mapping behind `webdac build`: model metadata, JSON Schema generation and the generated accessors. |
 | [ql](./ql/README.md) | WebdaQL — a portable query language for filtering model collections across every store backend. |
 | [graphql](./graphql/README.md) | Auto-generates a GraphQL schema from your models and wires queries, mutations, and subscriptions. |
+| [sdk](./sdk/README.md) | Generates a typed frontend SDK (types, operations, model clients with a normalized cache, `@Shared` methods) from the application. |
 
 ---
 
@@ -73,6 +74,7 @@ Decouple background work and fan-out events with these messaging adapters.
 |---------|-------------|
 | [google-auth](./google-auth/README.md) | Google OAuth 2.0 provider for `@webda/authentication`. |
 | [hawk](./hawk/README.md) | Hawk HMAC authentication middleware for machine-to-machine API calls. |
+| [oauth](./oauth/README.md) | OAuth 2.1 authorization server: delegated, operation-scoped tokens with consent, device flow and revocation. |
 | [iam](./iam/README.md) | AWS-IAM-like allow/deny policies on operations, with conditions, evaluated with Casbin. |
 
 ---

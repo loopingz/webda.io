@@ -27,8 +27,10 @@ export interface CommandOptions {
    * - `"initialized"` (default): runs after `Core.init()` — full runtime including service.init() (DB, network).
    * - `"resolved"`: runs after `Core.resolve()` only — services are constructed and resolve()d but init() is skipped.
    *   Use for build-time codegen hooks that shouldn't touch the network.
+   * - `"application"`: runs with the loaded application only — no Core, no service, the configuration is not
+   *   decrypted. The method must be static. Use for tooling on the configuration files, like `webda config encrypt`.
    */
-  phase?: "resolved" | "initialized";
+  phase?: "application" | "resolved" | "initialized";
 }
 
 /**
@@ -42,8 +44,21 @@ export interface CommandOptions {
  * - JSDoc `@description` on parameter provides help text for the flag
  * - JSDoc `@deprecated` on parameter marks the flag as deprecated
  *
+ * A handler returning a number sets the process exit code (the highest one when
+ * several services run the command); any other result exits with `0`. Log counts
+ * rather than returning them.
+ *
  * Multiple services can declare the same command name — they all run in
  * dependency-graph order. Use `--service=ServiceName` to filter at invocation.
+ * The CLI accepts the union of their parameters and calls every handler with the
+ * same positional values, in the merged order: declare shared parameters in the
+ * same order and type (a warning is logged otherwise).
+ *
+ * A subclass inherits the commands of its parent class. Redeclaring the command
+ * on a subclass adds a provider, it does not replace the parent's: the application
+ * selects the providers with the `webda.cli` section of its package.json —
+ * `"exclude": ["Webda/HttpServer:serve"]` lets a `RunnerHttpServer extends HttpServer`
+ * serve alone, with its own parameters.
  *
  * Subcommands use space-separated names. The service owns its subtree:
  * `@Command("aws s3")` handles everything under `webda aws s3`.
@@ -90,12 +105,7 @@ export interface CommandOptions {
  * ```
  */
 export const Command = createMethodDecorator(
-  (
-    value: any,
-    context: ClassMethodDecoratorContext,
-    name: string,
-    options: CommandOptions = { description: "" }
-  ) => {
+  (value: any, context: ClassMethodDecoratorContext, name: string, options: CommandOptions = { description: "" }) => {
     context.metadata["webda.commands"] ??= [];
     (context.metadata["webda.commands"] as any[]).push({
       name,

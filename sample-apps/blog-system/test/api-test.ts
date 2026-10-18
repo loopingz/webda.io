@@ -5,7 +5,9 @@ import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { listOperations } from "@webda/core/lib/core/operations.js";
 import { useRouter } from "@webda/core/lib/rest/hooks.js";
-import { useApplication } from "@webda/core/lib/application/hooks.js";
+import { useApplication, useModel } from "@webda/core/lib/application/hooks.js";
+import bcrypt from "bcryptjs";
+import { useService } from "@webda/core/lib/core/hooks.js";
 import { WebContext } from "@webda/core/lib/contexts/webcontext.js";
 import { HttpContext } from "@webda/core/lib/contexts/httpcontext.js";
 import { runWithContext } from "@webda/core/lib/contexts/execution.js";
@@ -56,6 +58,25 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     assert.ok(modelNames.includes("WebdaSample/Comment"), "Comment model should be registered");
     assert.ok(modelNames.includes("WebdaSample/PostTag"), "PostTag model should be registered");
     assert.ok(modelNames.includes("WebdaSample/UserFollow"), "UserFollow model should be registered");
+  }
+
+  @test
+  async userStoredForm() {
+    const User: any = useApplication().getModels()["WebdaSample/User"];
+    const user = new User();
+    user.username = "stored";
+    user.name = "Stored User";
+    user.__email = "stored@example.com";
+    user.__password = "hash";
+    user.createdAt = new Date("2026-01-02T03:04:05.000Z");
+    // What the stores write: every field, private ones included
+    const stored = JSON.parse(JSON.stringify(user));
+    assert.strictEqual(stored.__password, "hash");
+    assert.strictEqual(stored.__email, "stored@example.com");
+    assert.strictEqual(stored.createdAt, "2026-01-02T03:04:05.000Z");
+    // The email of the owner is derived for the viewer, never kept from a stored copy
+    user.email = "stored@example.com";
+    assert.strictEqual(JSON.parse(JSON.stringify(user)).email, undefined);
   }
 
   @test
@@ -219,6 +240,41 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     assert.ok(rootRoutes, "Root route should exist (OpenAPI)");
     const getMethods = rootRoutes.filter(r => r.methods.includes("GET"));
     assert.ok(getMethods.length > 0, "Root route should support GET (OpenAPI)");
+  }
+
+  @test
+  async completeQL() {
+    const app = useApplication();
+    const bean: any = useService("TestBean" as any);
+    assert.ok(bean, "TestBean should exist");
+
+    // Standard completion with default model
+    const res1 = await bean.completeQL();
+    assert.ok(Array.isArray(res1.items));
+
+    // Completion on Post model
+    const res2 = await bean.completeQL("tit", 3, "WebdaSample/Post");
+    assert.ok(res2.items.some((i: any) => i.label === "title"));
+
+    // Unknown model
+    const res3 = await bean.completeQL("x", 1, "NonExistent");
+    assert.ok(Array.isArray(res3.items));
+
+    // Model without repository (falls back to Schemas reflection)
+    class DummyModel {}
+    (DummyModel as any).Metadata = {
+      Schemas: {
+        Stored: {
+          type: "object",
+          properties: {
+            dummyField: { type: "string" }
+          }
+        }
+      }
+    };
+    (app.getModels() as any)["WebdaSample/Dummy"] = DummyModel;
+    const res4 = await bean.completeQL("dum", 3, "WebdaSample/Dummy");
+    assert.ok(res4.items.some((i: any) => i.label === "dummyField"));
   }
 }
 
@@ -536,6 +592,62 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     assert.strictEqual(direct.statusCode, 403, direct.body);
   }
 
+  @test
+  async passwordHashes() {
+    const User: any = useModel("WebdaSample/User");
+    const user = new User();
+    await user.setPassword("a-strong-password");
+    assert.match(user.__password, /^scrypt\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/);
+    assert.strictEqual(await user.verifyPassword("a-strong-password"), true);
+    assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
+    const validHash = user.__password;
+    // Hashes written by previous versions (bcrypt) are still accepted
+    user.__password = bcrypt.hashSync("legacy-password", 4);
+    assert.strictEqual(await user.verifyPassword("legacy-password"), true);
+    assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
+    // Broken or missing hashes never match
+    for (const hash of [
+      "scrypt$",
+      "scrypt$c2FsdA==$",
+      `${validHash}$extra`,
+      validHash.replace(/^scrypt\$[^$]+/, "scrypt$not-base64"),
+      validHash.replace(/[^$]+$/, "c2hvcnQ="),
+      undefined
+    ]) {
+      user.__password = hash;
+      assert.strictEqual(await user.verifyPassword(""), false, String(hash));
+    }
+  }
+
+  @test
+  async loginDoesNotBlockTheEventLoop() {
+    const { email, password } = await this.register("dave");
+    // The longest gap between two timer ticks while logins run: a synchronous hash (bcryptjs) blocks ~60ms each
+    let last = Date.now();
+    let maxGap = 0;
+    const timer = setInterval(() => {
+      const now = Date.now();
+      maxGap = Math.max(maxGap, now - last);
+      last = now;
+    }, 2);
+    try {
+      const logins = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          this.routerHttp({ method: "PUT", url: "/users/login", body: { email, password } })
+        )
+      );
+      assert.deepStrictEqual(
+        logins.map(l => l.statusCode),
+        [200, 200, 200, 200, 200]
+      );
+    } finally {
+      clearInterval(timer);
+    }
+    // A blocked loop may not tick at all before the logins end
+    maxGap = Math.max(maxGap, Date.now() - last);
+    assert.ok(maxGap < 40, `the event loop was blocked ${maxGap}ms during the logins`);
+  }
+
   /** Users: public profile, private email and hash, owner-only changes */
   @test
   async usersAreReadableByAllAndEditableByTheirOwnerOnly() {
@@ -830,6 +942,41 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
         .statusCode,
       403
     );
+  }
+
+  @test
+  async qlCodeCompletion() {
+    // 1. Check completion suggestions for Post status enum
+    const completeRes = await this.routerHttp<any>({
+      method: "POST",
+      url: "/ql/complete",
+      body: { query: "status = ", caret: 9, model: "WebdaSample/Post" }
+    });
+    assert.strictEqual(completeRes.statusCode, 200, `Expected 200 from /ql/complete, got: ${completeRes.body}`);
+    const labels = completeRes.parsed.items.map((i: any) => i.label);
+    assert.ok(labels.includes("'published'"), "Should offer 'published'");
+    assert.ok(labels.includes("'draft'"), "Should offer 'draft'");
+    assert.ok(labels.includes("'archived'"), "Should offer 'archived'");
+    assert.ok(labels.includes("?"), "Should offer '?'");
+
+    // 2. Check prefix matching for field
+    const prefixRes = await this.routerHttp<any>({
+      method: "POST",
+      url: "/ql/complete",
+      body: { query: "sta", caret: 3, model: "WebdaSample/Post" }
+    });
+    assert.strictEqual(prefixRes.statusCode, 200);
+    const prefixLabels = prefixRes.parsed.items.map((i: any) => i.label);
+    assert.ok(prefixLabels.includes("status"), "Should offer status for prefix sta");
+
+    // 3. Querying posts with WebdaQL
+    const qlQueryRes = await this.routerHttp<any>({
+      method: "PUT",
+      url: "/posts",
+      body: { q: "status = 'published'" }
+    });
+    assert.strictEqual(qlQueryRes.statusCode, 200);
+    assert.ok(Array.isArray(qlQueryRes.parsed.results));
   }
 }
 

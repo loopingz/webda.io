@@ -126,7 +126,7 @@ function tryRepository(model: any): any {
  */
 function frozenClone<T>(value: T): T {
   if (value === undefined) {
-    return undefined;
+    return value;
   }
   const clone: any = JSON.parse(JSON.stringify(value));
   const freeze = (o: any) => {
@@ -415,9 +415,28 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
         return "current user could not be loaded";
       }
     }
+    // An application session (OIDC workload identity) has no user
+    const session = context.getSession?.();
+    const app = !user && session?.isApplication?.() ? session.application : undefined;
+    const application: IAMRequestContext["application"] = app
+      ? {
+          principal: app.principal,
+          issuer: app.issuer,
+          subject: app.subject,
+          groups: [...(app.groups ?? [])],
+          claims: app.claims ?? {}
+        }
+      : undefined;
     const principals = user
       ? [`user:${user.uuid}`, ...user.groups.map(group => `group:${group}`), "authenticated"]
-      : ["anonymous"];
+      : application
+        ? [
+            `app:${application.principal}`,
+            `app-issuer:${application.issuer}`,
+            ...application.groups.map(group => `app-group:${group}`),
+            "authenticated-app"
+          ]
+        : ["anonymous"];
     let http: IAMRequestContext["http"];
     if (context instanceof WebContext) {
       const httpContext = context.getHttpContext();
@@ -429,7 +448,8 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
       operationId,
       probe: options.probe,
       user: frozenClone(user),
-      session: frozenClone(context.getSession?.()),
+      application: frozenClone(application),
+      session: frozenClone(session),
       input: options.input === undefined ? (options.probe ? undefined : Object.freeze({})) : frozenClone(options.input),
       http: frozenClone(http),
       now: Date.now()

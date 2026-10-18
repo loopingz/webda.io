@@ -26,6 +26,7 @@ export class KubeRunnerParameters extends RunnerParameters implements Kubernetes
    * Kubernetes configuration
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret users.token,users.password,users.keyData,users.authProvider
    */
   config?: string | K8sConfiguration;
   /**
@@ -94,10 +95,10 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
     if (resources.spec?.template?.spec?.containers) {
       for (const cont of resources.spec.template.spec.containers) {
         cont.env ??= [];
-        for (const envKey in info) {
+        for (const [envKey, value] of Object.entries(info)) {
           cont.env.push({
             name: envKey,
-            value: info[envKey]
+            value
           });
         }
       }

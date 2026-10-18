@@ -4,7 +4,7 @@ import { existsSync, unlinkSync, writeFileSync } from "fs";
 import { WebdaApplicationTest } from "../test/application.js";
 import { getCommonJS } from "@webda/utils";
 import { FileConfigurationService } from "./fileconfiguration.service.js";
-import { useDynamicService, useService } from "../core/hooks.js";
+import { useDynamicService } from "../core/hooks.js";
 import { useCoreEvents } from "../events/events.js";
 const { __dirname } = getCommonJS(import.meta.url);
 
@@ -225,5 +225,36 @@ class FileConfigurationMissingFileTest extends FileConfigurationAbstractTest {
   async initialLoad() {
     const auth = useDynamicService<any>("SampleService");
     assert.strictEqual(auth.getParameters().email?.text, "DefaultTest");
+  }
+}
+
+/**
+ * A configuration service that cannot be created stops the application with its reason
+ */
+@suite
+class FileConfigurationInvalidParametersTest extends FileConfigurationAbstractTest {
+  getTestConfiguration() {
+    const cfg: any = super.getTestConfiguration();
+    // A deployment adding `sources` over the base `source`
+    cfg.services.FileConfigurationService.sources = ["./test/my-other-cnf.json"];
+    return cfg;
+  }
+
+  async beforeAll() {
+    // The Core is built by the test
+  }
+
+  @test
+  async createErrorIsReported() {
+    const core = await this.buildWebda();
+    await assert.rejects(
+      () => core.resolve(),
+      (err: Error) => {
+        assert.match(err.message, /Cannot create configuration service FileConfigurationService: /);
+        assert.match(err.message, /Cannot use both source and sources/);
+        assert.match((err.cause as any)?.code, /CONFIGURATION_SOURCE_BOTH/);
+        return true;
+      }
+    );
   }
 }

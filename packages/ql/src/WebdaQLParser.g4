@@ -27,7 +27,7 @@ whereClause: WHERE expression;
 
 // UPDATE SET targets and their values
 assignmentList: assignment (COMMA assignment)*;
-assignment: identifier EQUAL (values | parameter);
+assignment: identifier EQUAL (values | parameter | functionCall);
 
 // SELECT field list: fields, and aggregate metrics with their alias
 fieldList: selectItem (COMMA selectItem)*;
@@ -55,7 +55,7 @@ expression
     | identifier IS NULL #isNullExpression
     | identifier IS NOT NULL #isNotNullExpression
     // Comparison operations
-    | identifier (EQUAL | NOT_EQUAL | GREATER_OR_EQUAL | LESS_OR_EQUAL | LESS | GREATER) (values | parameter) #binaryComparisonExpression
+    | identifier (EQUAL | NOT_EQUAL | GREATER_OR_EQUAL | LESS_OR_EQUAL | LESS | GREATER) (values | parameter | functionCall) #binaryComparisonExpression
     // Logic operations
     | expression AND expression #andLogicExpression
     | expression OR expression #orLogicExpression
@@ -96,5 +96,11 @@ parameter: (POSITIONAL_PARAMETER | NAMED_PARAMETER);
 // Sets
 
 setExpression
-    : LR_SQ_BRACKET (values | parameter) ( COMMA (values | parameter) )* RR_SQ_BRACKET // Empty sets are not allowed
+    : LR_SQ_BRACKET (values | parameter | functionCall) ( COMMA (values | parameter | functionCall) )* RR_SQ_BRACKET // Empty sets are not allowed
+    ;
+
+// Functions
+
+functionCall
+    : NOW LR_BRACKET (stringLiteral | integerLiteral | numberLiteral | parameter)? RR_BRACKET #nowFunction
     ;

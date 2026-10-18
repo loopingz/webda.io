@@ -4,7 +4,6 @@ import { vi } from "vitest";
 import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { EventEmitter } from "node:events";
 
 // Tracked operations map for the mock
 const mockOperations: Record<string, any> = {};

@@ -261,6 +261,32 @@ export class RepositoryTest {
   }
 
   @test
+  async queryWithNow() {
+    const now = Date.now();
+    const repo = QueryDocument.getRepository();
+    const docOld = new QueryDocument({ id: 9001, order: now - 7200000 });
+    const docRecent = new QueryDocument({ id: 9002, order: now - 1800000 });
+    const docFuture = new QueryDocument({ id: 9003, order: now + 3600000 });
+    await repo.create(docOld);
+    await repo.create(docRecent);
+    await repo.create(docFuture);
+
+    // order < NOW('-1h') matches docOld (2h ago < 1h ago)
+    const res = await repo.query("id IN [9001, 9002, 9003] AND order < NOW('-1h')");
+    assert.strictEqual(res.results.length, 1);
+    assert.strictEqual(res.results[0].id, 9001);
+
+    // order > NOW('-1h') matches docRecent and docFuture
+    const res2 = await repo.query("id IN [9001, 9002, 9003] AND order > NOW('-1h')");
+    assert.strictEqual(res2.results.length, 2);
+
+    // UPDATE SET with NOW()
+    await repo.updateMany("UPDATE SET order = NOW() WHERE id = 9001");
+    const updated = await repo.get(9001);
+    assert.ok(Math.abs(updated.order - Date.now()) < 5000);
+  }
+
+  @test
   async upsert() {
     const repo = TestModel.getRepository() as MemoryRepository<typeof TestModel>;
     const test = await repo.upsert({
@@ -401,6 +427,63 @@ export class CovRepositoryTest {
     // getPrimaryKey with forceObject and object input (returns object directly)
     const pkObjFromObj = repo.getPrimaryKey({ uuid: "test-pk2" }, true);
     assert.strictEqual((pkObjFromObj as any).uuid, "test-pk2");
+
+    // Test getCompletionFields and getAllowedFields across Schemas
+    class SchemaStoredModel extends UuidModel {}
+    (SchemaStoredModel as any).Metadata = {
+      Schemas: {
+        Stored: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            author: { type: "object", properties: { name: { type: "string" } } }
+          }
+        }
+      }
+    };
+    const storedRepo = new MemoryRepository<typeof SchemaStoredModel>(SchemaStoredModel, ["uuid"]);
+    const storedFields = storedRepo.getCompletionFields();
+    assert.ok(storedFields.some(f => f.name === "title"));
+    assert.ok(storedFields.some(f => f.name === "author.name"));
+    const allowed = storedRepo.getAllowedFields();
+    assert.ok(allowed?.includes("title"));
+    assert.ok(allowed?.includes("author.name"));
+
+    // Schemas.Output only
+    class SchemaOutputModel extends UuidModel {}
+    (SchemaOutputModel as any).Metadata = {
+      Schemas: {
+        Output: {
+          type: "object",
+          properties: {
+            outputField: { type: "string" }
+          }
+        }
+      }
+    };
+    const outputRepo = new MemoryRepository<typeof SchemaOutputModel>(SchemaOutputModel, ["uuid"]);
+    assert.ok(outputRepo.getCompletionFields().some(f => f.name === "outputField"));
+
+    // Schemas.Input only
+    class SchemaInputModel extends UuidModel {}
+    (SchemaInputModel as any).Metadata = {
+      Schemas: {
+        Input: {
+          type: "object",
+          properties: {
+            inputField: { type: "string" }
+          }
+        }
+      }
+    };
+    const inputRepo = new MemoryRepository<typeof SchemaInputModel>(SchemaInputModel, ["uuid"]);
+    assert.ok(inputRepo.getCompletionFields().some(f => f.name === "inputField"));
+
+    // No schema
+    class NoSchemaModel extends UuidModel {}
+    (NoSchemaModel as any).Metadata = {};
+    const noSchemaRepo = new MemoryRepository<typeof NoSchemaModel>(NoSchemaModel, ["uuid"]);
+    assert.deepStrictEqual(noSchemaRepo.getCompletionFields(), []);
   }
 
   @test

@@ -10,7 +10,8 @@ import { canActInIAMOperation } from "./active.js";
  */
 export class IAMPolicyAttachment extends CoreModel {
   /**
-   * `user:<uuid>`, `group:<name>`, `authenticated` or `anonymous`
+   * `user:<uuid>`, `group:<name>`, `authenticated`, `anonymous`, or for applications `app:<name>`,
+   * `app-group:<name>`, `app-issuer:<issuer>` and `authenticated-app`
    */
   principal: string;
   /**

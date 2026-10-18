@@ -200,6 +200,92 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.10...mongo-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.11
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.9...mongo-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **bench:** benchmarks for Store, Queue, Pub/Sub and the blog-system application ([#914](https://github.com/loopingz/webda.io/issues/914)) ([#916](https://github.com/loopingz/webda.io/issues/916)) ([aed07ef](https://github.com/loopingz/webda.io/commit/aed07ef3efe25cfd6957eb007a3216e181be7681))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.10
+    * @webda/compiler bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.8...mongo-v4.0.0-beta.9) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* the unused store parameters modelAliases, defaultModel and forceModel are removed; use @WebdaAlias for renamed models. The runtime MigrationStore is removed: use webda migrate.
+
+### Features
+
+* **ql:** add NOW() time function with duration offset ([#856](https://github.com/loopingz/webda.io/issues/856)) ([#886](https://github.com/loopingz/webda.io/issues/886)) ([653ecd0](https://github.com/loopingz/webda.io/commit/653ecd05327a02c828cae9c7cac02b34af251f67))
+* transparent Webda 3 → 4 data upgrade — legacy types, store migrations (core) ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#890](https://github.com/loopingz/webda.io/issues/890)) ([01d4efb](https://github.com/loopingz/webda.io/commit/01d4efb22e676111318ee28fdc748575e0c85f33))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/ql bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.7...mongo-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* enable strict mode in ten small packages ([#872](https://github.com/loopingz/webda.io/issues/872)) ([ecad571](https://github.com/loopingz/webda.io/commit/ecad571d67963ea4c35b47ddfafc1b91c2d7b12f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.6...mongo-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* **core:** config encrypt encrypts every secret field, --check fails on unencrypted secrets ([#854](https://github.com/loopingz/webda.io/issues/854)) ([8926a02](https://github.com/loopingz/webda.io/commit/8926a024a527b4f5271cfa2b1e8a4e4535167620))
+* stable and documented configuration secret encryption ([#837](https://github.com/loopingz/webda.io/issues/837)) ([55fad94](https://github.com/loopingz/webda.io/commit/55fad94e96537c0b44ade1cdfb88e4b5e6c6035b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.5...mongo-v4.0.0-beta.6) (2026-10-09)
 
 

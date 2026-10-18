@@ -1,0 +1,35 @@
+.network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Behind the homepage hero: kept faint so the logo and the card stay the focus */
+.hero {
+  opacity: 0.35;
+}
+
+[data-theme="dark"] .hero {
+  opacity: 0.45;
+}
+
+/* Header strip behind a docs page title: shorter, fainter, fading out downward */
+.band,
+.bandArea {
+  bottom: auto;
+  height: 260px;
+}
+
+.band {
+  opacity: 0.4;
+  -webkit-mask-image: linear-gradient(#000 30%, transparent);
+  mask-image: linear-gradient(#000 30%, transparent);
+}
+
+[data-theme="dark"] .band {
+  opacity: 0.5;
+}

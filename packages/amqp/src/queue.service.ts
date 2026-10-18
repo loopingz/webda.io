@@ -1,4 +1,4 @@
-import { MessageReceipt, Queue, QueueParameters, SecretString } from "@webda/core";
+import { MessageReceipt, Queue, QueueParameters, SecretString, WebdaError } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import * as amqplib from "amqplib";
 
@@ -29,8 +29,19 @@ export class AMQPQueueParameters extends QueueParameters {
  * @WebdaModda
  */
 export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueueParameters> extends Queue<T, K> {
-  channel: amqplib.Channel;
-  conn: amqplib.ChannelModel;
+  channel?: amqplib.Channel;
+  conn?: amqplib.ChannelModel;
+
+  /**
+   * @returns the active AMQP channel
+   * @throws CodeError when the service is not connected
+   */
+  protected getChannel(): amqplib.Channel {
+    if (!this.channel) {
+      throw new WebdaError.CodeError("AMQP_NOT_CONNECTED", "AMQP service is not connected");
+    }
+    return this.channel;
+  }
 
   /**
    * @override
@@ -40,7 +51,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
     await super.init();
     this.conn = await amqplib.connect(SecretString.unwrap(this.parameters.url) as string);
     this.channel = await this.conn.createChannel();
-    await this.channel.assertQueue(this.parameters.queue, this.parameters.queueOptions);
+    await this.getChannel().assertQueue(this.parameters.queue, this.parameters.queueOptions);
     return this;
   }
 
@@ -66,7 +77,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    */
   async sendMessage(event: T): Promise<void> {
     this.metrics.messages_sent.inc();
-    this.channel.sendToQueue(this.parameters.queue, Buffer.from(JSONUtils.stringify(event)));
+    this.getChannel().sendToQueue(this.parameters.queue, Buffer.from(JSONUtils.stringify(event)));
   }
 
   /**
@@ -75,7 +86,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    * @returns the received message if any
    */
   async receiveMessage<L>(proto?: new () => L): Promise<MessageReceipt<L>[]> {
-    const msg = await this.channel.get(this.parameters.queue);
+    const msg = await this.getChannel().get(this.parameters.queue);
     if (msg === false) {
       return [];
     }
@@ -92,7 +103,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    * @param id - the receipt handle returned by {@link receiveMessage}
    */
   async deleteMessage(id: string): Promise<void> {
-    this.channel.ack(<any>id);
+    this.getChannel().ack(<any>id);
   }
 
   /**
@@ -100,14 +111,14 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    * @returns the number of messages ready in the queue
    */
   async size(): Promise<number> {
-    return (await this.channel.assertQueue(this.parameters.queue)).messageCount;
+    return (await this.getChannel().assertQueue(this.parameters.queue)).messageCount;
   }
 
   /**
    * Purge the queue, used by tests
    */
   async __clean(): Promise<void> {
-    await this.channel.purgeQueue(this.parameters.queue);
+    await this.getChannel().purgeQueue(this.parameters.queue);
   }
 }
 

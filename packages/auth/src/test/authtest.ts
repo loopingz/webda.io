@@ -54,7 +54,7 @@ export abstract class AuthTest extends WebdaApplicationTest {
     input: any = {},
     ctx?: WebContext,
     headers: Record<string, string> = { "content-type": "application/json" }
-  ): Promise<T> {
+  ): Promise<T | undefined> {
     ctx ??= await this.ctx();
     const http = new HttpContext("test.webda.io", "POST", "/", "http", 80, headers);
     http.setBody(input);

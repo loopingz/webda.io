@@ -149,8 +149,13 @@ curl -sk https://localhost:18080/openapi.json | jq '.paths | keys | .[:15]'
 
 > **Note**: Requires the blog-system server to be running.
 
+## Route aliases
+
+The Router supports **route aliases** to map incoming URLs (like `/me` &rarr; `/users/${user.id}`) to existing target routes or operations in-process (rewrite) or via HTTP redirect. See [Aliases](../../REST/Routes.md#aliases) in the REST Routes documentation for full configuration options, placeholders, and programmatic registration via `useRouter().addAlias(...)`.
+
 ## See also
 
+- [Aliases](../../REST/Routes.md#aliases) — Route definitions, uri-templates, and route aliases
 - [Context](./Context.md) — `WebContext` in route handlers
 - [Services](./Services.md) — `@Route` and `@Bean` on services
 - [Models Actions](../models/Actions.md) — how `@Operation` maps to routes

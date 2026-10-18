@@ -4,9 +4,7 @@ import React from "react";
 import { assertAllowlisted } from "./test/harness.js";
 import { afterEach, vi, describe, it } from "vitest";
 import {
-  ANALYTICS_EVENTS,
   ANALYTICS_MESSAGE_TYPE,
-  ANALYTICS_PARAM_VALUES,
   AnalyticsProvider,
   createIframeTracker,
   sanitizeEvent,

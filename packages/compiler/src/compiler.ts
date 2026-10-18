@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, watch as watchFiles, type FSWatche
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FileUtils } from "@webda/utils";
+import { FileUtils, listSharedImports } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import type { WebdaProject } from "./definition.js";
 import { writeModule } from "./module.js";
@@ -227,6 +227,19 @@ export class Compiler {
   }
 
   /**
+   * The modules a `@Shared` model method may import from, as the application configures them
+   * (`sharedImports` on the `Webda/SdkGenerator` service); undefined for a module without configuration
+   * @returns the allowlist
+   */
+  sharedImports(): string[] | undefined {
+    try {
+      return listSharedImports(FileUtils.getConfigurationFile(this.project.getAppPath("webda.config")));
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * This is our main entry point
    * @param force - skip cache and force recompilation
    * @returns true if compilation succeeded
@@ -244,7 +257,8 @@ export class Compiler {
     try {
       result = build(this.project.getAppPath(), {
         namespace: this.project.namespace,
-        capabilities: this.project.packageDescription.webda?.capabilities
+        capabilities: this.project.packageDescription.webda?.capabilities,
+        sharedImports: this.sharedImports()
       });
     } catch (err) {
       useLog("ERROR", err.message);

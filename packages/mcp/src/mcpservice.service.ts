@@ -33,39 +33,47 @@ export class McpServiceParameters extends OperationsTransportParameters {
    * HTTP endpoint; false disables HTTP (stdio only)
    * @default "/mcp"
    */
-  url?: string | false;
+  url: string | false;
   /**
    * Models exposed as resources (short ids or "*"); false disables resources
    * @default {"models":["*"]}
    */
-  resources?: false | { models?: string[] };
+  resources:
+    | false
+    | {
+        /**
+         * Models exposed as resources
+         * @default ["*"]
+         */
+        models: string[];
+      };
   /**
    * Seconds of inactivity before an MCP session is evicted
    * @default 1800
    */
-  sessionTimeout?: number;
+  sessionTimeout: number;
   /**
    * Extra Origin values accepted besides the request's own origin
    * @default []
    */
-  allowedOrigins?: string[];
+  allowedOrigins: string[];
   /**
    * Hostnames (any port) accepted in the request Host, against DNS rebinding;
    * "*" disables the check
    * @default ["localhost","127.0.0.1","::1"]
    */
-  allowedHosts?: string[];
+  allowedHosts: string[];
   /**
    * Maximum number of concurrent MCP HTTP sessions; at the limit the least
    * recently used session is closed to make room for a new one
    * @default 1000
    */
-  maxSessions?: number;
+  maxSessions: number;
   /**
    * Larger tool/resource outputs are truncated
    * @default 1048576
    */
-  maxOutputBytes?: number;
+  maxOutputBytes: number;
   /**
    * Server name announced to clients (defaults to the application package name)
    */
@@ -76,8 +84,9 @@ export class McpServiceParameters extends OperationsTransportParameters {
   serverVersion?: string;
   /**
    * stdio defaults
+   * @default {}
    */
-  stdio?: {
+  stdio: {
     /**
      * Default user for `webda mcp`
      */
@@ -185,6 +194,9 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
         throw new Error(`MCP authenticator '${this.parameters.authenticator}' must implement authenticate(ctx)`);
       }
       this.authenticator = service;
+      if (typeof this.parameters.url === "string") {
+        (service as any).bindResource?.(this.parameters.url);
+      }
     } else {
       this.authenticator = new SessionAuthenticator();
     }
@@ -357,7 +369,13 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       entry = await this.createHttpSession(ctx, userId, origin);
     }
     this.checkForChanges();
-    const authInfo: AuthInfo = { token: "", clientId: userId ?? "anonymous", scopes: [], extra: { session } };
+    const bearer = (http.getUniqueHeader("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const authInfo: AuthInfo = {
+      token: bearer,
+      clientId: session?.clientId ?? userId ?? "anonymous",
+      scopes: session?.scopes ?? [],
+      extra: { session }
+    };
     const response = await (entry.transport as WebStandardStreamableHTTPServerTransport).handleRequest(
       toRequest(ctx, body, origin),
       {
@@ -381,7 +399,6 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     requestOrigin: URL | undefined = this.requestOrigin(ctx)
   ): Promise<McpSessionEntry> {
     const origin = requestOrigin?.origin;
-    const entry: McpSessionEntry = { id: "", userId, lastSeen: Date.now(), server: undefined, transport: undefined };
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       enableDnsRebindingProtection: true,
@@ -392,8 +409,13 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       },
       onsessionclosed: id => this.sessions.remove(id)
     });
-    entry.transport = transport;
-    entry.server = this.createServer(extra => extra.authInfo?.extra?.session as Session);
+    const entry: McpSessionEntry = {
+      id: "",
+      userId,
+      lastSeen: Date.now(),
+      transport,
+      server: this.createServer(extra => extra.authInfo?.extra?.session as Session)
+    };
     await entry.server.connect(transport);
     return entry;
   }
@@ -411,7 +433,10 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     // stdout carries only protocol frames: logging goes to stderr regardless of --log-stream
     const { protocol, restore } = reserveStdout();
     try {
-      const server = await this.serveStdio(new StdioServerTransport(process.stdin, protocol), user || this.parameters.stdio.user);
+      const server = await this.serveStdio(
+        new StdioServerTransport(process.stdin, protocol),
+        user || this.parameters.stdio.user
+      );
       await new Promise<void>(resolve => {
         server.onclose = () => resolve();
         process.stdin.once("end", () => void server.close());

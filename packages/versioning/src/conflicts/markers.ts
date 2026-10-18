@@ -1,5 +1,5 @@
 import { getAtPointer, setAtPointer } from "../engine/patch.js";
-import type { Conflict, MergeResult, Path } from "../types.js";
+import type { Conflict, MergeResult } from "../types.js";
 
 const OPEN = "<<<<<<<";
 const SEP = "=======";
@@ -71,11 +71,7 @@ function isConflictSentinel(v: unknown): v is {
   ours: unknown;
   theirs: unknown;
 } {
-  return (
-    v !== null &&
-    typeof v === "object" &&
-    (v as Record<string, unknown>).__conflict === true
-  );
+  return v !== null && typeof v === "object" && (v as Record<string, unknown>).__conflict === true;
 }
 
 /**

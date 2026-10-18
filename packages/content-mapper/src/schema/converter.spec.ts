@@ -427,3 +427,54 @@ describe("SchemaConverter.fromType", () => {
     expect(schema.properties!.name.type).toBe("string");
   });
 });
+
+describe("secret fields", () => {
+  const schema = schemaOf("params.service.ts", "SecretService");
+  const properties = schema.properties!;
+
+  it("marks a union with a class tagged @secret", () => {
+    expect(properties.apiKey).toEqual({
+      type: "string",
+      description: "The usual secret field.",
+      "x-webda-secret": true
+    });
+    expect(properties.tokenFirst).toEqual({ type: "string", description: "The class first.", "x-webda-secret": true });
+  });
+
+  it("marks the class alone, in an array and in a type array", () => {
+    expect(properties.token.type).toBe("string");
+    expect(properties.token["x-webda-secret"]).toBe(true);
+    expect(properties.pin).toEqual({
+      type: ["number", "string"],
+      description: "Mixed with other types.",
+      "x-webda-secret": true
+    });
+    expect(properties.keys.type).toBe("array");
+    expect((properties.keys.items as JSONSchema7)["x-webda-secret"]).toBe(true);
+    expect(properties.keys["x-webda-secret"]).toBeUndefined();
+  });
+
+  it("marks a secret nested in an inline object", () => {
+    const credentials =
+      schema.definitions![decodeURIComponent(properties.credentials.$ref!.replace("#/definitions/", ""))];
+    expect(credentials.properties!.secretAccessKey["x-webda-secret"]).toBe(true);
+    expect(credentials.properties!.accessKeyId["x-webda-secret"]).toBeUndefined();
+  });
+
+  it("marks a property tagged @secret, whole or scoped to children", () => {
+    expect(properties.client["x-webda-secret"]).toBe(true);
+    expect(properties.server["x-webda-secret"]).toEqual(["password", "connectionString"]);
+    expect(properties.config["x-webda-secret"]).toBe(true);
+    // On the property, not inside the union branches
+    for (const branch of properties.config.anyOf ?? []) expect(branch["x-webda-secret"]).toBeUndefined();
+    // The keyword replaces the tag
+    expect(properties.client.secret).toBeUndefined();
+  });
+
+  it("does not mark other fields", () => {
+    expect(properties.name["x-webda-secret"]).toBeUndefined();
+    // `@type string` alone, like `Duration`, is not a secret
+    expect(properties.masked["x-webda-secret"]).toBeUndefined();
+    expect(JSON.stringify(schemaOf("params.service.ts", "BroadService"))).not.toContain("x-webda-secret");
+  });
+});

@@ -6,6 +6,7 @@ import { deepmerge } from "deepmerge-ts";
 import type { Core } from "../core/core.js";
 import { Duration } from "@webda/utils";
 import { CryptoService } from "../services/cryptoservice.service.js";
+import { useApplication } from "../application/hooks.js";
 
 /**
  * Service that can store configuration
@@ -135,13 +136,11 @@ class ConfigurationService<
    */
   resolve() {
     super.resolve();
-    console.log("Resolving configuration service", this.parameters.sources);
     for (const s of this.parameters.sources) {
       let sourceService: ConfigurationProvider | undefined;
       let sourceId: string | undefined;
       if (s.includes(":")) {
         const [service, id] = s.split(":");
-        console.log("Loading configuration source", service, id);
         sourceService = useDynamicService(service);
         sourceId = id;
       } else {
@@ -258,7 +257,7 @@ class ConfigurationService<
       this.log("DEBUG", "Apply new configuration");
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
-      useCore().updateConfiguration(await CryptoService.decryptConfiguration(newConfig));
+      useCore().updateConfiguration(await this.decryptConfiguration(newConfig, useCore()));
     }
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this.interval) {
@@ -275,6 +274,22 @@ class ConfigurationService<
   }
 
   /**
+   * Decrypt a configuration with the application encryption settings, overridden by its own
+   * @param configuration - the configuration to decrypt
+   * @param core - the Core instance
+   * @returns the decrypted copy
+   */
+  protected decryptConfiguration(configuration: any, core: Core): Promise<any> {
+    return CryptoService.decryptConfiguration(configuration, [], {
+      settings: deepmerge(
+        core.applicationConfiguration?.parameters?.configurationEncryption ?? {},
+        configuration?.parameters?.configurationEncryption ?? {}
+      ),
+      appPath: useApplication().getPath()
+    });
+  }
+
+  /**
    *
    * @param core - the Core instance
    */
@@ -287,7 +302,7 @@ class ConfigurationService<
         // So you can have a configuration that is from file, then from a service
         // and the service configuration will be read from file too
         if (configuration) {
-          core.updateConfiguration(await CryptoService.decryptConfiguration(configuration));
+          core.updateConfiguration(await this.decryptConfiguration(configuration, core));
         }
         const [serviceName, sourceId] = source.split(":");
         const service = core.getService<ConfigurationProvider & Service>(serviceName);
@@ -299,7 +314,7 @@ class ConfigurationService<
     // Store the configuration
     this.serializedConfiguration = JSON.stringify(configuration);
     // Encrypted values (crypt:/scrypt:) are decrypted like in the application configuration
-    core.updateConfiguration(await CryptoService.decryptConfiguration(configuration));
+    core.updateConfiguration(await this.decryptConfiguration(configuration, core));
   }
 }
 

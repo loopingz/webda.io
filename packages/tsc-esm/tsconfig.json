@@ -9,7 +9,7 @@
     "module": "preserve",
     "outDir": "./lib",
     "rootDir": "./src",
-    "strict": false,
+    "strict": true,
     "declaration": true,
     "sourceMap": true,
     "esModuleInterop": true,

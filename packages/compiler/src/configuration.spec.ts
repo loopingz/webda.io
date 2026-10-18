@@ -1,186 +1,324 @@
 import { suite, test } from "@webda/test";
+import { FileUtils } from "@webda/utils";
 import * as assert from "assert";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import {
-  ConfigSchemaApplication,
-  ensureSchemaReference,
-  generateConfigurationSchemas,
-  listDeploymentFiles
-} from "./configuration.js";
+import * as path from "node:path";
+import { ConfigSchemaApplication, generateConfigurationSchemas } from "./configuration.js";
 
-/**
- * Minimal application used to generate the schemas
- * @param config - the application configuration
- * @returns the application
- */
-function getApplication(config: any = { services: {} }): ConfigSchemaApplication {
+import { describe, it, expect } from "vitest";
+import { join } from "node:path";
+
+const policySchema = {
+  type: "object",
+  properties: { options: { $ref: "#/definitions/Options" } },
+  required: ["options"],
+  definitions: { Options: { type: "object", properties: { limit: { type: "number" } } } }
+};
+
+describe("model configuration schemas", () => {
+  it("exposes model and behavior parameter schemas with isolated references in applications and deployments", () => {
+    const folder = mkdtempSync(join(tmpdir(), "webda-model-config-"));
+    const app: any = {
+      getModdas: () => ({ "Test/Service": {} }),
+      getDeployers: () => ({}),
+      getSchema: () => ({ type: "object", properties: { type: { type: "string" } } }),
+      getConfiguration: () => ({ services: {} }),
+      completeNamespace: (id: string) => id,
+      getModules: () => ({
+        models: {
+          "Test/User": {
+            Schema: policySchema,
+            Relations: {
+              behaviors: [
+                { attribute: "mfa", behavior: "Test/MFA" },
+                { attribute: "plain", behavior: "Test/Plain" }
+              ]
+            }
+          },
+          "Test/Plain": {},
+          "Test-App/User": { Schema: { type: "object", properties: { lifetime: { type: "number" } } } },
+          "Test_App/User": { Schema: policySchema }
+        },
+        behaviors: { "Test/MFA": { Schema: policySchema } }
+      })
+    };
+    try {
+      for (const full of [false, true]) {
+        const config = join(folder, "config.json");
+        const deployment = join(folder, "deployment.json");
+        generateConfigurationSchemas(app, config, deployment, full);
+        const schema = JSON.parse(readFileSync(config, "utf8"));
+        const user = schema.properties.models.properties["Test/User"].properties;
+        expect(user.parameters.properties.options.$ref).toBe("#/definitions/Parameters$546573742f55736572$Options");
+        expect(user.behaviors.properties.mfa.properties.options.$ref).toBe(
+          "#/definitions/Parameters$546573742f557365722f6d6661$Options"
+        );
+        expect(schema.definitions["Parameters$546573742f557365722f6d6661$Options"].properties.limit.type).toBe(
+          "number"
+        );
+        expect(user.parameters.required).toEqual(full ? ["options"] : undefined);
+        expect(user.behaviors.properties.plain.additionalProperties).toBe(true);
+        expect(schema.properties.models.properties["Test/Plain"].properties.parameters.additionalProperties).toBe(true);
+        const deployed = JSON.parse(readFileSync(deployment, "utf8"));
+        expect(deployed.properties.models).toEqual(schema.properties.models);
+      }
+      app.getModules = () => ({});
+      generateConfigurationSchemas(app, join(folder, "empty.json"), join(folder, "empty-deployment.json"));
+      expect(JSON.parse(readFileSync(join(folder, "empty.json"), "utf8")).properties.models.properties).toEqual({});
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  });
+});
+
+function createMockApp(): ConfigSchemaApplication {
   return {
-    getModdas: () => ({}),
-    getSchema: () => undefined,
-    getDeployers: () => ({}),
-    getConfiguration: () => config,
-    getModules: () => ({ beans: {} }),
-    completeNamespace: (name: string) => (name.includes("/") ? name : `Webda/${name}`)
+    getModdas: () => ({
+      "Test/MyService": {
+        Schema: {
+          type: "object",
+          properties: {
+            type: { type: "string" },
+            apiKey: { type: "string" }
+          }
+        }
+      }
+    }),
+    getSchema: (_type: string) => ({
+      type: "object",
+      properties: {
+        type: { type: "string" },
+        apiKey: { type: "string" }
+      }
+    }),
+    getDeployers: () => ({
+      "Test/MyDeployer": {
+        Schema: {
+          type: "object",
+          properties: {
+            type: { type: "string" },
+            region: { type: "string" }
+          }
+        }
+      }
+    }),
+    getConfiguration: () => ({
+      services: {
+        myService: { type: "Test/MyService" }
+      }
+    }),
+    getModules: () => ({
+      beans: {
+        "Test/MyBean": {
+          Schema: {
+            title: "myBean",
+            type: "object",
+            properties: {
+              type: { type: "string" }
+            }
+          }
+        }
+      }
+    }),
+    completeNamespace: (name: string) => (name.includes("/") ? name : `Test/${name}`)
   };
 }
 
 @suite
 class ConfigurationSchemaTest {
-  dir: string;
+  private tempDir: string;
 
   beforeEach() {
-    this.dir = mkdtempSync(join(tmpdir(), "webda-schema-"));
-    mkdirSync(join(this.dir, ".webda"));
-    mkdirSync(join(this.dir, "deployments"));
+    this.tempDir = mkdtempSync(path.join(tmpdir(), "webda-config-schema-test-"));
   }
 
   afterEach() {
-    rmSync(this.dir, { recursive: true, force: true });
-  }
-
-  read(file: string): string {
-    return readFileSync(join(this.dir, file), "utf-8");
-  }
-
-  @test
-  addSchemaToConfigAndDeployments() {
-    writeFileSync(join(this.dir, "webda.config.json"), JSON.stringify({ version: 4, services: {} }, undefined, 2));
-    writeFileSync(join(this.dir, "deployments", "Production.json"), '{\n "parameters": { "a": 1 }\n}\n');
-    writeFileSync(join(this.dir, "deployments", "Dev.jsonc"), '{\n  // dev deployment\n  "units": []\n}\n');
-    writeFileSync(join(this.dir, "deployments", "Staging.yaml"), "# staging\nparameters:\n  a: 1 # inline\n");
-    writeFileSync(join(this.dir, "deployments", "README.md"), "Not a deployment");
-
-    generateConfigurationSchemas(
-      getApplication(),
-      join(this.dir, ".webda", "config.schema.json"),
-      join(this.dir, ".webda", "deployment.schema.json"),
-      false,
-      join(this.dir, "webda.config.json"),
-      join(this.dir, "deployments")
-    );
-
-    assert.strictEqual(JSON.parse(this.read("webda.config.json")).$schema, ".webda/config.schema.json");
-    const production = JSON.parse(this.read("deployments/Production.json"));
-    assert.strictEqual(production.$schema, "../.webda/deployment.schema.json");
-    assert.deepStrictEqual(production.parameters, { a: 1 });
-    // Formatting of plain JSON is kept and $schema is the first property
-    assert.strictEqual(
-      this.read("deployments/Production.json"),
-      '{\n "$schema": "../.webda/deployment.schema.json",\n "parameters": { "a": 1 }\n}\n'
-    );
-    // Comments are kept and $schema is the first property
-    const dev = this.read("deployments/Dev.jsonc");
-    assert.ok(dev.includes("// dev deployment"));
-    assert.ok(dev.indexOf('"$schema": "../.webda/deployment.schema.json"') < dev.indexOf('"units"'));
-    // YAML uses the yaml-language-server modeline
-    assert.strictEqual(
-      this.read("deployments/Staging.yaml"),
-      "# yaml-language-server: $schema=../.webda/deployment.schema.json\n# staging\nparameters:\n  a: 1 # inline\n"
-    );
-    assert.strictEqual(this.read("deployments/README.md"), "Not a deployment");
-    // Deployment schema accepts the $schema property
-    const schema = JSON.parse(this.read(".webda/deployment.schema.json"));
-    assert.deepStrictEqual(schema.properties.$schema, { type: "string" });
-  }
-
-  @test
-  idempotent() {
-    const file = join(this.dir, "deployments", "Production.json");
-    const schema = join(this.dir, ".webda", "deployment.schema.json");
-    writeFileSync(file, "{}");
-    assert.strictEqual(ensureSchemaReference(file, schema), true);
-    const content = readFileSync(file, "utf-8");
-    assert.strictEqual(ensureSchemaReference(file, schema), false);
-    assert.strictEqual(readFileSync(file, "utf-8"), content);
-
-    const yaml = join(this.dir, "deployments", "Staging.yml");
-    writeFileSync(yaml, "parameters: {}\n");
-    assert.strictEqual(ensureSchemaReference(yaml, schema), true);
-    assert.strictEqual(ensureSchemaReference(yaml, schema), false);
-  }
-
-  @test
-  updateManagedReferences() {
-    const schema = join(this.dir, ".webda", "deployment.schema.json");
-    // Legacy webda schema name
-    const legacy = join(this.dir, "deployments", "Legacy.json");
-    writeFileSync(legacy, JSON.stringify({ $schema: "../.webda-deployment-schema.json" }));
-    assert.strictEqual(ensureSchemaReference(legacy, schema), true);
-    assert.strictEqual(JSON.parse(readFileSync(legacy, "utf-8")).$schema, "../.webda/deployment.schema.json");
-    // Stale path in JSONC, only the reference is replaced
-    const staleJson = join(this.dir, "deployments", "Stale.jsonc");
-    writeFileSync(staleJson, '{\n  // comment\n  "$schema" : "deployment.schema.json",\n  "units": []\n}');
-    assert.strictEqual(ensureSchemaReference(staleJson, schema), true);
-    assert.strictEqual(
-      readFileSync(staleJson, "utf-8"),
-      '{\n  // comment\n  "$schema" : "../.webda/deployment.schema.json",\n  "units": []\n}'
-    );
-    // Stale path to the generated schema
-    const stale = join(this.dir, "deployments", "Stale.yaml");
-    writeFileSync(stale, "# yaml-language-server: $schema=.webda/deployment.schema.json\nunits: []\n");
-    assert.strictEqual(ensureSchemaReference(stale, schema), true);
-    assert.strictEqual(
-      readFileSync(stale, "utf-8"),
-      "# yaml-language-server: $schema=../.webda/deployment.schema.json\nunits: []\n"
-    );
-  }
-
-  @test
-  keepCustomReferences() {
-    const schema = join(this.dir, ".webda", "deployment.schema.json");
-    const json = join(this.dir, "deployments", "Custom.json");
-    writeFileSync(json, JSON.stringify({ $schema: "https://example.com/my.schema.json" }));
-    assert.strictEqual(ensureSchemaReference(json, schema), false);
-    assert.strictEqual(JSON.parse(readFileSync(json, "utf-8")).$schema, "https://example.com/my.schema.json");
-
-    const yaml = join(this.dir, "deployments", "Custom.yaml");
-    writeFileSync(yaml, "# yaml-language-server: $schema=./custom.json\n");
-    assert.strictEqual(ensureSchemaReference(yaml, schema), false);
-    // Invalid or non-object documents are ignored
-    const invalid = join(this.dir, "deployments", "Invalid.json");
-    writeFileSync(invalid, "{ invalid");
-    assert.strictEqual(ensureSchemaReference(invalid, schema), false);
-    assert.strictEqual(readFileSync(invalid, "utf-8"), "{ invalid");
-    const array = join(this.dir, "deployments", "Array.json");
-    writeFileSync(array, "[]");
-    assert.strictEqual(ensureSchemaReference(array, schema), false);
-  }
-
-  @test
-  insertKeepsFormatting() {
-    const schema = join(this.dir, ".webda", "deployment.schema.json");
-    const cases: [string, string][] = [
-      ["{}", '{ "$schema": "../.webda/deployment.schema.json" }'],
-      ['{"a":1}', '{"$schema": "../.webda/deployment.schema.json","a":1}'],
-      [
-        '/* header */\r\n{\r\n\t"a": 1\r\n}\r\n',
-        '/* header */\r\n{\r\n\t"$schema": "../.webda/deployment.schema.json",\r\n\t"a": 1\r\n}\r\n'
-      ],
-      [
-        '{\n    "a": {\n        "b": 1\n        }\n}',
-        '{\n    "$schema": "../.webda/deployment.schema.json",\n    "a": {\n        "b": 1\n        }\n}'
-      ]
-    ];
-    const file = join(this.dir, "deployments", "Format.jsonc");
-    for (const [input, expected] of cases) {
-      writeFileSync(file, input);
-      assert.strictEqual(ensureSchemaReference(file, schema), true);
-      assert.strictEqual(readFileSync(file, "utf-8"), expected);
+    if (existsSync(this.tempDir)) {
+      rmSync(this.tempDir, { recursive: true, force: true });
     }
   }
 
   @test
-  listDeployments() {
-    assert.deepStrictEqual(listDeploymentFiles(join(this.dir, "unknown")), []);
-    writeFileSync(join(this.dir, "deployments", "B.yml"), "");
-    writeFileSync(join(this.dir, "deployments", "A.json"), "{}");
-    writeFileSync(join(this.dir, "deployments", "notes.txt"), "");
-    mkdirSync(join(this.dir, "deployments", "sub.json"));
-    assert.deepStrictEqual(listDeploymentFiles(join(this.dir, "deployments")), [
-      join(this.dir, "deployments", "A.json"),
-      join(this.dir, "deployments", "B.yml")
-    ]);
+  generatesConfigAndDeploymentSchemas() {
+    const app = createMockApp();
+    const configSchemaPath = path.join(this.tempDir, ".webda", "config.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, ".schemas", "deployment.schema.json");
+
+    generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath);
+
+    assert.ok(existsSync(configSchemaPath), "config.schema.json should exist");
+    assert.ok(existsSync(deploymentSchemaPath), "deployment.schema.json should exist");
+
+    const configSchema = FileUtils.load(configSchemaPath);
+    assert.strictEqual(configSchema.properties.$schema.type, "string");
+    assert.ok(configSchema.definitions.ServicesType);
+
+    const deploymentSchema = FileUtils.load(deploymentSchemaPath);
+    assert.strictEqual(deploymentSchema.properties.$schema.type, "string");
+    assert.ok(deploymentSchema.properties.services);
+    assert.ok(deploymentSchema.properties.units);
+  }
+
+  @test
+  autoAddsSchemaToConfigFileIfNotPresent() {
+    const app = createMockApp();
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    writeFileSync(configPath, JSON.stringify({ version: 4, services: { test: { type: "Test" } } }, null, 2));
+
+    const configSchemaPath = path.join(this.tempDir, ".webda", "config.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, ".webda", "deployment.schema.json");
+
+    generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath, false, configPath);
+
+    const updated = FileUtils.load(configPath);
+    assert.strictEqual(updated.$schema, ".webda/config.schema.json");
+    assert.strictEqual(updated.version, 4);
+
+    // Verify $schema is the first key in the file
+    const raw = readFileSync(configPath, "utf-8");
+    const firstKey = Object.keys(JSON.parse(raw))[0];
+    assert.strictEqual(firstKey, "$schema");
+  }
+
+  @test
+  preservesExistingSchemaInConfigFile() {
+    const app = createMockApp();
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    const customSchema = "https://example.com/custom-schema.json";
+    writeFileSync(configPath, JSON.stringify({ $schema: customSchema, version: 4 }, null, 2));
+
+    const configSchemaPath = path.join(this.tempDir, ".webda", "config.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, ".webda", "deployment.schema.json");
+
+    generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath, false, configPath);
+
+    const updated = FileUtils.load(configPath);
+    assert.strictEqual(updated.$schema, customSchema);
+  }
+
+  @test
+  autoAddsSchemaToDeploymentFilesIfNotPresent() {
+    const app = createMockApp();
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    writeFileSync(configPath, JSON.stringify({ version: 4 }, null, 2));
+
+    const deploymentsDir = path.join(this.tempDir, "deployments");
+    mkdirSync(deploymentsDir, { recursive: true });
+
+    const devJson = path.join(deploymentsDir, "Dev.json");
+    writeFileSync(devJson, JSON.stringify({ parameters: { env: "dev" } }, null, 2));
+
+    const prodJsonc = path.join(deploymentsDir, "Prod.jsonc");
+    writeFileSync(prodJsonc, '{\n  // Production deployment\n  "parameters": { "env": "prod" }\n}\n');
+
+    const alreadyHasSchema = path.join(deploymentsDir, "Staging.json");
+    writeFileSync(alreadyHasSchema, JSON.stringify({ $schema: "custom-staging-schema.json", parameters: {} }, null, 2));
+
+    const nonJson = path.join(deploymentsDir, "notes.txt");
+    writeFileSync(nonJson, "some deployment notes");
+
+    const configSchemaPath = path.join(this.tempDir, ".webda", "config.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, ".webda", "deployment.schema.json");
+
+    generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath, false, configPath, deploymentsDir);
+
+    // Dev.json should get $schema
+    const dev = FileUtils.load(devJson);
+    assert.strictEqual(dev.$schema, "../.webda/deployment.schema.json");
+    assert.strictEqual(dev.parameters.env, "dev");
+    const devRaw = readFileSync(devJson, "utf-8");
+    assert.strictEqual(Object.keys(JSON.parse(devRaw))[0], "$schema");
+
+    // Prod.jsonc should get $schema
+    const prod = FileUtils.load(prodJsonc);
+    assert.strictEqual(prod.$schema, "../.webda/deployment.schema.json");
+    assert.strictEqual(prod.parameters.env, "prod");
+
+    // Staging.json should preserve its existing schema
+    const staging = FileUtils.load(alreadyHasSchema);
+    assert.strictEqual(staging.$schema, "custom-staging-schema.json");
+
+    // notes.txt should not be touched
+    assert.strictEqual(readFileSync(nonJson, "utf-8"), "some deployment notes");
+  }
+
+  @test
+  autoDiscoversDeploymentsDirFromConfigFile() {
+    const app = createMockApp();
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    writeFileSync(configPath, JSON.stringify({ version: 4 }, null, 2));
+
+    const deploymentsDir = path.join(this.tempDir, "deployments");
+    mkdirSync(deploymentsDir, { recursive: true });
+
+    const devJson = path.join(deploymentsDir, "Dev.json");
+    writeFileSync(devJson, JSON.stringify({ parameters: { env: "dev" } }, null, 2));
+
+    const configSchemaPath = path.join(this.tempDir, ".webda", "config.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, ".webda", "deployment.schema.json");
+
+    // Omit deploymentsDir argument - it should default to join(dirname(configPath), "deployments")
+    generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath, false, configPath);
+
+    const dev = FileUtils.load(devJson);
+    assert.strictEqual(dev.$schema, "../.webda/deployment.schema.json");
+  }
+
+  @test
+  resolvesRelativeSchemaPathsFromTheProjectAndLeavesExistingFilesUntouched() {
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    const deploymentsDir = path.join(this.tempDir, "deployments");
+    mkdirSync(deploymentsDir);
+    writeFileSync(configPath, '{"version":4}');
+    const deploymentPath = path.join(deploymentsDir, "Dev.json");
+    writeFileSync(deploymentPath, '{"parameters":{}}');
+
+    generateConfigurationSchemas(
+      createMockApp(),
+      ".webda/config.schema.json",
+      ".webda/deployment.schema.json",
+      false,
+      configPath,
+      "deployments"
+    );
+
+    assert.ok(existsSync(path.join(this.tempDir, ".webda", "config.schema.json")));
+    assert.ok(existsSync(path.join(this.tempDir, ".webda", "deployment.schema.json")));
+    assert.strictEqual(FileUtils.load(configPath).$schema, ".webda/config.schema.json");
+    assert.strictEqual(FileUtils.load(deploymentPath).$schema, "../.webda/deployment.schema.json");
+
+    const updatedConfig = readFileSync(configPath, "utf-8");
+    const updatedDeployment = readFileSync(deploymentPath, "utf-8");
+    generateConfigurationSchemas(
+      createMockApp(),
+      ".webda/config.schema.json",
+      ".webda/deployment.schema.json",
+      false,
+      configPath
+    );
+    assert.strictEqual(readFileSync(configPath, "utf-8"), updatedConfig);
+    assert.strictEqual(readFileSync(deploymentPath, "utf-8"), updatedDeployment);
+  }
+
+  @test
+  ignoresUnparseableConfigAndDeploymentFiles() {
+    const configPath = path.join(this.tempDir, "webda.config.json");
+    const deploymentsDir = path.join(this.tempDir, "deployments");
+    mkdirSync(deploymentsDir);
+    const deploymentPath = path.join(deploymentsDir, "Broken.json");
+    writeFileSync(configPath, "{");
+    writeFileSync(deploymentPath, "{");
+
+    generateConfigurationSchemas(
+      createMockApp(),
+      path.join(this.tempDir, ".webda", "config.schema.json"),
+      path.join(this.tempDir, ".webda", "deployment.schema.json"),
+      false,
+      configPath
+    );
+
+    assert.strictEqual(readFileSync(configPath, "utf-8"), "{");
+    assert.strictEqual(readFileSync(deploymentPath, "utf-8"), "{");
   }
 }

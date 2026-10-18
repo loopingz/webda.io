@@ -8,7 +8,7 @@ import { Model, type ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 import { Store } from "../stores/store.js";
 import { Logger } from "../loggers/ilogger.js";
-import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
+import { getUuid, State, StateOptions } from "@webda/utils";
 import { ICore, AbstractService, OperationDefinitionInfo } from "./icore.js";
 import { emitCoreEvent } from "../events/events.js";
 import { useInstanceStorage } from "./instancestorage.js";
@@ -112,6 +112,10 @@ export class Core implements ICore {
    */
   configurationService?: string;
   applicationConfiguration: Configuration;
+  /**
+   * Last error of the services that could not be created, by service name
+   */
+  protected serviceErrors: Record<string, any> = {};
 
   /**
    * Create a new Core
@@ -167,11 +171,14 @@ export class Core implements ICore {
    * registered by the loaded modules.
    */
   protected async decryptConfiguration() {
-    // Only the services and parameters can hold secrets, not the cached modules
-    const { services, parameters } = this.applicationConfiguration;
-    const decrypted = await CryptoService.decryptConfiguration({ services, parameters }, []);
+    // Runtime configuration may hold secrets; cached module metadata must not.
+    const { services, parameters, models } = this.applicationConfiguration;
+    const decrypted = await CryptoService.decryptConfiguration({ services, parameters, models }, [], {
+      settings: parameters?.configurationEncryption,
+      appPath: this.application.getPath()
+    });
     // Keep the configuration untouched when nothing was encrypted
-    if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters })) {
+    if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters, models })) {
       return;
     }
     this.applicationConfiguration = { ...this.applicationConfiguration, ...decrypted };
@@ -362,7 +369,11 @@ export class Core implements ICore {
     if (this.configurationService) {
       const service = this.createService(this.configurationService) as ConfigurationService;
       if (!service) {
-        throw new Error(`Cannot create configuration service ${this.configurationService}`);
+        const cause = this.serviceErrors[this.configurationService];
+        throw new Error(
+          `Cannot create configuration service ${this.configurationService}${cause ? `: ${cause.message || cause}` : ""}`,
+          { cause }
+        );
       }
       // Will update the configuration
       await service.bootstrap(this);
@@ -539,8 +550,10 @@ export class Core implements ICore {
    * @returns the result
    */
   protected createService(service: string) {
+    delete this.serviceErrors[service];
     const serviceConstructor = this.moddas[service];
     if (!serviceConstructor) {
+      this.serviceErrors[service] = new Error(`unknown type ${this.configuration[service]?.type}`);
       this.log("ERROR", `Create service ${service}(${this.configuration[service]?.type}) failed: unknown type`);
       return;
     }
@@ -551,6 +564,7 @@ export class Core implements ICore {
         : this.configuration[service];
       this.services[service] = new serviceConstructor(service, params);
     } catch (err) {
+      this.serviceErrors[service] = err;
       this.log("ERROR", "Cannot create service", service, err.message || err);
     }
     return this.services[service];

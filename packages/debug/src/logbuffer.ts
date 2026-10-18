@@ -47,9 +47,7 @@ export class LogBuffer {
         id,
         timestamp: msg.timestamp,
         level: msg.log.level,
-        message: msg.log.args
-          .map((a: any) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
-          .join(" "),
+        message: msg.log.args.map((a: any) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" "),
         args: msg.log.args
       };
       if (this.entries.length >= this.maxSize) {
@@ -109,14 +107,10 @@ export class LogBuffer {
     const upper = query.toUpperCase() as WorkerLogLevel;
     const levelIndex = LogBuffer.LOG_LEVELS.indexOf(upper);
     if (levelIndex >= 0) {
-      return this.entries.filter(
-        e => LogBuffer.LOG_LEVELS.indexOf(e.level) >= levelIndex
-      );
+      return this.entries.filter(e => LogBuffer.LOG_LEVELS.indexOf(e.level) >= levelIndex);
     }
     const lower = query.toLowerCase();
-    return this.entries.filter(
-      e => e.message.toLowerCase().includes(lower) || e.level.toLowerCase().includes(lower)
-    );
+    return this.entries.filter(e => e.message.toLowerCase().includes(lower) || e.level.toLowerCase().includes(lower));
   }
 
   /**

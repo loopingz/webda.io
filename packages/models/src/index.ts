@@ -9,3 +9,6 @@ export * from "./repositories/event.js";
 export * from "./storable.js";
 export * from "./mock.js";
 export * from "./aggregation.js";
+export * from "./types-resolver.js";
+export * from "./repositories/monitoring.js";
+export type { FindOptions, FilterOperators, ModelFilter } from "@webda/ql";

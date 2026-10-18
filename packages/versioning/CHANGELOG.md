@@ -1,5 +1,76 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.10...versioning-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.11
+    * @webda/models bumped to 4.0.0-beta.11
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.11
+    * @webda/models bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.9...versioning-v4.0.0-beta.10) (2026-10-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/models bumped to 4.0.0-beta.10
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/models bumped to 4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.8...versioning-v4.0.0-beta.9) (2026-10-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/models bumped to 4.0.0-beta.9
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.9
+    * @webda/models bumped to 4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.7...versioning-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* enable strict mode in ten small packages ([#872](https://github.com/loopingz/webda.io/issues/872)) ([ecad571](https://github.com/loopingz/webda.io/commit/ecad571d67963ea4c35b47ddfafc1b91c2d7b12f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/models bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/models bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.6...versioning-v4.0.0-beta.7) (2026-10-11)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/models bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/models bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.5...versioning-v4.0.0-beta.6) (2026-10-09)
 
 

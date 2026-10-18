@@ -1,0 +1,205 @@
+# Benchmarks of the Webda abstractions (Store, Queue, Pub/Sub), see packages/bench/README.md
+#
+# Not part of ci.yml on purpose: shared runners are noisy and benchmarks must not slow down nor fail regular CI.
+name: "Benchmarks"
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Benchmark profile"
+        type: choice
+        options: [quick, full]
+        default: quick
+      filter:
+        description: "Scenario filter, e.g. store.get,queue.*"
+        required: false
+        default: ""
+  schedule:
+    # Nightly quick run on main: the baseline pull requests are compared to
+    - cron: "17 3 * * *"
+    # Weekly full run
+    - cron: "17 5 * * 0"
+  pull_request:
+    types: [labeled, synchronize]
+    branches: [main]
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    # On pull requests, only when labelled 'benchmark'
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'benchmark')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      # Push the history to the benchmarks branch
+      contents: write
+      # Comment the regressions on pull requests
+      pull-requests: write
+    name: Benchmarks
+    env:
+      FORCE_COLOR: 1
+      WEBDA_BENCH_PROFILE: ${{ github.event.inputs.profile || (github.event.schedule == '17 5 * * 0' && 'full') || 'quick' }}
+      WEBDA_BENCH_FILTER: ${{ github.event.inputs.filter || '' }}
+
+    # Same backends as ci.yml
+    services:
+      localstack:
+        image: localstack/localstack:3.6.0
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: sqs,dynamodb
+      mongodb:
+        image: mongo
+        ports:
+          - 37017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: webda.io
+      amqp:
+        image: rabbitmq
+        ports:
+          - 5672:5672
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # The Firestore emulator requires a Java 21+ JRE
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: "google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db" # v3.0.1
+        with:
+          install_components: "beta,cloud-firestore-emulator,pubsub-emulator"
+
+      - name: "Start GCP emulators"
+        run: |
+          gcloud --quiet beta emulators pubsub start --host-port=127.0.0.1:8085 > /tmp/pubsub-emulator.log 2>&1 &
+          gcloud --quiet emulators firestore start --host-port=127.0.0.1:8289 > /tmp/firestore-emulator.log 2>&1 &
+          for port in 8085 8289; do
+            for i in $(seq 1 60); do
+              curl -s -o /dev/null "http://127.0.0.1:$port" && break
+              sleep 2
+            done
+            curl -s -o /dev/null "http://127.0.0.1:$port" || { echo "Emulator on port $port did not start"; cat /tmp/pubsub-emulator.log /tmp/firestore-emulator.log; exit 1; }
+          done
+
+      - name: Setup postgresql
+        uses: Softwarepark/postgresql-action@92b6750bf30f39d64489c77d38a1675dfb4a8bc0 # v2
+        with:
+          postgresql version: "15"
+          postgresql password: webda.io
+          postgresql user: webda.io
+          postgresql db: webda.io
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Run benchmarks
+        run: |
+          echo "Profile: $WEBDA_BENCH_PROFILE, filter: ${WEBDA_BENCH_FILTER:-none}"
+          pnpm run bench
+        env:
+          PGHOST: localhost
+          PGUSER: webda.io
+          PGPASSWORD: webda.io
+          PGDATABASE: webda.io
+          WEBDA_MONGO_URL: mongodb://root:webda.io@localhost:37017
+          WEBDA_AMQP_URL: amqp://localhost:5672
+          WEBDA_LOCALSTACK: http://localhost:4566
+          PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
+
+      - name: Blog benchmark on PostgreSQL and MongoDB
+        run: |
+          for store in postgres mongodb; do
+            WEBDA_BENCH_BLOG_STORE=$store pnpm --filter @webda/sample-blog-system run bench
+          done
+        env:
+          PGHOST: localhost
+          PGUSER: webda.io
+          PGPASSWORD: webda.io
+          PGDATABASE: webda.io
+          WEBDA_MONGO_URL: mongodb://root:webda.io@localhost:37017
+
+      - name: Report
+        if: always()
+        run: |
+          node packages/bench/lib/bin/webda-bench.js report packages/*/bench-results sample-apps/*/bench-results \
+            --summary --markdown bench-results/summary.md --github-benchmark bench-results/github
+
+      # github-action-benchmark needs its branch to exist
+      - name: Create the benchmarks branch
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          if ! git ls-remote --exit-code --heads origin benchmarks > /dev/null; then
+            git worktree add --orphan -b benchmarks /tmp/benchmarks-branch
+            cd /tmp/benchmarks-branch
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --allow-empty -m "chore: benchmark history"
+            git push origin benchmarks
+          fi
+
+      # History on main, alert comment on pull requests (compared to the last run on main with the same profile)
+      - name: Throughput history
+        if: always() && hashFiles('bench-results/github-bigger.json') != ''
+        uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
+        with:
+          name: Throughput (${{ env.WEBDA_BENCH_PROFILE }})
+          tool: customBiggerIsBetter
+          output-file-path: bench-results/github-bigger.json
+          gh-pages-branch: benchmarks
+          benchmark-data-dir-path: ${{ env.WEBDA_BENCH_PROFILE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          comment-on-alert: ${{ github.event_name == 'pull_request' }}
+          # Shared runners are noisy: alert only on large regressions, never fail
+          alert-threshold: "150%"
+          fail-on-alert: false
+
+      - name: Latency history
+        if: always() && hashFiles('bench-results/github-smaller.json') != ''
+        uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
+        with:
+          name: p99 latency (${{ env.WEBDA_BENCH_PROFILE }})
+          tool: customSmallerIsBetter
+          output-file-path: bench-results/github-smaller.json
+          gh-pages-branch: benchmarks
+          benchmark-data-dir-path: ${{ env.WEBDA_BENCH_PROFILE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          comment-on-alert: ${{ github.event_name == 'pull_request' }}
+          alert-threshold: "150%"
+          fail-on-alert: false
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-results-${{ env.WEBDA_BENCH_PROFILE }}-${{ github.sha }}
+          path: |
+            packages/*/bench-results/*.json
+            sample-apps/*/bench-results/*.json
+            bench-results/
+          retention-days: 30

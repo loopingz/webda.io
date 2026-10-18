@@ -88,7 +88,13 @@
                 "$ref": "#/definitions/K8sConfiguration"
               }
             ],
-            "description": "Kubernetes configuration\n\nCan be encrypted with `webda config encrypt`"
+            "description": "Kubernetes configuration\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "users.token",
+              "users.password",
+              "users.keyData",
+              "users.authProvider"
+            ]
           },
           "context": {
             "description": "Default context to use",

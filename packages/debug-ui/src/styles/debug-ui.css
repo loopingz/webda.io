@@ -261,6 +261,27 @@
   color: var(--ifm-link-color);
 }
 
+.wdbg-footer-close {
+  margin-left: auto;
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: var(--ifm-global-radius);
+  background: none;
+  color: var(--wdbg-muted);
+  font-size: 1rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.wdbg-footer-close:hover {
+  background: var(--ifm-hover-overlay);
+  color: var(--ifm-font-color-base);
+}
+
+.wdbg-footer-close:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+}
+
 /* ---- Text helpers ---- */
 .wdbg-mono,
 .webda-debug-ui code,
@@ -848,10 +869,21 @@
   color: var(--ifm-color-primary);
 }
 
+/* Round icon button, like the Docusaurus colour mode toggle */
 .wdbg-theme-toggle {
-  padding: 0.25rem 0.5rem;
-  font-size: 1rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 50%;
+  color: var(--ifm-font-color-base);
+}
+
+.wdbg-theme-toggle:hover {
+  background: var(--ifm-color-emphasis-200);
 }
 
 /* ---- Sub tabs ---- */
@@ -1340,35 +1372,90 @@
 }
 
 /* ---- Hosted top bar / boot screen ---- */
-.wdbg-hosted-bar {
+/* ---- Hosted navbar: mirrors the docs site navbar (Infima .navbar, docs/src/css/custom.css) ---- */
+.wdbg-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
+  box-sizing: border-box;
   align-items: center;
-  gap: 1rem;
-  padding: 0.35rem var(--ifm-global-spacing);
-  background: var(--ifm-background-surface-color);
-  border-bottom: 1px solid var(--ifm-color-emphasis-300);
-  font-size: 0.875rem;
+  height: 3.75rem;
+  padding: 0.5rem var(--ifm-global-spacing);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
   font-family: var(--ifm-font-family-base);
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
-.wdbg-hosted-brand {
-  display: inline-flex;
+/* Frosted glass, on a pseudo-element like the docs navbar */
+.wdbg-navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+
+html[data-theme="dark"] .wdbg-navbar::before {
+  background-color: rgba(27, 27, 29, 0.6);
+}
+
+.wdbg-navbar-brand {
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
+  gap: 0.5rem;
+  margin-right: 1rem;
   color: var(--ifm-font-color-base);
   text-decoration: none;
 }
 
-.wdbg-hosted-brand .wdbg-logo {
-  width: 22px;
-  height: 22px;
-  color: #3f51b5;
+.wdbg-navbar-brand:hover {
+  color: var(--ifm-color-primary);
 }
 
-.wdbg-hosted-link {
+.wdbg-navbar-brand img {
+  width: 2rem;
+  height: 2rem;
+}
+
+.wdbg-navbar-items {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.wdbg-navbar-items-right {
   margin-left: auto;
-  color: var(--ifm-link-color);
+}
+
+.wdbg-navbar-link,
+.wdbg-navbar-github {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  color: var(--ifm-font-color-base);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.wdbg-navbar-link:hover,
+.wdbg-navbar-github:hover,
+.wdbg-navbar-link-active {
+  color: var(--ifm-color-primary);
+}
+
+.wdbg-navbar .wdbg-theme-toggle {
+  margin-left: 0.5rem;
+}
+
+/* Like Docusaurus, the text links leave the bar on small screens */
+@media (max-width: 996px) {
+  .wdbg-navbar-link {
+    display: none;
+  }
 }
 
 .wdbg-boot {

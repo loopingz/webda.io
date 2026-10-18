@@ -1,0 +1,192 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "OidcTrust/Billing": {
+      "Import": "lib/billing.service:Billing",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "Billing"
+      },
+      "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters"
+    },
+    "OidcTrust/Orders": {
+      "Import": "lib/orders.service:Orders",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters of the orders application",
+        "properties": {
+          "billingUrl": {
+            "default": "http://localhost:18082",
+            "description": "Public URL of the billing application",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "Orders"
+      },
+      "Configuration": "lib/orders.service:OrdersParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
+    "OidcTrust/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    },
+    "Billing.createInvoice.input": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "order",
+        "amount"
+      ]
+    },
+    "Billing.createInvoice.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "An invoice created by billing",
+      "properties": {
+        "amount": {
+          "description": "Amount in cents",
+          "type": "number"
+        },
+        "createdBy": {
+          "description": "Application that asked for the invoice, as seen by billing",
+          "type": "string"
+        },
+        "id": {
+          "description": "Invoice id",
+          "type": "string"
+        },
+        "order": {
+          "description": "Order the invoice is for",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "createdBy",
+        "id",
+        "order"
+      ],
+      "type": "object"
+    },
+    "Orders.checkout.input": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "order",
+        "amount"
+      ]
+    },
+    "Orders.checkout.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "An invoice created by billing",
+      "properties": {
+        "amount": {
+          "description": "Amount in cents",
+          "type": "number"
+        },
+        "createdBy": {
+          "description": "Application that asked for the invoice, as seen by billing",
+          "type": "string"
+        },
+        "id": {
+          "description": "Invoice id",
+          "type": "string"
+        },
+        "order": {
+          "description": "Order the invoice is for",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "createdBy",
+        "id",
+        "order"
+      ],
+      "type": "object"
+    }
+  },
+  "behaviors": {}
+}

@@ -39,7 +39,7 @@ export function canActInIAMOperation(context?: IAMExtensionContext): true | stri
     return "IAMService is not running";
   }
   const operation = context?.getExtension?.<string>("operation");
-  if (typeof operation !== "string" || context.getExtension<string>(IAM_ALLOWED_OPERATION) !== operation) {
+  if (typeof operation !== "string" || context?.getExtension?.<string>(IAM_ALLOWED_OPERATION) !== operation) {
     return "IAM models are only accessible through an operation allowed by the IAMService";
   }
   return true;

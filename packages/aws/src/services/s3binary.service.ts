@@ -1,5 +1,6 @@
 // Load the AWS SDK for Node.js
 import { GetObjectCommand, HeadObjectCommandOutput, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   BinaryFile,
@@ -7,15 +8,45 @@ import {
   BinaryMap,
   CloudBinary,
   CloudBinaryParameters,
+  ContentBody,
+  ContentCredentialNotFoundError,
+  ContentExistsError,
+  ContentGetOptions,
+  ContentInfo,
+  ContentNotFoundError,
+  ContentPutOptions,
   CoreModel,
+  lookupMimeType,
   OperationContext,
+  parseContentUrl,
   SecretString,
+  toReadable,
   useModelId,
   WebdaError
 } from "@webda/core";
 import { Readable } from "node:stream";
 import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
+
+/**
+ * Build an RFC 6266 Content-Disposition header value for a file name
+ *
+ * The name is sent twice: a quoted ASCII fallback for old clients and an RFC 5987 UTF-8 `filename*`.
+ * Quotes, backslashes and non-ASCII characters can neither break nor inject into the header (e.g. l'été "1".png)
+ *
+ * @param name - the file name
+ * @param type - the disposition type
+ * @returns the header value
+ */
+export function contentDisposition(name?: string, type: "attachment" | "inline" = "attachment"): string {
+  if (!name) {
+    return type;
+  }
+  const fallback = name.replace(/[^\x20-\x7e]|["\\]/g, "_");
+  // encodeURIComponent keeps ' ( ) * which are not valid in an RFC 5987 value
+  const encoded = encodeURIComponent(name).replace(/['()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `${type}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
 
 /**
  * S3Binary parameters
@@ -35,6 +66,8 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
     secretAccessKey: string | SecretString;
     sessionToken?: string | SecretString;
   };
+  /** Named credentials selectable through `?credential=<name>` in content URLs. */
+  credentialProfiles?: Record<string, NonNullable<AWSServiceParameters["credentials"]>>;
   /**
    * AWS region
    * @default "us-east-1"
@@ -99,11 +132,52 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends CloudBinary<T>
   implements CloudFormationContributor
 {
+  readonly schemes = ["s3"];
   _s3: S3;
   /**
    * S3 client configuration, with plain credentials
    */
   protected _s3Config: any;
+  private contentClients = new Map<string, S3>();
+
+  /**
+   * Use this service's region with the URL-selected endpoint and credential profile.
+   * @param endpoint - optional URL-selected endpoint
+   * @param credential - optional configured credential profile
+   * @returns the S3 client
+   */
+  protected getContentClient(endpoint?: string, credential?: string): S3 {
+    if (!endpoint && !credential) {
+      return this._s3;
+    }
+    const cacheKey = JSON.stringify([endpoint, credential]);
+    let client = this.contentClients.get(cacheKey);
+    if (!client) {
+      let credentials = this._s3Config.credentials;
+      if (credential) {
+        if (!Object.prototype.hasOwnProperty.call(this.parameters.credentialProfiles ?? {}, credential)) {
+          throw new ContentCredentialNotFoundError(credential);
+        }
+        credentials = getAWSClientConfig({ credentials: this.parameters.credentialProfiles![credential] }).credentials;
+      }
+      client = new S3({
+        ...this._s3Config,
+        credentials,
+        ...(endpoint ? { endpoint, forcePathStyle: true } : {})
+      });
+      this.contentClients.set(cacheKey, client);
+    }
+    return client;
+  }
+
+  /** Release URL-selected clients when the service stops. */
+  async stop(): Promise<void> {
+    for (const client of this.contentClients.values()) {
+      client.destroy();
+    }
+    this.contentClients.clear();
+    await super.stop();
+  }
 
   /**
    * Create the S3 client
@@ -113,6 +187,160 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     super.computeParameters();
     this._s3Config = getAWSClientConfig(this.parameters);
     this._s3 = new S3(this._s3Config);
+  }
+
+  /**
+   * Get content read stream from S3
+   * @param url - s3://bucket/key or s3:///key
+   * @param options - range options
+   * @returns Readable stream
+   */
+  async getContent(url: string, options?: ContentGetOptions): Promise<Readable> {
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket!;
+    const client = this.getContentClient(endpoint, credential);
+    const params: any = {
+      Bucket: targetBucket,
+      Key: key
+    };
+    if (options?.range) {
+      const start = options.range.start;
+      const end = options.range.end !== undefined ? options.range.end : "";
+      params.Range = `bytes=${start}-${end}`;
+    }
+    try {
+      const res = await client.send(new GetObjectCommand(params));
+      if (this.metrics && (this.metrics as any).download) {
+        (this.metrics as any).download.inc();
+      }
+      return res.Body as Readable;
+    } catch (err: any) {
+      if (err.name === "NoSuchKey" || err.Code === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        throw new ContentNotFoundError(`Content not found: ${url}`);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Put content to S3 using streaming multipart Upload
+   * @param url - s3://bucket/key or s3:///key
+   * @param body - readable stream, buffer, or string
+   * @param options - write options
+   * @returns ContentInfo
+   */
+  async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket!;
+    const client = this.getContentClient(endpoint, credential);
+
+    if (options?.ifNotExists) {
+      const existing = await client.headObject({ Bucket: targetBucket, Key: key }).then(
+        () => true,
+        (err: any) => {
+          if (err.name === "NotFound" || err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404)
+            return false;
+          throw err;
+        }
+      );
+      if (existing) {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+    }
+
+    const contentType = options?.contentType || lookupMimeType(key);
+    const uploadParams: any = {
+      Bucket: targetBucket,
+      Key: key,
+      Body: toReadable(body),
+      ContentType: contentType,
+      Metadata: options?.metadata
+    };
+    if (options?.ifNotExists) {
+      uploadParams.IfNoneMatch = "*";
+    }
+
+    const upload = new Upload({
+      client,
+      params: uploadParams
+    });
+
+    try {
+      const res = await upload.done();
+      if (this.metrics && (this.metrics as any).upload) {
+        (this.metrics as any).upload.inc();
+      }
+      let size = options?.contentLength;
+      let etag = res.ETag;
+      let lastModified: Date | undefined;
+      if (size === undefined) {
+        try {
+          const head = await client.headObject({ Bucket: targetBucket, Key: key });
+          size = head.ContentLength;
+          etag = head.ETag || etag;
+          lastModified = head.LastModified;
+        } catch {}
+      }
+      return {
+        url,
+        size,
+        etag,
+        contentType,
+        metadata: options?.metadata,
+        lastModified
+      };
+    } catch (err: any) {
+      if (
+        err.name === "PreconditionFailed" ||
+        err.Code === "PreconditionFailed" ||
+        err.$metadata?.httpStatusCode === 412
+      ) {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Head content metadata from S3
+   * @param url - s3://bucket/key or s3:///key
+   * @returns ContentInfo or undefined if not found
+   */
+  async headContent(url: string): Promise<ContentInfo | undefined> {
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket!;
+    try {
+      const res = await this.getContentClient(endpoint, credential).headObject({
+        Bucket: targetBucket,
+        Key: key
+      });
+      return {
+        url,
+        size: res.ContentLength,
+        etag: res.ETag,
+        contentType: res.ContentType,
+        metadata: res.Metadata,
+        lastModified: res.LastModified
+      };
+    } catch (err: any) {
+      if (err.name === "NotFound" || err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        return undefined;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Delete content from S3
+   * @param url - s3://bucket/key or s3:///key
+   */
+  async deleteContent(url: string): Promise<void> {
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket!;
+    await this.getContentClient(endpoint, credential).deleteObject({
+      Bucket: targetBucket,
+      Key: key
+    });
   }
 
   /**
@@ -239,7 +467,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: OperationContext) {
     const params: any = {};
     params.Expires = expire; // A get should not take more than 30s
-    params.ResponseContentDisposition = `attachment; filename=${binaryMap.name || binaryMap.originalname}`;
+    params.ResponseContentDisposition = contentDisposition(binaryMap.name || binaryMap.originalname);
     params.ResponseContentType = binaryMap.mimetype;
 
     // Access-Control-Allow-Origin
@@ -252,12 +480,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns the binary content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    return <Readable>(
-      await this._s3.getObject({
-        Bucket: this.parameters.bucket,
-        Key: this._getKey(info.hash)
-      })
-    ).Body;
+    return this.getContent(this.getContentUrl(this._getKey(info.hash)));
   }
 
   /**
@@ -386,15 +609,16 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param bucket to retrieve from or default bucket
    * @returns the object content stream
    */
+  /**
+   * Get an object from s3 bucket
+   * @deprecated Use {@link getContent} instead.
+   * @param key to get
+   * @param bucket to retrieve from or default bucket
+   * @returns the object content stream
+   */
   async getObject(key: string, bucket?: string): Promise<Readable> {
-    bucket = bucket || this.parameters.bucket;
-    const s3obj = new S3(this._s3Config);
-    return (
-      await s3obj.getObject({
-        Bucket: bucket,
-        Key: key
-      })
-    ).Body as Readable;
+    const targetBucket = bucket || this.parameters.bucket;
+    return this.getContent(`s3://${targetBucket}/${key}`);
   }
 
   /**
@@ -432,11 +656,12 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Add an object to S3 bucket
-   *
+   * @deprecated Use {@link putContent} instead.
    * @param key to add to
    * @param body content of the object
    * @param metadatas to put along the object
    * @param bucket to use
+   * @returns Content info
    */
   async putObject(
     key: string,
@@ -444,12 +669,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     metadatas = {},
     bucket: string = this.parameters.bucket
   ) {
-    const s3obj = new S3(this._s3Config);
-    await s3obj.putObject({
-      Bucket: bucket,
-      Key: key,
-      Metadata: metadatas,
-      Body: body
+    return this.putContent(`s3://${bucket}/${key}`, body as any, {
+      metadata: metadatas
     });
   }
 
@@ -464,15 +685,13 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     await file.getHashes();
     const data = await this._getS3(file.hash);
     if (data === undefined) {
-      const s3metas: any = {};
+      const s3metas: Record<string, string> = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
-      const s3obj = new S3(this._s3Config);
-      await s3obj.putObject({
-        Bucket: this.parameters.bucket,
-        Key: this._getKey(file.hash),
-        Metadata: s3metas,
-        Body: await file.get(),
-        ContentLength: file.size
+      const url = this.getContentUrl(this._getKey(file.hash));
+      await this.putContent(url, await file.get(), {
+        metadata: s3metas,
+        contentLength: file.size,
+        contentType: file.mimetype
       });
     }
     // The proof of possession of the content, compared on later challenges

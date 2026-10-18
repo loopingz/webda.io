@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as WebdaQL from "@webda/ql";
+import { PostgresDialect } from "./dialect.js";
 import { PostgresRepository, SQLClient, SQLComparisonExpression } from "./sqlstore.js";
 
 /**
@@ -36,11 +37,13 @@ async function where(query: string): Promise<string> {
 
 describe("SQLComparisonExpression", () => {
   it("doubles single quotes in string literals", () => {
-    expect(new SQLComparisonExpression("=", "a", "x' OR 1=1 --").toString()).toBe("a = 'x'' OR 1=1 --'");
+    expect(new SQLComparisonExpression("=", "a", "x' OR 1=1 --", new PostgresDialect()).toString()).toBe(
+      "a = 'x'' OR 1=1 --'"
+    );
   });
 
   it("keeps backslashes literal (standard_conforming_strings)", () => {
-    expect(new SQLComparisonExpression("=", "a", "c:\\dir").toString()).toBe("a = 'c:\\dir'");
+    expect(new SQLComparisonExpression("=", "a", "c:\\dir", new PostgresDialect()).toString()).toBe("a = 'c:\\dir'");
   });
 });
 
@@ -95,6 +98,19 @@ describe("PostgresRepository query translation", () => {
       new WebdaQL.BooleanExpression(false)
     ]);
     expect(repo.duplicateExpression(tree).toString()).toBe("data#>>'{name}' = 'a' AND TRUE AND TRUE AND FALSE");
+  });
+
+  it("translates NOW() with duration offset to numeric timestamp comparison", async () => {
+    const before = Date.now();
+    const sql = await where("lastUsedAt < NOW('-1h')");
+    const after = Date.now();
+    const match = sql.match(
+      /^\(CASE WHEN jsonb_typeof\(data#>'{lastUsedAt}'\) = 'number' THEN \(data#>>'{lastUsedAt}'\)::numeric END\) < (\d+)$/
+    );
+    expect(match).not.toBeNull();
+    const timestamp = Number(match![1]);
+    expect(timestamp).toBeGreaterThanOrEqual(before - 3600000);
+    expect(timestamp).toBeLessThanOrEqual(after - 3600000);
   });
 });
 
@@ -160,7 +176,11 @@ describe("PostgresRepository table readiness", () => {
       ["exists", () => repo.exists("a"), /^SELECT uuid FROM items/],
       ["removeAttribute", () => repo.removeAttribute("a", "name"), /data - \$1/],
       ["incrementAttributes", () => repo.incrementAttributes("a", { count: 2 } as any), /jsonb_set/],
-      ["upsertItemToCollection", () => repo.upsertItemToCollection("a", "tags", { v: 1 } as any), /'\[\{"v":1\}\]'/],
+      [
+        "upsertItemToCollection",
+        () => repo.upsertItemToCollection("a", "tags", { v: 1 } as any),
+        /jsonb_build_array\(\$2::jsonb\)/
+      ],
       ["deleteItemFromCollection", () => repo.deleteItemFromCollection("a", "tags", 0), /- 0/],
       ["__clean", () => repo.__clean(), /^DELETE FROM items$/]
     ];
@@ -201,5 +221,164 @@ describe("PostgresRepository table readiness", () => {
     await expect(repo.deleteItemFromCollection("a", "tags", 0, "k", "v")).rejects.toThrow();
     await expect(repo.get("a")).rejects.toThrow("Not found");
     expect(await repo.exists("a")).toBe(false);
+  });
+});
+
+describe("PostgresRepository collection items with quotes (#670)", () => {
+  /**
+   * Build a repository on a fake client that records every statement with its values
+   * @returns the repository and the captured statements
+   */
+  function makeCapturingRepository(): {
+    repo: PostgresRepository<any>;
+    statements: { q: string; values?: any[] }[];
+  } {
+    const statements: { q: string; values?: any[] }[] = [];
+    const client: SQLClient = {
+      query: async (q: string, values?: any[]) => {
+        statements.push({ q, values });
+        return { rows: [], rowCount: 1 };
+      }
+    };
+    return { repo: new PostgresRepository(FakeModel as any, ["uuid"], client, "items"), statements };
+  }
+
+  const item = { name: "l'été.png", hash: "x' OR 1=1 --", mimetype: "image/png" };
+
+  it("binds an appended item as a parameter instead of inlining it", async () => {
+    const { repo, statements } = makeCapturingRepository();
+    await repo.upsertItemToCollection("a", "files", item);
+    const { q, values } = statements.pop()!;
+    expect(q).not.toContain("l'été");
+    expect(q).not.toContain("OR 1=1");
+    expect(q).toContain("jsonb_build_array($2::jsonb)");
+    expect(values).toEqual(["a", JSON.stringify(item)]);
+  });
+
+  it("binds a replaced item as a parameter, keeping the write condition last", async () => {
+    const { repo, statements } = makeCapturingRepository();
+    await repo.upsertItemToCollection("a", "files", item, 1, "hash", "it's");
+    const { q, values } = statements.pop()!;
+    expect(q).not.toContain("l'été");
+    expect(q).toContain("'{1}', $2::jsonb");
+    expect(q).toMatch(/->>'hash'=\$3$/);
+    expect(values).toEqual(["a", JSON.stringify(item), "it's"]);
+  });
+});
+
+/**
+ * Golden check for the @webda/sql extraction: every statement the repository issues, recorded through a fake
+ * client. The snapshot must stay byte-identical when PostgresRepository becomes SQLRepository + PostgresDialect.
+ */
+describe("PostgresRepository SQL snapshot", () => {
+  class Animal {
+    static Metadata = { Identifier: "Test/Animal", Subclasses: [] as any[] };
+    uuid!: string;
+    constructor(data?: any) {
+      Object.assign(this, data);
+    }
+  }
+  class Dog extends Animal {
+    static Metadata = { Identifier: "Test/Dog", Subclasses: [] as any[] };
+  }
+  Animal.Metadata.Subclasses.push(Dog);
+
+  function recorder() {
+    const statements: { q: string; values?: any[] }[] = [];
+    const client: SQLClient = {
+      query: async (q: string, values?: any[]) => {
+        statements.push({ q, values });
+        return { rows: [{ data: { uuid: "a", __type: "Test/Dog" }, uuid: "a" }], rowCount: 1 };
+      }
+    };
+    return { statements, client };
+  }
+
+  it("records every statement", async () => {
+    vi.useFakeTimers({ now: new Date("2026-01-01T00:00:00.000Z") });
+    try {
+      const { statements, client } = recorder();
+      const animals = new PostgresRepository(
+        Animal as any,
+        ["uuid"],
+        client,
+        "animals",
+        undefined,
+        undefined,
+        "Test/Animal"
+      );
+      const dogs = new PostgresRepository(Dog as any, ["uuid"], client, "animals", undefined, undefined, "Test/Animal");
+      const plain = new PostgresRepository(FakeModel as any, ["uuid"], client, "items");
+      await dogs.setupTable();
+      await dogs.get("a");
+      await dogs.exists("a");
+      await dogs.create(new Dog({ uuid: "a", n: 1 }));
+      await animals.update({ uuid: "a", n: 2 });
+      await animals.update(new Dog({ uuid: "a", n: 2 }), "n", 1);
+      await animals.patch("a", { n: 3, tags: ["x"] });
+      await animals.patch("a", { n: 3, __type: "Test/Dog" }, "n", 2);
+      await dogs.delete("a");
+      await dogs.delete("a", "n", 3);
+      await dogs.removeAttribute("a", "n");
+      await dogs.removeAttribute("a", "n", "n", 3);
+      await dogs.incrementAttributes("a", { count: 2, other: -1 } as any);
+      await dogs.incrementAttributes("a", ["count"] as any);
+      await dogs.upsertItemToCollection("a", "files" as any, { name: "l'été.png" } as any);
+      await dogs.upsertItemToCollection("a", "files" as any, { name: "x" } as any, 1, "hash", "h2");
+      await dogs.deleteItemFromCollection("a", "files" as any, 0);
+      await dogs.deleteItemFromCollection("a", "files" as any, 0, "hash", "h2");
+      await dogs.backfillTypes();
+      await animals.backfillTypes();
+      for (const query of [
+        "",
+        "n < 2",
+        "n = 1",
+        "n != 1",
+        "n = 'abc'",
+        "b = TRUE",
+        "b != TRUE",
+        "s = 'x'",
+        "s != 'x'",
+        "s LIKE 'a%'",
+        "s IS NULL",
+        "n IS NOT NULL",
+        "tags CONTAINS 'x'",
+        "n IN [1, 5]",
+        "n < 2 OR b = TRUE",
+        "a.b = 'x' ORDER BY a.b DESC, n ASC LIMIT 5 OFFSET '10'",
+        "name = 'x'' OR 1=1 --'"
+      ]) {
+        await dogs.query(query);
+        await plain.query(query);
+      }
+      await dogs.deleteMany("DELETE WHERE n < 2 LIMIT 2");
+      await plain.deleteMany("DELETE");
+      await dogs.updateMany(
+        "UPDATE SET name = 'even', profile.level = 3, profile.deep.flag = TRUE, list.1.v = 3 WHERE n = 1 LIMIT 1"
+      );
+      await plain.updateMany("UPDATE SET tags.0 = 'n'");
+      await dogs.aggregate({ metrics: { n: { count: "*" } } } as any);
+      await dogs.aggregate({
+        groupBy: ["team.name"],
+        metrics: {
+          n: { count: "*" },
+          d: { countDistinct: "kind" },
+          s: { sum: "points" },
+          a: { avg: "points" },
+          mn: { min: "points" },
+          mx: { max: "points" }
+        },
+        orderBy: [
+          { key: "mx", direction: "DESC" },
+          { key: "mn", direction: "ASC" }
+        ],
+        limit: 3
+      } as any);
+      await plain.aggregate({ filter: "n > 1", groupBy: ["kind"], metrics: { n: { count: "*" } } } as any);
+      await dogs.__clean();
+      expect(statements).toMatchSnapshot();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

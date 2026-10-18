@@ -1,19 +1,33 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPairSync, randomBytes } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes
+} from "crypto";
 import jwt from "jsonwebtoken";
-import { pem2jwk } from "pem-jwk";
 import * as util from "util";
 import { FileUtils, JSONUtils } from "@webda/utils";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { isAbsolute, relative, resolve } from "node:path";
+import { deepmerge } from "deepmerge-ts";
 
 import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice.js";
+import { AuthenticatedEncryption } from "./authenticatedencryption.js";
+import { checkKid, parsePkiValue, PKI_MIN_BITS, PkiKeyring, pkiEncrypter } from "./pki.encrypter.js";
+import type { ConfigurationEncryption } from "../application/iconfiguration.js";
+import { CodeError } from "../errors/errors.js";
 import { getMachineId, useCore, useService } from "../core/hooks.js";
-import { useLog } from "../loggers/hooks.js";
+import { useLog, useOutput } from "../loggers/hooks.js";
 import { Service } from "./service.js";
 import { Command } from "./command.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Route } from "../rest/irest.js";
 import { useRegistry } from "../models/registry.model.js";
 import { useApplication } from "../application/hooks.js";
+import { findConfigurationSecrets, OPT_OUT_ENCRYPTER, secretPathExcluder, type SecretFinding } from "./secretscheck.js";
 
 /**
  * Masked representation of a secret
@@ -30,7 +44,11 @@ const SECRET_MASK = "********";
  * In a service parameters class, type a secret field as `string | SecretString`
  * and read it with {@link SecretString.from}.
  *
+ * `@secret` marks every property typed with this class as a secret in the generated
+ * schema (`x-webda-secret`), so `webda config encrypt` encrypts it and `--check` reports it when it is not encrypted.
+ *
  * @type string
+ * @secret
  */
 export class SecretString {
   /**
@@ -148,20 +166,48 @@ function isPlainObject(value: any): value is Record<string, any> {
 /**
  * An encrypted configuration value
  *
- * - `encrypt:<encrypter>:<plain>` and `sencrypt:<encrypter>:<plain>` mark a value to encrypt
+ * - `encrypt:[<encrypter>:]<plain>` and `sencrypt:[<encrypter>:]<plain>` mark a value to encrypt
  * - `crypt:<encrypter>:<data>` decrypts to a {@link SecretString}
  * - `scrypt:<encrypter>:<data>` decrypts to a plain string
  */
-const CONFIGURATION_VALUE = /^(s?)(encrypt|crypt):([A-Za-z0-9_.-]+):([\s\S]*)$/;
+const CONFIGURATION_VALUE = /^(s?)(encrypt|crypt):([\s\S]+)$/;
+/**
+ * The `<encrypter>:<data>` part of a configuration value
+ */
+const ENCRYPTER_SEGMENT = /^([A-Za-z0-9_.-]+):([\s\S]*)$/;
+
+/**
+ * A parsed encrypted or to-encrypt configuration value
+ */
+export interface EncryptedValue {
+  mode: "encrypt" | "crypt";
+  /**
+   * `sencrypt:` or `scrypt:`: decrypted to a plain string instead of a SecretString
+   */
+  plain: boolean;
+  /**
+   * Encrypter name, undefined for `encrypt:<value>` when no default encrypter is set
+   */
+  encrypter: string | undefined;
+  data: string;
+  /**
+   * The encrypter is written in the value, false when the default encrypter is used
+   */
+  explicit: boolean;
+}
 
 /**
  * Parse an encrypted or to-encrypt configuration value
+ *
+ * `crypt:` and `scrypt:` values always name their encrypter. For `encrypt:` and `sencrypt:`, the
+ * first segment is the encrypter when it is a registered encrypter name: otherwise the whole
+ * remainder is the plain value, encrypted by the default encrypter.
+ *
  * @param value - the configuration value
+ * @param defaultEncrypter - the encrypter of `encrypt:<value>`
  * @returns undefined if the value is not an encryption string
  */
-export function parseEncryptedValue(
-  value: string
-): { mode: "encrypt" | "crypt"; plain: boolean; encrypter: string; data: string } | undefined {
+export function parseEncryptedValue(value: string, defaultEncrypter?: string): EncryptedValue | undefined {
   if (typeof value !== "string") {
     return undefined;
   }
@@ -169,7 +215,85 @@ export function parseEncryptedValue(
   if (!match) {
     return undefined;
   }
-  return { plain: match[1] === "s", mode: match[2] as "encrypt" | "crypt", encrypter: match[3], data: match[4] };
+  const plain = match[1] === "s";
+  const mode = match[2] as "encrypt" | "crypt";
+  const segment = ENCRYPTER_SEGMENT.exec(match[3]);
+  if (mode === "crypt") {
+    return segment ? { plain, mode, encrypter: segment[1], data: segment[2], explicit: true } : undefined;
+  }
+  if (segment && (CryptoService.getEncrypter(segment[1]) || !defaultEncrypter)) {
+    // A registered encrypter, or an unknown one reported as such when there is no default
+    return { plain, mode, encrypter: segment[1], data: segment[2], explicit: true };
+  }
+  return { plain, mode, encrypter: defaultEncrypter, data: match[3], explicit: false };
+}
+
+/**
+ * Options of the configuration encryption and decryption
+ */
+export interface ConfigurationEncryptionOptions {
+  /**
+   * The encryption settings, `parameters.configurationEncryption`
+   *
+   * Read from `data.parameters.configurationEncryption` when not given
+   */
+  settings?: ConfigurationEncryption;
+  /**
+   * The application path, relative paths of the encrypters resolve against it
+   */
+  appPath?: string;
+}
+
+/**
+ * State of one encryption or decryption pass
+ */
+interface EncryptionPass {
+  settings: ConfigurationEncryption;
+  context: EncrypterContext;
+  /**
+   * Encrypters already configured in this pass
+   */
+  configured: Set<string>;
+  /**
+   * Encrypter to re-encrypt the encrypted values with
+   */
+  migrate?: string;
+  upgrade?: boolean;
+}
+
+/**
+ * Path of the encryption settings in a configuration
+ */
+const SETTINGS_PATH = "parameters.configurationEncryption";
+
+/**
+ * Check that the encryption settings hold no encrypted value
+ * @param settings - the settings
+ * @param path - the path, for messages
+ * @returns the settings
+ */
+function checkEncryptionSettings(settings: any, path: string = SETTINGS_PATH): ConfigurationEncryption {
+  if (settings instanceof SecretString || /^s?crypt:/.test(typeof settings === "string" ? settings : "")) {
+    throw new CodeError("CONFIGURATION_ENCRYPTION_INVALID", `${path} cannot be encrypted`);
+  }
+  if (settings !== null && typeof settings === "object") {
+    for (const [key, value] of Object.entries(settings)) {
+      checkEncryptionSettings(value, `${path}.${key}`);
+    }
+  }
+  return settings;
+}
+
+/**
+ * Get the application path, the current directory without application
+ * @returns the path
+ */
+function getAppPath(): string {
+  try {
+    return useApplication().getPath();
+  } catch {
+    return process.cwd();
+  }
 }
 
 /**
@@ -179,6 +303,17 @@ export function parseEncryptedValue(
  */
 function formatPath(path: (string | number)[]): string {
   return path.length ? path.join(".") : "<root>";
+}
+
+/**
+ * Public JSON Web Key (RFC 7517) published in the JWKS
+ */
+export interface JsonWebKey {
+  kty?: string;
+  kid?: string;
+  use?: string;
+  alg?: string;
+  [key: string]: unknown;
 }
 
 export type KeysRegistry = {
@@ -202,12 +337,45 @@ export type KeysRegistry = {
 };
 
 /**
+ * Context given to {@link StringEncrypter.configure}
+ */
+export interface EncrypterContext {
+  /**
+   * Absolute application path, so relative key paths resolve against it
+   */
+  appPath: string;
+  /**
+   * "encrypt" when called from `webda config encrypt`, "decrypt" at runtime
+   */
+  mode: "encrypt" | "decrypt";
+}
+
+/**
  * Encrypt/Decrypt string
  *
  * The encrypted output is stored after `crypt:<encrypter>:` in a configuration file:
  * it must be a single-line string.
  */
 export interface StringEncrypter {
+  /**
+   * Optional: receive `parameters.configurationEncryption.encrypters[<name>]`
+   * before the first encrypt or decrypt of a configuration
+   *
+   * It can be called again when the configuration changes.
+   *
+   * @param options - the encrypter options, an empty object if not set
+   * @param context - the application path and the mode
+   */
+  configure?(options: any, context: EncrypterContext): void | Promise<void>;
+  /**
+   * Optional: tell if an encrypted value must be re-encrypted by `webda config encrypt --upgrade`
+   *
+   * Every value is re-encrypted when it is not implemented.
+   *
+   * @param data - the encrypted value
+   * @returns true to re-encrypt it
+   */
+  needsUpgrade?(data: string): boolean;
   /**
    * Encrypt a string
    * @param data - the plain value
@@ -292,13 +460,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     [key: string]: KeysDefinition;
   };
   /**
-   * JWKS cache
+   * JWKS cache: public JWK of each key id, `null` when the key cannot be exported as a JWK
    */
   jwks: {
-    [key: string]: {
-      n: string;
-      e: string;
-    };
+    [key: string]: JsonWebKey | null;
   } = {};
 
   /**
@@ -315,6 +480,64 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
 
   /**
+   * Url of the JWKS route, relative to the application root
+   * @returns the url or undefined when the JWKS is not exposed (no `url` parameter)
+   */
+  getJWKSUrl(): string | undefined {
+    return this.getUrl(".", ["GET"]);
+  }
+
+  /**
+   * Public signing keys as a JSON Web Key Set (RFC 7517)
+   *
+   * Only the asymmetric public keys are published, the symmetric keys never leave the service. The `kid` matches the
+   * one {@link jwtSign} writes for asymmetric tokens (`A<keyId>`), so any JOSE library can verify them. Keys of an
+   * old rotation stay published while they are in the registry: tokens they signed remain verifiable.
+   * @returns the key set
+   */
+  getJWKS(): { keys: JsonWebKey[] } {
+    const algorithm = this.parameters.jwt?.algorithm;
+    return {
+      keys: Object.keys(this.keys || {})
+        .map(k => {
+          if (this.jwks[k] === undefined) {
+            try {
+              this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" }) as JsonWebKey;
+            } catch {
+              // dh, x25519, ... keys have no JWK representation
+              this.jwks[k] = null;
+            }
+          }
+          if (!this.jwks[k]) {
+            return undefined;
+          }
+          const jwk: JsonWebKey = { ...this.jwks[k], kid: "A" + k, use: "sig" };
+          // Advertise the algorithm only when the default one is asymmetric: the same key can sign RS* and PS*
+          if (algorithm && !algorithm.startsWith("HS")) {
+            jwk.alg = algorithm;
+          }
+          return jwk;
+        })
+        .filter(k => k !== undefined)
+    };
+  }
+
+  /**
+   * Cache duration of the JWKS in seconds
+   *
+   * A tenth of the key active lifespan, between one minute and one hour: verifiers see a new key well before the
+   * previous one stops signing, and unknown `kid` refetches remain rare.
+   * @returns the max-age
+   */
+  getJWKSMaxAge(): number {
+    const lifespan = this.parameters.keyActiveLifespan;
+    if (!lifespan) {
+      return 600;
+    }
+    return Math.max(60, Math.min(3600, Math.floor(lifespan * 360)));
+  }
+
+  /**
    *
    * @param context - the execution context
    */
@@ -325,24 +548,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     }
   })
   async serveJWKS(context: OperationContext) {
-    context.write({
-      keys: Object.keys(this.keys).map(k => {
-        if (!this.jwks[k]) {
-          /*
-            when Node >= 16
-            this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" });
-            and remove pem-jwk
-            */
-          this.jwks[k] = pem2jwk(this.keys[k].publicKey);
-        }
-        return {
-          kty: "RSA",
-          kid: k,
-          n: this.jwks[k].n,
-          e: this.jwks[k].e
-        };
-      })
-    });
+    context.setHeader("Cache-Control", `public, max-age=${this.getJWKSMaxAge()}`);
+    context.write(this.getJWKS());
   }
 
   /**
@@ -571,44 +778,129 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
 
   /**
-   * Encrypt the `encrypt:<encrypter>:<plain>` and `sencrypt:<encrypter>:<plain>` values of a configuration
+   * Start an encryption or decryption pass
+   * @param data - the configuration
+   * @param options - the options
+   * @param path - the path of data
+   * @param mode - encrypt or decrypt
+   * @returns the pass
+   */
+  protected static startPass(
+    data: any,
+    options: ConfigurationEncryptionOptions,
+    path: (string | number)[],
+    mode: "encrypt" | "decrypt"
+  ): EncryptionPass {
+    // Read the settings from the configuration itself when given the whole configuration
+    const settings = options.settings ?? (path.length === 0 ? data?.parameters?.configurationEncryption : undefined);
+    return {
+      settings: checkEncryptionSettings(settings ?? {}),
+      context: { appPath: options.appPath ?? getAppPath(), mode },
+      configured: new Set()
+    };
+  }
+
+  /**
+   * Get an encrypter, configured for this pass
+   * @param name - the encrypter name
+   * @param pass - the current pass
+   * @param path - the configuration path, for messages
+   * @returns the encrypter
+   */
+  protected static async useEncrypter(
+    name: string,
+    pass: EncryptionPass,
+    path: (string | number)[]
+  ): Promise<StringEncrypter> {
+    const encrypter = CryptoService.requireEncrypter(name, path);
+    if (encrypter.configure && !pass.configured.has(name)) {
+      pass.configured.add(name);
+      await encrypter.configure(pass.settings.encrypters?.[name] ?? {}, pass.context);
+    }
+    return encrypter;
+  }
+
+  /**
+   * Encrypt the `encrypt:[<encrypter>:]<plain>` and `sencrypt:[<encrypter>:]<plain>` values of a configuration
    *
    * The structure is modified in place, so a comment-preserving document loaded with
    * `FileUtils.load` can be saved back with its comments.
    *
+   * `encrypt:<plain>` uses the default encrypter, `parameters.configurationEncryption.default`. The output
+   * always names its encrypter.
+   *
    * @param data - the configuration, or a single value
    * @param options - options
-   * @param options.migrate - also re-encrypt the already encrypted values with this encrypter,
-   *   or with their own encrypter when `true` (to upgrade them to its current format)
+   * @param options.migrate - also re-encrypt the already encrypted values with this encrypter, with the
+   *   default encrypter when `""`, or with their own encrypter when `true` (same as `upgrade`)
+   * @param options.upgrade - also re-encrypt the already encrypted values with their own encrypter, to its
+   *   current format or key
    * @param path - the path of data, for error messages
    * @returns the encrypted data
    */
   public static async encryptConfiguration(
     data: any,
-    options: { migrate?: string | boolean } = {},
+    options: { migrate?: string | boolean; upgrade?: boolean } & ConfigurationEncryptionOptions = {},
     path: (string | number)[] = []
   ): Promise<any> {
+    const pass = CryptoService.startPass(data, options, path, "encrypt");
+    pass.migrate = typeof options.migrate === "string" ? options.migrate : undefined;
+    pass.upgrade = options.upgrade || options.migrate === true;
+    if (pass.migrate === "") {
+      pass.migrate = pass.settings.default;
+      if (!pass.migrate) {
+        throw new Error(`No default encrypter to migrate to, set ${SETTINGS_PATH}.default`);
+      }
+    }
+    return CryptoService.encryptValues(data, pass, path);
+  }
+
+  /**
+   * Encrypt the values of a configuration, see {@link encryptConfiguration}
+   * @param data - the configuration, or a single value
+   * @param pass - the current pass
+   * @param path - the path of data
+   * @returns the encrypted data
+   */
+  protected static async encryptValues(data: any, pass: EncryptionPass, path: (string | number)[]): Promise<any> {
     if (data !== null && typeof data === "object" && !(data instanceof SecretString)) {
       for (const i in data) {
-        data[i] = await CryptoService.encryptConfiguration(data[i], options, [...path, i]);
+        // The encryption settings are never encrypted
+        if (path.length === 1 && path[0] === "parameters" && i === "configurationEncryption") {
+          continue;
+        }
+        data[i] = await CryptoService.encryptValues(data[i], pass, [...path, i]);
       }
       return data;
     }
-    const parsed = parseEncryptedValue(data);
+    const parsed = parseEncryptedValue(data, pass.settings.default);
     if (!parsed) {
       return data;
     }
     let { encrypter, data: plain } = parsed;
     if (parsed.mode === "crypt") {
-      if (!options.migrate) {
+      // An opted-out value stays in clear text, it is not migrated to another encrypter
+      if ((!pass.migrate && !pass.upgrade) || encrypter === OPT_OUT_ENCRYPTER) {
         return data;
       }
-      plain = await CryptoService.decryptValue(encrypter, parsed.data, path);
-      if (typeof options.migrate === "string") {
-        encrypter = options.migrate;
+      const target = pass.migrate || encrypter;
+      if (target === encrypter) {
+        const current = await CryptoService.useEncrypter(encrypter, pass, path);
+        if (current.needsUpgrade && !current.needsUpgrade(parsed.data)) {
+          return data;
+        }
       }
+      plain = await CryptoService.decryptValue(encrypter, parsed.data, path, pass);
+      encrypter = target;
+    } else if (!encrypter) {
+      throw new Error(`No default encrypter for the value at ${formatPath(path)}, set ${SETTINGS_PATH}.default`);
+    } else if (!CryptoService.getEncrypter(encrypter) && !pass.settings.default) {
+      throw new Error(
+        `Unknown encrypter '${encrypter}' at ${formatPath(path)} (registered: ${Object.keys(CryptoService.encrypters).join(", ")}), ` +
+          `or set ${SETTINGS_PATH}.default to encrypt the whole value with the default encrypter`
+      );
     }
-    const encrypted = await CryptoService.requireEncrypter(encrypter, path).encrypt(plain);
+    const encrypted = await (await CryptoService.useEncrypter(encrypter, pass, path)).encrypt(plain);
     return `${parsed.plain ? "s" : ""}crypt:${encrypter}:${encrypted}`;
   }
 
@@ -617,10 +909,18 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @param encrypter - the encrypter name
    * @param data - the encrypted data
    * @param path - the configuration path
+   * @param pass - the current pass, to configure the encrypter
    * @returns the plain value
    */
-  protected static async decryptValue(encrypter: string, data: string, path: (string | number)[]): Promise<string> {
-    const impl = CryptoService.requireEncrypter(encrypter, path);
+  protected static async decryptValue(
+    encrypter: string,
+    data: string,
+    path: (string | number)[],
+    pass?: EncryptionPass
+  ): Promise<string> {
+    const impl = pass
+      ? await CryptoService.useEncrypter(encrypter, pass, path)
+      : CryptoService.requireEncrypter(encrypter, path);
     try {
       return await impl.decrypt(data);
     } catch (err) {
@@ -641,20 +941,36 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    *
    * @param data - the configuration, or a single value
    * @param path - the path of data, for messages
+   * @param options - the encryption settings and the application path
    * @returns the decrypted copy
    */
-  public static async decryptConfiguration(data: any, path: (string | number)[] = []): Promise<any> {
+  public static async decryptConfiguration(
+    data: any,
+    path: (string | number)[] = [],
+    options: ConfigurationEncryptionOptions = {}
+  ): Promise<any> {
+    return CryptoService.decryptValues(data, CryptoService.startPass(data, options, path, "decrypt"), path);
+  }
+
+  /**
+   * Decrypt the values of a configuration, see {@link decryptConfiguration}
+   * @param data - the configuration, or a single value
+   * @param pass - the current pass
+   * @param path - the path of data
+   * @returns the decrypted copy
+   */
+  protected static async decryptValues(data: any, pass: EncryptionPass, path: (string | number)[]): Promise<any> {
     if (Array.isArray(data)) {
       const res = [];
       for (let i = 0; i < data.length; i++) {
-        res.push(await CryptoService.decryptConfiguration(data[i], [...path, i]));
+        res.push(await CryptoService.decryptValues(data[i], pass, [...path, i]));
       }
       return res;
     }
     if (isPlainObject(data)) {
       const res: any = {};
       for (const i of Object.keys(data)) {
-        res[i] = await CryptoService.decryptConfiguration(data[i], [...path, i]);
+        res[i] = await CryptoService.decryptValues(data[i], pass, [...path, i]);
       }
       return res;
     }
@@ -669,38 +985,249 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       );
       return data;
     }
-    const plain = await CryptoService.decryptValue(parsed.encrypter, parsed.data, path);
+    const plain = await CryptoService.decryptValue(parsed.encrypter, parsed.data, path, pass);
     return parsed.plain ? plain : new SecretString(plain, parsed.encrypter);
+  }
+
+  /**
+   * Get the encryption settings of the application, merged with the ones of a configuration file
+   * @param data - the configuration file content
+   * @returns the settings
+   */
+  protected static getEncryptionSettings(data?: any): ConfigurationEncryption {
+    return checkEncryptionSettings(
+      deepmerge(
+        useApplication().getConfiguration()?.parameters?.configurationEncryption ?? {},
+        data?.parameters?.configurationEncryption ?? {}
+      )
+    );
   }
 
   /**
    * Encrypt the marked values of a configuration file, keeping its comments
    *
-   * Prefix a value with `encrypt:<encrypter>:` (SecretString once decrypted) or
-   * `sencrypt:<encrypter>:` (plain string once decrypted) then run this command.
+   * Prefix a value with `encrypt:[<encrypter>:]` (SecretString once decrypted) or
+   * `sencrypt:[<encrypter>:]` (plain string once decrypted) then run this command.
    *
    * @param file - the configuration file (json, jsonc or yaml) to update
-   * @param migrate - re-encrypt the already encrypted values with this encrypter
-   * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format
+   * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
+   * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
    * @returns the number of values changed
    */
+  async encryptConfigurationFile(file: string, migrate?: string, upgrade?: boolean): Promise<number> {
+    return CryptoService.encryptFile(file, migrate, upgrade);
+  }
+
+  /**
+   * Encrypt the secrets of the configuration files, keeping their comments, or check them
+   *
+   * Encrypts the values marked `encrypt:` or `sencrypt:`, and the plain values of the secret fields: the fields
+   * typed `SecretString` or tagged `@secret` in their service parameters, marked `x-webda-secret` in the compiled
+   * schemas. The plain secrets are encrypted with the default encrypter.
+   *
+   * Without `file`, it updates the application configuration and the file of the selected deployment.
+   *
+   * With `check`, nothing is written: it fails when a secret is not encrypted. It needs no key, so it runs in CI.
+   * Only the paths are reported, never the values.
+   *
+   * It only needs the loaded application: the configuration is not decrypted and no service is created.
+   *
+   * @param file - the configuration file (json, jsonc or yaml) to update
+   * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
+   * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
+   * @param check - only check that the secrets are encrypted, write nothing
+   * @param strict - with check, report the values still marked `encrypt:` as failures
+   * @param format - with check, output format: text or json
+   * @param none - with check, accept the values kept in clear text with `crypt:none:`, false to fail on them
+   * @param exclude - secret paths to leave alone, comma-separated: not checked, not auto-encrypted
+   * @returns with check, 1 when a secret is not encrypted, otherwise 0
+   */
   @Command("config encrypt", {
-    description: "Encrypt the values marked with encrypt:<encrypter>: in a configuration file",
-    phase: "resolved"
+    description: "Encrypt the secrets of the configuration files, or check them with --check",
+    // No Core: runs without decrypting the configuration, its sources or the private keys
+    phase: "application"
   })
-  async encryptConfigurationFile(
-    /** @alias f @description Configuration file to update (json, jsonc or yaml) */
-    file: string,
-    /** @description Re-encrypt the already encrypted values with this encrypter */
+  static async encryptConfigurationFile(
+    /** @alias f @description Configuration file to update (json, jsonc or yaml), the application and deployment files by default */
+    file?: string,
+    /** @description Re-encrypt the already encrypted values with this encrypter, the default one when empty */
     migrate?: string,
-    /** @description Re-encrypt the already encrypted values with their own encrypter */
-    upgrade?: boolean
+    /** @description Re-encrypt the already encrypted values with their own encrypter, to its current format or key */
+    upgrade?: boolean,
+    /** @description Only check that the secrets are encrypted, write nothing and fail if one is not */
+    check: boolean = false,
+    /** @description With --check, report the values marked encrypt: as failures */
+    strict: boolean = true,
+    /** @description With --check, output format: text or json */
+    format: "text" | "json" = "text",
+    /** @description With --check, accept the values kept in clear text with crypt:none: (--no-none to fail on them) */
+    none: boolean = true,
+    /** @description Secret paths to leave alone, comma-separated (services.demo.password, units[*].token, $.parameters.**) */
+    exclude?: string
+  ): Promise<number> {
+    const files = CryptoService.getConfigurationFiles(file);
+    if (check) {
+      return CryptoService.checkFiles(files, { strict, format, none, exclude });
+    }
+    // The count is logged, not returned: a command result is its exit code
+    for (const filename of files) {
+      await CryptoService.encryptFile(filename, migrate, upgrade, exclude);
+    }
+    return 0;
+  }
+
+  /**
+   * The configuration files to encrypt or check
+   * @param file - the file given on the command line
+   * @returns the absolute paths: the file, or the application configuration and the selected deployment file
+   */
+  protected static getConfigurationFiles(file?: string): string[] {
+    const app = useApplication();
+    if (file) {
+      return [resolve(app.getPath(), file)];
+    }
+    const files = [app.configurationFile, app.getDeployment() ? app.deploymentFile : undefined].filter(
+      f => f && existsSync(f)
+    );
+    if (!files.length) {
+      throw new Error("No configuration file found, use --file");
+    }
+    return files;
+  }
+
+  /**
+   * Check that the secrets of configuration files are encrypted
+   * @param files - the files to check
+   * @param options - check options
+   * @param options.strict - report the values still marked `encrypt:` as failures
+   * @param options.format - output format: text or json
+   * @param options.none - accept the values kept in clear text with `crypt:none:`
+   * @param options.exclude - secret paths not checked, comma-separated
+   * @returns 1 when a secret is not encrypted, 0 otherwise
+   */
+  protected static checkFiles(
+    files: string[],
+    options: { strict?: boolean; format?: "text" | "json"; none?: boolean; exclude?: string } = {}
+  ): number {
+    const { strict = true, format = "text", none = true, exclude } = options;
+    const app = useApplication();
+    const failures: (SecretFinding & { file: string })[] = [];
+    const warnings: (SecretFinding & { file: string })[] = [];
+    for (const filename of files) {
+      // Same report on every OS: forward slashes
+      const file = (relative(app.getPath(), filename) || filename).replace(/\\/g, "/");
+      // Plain JSON: the comment-preserving loader returns wrapper objects
+      const findings = CryptoService.findFileSecrets(JSON.parse(JSON.stringify(FileUtils.load(filename))), exclude);
+      for (const finding of findings) {
+        const failure =
+          finding.reason === "plain" ||
+          (strict && finding.reason === "marked") ||
+          (!none && finding.reason === "opted-out");
+        const message = {
+          plain: "secret is not encrypted",
+          marked: "secret is marked encrypt: but not encrypted, run 'webda config encrypt'",
+          "opted-out": "secret is kept in clear text on purpose (crypt:none:)"
+        }[finding.reason];
+        useLog(
+          failure ? "ERROR" : "WARN",
+          `${failure ? "✗" : "!"} ${file}: ${finding.path} (${finding.type}): ${message}`
+        );
+        const { location: _location, ...reported } = finding;
+        (failure ? failures : warnings).push({ file, ...reported });
+      }
+    }
+    if (format === "json") {
+      useOutput(JSON.stringify({ findings: failures, warnings }, undefined, 2));
+    } else {
+      const optedOut = warnings.filter(w => w.reason === "opted-out").length;
+      useOutput(
+        (failures.length ? `${failures.length} unencrypted secret(s) found` : "No unencrypted secret found") +
+          (optedOut ? `, ${optedOut} kept in clear text on purpose` : "")
+      );
+    }
+    return failures.length ? 1 : 0;
+  }
+
+  /**
+   * Find the unencrypted secrets of a configuration or deployment file
+   *
+   * A service the file overrides without its type takes the type of the application configuration, and the
+   * file `parameters` are also checked against the services of the application.
+   *
+   * @param data - the file content, as plain JSON
+   * @param exclude - secret paths to leave out, comma-separated patterns, see {@link secretPathExcluder}
+   * @returns the findings, with their location in data, without the values
+   */
+  static findFileSecrets(data: any, exclude?: string | string[]): SecretFinding[] {
+    const app = useApplication();
+    const services = app.getConfiguration().services ?? {};
+    const { findings, unknownTypes } = findConfigurationSecrets(
+      { services: data?.services, parameters: data?.parameters, resources: data?.resources, units: data?.units },
+      {
+        getSchema: type => app.getSchema(type),
+        // Same resolution as the services: the application namespace, then Webda
+        completeNamespace: type => {
+          const namespaced = app.completeNamespace(type);
+          return app.getSchema(namespaced) || type.includes("/") ? namespaced : `Webda/${type}`;
+        },
+        getType: name => services[name]?.type,
+        inheritingServices: services
+      }
+    );
+    for (const type of unknownTypes) {
+      useLog("WARN", `No schema for service type ${type}, its secrets are not checked`);
+    }
+    const excluded = secretPathExcluder(exclude);
+    return findings.filter(finding => {
+      if (!excluded(finding.path)) return true;
+      useLog("DEBUG", `Secret ${finding.path} excluded`);
+      return false;
+    });
+  }
+
+  /**
+   * Encrypt the secrets of a configuration file, keeping its comments
+   *
+   * The values marked `encrypt:` or `sencrypt:`, and the plain values of the secret fields, with the default
+   * encrypter.
+   *
+   * @param file - the configuration file (json, jsonc or yaml) to update
+   * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
+   * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
+   * @param exclude - secret paths not auto-encrypted, comma-separated patterns, see {@link secretPathExcluder}
+   * @returns the number of values changed
+   */
+  static async encryptFile(
+    file: string,
+    migrate?: string,
+    upgrade?: boolean,
+    exclude?: string | string[]
   ): Promise<number> {
     const filename = resolve(useApplication().getPath(), file);
     const data = FileUtils.load(filename);
     const before = JSON.stringify(data);
+    const settings = CryptoService.getEncryptionSettings(data);
+    const plain = CryptoService.findFileSecrets(JSON.parse(before), exclude).filter(f => f.reason === "plain");
+    if (plain.length && !settings.default) {
+      throw new Error(
+        `${plain.length} secret(s) are not encrypted in ${filename} (${plain.map(f => f.path).join(", ")}): ` +
+          `set ${SETTINGS_PATH}.default or prefix them with encrypt:<encrypter>:`
+      );
+    }
+    for (const finding of plain) {
+      // The encrypter is explicit: a plain value starting with an encrypter name is not misread
+      const parent = finding.location.slice(0, -1).reduce((target, segment) => target[segment], data);
+      const key = finding.location[finding.location.length - 1];
+      parent[key] = `encrypt:${settings.default}:${parent[key]}`;
+      useLog("INFO", `Encrypting the plain secret ${finding.path}`);
+    }
     let changes = 0;
-    await CryptoService.encryptConfiguration(data, { migrate: migrate || upgrade });
+    await CryptoService.encryptConfiguration(data, {
+      migrate,
+      upgrade,
+      settings,
+      appPath: useApplication().getPath()
+    });
     // Count the changed values without logging them
     const count = (a: any, b: any) => {
       if (a !== null && typeof a === "object") {
@@ -709,12 +1236,132 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
         changes++;
       }
     };
-    count(data, JSON.parse(before));
+    // Compare plain JSON: the comment-preserving arrays are wrapper objects
+    count(JSON.parse(JSON.stringify(data)), JSON.parse(before));
     if (changes) {
       FileUtils.save(data, filename);
     }
-    this.log("INFO", `${changes} value(s) encrypted in ${filename}`);
+    useLog("INFO", `${changes} value(s) encrypted in ${filename}`);
     return changes;
+  }
+
+  /**
+   * Get the keyring of the `pki` encrypter, as configured for the application
+   * @param data - a configuration file content, its settings override the application ones
+   * @returns the keyring
+   */
+  protected static getPkiKeyring(data?: any): PkiKeyring {
+    return new PkiKeyring(CryptoService.getEncryptionSettings(data).encrypters?.pki ?? {}, useApplication().getPath());
+  }
+
+  /**
+   * Generate a key pair for the `pki` encrypter
+   *
+   * The public key is written in the public keys directory, to commit. The private key is written
+   * outside of it, to store in the runtime secrets (a Kubernetes Secret for example), never in the repository.
+   *
+   * @param kid - the key id
+   * @param bits - the RSA modulus length
+   * @param out - the private key file
+   * @returns the written files
+   */
+  @Command("config pki generate", {
+    description: "Generate a key pair for the pki configuration encrypter",
+    // No Core: runs without decrypting the configuration, its sources or the private keys
+    phase: "application"
+  })
+  static async pkiGenerate(
+    /** @description Key id, for example 2026-10 */
+    kid: string,
+    /** @description RSA modulus length */
+    bits: number = 4096,
+    /** @description Private key file, ./<kid>.pem by default */
+    out?: string
+  ): Promise<{ publicKey: string; privateKey: string }> {
+    checkKid(kid);
+    if (!(bits >= PKI_MIN_BITS)) {
+      throw new Error(`RSA ${PKI_MIN_BITS} bits at least is required`);
+    }
+    const keyring = CryptoService.getPkiKeyring();
+    const publicKey = resolve(keyring.publicKeysDir, `${kid}.pub.pem`);
+    const privateKey = resolve(useApplication().getPath(), out || `${kid}.pem`);
+    const fromPublicDir = relative(keyring.publicKeysDir, privateKey);
+    if (!fromPublicDir.startsWith("..") && !isAbsolute(fromPublicDir)) {
+      throw new Error(`The private key cannot be written in the public keys directory ${keyring.publicKeysDir}`);
+    }
+    for (const f of [publicKey, privateKey]) {
+      if (existsSync(f)) {
+        throw new Error(`${f} already exists`);
+      }
+    }
+    const pair = generateKeyPairSync("rsa", {
+      modulusLength: bits,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" }
+    });
+    mkdirSync(keyring.publicKeysDir, { recursive: true });
+    writeFileSync(privateKey, pair.privateKey, { mode: 0o600, flag: "wx" });
+    writeFileSync(publicKey, pair.publicKey, { flag: "wx" });
+    useLog("INFO", `Public key written to ${publicKey}, commit it`);
+    useLog("INFO", `Private key written to ${privateKey}, never commit it. Ignore it in git:\n  *.pem\n  !*.pub.pem`);
+    useLog(
+      "INFO",
+      `Store it in the runtime, then delete the local file:\n  kubectl create secret generic webda-pki --from-file=${kid}.pem=${privateKey}`
+    );
+    useLog("INFO", `Set ${SETTINGS_PATH}.encrypters.pki.activeKey to '${kid}' to encrypt the new values with it`);
+    return { publicKey, privateKey };
+  }
+
+  /**
+   * List the public keys of the `pki` encrypter and the number of values encrypted with each key in a file
+   *
+   * A key with no value left can be retired.
+   *
+   * @param file - the configuration file to inspect
+   * @returns the active key, the public keys and the values count by kid
+   */
+  @Command("config pki list", {
+    description: "List the pki keys and the values encrypted with each of them",
+    // No Core: runs without decrypting the configuration, its sources or the private keys
+    phase: "application"
+  })
+  static async pkiList(
+    /** @alias f @description Configuration file to inspect (json, jsonc or yaml) */
+    file: string
+  ): Promise<{ activeKey?: string; publicKeys: string[]; values: Record<string, number> }> {
+    const filename = resolve(useApplication().getPath(), file);
+    const data = FileUtils.load(filename);
+    const keyring = CryptoService.getPkiKeyring(data);
+    const values: Record<string, number> = {};
+    const count = (value: any) => {
+      if (value !== null && typeof value === "object") {
+        Object.values(value).forEach(count);
+        return;
+      }
+      const parsed = parseEncryptedValue(value);
+      if (parsed?.mode !== "crypt" || parsed.encrypter !== "pki") {
+        return;
+      }
+      let kid: string;
+      try {
+        kid = parsePkiValue(parsed.data).kid;
+      } catch {
+        kid = "<invalid>";
+      }
+      values[kid] = (values[kid] ?? 0) + 1;
+    };
+    count(data);
+    const publicKeys = keyring.listKids();
+    const lines = [
+      `Active key: ${keyring.activeKey ?? "<none>"}`,
+      `Public keys in ${keyring.publicKeysDir}: ${publicKeys.join(", ") || "<none>"}`,
+      `Values in ${filename}:`
+    ];
+    for (const kid of [...new Set([...publicKeys, ...Object.keys(values)])].sort()) {
+      lines.push(`  ${kid}${kid === keyring.activeKey ? " (active)" : ""}: ${values[kid] ?? 0}`);
+    }
+    useOutput(lines.join("\n"));
+    return { activeKey: keyring.activeKey, publicKeys, values };
   }
 
   /**
@@ -778,54 +1425,6 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 }
 
 /**
- * Authenticated encryption helpers used by the configuration encrypters
- *
- * AES-256-GCM: the output is `base64(iv(12) | tag(16) | ciphertext)`, decryption
- * throws if the key is wrong or the data was altered.
- */
-export const AuthenticatedEncryption = {
-  /**
-   * Encrypt a string
-   * @param key - 32 bytes key
-   * @param data - the plain value
-   * @returns the base64 encrypted value
-   */
-  encrypt(key: Uint8Array, data: string): string {
-    const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", key, new Uint8Array(iv));
-    const encrypted = Buffer.concat([
-      new Uint8Array(cipher.update(new Uint8Array(Buffer.from(data, "utf-8")))),
-      new Uint8Array(cipher.final())
-    ]);
-    return Buffer.concat([new Uint8Array(iv), new Uint8Array(cipher.getAuthTag()), new Uint8Array(encrypted)]).toString(
-      "base64"
-    );
-  },
-  /**
-   * Decrypt a string
-   * @param key - 32 bytes key
-   * @param data - the base64 encrypted value
-   * @returns the plain value
-   */
-  decrypt(key: Uint8Array, data: string): string {
-    const input = Buffer.from(data, "base64");
-    if (input.length < 28) {
-      throw new Error("Invalid encrypted data");
-    }
-    const decipher = createDecipheriv("aes-256-gcm", key, new Uint8Array(input.subarray(0, 12)));
-    decipher.setAuthTag(new Uint8Array(input.subarray(12, 28)));
-    try {
-      return Buffer.concat([
-        new Uint8Array(decipher.update(new Uint8Array(input.subarray(28)))),
-        new Uint8Array(decipher.final())
-      ]).toString("utf-8");
-    } catch {
-      throw new Error("Wrong key or altered data");
-    }
-  }
-};
-
-/**
  * Prefix of the current encrypted format of the built-in encrypters
  *
  * Legacy values (AES-256-CTR, unauthenticated) have no prefix: base64 never contains `:`.
@@ -862,6 +1461,29 @@ CryptoService.registerEncrypter("local", {
     return decipher.update(new Uint8Array(input.subarray(16))).toString() + decipher.final().toString();
   }
 });
+
+/**
+ * Asymmetric encrypter: public keys in the repository, private keys in the runtime
+ */
+CryptoService.registerEncrypter("pki", pkiEncrypter);
+
+/**
+ * Opt-out: `crypt:none:<value>` keeps a value of a secret field in clear text on purpose
+ *
+ * `webda config encrypt` does not encrypt it, even with `--migrate`, and `--check` reports it as a warning.
+ */
+CryptoService.registerEncrypter(OPT_OUT_ENCRYPTER, {
+  encrypt: async (data: string) => {
+    if (/[\r\n]/.test(data)) {
+      throw new Error("A multi-line value cannot be kept in clear text with crypt:none:");
+    }
+    return data;
+  },
+  decrypt: async (data: string) => data,
+  needsUpgrade: () => false
+});
+
+export { AuthenticatedEncryption };
 
 export default CryptoService;
 

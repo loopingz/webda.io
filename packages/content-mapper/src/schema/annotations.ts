@@ -46,6 +46,34 @@ export const Annotations = {
 } as const;
 
 /**
+ * JSON Schema keyword marking a configuration value that must be encrypted
+ *
+ * `true` marks the whole value (every string below it), a list of names marks
+ * only those children of an object: `@secret password,connectionString`.
+ *
+ * Set by a `@secret` JSDoc tag on a property, or on a class (like
+ * `SecretString`) so every property typed with it is a secret. The `x-` prefix
+ * keeps it clear of a future standard keyword, as for `x-webda-stream`.
+ */
+export const SECRET_KEYWORD = "x-webda-secret";
+
+/**
+ * The value of the {@link SECRET_KEYWORD} keyword for a `@secret` tag
+ *
+ * Only the leading list of names counts, so prose can follow it:
+ * `@secret password,connectionString - forwarded to pg`. A name can be a dotted
+ * path, arrays on the way are traversed: `users.token`. Prose right after the
+ * tag would read as a name: start it with `-`.
+ * @param text - the tag text: empty or `true` for the whole value, or child names separated by commas
+ * @returns `true` or the child names
+ */
+export function secretKeywordValue(text: string): true | string[] {
+  const list = /^\s*([\w$][\w$-]*(?:\.[\w$][\w$-]*)*(?:\s*,\s*[\w$][\w$-]*(?:\.[\w$][\w$-]*)*)*)(?:\s|$)/.exec(text);
+  if (!list || list[1] === "true") return true;
+  return list[1].split(",").map(name => name.trim());
+}
+
+/**
  * Tags whose payload TypeScript consumes as a type expression, braces or not.
  *
  * `parseEnumTag` and `parseThisTag` call `parseJSDocTypeExpression` with
@@ -127,6 +155,10 @@ export function applyDocs(
 
   for (const tag of docs.tags) {
     if (Annotations.boolean.includes(tag.name as never) || Annotations.string.includes(tag.name as never)) continue;
+    if (tag.name === "secret") {
+      target[SECRET_KEYWORD] = secretKeywordValue(tag.text);
+      continue;
+    }
     let value: unknown;
     try {
       value = JSON.parse(tag.text);

@@ -1,5 +1,93 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.10...grpc-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+    * @webda/core bumped to 4.0.0-beta.11
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.9...grpc-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** TLS client certificate (mTLS) authentication ([#834](https://github.com/loopingz/webda.io/issues/834)) ([#899](https://github.com/loopingz/webda.io/issues/899)) ([5bf7996](https://github.com/loopingz/webda.io/commit/5bf7996fb9ac76506f8d1f2311f7e4453159e54e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+    * @webda/core bumped to 4.0.0-beta.10
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.10
+
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.8...grpc-v4.0.0-beta.9) (2026-10-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.9
+    * @webda/core bumped to 4.0.0-beta.9
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.9
+
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.7...grpc-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* enable strict mode in ten small packages ([#872](https://github.com/loopingz/webda.io/issues/872)) ([ecad571](https://github.com/loopingz/webda.io/commit/ecad571d67963ea4c35b47ddfafc1b91c2d7b12f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.8
+
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.6...grpc-v4.0.0-beta.7) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* GraphQL now exposes every non-CRUD operation by default (opt out with exposeOperations: []); titled nested input types are renamed <title>Input; the Object scalar no longer JSON-parses string variables; duplicate GraphQL type/field names are startup errors; operations declaring grpc.streaming: "client" | "bidi" now receive an async iterable of messages instead of a collected array.
+
+### Features
+
+* streaming operations on gRPC, WebSocket and GraphQL ([#829](https://github.com/loopingz/webda.io/issues/829)) ([e67bfea](https://github.com/loopingz/webda.io/commit/e67bfea1984e32ad7172e486602cb532369e62f5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+    * @webda/core bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.5...grpc-v4.0.0-beta.6) (2026-10-09)
 
 

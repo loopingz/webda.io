@@ -1,3 +1,4 @@
+import { WebdaError } from "@webda/core";
 import { useLog } from "@webda/workout";
 import { createWriteStream, readdirSync, rmSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -295,7 +296,7 @@ async function resolveBase(
     };
   }
   const client = createRegistryClient(base.registry, options);
-  const top = await client.getManifest(base.repository, base.digest ?? base.tag);
+  const top = await client.getManifest(base.repository, base.digest ?? base.tag ?? "latest");
   const manifests: { platform: Platform; digest: string; json: any }[] = [];
   if (isIndex(top.mediaType)) {
     for (const platform of platforms) {
@@ -368,11 +369,14 @@ export async function buildImage(path: string, entries: TarEntry[], options: Bui
   useLog("INFO", `Application layer ${layer.descriptor.digest} (${layer.descriptor.size} bytes)`);
   const images: BuiltPlatformImage[] = [];
   for (const platformBase of bases) {
-    if (base && (options.includeBaseLayers ?? true)) {
+    if (base && client && (options.includeBaseLayers ?? true)) {
       for (const baseLayer of platformBase.layers) {
         if (!layout.hasBlob(baseLayer.digest)) {
           useLog("INFO", `Pulling base layer ${baseLayer.digest} (${baseLayer.size} bytes)`);
           const response = await client.getBlob(base.repository, baseLayer.digest);
+          if (!response.body) {
+            throw new WebdaError.BadRequest(`Empty blob response for ${baseLayer.digest}`);
+          }
           await layout.writeStream(response.body, baseLayer.digest);
         }
       }
@@ -380,7 +384,7 @@ export async function buildImage(path: string, entries: TarEntry[], options: Bui
     const config = createImageConfiguration(platformBase.config, layer.diffId, options);
     const configDescriptor = layout.writeJson(config, MediaTypes.OCI_CONFIG);
     const annotations: Record<string, string> = { ...(options.annotations ?? {}) };
-    if (base) {
+    if (base && platformBase.digest) {
       annotations["org.opencontainers.image.base.name"] = formatImageReference({ ...base, digest: undefined });
       annotations["org.opencontainers.image.base.digest"] = platformBase.digest;
     }
@@ -395,7 +399,7 @@ export async function buildImage(path: string, entries: TarEntry[], options: Bui
     images.push({ platform: platformBase.platform, manifest, descriptor, config });
   }
   let root: Descriptor = images[0].descriptor;
-  let index: ImageIndex;
+  let index: ImageIndex | undefined;
   if (images.length > 1) {
     index = {
       schemaVersion: 2,
@@ -444,6 +448,9 @@ export async function pushImage(
       continue;
     }
     if (!image.layout.hasBlob(descriptor.digest)) {
+      if (!image.base || !baseClient) {
+        throw new WebdaError.BadRequest(`Missing blob ${descriptor.digest} and no base image to retrieve it from`);
+      }
       if (
         image.base.registry === target.registry &&
         (await client.mountBlob(target.repository, descriptor.digest, image.base.repository))
@@ -453,6 +460,9 @@ export async function pushImage(
       }
       useLog("INFO", `Pulling base layer ${descriptor.digest} (${descriptor.size} bytes)`);
       const response = await baseClient.getBlob(image.base.repository, descriptor.digest);
+      if (!response.body) {
+        throw new WebdaError.BadRequest(`Empty blob response for ${descriptor.digest}`);
+      }
       await image.layout.writeStream(response.body, descriptor.digest);
     }
     useLog("INFO", `Pushing ${descriptor.digest} (${descriptor.size} bytes)`);

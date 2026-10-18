@@ -91,6 +91,14 @@ class FileBinaryUnitTest {
   }
 
   @test
+  async missingHashesAreRejected() {
+    assert.throws(() => this.binary._getPath(undefined), /Missing binary hash/);
+    await assert.rejects(() => this.binary.getPutUrl(undefined), /Missing binary hash/);
+    assert.strictEqual(this.binary.challenge(undefined, "proof"), false);
+    assert.strictEqual(this.binary.challenge("hash", undefined), false);
+  }
+
+  @test
   getPathWithoutPostfix() {
     const p = this.binary._getPath("abc123");
     assert.strictEqual(p, this.binary.getParameters().folder + "abc123");

@@ -6,6 +6,8 @@ pnpm-debug.log
 packages/*/src/**/*.js
 packages/*/src/**/*.js.map
 packages/*/src/**/*.d.ts
+!packages/elasticsearch/src/dateformat.d.ts
+!packages/hawk/src/hawk.d.ts
 packages/*/src/**/*.d.ts.map
 sample-app/src/**/*.js
 sample-app/src/**/*.js.map
@@ -18,6 +20,7 @@ sample-apps/*/src/**/*.d.ts.map
 node_modules
 lib
 reports
+bench-results
 .nyc_output
 dist
 diagrams

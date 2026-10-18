@@ -87,6 +87,25 @@ type TestFramework = {
   }>;
 };
 
+/** Framework globals are supplied by Jest or Mocha before loading this adapter. */
+type FrameworkExecuters = Awaited<TestFramework["executers"]>;
+const frameworkGlobals = globalThis as typeof globalThis & {
+  describe: FrameworkExecuters["describe"] & {
+    only?: FrameworkExecuters["describe.only"];
+    skip?: FrameworkExecuters["describe.skip"];
+  };
+  it: FrameworkExecuters["test"] & {
+    only?: FrameworkExecuters["test.only"];
+    skip?: FrameworkExecuters["test.skip"];
+  };
+  before: FrameworkExecuters["beforeAll"];
+  after: FrameworkExecuters["afterAll"];
+  beforeAll: FrameworkExecuters["beforeAll"];
+  afterAll: FrameworkExecuters["afterAll"];
+  beforeEach: FrameworkExecuters["beforeEach"];
+  afterEach: FrameworkExecuters["afterEach"];
+};
+
 /* v8 ignore start */
 /**
  * Detect the test framework in use.
@@ -124,36 +143,36 @@ export function detectFramework(): TestFramework {
     return {
       type: "jest",
       executers: Promise.resolve({
-        describe: global.describe,
-        test: global.it,
-        afterAll: (global as any).afterAll,
-        afterEach: global.afterEach,
-        beforeAll: (global as any).beforeAll,
-        beforeEach: global.beforeEach,
-        ["describe.only"]: (global as any).describe.only,
-        ["describe.skip"]: (global as any).describe.skip,
-        ["test.only"]: (global as any).it.only,
-        ["test.skip"]: (global as any).it.skip
+        describe: frameworkGlobals.describe,
+        test: frameworkGlobals.it,
+        afterAll: frameworkGlobals.afterAll,
+        afterEach: frameworkGlobals.afterEach,
+        beforeAll: frameworkGlobals.beforeAll,
+        beforeEach: frameworkGlobals.beforeEach,
+        ["describe.only"]: frameworkGlobals.describe.only,
+        ["describe.skip"]: frameworkGlobals.describe.skip,
+        ["test.only"]: frameworkGlobals.it.only,
+        ["test.skip"]: frameworkGlobals.it.skip
       })
     };
   } else if (
-    (typeof (global as any).before === "function" && typeof (global as any).after === "function") ||
+    (typeof frameworkGlobals.before === "function" && typeof frameworkGlobals.after === "function") ||
     process.mainModule?.filename.includes("node_modules/mocha") ||
     process.argv.some(a => a.includes("mocha"))
   ) {
     return {
       type: "mocha",
       executers: Promise.resolve({
-        describe: global.describe,
-        test: global.it,
-        afterAll: global.after,
-        afterEach: global.afterEach,
-        beforeAll: global.before,
-        beforeEach: global.beforeEach,
-        ["describe.only"]: (global as any).describe.only,
-        ["describe.skip"]: (global as any).describe.skip,
-        ["test.only"]: (global as any).it.only,
-        ["test.skip"]: (global as any).it.skip
+        describe: frameworkGlobals.describe,
+        test: frameworkGlobals.it,
+        afterAll: frameworkGlobals.after,
+        afterEach: frameworkGlobals.afterEach,
+        beforeAll: frameworkGlobals.before,
+        beforeEach: frameworkGlobals.beforeEach,
+        ["describe.only"]: frameworkGlobals.describe.only,
+        ["describe.skip"]: frameworkGlobals.describe.skip,
+        ["test.only"]: frameworkGlobals.it.only,
+        ["test.skip"]: frameworkGlobals.it.skip
       })
     };
   } else if ((process as any).versions?.bun) {
@@ -197,16 +216,16 @@ if (framework.type !== "jest") {
 } else {
   // In Jest, resolve executers synchronously since globals are available at module load time
   executers = {
-    describe: global.describe,
-    test: global.it,
-    afterAll: (global as any).afterAll,
-    afterEach: global.afterEach,
-    beforeAll: (global as any).beforeAll,
-    beforeEach: global.beforeEach,
-    ["describe.only"]: (global as any).describe.only,
-    ["describe.skip"]: (global as any).describe.skip,
-    ["test.only"]: (global as any).it.only,
-    ["test.skip"]: (global as any).it.skip
+    describe: frameworkGlobals.describe,
+    test: frameworkGlobals.it,
+    afterAll: frameworkGlobals.afterAll,
+    afterEach: frameworkGlobals.afterEach,
+    beforeAll: frameworkGlobals.beforeAll,
+    beforeEach: frameworkGlobals.beforeEach,
+    ["describe.only"]: frameworkGlobals.describe.only,
+    ["describe.skip"]: frameworkGlobals.describe.skip,
+    ["test.only"]: frameworkGlobals.it.only,
+    ["test.skip"]: frameworkGlobals.it.skip
   };
 }
 /* v8 ignore stop */
@@ -255,6 +274,13 @@ type SuiteMeta = {
   paramMatrix?: Record<string, unknown[]>;
 };
 
+/** Metadata merged from a test class and its ancestors. */
+type SuiteMetadata = {
+  "webda:suite"?: SuiteMeta;
+  "webda:tests"?: TestMeta[];
+  "webda:lifecycle"?: LifecycleMeta[];
+};
+
 // Helpers
 /**
  * Return (and lazily initialise) a named bag on the TS5 class-metadata object.
@@ -273,13 +299,9 @@ export function getBag(metadata: Record<string | symbol, any>, key: string, fall
  * @param target - the class constructor to inspect
  * @returns the merged metadata object
  */
-export function getMetadata(target: AnyCtor): {
-  "webda:suite"?: SuiteMeta;
-  "webda:tests"?: TestMeta[];
-  "webda:lifecycle"?: LifecycleMeta[];
-} {
+export function getMetadata(target: AnyCtor): SuiteMetadata {
   let prototype = target;
-  const results = {
+  const results: SuiteMetadata = {
     "webda:suite": undefined,
     "webda:tests": undefined,
     "webda:lifecycle": undefined
@@ -291,33 +313,25 @@ export function getMetadata(target: AnyCtor): {
   }
   // Ensure configuration from current class overrides parent classes
   prototypes.forEach(p => {
-    const meta = (p as any)[Symbol.metadata];
-    if (meta && meta[META.TESTS]) {
-      results["webda:tests"] ??= [];
-      results["webda:tests"] = [
-        ...results["webda:tests"],
-        /* v8 ignore next 1 -- Array.filter() never returns null/undefined */
-        ...(meta[META.TESTS].filter(t => !results["webda:tests"].some((ot: TestMeta) => ot.fnKey === t.fnKey)) ?? [])
-      ];
+    const meta = (p as any)[Symbol.metadata] as SuiteMetadata | undefined;
+    const tests = meta?.[META.TESTS];
+    if (tests) {
+      const inherited = results[META.TESTS] ?? [];
+      results[META.TESTS] = [...inherited, ...tests.filter(t => !inherited.some(ot => ot.fnKey === t.fnKey))];
     }
-    if (meta && meta[META.LIFECYCLE]) {
-      results["webda:lifecycle"] ??= [];
-      results["webda:lifecycle"] = [
-        ...results["webda:lifecycle"],
-        /* v8 ignore next 3 -- Array.filter() never returns null/undefined */
-        ...(meta[META.LIFECYCLE].filter(
-          l => !results["webda:lifecycle"].some((ol: LifecycleMeta) => ol.fnKey === l.fnKey)
-        ) ?? [])
-      ];
+    const lifecycles = meta?.[META.LIFECYCLE];
+    if (lifecycles) {
+      const inherited = results[META.LIFECYCLE] ?? [];
+      results[META.LIFECYCLE] = [...inherited, ...lifecycles.filter(l => !inherited.some(ol => ol.fnKey === l.fnKey))];
     }
   });
   // Ensure configuration from current class overrides parent classes
   // so reverse the prototypes order
   prototypes.reverse().forEach(p => {
-    const meta = (p as any)[Symbol.metadata];
-    if (meta && meta[META.SUITE]) {
-      results["webda:suite"] ??= meta[META.SUITE];
-      results["webda:suite"] = { ...results["webda:suite"], ...meta[META.SUITE] };
+    const meta = (p as any)[Symbol.metadata] as SuiteMetadata | undefined;
+    const suite = meta?.[META.SUITE];
+    if (suite) {
+      results[META.SUITE] = { ...results[META.SUITE], ...suite };
     }
   });
   return results;
@@ -411,7 +425,7 @@ export const suite: ReturnType<typeof createClassDecorator> & {
               executers[l.phase](() => wrapper(l.phase, instance[l.fnKey].bind(instance)));
             });
           // Also register beforeAll and afterAll methods if any
-          ["beforeAll", "afterAll"]
+          (["beforeAll", "afterAll"] as const)
             .filter(phase => instance[phase])
             .forEach(phase => {
               executers[phase](() => wrapper(phase, instance[phase].bind(instance)));
@@ -421,9 +435,9 @@ export const suite: ReturnType<typeof createClassDecorator> & {
             if (t.settings?.retries !== undefined && framework.type !== "mocha") {
               useLog("WARN", `@retries is Mocha-only, ignored for ${framework.type} (test: ${t.name})`);
             }
-            let exec = executers.test;
+            let exec: FrameworkExecuters["test"] | undefined = executers.test;
             if (t.mode === "todo" || t.mode === "skip") {
-              exec = executers["test." + t.mode];
+              exec = executers[`test.${t.mode}`];
               /* v8 ignore next 4 -- all framework have todo and skip */
               if (!exec) {
                 useLog("INFO", `Skipping test (no .${t.settings?.execution ?? t.mode} support)`, t.name);
@@ -514,7 +528,7 @@ export const test: ReturnType<typeof createMethodDecorator> & {
   };
   entry.name = testName;
   Object.keys(settings ?? {}).forEach(k => {
-    if (entry.settings[k]) {
+    if (entry.settings?.[k as keyof TestSettings]) {
       useLog("WARN", `Overriding test setting ${k} for ${entry.name}`);
     }
   });

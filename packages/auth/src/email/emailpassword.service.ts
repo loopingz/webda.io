@@ -22,7 +22,7 @@ import type { AuthProvider } from "../provider.js";
 import { useAuthentication } from "../provider.js";
 import { AccountExists, IdentLinkedElsewhere, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
 import { signEmailToken, verifyEmailToken } from "./tokens.js";
-import { canSend, isLocked, markSent } from "../throttle.js";
+import { canSend, countAttempt, markSent } from "../throttle.js";
 
 /** When the email is verified relative to account creation */
 export type VerificationMode = "before" | "after" | "none";
@@ -39,10 +39,25 @@ export class EmailPasswordParameters extends ServiceParameters {
    * @default "before"
    */
   verification: VerificationMode;
-  /** Password rules */
-  password: { policy?: string; verifier?: string };
-  /** Throttling */
-  throttle: { resendDelay?: number; failedBeforeDelay?: number; lockout?: number };
+  /** Password rules
+   * @default { "policy": ".{8,}" }
+   */
+  password: {
+    /** @default ".{8,}" */
+    policy: string;
+    verifier?: string;
+  };
+  /** Throttling
+   * @default { "resendDelay": 14400000, "failedBeforeDelay": 3, "lockout": 900000 }
+   */
+  throttle: {
+    /** @default 14400000 */
+    resendDelay: number;
+    /** @default 3 */
+    failedBeforeDelay: number;
+    /** @default 900000 */
+    lockout: number;
+  };
   /**
    * Browser redirects for emailed links (no defaults: init() refuses a missing required one). `failure` and `recover`
    * are always required, `verified` and `register` unless `verification` is "none". `recover` receives the recovery
@@ -69,8 +84,12 @@ export class EmailPasswordParameters extends ServiceParameters {
     super.load(params);
     this.mailer ??= "Mailer";
     this.verification ??= "before";
-    this.password = { policy: ".{8,}", ...(this.password ?? {}) };
-    this.throttle = { resendDelay: 14400000, failedBeforeDelay: 3, lockout: 900000, ...(this.throttle ?? {}) };
+    this.password = { ...this.password, policy: this.password?.policy ?? ".{8,}" };
+    this.throttle = {
+      resendDelay: this.throttle?.resendDelay ?? 14400000,
+      failedBeforeDelay: this.throttle?.failedBeforeDelay ?? 3,
+      lockout: this.throttle?.lockout ?? 900000
+    };
     this.redirects ??= {};
     this.url ??= "/auth/email";
     return this;
@@ -158,10 +177,10 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     if (this.parameters.verification !== "none" && !useDynamicService(this.parameters.mailer)) {
       throw new Error(`EmailPasswordProvider requires a Mailer service '${this.parameters.mailer}'`);
     }
-    const required = [
+    const required: (keyof EmailPasswordParameters["redirects"])[] = [
       "failure",
       "recover",
-      ...(this.parameters.verification !== "none" ? ["verified", "register"] : [])
+      ...(this.parameters.verification !== "none" ? (["verified", "register"] as const) : [])
     ];
     for (const key of required) {
       if (!this.parameters.redirects?.[key]) {
@@ -242,22 +261,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
    * @returns true when this attempt must be refused without checking the password
    */
   protected async countAttempt(ident: Ident): Promise<boolean> {
-    const { failedBeforeDelay, lockout } = this.parameters.throttle;
-    const now = Date.now();
-    // A lock whose last attempt is older than the lockout is over: attempts restart a window. A count without any
-    // timestamp (v3 `_failedLogin` upgraded without `_lastFailedLogin`) is an expired lock too: v4 always stamps an
-    // attempt it verifies, so only such data reaches the threshold unstamped
-    const expired =
-      (ident._loginAttempts ?? 0) >= failedBeforeDelay &&
-      (!ident._lastLoginAttemptAt || !isLocked(ident, failedBeforeDelay, lockout, now));
-    const ref = ident.ref();
-    const updated = await runAsSystem(() => ref.incrementAttribute("_loginAttempts"));
-    const attempts = (updated as any)?.["_loginAttempts"] ?? (await runAsSystem(() => ref.get()))._loginAttempts;
-    const locked = !expired && attempts - 1 >= failedBeforeDelay;
-    if (!locked) {
-      await runAsSystem(() => ref.setAttribute("_lastLoginAttemptAt", now));
-    }
-    return locked;
+    return countAttempt(ident.ref(), "_loginAttempts", "_lastLoginAttemptAt", this.parameters.throttle, ident);
   }
 
   /**
@@ -296,7 +300,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       await dummy.verify(`${password}`);
       ok = false;
     }
-    if (!ok) {
+    if (!ok || !ident) {
       await auth.emit("Authentication.LoginFailed", { context: ctx, user } as any);
       throw new InvalidCredentials();
     }
@@ -425,6 +429,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       return;
     }
     const token = await runAsSystem(() => this.prepareLink(normalized, userId));
+    if (!token) throw new TokenInvalid();
     await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", token), token);
   }
 
@@ -558,9 +563,10 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     if (!ctx?.getSession?.()?.isLogged()) {
       throw new WebdaError.Unauthorized("Login required");
     }
-    if (!this.sessionMatches(claims, ctx)) {
+    if (!claims.sub || !this.sessionMatches(claims, ctx)) {
       throw new IdentLinkedElsewhere();
     }
+    const userId = claims.sub;
     await runAsSystem(async () => {
       const ident = await this.getIdent(claims.email);
       if (!ident) {
@@ -573,7 +579,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       const patch: any = {};
       if (!ident.isVerified()) patch.verifiedAt = new Date();
       if (!owner) {
-        ident.setUser(claims.sub);
+        ident.setUser(userId);
         patch._user = ident._user;
       }
       if (Object.keys(patch).length) await ident.ref().patch(patch);
@@ -594,12 +600,12 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     await runAsSystem(async () => {
       const ident = await this.getIdent(normalized);
       if (!ident?.getUser() || !canSend(ident._throttle, this.parameters.throttle.resendDelay)) return;
-      const user: User = await useAuthentication()
+      const user: User | undefined = await useAuthentication()
         .getUserModel()
         .ref(ident.getUser().toString())
         .get()
         .catch(() => undefined);
-      if (!(user as any)?.password?.hasPassword()) return;
+      if (!user || !(user as any)?.password?.hasPassword()) return;
       await ident.ref().patch({ _throttle: markSent(ident._throttle) } as any);
       const t = await signEmailToken("recover", {
         email: normalized,
@@ -623,11 +629,13 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   })
   async recover(token: string, password: string): Promise<void> {
     const claims = await verifyEmailToken(token, "recover");
+    const userId = claims.sub;
+    if (!userId) throw new TokenInvalid();
     await runAsSystem(async () => {
       const auth = useAuthentication();
-      const user: User = await auth
+      const user: User | undefined = await auth
         .getUserModel()
-        .ref(claims.sub)
+        .ref(userId)
         .get()
         .catch(() => undefined);
       if (!user || !(user as any).password || (user as any).password.changedAt !== claims.pwdAt) {
@@ -671,7 +679,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     if (!ctx.getSession()?.isLogged()) {
       throw new WebdaError.Unauthorized("Login required");
     }
-    const user: User = await ctx.getCurrentUser();
+    const user: User | undefined = await ctx.getCurrentUser();
     await runAsSystem(() => (user as any).password.change(current, next));
     // Every session authenticated before the change ends, except this one (a Bearer caller logs in again)
     ctx.getSession().authAt = Date.now();
@@ -713,7 +721,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     const redirect = (url: string) => ctx.writeHead(302, { Location: url });
     try {
       const claims = await verifyEmailToken(token, "verify");
-      if (!this.sessionMatches(claims, ctx)) {
+      if (!claims.sub || !this.sessionMatches(claims, ctx)) {
         // Nothing changes: a mail scanner prefetching the link must not verify anything
         redirect(`${confirm}?reason=LOGIN_REQUIRED&token=${encodeURIComponent(token)}`);
         return;

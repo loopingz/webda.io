@@ -29,6 +29,16 @@ export interface IAMRequestContext {
   operationId: string;
   probe: boolean;
   user?: { uuid: string; groups: string[]; roles: string[] };
+  /**
+   * Application (workload identity) of an application session
+   */
+  application?: {
+    principal: string;
+    issuer: string;
+    subject: string;
+    groups: string[];
+    claims: Record<string, unknown>;
+  };
   session?: any;
   input?: any;
   http?: { method: string; ip: string; host: string };
@@ -54,10 +64,9 @@ export class PolicyEngine {
     // Matcher functions run synchronously: attachments are resolved from this map, built from the same g rows
     const links = new Map<string, Set<string>>();
     for (const [principal, sub] of attachments) {
-      if (!links.has(sub)) {
-        links.set(sub, new Set());
-      }
-      links.get(sub).add(principal);
+      const principals = links.get(sub) ?? new Set<string>();
+      principals.add(principal);
+      links.set(sub, principals);
     }
     const enforcer = await newEnforcer(newModelFromString(CASBIN_MODEL));
     await enforcer.addFunction("attached", (principals: string[], sub: string) =>
@@ -102,7 +111,7 @@ export class PolicyEngine {
       }
       return explain?.length ? `denied by ${explain.join(", ")}` : "implicit deny";
     } catch (err) {
-      return `condition error: ${err?.message ?? err}`;
+      return `condition error: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 }

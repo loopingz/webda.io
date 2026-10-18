@@ -2,7 +2,7 @@
 
 This module is part of Webda Application Framework that allows you to quickly develop applications with all modern prerequisites: Security, Extensibility, GraphQL, REST, CloudNative [https://webda.io](https://webda.io)
 
-<img src="https://webda.io/images/webda.svg" width="128" />
+<img src="https://webda.io/img/webda.svg" width="128" />
 
 ![CI](https://github.com/loopingz/webda.io/workflows/CI/badge.svg)
 
@@ -54,6 +54,7 @@ aggregation syntax, uppercase `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `AS`, `DISTIN
 **Filter expressions** support:
 
 - Comparison: `field = value`, `field != value`, `field > value`, `field >= value`, `field < value`, `field <= value`
+- Time function: `field > NOW()`, `field < NOW('-10m')`, `field >= NOW('+1d')` (millisecond timestamp resolution)
 - Pattern match: `field LIKE "pattern"` (`_` = single char, `%` = any chars)
 - Set membership: `field IN [value, value, ...]`
 - Array contains: `field CONTAINS value`
@@ -94,6 +95,22 @@ WebdaQL.bind("priority >= ? LIMIT ?", [2, 10]); // priority >= 2 LIMIT 10
 
 Placeholders are only allowed where a value is expected, values are escaped by type, and `= ?` / `!= ?` with `null` become `IS NULL` / `IS NOT NULL`. Template literals passed straight to a query method are escaped the same way at compile time by `webdac`. See [Parameters](../../docs/pages/Modules/ql/Parameters.md).
 
+### NOW() time function
+
+WebdaQL supports `NOW()` to produce dynamic numeric timestamps (milliseconds since Unix epoch):
+
+- `NOW()`: current timestamp (`Date.now()`).
+- `NOW('-10m')` / `NOW('+1d')`: current timestamp offset by duration string.
+- Units supported: `ms`, `s`/`sec`, `m`/`min`, `h`/`hr`, `d`/`day`, `mo`/`mon`/`month`, `y`/`yr`/`year`. Multi-part durations like `NOW('-1d2h')` are supported.
+- Numeric millisecond offsets: `NOW(-60000)` or `NOW(60000)`.
+- Parameters: `NOW(?)` and `NOW(:offset)` can be bound using `bind()`.
+- Updates: `UPDATE SET lastLoginAt = NOW()`.
+- Dynamic evaluation: Expressions with `NOW()` evaluate dynamically at query execution or access time, allowing cached queries and operation permissions to track real time:
+
+```typescript
+@Operation({ permission: "mfa = 'verified' AND mfaAt > NOW('-10m')" })
+```
+
 ### Statements: SELECT, DELETE, UPDATE
 
 WebdaQL parses `SELECT`, `DELETE` and `UPDATE` statements; the parsed `Query` carries `type` (`"SELECT"` for a plain filter), `fields` (SELECT) and `assignments` (UPDATE), and `toString()` round-trips them.
@@ -124,6 +141,24 @@ q.aggregation.metrics; // { n: { fn: "COUNT" }, total: { fn: "SUM", field: "poin
 See [Statements](../../docs/pages/Modules/ql/Statements.md#aggregation-select--group-by) and
 [Repositories](../../docs/pages/Concepts/Stores/Repositories.md#aggregation).
 
+### Code completion
+
+WebdaQL provides grammar-driven code completion powered by `antlr4-c3`. `getCompletions` returns candidates for fields, keywords, operators, enum/boolean values, and parameters for a query and caret offset:
+
+```typescript
+import { getCompletions, fieldsFromSchema } from "@webda/ql";
+
+const fields = [
+  { name: "status", type: "string", enum: ["draft", "published"] },
+  { name: "viewCount", type: "integer" }
+];
+
+const { items, prefix } = getCompletions("status = 'dr", 12, { fields });
+// => items offer "'draft'", replacing range [9, 13]
+```
+
+See [Code Completion](../../docs/pages/Modules/ql/Completion.md).
+
 ### API reference
 
 | Export                                | Description                                                                                                        |
@@ -147,6 +182,8 @@ See [Statements](../../docs/pages/Modules/ql/Statements.md#aggregation-select--g
 | `AggregationError`                    | Runtime aggregation error with a `code` (`AGGREGATION_NOT_NATIVE`, `AGGREGATION_TOO_MANY_GROUPS`)                  |
 | `Query`                               | Parsed query result: `{ type, filter, fields?, assignments?, aggregation?, orderBy?, limit?, continuationToken? }` |
 | `OrderBy`                             | `{ field: string; direction: "ASC" \| "DESC" }`                                                                    |
+| `getCompletions(query, caret, opts)`  | Returns grammar-driven code completion candidates at a caret offset                                                |
+| `fieldsFromSchema(schema, maxDepth?)` | Flattens a JSON schema into completion fields with dotted paths                                                    |
 
 ### See also
 
@@ -154,6 +191,7 @@ See [Statements](../../docs/pages/Modules/ql/Statements.md#aggregation-select--g
 - [Operators](../../docs/pages/Modules/ql/Operators.md)
 - [Parameters](../../docs/pages/Modules/ql/Parameters.md) — binding values safely
 - [Statements](../../docs/pages/Modules/ql/Statements.md) — SELECT, DELETE, UPDATE and repository bulk operations
+- [Code Completion](../../docs/pages/Modules/ql/Completion.md) — autocomplete and suggestions
 - [Store Translators](../../docs/pages/Modules/ql/Translators.md) — how each Store backend converts WQL
 
 <!-- README_FOOTER -->
@@ -166,12 +204,12 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 Arize AI is a machine learning observability and model monitoring platform. It helps you visualize, monitor, and explain your machine learning models. [Learn more](https://arize.com)
 
-[<img src="https://arize.com/hubfs/arize/brand/arize-logomark-1.png" width="200">](https://arize.com)
+[<img src="https://webda.io/img/sponsors/arize.svg" width="200">](https://arize.com)
 
 Loopingz is a software development company that provides consulting and development services. [Learn more](https://loopingz.com)
 
-[<img src="https://loopingz.com/images/logo.png" width="200">](https://loopingz.com)
+[<img src="https://webda.io/img/sponsors/loopingz.png" width="200">](https://loopingz.com)
 
 Tellae is an innovative consulting firm specialized in cities transportation issues. We provide our clients, both public and private, with solutions to support your strategic and operational decisions. [Learn more](https://tellae.fr)
 
-[<img src="https://tellae.fr/" width="200">](https://tellae.fr)
+[<img src="https://webda.io/img/sponsors/tellae.svg" width="200">](https://tellae.fr)

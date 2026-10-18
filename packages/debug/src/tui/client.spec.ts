@@ -355,7 +355,11 @@ class DebugClientWebSocketReconnectionTest {
       (client as any).doConnect();
 
       // The catch block should have called scheduleReconnect
-      assert.strictEqual(reconnectScheduled, true, "scheduleReconnect should be called when WebSocket constructor throws");
+      assert.strictEqual(
+        reconnectScheduled,
+        true,
+        "scheduleReconnect should be called when WebSocket constructor throws"
+      );
     } finally {
       client.disconnect();
     }

@@ -1,6 +1,6 @@
 {
   "name": "@webda/compiler",
-  "version": "4.0.0-beta.6",
+  "version": "4.0.0-beta.11",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -55,7 +55,8 @@
     "vitest": "^4.1.2"
   },
   "files": [
-    "lib"
+    "lib",
+    "webda.module.json"
   ],
   "homepage": "https://webda.io",
   "publishConfig": {

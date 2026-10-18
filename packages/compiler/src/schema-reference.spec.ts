@@ -45,6 +45,15 @@ class SchemaReferenceTest {
   }
 
   @test
+  preservesLongLeadingCommentSequences() {
+    const file = join(this.dir, "deployments", "Comments.jsonc");
+    const prefix = "/*" + "*//*".repeat(20000) + "*/\n// comment before root\n";
+    writeFileSync(file, prefix + '{"value": 1}');
+    assert.strictEqual(ensureSchemaReference(file, join(this.dir, ".webda", "deployment.schema.json")), true);
+    assert.ok(readFileSync(file, "utf8").startsWith(prefix));
+  }
+
+  @test
   addSchemaToConfigAndDeployments() {
     writeFileSync(join(this.dir, "webda.config.json"), JSON.stringify({ version: 4, services: {} }, undefined, 2));
     writeFileSync(join(this.dir, "deployments", "Production.json"), '{\n "parameters": { "a": 1 }\n}\n');

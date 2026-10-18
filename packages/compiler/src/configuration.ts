@@ -21,11 +21,6 @@ const LEGACY_SCHEMA_REFERENCES = [".webda-config-schema.json", ".webda-deploymen
 const YAML_MODELINE = /^#\s*yaml-language-server:\s*\$schema=(\S*).*$/m;
 
 /**
- * Leading whitespaces and comments of a JSON/JSONC document up to its root object
- */
-const JSON_ROOT_OBJECT = /^(?:\s|\/\/[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*\{/;
-
-/**
  * First `$schema` property of a JSON/JSONC document, webda keeps it as first property of the root
  */
 const JSON_SCHEMA_PROPERTY = /("\$schema"\s*:\s*)"(?:[^"\\]|\\.)*"/;
@@ -105,7 +100,22 @@ export function ensureSchemaReference(file: string, schemaFile: string): boolean
  */
 function insertSchemaProperty(content: string, reference: string): string {
   // Skip leading whitespaces and comments to find the root object
-  const start = JSON_ROOT_OBJECT.exec(content)[0].length;
+  let start = 0;
+  while (start < content.length) {
+    if (/\s/.test(content[start])) {
+      start++;
+    } else if (content.startsWith("//", start)) {
+      const end = content.indexOf("\n", start + 2);
+      start = end === -1 ? content.length : end + 1;
+    } else if (content.startsWith("/*", start)) {
+      const end = content.indexOf("*/", start + 2);
+      start = end === -1 ? content.length : end + 2;
+    } else {
+      // ensureSchemaReference has already parsed and validated the root object.
+      start++;
+      break;
+    }
+  }
   const after = content.substring(start);
   const property = `"$schema": ${JSON.stringify(reference)}`;
   // Empty object

@@ -51,7 +51,7 @@ class AclModelTest {
     await this.model._onGet();
     // @ts-ignore
     assert.ok(Array.isArray(this.model._permissions));
-    assert.strictEqual(this.model._permissions.length, 0);
+    assert.strictEqual((this.model as any)._permissions.length, 0);
     this.model.setContext(this._ctx);
     await this.model._onGet();
     // @ts-ignore

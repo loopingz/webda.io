@@ -76,6 +76,13 @@ await vault.removeRecoveryCode(); // refused (409) when it is the last escrow an
 vault.lock();
 ```
 
+## Tests
+
+The vault is unit tested here against an in-memory server. The end-to-end test with the real `User.Keys.*` operations,
+the sample-app `Note` and the REST transport lives in `@webda/core` (`packages/core/src/models/sealed.e2e.spec.ts`): it
+imports the sources of this package (`../../../sealed-client/src/index.js`), so changes to the exports or to the
+`KeysApi` interface must keep it compiling and passing.
+
 ## Security notes
 
 - The device blob (keyring key wrapped by the device KEK, and the encrypted keyring) stays in the `DeviceStorage`; it

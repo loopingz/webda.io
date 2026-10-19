@@ -13,7 +13,8 @@
  *   KEK = Argon2id { m, t, p } or PBKDF2-SHA-256 { iterations } (selected by `kdf`) from the secret and `salt`;
  *   ct = AES-256-GCM(KEK) over the raw 32-byte keyring key, AAD = "webda-escrow|" + userId + "|" + kind (escrowAad).
  *   Platform KEKs use AES-KW (wrapKeyringKeyKw), no AAD.
- * Recovery code 26 Crockford base32 characters (130 bits), displayed in groups of 5.
+ * Recovery code 26 Crockford base32 characters (130 bits), displayed in groups of 5 and a final 1-character group
+ *               (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-X).
  */
 export { b64u, concat, utf8 } from "./encoding.js";
 export { KeyringPinError, SealedFormatError } from "./errors.js";

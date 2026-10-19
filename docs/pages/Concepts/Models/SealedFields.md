@@ -34,12 +34,14 @@ The `Note` model of the sample app and `packages/core/src/models/sealed.e2e.spec
 | ----------------- | ---------------------------------------------- | --------------------------------------------------- |
 | Key               | server key (`CryptoService`)                   | user key pair, private key only on user devices     |
 | Server can read   | yes (`await field.get()`)                      | **no**: there is no `get()`/`open()`                |
-| Protects against  | database dump, backup                          | database dump, backup, operator, server compromise  |
+| Protects against  | database dump, backup                          | database dump, backup, operator reading stored data |
 | Server-side logic | can use the value (send an email, call an API) | cannot use the value                                |
 | Lost password     | nothing lost                                   | data lost unless a device or a recovery code exists |
 | Use for           | provider tokens, API keys the server must use  | private notes, documents, health data               |
 
 `EncryptedField` is unchanged. Choose `SealedField` only when the server does not need the value.
+
+`SealedField` protects what the server **stores**, not a server that is compromised while running: with a password escrow, the server sees the login password at each login and can derive the password KEK (see [Threat model and limits](#threat-model-and-limits)).
 
 ## Key hierarchy
 
@@ -62,7 +64,7 @@ flowchart TD
 - All the private keys form the **keyring**, encrypted by a random **keyring key**. The server stores the encrypted keyring.
 - The keyring key (32 bytes) is wrapped by several KEKs: the **password escrow** and the **recovery code escrow** (stored on the server), and one **device blob** per device (stored on the device only, never sent).
 - A KEK derived from a password or a code uses **Argon2id** (`m=65536 KiB, t=3, p=1`, 16-byte salt; PBKDF2-SHA-256 with 600 000 iterations as a fallback), the parameters travel in the blob. A platform KEK (WebAuthn PRF, OS keystore) wraps with AES-KW.
-- The password KEK is derived **on the client with its own salt**, it has nothing to do with the server login hash: a server able to verify the password cannot derive the KEK.
+- The password KEK is derived **on the client with its own salt**, it has nothing to do with the server login hash: from what it stores (the login hash, the escrow), the server cannot derive the KEK. It does see the login password at each login, though: a compromised or actively malicious server can derive the password KEK then (see the threat model).
 
 ## Flows
 
@@ -98,10 +100,12 @@ A client that does not use `@webda/sealed-client` must authenticate the envelope
 
 All encodings are base64url without padding and every envelope or blob carries `v: 1`. The binding to the record, attribute and recipient key means a copy moved to another record, another field or relabelled with another `kid` is refused.
 
+The binding also applies to legitimate changes: **renaming the model or its namespace** (the model identifier changes), **renaming the attribute**, or **migrating records to new primary keys** makes the existing values unreadable. A migration has to be done by the recipient devices: open with the old context, seal with the new one and store it (`<field>.set`).
+
 ## Recovery code or password escrow
 
 - The **password escrow** lets the user add a device with the password they already know. Its strength is the strength of the password: the escrow is an offline brute-force target (see below).
-- The **recovery code** is 26 Crockford base32 characters (130 random bits) in groups of 5, shown once at enrollment (skippable) and re-created while unlocked with `vault.setRecoveryCode()`. It is as strong as a key: a good fit to print and keep, and the only way back when the password is lost and no device is left.
+- The **recovery code** is 26 Crockford base32 characters (130 random bits), displayed as five groups of 5 and a final group of 1 (`XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-X`; dashes, spaces and case are ignored when typed), shown once at enrollment (skippable) and re-created while unlocked with `vault.setRecoveryCode()`. It is as strong as a key: a good fit to print and keep, and the only way back when the password is lost and no device is left.
 - Either escrow adds a device. Without any escrow nor any device, the data is **unrecoverable**: that is the price of end-to-end encryption, make it explicit in your UI. The server refuses to remove the last escrow while no device is registered (409); `vault.removeRecoveryCode()` removes the recovery escrow and surfaces that refusal.
 
 ## Fresh authentication
@@ -113,10 +117,11 @@ Every key management operation (`User.Keys.GetEscrow`, `Setup`, `SetEscrow`, `Re
 ## Threat model and limits
 
 - **Protected:** database dumps, backups, a curious operator reading stored data, a server that is read but not modified.
+- **Not protected with a password escrow: a compromised or actively malicious server.** The login password reaches the server at each login, so a server under attacker control can derive the password KEK, fetch the password escrow and open the keyring. Only the stored data is protected (the escrow alone is an offline brute-force target, see below). Setups without a password escrow avoid it: a recovery code only, or device KEKs only (enroll without `password`), at the cost of less convenient device additions.
 - **Not protected: a malicious server shipping a modified web client.** The usual web E2EE limit: the code that handles the keys comes from the server. Native apps and pinned or audited clients reduce the risk.
 - **Public key substitution (TOFU).** A compromised server could serve its own public key to the sealing code or to a new device. The client therefore **pins** the fingerprint of the active public key on first use (trust on first use) and refuses a different one unless the change comes from a rotation done or verified by this device (`KeyringPinError`); an explicit `vault.reset()` re-pins the device that runs it, and `vault.forgetPin()` lets the user trust a new key on first use again. Show the fingerprint to the user and compare it out of band for stronger guarantees. Signing a new key with the previous one is a follow-up.
 - **Escrow brute force.** A database dump gives the attacker the password escrow to attack offline: it is protected by Argon2id and by the quality of the password (apply a password policy). The recovery code has 130 bits and cannot be brute forced. The online path is throttled and needs fresh authentication.
-- **No plaintext on the server.** `seal()` never keeps the value on the instance; the server never sees the private key, the keyring key, the password KEK or the recovery code. Do not log request bodies of key operations or the values you seal.
+- **No plaintext on the server.** `seal()` never keeps the value on the instance; the server never receives the private key, the keyring key, the password KEK or the recovery code (it does receive the login password, see above). Do not log request bodies of key operations or the values you seal.
 - **No query nor index.** The stored value is an opaque envelope: it cannot be filtered or indexed with `@webda/ql`. The content mapper marks the property `"x-webda-sealed": true` in the model schema so tools and forms can tell.
 - **Revoked devices.** `User.Keys.RevokeDevice` removes the device from the server list and `vault.unlock()` on a revoked device deletes its local blob. It does **not** cancel what the device already knows: a device that kept its blob can still open the keyring with an escrow. To really lock a lost device out, call `vault.rotate({ newKeyringKey })`, which changes the keyring key and rebuilds the escrows; values sealed to older keys stay readable by the devices you keep, and are still exposed to whoever copied the old private key.
 - **Password reset without a device.** If the user forgot the password and has no unlocked device nor recovery code, the old values stay unreadable; `vault.reset()` creates a new key pair that makes new values readable only.

@@ -190,9 +190,8 @@ class SealedEndToEndTest extends WebdaApplicationTest {
     await c.vault.unlockWithEscrow({ recoveryCode: recoveryCode! }, { device: c.kek, deviceName: "device C" });
     assert.deepStrictEqual(await c.vault.open(envelope, ctx), VALUE);
 
-    // What the server stored and logged holds no plaintext, no secret and no private key. Imported private keys are not
-    // extractable, so their bytes cannot be searched for: the rows must carry no private JWK member (`d`) and the
-    // keyring only as the ciphertext the server was given.
+    // Checked here: the stored rows and the logs contain none of the plaintext markers, the passwords and the recovery
+    // code, and no private JWK member (`d`). Private key bytes are not searched for (imported keys are not extractable).
     const secrets = ["e2e-secret", PASSWORD, NEW_PASSWORD, recoveryCode!, recoveryCode!.replace(/-/g, "")];
     const scanned = [this.rows(), this.logs.join("\n")];
     for (const text of scanned) {

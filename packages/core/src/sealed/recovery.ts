@@ -4,7 +4,8 @@ const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const RECOVERY_CHARS = 26; // 26 * 5 bits = 130 bits
 
 /**
- * Random recovery code: 26 Crockford base32 characters (130 bits) in groups of 5 joined by "-"
+ * Random recovery code: 26 Crockford base32 characters (130 bits) in groups of 5 joined by "-", the last group holding
+ * the 26th character (`XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-X`)
  * @returns the code
  */
 export function generateRecoveryCode(): string {

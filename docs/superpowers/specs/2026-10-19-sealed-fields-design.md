@@ -14,6 +14,15 @@
 5. **Reuse** the proven pieces of loopcenter `plugins/third-party-auth/crypto` (versioned AES-GCM envelope with AAD, ECDH P-256 seal/open with HKDF, Argon2id via `hash-wasm`, frozen test vectors) as the starting point for `packages/core/src/sealed/` (port, do not depend on loopcenter).
 6. `SealedField` exposes its envelope cleanly (JSON of the envelope) so plugins can build on it (e.g. a session-bound server unseal in loopcenter); no server-side `get()`/`open()` in core.
 
+### Implementation notes
+
+- **Algorithm label.** Public keys and envelopes use `alg: "ECDH-ES+A256GCM"`, not the base design's `ECDH-ES+A256KW`: there is no key-wrap step, the ECDH-ES (ephemeral P-256) shared secret goes through HKDF-SHA-256 (salt = ephemeral raw point ‖ recipient raw point, info `webda-sealed-v1`) and the result is the AES-256-GCM content key itself.
+- **AADs.** Field: `modelType|uuid|field|kid`. Keyring: `"webda-keyring|" + userId + "|" + kid + "|" + fingerprint(publicJwk)`, applied to the keyring ciphertext only. Escrow: the KDF KEKs wrap the 32-byte keyring key with AES-GCM and AAD `"webda-escrow|" + userId + "|" + kind` (`password` or `recovery`); platform KEKs use AES-KW (no AAD). The field AAD binds the model identifier and the primary key: renaming the model or namespace, or migrating records to new keys, makes existing values unreadable unless the devices re-seal them.
+- **Recovery code.** 26 Crockford base32 characters (130 bits), displayed as five groups of 5 and a final group of 1 (`XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-X`); input is normalised (case, dashes, spaces, O→0, I/L→1).
+- **Client-sealed writes.** `SealedField.set(envelope)` (`<Model>.<Field>.Set`, `PUT`) stores an envelope sealed by a client, authorised by the parent `canAct("<field>.set")`, after checking its shape and that `kid` is the recipient active key; it patches the field only.
+- **Keyring refresh and reset.** `User.Keys.GetKeyring` (fresh authentication, not throttled) serves the encrypted keyring and public keys so an unlocked device refreshes a keyring rotated elsewhere (the pinned private key must still be in it). `KeyVault.reset` starts over when every key is lost (new key pair and keyring key via `User.Keys.Rotate`); old values stay unreadable.
+- **Password escrow and the login password.** The server receives the login password at each login, so the password escrow protects stored data only, not a compromised running server; recovery-code-only or device-only setups avoid it.
+
 ## B. Base design (issue #879 body)
 
 ## Summary

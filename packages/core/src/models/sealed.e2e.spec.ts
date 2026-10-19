@@ -4,13 +4,20 @@ import { useWorkerOutput } from "@webda/workout";
 import { JSONUtils } from "@webda/utils";
 import { WebdaApplicationTest } from "../test/application.js";
 import { callOperation } from "../core/operations.js";
+import { runWithContext } from "../contexts/execution.js";
+import { HttpContext, type HttpMethodType } from "../contexts/httpcontext.js";
+import { WebContext } from "../contexts/webcontext.js";
+import { useRouter } from "../rest/hooks.js";
 import { useModel } from "../application/hooks.js";
 import type { SealedField } from "./sealed.model.js";
 // The client is exercised from its sources: @webda/core cannot depend on @webda/sealed-client (it depends on core)
 import {
+  KeysApiError,
   KeyVault,
   MemoryStorage,
+  restKeysApi,
   type DeviceKek,
+  type FetchLike,
   type KeysApi,
   type ServedPublicKey
 } from "../../../sealed-client/src/index.js";
@@ -272,5 +279,122 @@ class SealedEndToEndTest extends WebdaApplicationTest {
       title: "rotated"
     });
     assert.strictEqual((await User.ref(alice).get())._escrowAttempts, 1);
+  }
+  /**
+   * A `fetch` running the request through the router of the application (the REST transport routes), as the user,
+   * authenticated now
+   * @param userId - the logged user
+   * @param calls - every request, as "METHOD url"
+   * @returns the fetch
+   */
+  restFetch(userId: string, calls: string[] = []): FetchLike {
+    return async (url, init) => {
+      const method = (init?.method ?? "GET") as HttpMethodType;
+      calls.push(`${method} ${url}`);
+      const http = new HttpContext("test.webda.io", method, url, "http", 80, init?.headers ?? {});
+      if (init?.body !== undefined) {
+        http.setBody(init.body);
+      }
+      http.setClientIp("127.0.0.1");
+      const ctx = new WebContext(http);
+      const session = ctx.newSession();
+      session.login(userId, `${userId}:email`);
+      session.authAt = Date.now();
+      let status: number | undefined;
+      await runWithContext(ctx, async () => {
+        try {
+          await useRouter().execute(ctx);
+        } catch (err) {
+          status = (err as any)?.getResponseCode?.() ?? 500;
+        }
+      });
+      status ??= ctx.statusCode;
+      const body = status < 400 ? ((ctx.getResponseBody() as string) ?? "") : "";
+      return { ok: status < 400, status, text: async () => body };
+    };
+  }
+
+  @test
+  async restKeysApiOverTheRestTransport() {
+    const User: any = useModel("User");
+    const Note: any = useModel("Note");
+    const userId = String((await User.create({ uuid: "rest-user", displayName: "rest" })).getPrimaryKey());
+    const calls: string[] = [];
+    const fetch = this.restFetch(userId, calls);
+    // User is nested under Company in the sample-app: the parent id is part of the route, not checked by the dispatcher
+    const userPath = `/companies/company-1/users/${userId}`;
+    const device = async () => ({
+      vault: new KeyVault({ userId, api: restKeysApi(fetch, userId, { userPath }), storage: new MemoryStorage() }),
+      kek: (await this.device(userId)).kek
+    });
+
+    // Enrollment, unlock with a keyring refresh, escrow, rotation, devices and escrow removal over HTTP
+    const a = await device();
+    const { recoveryCode } = await a.vault.enroll({
+      password: PASSWORD,
+      device: a.kek,
+      deviceName: "device A",
+      recovery: true
+    });
+    const b = await device();
+    await b.vault.unlockWithEscrow({ password: PASSWORD }, { device: b.kek, deviceName: "device B" });
+    await a.vault.rotate();
+    b.vault.lock();
+    await b.vault.unlock(b.kek);
+    await b.vault.changePassword(NEW_PASSWORD);
+    await b.vault.removeRecoveryCode();
+    const api = restKeysApi(fetch, userId, { userPath });
+    const { publicKeys, devices } = await api.getKeys();
+    assert.strictEqual(publicKeys.length, 2);
+    assert.deepStrictEqual(
+      devices.map(d => d.name),
+      ["device A", "device B"]
+    );
+    await api.revokeDevice(devices[1].id);
+    assert.deepStrictEqual(
+      (await api.getKeys()).devices.map(d => d.name),
+      ["device A"]
+    );
+    const stored = (await User.ref(userId).get()).keys;
+    assert.deepStrictEqual(Object.keys(stored.__escrows), ["password"]);
+    // Errors surface with their HTTP status
+    await assert.rejects(
+      () => api.getEscrow("recovery"),
+      (e: any) => e instanceof KeysApiError && e.status === 404
+    );
+    await assert.rejects(
+      () => a.vault.unlockWithEscrow({ recoveryCode: recoveryCode! }, { device: a.kek, deviceName: "x" }),
+      (e: any) => e instanceof KeysApiError && e.status === 404
+    );
+
+    // A client sealed note content stored with PUT /notes/{uuid}/content.set
+    const note = new Note();
+    note.setOwner(userId);
+    await Note.getRepository().create(note);
+    const ctx = { modelType: "WebdaDemo/Note", uuid: String(note.getPrimaryKey()), field: "content" };
+    const envelope = await a.vault.seal(VALUE, ctx);
+    const res = await fetch(`/notes/${ctx.uuid}/content.set`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ envelope })
+    });
+    assert.ok(res.ok, `content.set answered ${res.status}`);
+    assert.deepStrictEqual(await a.vault.open((await Note.ref(ctx.uuid).get()).content.toJSON(), ctx), VALUE);
+
+    assert.deepStrictEqual(
+      [...new Set(calls.map(c => c.replace(userPath, "<user>").replace(ctx.uuid, "<note>")))].sort(),
+      [
+        "DELETE <user>/keys.removeEscrow",
+        "DELETE <user>/keys.revokeDevice",
+        "GET <user>",
+        "GET <user>/keys.getKeyring",
+        "POST <user>/keys.getEscrow",
+        "POST <user>/keys.registerDevice",
+        "POST <user>/keys.rotate",
+        "POST <user>/keys.setup",
+        "PUT /notes/<note>/content.set",
+        "PUT <user>/keys.setEscrow"
+      ]
+    );
   }
 }

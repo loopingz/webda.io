@@ -42,6 +42,7 @@ describe("restKeysApi", () => {
     expect(await api.getEscrow("password")).toEqual({ escrow: 1, keyring: 2, publicKeys: [] });
     await api.setEscrow("recovery", { e: 1 } as any);
     await api.rotate({ kid: "k2", jwk: {} as any }, { k: 2 } as any);
+    await api.rotate({ kid: "k3", jwk: {} as any }, { k: 3 } as any, { recovery: { r: 1 } as any });
     expect(await api.registerDevice("laptop")).toEqual({ id: "dev" });
     await api.revokeDevice("dev");
     const base = "https://h/api/users/u%2F1";
@@ -55,6 +56,11 @@ describe("restKeysApi", () => {
       ["POST", `${base}/keys.getEscrow`, { kind: "password" }],
       ["PUT", `${base}/keys.setEscrow`, { kind: "recovery", escrow: { e: 1 } }],
       ["POST", `${base}/keys.rotate`, { publicKey: { kid: "k2", jwk: {} }, keyring: { k: 2 } }],
+      [
+        "POST",
+        `${base}/keys.rotate`,
+        { publicKey: { kid: "k3", jwk: {} }, keyring: { k: 3 }, escrows: { recovery: { r: 1 } } }
+      ],
       ["POST", `${base}/keys.registerDevice`, { name: "laptop" }],
       ["DELETE", `${base}/keys.revokeDevice`, { id: "dev" }]
     ]);

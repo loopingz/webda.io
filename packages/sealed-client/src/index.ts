@@ -12,10 +12,12 @@ export {
 export { IndexedDBStorage, MemoryStorage, type DeviceStorage } from "./storage.js";
 export {
   DeviceNotEnrolledError,
+  DeviceRevokedError,
   KeyVault,
   VaultKeyMissingError,
   VaultLockedError,
   type DeviceKek,
+  type EscrowRequest,
   type EscrowSecret,
   type KeyVaultOptions,
   type SealedContext

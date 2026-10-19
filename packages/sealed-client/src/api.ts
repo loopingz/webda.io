@@ -52,11 +52,16 @@ export interface KeysApi {
    */
   setEscrow(kind: EscrowKind, escrow: EscrowBlob): Promise<void>;
   /**
-   * `User.Keys.Rotate`: new active public key, keyring re-encrypted for it (escrows kept)
+   * `User.Keys.Rotate`: new active public key, keyring re-encrypted for it
    * @param publicKey - new public key
    * @param keyring - keyring holding every private key, encrypted for the new key
+   * @param escrows - escrows of a new keyring key, the current escrows are kept when omitted
    */
-  rotate(publicKey: PublicKeyInput, keyring: KeyringBlob): Promise<void>;
+  rotate(
+    publicKey: PublicKeyInput,
+    keyring: KeyringBlob,
+    escrows?: Partial<Record<EscrowKind, EscrowBlob>>
+  ): Promise<void>;
   /**
    * `User.Keys.RegisterDevice`
    * @param name - device name
@@ -131,7 +136,8 @@ export function restKeysApi(fetchLike: FetchLike, userId: string, options: RestK
     setup: (publicKey, keyring, escrows) => action("POST", "setup", { publicKey, keyring, escrows }),
     getEscrow: kind => action("POST", "getEscrow", { kind }),
     setEscrow: (kind, escrow) => action("PUT", "setEscrow", { kind, escrow }),
-    rotate: (publicKey, keyring) => action("POST", "rotate", { publicKey, keyring }),
+    rotate: (publicKey, keyring, escrows) =>
+      action("POST", "rotate", escrows === undefined ? { publicKey, keyring } : { publicKey, keyring, escrows }),
     registerDevice: name => action("POST", "registerDevice", { name }),
     revokeDevice: id => action("DELETE", "revokeDevice", { id })
   };

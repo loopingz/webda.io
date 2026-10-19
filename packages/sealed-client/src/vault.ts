@@ -56,8 +56,10 @@ export interface KeyVaultOptions {
  */
 type DeviceBlob = {
   v: 1;
-  /** Id returned by `User.Keys.RegisterDevice` */
+  /** Id returned by `User.Keys.RegisterDevice`, missing until the registration succeeds */
   deviceId?: string;
+  /** Name to register this device with */
+  deviceName?: string;
   /** KEK kind */
   kek: DeviceKek["kind"];
   /** Passcode KDF */
@@ -92,6 +94,17 @@ export class DeviceNotEnrolledError extends Error {
   }
 }
 
+/** This device was revoked on the server: its local blob was deleted, add it again with an escrow */
+export class DeviceRevokedError extends Error {
+  /**
+   * @param message - error message
+   */
+  constructor(message = "This device was revoked: its local keyring was deleted, add it again with an escrow") {
+    super(message);
+    this.name = "DeviceRevokedError";
+  }
+}
+
 /** The keyring holds no private key for the `kid` of a sealed value */
 export class VaultKeyMissingError extends Error {
   /**
@@ -106,6 +119,9 @@ export class VaultKeyMissingError extends Error {
 const subtle = () => globalThis.crypto.subtle;
 const EC = { name: "ECDH", namedCurve: "P-256" } as const;
 const KID_LENGTH = 16;
+
+/** Escrows to create for a new keyring key: at least one */
+export type EscrowRequest = { password?: string; recovery?: boolean };
 
 /**
  * Active served key: the newest non-retired one
@@ -158,7 +174,9 @@ export class KeyVault {
 
   /**
    * First device: generate the user key pair and keyring, escrow the keyring key, keep it on this device and pin the
-   * public key. The device KEK is derived before anything is sent, so a failing KEK leaves nothing on the server.
+   * public key. The device KEK is derived before anything is sent, so a failing KEK leaves nothing on the server; once
+   * the server accepted the keys, the device blob and the pin are stored before the device registration, which is
+   * retried by the next unlock when it fails.
    * @param input - enrollment
    * @param input.password - password escrow (the login password, its KEK is derived locally with its own salt)
    * @param input.device - device KEK
@@ -173,35 +191,26 @@ export class KeyVault {
     recovery?: boolean;
   }): Promise<{ recoveryCode?: string }> {
     const { userId, api } = this.options;
-    if (!input.password && !input.recovery) {
-      throw new Error("Enrollment needs at least one escrow: a password or a recovery code");
-    }
     const pair = await generateUserKeyPair();
     const publicKey = { kid: pair.kid, jwk: pair.publicJwk };
     const keyringKey = await createKeyringKey();
+    const { escrows, recoveryCode } = await this.createEscrows(input, keyringKey);
     const device = await this.wrapForDevice(input.device, keyringKey);
     const pkcs8 = b64u.encode(new Uint8Array(await subtle().exportKey("pkcs8", pair.privateKey)));
     const keyring = await encryptKeyring({ keys: { [pair.kid]: pkcs8 }, active: pair.kid }, keyringKey, userId, [
       publicKey
     ]);
-    const escrows: Partial<Record<EscrowKind, EscrowBlob>> = {};
-    if (input.password) {
-      escrows.password = await createEscrowBlob("password", input.password, keyringKey, userId);
-    }
-    const recoveryCode = input.recovery ? generateRecoveryCode() : undefined;
-    if (recoveryCode) {
-      escrows.recovery = await createEscrowBlob("recovery", recoveryCode, keyringKey, userId);
-    }
     await api.setup(publicKey, keyring, escrows);
-    const { id } = await api.registerDevice(input.deviceName);
-    await this.writeDevice({ ...device, deviceId: id, keyring });
+    await this.writeDevice({ ...device, deviceName: input.deviceName, keyring });
     await this.options.storage.set(this.pinKey, await fingerprint(pair.publicJwk));
     await this.setUnlocked(keyringKey, keyring, [publicKey]);
+    await this.registerIfMissing();
     return recoveryCode ? { recoveryCode } : {};
   }
 
   /**
-   * Unlock this device with its KEK; the server is only asked for the public keys, checked against the pin
+   * Unlock this device with its KEK; the server is only asked for the public keys, checked against the pin, and the
+   * devices: a device revoked on the server deletes its local blob ({@link DeviceRevokedError})
    * @param device - device KEK
    */
   async unlock(device: DeviceKek): Promise<void> {
@@ -209,8 +218,12 @@ export class KeyVault {
     if (!blob) {
       throw new DeviceNotEnrolledError();
     }
+    const { publicKeys, devices } = await this.options.api.getKeys();
+    if (blob.deviceId !== undefined && !devices.some(d => d.id === blob.deviceId)) {
+      await this.options.storage.delete(this.deviceKey);
+      throw new DeviceRevokedError();
+    }
     const keyringKey = await this.unwrapForDevice(blob, device);
-    const { publicKeys } = await this.options.api.getKeys();
     const active = activeKey(publicKeys);
     const served = await fingerprint(active.jwk);
     const pin = await this.options.storage.get(this.pinKey);
@@ -224,6 +237,7 @@ export class KeyVault {
     if (pin === undefined) {
       await this.options.storage.set(this.pinKey, served);
     }
+    await this.registerIfMissing();
   }
 
   /**
@@ -235,6 +249,30 @@ export class KeyVault {
    * @param register.deviceName - name registered for this device
    */
   async unlockWithEscrow(secret: EscrowSecret, register: { device: DeviceKek; deviceName: string }): Promise<void> {
+    const { api, storage } = this.options;
+    const { keyringKey, keyring, privateKeys, served } = await this.openEscrow(secret);
+    const device = await this.wrapForDevice(register.device, keyringKey);
+    const deviceId = (await this.registeredDeviceId()) ?? (await api.registerDevice(register.deviceName)).id;
+    await this.writeDevice({ ...device, deviceId, deviceName: register.deviceName, keyring });
+    await storage.set(this.pinKey, served);
+    this.keyringKey = keyringKey;
+    this.privateKeys = privateKeys;
+    this.activeKid = keyring.kid;
+  }
+
+  /**
+   * Fetch an escrow and open the served keyring with it. The keyring is authenticated against the served active key
+   * and every private key against its public key; a served key other than the pinned one is only accepted when the
+   * keyring still holds the pinned private key (a rotation by a holder of that key)
+   * @param secret - password or recovery code
+   * @returns the keyring key, the encrypted keyring, its private keys and the active fingerprint
+   */
+  private async openEscrow(secret: EscrowSecret): Promise<{
+    keyringKey: CryptoKey;
+    keyring: KeyringBlob;
+    privateKeys: Record<string, OpenRecipient>;
+    served: string;
+  }> {
     const { userId, api, storage } = this.options;
     const kind: EscrowKind = "password" in secret ? "password" : "recovery";
     const { escrow, keyring, publicKeys } = await api.getEscrow(kind);
@@ -247,7 +285,6 @@ export class KeyVault {
     if (keyring.kid !== active.kid) {
       throw new KeyringPinError("The keyring is not encrypted for the active public key");
     }
-    // Authenticates the keyring against the served active key and checks every private key against its public key
     const { privateKeys } = await decryptKeyring(keyring, keyringKey, userId, publicKeys);
     const served = await fingerprint(active.jwk);
     const pin = await storage.get(this.pinKey);
@@ -257,17 +294,13 @@ export class KeyVault {
         throw new KeyringPinError("The served keyring does not hold the private key pinned on this device");
       }
     }
-    const device = await this.wrapForDevice(register.device, keyringKey);
-    const deviceId = (await this.registeredDeviceId()) ?? (await api.registerDevice(register.deviceName)).id;
-    await this.writeDevice({ ...device, deviceId, keyring });
-    await storage.set(this.pinKey, served);
-    this.keyringKey = keyringKey;
-    this.privateKeys = privateKeys;
-    this.activeKid = active.kid;
+    return { keyringKey, keyring, privateKeys, served };
   }
 
   /**
-   * Open a sealed value with the private key of its `kid` (retired keys stay readable)
+   * Open a sealed value with the private key of its `kid` (retired keys stay readable). The private keys all come
+   * from a keyring authenticated against the pinned active key (or a verified rotation of it), each checked against
+   * its served public key
    * @param env - sealed envelope
    * @param ctx - model type, uuid and field it is stored in (AAD)
    * @returns the value
@@ -303,13 +336,23 @@ export class KeyVault {
   }
 
   /**
-   * Re-wrap the keyring key under a new password and replace the password escrow. The unlocked keyring key is used,
-   * so the old password is not needed to re-wrap; it is part of the signature for the login password change.
-   * @param _oldPassword - current password
+   * Re-wrap the keyring key under a new password and replace the password escrow: directly while unlocked, otherwise
+   * through the password escrow opened with the old password (a throttled `getEscrow`, checked against the pin).
+   *
+   * The password escrow must follow the login password: the host changes both together (this call right after, or
+   * before, the login password change), otherwise the next device has to be added with the old password.
    * @param newPassword - new password
+   * @param opts - options
+   * @param opts.oldPassword - current password, needed while locked
    */
-  async changePassword(_oldPassword: string, newPassword: string): Promise<void> {
-    const keyringKey = this.requireUnlocked();
+  async changePassword(newPassword: string, opts: { oldPassword?: string } = {}): Promise<void> {
+    let keyringKey = this.keyringKey;
+    if (!keyringKey) {
+      if (opts.oldPassword === undefined) {
+        throw new VaultLockedError("Unlock the vault or give the old password to change the password escrow");
+      }
+      keyringKey = (await this.openEscrow({ password: opts.oldPassword })).keyringKey;
+    }
     const escrow = await createEscrowBlob("password", newPassword, keyringKey, this.options.userId);
     await this.options.api.setEscrow("password", escrow);
   }
@@ -329,12 +372,22 @@ export class KeyVault {
   }
 
   /**
-   * Rotate: a new active key pair added to the keyring (same keyring key, the escrows stay valid), the keyring
-   * re-encrypted for it, and the pin moved to it. Values sealed to older keys stay readable.
+   * Rotate: a new active key pair added to the keyring, the keyring re-encrypted for it, and the pin moved to it.
+   * Values sealed to older keys stay readable.
+   *
+   * By default the keyring key is kept, so the escrows stay valid: a device that kept its blob (lost or revoked) can
+   * still open the keyring. With `newKeyringKey`, a fresh keyring key encrypts the keyring, the requested escrows are
+   * rebuilt and replace the old ones, and this device re-wraps its blob with its KEK: the answer to a lost or revoked
+   * device.
+   * @param options - rotation options
+   * @param options.newKeyringKey - replace the keyring key: the device KEK of this device and the escrows to create
+   * @returns the new recovery code when one was requested, to show once
    */
-  async rotate(): Promise<void> {
+  async rotate(
+    options: { newKeyringKey?: EscrowRequest & { device: DeviceKek } } = {}
+  ): Promise<{ recoveryCode?: string }> {
     const { userId, api, storage } = this.options;
-    const keyringKey = this.requireUnlocked();
+    const currentKey = this.requireUnlocked();
     const blob = await this.readDevice();
     if (!blob) {
       throw new DeviceNotEnrolledError();
@@ -344,21 +397,74 @@ export class KeyVault {
     if ((await fingerprint(active.jwk)) !== (await storage.get(this.pinKey))) {
       throw new KeyringPinError("The served active public key differs from the key pinned on this device");
     }
-    const { keyring } = await decryptKeyring(blob.keyring, keyringKey, userId, publicKeys);
+    const { keyring } = await decryptKeyring(blob.keyring, currentKey, userId, publicKeys);
+    const replace = options.newKeyringKey;
+    const keyringKey = replace ? await createKeyringKey() : currentKey;
+    const { escrows, recoveryCode } = replace
+      ? await this.createEscrows(replace, keyringKey)
+      : { escrows: undefined, recoveryCode: undefined };
+    const device = replace ? await this.wrapForDevice(replace.device, keyringKey) : undefined;
     const pair = await generateUserKeyPair();
     const publicKey = { kid: pair.kid, jwk: pair.publicJwk };
     const pkcs8 = new Uint8Array(await subtle().exportKey("pkcs8", pair.privateKey));
     keyring.keys[pair.kid] = b64u.encode(pkcs8);
     keyring.active = pair.kid;
     const encrypted = await encryptKeyring(keyring, keyringKey, userId, [...publicKeys, publicKey]);
-    await api.rotate(publicKey, encrypted);
-    await this.writeDevice({ ...blob, keyring: encrypted });
+    await api.rotate(publicKey, encrypted, escrows);
+    await this.writeDevice(
+      device
+        ? { ...device, deviceId: blob.deviceId, deviceName: blob.deviceName, keyring: encrypted }
+        : { ...blob, keyring: encrypted }
+    );
     await storage.set(this.pinKey, await fingerprint(pair.publicJwk));
+    this.keyringKey = keyringKey;
     this.privateKeys![pair.kid] = {
       privateKey: await subtle().importKey("pkcs8", pkcs8, EC, false, ["deriveBits"]),
       publicJwk: pair.publicJwk
     };
     this.activeKid = pair.kid;
+    return recoveryCode ? { recoveryCode } : {};
+  }
+
+  /**
+   * Escrows of a keyring key
+   * @param request - password and/or recovery code
+   * @param keyringKey - key to escrow
+   * @returns the escrows by kind and the recovery code
+   */
+  private async createEscrows(
+    request: EscrowRequest,
+    keyringKey: CryptoKey
+  ): Promise<{ escrows: Partial<Record<EscrowKind, EscrowBlob>>; recoveryCode?: string }> {
+    const { userId } = this.options;
+    if (!request.password && !request.recovery) {
+      throw new Error("At least one escrow is needed: a password or a recovery code");
+    }
+    const escrows: Partial<Record<EscrowKind, EscrowBlob>> = {};
+    if (request.password) {
+      escrows.password = await createEscrowBlob("password", request.password, keyringKey, userId);
+    }
+    const recoveryCode = request.recovery ? generateRecoveryCode() : undefined;
+    if (recoveryCode) {
+      escrows.recovery = await createEscrowBlob("recovery", recoveryCode, keyringKey, userId);
+    }
+    return { escrows, recoveryCode };
+  }
+
+  /**
+   * Register this device when an earlier registration failed (enrollment); a failure is retried at the next unlock
+   */
+  private async registerIfMissing(): Promise<void> {
+    const blob = await this.readDevice();
+    if (!blob || blob.deviceId !== undefined) {
+      return;
+    }
+    try {
+      const { id } = await this.options.api.registerDevice(blob.deviceName ?? "Device");
+      await this.writeDevice({ ...blob, deviceId: id });
+    } catch {
+      // Not registered yet (e.g. the session is no longer fresh): retried at the next unlock
+    }
   }
 
   /** Drop the keys from memory */

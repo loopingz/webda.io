@@ -1,10 +1,12 @@
 import {
   createKeyringKey,
+  decryptKeyring,
   encryptKeyring,
   fieldAad,
   fingerprint,
   generateUserKeyPair,
   KeyringPinError,
+  openEscrowBlob,
   sealValue,
   type EscrowBlob,
   type KeyringBlob
@@ -12,7 +14,7 @@ import {
 import { describe, expect, it } from "vitest";
 import type { KeysApi, ServedDevice, ServedPublicKey, PublicKeyInput } from "./api.js";
 import { MemoryStorage } from "./storage.js";
-import { KeyVault, VaultLockedError } from "./vault.js";
+import { DeviceNotEnrolledError, DeviceRevokedError, KeyVault, VaultLockedError } from "./vault.js";
 
 const USER = "user-1";
 const CTX = { modelType: "Test/Note", uuid: "note-1", field: "content" };
@@ -25,6 +27,8 @@ class FakeServer implements KeysApi {
   devices: ServedDevice[] = [];
   payloads: unknown[] = [];
   escrowFetches = 0;
+  /** registerDevice calls left to fail */
+  registerFailures = 0;
 
   async getKeys() {
     return structuredClone({ publicKeys: this.publicKeys, devices: this.devices });
@@ -47,13 +51,19 @@ class FakeServer implements KeysApi {
     this.payloads.push({ kind, escrow });
     this.escrows[kind] = escrow;
   }
-  async rotate(publicKey: PublicKeyInput, keyring: KeyringBlob) {
-    this.payloads.push({ publicKey, keyring });
+  async rotate(
+    publicKey: PublicKeyInput,
+    keyring: KeyringBlob,
+    escrows?: Partial<Record<EscrowBlob["kind"], EscrowBlob>>
+  ) {
+    this.payloads.push({ publicKey, keyring, escrows });
     for (const key of this.publicKeys) key.retiredAt ??= Date.now();
     this.publicKeys.push({ kid: publicKey.kid, jwk: publicKey.jwk, createdAt: Date.now() });
     this.keyring = keyring;
+    if (escrows) this.escrows = structuredClone(escrows);
   }
   async registerDevice(name: string) {
+    if (this.registerFailures-- > 0) throw new Error("401 Reauthentication required");
     const id = `device-${this.devices.length + 1}`;
     this.devices.push({ id, name, createdAt: Date.now() });
     return { id };
@@ -255,12 +265,12 @@ describe("KeyVault", () => {
   it("changePasswordRewraps", async () => {
     const server = new FakeServer();
     const a = device(server).vault;
-    await expect(a.changePassword(PASSWORD, "new password")).rejects.toBeInstanceOf(VaultLockedError);
+    await expect(a.changePassword("new password")).rejects.toBeInstanceOf(VaultLockedError);
     await a.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
     const b = device(server);
     await b.vault.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "tablet" });
     const before = server.escrows.password;
-    await a.changePassword(PASSWORD, "new password");
+    await a.changePassword("new password");
     expect(server.escrows.password).not.toEqual(before);
     expect(JSON.stringify(server.payloads)).not.toContain("new password");
     const env = await server.sealForUser("still readable");
@@ -275,6 +285,22 @@ describe("KeyVault", () => {
     const c = device(server).vault;
     await c.unlockWithEscrow({ password: "new password" }, { device: PASSCODE, deviceName: "c" });
     expect(await c.open(env, CTX)).toBe("still readable");
+
+    // Locked: the escrow is opened with the old password, then re-wrapped
+    const locked = device(server).vault;
+    await expect(locked.changePassword("third", { oldPassword: "wrong" })).rejects.toThrow();
+    const fetches = server.escrowFetches;
+    await locked.changePassword("third", { oldPassword: "new password" });
+    expect(server.escrowFetches).toBe(fetches + 1);
+    expect(locked.isUnlocked).toBe(false);
+    const d = device(server).vault;
+    await d.unlockWithEscrow({ password: "third" }, { device: PASSCODE, deviceName: "d" });
+    expect(await d.open(env, CTX)).toBe("still readable");
+    // A locked change through a substituted keyring is refused on a pinned device
+    await substituteKey(server);
+    await expect(
+      device(server, b.storage).vault.changePassword("fourth", { oldPassword: "third" })
+    ).rejects.toBeInstanceOf(KeyringPinError);
   });
 
   it("rotateKeepsOldReadable", async () => {
@@ -314,9 +340,80 @@ describe("KeyVault", () => {
     expect(server.devices.map(d => d.name)).toEqual(["laptop", "tablet"]);
   });
 
+  it("rotates the keyring key to cut off a lost device", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const oldEnv = await server.sealForUser("old");
+    const oldKeyringKey = await openEscrowBlob(server.escrows.password!, PASSWORD, USER);
+    await expect(a.vault.rotate({ newKeyringKey: { device: PASSCODE } })).rejects.toThrow("escrow");
+
+    const platform = await crypto.subtle.generateKey({ name: "AES-KW", length: 256 }, false, ["wrapKey", "unwrapKey"]);
+    const { recoveryCode } = await a.vault.rotate({
+      newKeyringKey: { device: { kind: "platform", key: platform }, password: "rotated", recovery: true }
+    });
+    expect(recoveryCode).toBeDefined();
+    expect(Object.keys(server.escrows).sort()).toEqual(["password", "recovery"]);
+    // The old keyring key no longer opens the server keyring
+    await expect(decryptKeyring(server.keyring!, oldKeyringKey, USER, server.publicKeys)).rejects.toThrow();
+    const newEnv = await server.sealForUser("new");
+    expect(await a.vault.open(oldEnv, CTX)).toBe("old");
+    expect(await a.vault.open(newEnv, CTX)).toBe("new");
+    // The vault keeps working with the new keyring key and the device re-wrapped with its new KEK
+    expect(await a.vault.setRecoveryCode()).toBeDefined();
+    const a2 = device(server, a.storage).vault;
+    await expect(a2.unlock(PASSCODE)).rejects.toThrow("platform");
+    await a2.unlock({ kind: "platform", key: platform });
+    expect(await a2.open(newEnv, CTX)).toBe("new");
+    // Old escrows are gone, the new password opens the new keyring
+    await expect(
+      device(server).vault.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "x" })
+    ).rejects.toThrow();
+    const b = device(server).vault;
+    await b.unlockWithEscrow({ password: "rotated" }, { device: PASSCODE, deviceName: "b" });
+    expect(await b.open(oldEnv, CTX)).toBe("old");
+  });
+
+  it("enrollment survives a failed device registration", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    server.registerFailures = 1;
+    const { recoveryCode } = await a.vault.enroll({
+      password: PASSWORD,
+      device: PASSCODE,
+      deviceName: "laptop",
+      recovery: true
+    });
+    expect(recoveryCode).toBeDefined();
+    expect(a.vault.isUnlocked).toBe(true);
+    expect(server.devices).toEqual([]);
+    expect(await a.storage.get(`webda-sealed:pin:${USER}`)).toBeDefined();
+    // The next unlock registers the device lazily, once
+    await device(server, a.storage).vault.unlock(PASSCODE);
+    expect(server.devices.map(d => d.name)).toEqual(["laptop"]);
+    await device(server, a.storage).vault.unlock(PASSCODE);
+    expect(server.devices).toHaveLength(1);
+    expect(JSON.parse((await a.storage.get(`webda-sealed:device:${USER}`))!).deviceId).toBe(server.devices[0].id);
+  });
+
+  it("a revoked device deletes its local blob", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    await server.revokeDevice(server.devices[0].id);
+    await expect(device(server, a.storage).vault.unlock(PASSCODE)).rejects.toBeInstanceOf(DeviceRevokedError);
+    expect(await a.storage.get(`webda-sealed:device:${USER}`)).toBeUndefined();
+    await expect(device(server, a.storage).vault.unlock(PASSCODE)).rejects.toBeInstanceOf(DeviceNotEnrolledError);
+    // Added again through the escrow, as a new device
+    const again = device(server, a.storage).vault;
+    await again.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "laptop" });
+    expect(server.devices).toHaveLength(1);
+    expect(await again.open(await server.sealForUser("x"), CTX)).toBe("x");
+  });
+
   it("lockDropsKeys", async () => {
     const server = new FakeServer();
-    const { vault, storage } = device(server);
+    const { vault } = device(server);
     await vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
     const env = await server.sealForUser("x");
     vault.lock();
@@ -330,6 +427,5 @@ describe("KeyVault", () => {
     expect(await vault.open(env, CTX)).toBe("x");
     // An unknown kid is refused
     await expect(vault.open({ ...env, kid: "unknown" }, CTX)).rejects.toThrow("unknown");
-    expect(storage).toBeDefined();
   });
 });

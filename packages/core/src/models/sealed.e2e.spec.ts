@@ -82,6 +82,8 @@ class SealedEndToEndTest extends WebdaApplicationTest {
       setup: (publicKey, keyring, escrows) => call("Setup", { publicKey, keyring, escrows }),
       getEscrow: kind => call("GetEscrow", { kind }),
       setEscrow: (kind, escrow) => call("SetEscrow", { kind, escrow }),
+      removeEscrow: kind => call("RemoveEscrow", { kind }),
+      getKeyring: () => call("GetKeyring"),
       rotate: (publicKey, keyring, escrows) => call("Rotate", { publicKey, keyring, escrows }),
       registerDevice: name => call("RegisterDevice", { name }),
       revokeDevice: id => call("RevokeDevice", { id })
@@ -262,5 +264,13 @@ class SealedEndToEndTest extends WebdaApplicationTest {
       ...VALUE,
       title: "rotated"
     });
+    // Device B refreshes its stale keyring through User.Keys.GetKeyring and opens the new value
+    b.vault.lock();
+    await b.vault.unlock(b.kek);
+    assert.deepStrictEqual(await b.vault.open((await Note.ref(uuid).get()).content.toJSON(), ctx), {
+      ...VALUE,
+      title: "rotated"
+    });
+    assert.strictEqual((await User.ref(alice).get())._escrowAttempts, 1);
   }
 }

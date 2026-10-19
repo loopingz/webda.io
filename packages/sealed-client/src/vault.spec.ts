@@ -27,6 +27,7 @@ class FakeServer implements KeysApi {
   devices: ServedDevice[] = [];
   payloads: unknown[] = [];
   escrowFetches = 0;
+  keyringFetches = 0;
   /** registerDevice calls left to fail */
   registerFailures = 0;
 
@@ -50,6 +51,19 @@ class FakeServer implements KeysApi {
   async setEscrow(kind: EscrowBlob["kind"], escrow: EscrowBlob) {
     this.payloads.push({ kind, escrow });
     this.escrows[kind] = escrow;
+  }
+  async removeEscrow(kind: EscrowBlob["kind"]) {
+    if (!this.publicKeys.length) throw new Error("412 Keys are not set up");
+    if (!this.escrows[kind]) throw new Error(`404 No ${kind} escrow`);
+    if (Object.keys(this.escrows).length === 1 && this.devices.length === 0) {
+      throw new Error("409 The last escrow cannot be removed while no device is registered");
+    }
+    delete this.escrows[kind];
+  }
+  async getKeyring() {
+    this.keyringFetches++;
+    if (!this.keyring) throw new Error("412 Keys are not set up");
+    return structuredClone({ keyring: this.keyring, publicKeys: this.publicKeys });
   }
   async rotate(
     publicKey: PublicKeyInput,
@@ -328,16 +342,160 @@ describe("KeyVault", () => {
     expect(await a2.open(oldEnv, CTX)).toBe("old");
     expect(await a2.open(newEnv, CTX)).toBe("new");
 
-    // Another device is refused locally: the rotation was not done by it ...
-    await expect(device(server, b.storage).vault.unlock(PASSCODE)).rejects.toBeInstanceOf(KeyringPinError);
-    // ... it verifies it through the escrow: the new keyring holds its pinned private key
+    // Another device refreshes its stale local keyring (unthrottled, no escrow): the new keyring opens with the keyring
+    // key it holds and still holds its pinned private key
+    const fetches = server.escrowFetches;
     const b2 = device(server, b.storage).vault;
-    await b2.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "tablet" });
+    await b2.unlock(PASSCODE);
+    expect(server.keyringFetches).toBe(1);
+    expect(server.escrowFetches).toBe(fetches);
     expect(await b2.open(oldEnv, CTX)).toBe("old");
     expect(await b2.open(newEnv, CTX)).toBe("new");
     expect(await b.storage.get(`webda-sealed:pin:${USER}`)).toBe(await fingerprint(server.publicKeys[1].jwk));
+    // The refreshed keyring is kept: the next unlock is local again
+    await device(server, b.storage).vault.unlock(PASSCODE);
+    expect(server.keyringFetches).toBe(1);
     // The device keeps its registration
     expect(server.devices.map(d => d.name)).toEqual(["laptop", "tablet"]);
+  });
+
+  it("refuses a refreshed keyring without the pinned private key", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const pin = await a.storage.get(`webda-sealed:pin:${USER}`);
+    // A holder of the keyring key serves a keyring that dropped the pinned key
+    const keyringKey = await openEscrowBlob(server.escrows.password!, PASSWORD, USER);
+    const other = await generateUserKeyPair();
+    const entry = { kid: other.kid, jwk: other.publicJwk };
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", other.privateKey));
+    server.publicKeys[0].retiredAt = Date.now();
+    server.publicKeys.push({ ...entry, createdAt: Date.now() });
+    server.keyring = await encryptKeyring(
+      { keys: { [other.kid]: Buffer.from(pkcs8).toString("base64url") }, active: other.kid },
+      keyringKey,
+      USER,
+      [entry]
+    );
+    const again = device(server, a.storage).vault;
+    await expect(again.unlock(PASSCODE)).rejects.toThrow(/pinned/);
+    expect(again.isUnlocked).toBe(false);
+    expect(await a.storage.get(`webda-sealed:pin:${USER}`)).toBe(pin);
+  });
+
+  it("refuses writes once the keyring changed on another device", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const b = device(server);
+    await b.vault.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "tablet" });
+    const env = await server.sealForUser("x");
+
+    // B replaces the keyring key: A still holds the old one in memory
+    await b.vault.rotate({ newKeyringKey: { device: PASSCODE, password: "rotated" } });
+    const escrows = structuredClone(server.escrows);
+    await expect(a.vault.changePassword("from A")).rejects.toThrow(/another device/);
+    await expect(a.vault.changePassword("from A")).rejects.toBeInstanceOf(KeyringPinError);
+    await expect(a.vault.setRecoveryCode()).rejects.toThrow(/another device/);
+    // Nothing was written: the escrows still open the new keyring
+    expect(server.escrows).toEqual(escrows);
+    const c = device(server).vault;
+    await c.unlockWithEscrow({ password: "rotated" }, { device: PASSCODE, deviceName: "c" });
+    expect(await c.open(env, CTX)).toBe("x");
+
+    // A cannot refresh with the old keyring key: it goes through the new escrow, then writes again
+    const a2 = device(server, a.storage).vault;
+    await expect(a2.unlock(PASSCODE)).rejects.toBeInstanceOf(KeyringPinError);
+    await a2.unlockWithEscrow({ password: "rotated" }, { device: PASSCODE, deviceName: "laptop" });
+    await a2.changePassword("from A");
+    const d = device(server).vault;
+    await d.unlockWithEscrow({ password: "from A" }, { device: PASSCODE, deviceName: "d" });
+    expect(await d.open(env, CTX)).toBe("x");
+
+    // A plain rotation keeps the keyring key, writes are still refused until the next unlock refreshes the keyring
+    await d.rotate();
+    await expect(a2.setRecoveryCode()).rejects.toBeInstanceOf(KeyringPinError);
+    const a3 = device(server, a.storage).vault;
+    await a3.unlock(PASSCODE);
+    expect(await a3.setRecoveryCode()).toBeDefined();
+  });
+
+  it("resets the keys when they are lost", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const b = device(server);
+    await b.vault.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "tablet" });
+    const oldEnv = await server.sealForUser("old");
+    const oldKid = server.publicKeys[0].kid;
+
+    // Password forgotten, no device at hand, no recovery code: a new device resets the keys
+    const c = device(server);
+    await expect(c.vault.reset({ device: PASSCODE, deviceName: "phone" })).rejects.toThrow("escrow");
+    expect(server.publicKeys).toHaveLength(1);
+    const { recoveryCode } = await c.vault.reset({
+      password: "new password",
+      recovery: true,
+      device: PASSCODE,
+      deviceName: "phone"
+    });
+    expect(recoveryCode).toBeDefined();
+    expect(c.vault.isUnlocked).toBe(true);
+    expect(server.publicKeys).toHaveLength(2);
+    expect(server.publicKeys[0].retiredAt).toBeDefined();
+    const newKid = server.publicKeys[1].kid;
+    expect(await c.storage.get(`webda-sealed:pin:${USER}`)).toBe(await fingerprint(server.publicKeys[1].jwk));
+    expect(server.devices.map(d => d.name)).toEqual(["laptop", "tablet", "phone"]);
+    expect(Object.keys(server.escrows).sort()).toEqual(["password", "recovery"]);
+    // Nothing private reaches the server
+    expect(JSON.stringify(server.payloads)).not.toContain("new password");
+    expect(JSON.stringify(server.payloads)).not.toContain('"d":');
+
+    // New values open, old ones stay unreadable
+    const newEnv = await server.sealForUser("new");
+    expect(newEnv.kid).toBe(newKid);
+    expect(await c.vault.open(newEnv, CTX)).toBe("new");
+    await expect(c.vault.open(oldEnv, CTX)).rejects.toThrow(oldKid);
+    const c2 = device(server, c.storage).vault;
+    await c2.unlock(PASSCODE);
+    expect(await c2.open(newEnv, CTX)).toBe("new");
+    // The old escrow is gone
+    await expect(
+      device(server).vault.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "x" })
+    ).rejects.toThrow();
+
+    // The other devices are cut off: their keyring key and pinned key are gone
+    await expect(device(server, a.storage).vault.unlock(PASSCODE)).rejects.toBeInstanceOf(KeyringPinError);
+    await expect(device(server, b.storage).vault.unlock(PASSCODE)).rejects.toBeInstanceOf(KeyringPinError);
+    // The pin also refuses the new escrow, until the user explicitly trusts the new key on that device
+    const b2 = device(server, b.storage);
+    await expect(
+      b2.vault.unlockWithEscrow({ password: "new password" }, { device: PASSCODE, deviceName: "tablet" })
+    ).rejects.toBeInstanceOf(KeyringPinError);
+    await b2.vault.forgetPin();
+    expect(await b.storage.get(`webda-sealed:pin:${USER}`)).toBeUndefined();
+    await b2.vault.unlockWithEscrow({ recoveryCode: recoveryCode! }, { device: PASSCODE, deviceName: "tablet" });
+    expect(await b2.vault.open(newEnv, CTX)).toBe("new");
+    await expect(b2.vault.open(oldEnv, CTX)).rejects.toThrow(oldKid);
+    expect(await b.storage.get(`webda-sealed:pin:${USER}`)).toBe(await fingerprint(server.publicKeys[1].jwk));
+    // B kept its registration
+    expect(server.devices.map(d => d.name)).toEqual(["laptop", "tablet", "phone"]);
+  });
+
+  it("removes the recovery code", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop", recovery: true });
+    await a.vault.removeRecoveryCode();
+    expect(Object.keys(server.escrows)).toEqual(["password"]);
+    await expect(a.vault.removeRecoveryCode()).rejects.toThrow("404");
+    // The server guard surfaces: the last escrow cannot go while no device is registered
+    const other = new FakeServer();
+    const o = device(other);
+    await o.vault.enroll({ device: PASSCODE, deviceName: "phone", recovery: true });
+    await other.revokeDevice(other.devices[0].id);
+    await expect(o.vault.removeRecoveryCode()).rejects.toThrow("409");
+    expect(Object.keys(other.escrows)).toEqual(["recovery"]);
   });
 
   it("rotates the keyring key to cut off a lost device", async () => {

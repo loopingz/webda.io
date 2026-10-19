@@ -59,6 +59,20 @@ await vault.rotate(); // new active key, older values stay readable
 const { recoveryCode: newCode } = await vault.rotate({
   newKeyringKey: { device: { kind: "passcode", passcode }, password, recovery: true }
 });
+
+// The keys are lost (no device, password escrow and recovery code forgotten): start over, old values stay unreadable
+const passcodeKek = { kind: "passcode", passcode } as const;
+const { recoveryCode: resetCode } = await vault.reset({
+  password,
+  recovery: true,
+  device: passcodeKek,
+  deviceName: "Phone"
+});
+// On another device, cut off by the reset: trust the new key explicitly, then add it again with the new escrow
+await otherVault.forgetPin();
+await otherVault.unlockWithEscrow({ recoveryCode: resetCode! }, { device: passcodeKek, deviceName: "Laptop" });
+
+await vault.removeRecoveryCode(); // refused (409) when it is the last escrow and no device is registered
 vault.lock();
 ```
 
@@ -76,6 +90,12 @@ vault.lock();
 - A plain `rotate()` keeps the keyring key: a lost or revoked device that kept its blob can still open the keyring if
   it obtains it. `rotate({ newKeyringKey })` replaces the keyring key and the escrows: use it after losing or revoking
   a device. Unlocking a device revoked on the server deletes its local blob (`DeviceRevokedError`).
+- `unlock` refreshes a stale local keyring (rotated on another device) with `User.Keys.GetKeyring`: it must open with
+  the keyring key of this device and hold the pinned private key. When the keyring key was replaced, unlock with an
+  escrow. While unlocked, `changePassword` and `setRecoveryCode` refuse to write (`KeyringPinError`) once the keyring
+  changed on another device: unlock again.
+- `reset` is the explicit way out when the keys are lost; it re-pins the device running it. Other devices keep their
+  pin and refuse the new key until the user calls `forgetPin` on them.
 - The password escrow does not follow the login password by itself: the host calls `changePassword` together with the
   login password change.
 - When the device registration fails at enrollment (e.g. the session is no longer fresh), the keys and the device blob

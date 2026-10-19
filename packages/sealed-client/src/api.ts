@@ -52,6 +52,17 @@ export interface KeysApi {
    */
   setEscrow(kind: EscrowKind, escrow: EscrowBlob): Promise<void>;
   /**
+   * `User.Keys.RemoveEscrow`: the server refuses to remove the last escrow while no device is registered (409)
+   * @param kind - escrow kind
+   */
+  removeEscrow(kind: EscrowKind): Promise<void>;
+  /**
+   * `User.Keys.GetKeyring` (fresh authentication required, not throttled): the encrypted keyring alone, to refresh a
+   * stale local copy with the keyring key this device holds
+   * @returns the encrypted keyring and the public keys
+   */
+  getKeyring(): Promise<{ keyring: KeyringBlob; publicKeys: ServedPublicKey[] }>;
+  /**
    * `User.Keys.Rotate`: new active public key, keyring re-encrypted for it
    * @param publicKey - new public key
    * @param keyring - keyring holding every private key, encrypted for the new key
@@ -136,6 +147,8 @@ export function restKeysApi(fetchLike: FetchLike, userId: string, options: RestK
     setup: (publicKey, keyring, escrows) => action("POST", "setup", { publicKey, keyring, escrows }),
     getEscrow: kind => action("POST", "getEscrow", { kind }),
     setEscrow: (kind, escrow) => action("PUT", "setEscrow", { kind, escrow }),
+    removeEscrow: kind => action("DELETE", "removeEscrow", { kind }),
+    getKeyring: () => call("GET", `${user}/keys.getKeyring`),
     rotate: (publicKey, keyring, escrows) =>
       action("POST", "rotate", escrows === undefined ? { publicKey, keyring } : { publicKey, keyring, escrows }),
     registerDevice: name => action("POST", "registerDevice", { name }),

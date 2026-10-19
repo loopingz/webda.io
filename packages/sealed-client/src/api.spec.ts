@@ -34,13 +34,17 @@ describe("restKeysApi", () => {
           ? { body: { id: "dev" } }
           : url.endsWith("keys.getEscrow")
             ? { body: { escrow: 1, keyring: 2, publicKeys: [] } }
-            : { status: 204 }
+            : url.endsWith("keys.getKeyring")
+              ? { body: { keyring: 3, publicKeys: [] } }
+              : { status: 204 }
     );
     const api = restKeysApi(fetch, "u/1", { baseUrl: "https://h/api" });
     expect(await api.getKeys()).toEqual({ publicKeys: [{ kid: "k" }], devices: [{ id: "d" }] });
     await api.setup({ kid: "k", jwk: {} as any }, { k: 1 } as any, { password: {} as any });
     expect(await api.getEscrow("password")).toEqual({ escrow: 1, keyring: 2, publicKeys: [] });
     await api.setEscrow("recovery", { e: 1 } as any);
+    await api.removeEscrow("recovery");
+    expect(await api.getKeyring()).toEqual({ keyring: 3, publicKeys: [] });
     await api.rotate({ kid: "k2", jwk: {} as any }, { k: 2 } as any);
     await api.rotate({ kid: "k3", jwk: {} as any }, { k: 3 } as any, { recovery: { r: 1 } as any });
     expect(await api.registerDevice("laptop")).toEqual({ id: "dev" });
@@ -55,6 +59,8 @@ describe("restKeysApi", () => {
       ],
       ["POST", `${base}/keys.getEscrow`, { kind: "password" }],
       ["PUT", `${base}/keys.setEscrow`, { kind: "recovery", escrow: { e: 1 } }],
+      ["DELETE", `${base}/keys.removeEscrow`, { kind: "recovery" }],
+      ["GET", `${base}/keys.getKeyring`, undefined],
       ["POST", `${base}/keys.rotate`, { publicKey: { kid: "k2", jwk: {} }, keyring: { k: 2 } }],
       [
         "POST",

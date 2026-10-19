@@ -145,7 +145,9 @@ function activeKey(publicKeys: ServedPublicKey[]): PublicKeyEntry {
  *
  * Public key pinning: the fingerprint of the active public key is pinned in the storage (`webda-sealed:pin:<userId>`).
  * A served active key with another fingerprint is refused with a `KeyringPinError`, unless this device rotated it, or
- * verified the rotation: a keyring opened through an escrow that still holds the pinned private key.
+ * verified the rotation: a keyring opened with the keyring key (refreshed at unlock, or through an escrow) that still
+ * holds the pinned private key. Besides its own rotation, an explicit {@link KeyVault.reset} is the only pin change a
+ * device makes by itself; {@link KeyVault.forgetPin} lets the user trust a new key on first use again.
  */
 export class KeyVault {
   private keyringKey?: CryptoKey;
@@ -210,34 +212,82 @@ export class KeyVault {
 
   /**
    * Unlock this device with its KEK; the server is only asked for the public keys, checked against the pin, and the
-   * devices: a device revoked on the server deletes its local blob ({@link DeviceRevokedError})
+   * devices: a device revoked on the server deletes its local blob ({@link DeviceRevokedError}).
+   *
+   * A stale local keyring (rotated on another device) is refreshed with `User.Keys.GetKeyring`: the served keyring
+   * must open with the keyring key of this device and still hold the pinned private key, otherwise the unlock fails with
+   * a `KeyringPinError` (the keyring key was replaced: unlock with an escrow).
    * @param device - device KEK
    */
   async unlock(device: DeviceKek): Promise<void> {
+    const { userId, api, storage } = this.options;
     const blob = await this.readDevice();
     if (!blob) {
       throw new DeviceNotEnrolledError();
     }
-    const { publicKeys, devices } = await this.options.api.getKeys();
+    const { publicKeys, devices } = await api.getKeys();
     if (blob.deviceId !== undefined && !devices.some(d => d.id === blob.deviceId)) {
-      await this.options.storage.delete(this.deviceKey);
+      await storage.delete(this.deviceKey);
       throw new DeviceRevokedError();
     }
     const keyringKey = await this.unwrapForDevice(blob, device);
     const active = activeKey(publicKeys);
     const served = await fingerprint(active.jwk);
-    const pin = await this.options.storage.get(this.pinKey);
-    if ((pin !== undefined && pin !== served) || blob.keyring.kid !== active.kid) {
-      throw new KeyringPinError(
-        "The served active public key differs from the key pinned on this device; if it was rotated on another " +
-          "device, unlock with an escrow to verify the rotation"
-      );
-    }
-    await this.setUnlocked(keyringKey, blob.keyring, publicKeys);
-    if (pin === undefined) {
-      await this.options.storage.set(this.pinKey, served);
+    const pin = await storage.get(this.pinKey);
+    if ((pin === undefined || pin === served) && blob.keyring.kid === active.kid) {
+      await this.setUnlocked(keyringKey, blob.keyring, publicKeys);
+      if (pin === undefined) {
+        await storage.set(this.pinKey, served);
+      }
+    } else {
+      // Rotated on another device: refresh the local keyring
+      const fresh = await api.getKeyring();
+      const freshActive = activeKey(fresh.publicKeys);
+      if (fresh.keyring.kid !== freshActive.kid) {
+        throw new KeyringPinError("The keyring is not encrypted for the active public key");
+      }
+      let privateKeys: Record<string, OpenRecipient>;
+      try {
+        ({ privateKeys } = await decryptKeyring(fresh.keyring, keyringKey, userId, fresh.publicKeys));
+      } catch (err) {
+        if (err instanceof KeyringPinError) {
+          throw new KeyringPinError(
+            "The keyring changed on another device and does not open with the keyring key of this device; if it was " +
+              "replaced (rotation with a new keyring key, or a reset), unlock with an escrow"
+          );
+        }
+        throw err;
+      }
+      const freshServed = await fingerprint(freshActive.jwk);
+      await this.assertPinHeld(pin, freshServed, privateKeys);
+      await this.writeDevice({ ...blob, keyring: fresh.keyring });
+      await storage.set(this.pinKey, freshServed);
+      this.keyringKey = keyringKey;
+      this.privateKeys = privateKeys;
+      this.activeKid = fresh.keyring.kid;
     }
     await this.registerIfMissing();
+  }
+
+  /**
+   * Accept a served active key other than the pinned one only when the keyring still holds the pinned private key (a
+   * rotation by a holder of that key)
+   * @param pin - pinned fingerprint, undefined on a device without pin (trust on first use)
+   * @param served - fingerprint of the served active key
+   * @param privateKeys - private keys of the authenticated keyring
+   */
+  private async assertPinHeld(
+    pin: string | undefined,
+    served: string,
+    privateKeys: Record<string, OpenRecipient>
+  ): Promise<void> {
+    if (pin === undefined || pin === served) {
+      return;
+    }
+    const held = await Promise.all(Object.values(privateKeys).map(k => fingerprint(k.publicJwk)));
+    if (!held.includes(pin)) {
+      throw new KeyringPinError("The served keyring does not hold the private key pinned on this device");
+    }
   }
 
   /**
@@ -287,13 +337,7 @@ export class KeyVault {
     }
     const { privateKeys } = await decryptKeyring(keyring, keyringKey, userId, publicKeys);
     const served = await fingerprint(active.jwk);
-    const pin = await storage.get(this.pinKey);
-    if (pin !== undefined && pin !== served) {
-      const held = await Promise.all(Object.values(privateKeys).map(k => fingerprint(k.publicJwk)));
-      if (!held.includes(pin)) {
-        throw new KeyringPinError("The served keyring does not hold the private key pinned on this device");
-      }
-    }
+    await this.assertPinHeld(await storage.get(this.pinKey), served, privateKeys);
     return { keyringKey, keyring, privateKeys, served };
   }
 
@@ -341,13 +385,18 @@ export class KeyVault {
    *
    * The password escrow must follow the login password: the host changes both together (this call right after, or
    * before, the login password change), otherwise the next device has to be added with the old password.
+   *
+   * While unlocked, the change is refused with a `KeyringPinError` when the keyring changed on another device since
+   * the unlock (its keyring key may have been replaced): unlock again first.
    * @param newPassword - new password
    * @param opts - options
    * @param opts.oldPassword - current password, needed while locked
    */
   async changePassword(newPassword: string, opts: { oldPassword?: string } = {}): Promise<void> {
     let keyringKey = this.keyringKey;
-    if (!keyringKey) {
+    if (keyringKey) {
+      await this.assertKeyringCurrent();
+    } else {
       if (opts.oldPassword === undefined) {
         throw new VaultLockedError("Unlock the vault or give the old password to change the password escrow");
       }
@@ -358,17 +407,73 @@ export class KeyVault {
   }
 
   /**
-   * Create or replace the recovery code escrow
+   * Create or replace the recovery code escrow; refused with a `KeyringPinError` when the keyring changed on another
+   * device since the unlock (unlock again first)
    * @returns the recovery code, to show once
    */
   async setRecoveryCode(): Promise<string> {
     const keyringKey = this.requireUnlocked();
+    await this.assertKeyringCurrent();
     const code = generateRecoveryCode();
     await this.options.api.setEscrow(
       "recovery",
       await createEscrowBlob("recovery", code, keyringKey, this.options.userId)
     );
     return code;
+  }
+
+  /**
+   * Remove the recovery code escrow (`User.Keys.RemoveEscrow`). The server refuses to remove the last escrow while no
+   * device is registered (409, surfaced as the api error)
+   */
+  async removeRecoveryCode(): Promise<void> {
+    await this.options.api.removeEscrow("recovery");
+  }
+
+  /**
+   * Keys lost (no device left, password and recovery code forgotten): start over with a new key pair and a new keyring
+   * key, through `User.Keys.Rotate` (fresh authentication required, the vault does not need to be unlocked).
+   *
+   * The new keyring holds the new private key only: values sealed to the older keys stay unreadable, new values open.
+   * The requested escrows replace the old ones, this device keeps the new keyring key and is registered (kept when
+   * already registered), and the pin moves to the new key: an explicit reset by the user is, with its own rotation, the
+   * only pin change a device makes by itself. The other devices are cut off (their unlock fails with a
+   * `KeyringPinError`); they are added again with the new escrow after {@link KeyVault.forgetPin}.
+   * @param input - reset
+   * @param input.password - password escrow
+   * @param input.recovery - also create a recovery code escrow
+   * @param input.device - device KEK
+   * @param input.deviceName - name registered for this device
+   * @returns the recovery code when one was requested, to show once
+   */
+  async reset(input: EscrowRequest & { device: DeviceKek; deviceName: string }): Promise<{ recoveryCode?: string }> {
+    const { userId, api, storage } = this.options;
+    const pair = await generateUserKeyPair();
+    const publicKey = { kid: pair.kid, jwk: pair.publicJwk };
+    const keyringKey = await createKeyringKey();
+    const { escrows, recoveryCode } = await this.createEscrows(input, keyringKey);
+    const device = await this.wrapForDevice(input.device, keyringKey);
+    const pkcs8 = b64u.encode(new Uint8Array(await subtle().exportKey("pkcs8", pair.privateKey)));
+    const keyring = await encryptKeyring({ keys: { [pair.kid]: pkcs8 }, active: pair.kid }, keyringKey, userId, [
+      publicKey
+    ]);
+    const deviceId = await this.registeredDeviceId();
+    await api.rotate(publicKey, keyring, escrows);
+    await this.writeDevice({ ...device, deviceId, deviceName: input.deviceName, keyring });
+    await storage.set(this.pinKey, await fingerprint(pair.publicJwk));
+    await this.setUnlocked(keyringKey, keyring, [publicKey]);
+    await this.registerIfMissing();
+    return recoveryCode ? { recoveryCode } : {};
+  }
+
+  /**
+   * Forget the public key pinned on this device and lock: the next {@link KeyVault.unlockWithEscrow} trusts the served
+   * key on first use, as on a new device. For the user to call explicitly after a {@link KeyVault.reset} done on
+   * another device, ideally once the new fingerprint was compared out of band
+   */
+  async forgetPin(): Promise<void> {
+    this.lock();
+    await this.options.storage.delete(this.pinKey);
   }
 
   /**
@@ -449,6 +554,18 @@ export class KeyVault {
       escrows.recovery = await createEscrowBlob("recovery", recoveryCode, keyringKey, userId);
     }
     return { escrows, recoveryCode };
+  }
+
+  /**
+   * Refuse a write made with the in-memory keyring key when the keyring changed on another device since the unlock: the
+   * served active key must still be the unlocked one and the pinned one
+   */
+  private async assertKeyringCurrent(): Promise<void> {
+    const active = activeKey((await this.options.api.getKeys()).publicKeys);
+    const pin = await this.options.storage.get(this.pinKey);
+    if (active.kid !== this.activeKid || (await fingerprint(active.jwk)) !== pin) {
+      throw new KeyringPinError("The keyring changed on another device; unlock again");
+    }
   }
 
   /**

@@ -89,4 +89,13 @@ describe("restKeysApi", () => {
     expect(err.status).toBe(429);
     expect(err.message).toContain("keys.getEscrow");
   });
+
+  it("throws an error without body and reads an empty user answer", async () => {
+    const { fetch } = recorder(url => (url.endsWith("keys.getKeyring") ? { status: 500 } : {}));
+    const api = restKeysApi(fetch, "u1");
+    const err = await api.getKeyring().catch(e => e);
+    expect(err).toBeInstanceOf(KeysApiError);
+    expect(err.message).toBe("GET /users/u1/keys.getKeyring failed with 500");
+    expect(await api.getKeys()).toEqual({ publicKeys: [], devices: [] });
+  });
 });

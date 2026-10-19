@@ -153,6 +153,25 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async replayWithinTheGraceWhenTheSuccessorWasNeverStored() {
+    // the rotation succeeded but writing its successor failed: the client retries with the same token
+    const first = await this.service.issue(this.session());
+    const issue = vi.spyOn(this.service, "issue").mockRejectedValueOnce(new Error("store down"));
+    try {
+      await assert.rejects(() => this.service.refresh(first.refreshToken), /store down/);
+    } finally {
+      issue.mockRestore();
+    }
+    const svc: any = this.service;
+    const stored = await RefreshToken.ref({ hash: svc.hash(first.refreshToken) } as any).get();
+    assert.ok(stored.rotatedAt && stored.successor);
+    assert.strictEqual(await RefreshToken.ref({ hash: stored.successor } as any).exists(), false);
+    const second = await this.service.refresh(first.refreshToken);
+    assert.strictEqual(second.session.userId, "u1");
+    assert.ok(await this.service.verifyAccess(second.accessToken));
+  }
+
+  @test
   async aRetiredSuccessorPresentedLaterRevokesTheFamily() {
     // two holders of the family's tokens (the replay was not the same client): detected at the next refresh
     const first = await this.service.issue(this.session());

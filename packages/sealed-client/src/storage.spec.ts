@@ -56,4 +56,17 @@ describe("indexedDbStorage", () => {
     await s.set("a", "1");
     expect(await s.get("a")).toBe("1");
   });
+
+  it("releases the database when another connection deletes it, then reopens", async () => {
+    const s = new IndexedDBStorage("sealed-versionchange");
+    await s.set("a", "1");
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase("sealed-versionchange");
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+    expect(await s.get("a")).toBeUndefined();
+    await s.set("a", "2");
+    expect(await s.get("a")).toBe("2");
+  });
 });

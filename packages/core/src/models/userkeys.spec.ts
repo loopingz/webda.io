@@ -4,7 +4,7 @@ import { JSONUtils } from "@webda/utils";
 import { WebdaApplicationTest } from "../test/application.js";
 import { TestApplication } from "../test/objects.js";
 import { User } from "./user.model.js";
-import { MAX_DEVICES, UserKeys } from "./userkeys.model.js";
+import { MAX_DEVICES, UserKeys, UserKeysParameters, assertB64u, checkPublicJwk } from "./userkeys.model.js";
 import { callOperation, listOperations } from "../core/operations.js";
 import { AuditService } from "../services/audit.model.js";
 import * as WebdaError from "../errors/errors.js";
@@ -535,11 +535,14 @@ class UserKeysTest extends WebdaApplicationTest {
     await bad({ ...m, publicKey: { kid: m.pair.kid, jwk: { ...m.pair.publicJwk, kty: "RSA" } } });
     await bad({ ...m, publicKey: { kid: m.pair.kid, jwk: { ...m.pair.publicJwk, x: m.pair.publicJwk.y } } });
     await bad({ ...m, publicKey: { kid: "AAAAAAAAAAAAAAAA", jwk: m.pair.publicJwk } });
+    await bad({ ...m, publicKey: { kid: 1, jwk: m.pair.publicJwk } });
     // Blob shapes
     const keyring: KeyringBlob = m.keyring;
     await bad({ ...m, keyring: { ...keyring, v: 2 } });
     await bad({ ...m, keyring: { ...keyring, iv: "not base64url!" } });
     await bad({ ...m, keyring: { ...keyring, iv: b64u.encode(new Uint8Array(8)) } });
+    await bad({ ...m, keyring: { ...keyring, iv: b64u.encode(new Uint8Array(13)) } });
+    await bad({ ...m, keyring: { ...keyring, ct: "A".repeat(65537) } });
     await bad({ ...m, escrows: {} });
     await bad({ ...m, escrows: { password: { ...m.escrows.password, v: 2 } } });
     await bad({ ...m, escrows: { password: { ...m.escrows.password, kdf: "scrypt" } } });
@@ -567,5 +570,54 @@ class UserKeysTest extends WebdaApplicationTest {
     assert.strictEqual((await this.keysOf(alice)).publicKeys.length, 0);
     // The valid material is still accepted
     await this.op(alice, alice, "Setup", m);
+  }
+
+  @test
+  async validationHelpers() {
+    // Without a length, any non-empty base64url value
+    assertB64u(b64u.encode(new Uint8Array(100)), "field");
+    assert.throws(() => assertB64u("", "field"), /unexpected length/);
+    await assert.rejects(checkPublicJwk("not a jwk", "public key"), SealedFormatError);
+    await assert.rejects(checkPublicJwk(null, "public key"), SealedFormatError);
+  }
+
+  @test
+  async detachedBehavior() {
+    const keys = new UserKeys();
+    assert.deepStrictEqual(keys.publicKeys, []);
+    assert.deepStrictEqual(keys.devices, []);
+    // Stored data, missing lists default to empty
+    const stored = new UserKeys({ publicKeys: undefined, devices: [{ id: "d", name: "n", createdAt: 1 }] });
+    assert.deepStrictEqual(stored.publicKeys, []);
+    assert.strictEqual(stored.devices[0].id, "d");
+    assert.ok(keys.getParameters() instanceof UserKeysParameters);
+    assert.strictEqual(keys.getParameters().escrowAttempts, 5);
+    const ctx = await this.newContext();
+    await ctx.init();
+    await assert.rejects(
+      () => runWithContext(ctx, () => keys.registerDevice("laptop")),
+      (e: any) => e instanceof WebdaError.BadRequest && /not attached/.test(e.message)
+    );
+  }
+
+  @test
+  async directCallChecks() {
+    const alice = await this.newUser("alice");
+    const ctx = await this.newContext();
+    await ctx.init();
+    await this.session(ctx, alice);
+    const user = await User.ref(alice).get();
+    // Only known escrow kinds, even when the operation input schema is bypassed
+    await assert.rejects(() => runWithContext(ctx, () => user.keys!.getEscrow("device" as any)), SealedFormatError);
+    // The escrow throttle needs a declared counter on the owner
+    (user as any)._escrowAttempts = undefined;
+    await assert.rejects(
+      () => runWithContext(ctx, () => user.keys!.getEscrow("password")),
+      (e: any) => e instanceof WebdaError.CodeError && e.code === "USERKEYS_THROTTLE_UNDECLARED"
+    );
+    // The last device cannot go when no escrow was ever stored
+    user.keys!.devices = [{ id: "d1", name: "laptop", createdAt: 1 }];
+    user.keys!.__escrows = undefined;
+    await assert.rejects(() => runWithContext(ctx, () => user.keys!.revokeDevice("d1")), WebdaError.Conflict);
   }
 }

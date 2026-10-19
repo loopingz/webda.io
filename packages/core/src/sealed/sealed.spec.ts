@@ -30,7 +30,8 @@ import {
   type SealedEnvelope
 } from "./index.js";
 import { sealWith } from "./ecdh.js";
-import { importAesKey } from "./aead.js";
+import { aeadEncrypt, importAesKey } from "./aead.js";
+import { utf8 } from "./encoding.js";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const rejects = (p: Promise<unknown>, ctor?: new (...a: any[]) => Error) =>
@@ -108,6 +109,63 @@ class SealedTest {
     await rejects(
       decryptKeyring({ ...blob, v: 2 } as any, await createKeyringKey(), "user", [u.recipient]),
       SealedFormatError
+    );
+  }
+
+  @test
+  async malformedInputsRejected() {
+    const u = await newUser();
+    const aad = fieldAad("Note", "u1", "content", u.kid);
+    const env = await sealValue("x", u.recipient, aad);
+    // Ephemeral key present but not a P-256 point, truncated IV
+    await rejects(openValue({ ...env, epk: { kty: "EC" } }, u, aad), SealedFormatError);
+    await assert.rejects(openValue({ ...env, iv: b64u.encode(new Uint8Array(8)) }, u, aad), /Truncated/);
+    // Keyring: active kid without a public key, malformed blob, truncated IV
+    const key = await createKeyringKey();
+    const keyring = await keyringFor(u);
+    await rejects(encryptKeyring(keyring, key, "user", []), KeyringPinError);
+    const blob = await encryptKeyring(keyring, key, "user", [u.recipient]);
+    await rejects(decryptKeyring({ ...blob, kid: 1 } as any, key, "user", [u.recipient]), SealedFormatError);
+    await rejects(
+      decryptKeyring({ ...blob, iv: b64u.encode(new Uint8Array(8)) }, key, "user", [u.recipient]),
+      SealedFormatError
+    );
+    // Authenticated plaintext that is not a keyring
+    const keyringAadOf = async (kid: string) => keyringAad("user", kid, await fingerprint(u.publicJwk));
+    const forge = async (plain: string) => ({
+      v: 1 as const,
+      kid: u.kid,
+      ...(await aeadEncrypt(key, utf8(plain), await keyringAadOf(u.kid)))
+    });
+    await assert.rejects(decryptKeyring(await forge("not json"), key, "user", [u.recipient]), /not valid JSON/);
+    for (const plain of [
+      "null",
+      JSON.stringify({ active: u.kid }),
+      JSON.stringify({ keys: null, active: u.kid }),
+      JSON.stringify({ keys: {}, active: u.kid })
+    ]) {
+      await assert.rejects(decryptKeyring(await forge(plain), key, "user", [u.recipient]), /Malformed keyring/);
+    }
+    // Keyring active kid differs from the blob kid it is authenticated under
+    const other = await newUser();
+    const both = await keyringFor(u, other);
+    await assert.rejects(
+      decryptKeyring(await forge(JSON.stringify({ ...both, active: other.kid })), key, "user", [
+        u.recipient,
+        other.recipient
+      ]),
+      /differs/
+    );
+    // Escrow: unknown kind, missing kdfParams, wrapped key of the wrong length
+    const escrow = await createEscrowBlob("password", "pw", key, "user", "pbkdf2-sha256");
+    await rejects(openEscrowBlob({ ...escrow, kind: "device" } as any, "pw", "user"), SealedFormatError);
+    await rejects(openEscrowBlob({ ...escrow, kdfParams: undefined } as any, "pw", "user"), SealedFormatError);
+    const kek = await deriveKek("pw", crypto.getRandomValues(new Uint8Array(16)), "pbkdf2-sha256", {
+      iterations: 100000
+    });
+    await assert.rejects(
+      unwrapKeyringKey(await aeadEncrypt(kek, new Uint8Array(16), "aad"), kek, "aad"),
+      /Unexpected keyring key length/
     );
   }
 

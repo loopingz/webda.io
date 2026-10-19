@@ -586,4 +586,67 @@ describe("KeyVault", () => {
     // An unknown kid is refused
     await expect(vault.open({ ...env, kid: "unknown" }, CTX)).rejects.toThrow("unknown");
   });
+
+  it("pins on unlock when no pin is stored and registers an unnamed device", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    server.registerFailures = 1;
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const { deviceName: _, ...blob } = JSON.parse((await a.storage.get(`webda-sealed:device:${USER}`))!);
+    await a.storage.set(`webda-sealed:device:${USER}`, JSON.stringify(blob));
+    await a.storage.delete(`webda-sealed:pin:${USER}`);
+    const again = device(server, a.storage).vault;
+    await again.unlock(PASSCODE);
+    expect(await a.storage.get(`webda-sealed:pin:${USER}`)).toBe(await fingerprint(server.publicKeys[0].jwk));
+    expect(server.devices.map(d => d.name)).toEqual(["Device"]);
+    // Every served key retired: no active key to unlock against
+    server.publicKeys[0].retiredAt = Date.now();
+    await expect(device(server, a.storage).vault.unlock(PASSCODE)).rejects.toThrow("no active public key");
+  });
+
+  it("refuses a served keyring that is not the active one or is malformed", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const b = device(server);
+    await b.vault.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "tablet" });
+    const stale = server.keyring!;
+    await a.vault.rotate();
+    const rotated = server.keyring!;
+    // The keyring served with the new active key is still the old one
+    server.keyring = stale;
+    await expect(device(server, b.storage).vault.unlock(PASSCODE)).rejects.toThrow(/not encrypted for the active/);
+    await expect(
+      device(server).vault.unlockWithEscrow({ password: PASSWORD }, { device: PASSCODE, deviceName: "c" })
+    ).rejects.toThrow(/not encrypted for the active/);
+    // A malformed keyring surfaces its own error
+    server.keyring = { ...rotated, v: 99 } as any;
+    await expect(device(server, b.storage).vault.unlock(PASSCODE)).rejects.toThrow(/version 99/);
+    // The served keyring restored: the refresh succeeds
+    server.keyring = rotated;
+    await device(server, b.storage).vault.unlock(PASSCODE);
+  });
+
+  it("rotate refuses without a device blob or with a substituted key", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const blob = (await a.storage.get(`webda-sealed:device:${USER}`))!;
+    await a.storage.delete(`webda-sealed:device:${USER}`);
+    await expect(a.vault.rotate()).rejects.toBeInstanceOf(DeviceNotEnrolledError);
+    await a.storage.set(`webda-sealed:device:${USER}`, blob);
+    await substituteKey(server);
+    await expect(a.vault.rotate()).rejects.toThrow(/differs from the key pinned/);
+  });
+
+  it("reset registers again a device revoked on the server", async () => {
+    const server = new FakeServer();
+    const a = device(server);
+    await a.vault.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    await server.revokeDevice(server.devices[0].id);
+    expect(await a.vault.reset({ password: "new password", device: PASSCODE, deviceName: "laptop" })).toEqual({});
+    expect(server.devices.map(d => d.name)).toEqual(["laptop"]);
+    expect(JSON.parse((await a.storage.get(`webda-sealed:device:${USER}`))!).deviceId).toBe(server.devices[0].id);
+    await device(server, a.storage).vault.unlock(PASSCODE);
+  });
 });

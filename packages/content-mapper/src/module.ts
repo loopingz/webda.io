@@ -1284,11 +1284,11 @@ function processModels(
           relations.queries ??= [];
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find query model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          const targetAttribute = typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined;
           relations.queries.push({
             attribute,
             model,
-            // ModelRelated<T, L, K>: K is the attribute of T linking back
-            targetAttribute: typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined
+            ...(targetAttribute !== undefined ? { targetAttribute } : {})
           });
           break;
         }

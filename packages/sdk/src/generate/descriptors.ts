@@ -53,7 +53,7 @@ export function modelDescriptor(manifest: SdkManifest, model: SdkManifestModel):
     queries: (relations.queries ?? []).map(query => ({
       attribute: query.attribute,
       model: query.model,
-      targetAttribute: query.targetAttribute
+      targetAttribute: query.targetAttribute ?? ""
     })),
     dates: dateAttributes(manifest.schemas[model.schema]),
     operations

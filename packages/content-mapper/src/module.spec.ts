@@ -395,7 +395,7 @@ describe("module relations", () => {
       buildRelations(session.ctx, undefined, classOf(session, "blog.model.ts", "Tag"), name => `Rel/${name}`).queries
     ).toEqual([
       { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
-      { attribute: "untargeted", model: "Rel/Post", targetAttribute: "" }
+      { attribute: "untargeted", model: "Rel/Post" }
     ]);
   });
 
@@ -423,6 +423,27 @@ function committedModule(relative: string): any {
  * committed files are written by the TypeScript 6 generator, so matching them
  * is evidence for the port rather than a restatement of it.
  */
+describe("reverse relation attribute metadata", () => {
+  it("keeps explicit attributes and omits unspecified ones in the discovery helper", () => {
+    const dir = join(here, "..", "test", "parity-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const relations = buildRelations(
+        session.ctx,
+        undefined,
+        classOf(session, "book.model.ts", "Book"),
+        name => `Test/${name}`
+      );
+      expect(relations.queries).toEqual([
+        { attribute: "siblings", model: "Test/Book", targetAttribute: "author" },
+        { attribute: "related", model: "Test/Book" }
+      ]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
 describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])("module for %s", relative => {
   const root = join(repo, relative);
   const committed = committedModule(relative);
@@ -446,6 +467,17 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
       expect(JSON.stringify(got.PrimaryKey), `${name} PrimaryKey`).toBe(JSON.stringify(entry.PrimaryKey));
       expect(JSON.stringify(got.Shared), `${name} Shared`).toBe(JSON.stringify(entry.Shared));
     }
+  });
+
+  it("extracts targetAttribute from typeArguments[2] for ModelRelated", () => {
+    if (relative !== "packages/core" || !committed) return;
+    const userQueries = result!.module.models["Webda/SimpleUser"]?.Relations?.queries;
+    const identsQuery = userQueries?.find(q => q.attribute === "_idents");
+    expect(identsQuery).toEqual({
+      attribute: "_idents",
+      model: "Webda/Ident",
+      targetAttribute: "_user"
+    });
   });
 
   it("matches service commands, capabilities and Configuration", () => {

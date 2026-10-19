@@ -1,5 +1,6 @@
 import {
   callOperation,
+  emitCoreEvent,
   canCallOperation,
   OperationContext,
   registerOperation,
@@ -14,7 +15,7 @@ import {
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { IAMTest } from "../test/fixture.js";
-import { isIAMActive } from "./active.js";
+import { IAM_ALLOWED_OPERATION, isIAMActive } from "./active.js";
 import { PolicyCompileError } from "./conditions.js";
 import { IAMPolicy } from "./iampolicy.model.js";
 import { IAMPolicyAttachment } from "./iampolicyattachment.model.js";
@@ -145,6 +146,18 @@ class IAMServiceTest extends IAMTest {
   async call(ctx: IAMContext, operationId: string) {
     await ctx.init();
     return callOperation(ctx, operationId);
+  }
+
+  @test
+  async dryRunCompletionPreservesTheAmbientAuthorizationDecision() {
+    const context = new OperationContext();
+    for (const event of ["Webda.OperationSuccess", "Webda.OperationFailure"] as const) {
+      context.setExtension(IAM_ALLOWED_OPERATION, "Tasks.Update");
+      await emitCoreEvent(event, { context, operationId: "Tasks.Update", dryRun: true } as any);
+      assert.strictEqual(context.getExtension(IAM_ALLOWED_OPERATION), "Tasks.Update");
+      await emitCoreEvent(event, { context, operationId: "Tasks.Update" } as any);
+      assert.strictEqual(context.getExtension(IAM_ALLOWED_OPERATION), undefined);
+    }
   }
 
   @test

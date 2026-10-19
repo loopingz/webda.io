@@ -89,6 +89,20 @@ class SealedEndToEndTest extends WebdaApplicationTest {
   }
 
   /**
+   * Call `Note.Content.Set` as a user, authenticated now
+   * @param userId - the logged user
+   * @param uuid - the note
+   * @param envelope - the client sealed envelope
+   */
+  async setContent(userId: string, uuid: string, envelope: unknown): Promise<void> {
+    const ctx = await this.newContext({ envelope });
+    await ctx.init();
+    ctx.setParameters({ uuid });
+    ctx.getSession().login(userId, `${userId}:email`);
+    await callOperation(ctx, "Note.Content.Set");
+  }
+
+  /**
    * A fresh device: its own local storage and platform KEK
    * @param userId - the user
    * @returns the vault and its KEK
@@ -179,5 +193,74 @@ class SealedEndToEndTest extends WebdaApplicationTest {
       assert.ok(!/"d":\s*"/.test(text), "private JWK member in the rows");
     }
     assert.ok(this.rows().includes(String(envelope.ct)), "the envelope is stored");
+  }
+  @test
+  async clientSealedValueStoredWithSet() {
+    const User: any = useModel("User");
+    const Note: any = useModel("Note");
+    const alice = String((await User.create({ uuid: "alice-set", displayName: "alice" })).getPrimaryKey());
+    const bob = String((await User.create({ uuid: "bob-set", displayName: "bob" })).getPrimaryKey());
+    const a = await this.device(alice);
+    await a.vault.enroll({ password: PASSWORD, device: a.kek, deviceName: "device A" });
+    const note = new Note();
+    note.setOwner(alice);
+    note.public = true;
+    await Note.getRepository().create(note);
+    const uuid = String(note.getPrimaryKey());
+    const ctx = { modelType: "WebdaDemo/Note", uuid, field: "content" };
+
+    // Device A seals locally and stores the envelope: the server never sees the value
+    const envelope = await a.vault.seal(VALUE, ctx);
+    await this.setContent(alice, uuid, envelope);
+    const stored = await Note.ref(uuid).get();
+    assert.deepStrictEqual(stored.content.toJSON(), envelope);
+    // Only the field was written
+    assert.strictEqual(stored.public, true);
+    assert.strictEqual(stored.getOwner()?.toString(), alice);
+
+    // Another device opens it
+    const b = await this.device(alice);
+    await b.vault.unlockWithEscrow({ password: PASSWORD }, { device: b.kek, deviceName: "device B" });
+    assert.deepStrictEqual(await b.vault.open(stored.content.toJSON(), ctx), VALUE);
+
+    // Malformed envelopes: 400, nothing stored
+    const bad = async (value: unknown) =>
+      assert.rejects(
+        () => this.setContent(alice, uuid, value),
+        (e: any) => e.getResponseCode?.() === 400
+      );
+    const { d: _d, ...epk } = { ...envelope.epk, d: undefined } as any;
+    await bad({ ...envelope, v: 2 });
+    await bad({ ...envelope, iv: "AAAA" });
+    await bad({ ...envelope, iv: "not base64url!" });
+    await bad({ ...envelope, ct: "AAAA" });
+    await bad({ ...envelope, kid: 12 });
+    await bad({ ...envelope, epk: { ...epk, d: envelope.iv } });
+    await bad({ ...envelope, epk: { ...epk, crv: "P-384" } });
+    await bad({ ...envelope, epk: { ...epk, x: envelope.epk.y } });
+    await bad({ v: 1, kid: envelope.kid });
+    await bad(undefined);
+    // Sealed to a key other than the recipient active key: 400
+    const other = await this.device(bob);
+    await other.vault.enroll({ password: PASSWORD, device: other.kek, deviceName: "bob device" });
+    await bad(await other.vault.seal(VALUE, ctx));
+    await bad({ ...envelope, kid: "AAAAAAAAAAAAAAAA" });
+    assert.deepStrictEqual((await Note.ref(uuid).get()).content.toJSON(), envelope);
+
+    // Another user cannot write the note
+    await assert.rejects(
+      () => this.setContent(bob, uuid, envelope),
+      (e: any) => [403, 404].includes(e.getResponseCode?.())
+    );
+
+    // After a rotation, only the new active key is accepted
+    await a.vault.rotate();
+    await bad(envelope);
+    const rotated = await a.vault.seal({ ...VALUE, title: "rotated" }, ctx);
+    await this.setContent(alice, uuid, rotated);
+    assert.deepStrictEqual(await a.vault.open((await Note.ref(uuid).get()).content.toJSON(), ctx), {
+      ...VALUE,
+      title: "rotated"
+    });
   }
 }

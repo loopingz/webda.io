@@ -6777,6 +6777,133 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     },
+    "Webda/Sealed.set.input": {
+      "type": "object",
+      "properties": {
+        "envelope": {
+          "additionalProperties": false,
+          "description": "Sealed value envelope: ECDH-ES (ephemeral key `epk`) + HKDF-SHA-256 + AES-256-GCM",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "epk": {
+              "$ref": "#/definitions/JsonWebKey"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kid": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "epk",
+            "iv",
+            "kid",
+            "v"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "envelope"
+      ],
+      "definitions": {
+        "JsonWebKey": {
+          "additionalProperties": false,
+          "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+          "properties": {
+            "alg": {
+              "type": "string"
+            },
+            "crv": {
+              "type": "string"
+            },
+            "d": {
+              "type": "string"
+            },
+            "dp": {
+              "type": "string"
+            },
+            "dq": {
+              "type": "string"
+            },
+            "e": {
+              "type": "string"
+            },
+            "ext": {
+              "default": false,
+              "type": "boolean"
+            },
+            "k": {
+              "type": "string"
+            },
+            "key_ops": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "kty": {
+              "type": "string"
+            },
+            "n": {
+              "type": "string"
+            },
+            "oth": {
+              "items": {
+                "$ref": "#/definitions/epk%24oth%5B%5D"
+              },
+              "type": "array"
+            },
+            "p": {
+              "type": "string"
+            },
+            "q": {
+              "type": "string"
+            },
+            "qi": {
+              "type": "string"
+            },
+            "use": {
+              "type": "string"
+            },
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "epk$oth[]": {
+          "additionalProperties": false,
+          "properties": {
+            "d": {
+              "type": "string"
+            },
+            "r": {
+              "type": "string"
+            },
+            "t": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "Webda/Sealed.set.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
     "Webda/UserKeys.setup.input": {
       "type": "object",
       "properties": {
@@ -8121,7 +8248,13 @@
     "Webda/Sealed": {
       "Identifier": "Webda/Sealed",
       "Import": "lib/models/sealed.model:SealedField",
-      "Actions": {}
+      "Actions": {
+        "set": {
+          "rest": {
+            "method": "PUT"
+          }
+        }
+      }
     }
   },
   "capabilities": {

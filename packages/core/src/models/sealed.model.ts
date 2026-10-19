@@ -1,5 +1,6 @@
 import { WEBDA_PRIMARY_KEY } from "@webda/models";
 import { useModelId } from "../application/hooks.js";
+import { runAsSystem } from "../contexts/execution.js";
 import { useUserResolver } from "../core/hooks.js";
 import { BadRequest } from "../errors/errors.js";
 import { SealedFormatError, SealedKeyMissingError } from "../errors/sealed.js";
@@ -11,6 +12,8 @@ import {
   type SealedEnvelope
 } from "../sealed/index.js";
 import type { JsonWebKey } from "../sealed/encoding.js";
+import { Action } from "./decorator.js";
+import { assertB64u, checkPublicJwk, isObject } from "./userkeys.model.js";
 
 /**
  * A user that can receive sealed values: its `keys` behavior serves the active public key
@@ -46,6 +49,10 @@ export interface SealedRecipientResolver {
  *
  * The recipient is `seal(value, { user })`, else the model `getSealedRecipient(field)` (the owner for an
  * `OwnerModel`), else the model `getOwner()`.
+ *
+ * A client can also seal the value itself (`KeyVault.seal`) and store the envelope with the `set` action
+ * (`<Model>.<Field>.Set`, `PUT <model>/{uuid}/<field>.set`), authorised by the model `canAct("<field>.set")`: the
+ * server checks the envelope shape and that it is sealed to the recipient active key, it cannot check the content.
  *
  * ```typescript
  * class Note extends OwnerModel {
@@ -97,18 +104,8 @@ export class SealedField<T = any> {
   async seal(value: T, opts?: { user?: string }): Promise<void> {
     const { instance, attribute } = this.getParent();
     const uuid = SealedField.primaryKeyOf(instance);
-    const userId = opts?.user ?? (await SealedField.defaultRecipient(instance, attribute));
-    const user = userId ? ((await useUserResolver().resolve(userId)) as SealedRecipient | undefined) : undefined;
-    const key = await user?.keys?.getActivePublicKey?.();
-    if (typeof key?.kid !== "string" || typeof key.jwk !== "object" || key.jwk === null) {
-      throw new SealedKeyMissingError(
-        userId ? `User ${userId} has no public key` : `No recipient for sealed field ${attribute}`
-      );
-    }
-    const modelId = useModelId(instance);
-    if (!modelId) {
-      throw new Error(`SealedField ${attribute}: the model is not registered`);
-    }
+    const { userId, key } = await SealedField.recipientKey(instance, attribute, opts?.user);
+    const modelId = SealedField.modelIdOf(instance, attribute);
     let envelope: SealedEnvelope;
     try {
       envelope = await sealValue(value, key, fieldAad(modelId, uuid, attribute, key.kid));
@@ -121,6 +118,86 @@ export class SealedField<T = any> {
     }
     const { v, kid, epk, iv, ct } = envelope;
     Object.assign(this, { v, kid, epk, iv, ct });
+  }
+
+  /**
+   * Store an envelope sealed by a client (`KeyVault.seal`) and save this field only (a patch of the attribute)
+   *
+   * Exposed as `<Model>.<Field>.Set`, authorised by the model `canAct("<field>.set")`. The envelope must be well
+   * formed and sealed to the active key of the recipient (resolved as for {@link SealedField.seal}); the server cannot
+   * check that it opens, the AAD the client used (`modelType|uuid|field|kid`) is only verified by the recipient.
+   * @param envelope - sealed envelope `{ v: 1, kid, epk, iv, ct }`
+   * @throws SealedFormatError when the envelope is malformed or not sealed to the recipient active key
+   * @throws SealedKeyMissingError when the recipient is unknown or has no public key
+   */
+  @Action({ rest: { method: "PUT" } })
+  async set(envelope: SealedEnvelope): Promise<void> {
+    const { instance, attribute } = this.getParent();
+    SealedField.primaryKeyOf(instance);
+    const checked = await SealedField.checkEnvelope(envelope);
+    const { key } = await SealedField.recipientKey(instance, attribute);
+    if (checked.kid !== key.kid) {
+      throw new SealedFormatError("The envelope is not sealed to the recipient active public key");
+    }
+    await runAsSystem(() => instance.ref().patch({ [attribute]: checked }));
+    Object.assign(this, checked);
+  }
+
+  /**
+   * Check the shape of a client envelope
+   * @param envelope - submitted envelope
+   * @returns the normalised envelope
+   * @throws SealedFormatError when it is malformed
+   */
+  protected static async checkEnvelope(envelope: unknown): Promise<SealedEnvelope> {
+    if (!isObject(envelope) || envelope.v !== 1) {
+      throw new SealedFormatError("Invalid sealed envelope: v must be 1");
+    }
+    if (typeof envelope.kid !== "string" || !envelope.kid) {
+      throw new SealedFormatError("Invalid sealed envelope: kid must be a string");
+    }
+    assertB64u(envelope.iv, "sealed envelope iv", 12);
+    // GCM tag (16 bytes) and the JSON value
+    assertB64u(envelope.ct, "sealed envelope ciphertext", [16, Infinity]);
+    const { jwk } = await checkPublicJwk(envelope.epk, "ephemeral public key");
+    return { v: 1, kid: envelope.kid, epk: jwk, iv: envelope.iv, ct: envelope.ct };
+  }
+
+  /**
+   * Recipient of the field and its active public key
+   * @param instance - model holding the field
+   * @param attribute - field name
+   * @param user - explicit recipient user id
+   * @returns the recipient id and active key
+   * @throws SealedKeyMissingError when the recipient is unknown or has no public key
+   */
+  protected static async recipientKey(
+    instance: any,
+    attribute: string,
+    user?: string
+  ): Promise<{ userId: string; key: PublicKeyEntry }> {
+    const userId = user ?? (await SealedField.defaultRecipient(instance, attribute));
+    const recipient = userId ? ((await useUserResolver().resolve(userId)) as SealedRecipient | undefined) : undefined;
+    const key = await recipient?.keys?.getActivePublicKey?.();
+    if (typeof key?.kid !== "string" || typeof key.jwk !== "object" || key.jwk === null) {
+      throw new SealedKeyMissingError(
+        userId ? `User ${userId} has no public key` : `No recipient for sealed field ${attribute}`
+      );
+    }
+    return { userId: userId!, key };
+  }
+
+  /**
+   * @param instance - model holding the field
+   * @param attribute - field name
+   * @returns the model identifier, part of the AAD
+   */
+  protected static modelIdOf(instance: any, attribute: string): string {
+    const modelId = useModelId(instance);
+    if (!modelId) {
+      throw new Error(`SealedField ${attribute}: the model is not registered`);
+    }
+    return modelId;
   }
 
   /**

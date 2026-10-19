@@ -40,6 +40,14 @@ await vault.unlock({ kind: "passcode", passcode }); // or { kind: "platform", ke
 const note = await (await fetch(`/api/notes/${uuid}`)).json();
 const content = await vault.open(note.content, { modelType: "MyApp/Note", uuid, field: "content" });
 
+// Seal on the client and store the envelope: the server never sees the value (PUT <model>/{uuid}/<field>.set)
+const envelope = await vault.seal({ title, body }, { modelType: "MyApp/Note", uuid, field: "content" });
+await fetch(`/api/notes/${uuid}/content.set`, {
+  method: "PUT",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ envelope })
+});
+
 // A new device, through an escrow (fresh login required by the server)
 await vault.unlockWithEscrow({ password }, { device: { kind: "passcode", passcode }, deviceName: "Phone" });
 

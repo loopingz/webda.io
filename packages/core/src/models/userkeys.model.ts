@@ -93,7 +93,7 @@ export class UserKeysParameters extends Parameters {
  * @param what - field name, for the error
  * @param length - exact decoded length, or [min, max] when an array
  */
-function assertB64u(value: unknown, what: string, length?: number | [number, number]): void {
+export function assertB64u(value: unknown, what: string, length?: number | [number, number]): void {
   let bytes: Uint8Array;
   try {
     bytes = b64u.decode(value as string);
@@ -110,8 +110,35 @@ function assertB64u(value: unknown, what: string, length?: number | [number, num
  * @param value - value
  * @returns true for a plain object
  */
-function isObject(value: unknown): value is Record<string, any> {
+export function isObject(value: unknown): value is Record<string, any> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Check a P-256 public JWK: no private part, coordinates of 32 bytes, a point on the curve
+ * @param jwk - submitted JWK
+ * @param what - key name, for the errors
+ * @returns the normalised public JWK and its fingerprint
+ */
+export async function checkPublicJwk(jwk: unknown, what: string): Promise<{ jwk: JsonWebKey; fingerprint: string }> {
+  if (!isObject(jwk)) {
+    throw new SealedFormatError(`Invalid ${what}`);
+  }
+  if ("d" in jwk) {
+    throw new SealedFormatError("A private key must never be sent to the server");
+  }
+  if (jwk.kty !== "EC" || jwk.crv !== "P-256") {
+    throw new SealedFormatError(`Invalid ${what}: must be an EC P-256 JWK`);
+  }
+  assertB64u(jwk.x, `${what} x`, 32);
+  assertB64u(jwk.y, `${what} y`, 32);
+  const normalised: JsonWebKey = { kty: "EC", crv: "P-256", x: jwk.x, y: jwk.y };
+  try {
+    // Imports the key: refuses a point that is not on the curve
+    return { jwk: normalised, fingerprint: await fingerprint(normalised) };
+  } catch {
+    throw new SealedFormatError(`Invalid P-256 ${what}`);
+  }
 }
 
 /**
@@ -123,26 +150,11 @@ async function checkPublicKey(publicKey: UserPublicKeyInput): Promise<JsonWebKey
   if (!isObject(publicKey) || typeof publicKey.kid !== "string" || !isObject(publicKey.jwk)) {
     throw new SealedFormatError("Invalid public key");
   }
-  const { jwk } = publicKey;
-  if ("d" in jwk) {
-    throw new SealedFormatError("A private key must never be sent to the server");
-  }
-  if (jwk.kty !== "EC" || jwk.crv !== "P-256") {
-    throw new SealedFormatError("Public key must be an EC P-256 JWK");
-  }
-  assertB64u(jwk.x, "public key x", 32);
-  assertB64u(jwk.y, "public key y", 32);
-  let fp: string;
-  try {
-    // Imports the key: refuses a point that is not on the curve
-    fp = await fingerprint(jwk);
-  } catch {
-    throw new SealedFormatError("Invalid P-256 public key");
-  }
+  const { jwk, fingerprint: fp } = await checkPublicJwk(publicKey.jwk, "public key");
   if (publicKey.kid !== fp.substring(0, KID_LENGTH)) {
     throw new SealedFormatError("Public key kid does not match its fingerprint");
   }
-  return { kty: "EC", crv: "P-256", x: jwk.x, y: jwk.y };
+  return jwk;
 }
 
 /**

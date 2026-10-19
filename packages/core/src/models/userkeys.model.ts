@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Parameters } from "../application/parameters.js";
 import { useBehaviorParameters } from "../application/modelconfiguration.js";
-import { runAsSystem } from "../contexts/execution.js";
+import { runAsSystem, useContext } from "../contexts/execution.js";
 import * as WebdaError from "../errors/errors.js";
 import { Throttled } from "../errors/mfa.js";
 import { SealedFormatError } from "../errors/sealed.js";
@@ -27,6 +27,18 @@ const MAX_KEYRING_LENGTH = 65536;
 
 /** Upper bound of a device name */
 const MAX_DEVICE_NAME = 128;
+
+/** Upper bound of the registered devices */
+export const MAX_DEVICES = 32;
+
+/**
+ * Accepted KDF parameters: the server floors (Argon2id m=64 MiB t=3 p=1, PBKDF2 600 000) up to the client maxima of
+ * `deriveKek`, so a weak escrow (cheap offline brute force) is never stored
+ */
+const KDF_PARAMS: Record<EscrowBlob["kdf"], Record<string, [number, number]>> = {
+  argon2id: { m: [65536, 262144], t: [3, 10], p: [1, 4] },
+  "pbkdf2-sha256": { iterations: [600000, 2000000] }
+};
 
 /** A user public key, the recipient of the values sealed while it is active */
 export interface UserPublicKey {
@@ -67,10 +79,12 @@ export type Escrows = Partial<Record<EscrowKind, EscrowBlob>>;
 
 /** Policy of a UserKeys attribute */
 export class UserKeysParameters extends Parameters {
-  /** Escrow fetches allowed before the lockout, reset when a device registers. @minimum 1 */
+  /** Escrow fetches allowed before the lockout. @minimum 1 */
   escrowAttempts: number = 5;
-  /** Escrow lockout duration, ms. @minimum 0 */
+  /** Escrow lockout duration, ms: the counter decays once it is over. @minimum 0 */
   escrowLockout: number = 900000;
+  /** Maximum authentication age (session `authAt`) for every key action, seconds; 0 disables it. @minimum 0 */
+  reauthMaxAge: number = 300;
 }
 
 /**
@@ -181,8 +195,19 @@ function checkEscrow(kind: EscrowKind, escrow: EscrowBlob): EscrowBlob {
   if (!KDFS.includes(escrow.kdf)) {
     throw new SealedFormatError(`Unsupported kdf ${String(escrow.kdf)}`);
   }
-  if (!isObject(escrow.kdfParams) || !Object.values(escrow.kdfParams).every(v => Number.isInteger(v))) {
-    throw new SealedFormatError("Invalid escrow kdfParams");
+  const bounds = KDF_PARAMS[escrow.kdf];
+  const params = escrow.kdfParams as Record<string, number>;
+  if (
+    !isObject(params) ||
+    Object.keys(params).length !== Object.keys(bounds).length ||
+    !Object.entries(bounds).every(
+      ([name, [min, max]]) => Number.isInteger(params[name]) && params[name] >= min && params[name] <= max
+    )
+  ) {
+    const expected = Object.entries(bounds)
+      .map(([name, [min, max]]) => `${name} ${min}..${max}`)
+      .join(", ");
+    throw new SealedFormatError(`Invalid ${escrow.kdf} kdfParams (${expected})`);
   }
   assertB64u(escrow.salt, "escrow salt", 16);
   assertB64u(escrow.iv, "escrow iv", 12);
@@ -220,8 +245,14 @@ function checkEscrows(escrows: Escrows): Escrows {
  * only, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,
  * throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events
  * (`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be
- * known to have succeeded: every fetch counts, and the counter is reset by `registerDevice`, the proof that the
- * fetched escrow was opened.
+ * known to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after
+ * `escrowLockout`.
+ *
+ * Every action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has
+ * MFA enabled, a verified MFA login (session `mfa: "verified"`).
+ *
+ * Only the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter
+ * incremented concurrently by `getEscrow`.
  * @WebdaBehavior Webda/UserKeys
  */
 export class UserKeys {
@@ -306,11 +337,30 @@ export class UserKeys {
   }
 
   /**
-   * Save the owner (the action was authorised by the operation layer)
+   * Write the `keys` attribute only (the action was authorised by {@link UserKeys.authorize})
    */
   private async saveOwner(): Promise<void> {
     const owner = this.requireOwner();
-    await runAsSystem(() => owner.save());
+    const { publicKeys, __keyring, __escrows, devices } = this;
+    await runAsSystem(() => owner.ref().patch({ keys: { publicKeys, __keyring, __escrows, devices } }));
+  }
+
+  /**
+   * Refuse an action without a recent authentication, or without a verified MFA login when the user has MFA enabled
+   * (401). The operation layer already checked the owner `canAct("keys.<action>")`
+   * @returns the owner
+   */
+  private authorize(): any {
+    const owner = this.requireOwner();
+    const session = useContext().getSession();
+    const { reauthMaxAge } = this.getParameters();
+    if (reauthMaxAge && (!session?.authAt || Date.now() - session.authAt > reauthMaxAge * 1000)) {
+      throw new WebdaError.Unauthorized("Reauthentication required");
+    }
+    if (owner.mfa?.isEnabled?.() && session.mfa !== "verified") {
+      throw new WebdaError.Unauthorized("Verified MFA login required");
+    }
+    return owner;
   }
 
   /**
@@ -321,7 +371,7 @@ export class UserKeys {
    */
   @Action({ rest: { method: "POST" } })
   async setup(publicKey: UserPublicKeyInput, keyring: KeyringBlob, escrows: Escrows): Promise<void> {
-    this.requireOwner();
+    this.authorize();
     if (this.isSetup()) {
       throw new WebdaError.Conflict("Keys are already set up");
     }
@@ -341,11 +391,14 @@ export class UserKeys {
   async getEscrow(
     kind: EscrowKind
   ): Promise<{ escrow: EscrowBlob; keyring: KeyringBlob; publicKeys: UserPublicKey[] }> {
-    const owner = this.requireOwner();
+    const owner = this.authorize();
     checkKind(kind);
     // An undeclared counter is not loaded with the owner: its attempts would never lock
     if (typeof owner._escrowAttempts !== "number") {
-      throw new Error("A model holding UserKeys must declare _escrowAttempts and _lastEscrowAttemptAt");
+      throw new WebdaError.CodeError(
+        "USERKEYS_THROTTLE_UNDECLARED",
+        "A model holding UserKeys must declare _escrowAttempts: number = 0 and _lastEscrowAttemptAt?: number"
+      );
     }
     const { escrowAttempts, escrowLockout } = this.getParameters();
     const throttle = { failedBeforeDelay: escrowAttempts, lockout: escrowLockout };
@@ -366,7 +419,7 @@ export class UserKeys {
    */
   @Action({ rest: { method: "PUT" } })
   async setEscrow(kind: EscrowKind, escrow: EscrowBlob): Promise<void> {
-    this.requireOwner();
+    this.authorize();
     this.requireSetup();
     this.__escrows = { ...this.__escrows, [checkKind(kind)]: checkEscrow(kind, escrow) };
     await this.saveOwner();
@@ -378,7 +431,7 @@ export class UserKeys {
    */
   @Action({ rest: { method: "DELETE" } })
   async removeEscrow(kind: EscrowKind): Promise<void> {
-    this.requireOwner();
+    this.authorize();
     checkKind(kind);
     if (!this.__escrows?.[kind]) {
       throw new WebdaError.NotFound(`No ${kind} escrow`);
@@ -400,7 +453,7 @@ export class UserKeys {
    */
   @Action({ rest: { method: "POST" } })
   async rotate(publicKey: UserPublicKeyInput, keyring: KeyringBlob, escrows?: Escrows): Promise<void> {
-    this.requireOwner();
+    this.authorize();
     this.requireSetup();
     const jwk = await checkPublicKey(publicKey);
     if (this.publicKeys.some(k => k.kid === publicKey.kid)) {
@@ -419,35 +472,40 @@ export class UserKeys {
   }
 
   /**
-   * Register a device that opened the keyring, resetting the escrow fetch counter
+   * Register a device that opened the keyring (at most {@link MAX_DEVICES}, 409 beyond)
    * @param name - device name
    * @returns the device id
    */
   @Action({ rest: { method: "POST" } })
   async registerDevice(name: string): Promise<{ id: string }> {
-    const owner = this.requireOwner();
+    this.authorize();
     this.requireSetup();
     if (typeof name !== "string" || !name.trim() || name.length > MAX_DEVICE_NAME) {
       throw new WebdaError.BadRequest(`Device name must be 1 to ${MAX_DEVICE_NAME} characters`);
     }
+    if (this.devices.length >= MAX_DEVICES) {
+      throw new WebdaError.Conflict(`At most ${MAX_DEVICES} devices can be registered`);
+    }
     const id = randomUUID();
     this.devices.push({ id, name: name.trim(), createdAt: Date.now() });
     await this.saveOwner();
-    await runAsSystem(() => owner.ref().setAttribute("_escrowAttempts", 0));
-    owner._escrowAttempts = 0;
     return { id };
   }
 
   /**
-   * Forget a device (its local blob stays usable until the keyring key is rotated)
+   * Forget a device (its local blob stays usable until the keyring key is rotated); the last device cannot go while
+   * no escrow exists (409)
    * @param id - device id
    */
   @Action({ rest: { method: "DELETE" } })
   async revokeDevice(id: string): Promise<void> {
-    this.requireOwner();
+    this.authorize();
     const index = this.devices.findIndex(d => d.id === id);
     if (index < 0) {
       throw new WebdaError.NotFound("Unknown device");
+    }
+    if (this.devices.length === 1 && Object.keys(this.__escrows ?? {}).length === 0) {
+      throw new WebdaError.Conflict("The last device cannot be revoked while no escrow exists");
     }
     this.devices.splice(index, 1);
     await this.saveOwner();

@@ -4,11 +4,12 @@ import { JSONUtils } from "@webda/utils";
 import { WebdaApplicationTest } from "../test/application.js";
 import { TestApplication } from "../test/objects.js";
 import { User } from "./user.model.js";
-import { UserKeys } from "./userkeys.model.js";
+import { MAX_DEVICES, UserKeys } from "./userkeys.model.js";
 import { callOperation, listOperations } from "../core/operations.js";
 import { AuditService } from "../services/audit.model.js";
 import * as WebdaError from "../errors/errors.js";
 import { Throttled } from "../errors/mfa.js";
+import { runWithContext } from "../contexts/execution.js";
 import { SealedFormatError } from "../errors/sealed.js";
 import {
   b64u,
@@ -107,18 +108,32 @@ class UserKeysTest extends WebdaApplicationTest {
   }
 
   /**
+   * Log a user in a context, authenticated now
+   * @param ctx - context
+   * @param userId - user
+   * @returns the session
+   */
+  async session(ctx: any, userId: string): Promise<any> {
+    const session = ctx.getSession();
+    session.login(userId, `${userId}:email`);
+    session.authAt = Date.now();
+    return session;
+  }
+
+  /**
    * Call a User.Keys operation as a user
    * @param caller - logged user
    * @param uuid - target user
    * @param action - operation suffix, e.g. "Setup"
    * @param body - operation input
+   * @param session - session overrides (default: authenticated now)
    * @returns the parsed output
    */
-  async op(caller: string, uuid: string, action: string, body: any = {}): Promise<any> {
+  async op(caller: string, uuid: string, action: string, body: any = {}, session: any = {}): Promise<any> {
     const ctx = await this.newContext(body);
     await ctx.init();
-    ctx.getSession().login(caller, `${caller}:email`);
     ctx.setParameters({ uuid });
+    Object.assign(await this.session(ctx, caller), session);
     await callOperation(ctx, `User.Keys.${action}`);
     const out = ctx.getOutput();
     return out ? JSON.parse(out) : undefined;
@@ -225,10 +240,32 @@ class UserKeysTest extends WebdaApplicationTest {
       await this.op(alice, alice, "GetEscrow", { kind: "password" });
     }
     await assert.rejects(() => this.op(alice, alice, "GetEscrow", { kind: "password" }), Throttled);
-    // Registering the device proves the escrow was opened: the counter is reset
+    // Nothing resets the counter, not even a device registration (a key save keeps it)
     await this.op(alice, alice, "RegisterDevice", { name: "laptop" });
-    assert.strictEqual((await User.ref(alice).get())._escrowAttempts, 0);
+    assert.strictEqual((await User.ref(alice).get())._escrowAttempts, 6);
+    await assert.rejects(() => this.op(alice, alice, "GetEscrow", { kind: "password" }), Throttled);
+    // The lockout decays: one fetch once it is over, then locked again
+    await User.ref(alice).setAttribute("_lastEscrowAttemptAt", Date.now() - 900001);
     assert.ok(await this.op(alice, alice, "GetEscrow", { kind: "password" }));
+    await assert.rejects(() => this.op(alice, alice, "GetEscrow", { kind: "password" }), Throttled);
+  }
+
+  @test
+  async keyWritesKeepConcurrentAttempts() {
+    const alice = await this.newUser("alice");
+    await this.op(alice, alice, "Setup", await this.material(alice));
+    // An instance loaded before concurrent escrow fetches
+    const stale = await this.keysOf(alice);
+    await this.op(alice, alice, "GetEscrow", { kind: "password" });
+    await this.op(alice, alice, "GetEscrow", { kind: "password" });
+    const ctx = await this.newContext();
+    await ctx.init();
+    await this.session(ctx, alice);
+    await runWithContext(ctx, () => stale.registerDevice("laptop"));
+    // Only `keys` was written: the counter incremented meanwhile is kept
+    const user = await User.ref(alice).get();
+    assert.strictEqual(user._escrowAttempts, 2);
+    assert.strictEqual(user.keys!.devices.length, 1);
   }
 
   @test
@@ -360,6 +397,72 @@ class UserKeysTest extends WebdaApplicationTest {
       [id2]
     );
     await assert.rejects(() => this.op(alice, alice, "RevokeDevice", { id }), WebdaError.NotFound);
+    // Never leave neither an escrow nor a device
+    await this.op(alice, alice, "RemoveEscrow", { kind: "password" });
+    await assert.rejects(() => this.op(alice, alice, "RevokeDevice", { id: id2 }), WebdaError.Conflict);
+    await this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") });
+    await this.op(alice, alice, "RevokeDevice", { id: id2 });
+    assert.deepStrictEqual((await this.keysOf(alice)).devices, []);
+    // At most MAX_DEVICES devices
+    for (let i = 0; i < MAX_DEVICES; i++) {
+      await this.op(alice, alice, "RegisterDevice", { name: `device ${i}` });
+    }
+    await assert.rejects(() => this.op(alice, alice, "RegisterDevice", { name: "one more" }), WebdaError.Conflict);
+    assert.strictEqual((await this.keysOf(alice)).devices.length, MAX_DEVICES);
+  }
+
+  @test
+  async freshAuthenticationRequired() {
+    const alice = await this.newUser("alice");
+    const m = await this.material(alice);
+    const stale = { authAt: Date.now() - 301000 };
+    const unauthorized = (e: any) => e.getResponseCode() === 401 && /Reauthentication required/.test(e.message);
+    await assert.rejects(() => this.op(alice, alice, "Setup", m, stale), unauthorized);
+    await assert.rejects(() => this.op(alice, alice, "Setup", m, { authAt: undefined }), unauthorized);
+    await this.op(alice, alice, "Setup", m);
+    const { id } = await this.op(alice, alice, "RegisterDevice", { name: "laptop" });
+    const next = await this.material(alice, [m.pair], m.keyringKey);
+    const actions: [string, any][] = [
+      ["GetEscrow", { kind: "password" }],
+      ["SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") }],
+      ["RemoveEscrow", { kind: "password" }],
+      ["Rotate", { publicKey: next.publicKey, keyring: next.keyring }],
+      ["RegisterDevice", { name: "phone" }],
+      ["RevokeDevice", { id }]
+    ];
+    for (const [action, body] of actions) {
+      await assert.rejects(() => this.op(alice, alice, action, body, stale), unauthorized, action);
+    }
+    // Nothing changed, no escrow fetch counted
+    const user = await User.ref(alice).get();
+    assert.strictEqual(user._escrowAttempts, 0);
+    assert.deepStrictEqual(user.keys!.__escrows, m.escrows);
+    assert.strictEqual(user.keys!.publicKeys.length, 1);
+    assert.strictEqual(user.keys!.devices.length, 1);
+    // Within reauthMaxAge every action works
+    for (const [action, body] of actions) {
+      await this.op(alice, alice, action, body, { authAt: Date.now() - 299000 });
+    }
+  }
+
+  @test
+  async verifiedMfaRequiredWhenEnabled() {
+    const alice = await this.newUser("alice");
+    const user = await User.ref(alice).get();
+    user.mfa!.getFactor("totp").enabledAt = Date.now();
+    await user.save();
+    assert.ok((await User.ref(alice).get()).mfa!.isEnabled());
+    const m = await this.material(alice);
+    const refused = (e: any) => e.getResponseCode() === 401 && /MFA/.test(e.message);
+    await assert.rejects(() => this.op(alice, alice, "Setup", m), refused);
+    // A pending MFA login is not logged in yet: the user cannot even be read
+    await assert.rejects(
+      () => this.op(alice, alice, "Setup", m, { mfa: "pending" }),
+      (e: any) => e.getResponseCode() === 404
+    );
+    await this.op(alice, alice, "Setup", m, { mfa: "verified" });
+    await assert.rejects(() => this.op(alice, alice, "GetEscrow", { kind: "password" }), refused);
+    assert.ok(await this.op(alice, alice, "GetEscrow", { kind: "password" }, { mfa: "verified" }));
   }
 
   @test
@@ -368,13 +471,19 @@ class UserKeysTest extends WebdaApplicationTest {
     const m = await this.material(alice);
     const priv = await crypto.subtle.exportKey("jwk", m.pair.privateKey);
     const keys = await this.keysOf(alice);
+    const ctx = await this.newContext();
+    await ctx.init();
+    await this.session(ctx, alice);
     // Refused by the operation (input schema or behavior checks) and by the behavior itself
     const bad = async (input: any) => {
       await assert.rejects(
         () => this.op(alice, alice, "Setup", input),
         (e: any) => e.getResponseCode() === 400
       );
-      await assert.rejects(() => keys.setup(input.publicKey, input.keyring, input.escrows), SealedFormatError);
+      await assert.rejects(
+        () => runWithContext(ctx, () => keys.setup(input.publicKey, input.keyring, input.escrows)),
+        SealedFormatError
+      );
     };
     // A private JWK (with d) is refused even when its public part is right
     await bad({ ...m, publicKey: { kid: m.pair.kid, jwk: { ...m.pair.publicJwk, d: priv.d } } });
@@ -393,6 +502,25 @@ class UserKeysTest extends WebdaApplicationTest {
     await bad({ ...m, escrows: { password: { ...m.escrows.password, kdf: "scrypt" } } });
     await bad({ ...m, escrows: { password: { ...m.escrows.password, salt: "+/=" } } });
     await bad({ ...m, escrows: { password: { ...m.escrows.password, kdfParams: "x" } } });
+    // KDF floors (Argon2id m=65536 t=3 p=1, PBKDF2 600000) and maxima, exact parameter names
+    const argon = fakeEscrow("password");
+    for (const kdfParams of [
+      { m: 65535, t: 3, p: 1 },
+      { m: 65536, t: 2, p: 1 },
+      { m: 65536, t: 3, p: 0 },
+      { m: 262145, t: 3, p: 1 },
+      { m: 65536, t: 11, p: 1 },
+      { m: 65536, t: 3, p: 5 },
+      { m: 65536, t: 3 },
+      { m: 65536, t: 3, p: 1, x: 1 },
+      { iterations: 600000 }
+    ]) {
+      await bad({ ...m, escrows: { password: { ...argon, kdfParams } } });
+    }
+    for (const iterations of [599999, 2000001, 600000.5]) {
+      await bad({ ...m, escrows: { password: { ...m.escrows.password, kdfParams: { iterations } } } });
+    }
+    await bad({ ...m, escrows: { password: { ...m.escrows.password, kdfParams: { m: 65536, t: 3, p: 1 } } } });
     assert.strictEqual((await this.keysOf(alice)).publicKeys.length, 0);
     // The valid material is still accepted
     await this.op(alice, alice, "Setup", m);

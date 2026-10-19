@@ -1,5 +1,7 @@
+import { WEBDA_PRIMARY_KEY } from "@webda/models";
 import { useModelId } from "../application/hooks.js";
 import { useUserResolver } from "../core/hooks.js";
+import { BadRequest } from "../errors/errors.js";
 import { SealedFormatError, SealedKeyMissingError } from "../errors/sealed.js";
 import {
   fieldAad,
@@ -36,6 +38,12 @@ export interface SealedRecipientResolver {
  * their private key. The stored data is the envelope `{ v, kid, epk, iv, ct }`, a public output, bound by the AAD
  * `modelType|uuid|field|kid` to its record, attribute and recipient key.
  *
+ * A client opens it with `openValue(envelope, recipient, fieldAad(modelType, uuid, field, envelope.kid))` where:
+ * - `modelType` is the model identifier (`useModelId(model)`, e.g. `"Webda/Note"`)
+ * - `uuid` is `String(model.getPrimaryKey())` (composite keys are joined with the model separator, `_` by default)
+ * - `field` is the attribute name (e.g. `"content"`)
+ * - `kid` is the envelope `kid`
+ *
  * The recipient is `seal(value, { user })`, else the model `getSealedRecipient(field)` (the owner for an
  * `OwnerModel`), else the model `getOwner()`.
  *
@@ -61,10 +69,18 @@ export class SealedField<T = any> {
   ct?: string;
 
   /**
-   * @returns true when a value is stored
+   * @returns true when a complete envelope is stored
    */
   isSet(): boolean {
-    return this.v === 1 && typeof this.kid === "string" && typeof this.ct === "string" && this.ct.length > 0;
+    return (
+      this.v === 1 &&
+      typeof this.kid === "string" &&
+      typeof this.epk === "object" &&
+      this.epk !== null &&
+      typeof this.iv === "string" &&
+      typeof this.ct === "string" &&
+      this.ct.length > 0
+    );
   }
 
   /**
@@ -76,9 +92,11 @@ export class SealedField<T = any> {
    * @param opts.user - recipient user id, instead of the model default
    * @throws SealedKeyMissingError when the recipient is unknown or has no public key
    * @throws SealedFormatError when the recipient public key is malformed
+   * @throws BadRequest when the model has no primary key yet
    */
   async seal(value: T, opts?: { user?: string }): Promise<void> {
     const { instance, attribute } = this.getParent();
+    const uuid = SealedField.primaryKeyOf(instance);
     const userId = opts?.user ?? (await SealedField.defaultRecipient(instance, attribute));
     const user = userId ? ((await useUserResolver().resolve(userId)) as SealedRecipient | undefined) : undefined;
     const key = await user?.keys?.getActivePublicKey?.();
@@ -93,7 +111,7 @@ export class SealedField<T = any> {
     }
     let envelope: SealedEnvelope;
     try {
-      envelope = await sealValue(value, key, fieldAad(modelId, String(instance.getPrimaryKey()), attribute, key.kid));
+      envelope = await sealValue(value, key, fieldAad(modelId, uuid, attribute, key.kid));
     } catch (err) {
       // An invalid stored public key fails its WebCrypto import
       if (err instanceof SealedDataError || (err as Error)?.name === "DataError") {
@@ -113,13 +131,16 @@ export class SealedField<T = any> {
   }
 
   /**
-   * @returns the envelope, undefined when no value is stored
+   * @returns the envelope, undefined when no field is stored, the partial fields as-is when the envelope is incomplete
+   * (corrupted data is kept, not silently dropped)
    */
-  toJSON(): SealedEnvelope | undefined {
-    if (!this.isSet()) {
-      return undefined;
+  toJSON(): SealedEnvelope | Partial<SealedEnvelope> | undefined {
+    const envelope = { v: this.v, kid: this.kid, epk: this.epk, iv: this.iv, ct: this.ct };
+    if (this.isSet()) {
+      return envelope;
     }
-    return { v: this.v, kid: this.kid, epk: this.epk, iv: this.iv, ct: this.ct };
+    const partial = Object.fromEntries(Object.entries(envelope).filter(([, value]) => value !== undefined));
+    return Object.keys(partial).length ? partial : undefined;
   }
 
   /**
@@ -132,6 +153,22 @@ export class SealedField<T = any> {
       throw new Error("SealedField is not attached to a model");
     }
     return parent;
+  }
+
+  /**
+   * Primary key of the record for the AAD
+   * @param instance - model holding the field
+   * @returns `String(getPrimaryKey())`
+   * @throws BadRequest when the key, or a part of a composite key, is not assigned
+   */
+  protected static primaryKeyOf(instance: any): string {
+    const empty = (value: unknown) => value === undefined || value === null || value === "";
+    const fields: readonly string[] = instance[WEBDA_PRIMARY_KEY] ?? [];
+    const key = instance.getPrimaryKey?.();
+    if (empty(key) || fields.some(field => empty(instance[field]))) {
+      throw new BadRequest("Cannot seal before the object has a primary key");
+    }
+    return String(key);
   }
 
   /**

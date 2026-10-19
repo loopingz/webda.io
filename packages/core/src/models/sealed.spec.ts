@@ -15,6 +15,12 @@ const VALUE = { title: "plain-title", body: "plain-body" };
 
 type TestKey = Awaited<ReturnType<typeof generateUserKeyPair>>;
 
+/**
+ * @param field - sealed field
+ * @returns its complete envelope
+ */
+const envelopeOf = (field: SealedField): SealedEnvelope => field.toJSON() as SealedEnvelope;
+
 @suite
 class SealedFieldTest extends WebdaApplicationTest {
   /** Users known to the stub resolver, by id */
@@ -102,13 +108,13 @@ class SealedFieldTest extends WebdaApplicationTest {
     await note.content.seal(VALUE);
     assert.ok(note.content.isSet());
     assert.deepStrictEqual(Object.keys(note.content).sort(), ["ct", "epk", "iv", "kid", "v"]);
-    const env = note.content.toJSON();
+    const env = envelopeOf(note.content);
     assert.strictEqual(env.v, 1);
     assert.strictEqual(env.kid, this.alice.kid);
     assert.deepStrictEqual(await this.open(env, this.alice, note.uuid), VALUE);
     note.content.clear();
     assert.ok(!note.content.isSet());
-    assert.strictEqual(note.content.toJSON(), undefined);
+    assert.strictEqual(envelopeOf(note.content), undefined);
   }
 
   @test
@@ -117,13 +123,13 @@ class SealedFieldTest extends WebdaApplicationTest {
     await note.content.seal(VALUE);
     const leaks = (text: string) => text.includes("plain-");
     assert.ok(!leaks(inspect(note.content, { depth: 10, showHidden: true })));
-    assert.ok(!leaks(JSON.stringify(note.content.toJSON())));
+    assert.ok(!leaks(JSON.stringify(envelopeOf(note.content))));
     assert.ok(!leaks(JSON.stringify(note)));
     await SealedNote.getRepository().create(note);
     const repository: any = SealedNote.getRepository();
     const raw = [...((repository.repository ?? repository).storage as Map<string, string>).values()].join("\n");
     assert.ok(raw.includes(note.uuid));
-    assert.ok(raw.includes(note.content.toJSON().ct), raw);
+    assert.ok(raw.includes(envelopeOf(note.content).ct), raw);
     assert.ok(!leaks(raw), raw);
   }
 
@@ -131,11 +137,11 @@ class SealedFieldTest extends WebdaApplicationTest {
   async aadBindsRecordFieldKid() {
     const note = this.note("alice");
     await note.content.seal(VALUE);
-    const env = note.content.toJSON();
+    const env = envelopeOf(note.content);
     // Copied to another record or field, or relabelled with another kid: the client refuses it
     const other = this.note("alice");
     other.content = Object.assign(new SealedField(), env) as any;
-    await assert.rejects(() => this.open(other.content.toJSON(), this.alice, other.uuid));
+    await assert.rejects(() => this.open(envelopeOf(other.content), this.alice, other.uuid));
     await assert.rejects(() => this.open(env, this.alice, note.uuid, "review"));
     await assert.rejects(() => this.open({ ...env, kid: "otherkid" }, this.alice, note.uuid));
     assert.deepStrictEqual(await this.open(env, this.alice, note.uuid), VALUE);
@@ -145,22 +151,22 @@ class SealedFieldTest extends WebdaApplicationTest {
   async recipientOwnerDefault() {
     const note = this.note("bob");
     await note.content.seal(VALUE);
-    assert.strictEqual(note.content.toJSON().kid, this.bob.kid);
-    assert.deepStrictEqual(await this.open(note.content.toJSON(), this.bob, note.uuid), VALUE);
-    await assert.rejects(() => this.open(note.content.toJSON(), this.alice, note.uuid));
+    assert.strictEqual(envelopeOf(note.content).kid, this.bob.kid);
+    assert.deepStrictEqual(await this.open(envelopeOf(note.content), this.bob, note.uuid), VALUE);
+    await assert.rejects(() => this.open(envelopeOf(note.content), this.alice, note.uuid));
     // The model can choose another recipient per field
     note.reviewer = "alice";
     await note.review.seal("plain-review");
-    assert.strictEqual(note.review.toJSON().kid, this.alice.kid);
-    assert.strictEqual(await this.open(note.review.toJSON(), this.alice, note.uuid, "review"), "plain-review");
+    assert.strictEqual(envelopeOf(note.review).kid, this.alice.kid);
+    assert.strictEqual(await this.open(envelopeOf(note.review), this.alice, note.uuid, "review"), "plain-review");
   }
 
   @test
   async recipientExplicitUser() {
     const note = this.note("alice");
     await note.content.seal(VALUE, { user: "bob" });
-    assert.strictEqual(note.content.toJSON().kid, this.bob.kid);
-    assert.deepStrictEqual(await this.open(note.content.toJSON(), this.bob, note.uuid), VALUE);
+    assert.strictEqual(envelopeOf(note.content).kid, this.bob.kid);
+    assert.deepStrictEqual(await this.open(envelopeOf(note.content), this.bob, note.uuid), VALUE);
   }
 
   @test
@@ -194,27 +200,69 @@ class SealedFieldTest extends WebdaApplicationTest {
       assert.strictEqual((note.content as any)[name], undefined, name);
     }
     // Without a parent record the AAD cannot be built
-    await assert.rejects(() => new SealedField().seal(VALUE));
+    await assert.rejects(() => new SealedField().seal(VALUE), /SealedField is not attached to a model/);
+  }
+
+  @test
+  async primaryKeyRequired() {
+    const note = this.note("alice");
+    for (const uuid of [undefined, null, ""]) {
+      note.uuid = uuid as any;
+      await assert.rejects(
+        () => note.content.seal(VALUE),
+        (err: any) =>
+          err instanceof HttpError &&
+          err.getResponseCode() === 400 &&
+          /Cannot seal before the object has a primary key/.test(err.message)
+      );
+      assert.ok(!note.content.isSet());
+      assert.strictEqual(note.content.toJSON(), undefined);
+    }
+    // A previous value is left unchanged
+    note.uuid = "fixed-uuid";
+    await note.content.seal(VALUE);
+    const before = envelopeOf(note.content);
+    note.uuid = "";
+    await assert.rejects(() => note.content.seal({ title: "other", body: "other" }), HttpError);
+    assert.deepStrictEqual(envelopeOf(note.content), before);
+  }
+
+  @test
+  async partialEnvelopeIsKept() {
+    const note = this.note("alice");
+    await note.content.seal(VALUE);
+    const { epk: _epk, ...partial } = envelopeOf(note.content);
+    const copy = new SealedNote({ uuid: note.uuid, content: partial } as any);
+    assert.ok(copy.content instanceof SealedField);
+    assert.ok(!copy.content.isSet());
+    // Corrupted data is preserved as-is, not dropped
+    assert.deepStrictEqual(copy.content.toJSON(), partial);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(copy)).content, partial);
+    for (const field of ["v", "kid", "iv", "ct"]) {
+      const { [field]: _removed, ...other } = envelopeOf(note.content) as any;
+      assert.ok(!Object.assign(new SealedField(), other).isSet(), field);
+    }
+    assert.strictEqual(new SealedField().toJSON(), undefined);
   }
 
   @test
   async hydrateFromRaw() {
     const note = this.note("alice");
     await note.content.seal(VALUE);
-    const env = note.content.toJSON();
+    const env = envelopeOf(note.content);
     // An instance built from plain data hydrates the behavior
     const copy = new SealedNote({ uuid: note.uuid, content: env } as any);
     assert.ok(copy.content instanceof SealedField);
     assert.ok(copy.review instanceof SealedField && !copy.review.isSet());
     assert.strictEqual((copy.content as any).parent.instance, copy);
     assert.strictEqual((copy.content as any).parent.attribute, "content");
-    assert.deepStrictEqual(copy.content.toJSON(), env);
+    assert.deepStrictEqual(envelopeOf(copy.content), env);
     // Loaded from the store
     await SealedNote.getRepository().create(note);
     const loaded = await SealedNote.ref(note.uuid).get();
     assert.ok(loaded.content instanceof SealedField);
-    assert.deepStrictEqual(loaded.content.toJSON(), env);
-    assert.deepStrictEqual(await this.open(loaded.content.toJSON(), this.alice, loaded.uuid), VALUE);
+    assert.deepStrictEqual(envelopeOf(loaded.content), env);
+    assert.deepStrictEqual(await this.open(envelopeOf(loaded.content), this.alice, loaded.uuid), VALUE);
     // The envelope is a public output
     assert.deepStrictEqual((loaded.toDTO() as any).content, env);
   }

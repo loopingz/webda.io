@@ -35,6 +35,7 @@ export default defineConfig({
       "src/models/user.spec.ts",
       "src/models/password.spec.ts",
       "src/models/encrypted.spec.ts",
+      "src/models/sealed.spec.ts",
       "src/models/mfa.spec.ts",
       "src/queues/*.spec.ts",
       //"src/rest/*.spec.ts",

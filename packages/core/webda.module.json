@@ -5625,6 +5625,11 @@
           }
         }
       }
+    },
+    "Webda/Sealed": {
+      "Identifier": "Webda/Sealed",
+      "Import": "lib/models/sealed.model:SealedField",
+      "Actions": {}
     }
   },
   "capabilities": {

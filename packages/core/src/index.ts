@@ -53,10 +53,12 @@ export * from "./models/registry.model.js";
 export * from "./models/user.model.js";
 export * from "./models/password.model.js";
 export * from "./models/encrypted.model.js";
+export * from "./models/sealed.model.js";
 export * from "./models/mfa.model.js";
 export * from "./utils/totp.js";
 export * from "./utils/throttle.js";
 export * from "./errors/mfa.js";
+export * from "./errors/sealed.js";
 export * from "./models/coremodel.model.js";
 export * from "./models/ownermodel.model.js";
 export * from "./models/rolemodel.model.js";
@@ -144,9 +146,10 @@ export {
 export type { ContentBody, ContentPutOptions, ContentGetOptions, ContentInfo, ContentStorage } from "@webda/utils";
 // Sealed fields: only types and errors are re-exported from the root. The WebCrypto helpers live in
 // `src/sealed/index.ts` (generic names such as `concat`/`utf8` stay out of the root namespace).
+// The root `SealedFormatError` is the HTTP one (400, `errors/sealed.ts`); the isomorphic error of the same name stays
+// in `src/sealed/` and is mapped to it by `SealedField`.
 export {
   KeyringPinError,
-  SealedFormatError,
   type EscrowBlob,
   type Keyring,
   type KeyringBlob,

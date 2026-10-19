@@ -164,6 +164,7 @@ class UserKeysTest extends WebdaApplicationTest {
       "GetEscrow",
       "SetEscrow",
       "RemoveEscrow",
+      "GetKeyring",
       "Rotate",
       "RegisterDevice",
       "RevokeDevice"
@@ -337,10 +338,51 @@ class UserKeysTest extends WebdaApplicationTest {
   }
 
   @test
+  async getKeyringUnthrottled() {
+    const alice = await this.newUser("alice");
+    await assert.rejects(
+      () => this.op(alice, alice, "GetKeyring"),
+      (e: any) => e.getResponseCode() === 412
+    );
+    const m = await this.material(alice);
+    await this.op(alice, alice, "Setup", m);
+    // The encrypted keyring and the public keys, never the escrows; not counted as an escrow fetch
+    for (let i = 0; i < 7; i++) {
+      const res = await this.op(alice, alice, "GetKeyring");
+      assert.deepStrictEqual(Object.keys(res).sort(), ["keyring", "publicKeys"]);
+      assert.deepStrictEqual(res.keyring, m.keyring);
+      assert.deepStrictEqual(
+        res.publicKeys.map((k: any) => k.kid),
+        [m.pair.kid]
+      );
+      assert.ok(!JSON.stringify(res).includes(m.escrows.password.ct));
+    }
+    assert.strictEqual((await User.ref(alice).get())._escrowAttempts, 0);
+    // A device holding the keyring key opens it
+    const { privateKeys } = await decryptKeyring(
+      (await this.op(alice, alice, "GetKeyring")).keyring,
+      m.keyringKey,
+      alice,
+      [m.publicKey]
+    );
+    assert.deepStrictEqual(Object.keys(privateKeys), [m.pair.kid]);
+    // Owner only
+    const bob = await this.newUser("bob");
+    await assert.rejects(
+      () => this.op(bob, alice, "GetKeyring"),
+      (e: any) => [403, 404].includes(e.getResponseCode())
+    );
+  }
+
+  @test
   async escrowKinds() {
     const alice = await this.newUser("alice");
     await assert.rejects(
       () => this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") }),
+      (e: any) => e.getResponseCode() === 412
+    );
+    await assert.rejects(
+      () => this.op(alice, alice, "RemoveEscrow", { kind: "password" }),
       (e: any) => e.getResponseCode() === 412
     );
     await this.op(alice, alice, "Setup", await this.material(alice));
@@ -426,6 +468,7 @@ class UserKeysTest extends WebdaApplicationTest {
       ["GetEscrow", { kind: "password" }],
       ["SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") }],
       ["RemoveEscrow", { kind: "password" }],
+      ["GetKeyring", {}],
       ["Rotate", { publicKey: next.publicKey, keyring: next.keyring }],
       ["RegisterDevice", { name: "phone" }],
       ["RevokeDevice", { id }]

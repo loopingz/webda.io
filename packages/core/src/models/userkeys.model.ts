@@ -254,11 +254,12 @@ function checkEscrows(escrows: Escrows): Escrows {
  * recovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.
  *
  * Actions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, "keys.<action>")` (the user
- * only, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,
- * throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events
+ * only, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out of an escrow, to the
+ * owner, throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events
  * (`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be
  * known to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after
- * `escrowLockout`.
+ * `escrowLockout`. `getKeyring` serves the encrypted keyring alone, unthrottled: it opens nothing without the keyring
+ * key.
  *
  * Every action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has
  * MFA enabled, a verified MFA login (session `mfa: "verified"`).
@@ -425,6 +426,18 @@ export class UserKeys {
   }
 
   /**
+   * Fetch the encrypted keyring, for a device holding the keyring key whose local copy is stale (a rotation by another
+   * device). Not throttled: without the keyring key (kept on the devices and in the escrows) it opens nothing
+   * @returns the encrypted keyring and the public keys to check it against
+   */
+  @Action({ rest: { method: "GET" } })
+  async getKeyring(): Promise<{ keyring: KeyringBlob; publicKeys: UserPublicKey[] }> {
+    this.authorize();
+    this.requireSetup();
+    return { keyring: this.__keyring!, publicKeys: this.publicKeys };
+  }
+
+  /**
    * Create or replace an escrow, from a device holding the keyring key
    * @param kind - escrow kind
    * @param escrow - escrow blob of this kind
@@ -444,6 +457,7 @@ export class UserKeys {
   @Action({ rest: { method: "DELETE" } })
   async removeEscrow(kind: EscrowKind): Promise<void> {
     this.authorize();
+    this.requireSetup();
     checkKind(kind);
     if (!this.__escrows?.[kind]) {
       throw new WebdaError.NotFound(`No ${kind} escrow`);

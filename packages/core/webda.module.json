@@ -4158,7 +4158,7 @@
             "UserKeys": {
               "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": false,
-              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out of an escrow, to the\nowner, throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`. `getKeyring` serves the encrypted keyring alone, unthrottled: it opens nothing without the keyring key.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
               "properties": {
                 "__escrows": {
                   "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
@@ -4589,7 +4589,7 @@
             "UserKeys": {
               "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": false,
-              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out of an escrow, to the\nowner, throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`. `getKeyring` serves the encrypted keyring alone, unthrottled: it opens nothing without the keyring key.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
               "properties": {
                 "__escrows": {
                   "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
@@ -5040,7 +5040,7 @@
             "UserKeys": {
               "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": false,
-              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out of an escrow, to the\nowner, throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`. `getKeyring` serves the encrypted keyring alone, unthrottled: it opens nothing without the keyring key.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
               "properties": {
                 "__escrows": {
                   "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
@@ -5580,7 +5580,7 @@
             "UserKeys": {
               "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": false,
-              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out of an escrow, to the\nowner, throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`. `getKeyring` serves the encrypted keyring alone, unthrottled: it opens nothing without the keyring key.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
               "properties": {
                 "__escrows": {
                   "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
@@ -5999,7 +5999,7 @@
             "UserKeys": {
               "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": false,
-              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out of an escrow, to the\nowner, throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`. `getKeyring` serves the encrypted keyring alone, unthrottled: it opens nothing without the keyring key.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
               "properties": {
                 "__escrows": {
                   "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
@@ -6438,7 +6438,7 @@
             "UserKeys": {
               "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": false,
-              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out of an escrow, to the\nowner, throttled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts and nothing resets the counter, the lockout decays after\n`escrowLockout`. `getKeyring` serves the encrypted keyring alone, unthrottled: it opens nothing without the keyring key.\n\nEvery action requires a recent authentication (session `authAt` younger than `reauthMaxAge`) and, when the user has\nMFA enabled, a verified MFA login (session `mfa: \"verified\"`).\n\nOnly the `keys` attribute is written (a patch): a whole-document save would overwrite the attempts counter\nincremented concurrently by `getEscrow`.",
               "properties": {
                 "__escrows": {
                   "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
@@ -7194,6 +7194,175 @@
           ],
           "type": "object"
         },
+        "JsonWebKey": {
+          "additionalProperties": false,
+          "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+          "properties": {
+            "alg": {
+              "type": "string"
+            },
+            "crv": {
+              "type": "string"
+            },
+            "d": {
+              "type": "string"
+            },
+            "dp": {
+              "type": "string"
+            },
+            "dq": {
+              "type": "string"
+            },
+            "e": {
+              "type": "string"
+            },
+            "ext": {
+              "default": false,
+              "type": "boolean"
+            },
+            "k": {
+              "type": "string"
+            },
+            "key_ops": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "kty": {
+              "type": "string"
+            },
+            "n": {
+              "type": "string"
+            },
+            "oth": {
+              "items": {
+                "$ref": "#/definitions/publicKeys%5B%5D%24jwk%24oth%5B%5D"
+              },
+              "type": "array"
+            },
+            "p": {
+              "type": "string"
+            },
+            "q": {
+              "type": "string"
+            },
+            "qi": {
+              "type": "string"
+            },
+            "use": {
+              "type": "string"
+            },
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "KeyringBlob": {
+          "additionalProperties": false,
+          "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kid": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kid",
+            "v"
+          ],
+          "type": "object"
+        },
+        "UserPublicKey": {
+          "additionalProperties": false,
+          "description": "A user public key, the recipient of the values sealed while it is active",
+          "properties": {
+            "alg": {
+              "const": "ECDH-ES+A256GCM",
+              "description": "Seal algorithm",
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation, ms since epoch",
+              "type": "number"
+            },
+            "jwk": {
+              "$ref": "#/definitions/JsonWebKey",
+              "description": "P-256 public JWK"
+            },
+            "kid": {
+              "description": "Key id: the first 16 characters of the key fingerprint",
+              "type": "string"
+            },
+            "retiredAt": {
+              "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+              "type": "number"
+            }
+          },
+          "required": [
+            "alg",
+            "createdAt",
+            "jwk",
+            "kid"
+          ],
+          "type": "object"
+        },
+        "publicKeys[]$jwk$oth[]": {
+          "additionalProperties": false,
+          "properties": {
+            "d": {
+              "type": "string"
+            },
+            "r": {
+              "type": "string"
+            },
+            "t": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "Webda/UserKeys.getKeyring.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Webda/UserKeys.getKeyring.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "keyring": {
+          "$ref": "#/definitions/KeyringBlob"
+        },
+        "publicKeys": {
+          "items": {
+            "$ref": "#/definitions/UserPublicKey"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "keyring",
+        "publicKeys"
+      ],
+      "type": "object",
+      "definitions": {
         "JsonWebKey": {
           "additionalProperties": false,
           "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
@@ -8192,6 +8361,11 @@
         "getEscrow": {
           "rest": {
             "method": "POST"
+          }
+        },
+        "getKeyring": {
+          "rest": {
+            "method": "GET"
           }
         },
         "setEscrow": {

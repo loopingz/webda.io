@@ -1237,6 +1237,18 @@ function processModels(
       return undefined;
     }
   };
+  // `_user: ModelLink<T>` declared on a generic base: the model's own view of the
+  // property carries the type argument its class tree bound to `T`
+  const instantiatedModelOf = (property: TsSymbol, declaration: ClassDeclaration): string | undefined => {
+    try {
+      const type = ctx.checker.getTypeOfSymbolAtLocation(property, declaration);
+      const [target] = ctx.checker.getTypeArguments(type as any) ?? [];
+      if (!target || (target as any).isTypeParameter?.()) return undefined;
+      return byTypeId.get(declaredId(ctx, target)) ?? dependencyModelOf(ctx, target, appPath);
+    } catch {
+      return undefined;
+    }
+  };
 
   const entries: Record<string, ModelEntry> = {};
   for (const { object, declaration } of models) {
@@ -1265,7 +1277,11 @@ function processModels(
       const typeName = relationTypeOf(text(ctx, (typeNode as any).typeName));
       const addLink = (type: string) => {
         relations.links ??= [];
-        relations.links.push({ attribute, model: modelOf(typeArguments[0]), type });
+        relations.links.push({
+          attribute,
+          model: modelOf(typeArguments[0]) ?? instantiatedModelOf(property, declaration),
+          type
+        });
       };
       switch (typeName) {
         case "ModelParent": {

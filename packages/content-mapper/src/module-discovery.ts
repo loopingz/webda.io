@@ -740,11 +740,16 @@ export function buildRelations(
     if (!typeArguments.length) continue;
 
     const targetName = symbolNameOfTypeNode(ctx, typeArguments[0]);
-    const model = targetName ? resolveModelId(targetName) : undefined;
+    let model = targetName ? resolveModelId(targetName) : undefined;
+    if (!model && LINK_KINDS[typeName]) {
+      // Declared on a generic base: the subclass binds the parameter
+      const instantiated = instantiatedTargetName(ctx, property, cls);
+      model = instantiated ? resolveModelId(instantiated) : undefined;
+    }
 
-    // `ModelLink<T>` on a generic base has no resolvable target. The relation
-    // still exists and is recorded, simply without a `model` — dropping it
-    // loses the link entirely.
+    // `ModelLink<T>` on the generic base itself has no resolvable target. The
+    // relation still exists and is recorded, simply without a `model` —
+    // dropping it loses the link entirely.
     if (typeName === "ModelParent") {
       if (!model) continue;
       relations.parent = { attribute, model };
@@ -768,6 +773,26 @@ export function buildRelations(
   }
 
   return relations;
+}
+
+/**
+ * Class name of the first type argument of a property, as the class sees it:
+ * `_user: ModelLink<T>` inherited by `OwnerModel extends AbstractOwnerModel<User>`
+ * is a `ModelLink<User>` there.
+ * @param ctx - analysis context
+ * @param property - the property symbol
+ * @param cls - the class declaration
+ * @returns the class name, undefined when the argument is still a type parameter
+ */
+function instantiatedTargetName(ctx: AnalysisContext, property: any, cls: any): string | undefined {
+  try {
+    const type = ctx.checker.getTypeOfSymbolAtLocation(property, cls);
+    const [target]: readonly any[] = ctx.checker.getTypeArguments(type as any) ?? [];
+    if (!target || target.isTypeParameter?.()) return undefined;
+    return target.getSymbol?.()?.name;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

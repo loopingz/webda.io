@@ -472,6 +472,13 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     expect(result!.errors).toEqual([]);
     expect(result!.namingViolations).toEqual([]);
   });
+
+  it.runIf(relative === "packages/core")("binds a link declared on a generic base to the subclass argument", () => {
+    if (!committed) return;
+    const linksOf = (model: string) => result!.module.models[model].Relations.links;
+    expect(linksOf("Webda/AbstractOwnerModel")).toEqual([{ attribute: "_user", type: "LINK" }]);
+    expect(linksOf("Webda/OwnerModel")).toEqual([{ attribute: "_user", model: "Webda/User", type: "LINK" }]);
+  });
 });
 
 /**
@@ -502,7 +509,10 @@ describe("model extending a dependency's model", () => {
 
   it("records relations inherited from the dependency's models", () => {
     if (!available) return;
-    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([{ attribute: "_user", type: "LINK" }]);
+    // `_user: ModelLink<T>` is declared on the generic base, `OwnerModel` binds `T` to `User`
+    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([
+      { attribute: "_user", model: "Webda/User", type: "LINK" }
+    ]);
   });
 });
 

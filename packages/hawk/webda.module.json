@@ -60,6 +60,7 @@
         "links": [
           {
             "attribute": "_user",
+            "model": "Webda/User",
             "type": "LINK"
           }
         ]

@@ -2790,6 +2790,477 @@
       ],
       "Identifier": "WebdaDemo/Hardware"
     },
+    "WebdaDemo/Note": {
+      "Plural": "Notes",
+      "Import": "lib/models/note.model:Note",
+      "Relations": {
+        "behaviors": [
+          {
+            "attribute": "content",
+            "behavior": "Webda/Sealed"
+          }
+        ],
+        "links": [
+          {
+            "attribute": "_user",
+            "type": "LINK"
+          }
+        ]
+      },
+      "Ancestors": [
+        "Webda/OwnerModel",
+        "Webda/AbstractOwnerModel"
+      ],
+      "Subclasses": [],
+      "Reflection": {
+        "content": {
+          "type": "SealedField",
+          "typeParameters": [
+            "{ title: string; body: string; }"
+          ]
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/content%232%24epk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "Partial<SealedEnvelope>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "SealedEnvelope": {
+              "additionalProperties": false,
+              "description": "Sealed value envelope: ECDH-ES (ephemeral key `epk`) + HKDF-SHA-256 + AES-256-GCM",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "epk",
+                "iv",
+                "kid",
+                "v"
+              ],
+              "type": "object"
+            },
+            "content#1$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "content#2$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "A private note: its content is sealed end-to-end to the owner, the server only ever stores the envelope\n\nThe owner devices open `content` with their `KeyVault` (`@webda/sealed-client`).",
+          "properties": {
+            "_user": {
+              "description": "Default owner of the object",
+              "type": "string"
+            },
+            "content": {
+              "WebdaBehavior": "Webda/Sealed",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SealedEnvelope"
+                },
+                {
+                  "$ref": "#/definitions/Partial%3CSealedEnvelope%3E"
+                }
+              ],
+              "description": "Sealed to the owner: `await note.content.seal({ title, body })`",
+              "x-webda-sealed": true
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "content",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/content%232%24epk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "Partial<SealedEnvelope>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "SealedEnvelope": {
+              "additionalProperties": false,
+              "description": "Sealed value envelope: ECDH-ES (ephemeral key `epk`) + HKDF-SHA-256 + AES-256-GCM",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "epk",
+                "iv",
+                "kid",
+                "v"
+              ],
+              "type": "object"
+            },
+            "content#1$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "content#2$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "A private note: its content is sealed end-to-end to the owner, the server only ever stores the envelope\n\nThe owner devices open `content` with their `KeyVault` (`@webda/sealed-client`).",
+          "properties": {
+            "_user": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {},
+                {
+                  "allOf": [
+                    {
+                      "additionalProperties": false,
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "type": "object"
+                    }
+                  ]
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "content": {
+              "WebdaBehavior": "Webda/Sealed",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SealedEnvelope"
+                },
+                {
+                  "$ref": "#/definitions/Partial%3CSealedEnvelope%3E"
+                }
+              ],
+              "description": "Sealed to the owner: `await note.content.seal({ title, body })`",
+              "x-webda-sealed": true
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "content",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "WebdaDemo/Note"
+    },
     "WebdaDemo/Project": {
       "Plural": "Projects",
       "Import": "lib/models/project.model:Project",
@@ -4255,6 +4726,10 @@
           {
             "attribute": "mfa",
             "behavior": "Webda/MFA"
+          },
+          {
+            "attribute": "keys",
+            "behavior": "Webda/UserKeys"
           }
         ],
         "queries": [
@@ -4321,6 +4796,15 @@
         "_lastMfaAttemptAt": {
           "type": "number"
         },
+        "keys": {
+          "type": "UserKeys"
+        },
+        "_escrowAttempts": {
+          "type": "number"
+        },
+        "_lastEscrowAttemptAt": {
+          "type": "number"
+        },
         "displayName": {
           "type": "string"
         },
@@ -4343,7 +4827,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/MFA",
+              "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4441,6 +4925,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
+            },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
               "type": "number"
@@ -4473,6 +4965,10 @@
               "readOnly": true,
               "type": "array"
             },
+            "keys": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
+            },
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
@@ -4499,6 +4995,7 @@
             }
           },
           "required": [
+            "_escrowAttempts",
             "_mfaAttempts",
             "company",
             "displayName",
@@ -4515,7 +5012,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/MFA",
+              "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4526,6 +5023,14 @@
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
+            },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
             },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
@@ -4550,6 +5055,10 @@
               "description": "Contain main user email if exists",
               "type": "string"
             },
+            "keys": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
+            },
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
@@ -4573,6 +5082,7 @@
             }
           },
           "required": [
+            "_escrowAttempts",
             "_mfaAttempts",
             "company",
             "displayName",
@@ -4587,7 +5097,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/MFA",
+              "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4685,6 +5195,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
+            },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
               "type": "number"
@@ -4717,6 +5235,10 @@
               "readOnly": true,
               "type": "array"
             },
+            "keys": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
+            },
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
@@ -4743,6 +5265,7 @@
             }
           },
           "required": [
+            "_escrowAttempts",
             "_mfaAttempts",
             "company",
             "displayName",

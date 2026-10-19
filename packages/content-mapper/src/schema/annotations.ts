@@ -58,6 +58,18 @@ export const Annotations = {
 export const SECRET_KEYWORD = "x-webda-secret";
 
 /**
+ * JSON Schema keyword marking a property holding a sealed (end-to-end encrypted) value
+ *
+ * Set on every property typed with the `@WebdaBehavior` class of identifier {@link SEALED_BEHAVIOR} (`SealedField`):
+ * the stored value is an opaque envelope only the recipient devices can open, so it cannot be queried, indexed or
+ * edited by a generic form.
+ */
+export const SEALED_KEYWORD = "x-webda-sealed";
+
+/** Identifier of the `SealedField` behavior */
+export const SEALED_BEHAVIOR = "Webda/Sealed";
+
+/**
  * The value of the {@link SECRET_KEYWORD} keyword for a `@secret` tag
  *
  * Only the leading list of names counts, so prose can follow it:
@@ -156,6 +168,9 @@ export function applyDocs(
     if (tag.name === "secret") {
       target[SECRET_KEYWORD] = secretKeywordValue(tag.text);
       continue;
+    }
+    if (tag.name === "WebdaBehavior" && tag.text.trim().split(/\s+/)[0] === SEALED_BEHAVIOR) {
+      target[SEALED_KEYWORD] = true;
     }
     if (tag.name === "enum") {
       // `@enum ["a", "b"]` lists the values: it replaces the enum a union may

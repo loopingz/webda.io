@@ -65,16 +65,26 @@ export function concat(...parts: Bytes[]): Bytes {
  * They are structurally compatible with the DOM and Node definitions.
  */
 
-/** JSON Web Key (RFC 7517) */
+/** JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable */
 export interface JsonWebKey {
-  kty?: string;
+  alg?: string;
   crv?: string;
+  d?: string;
+  dp?: string;
+  dq?: string;
+  e?: string;
+  ext?: boolean;
+  k?: string;
+  key_ops?: string[];
+  kty?: string;
+  n?: string;
+  oth?: { d?: string; r?: string; t?: string }[];
+  p?: string;
+  q?: string;
+  qi?: string;
+  use?: string;
   x?: string;
   y?: string;
-  d?: string;
-  ext?: boolean;
-  key_ops?: string[];
-  [member: string]: unknown;
 }
 
 /** Asymmetric key pair */

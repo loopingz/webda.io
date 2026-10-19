@@ -1,6 +1,6 @@
 import { aeadDecrypt, aeadEncrypt, assertVersion, decodeField } from "./aead.js";
-import { fingerprint, rawPublic, registerPublicRaw, type PublicKeyEntry } from "./ecdh.js";
-import { b64u, utf8, type Bytes } from "./encoding.js";
+import { fingerprint, rawPublic, type OpenRecipient, type PublicKeyEntry } from "./ecdh.js";
+import { b64u, utf8, type Bytes, type JsonWebKey } from "./encoding.js";
 import { KeyringPinError, SealedFormatError } from "./errors.js";
 
 const subtle = () => globalThis.crypto.subtle;
@@ -9,8 +9,8 @@ const EC = { name: "ECDH", namedCurve: "P-256" } as const;
 /** All private keys of a user (PKCS#8, base64url) by `kid`, and the `kid` used for new sealed values */
 export type Keyring = { keys: Record<string, string>; active: string };
 
-/** Encrypted keyring */
-export type KeyringBlob = { v: 1; iv: string; ct: string };
+/** Encrypted keyring: `kid` is the active key, in clear but bound by the AAD */
+export type KeyringBlob = { v: 1; kid: string; iv: string; ct: string };
 
 /**
  * AAD of an encrypted keyring: pins it to the user and to the active public key
@@ -29,6 +29,16 @@ export function keyringAad(userId: string, kid: string, fp: string): string {
  */
 export function createKeyringKey(): Promise<CryptoKey> {
   return subtle().generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+}
+
+/**
+ * Constant-shape byte comparison
+ * @param a - first array
+ * @param b - second array
+ * @returns true when equal
+ */
+function sameBytes(a: Bytes, b: Bytes): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
 /**
@@ -61,7 +71,7 @@ export async function encryptKeyring(
   publicKeys: PublicKeyEntry[]
 ): Promise<KeyringBlob> {
   const aad = await activeAad(userId, keyring.active, publicKeys);
-  return { v: 1, ...(await aeadEncrypt(keyringKey, utf8(JSON.stringify(keyring)), aad)) };
+  return { v: 1, kid: keyring.active, ...(await aeadEncrypt(keyringKey, utf8(JSON.stringify(keyring)), aad)) };
 }
 
 /**
@@ -70,31 +80,32 @@ export async function encryptKeyring(
  * @param keyringKey - AES-GCM key
  * @param userId - owner
  * @param publicKeys - public keys as served by the server
- * @returns the keyring and its private keys, imported as non-extractable keys
+ * @returns the keyring and, by kid, its non-extractable private keys with their public JWKs
  */
 export async function decryptKeyring(
   blob: KeyringBlob,
   keyringKey: CryptoKey,
   userId: string,
   publicKeys: PublicKeyEntry[]
-): Promise<{ keyring: Keyring; privateKeys: Record<string, CryptoKey> }> {
+): Promise<{ keyring: Keyring; privateKeys: Record<string, OpenRecipient> }> {
   assertVersion(blob, "keyring");
-  // The blob does not name its active key: the AAD binds it, so find the served public key that authenticates it
-  let plain: Bytes | undefined;
-  let authenticatedKid: string | undefined;
-  for (const candidate of publicKeys) {
-    try {
-      plain = await aeadDecrypt(keyringKey, blob, keyringAad(userId, candidate.kid, await fingerprint(candidate.jwk)));
-      authenticatedKid = candidate.kid;
-      break;
-    } catch (err) {
-      if (err instanceof SealedFormatError) {
-        throw err;
-      }
-    }
+  if (typeof blob.kid !== "string") {
+    throw new SealedFormatError("Malformed keyring blob");
   }
-  if (!plain) {
-    throw new KeyringPinError("Keyring authentication failed: wrong key, user or public key");
+  const active = publicKeys.find(p => p.kid === blob.kid);
+  if (!active) {
+    throw new KeyringPinError(`No public key served for active kid ${blob.kid}`);
+  }
+  let plain: Bytes;
+  try {
+    plain = await aeadDecrypt(keyringKey, blob, keyringAad(userId, blob.kid, await fingerprint(active.jwk)));
+  } catch (err) {
+    if (err instanceof SealedFormatError) {
+      throw err;
+    }
+    throw new KeyringPinError(
+      `Keyring authentication failed for kid ${blob.kid}: wrong keyring key, user or public key`
+    );
   }
   let keyring: Keyring;
   try {
@@ -105,10 +116,10 @@ export async function decryptKeyring(
   if (!keyring || typeof keyring.keys !== "object" || !keyring.keys || !keyring.keys[keyring.active]) {
     throw new SealedFormatError("Malformed keyring");
   }
-  if (keyring.active !== authenticatedKid) {
-    throw new KeyringPinError("Active public key does not match the keyring");
+  if (keyring.active !== blob.kid) {
+    throw new KeyringPinError("Keyring active kid differs from the authenticated blob kid");
   }
-  const privateKeys: Record<string, CryptoKey> = {};
+  const privateKeys: Record<string, OpenRecipient> = {};
   for (const [kid, pkcs8] of Object.entries(keyring.keys)) {
     const pub = publicKeys.find(p => p.kid === kid);
     if (!pub) {
@@ -116,13 +127,14 @@ export async function decryptKeyring(
     }
     const bytes = decodeField(pkcs8, "private key");
     const probe = await subtle().importKey("pkcs8", bytes, EC, true, ["deriveBits"]);
-    const jwk = await subtle().exportKey("jwk", probe);
-    if (jwk.x !== pub.jwk.x || jwk.y !== pub.jwk.y) {
+    const { d: _d, ...probePublic } = (await subtle().exportKey("jwk", probe)) as JsonWebKey;
+    if (!sameBytes(await rawPublic(probePublic), await rawPublic(pub.jwk))) {
       throw new KeyringPinError(`Private key ${kid} does not match its public key`);
     }
-    const key = await subtle().importKey("pkcs8", bytes, EC, false, ["deriveBits"]);
-    registerPublicRaw(key, await rawPublic(pub.jwk));
-    privateKeys[kid] = key;
+    privateKeys[kid] = {
+      privateKey: await subtle().importKey("pkcs8", bytes, EC, false, ["deriveBits"]),
+      publicJwk: pub.jwk
+    };
   }
   return { keyring, privateKeys };
 }

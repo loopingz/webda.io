@@ -1,3 +1,5 @@
+import { SealedFormatError } from "./errors.js";
+
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const RECOVERY_CHARS = 26; // 26 * 5 bits = 130 bits
 
@@ -23,4 +25,17 @@ export function normalizeRecoveryCode(input: string): string {
     .replace(/[\s-]+/g, "")
     .replace(/O/g, "0")
     .replace(/[IL]/g, "1");
+}
+
+/**
+ * Normalize and validate a recovery code
+ * @param input - code as typed by the user
+ * @returns the canonical code (26 Crockford characters)
+ */
+export function assertRecoveryCode(input: string): string {
+  const code = normalizeRecoveryCode(input);
+  if (code.length !== RECOVERY_CHARS || ![...code].every(c => CROCKFORD.includes(c))) {
+    throw new SealedFormatError(`Recovery code must be ${RECOVERY_CHARS} Crockford base32 characters`);
+  }
+  return code;
 }

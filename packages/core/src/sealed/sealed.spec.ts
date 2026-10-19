@@ -14,6 +14,7 @@ import {
   encryptKeyring,
   fieldAad,
   fingerprint,
+  assertRecoveryCode,
   generateRecoveryCode,
   generateUserKeyPair,
   keyringAad,
@@ -62,13 +63,13 @@ class SealedTest {
     assert.strictEqual(env.v, 1);
     assert.strictEqual(env.kid, u.kid);
     assert.ok(!JSON.stringify(env).includes("héllo"));
-    assert.deepStrictEqual(await openValue(env, u.privateKey, aad), value);
+    assert.deepStrictEqual(await openValue(env, u, aad), value);
     // Fresh ephemeral key and IV each time
     const env2 = await sealValue(value, u.recipient, aad);
     assert.notStrictEqual(env2.ct, env.ct);
     assert.notDeepStrictEqual(env2.epk, env.epk);
     // Envelope survives JSON serialization
-    assert.deepStrictEqual(await openValue(JSON.parse(JSON.stringify(env)), u.privateKey, aad), value);
+    assert.deepStrictEqual(await openValue(JSON.parse(JSON.stringify(env)), u, aad), value);
   }
 
   @test
@@ -81,7 +82,7 @@ class SealedTest {
       fieldAad("Note", "u1", "content", "otherkid"),
       fieldAad("Other", "u1", "content", u.kid)
     ]) {
-      await rejects(openValue(env, u.privateKey, aad));
+      await rejects(openValue(env, u, aad));
     }
   }
 
@@ -90,7 +91,7 @@ class SealedTest {
     const a = await newUser();
     const b = await newUser();
     const aad = fieldAad("Note", "u1", "content", a.kid);
-    await rejects(openValue(await sealValue("x", a.recipient, aad), b.privateKey, aad));
+    await rejects(openValue(await sealValue("x", a.recipient, aad), b, aad));
   }
 
   @test
@@ -98,10 +99,10 @@ class SealedTest {
     const u = await newUser();
     const aad = fieldAad("Note", "u1", "content", u.kid);
     const env = await sealValue("x", u.recipient, aad);
-    await rejects(openValue({ ...env, v: 2 } as unknown as SealedEnvelope, u.privateKey, aad), SealedFormatError);
-    await rejects(openValue({ ...env, iv: "!!" }, u.privateKey, aad), SealedFormatError);
-    await rejects(openValue({ ...env, epk: undefined } as any, u.privateKey, aad), SealedFormatError);
-    await rejects(openValue(null as any, u.privateKey, aad), SealedFormatError);
+    await rejects(openValue({ ...env, v: 2 } as unknown as SealedEnvelope, u, aad), SealedFormatError);
+    await rejects(openValue({ ...env, iv: "!!" }, u, aad), SealedFormatError);
+    await rejects(openValue({ ...env, epk: undefined } as any, u, aad), SealedFormatError);
+    await rejects(openValue(null as any, u, aad), SealedFormatError);
     const keyring = await keyringFor(u);
     const blob = await encryptKeyring(keyring, await createKeyringKey(), "user", [u.recipient]);
     await rejects(
@@ -145,6 +146,9 @@ class SealedTest {
       decryptKeyring(blob, key, "user-1", [{ kid: a.kid, jwk: evil.publicJwk }, b.recipient]),
       KeyringPinError
     );
+    // AEAD failure on the declared kid has its own message
+    await assert.rejects(decryptKeyring(blob, key, "user-2", pubs), /authentication failed/);
+    await assert.rejects(decryptKeyring(blob, key, "user-1", [a.recipient]), /No public key served/);
     // Missing public key for a kid
     await rejects(decryptKeyring(blob, key, "user-1", [b.recipient]), KeyringPinError);
   }
@@ -179,6 +183,7 @@ class SealedTest {
     const code = generateRecoveryCode();
     const blob = await createEscrowBlob("recovery", code, key, "u", "pbkdf2-sha256");
     await openEscrowBlob(blob, code.toLowerCase().replace(/-/g, " "), "u");
+    await rejects(createEscrowBlob("recovery", "short", key, "u", "pbkdf2-sha256"), SealedFormatError);
     // kdf selects the algorithm: same secret and salt give different keys across kdfs
     await rejects(openEscrowBlob({ ...blob, kdf: "argon2id", kdfParams: { m: 1024, t: 1, p: 1 } }, code, "u"));
     await rejects(openEscrowBlob({ ...blob, kdf: "scrypt" } as any, code, "u"), SealedFormatError);
@@ -189,7 +194,7 @@ class SealedTest {
   async kdfKekWrapPrimitives() {
     const key = await createKeyringKey();
     const salt = crypto.getRandomValues(new Uint8Array(16));
-    const kek = await deriveKek("pw", salt, "pbkdf2-sha256", { iterations: 1000 });
+    const kek = await deriveKek("pw", salt, "pbkdf2-sha256", { iterations: 100000 });
     assert.strictEqual(kek.algorithm.name, "AES-GCM");
     const kekArgon = await deriveKek("pw", salt, "argon2id", { m: 1024, t: 1, p: 1 });
     assert.strictEqual(kekArgon.algorithm.name, "AES-GCM");
@@ -222,6 +227,56 @@ class SealedTest {
     const u = await newUser();
     const blob = await encryptKeyring(await keyringFor(u), key, "u", [u.recipient]);
     await decryptKeyring(blob, out, "u", [u.recipient]);
+  }
+
+  @test
+  async openWithIndependentNonExtractableKey() {
+    const u = await newUser();
+    const aad = fieldAad("Note", "u1", "content", u.kid);
+    const env = await sealValue({ a: 1 }, u.recipient, aad);
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", u.privateKey));
+    const privateKey = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "ECDH", namedCurve: "P-256" }, false, [
+      "deriveBits"
+    ]);
+    assert.strictEqual(privateKey.extractable, false);
+    assert.deepStrictEqual(await openValue(env, { privateKey, publicJwk: u.publicJwk }, aad), { a: 1 });
+    // The public key must be supplied, and must be the right one
+    await rejects(openValue(env, { privateKey } as any, aad), SealedFormatError);
+    await rejects(openValue(env, { privateKey, publicJwk: { kty: "EC" } }, aad), SealedFormatError);
+    await rejects(openValue(env, { privateKey, publicJwk: (await newUser()).publicJwk }, aad));
+    // Keyring private keys carry their public key and need no hidden state
+    const key = await createKeyringKey();
+    const blob = await encryptKeyring(await keyringFor(u), key, "u", [u.recipient]);
+    assert.strictEqual(blob.kid, u.kid);
+    const dec = await decryptKeyring(blob, key, "u", [u.recipient]);
+    assert.strictEqual(dec.privateKeys[u.kid].privateKey.extractable, false);
+    assert.deepStrictEqual(dec.privateKeys[u.kid].publicJwk, u.publicJwk);
+  }
+
+  @test
+  async kdfParamsClamped() {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    for (const [kdf, params] of [
+      ["argon2id", { m: 262145, t: 3, p: 1 }],
+      ["argon2id", { m: 65536, t: 11, p: 1 }],
+      ["argon2id", { m: 65536, t: 3, p: 5 }],
+      ["argon2id", { m: 65536, t: 0, p: 1 }],
+      ["argon2id", {}],
+      ["pbkdf2-sha256", { iterations: 99999 }],
+      ["pbkdf2-sha256", { iterations: 2000001 }],
+      ["pbkdf2-sha256", { iterations: "600000" }]
+    ] as const) {
+      await rejects(deriveKek("pw", salt, kdf, params), SealedFormatError);
+    }
+  }
+
+  @test
+  recoveryCodeValidation() {
+    const code = generateRecoveryCode();
+    assert.strictEqual(assertRecoveryCode(code.toLowerCase()), code.replace(/-/g, ""));
+    for (const bad of ["", "ABC", code + "A", code.replace(/.$/, "U") + "U", "!".repeat(26)]) {
+      assert.throws(() => assertRecoveryCode(bad), SealedFormatError);
+    }
   }
 
   @test
@@ -258,7 +313,10 @@ class SealedTest {
     const env = await sealWith(eph, b64u.decode(s.iv), { kid: s.kid, jwk: s.recipientPublicJwk }, s.value, s.aad);
     assert.deepStrictEqual(env, s.envelope);
     const recipient = await pair(s.recipientPrivateJwk, s.recipientPublicJwk);
-    assert.deepStrictEqual(await openValue(s.envelope, recipient.privateKey, s.aad), s.value);
+    assert.deepStrictEqual(
+      await openValue(s.envelope, { privateKey: recipient.privateKey, publicJwk: s.recipientPublicJwk }, s.aad),
+      s.value
+    );
     // KDF-derived KEKs open frozen wrapped keyring keys
     for (const k of [v.argon2id, v.pbkdf2]) {
       const kek = await deriveKek(k.secret, b64u.decode(k.salt), k.kdf, k.kdfParams);

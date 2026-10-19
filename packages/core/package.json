@@ -24,6 +24,7 @@
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
+    "typecheck:sealed": "tsc -p tsconfig.sealed-dom.json",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "vitest run",

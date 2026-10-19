@@ -14,17 +14,8 @@ export type SealedEnvelope = { v: 1; kid: string; epk: JsonWebKey; iv: string; c
 /** A recipient public key */
 export type PublicKeyEntry = { kid: string; jwk: JsonWebKey };
 
-/** Raw uncompressed public points of private keys, so that opening works with non-extractable private keys */
-const publicRawOf = new WeakMap<CryptoKey, Bytes>();
-
-/**
- * Remember the raw public point of a private key
- * @param privateKey - private key
- * @param publicRaw - matching raw uncompressed public point
- */
-export function registerPublicRaw(privateKey: CryptoKey, publicRaw: Bytes): void {
-  publicRawOf.set(privateKey, publicRaw);
-}
+/** Private key with its public JWK: the public point is part of the HKDF salt, and cannot be read from a non-extractable private key */
+export type OpenRecipient = { privateKey: CryptoKey; publicJwk: JsonWebKey };
 
 /**
  * Raw uncompressed point of a public JWK (private members and key_ops are ignored)
@@ -53,7 +44,6 @@ export async function fingerprint(publicJwk: JsonWebKey): Promise<string> {
 export async function generateUserKeyPair(): Promise<{ privateKey: CryptoKey; publicJwk: JsonWebKey; kid: string }> {
   const pair = (await subtle().generateKey(EC, true, ["deriveBits"])) as CryptoKeyPair;
   const { key_ops: _ops, ext: _ext, ...publicJwk } = (await subtle().exportKey("jwk", pair.publicKey)) as JsonWebKey;
-  registerPublicRaw(pair.privateKey, await rawPublic(publicJwk));
   return { privateKey: pair.privateKey, publicJwk, kid: (await fingerprint(publicJwk)).substring(0, KID_LENGTH) };
 }
 
@@ -140,11 +130,13 @@ export async function sealValue(value: unknown, recipient: PublicKeyEntry, aad: 
 /**
  * Open a sealed value
  * @param env - envelope
- * @param privateKey - recipient private key
+ * @param recipient - recipient private key and its public JWK
+ * @param recipient.privateKey - private key (may be non-extractable)
+ * @param recipient.publicJwk - matching public key
  * @param aad - additional authenticated data the value was sealed with
  * @returns the value
  */
-export async function openValue<T = unknown>(env: SealedEnvelope, privateKey: CryptoKey, aad: string): Promise<T> {
+export async function openValue<T = unknown>(env: SealedEnvelope, recipient: OpenRecipient, aad: string): Promise<T> {
   assertVersion(env, "sealed envelope");
   if (typeof env.kid !== "string" || typeof env.epk !== "object" || env.epk === null) {
     throw new SealedFormatError("Malformed sealed envelope");
@@ -159,13 +151,13 @@ export async function openValue<T = unknown>(env: SealedEnvelope, privateKey: Cr
   } catch {
     throw new SealedFormatError("Invalid ephemeral public key");
   }
-  let recipientRaw = publicRawOf.get(privateKey);
-  if (!recipientRaw) {
-    // Only possible for an extractable private key
-    const { d: _d, key_ops: _ops, ext: _ext, ...pub } = (await subtle().exportKey("jwk", privateKey)) as JsonWebKey;
-    recipientRaw = await rawPublic(pub);
+  let recipientRaw: Bytes;
+  try {
+    recipientRaw = await rawPublic(recipient.publicJwk);
+  } catch {
+    throw new SealedFormatError("Missing or invalid recipient public key");
   }
-  const aes = await deriveAesKey(privateKey, ephemeralKey, ephemeralRaw, recipientRaw);
+  const aes = await deriveAesKey(recipient.privateKey, ephemeralKey, ephemeralRaw, recipientRaw);
   const plain = await aeadDecrypt(aes, env, aad);
   return JSON.parse(new TextDecoder().decode(plain)) as T;
 }

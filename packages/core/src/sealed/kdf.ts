@@ -2,7 +2,7 @@ import { argon2id } from "hash-wasm";
 import { aeadDecrypt, aeadEncrypt, type AeadBlob, assertVersion, decodeField, importAesKey } from "./aead.js";
 import { b64u, utf8, type Bytes } from "./encoding.js";
 import { SealedFormatError } from "./errors.js";
-import { normalizeRecoveryCode } from "./recovery.js";
+import { assertRecoveryCode } from "./recovery.js";
 
 const subtle = () => globalThis.crypto.subtle;
 
@@ -30,7 +30,8 @@ export const ARGON2_DEFAULTS: Argon2Params = { m: 65536, t: 3, p: 1 };
 export const PBKDF2_DEFAULTS: Pbkdf2Params = { iterations: 600000 };
 const SALT_LENGTH = 16;
 
-const isPositiveInt = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n > 0;
+const inRange = (n: unknown, min: number, max: number): n is number =>
+  typeof n === "number" && Number.isInteger(n) && n >= min && n <= max;
 
 /**
  * Derive an AES-GCM-256 KEK from a secret. Both KDFs produce the same key type.
@@ -43,8 +44,8 @@ const isPositiveInt = (n: unknown): n is number => typeof n === "number" && Numb
 export async function deriveKek(secret: string, salt: Bytes, kdf: KdfName, params: object): Promise<CryptoKey> {
   if (kdf === "argon2id") {
     const { m, t, p } = params as Argon2Params;
-    if (!isPositiveInt(m) || !isPositiveInt(t) || !isPositiveInt(p)) {
-      throw new SealedFormatError("Invalid argon2id parameters");
+    if (!inRange(m, 8, 262144) || !inRange(t, 1, 10) || !inRange(p, 1, 4)) {
+      throw new SealedFormatError("Invalid argon2id parameters (m 8..262144 KiB, t 1..10, p 1..4)");
     }
     const raw = await argon2id({
       password: utf8(secret),
@@ -59,8 +60,8 @@ export async function deriveKek(secret: string, salt: Bytes, kdf: KdfName, param
   }
   if (kdf === "pbkdf2-sha256") {
     const { iterations } = params as Pbkdf2Params;
-    if (!isPositiveInt(iterations)) {
-      throw new SealedFormatError("Invalid pbkdf2-sha256 parameters");
+    if (!inRange(iterations, 100000, 2000000)) {
+      throw new SealedFormatError("Invalid pbkdf2-sha256 parameters (iterations 100000..2000000)");
     }
     const base = await subtle().importKey("raw", utf8(secret), "PBKDF2", false, ["deriveKey"]);
     return subtle().deriveKey(
@@ -111,7 +112,7 @@ export function escrowAad(userId: string, kind: EscrowBlob["kind"]): string {
 }
 
 const secretOf = (kind: EscrowBlob["kind"], secret: string) =>
-  kind === "recovery" ? normalizeRecoveryCode(secret) : secret;
+  kind === "recovery" ? assertRecoveryCode(secret) : secret;
 
 /**
  * Create an escrow blob: the keyring key wrapped by a KEK derived from a password or recovery code

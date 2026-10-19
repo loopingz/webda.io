@@ -743,8 +743,8 @@ export function buildRelations(
     let model = targetName ? resolveModelId(targetName) : undefined;
     if (!model && LINK_KINDS[typeName]) {
       // Declared on a generic base: the subclass binds the parameter
-      const instantiated = instantiatedTargetName(ctx, property, cls);
-      model = instantiated ? resolveModelId(instantiated) : undefined;
+      const target = instantiatedLinkTarget(ctx, property, cls);
+      model = target ? resolveModelId(target.getSymbol().name) : undefined;
     }
 
     // `ModelLink<T>` on the generic base itself has no resolvable target. The
@@ -776,23 +776,20 @@ export function buildRelations(
 }
 
 /**
- * Class name of the first type argument of a property, as the class sees it:
- * `_user: ModelLink<T>` inherited by `OwnerModel extends AbstractOwnerModel<User>`
- * is a `ModelLink<User>` there.
+ * Target of a relation property, as the class sees it: `_user: ModelLink<T>`
+ * inherited by `OwnerModel extends AbstractOwnerModel<User>` is a
+ * `ModelLink<User>` there.
  * @param ctx - analysis context
  * @param property - the property symbol
  * @param cls - the class declaration
- * @returns the class name, undefined when the argument is still a type parameter
+ * @returns the first type argument, undefined while it is still a type parameter
  */
-function instantiatedTargetName(ctx: AnalysisContext, property: any, cls: any): string | undefined {
-  try {
-    const type = ctx.checker.getTypeOfSymbolAtLocation(property, cls);
-    const [target]: readonly any[] = ctx.checker.getTypeArguments(type as any) ?? [];
-    if (!target || target.isTypeParameter?.()) return undefined;
-    return target.getSymbol?.()?.name;
-  } catch {
-    return undefined;
-  }
+export function instantiatedLinkTarget(ctx: AnalysisContext, property: any, cls: any): any {
+  const type: any = ctx.checker.getTypeOfSymbolAtLocation(property, cls);
+  // An optional property is `ModelLink<User> | undefined`
+  const reference = (type.isUnionType() ? type.getTypes() : [type]).find((member: any) => member.isTypeReference());
+  const target = ctx.checker.getTypeArguments(reference)[0];
+  return target.isTypeParameter() ? undefined : target;
 }
 
 /**

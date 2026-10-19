@@ -30,6 +30,7 @@ import {
   dependencyModelName,
   discoverWebdaObjects,
   exportedName,
+  instantiatedLinkTarget,
   outputTarget,
   packageOf,
   reflectAttributes,
@@ -1240,14 +1241,8 @@ function processModels(
   // `_user: ModelLink<T>` declared on a generic base: the model's own view of the
   // property carries the type argument its class tree bound to `T`
   const instantiatedModelOf = (property: TsSymbol, declaration: ClassDeclaration): string | undefined => {
-    try {
-      const type = ctx.checker.getTypeOfSymbolAtLocation(property, declaration);
-      const [target] = ctx.checker.getTypeArguments(type as any) ?? [];
-      if (!target || (target as any).isTypeParameter?.()) return undefined;
-      return byTypeId.get(declaredId(ctx, target)) ?? dependencyModelOf(ctx, target, appPath);
-    } catch {
-      return undefined;
-    }
+    const target = instantiatedLinkTarget(ctx, property, declaration);
+    return target && (byTypeId.get(declaredId(ctx, target)) ?? dependencyModelOf(ctx, target, appPath));
   };
 
   const entries: Record<string, ModelEntry> = {};

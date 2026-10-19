@@ -383,6 +383,29 @@ describe("module relations", () => {
     ]);
   });
 
+  it("binds a link declared on a generic base to the subclass type argument", () => {
+    expect(result.module.models["Rel/Owned"].Relations.links).toEqual([
+      { attribute: "owner", type: "LINK" },
+      { attribute: "reader", type: "LINK" }
+    ]);
+    expect(result.module.models["Rel/Draft"].Relations.links).toEqual([
+      { attribute: "owner", model: "Rel/Author", type: "LINK" },
+      { attribute: "reader", model: "Rel/Author", type: "LINK" }
+    ]);
+    // The same in the discovery helper
+    const resolve = (model: string) => (model === "Author" ? "Rel/Author" : undefined);
+    const linksOf = (name: string) =>
+      buildRelations(session.ctx, undefined, classOf(session, "owned.model.ts", name), resolve).links;
+    expect(linksOf("Owned")).toEqual([
+      { attribute: "owner", type: "LINK" },
+      { attribute: "reader", type: "LINK" }
+    ]);
+    expect(linksOf("Draft")).toEqual([
+      { attribute: "owner", model: "Rel/Author", type: "LINK" },
+      { attribute: "reader", model: "Rel/Author", type: "LINK" }
+    ]);
+  });
+
   it("records the attribute a ModelRelated queries", () => {
     expect(result.module.models["Rel/Author"].Relations.queries).toEqual([
       { attribute: "posts", model: "Rel/Post", targetAttribute: "author" }

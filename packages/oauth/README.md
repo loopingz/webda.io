@@ -6,7 +6,7 @@ operations, and the issued access token can only call those.
 
 - Authorization code flow with PKCE (S256), loopback and custom-scheme redirects.
 - Device authorization grant (RFC 8628) for headless machines.
-- Refresh token rotation with reuse detection, through the core `TokenService`.
+- Refresh token rotation with reuse detection (and a grace for a client that lost the answer of its refresh), through the core `TokenService`.
 - Client ID Metadata Documents (clients identified by an `https://` URL) and static clients.
 - Remembered consent, connected-apps operations, token revocation (RFC 7009), authorization server metadata (RFC 8414).
 - Built-in consent, device and result pages, replaceable by your own UI.

@@ -1987,6 +1987,11 @@
             "description": "Access token lifetime in seconds",
             "type": "number"
           },
+          "refreshGrace": {
+            "default": 86400,
+            "description": "Seconds during which a rotated refresh token presented again is rotated once more, as long as the token it was\nexchanged for was never used: a client that lost the answer of its refresh (laptop asleep, network drop)\nretries with the token it still holds instead of losing its session. The unused replacement is retired; if it\nis presented later anyway (two holders), the family is revoked. 0 disables it: any replay revokes the family",
+            "type": "number"
+          },
           "refreshTtl": {
             "default": 2592000,
             "description": "Refresh token lifetime in seconds",
@@ -2979,6 +2984,12 @@
         "rotatedAt": {
           "type": "number"
         },
+        "successor": {
+          "type": "string"
+        },
+        "retiredAt": {
+          "type": "number"
+        },
         "revokedAt": {
           "type": "number"
         },
@@ -3106,6 +3117,10 @@
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
             },
+            "retiredAt": {
+              "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
+              "type": "number"
+            },
             "revokedAt": {
               "description": "Set when revoked",
               "type": "number"
@@ -3116,6 +3131,10 @@
             },
             "scope": {
               "description": "Granted scope (space-separated)",
+              "type": "string"
+            },
+            "successor": {
+              "description": "Hash of the token it was exchanged for: a replay within the grace checks whether that one was ever used",
               "type": "string"
             },
             "userId": {
@@ -3234,6 +3253,10 @@
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
             },
+            "retiredAt": {
+              "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
+              "type": "number"
+            },
             "revokedAt": {
               "description": "Set when revoked",
               "type": "number"
@@ -3244,6 +3267,10 @@
             },
             "scope": {
               "description": "Granted scope (space-separated)",
+              "type": "string"
+            },
+            "successor": {
+              "description": "Hash of the token it was exchanged for: a replay within the grace checks whether that one was ever used",
               "type": "string"
             },
             "userId": {
@@ -3362,6 +3389,10 @@
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
             },
+            "retiredAt": {
+              "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
+              "type": "number"
+            },
             "revokedAt": {
               "description": "Set when revoked",
               "type": "number"
@@ -3372,6 +3403,10 @@
             },
             "scope": {
               "description": "Granted scope (space-separated)",
+              "type": "string"
+            },
+            "successor": {
+              "description": "Hash of the token it was exchanged for: a replay within the grace checks whether that one was ever used",
               "type": "string"
             },
             "userId": {

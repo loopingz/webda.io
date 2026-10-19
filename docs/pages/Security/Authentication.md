@@ -321,8 +321,12 @@ for the certificate's linked user, for that request. See [Client certificates (m
   `Authorization: Bearer <token>`; the scheme is case-insensitive. An invalid Bearer token means anonymous: there is no
   fallback to the session cookie.
 - **Refresh token**: opaque, valid `refreshTtl` seconds (default 2592000, 30 days), stored as a SHA-256 hash. Each
-  `Auth.Refresh` rotates it. Presenting an already used token revokes the whole token family (reuse detection).
-  `TokenService.issue()` refuses a session whose MFA is pending, and the MFA state is persisted with the refresh token.
+  `Auth.Refresh` rotates it. Presenting an already used token revokes the whole token family (reuse detection), with
+  one grace: within `refreshGrace` seconds of the rotation (default 86400), while the token it was exchanged for was
+  never used, the replay is rotated once more and that unused replacement is retired. A client that lost the answer
+  of its refresh (laptop asleep, connection dropped) keeps its session this way; a retired token presented later (two
+  holders) revokes the family. `refreshGrace: 0` restores strict detection. `TokenService.issue()` refuses a session
+  whose MFA is pending, and the MFA state is persisted with the refresh token.
 - `Auth.Logout` revokes the family; access tokens already issued remain valid until they expire.
 
 ### Sessions and password changes

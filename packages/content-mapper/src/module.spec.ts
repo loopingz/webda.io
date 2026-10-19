@@ -395,7 +395,7 @@ describe("module relations", () => {
       buildRelations(session.ctx, undefined, classOf(session, "blog.model.ts", "Tag"), name => `Rel/${name}`).queries
     ).toEqual([
       { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
-      { attribute: "untargeted", model: "Rel/Post", targetAttribute: "" }
+      { attribute: "untargeted", model: "Rel/Post" }
     ]);
   });
 

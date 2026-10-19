@@ -34,6 +34,7 @@
   "packages/ql": "4.0.0-beta.8",
   "packages/runtime": "4.0.0-beta.11",
   "packages/sdk": "4.0.0-beta.4",
+  "packages/sealed-client": "4.0.0-beta.11",
   "packages/serialize": "4.0.0-beta.7",
   "packages/sql": "4.0.0-beta.3",
   "packages/sql-schema": "4.0.0-beta.0",

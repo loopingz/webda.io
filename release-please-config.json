@@ -43,6 +43,7 @@
     "packages/ql": {},
     "packages/runtime": {},
     "packages/sdk": {},
+    "packages/sealed-client": {},
     "packages/serialize": {},
     "packages/sql": {},
     "packages/sql-schema": {},

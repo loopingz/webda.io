@@ -667,6 +667,32 @@ export interface ModelRelations {
   behaviors?: { attribute: string; behavior: string }[];
 }
 
+/**
+ * Relation type aliases of `@webda/models` and the relation type each one is.
+ *
+ * Relations are recognised by the written type name, so an alias has to be
+ * mapped to the type it resolves to. `ManyToMany<T, K = object>` always
+ * resolves to `ModelLinksArray` (`object extends object`), and `Contains<T>`
+ * is `ManyToMany<T>`.
+ */
+export const RELATION_TYPE_ALIASES: Record<string, string> = {
+  BelongTo: "ModelParent",
+  RelateTo: "ModelLink",
+  ManyToOne: "ModelLink",
+  OneToOne: "ModelLink",
+  OneToMany: "ModelRelated",
+  ManyToMany: "ModelLinksArray",
+  Contains: "ModelLinksArray"
+};
+
+/**
+ * @param typeName - a written type name
+ * @returns the relation type it is: the alias target, or the name itself
+ */
+export function relationTypeOf(typeName: string): string {
+  return RELATION_TYPE_ALIASES[typeName] ?? typeName;
+}
+
 /** `ModelLink*` type names and the link kind each records. */
 const LINK_KINDS: Record<string, string> = {
   ModelLink: "LINK",
@@ -679,7 +705,8 @@ const LINK_KINDS: Record<string, string> = {
  * Build a model's `Relations` entry.
  *
  * Relation kinds are recognised by the written type name — `ModelParent`,
- * `ModelRelated`, the `ModelLink*` family — and the referenced model is
+ * `ModelRelated`, the `ModelLink*` family and their aliases (`BelongTo`,
+ * `ManyToMany`, ... see {@link RELATION_TYPE_ALIASES}) — and the referenced model is
  * resolved to its namespaced identifier so the graph is expressed in module
  * terms rather than class names.
  * @param ctx - analysis context
@@ -708,7 +735,7 @@ export function buildRelations(
     const typeNode = (member as any).type;
     if (!typeNode || !is.isTypeReferenceNode(typeNode)) continue;
 
-    const typeName = ctx.textOf(owner, (typeNode as any).typeName);
+    const typeName = relationTypeOf(ctx.textOf(owner, (typeNode as any).typeName));
     const typeArguments = (typeNode as any).typeArguments ?? [];
     if (!typeArguments.length) continue;
 

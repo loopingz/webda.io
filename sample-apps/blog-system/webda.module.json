@@ -80,7 +80,20 @@
     "WebdaSample/Comment": {
       "Plural": "Comments",
       "Import": "lib/models/Comment.model:Comment",
-      "Relations": {},
+      "Relations": {
+        "links": [
+          {
+            "attribute": "post",
+            "model": "WebdaSample/Post",
+            "type": "LINK"
+          },
+          {
+            "attribute": "author",
+            "model": "WebdaSample/User",
+            "type": "LINK"
+          }
+        ]
+      },
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
@@ -97,13 +110,13 @@
           "type": "boolean"
         },
         "post": {
-          "type": "BelongTo",
+          "type": "ManyToOne",
           "typeParameters": [
             "Post"
           ]
         },
         "author": {
-          "type": "BelongTo",
+          "type": "ManyToOne",
           "typeParameters": [
             "User"
           ]
@@ -119,9 +132,7 @@
           "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "content": {
@@ -142,9 +153,7 @@
               "type": "boolean"
             },
             "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "updatedAt": {
@@ -176,9 +185,7 @@
           "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "content": {
@@ -193,9 +200,7 @@
               "type": "boolean"
             },
             "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "uuid": {
@@ -219,9 +224,7 @@
           "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "content": {
@@ -242,9 +245,7 @@
               "type": "boolean"
             },
             "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "updatedAt": {
@@ -306,6 +307,23 @@
             "attribute": "images",
             "behavior": "Webda/BinariesImpl"
           }
+        ],
+        "links": [
+          {
+            "attribute": "author",
+            "model": "WebdaSample/User",
+            "type": "LINK"
+          },
+          {
+            "attribute": "comments",
+            "model": "WebdaSample/Comment",
+            "type": "LINKS_ARRAY"
+          },
+          {
+            "attribute": "tags",
+            "model": "WebdaSample/Tag",
+            "type": "LINKS_ARRAY"
+          }
         ]
       },
       "Ancestors": [],
@@ -354,7 +372,7 @@
           "type": "Date"
         },
         "author": {
-          "type": "BelongTo",
+          "type": "ManyToOne",
           "typeParameters": [
             "User"
           ]
@@ -445,9 +463,7 @@
           "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "comments": {
@@ -522,8 +538,7 @@
               "enum": [
                 "draft",
                 "published",
-                "archived",
-                true
+                "archived"
               ],
               "type": "string"
             },
@@ -588,9 +603,7 @@
           "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "comments": {
@@ -640,8 +653,7 @@
               "enum": [
                 "draft",
                 "published",
-                "archived",
-                true
+                "archived"
               ],
               "type": "string"
             },
@@ -762,9 +774,7 @@
           "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "comments": {
@@ -839,8 +849,7 @@
               "enum": [
                 "draft",
                 "published",
-                "archived",
-                true
+                "archived"
               ],
               "type": "string"
             },
@@ -928,7 +937,20 @@
     "WebdaSample/PostTag": {
       "Plural": "PostTags",
       "Import": "lib/models/PostTag.model:PostTag",
-      "Relations": {},
+      "Relations": {
+        "links": [
+          {
+            "attribute": "post",
+            "model": "WebdaSample/Post",
+            "type": "LINK"
+          },
+          {
+            "attribute": "tag",
+            "model": "WebdaSample/Tag",
+            "type": "LINK"
+          }
+        ]
+      },
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
@@ -936,7 +958,7 @@
           "type": "Date"
         },
         "post": {
-          "type": "BelongTo",
+          "type": "ManyToOne",
           "typeParameters": [
             "Post"
           ]
@@ -960,9 +982,7 @@
               "type": "string"
             },
             "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "tag": {
@@ -989,9 +1009,7 @@
               "type": "string"
             },
             "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "tag": {
@@ -1018,9 +1036,7 @@
               "type": "string"
             },
             "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "tag": {
@@ -1063,7 +1079,15 @@
     "WebdaSample/Tag": {
       "Plural": "Tags",
       "Import": "lib/models/Tag.model:Tag",
-      "Relations": {},
+      "Relations": {
+        "queries": [
+          {
+            "attribute": "posts",
+            "model": "WebdaSample/Post",
+            "targetAttribute": "tags"
+          }
+        ]
+      },
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
@@ -1223,7 +1247,30 @@
     "WebdaSample/User": {
       "Plural": "Users",
       "Import": "lib/models/User.model:User",
-      "Relations": {},
+      "Relations": {
+        "queries": [
+          {
+            "attribute": "posts",
+            "model": "WebdaSample/Post",
+            "targetAttribute": "author"
+          },
+          {
+            "attribute": "comments",
+            "model": "WebdaSample/Comment",
+            "targetAttribute": "author"
+          },
+          {
+            "attribute": "followers",
+            "model": "WebdaSample/UserFollow",
+            "targetAttribute": "following"
+          },
+          {
+            "attribute": "following",
+            "model": "WebdaSample/UserFollow",
+            "targetAttribute": "follower"
+          }
+        ]
+      },
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
@@ -1451,7 +1498,20 @@
     "WebdaSample/UserFollow": {
       "Plural": "UserFollows",
       "Import": "lib/models/UserFollow.model:UserFollow",
-      "Relations": {},
+      "Relations": {
+        "links": [
+          {
+            "attribute": "follower",
+            "model": "WebdaSample/User",
+            "type": "LINK"
+          },
+          {
+            "attribute": "following",
+            "model": "WebdaSample/User",
+            "type": "LINK"
+          }
+        ]
+      },
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
@@ -1459,13 +1519,13 @@
           "type": "Date"
         },
         "follower": {
-          "type": "BelongTo",
+          "type": "ManyToOne",
           "typeParameters": [
             "User"
           ]
         },
         "following": {
-          "type": "BelongTo",
+          "type": "ManyToOne",
           "typeParameters": [
             "User"
           ]
@@ -1483,15 +1543,11 @@
               "type": "string"
             },
             "follower": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "following": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             }
           },
@@ -1514,15 +1570,11 @@
               "type": "string"
             },
             "follower": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "following": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             }
           },
@@ -1545,15 +1597,11 @@
               "type": "string"
             },
             "follower": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             },
             "following": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "description": "Alias for a many-to-one relation (foreign key link).",
               "type": "string"
             }
           },

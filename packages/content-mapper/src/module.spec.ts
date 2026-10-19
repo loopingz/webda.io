@@ -338,6 +338,75 @@ describe("module model aliases", () => {
   });
 });
 
+describe("module relations", () => {
+  const dir = join(here, "..", "test", "relation-fixture");
+  let session: Session;
+  let result: ReturnType<typeof generateWebdaModule>;
+  beforeAll(() => {
+    session = openSession(join(dir, "tsconfig.json"), dir);
+    result = generateWebdaModule(session.ctx, {
+      appPath: dir,
+      rootDir: join(dir, "src"),
+      outDir: join(dir, "lib"),
+      namespace: "Rel"
+    });
+  }, 120_000);
+  afterAll(() => session?.dispose());
+
+  it("records the relation aliases as the relation type they resolve to", () => {
+    expect(result.module.models["Rel/Post"].Relations).toEqual({
+      parent: { attribute: "author", model: "Rel/Author" },
+      links: [
+        { attribute: "editor", model: "Rel/Author", type: "LINK" },
+        { attribute: "reviewer", model: "Rel/Author", type: "LINK" },
+        { attribute: "sponsor", model: "Rel/Author", type: "LINK" },
+        { attribute: "tags", model: "Rel/Tag", type: "LINKS_ARRAY" },
+        { attribute: "labels", model: "Rel/Tag", type: "LINKS_ARRAY" },
+        { attribute: "related", model: "Rel/Post", type: "LINKS_SIMPLE_ARRAY" }
+      ]
+    });
+    // The same in the discovery helper
+    const relations = buildRelations(
+      session.ctx,
+      undefined,
+      classOf(session, "blog.model.ts", "Post"),
+      name => `Rel/${name}`
+    );
+    expect(relations.parent).toEqual({ attribute: "author", model: "Rel/Author" });
+    expect(relations.links?.map(link => link.type)).toEqual([
+      "LINK",
+      "LINK",
+      "LINK",
+      "LINKS_ARRAY",
+      "LINKS_ARRAY",
+      "LINKS_SIMPLE_ARRAY"
+    ]);
+  });
+
+  it("records the attribute a ModelRelated queries", () => {
+    expect(result.module.models["Rel/Author"].Relations.queries).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "author" }
+    ]);
+    expect(result.module.models["Rel/Tag"].Relations.queries).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
+      { attribute: "untargeted", model: "Rel/Post" }
+    ]);
+    expect(
+      buildRelations(session.ctx, undefined, classOf(session, "blog.model.ts", "Tag"), name => `Rel/${name}`).queries
+    ).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
+      { attribute: "untargeted", model: "Rel/Post", targetAttribute: "" }
+    ]);
+  });
+
+  it("refuses a second parent", () => {
+    expect(result.errors).toEqual([
+      "Rel/Comment has two parents, post and thread: a model has one ModelParent (BelongTo) at most, use ModelLink " +
+        "(ManyToOne) for the other"
+    ]);
+  });
+});
+
 /**
  * Committed module of a package, when its dependencies are installed.
  * @param relative - repo-relative package directory

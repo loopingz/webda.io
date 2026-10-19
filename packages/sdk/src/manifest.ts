@@ -243,10 +243,10 @@ export class SdkManifestBuilder {
   }
 
   /**
-   * The relations of a model, with the `targetAttribute` of its queries resolved to a real attribute of the target:
-   * the module metadata records the type name of `ModelRelated<Target, This, "attribute">` there (`Company` for
-   * `company`, `User` for `_user`), so the back-reference is taken from the target's parent relation when it points
-   * here, else matched on the target schema ignoring case
+   * Copy relations, resolving legacy query target type names to real attributes.
+   * Current metadata records the third argument of `ModelRelated<Target, This, "attribute">`;
+   * older metadata recorded the second argument instead. Preserve explicit attributes and
+   * use the target's parent or a case-insensitive schema match for legacy metadata.
    * @param id - the model id
    * @param relations - its metadata relations (frozen)
    * @param models - every model class, by id
@@ -257,14 +257,14 @@ export class SdkManifestBuilder {
     for (const query of copy.queries ?? []) {
       const target = models[query.model]?.Metadata;
       if (!target) continue;
+      const properties = Object.keys(target.Schemas?.Output?.properties ?? target.Schemas?.Input?.properties ?? {});
+      if (properties.includes(query.targetAttribute)) continue;
       const parent = target.Relations?.parent;
       if (parent?.model === id) {
         query.targetAttribute = parent.attribute;
         continue;
       }
       if (!query.targetAttribute) continue;
-      const properties = Object.keys(target.Schemas?.Output?.properties ?? target.Schemas?.Input?.properties ?? {});
-      if (properties.includes(query.targetAttribute)) continue;
       const wanted = query.targetAttribute.toLowerCase();
       const match = properties.find(
         property => property.toLowerCase() === wanted || property.toLowerCase() === `_${wanted}`

@@ -142,3 +142,14 @@ export {
   ContentStorageNotFoundError
 } from "@webda/utils";
 export type { ContentBody, ContentPutOptions, ContentGetOptions, ContentInfo, ContentStorage } from "@webda/utils";
+// Sealed fields: only types and errors are re-exported from the root. The WebCrypto helpers live in
+// `src/sealed/index.ts` (generic names such as `concat`/`utf8` stay out of the root namespace).
+export {
+  KeyringPinError,
+  SealedFormatError,
+  type EscrowBlob,
+  type Keyring,
+  type KeyringBlob,
+  type PublicKeyEntry,
+  type SealedEnvelope
+} from "./sealed/index.js";

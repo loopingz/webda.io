@@ -46,6 +46,7 @@ export default defineConfig({
       "src/rest/websocket.spec.ts",
       "src/rest/reststream.spec.ts",
       "src/schemas/*.spec.ts",
+      "src/sealed/*.spec.ts",
       "src/services/cloudbinary.spec.ts",
       "src/services/cron.spec.ts",
       "src/services/cryptoservice.spec.ts",

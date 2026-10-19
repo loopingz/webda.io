@@ -1,0 +1,124 @@
+{
+  "description": "Conformance vectors. seal: envelope {v,kid,epk,iv,ct}; ct = AES-256-GCM(JSON(value)) with AAD=UTF-8(aad); AES key = HKDF-SHA-256(ECDH(ephemeralPriv, recipientPub), salt=ephemeralPubRaw[65]||recipientPubRaw[65], info='webda-sealed-v1'); kid = first 16 chars of fingerprint = b64u(SHA-256(recipientPubRaw)). argon2id/pbkdf2: AES-256 KEK from secret+salt+params wraps the 32-byte keyring key with AES-GCM (aad given). keyring: AES-GCM of JSON(keyring), AAD='webda-keyring|userId|kid|fingerprint'. All binary is base64url without padding.",
+  "aad": {
+    "field": "Note|u1|content|kid1",
+    "keyring": "webda-keyring|user-1|kid1|FP"
+  },
+  "seal": {
+    "kid": "zoDrZ-GRM--fYedo",
+    "recipientPrivateJwk": {
+      "key_ops": [
+        "deriveBits"
+      ],
+      "ext": true,
+      "kty": "EC",
+      "x": "lcIxj-Up38QYpzcyULD8E9ldXbg_PJD6eehxEkj38ZI",
+      "y": "e2Ac1IkuW0HXkQPGMo8SbruQz9Rp1Mg8CIPxUc5tH4M",
+      "crv": "P-256",
+      "d": "oZqZNGAj75WmpKW0-7Jkxv-oPsnOVkCN64dDTZSe6Ss"
+    },
+    "recipientPublicJwk": {
+      "key_ops": [],
+      "ext": true,
+      "kty": "EC",
+      "x": "lcIxj-Up38QYpzcyULD8E9ldXbg_PJD6eehxEkj38ZI",
+      "y": "e2Ac1IkuW0HXkQPGMo8SbruQz9Rp1Mg8CIPxUc5tH4M",
+      "crv": "P-256"
+    },
+    "recipientFingerprint": "zoDrZ-GRM--fYedo-FX4GnoJZYkDU2WsYrjWSSO8Ri0",
+    "ephemeralPrivateJwk": {
+      "key_ops": [
+        "deriveBits"
+      ],
+      "ext": true,
+      "kty": "EC",
+      "x": "JiFJHZOJiUnoMzowjfWCGZwxGbz57gHB3W3xfQyVHbs",
+      "y": "k3vVt4zXnwGSqDk8H0X8aRY6oG_0U9kfzU9Sy4PUPXA",
+      "crv": "P-256",
+      "d": "OGqYTAkIdxhTlYZqtJOv5R72pr22wuirUoaxUetKSYU"
+    },
+    "ephemeralPublicJwk": {
+      "key_ops": [],
+      "ext": true,
+      "kty": "EC",
+      "x": "JiFJHZOJiUnoMzowjfWCGZwxGbz57gHB3W3xfQyVHbs",
+      "y": "k3vVt4zXnwGSqDk8H0X8aRY6oG_0U9kfzU9Sy4PUPXA",
+      "crv": "P-256"
+    },
+    "iv": "jYz_PMiU6p_n-rzW",
+    "value": {
+      "title": "vector",
+      "n": [
+        1,
+        2
+      ]
+    },
+    "aad": "Note|u1|content|zoDrZ-GRM--fYedo",
+    "envelope": {
+      "v": 1,
+      "kid": "zoDrZ-GRM--fYedo",
+      "epk": {
+        "kty": "EC",
+        "x": "JiFJHZOJiUnoMzowjfWCGZwxGbz57gHB3W3xfQyVHbs",
+        "y": "k3vVt4zXnwGSqDk8H0X8aRY6oG_0U9kfzU9Sy4PUPXA",
+        "crv": "P-256"
+      },
+      "iv": "jYz_PMiU6p_n-rzW",
+      "ct": "XcgHCQ7k_jzeBmBISPuik5GSa-iR6IpEtRllt5yN5Qu1kReK1zP0XE1G2QU"
+    }
+  },
+  "argon2id": {
+    "kdf": "argon2id",
+    "kdfParams": {
+      "m": 65536,
+      "t": 3,
+      "p": 1
+    },
+    "secret": "correct horse battery staple",
+    "salt": "pvIBCRBSomnN9Ay--_FVDQ",
+    "aad": "webda-escrow|user-1|password",
+    "keyringKey": "NJV4kreqLJ9geH_92Ppca_nN1fu0cII33vjeMVSTPgs",
+    "wrapped": {
+      "iv": "_Ee38MnOhTtUbNuL",
+      "ct": "uZlmyUsejtbH9BgpL0GsUtFcar8NkOMiiEDrhih5GDDb4y_GioJfj7_FOR7YScop"
+    }
+  },
+  "pbkdf2": {
+    "kdf": "pbkdf2-sha256",
+    "kdfParams": {
+      "iterations": 600000
+    },
+    "secret": "correct horse battery staple",
+    "salt": "_DfNR21Y1HU7ajvSVKUWug",
+    "aad": "webda-escrow|user-1|password",
+    "keyringKey": "NJV4kreqLJ9geH_92Ppca_nN1fu0cII33vjeMVSTPgs",
+    "wrapped": {
+      "iv": "AwzwWmgwdZRdXvRM",
+      "ct": "YzkhLGvD0aHcn_pZRoE0_F_6j1CEMKQXwO6o3jLGC95nh3P10PLxbkebj1rBYA1h"
+    }
+  },
+  "keyring": {
+    "userId": "user-1",
+    "kid": "zoDrZ-GRM--fYedo",
+    "publicJwk": {
+      "key_ops": [],
+      "ext": true,
+      "kty": "EC",
+      "x": "lcIxj-Up38QYpzcyULD8E9ldXbg_PJD6eehxEkj38ZI",
+      "y": "e2Ac1IkuW0HXkQPGMo8SbruQz9Rp1Mg8CIPxUc5tH4M",
+      "crv": "P-256"
+    },
+    "keyringKey": "NJV4kreqLJ9geH_92Ppca_nN1fu0cII33vjeMVSTPgs",
+    "keyring": {
+      "keys": {
+        "zoDrZ-GRM--fYedo": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgoZqZNGAj75WmpKW0-7Jkxv-oPsnOVkCN64dDTZSe6SuhRANCAASVwjGP5SnfxBinNzJQsPwT2V1duD88kPp56HESSPfxkntgHNSJLltB15EDxjKPEm67kM_UadTIPAiD8VHObR-D"
+      },
+      "active": "zoDrZ-GRM--fYedo"
+    },
+    "blob": {
+      "v": 1,
+      "iv": "kdJbUbX_PKFNsQTq",
+      "ct": "uX9u9YIBEnWCZ10ZU-D6ntgCkkPIC2J0P3DzhiaBpcgnoOomukACmlSV9voGSsU9A_ICLkZziwKsgVT87cMgUWX2Lyr28eOQeYJq8KlN8UqfM59E8EAkl755yEZwxuwADAo9J-IgskU57jEJgRfrQL3pmqOfcMoV2djUrWPzOgm9zRGN4dL8iOp8fwLErUH9_S3QmfCLmR9pYmkBfE2uckqsxcRcO8BgZdbLvQU1NFxr95_WFkBtfRD6kB3qcVmlGNIf5mSN4BC1hbP9040Zdwdrl5jatBdzYyLXFt4TKwfqoOGUjtvI3o6I2vHlkZ0xn1b8qh9IuLw3inSDkI0nHk3n_BE"
+    }
+  }
+}

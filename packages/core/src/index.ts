@@ -55,6 +55,7 @@ export * from "./models/password.model.js";
 export * from "./models/encrypted.model.js";
 export * from "./models/sealed.model.js";
 export * from "./models/mfa.model.js";
+export * from "./models/userkeys.model.js";
 export * from "./utils/totp.js";
 export * from "./utils/throttle.js";
 export * from "./errors/mfa.js";

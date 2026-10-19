@@ -1,0 +1,400 @@
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { JSONUtils } from "@webda/utils";
+import { WebdaApplicationTest } from "../test/application.js";
+import { TestApplication } from "../test/objects.js";
+import { User } from "./user.model.js";
+import { UserKeys } from "./userkeys.model.js";
+import { callOperation, listOperations } from "../core/operations.js";
+import { AuditService } from "../services/audit.model.js";
+import * as WebdaError from "../errors/errors.js";
+import { Throttled } from "../errors/mfa.js";
+import { SealedFormatError } from "../errors/sealed.js";
+import {
+  b64u,
+  createEscrowBlob,
+  createKeyringKey,
+  decryptKeyring,
+  encryptKeyring,
+  generateUserKeyPair,
+  openEscrowBlob,
+  type EscrowBlob,
+  type KeyringBlob
+} from "../sealed/index.js";
+
+const PASSWORD = "correct horse battery staple";
+
+type KeyMaterial = Awaited<ReturnType<typeof generateUserKeyPair>>;
+
+/**
+ * Shape-valid escrow blob without real key material (validation only)
+ * @param kind - escrow kind
+ * @returns the blob
+ */
+function fakeEscrow(kind: "password" | "recovery"): EscrowBlob {
+  const rnd = (n: number) => b64u.encode(globalThis.crypto.getRandomValues(new Uint8Array(n)));
+  return { v: 1, kind, kdf: "argon2id", kdfParams: { m: 65536, t: 3, p: 1 }, salt: rnd(16), iv: rnd(12), ct: rnd(48) };
+}
+
+@suite
+class UserKeysTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return {
+      parameters: { ignoreBeans: true },
+      services: {
+        DomainService: { type: "Webda/DomainService" },
+        UserStore: { type: "Webda/MemoryStore", models: ["Webda/User", "Webda/Ident"] }
+      }
+    };
+  }
+
+  /**
+   * Resolve unqualified models to the Webda namespace so the DomainService exposes `Webda/User` (`User.Keys.*`), as in
+   * an application using the framework User
+   * @param app - test application
+   */
+  async tweakApp(app: TestApplication): Promise<void> {
+    app.getNamespace = () => "Webda";
+  }
+
+  audits: AuditService[] = [];
+
+  async afterEach(): Promise<void> {
+    for (const audit of this.audits.splice(0)) {
+      await audit.stop();
+    }
+    await super.afterEach();
+  }
+
+  /**
+   * Create a stored user
+   * @param name - user name
+   * @returns its unique id
+   */
+  async newUser(name: string): Promise<string> {
+    const uuid = `${name}-${++this.users}`;
+    await User.create({ uuid, displayName: name } as any);
+    return uuid;
+  }
+
+  /** Users created so far: the store is shared by the tests of the suite */
+  users = 0;
+
+  /**
+   * Real enrollment material: key pair, keyring encrypted with a keyring key, password escrow (PBKDF2 for speed)
+   * @param userId - owner
+   * @param previous - keys already in the keyring (rotation)
+   * @param keyringKey - keyring key to reuse
+   */
+  async material(userId: string, previous: KeyMaterial[] = [], keyringKey?: CryptoKey) {
+    const pair = await generateUserKeyPair();
+    const all = [...previous, pair];
+    const keys: Record<string, string> = {};
+    for (const p of all) {
+      keys[p.kid] = b64u.encode(new Uint8Array(await crypto.subtle.exportKey("pkcs8", p.privateKey)));
+    }
+    keyringKey ??= await createKeyringKey();
+    const pubs = all.map(p => ({ kid: p.kid, jwk: p.publicJwk }));
+    const keyring = await encryptKeyring({ keys, active: pair.kid }, keyringKey, userId, pubs);
+    const escrow = await createEscrowBlob("password", PASSWORD, keyringKey, userId, "pbkdf2-sha256");
+    return {
+      pair,
+      keyringKey,
+      publicKey: { kid: pair.kid, jwk: pair.publicJwk },
+      keyring,
+      escrows: { password: escrow }
+    };
+  }
+
+  /**
+   * Call a User.Keys operation as a user
+   * @param caller - logged user
+   * @param uuid - target user
+   * @param action - operation suffix, e.g. "Setup"
+   * @param body - operation input
+   * @returns the parsed output
+   */
+  async op(caller: string, uuid: string, action: string, body: any = {}): Promise<any> {
+    const ctx = await this.newContext(body);
+    await ctx.init();
+    ctx.getSession().login(caller, `${caller}:email`);
+    ctx.setParameters({ uuid });
+    await callOperation(ctx, `User.Keys.${action}`);
+    const out = ctx.getOutput();
+    return out ? JSON.parse(out) : undefined;
+  }
+
+  /**
+   * @param uuid - user id
+   * @returns the stored keys behavior
+   */
+  async keysOf(uuid: string): Promise<UserKeys> {
+    return (await User.ref(uuid).get()).keys!;
+  }
+
+  @test
+  hydratedOnUser() {
+    assert.ok(new User({ uuid: "h" } as any).keys instanceof UserKeys);
+    const user = new User({
+      uuid: "h2",
+      keys: { publicKeys: [], devices: [{ id: "d", name: "n", createdAt: 1 }] }
+    } as any);
+    assert.ok(user.keys instanceof UserKeys);
+    assert.strictEqual(user.keys.devices[0].id, "d");
+    assert.strictEqual(user.keys.getActivePublicKey(), undefined);
+    assert.strictEqual(user._escrowAttempts, 0);
+    const ops = listOperations();
+    for (const action of [
+      "Setup",
+      "GetEscrow",
+      "SetEscrow",
+      "RemoveEscrow",
+      "Rotate",
+      "RegisterDevice",
+      "RevokeDevice"
+    ]) {
+      assert.ok(ops[`User.Keys.${action}`], `User.Keys.${action} registered ${Object.keys(ops).join(",")}`);
+    }
+  }
+
+  @test
+  async setupOnce() {
+    const alice = await this.newUser("alice");
+    const m = await this.material(alice);
+    assert.strictEqual(await this.op(alice, alice, "Setup", m), undefined);
+    const keys = await this.keysOf(alice);
+    assert.strictEqual(keys.publicKeys.length, 1);
+    assert.strictEqual(keys.publicKeys[0].kid, m.pair.kid);
+    assert.strictEqual(keys.publicKeys[0].alg, "ECDH-ES+A256GCM");
+    assert.ok(keys.publicKeys[0].createdAt > 0);
+    assert.strictEqual(keys.publicKeys[0].retiredAt, undefined);
+    assert.deepStrictEqual(keys.getActivePublicKey(), { kid: m.pair.kid, jwk: m.pair.publicJwk });
+    assert.deepStrictEqual(keys.__keyring, m.keyring);
+    assert.deepStrictEqual(keys.__escrows, m.escrows);
+    // Server-only data never reaches a public output
+    const out = JSONUtils.stringify(await User.ref(alice).get(), undefined, 0, true);
+    assert.ok(!out.includes(m.keyring.ct));
+    assert.ok(!out.includes(m.escrows.password.ct));
+    assert.ok(out.includes(m.pair.kid));
+    // Once only
+    const again = await this.material(alice);
+    await assert.rejects(() => this.op(alice, alice, "Setup", again), WebdaError.Conflict);
+    assert.strictEqual((await this.keysOf(alice)).publicKeys[0].kid, m.pair.kid);
+  }
+
+  @test
+  async ownerOnly() {
+    const alice = await this.newUser("alice");
+    const bob = await this.newUser("bob");
+    const m = await this.material(alice);
+    // Another user cannot even see the target user (User.canAct / getPermissionQuery)
+    const refused = (action: string, body: any) =>
+      assert.rejects(
+        () => this.op(bob, alice, action, body),
+        (e: any) => [403, 404].includes(e.getResponseCode())
+      );
+    await refused("Setup", m);
+    assert.strictEqual((await this.keysOf(alice)).publicKeys.length, 0);
+    await this.op(alice, alice, "Setup", m);
+    await refused("GetEscrow", { kind: "password" });
+    await refused("RegisterDevice", { name: "evil" });
+    await refused("SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") });
+    await refused("RemoveEscrow", { kind: "password" });
+    await refused("Rotate", await this.material(alice, [m.pair], m.keyringKey));
+    const keys = await this.keysOf(alice);
+    assert.strictEqual(keys.devices.length, 0);
+    assert.deepStrictEqual(keys.__escrows, m.escrows);
+    assert.strictEqual(keys.publicKeys.length, 1);
+    assert.strictEqual((await User.ref(alice).get())._escrowAttempts, 0);
+  }
+
+  @test
+  async getEscrowThrottled() {
+    const alice = await this.newUser("alice");
+    const m = await this.material(alice);
+    await this.op(alice, alice, "Setup", m);
+    // The client opens the escrow with the password and checks the keyring against the served public keys
+    const res = await this.op(alice, alice, "GetEscrow", { kind: "password" });
+    assert.deepStrictEqual(res.escrow, m.escrows.password);
+    assert.deepStrictEqual(res.keyring, m.keyring);
+    const key = await openEscrowBlob(res.escrow, PASSWORD, alice);
+    const { privateKeys } = await decryptKeyring(res.keyring, key, alice, res.publicKeys);
+    assert.deepStrictEqual(Object.keys(privateKeys), [m.pair.kid]);
+    // Every fetch counts (the unwrap is client-side): 5 allowed by default, then locked
+    for (let i = 0; i < 4; i++) {
+      await this.op(alice, alice, "GetEscrow", { kind: "password" });
+    }
+    await assert.rejects(() => this.op(alice, alice, "GetEscrow", { kind: "password" }), Throttled);
+    // Registering the device proves the escrow was opened: the counter is reset
+    await this.op(alice, alice, "RegisterDevice", { name: "laptop" });
+    assert.strictEqual((await User.ref(alice).get())._escrowAttempts, 0);
+    assert.ok(await this.op(alice, alice, "GetEscrow", { kind: "password" }));
+  }
+
+  @test
+  async getEscrowAudited() {
+    const alice = await this.newUser("alice");
+    const bob = await this.newUser("bob");
+    const audit = this.registerService(new AuditService("Audit", {} as any));
+    this.audits.push(audit);
+    audit.resolve();
+    await audit.init();
+    await this.op(alice, alice, "Setup", await this.material(alice));
+    await this.op(alice, alice, "GetEscrow", { kind: "password" });
+    await assert.rejects(() => this.op(bob, alice, "GetEscrow", { kind: "password" }));
+    await assert.rejects(() => this.op(alice, alice, "GetEscrow", { kind: "recovery" }), WebdaError.NotFound);
+    const entries = audit.getEntries().filter(e => e.operationId === "User.Keys.GetEscrow");
+    assert.deepStrictEqual(
+      entries.map(e => [e.userId, e.success, e.subjectKey]),
+      [
+        [alice, true, alice],
+        [bob, false, alice],
+        [alice, false, alice]
+      ]
+    );
+    assert.ok(audit.getEntries().some(e => e.operationId === "User.Keys.Setup" && e.success));
+  }
+
+  @test
+  async rotateRetiresPrevious() {
+    const alice = await this.newUser("alice");
+    const first = await this.material(alice);
+    await assert.rejects(
+      () => this.op(alice, alice, "Rotate", first),
+      (e: any) => e.getResponseCode() === 412
+    );
+    await this.op(alice, alice, "Setup", first);
+    const second = await this.material(alice, [first.pair], first.keyringKey);
+    // The keyring must be encrypted for the new active key
+    await assert.rejects(
+      () => this.op(alice, alice, "Rotate", { ...second, keyring: first.keyring }),
+      SealedFormatError
+    );
+    // A kid already used cannot come back
+    await assert.rejects(() => this.op(alice, alice, "Rotate", first), WebdaError.Conflict);
+    // Escrows are optional: the keyring key did not change
+    await this.op(alice, alice, "Rotate", { publicKey: second.publicKey, keyring: second.keyring });
+    let keys = await this.keysOf(alice);
+    assert.strictEqual(keys.publicKeys.length, 2);
+    assert.ok(keys.publicKeys[0].retiredAt! > 0);
+    assert.strictEqual(keys.publicKeys[1].retiredAt, undefined);
+    assert.deepStrictEqual(keys.getActivePublicKey(), second.publicKey);
+    assert.deepStrictEqual(keys.__keyring, second.keyring);
+    assert.deepStrictEqual(keys.__escrows, first.escrows);
+    // Rotating the keyring key replaces the escrows
+    const firstRetiredAt = keys.publicKeys[0].retiredAt;
+    const third = await this.material(alice, [first.pair, second.pair]);
+    await this.op(alice, alice, "Rotate", third);
+    keys = await this.keysOf(alice);
+    assert.deepStrictEqual(
+      keys.publicKeys.map(p => p.retiredAt === undefined),
+      [false, false, true]
+    );
+    assert.strictEqual(keys.publicKeys[0].retiredAt, firstRetiredAt);
+    assert.deepStrictEqual(keys.__escrows, third.escrows);
+    // The whole keyring opens with the new escrow
+    const res = await this.op(alice, alice, "GetEscrow", { kind: "password" });
+    const key = await openEscrowBlob(res.escrow, PASSWORD, alice);
+    const { privateKeys } = await decryptKeyring(res.keyring, key, alice, res.publicKeys);
+    assert.deepStrictEqual(Object.keys(privateKeys).sort(), [first.pair.kid, second.pair.kid, third.pair.kid].sort());
+  }
+
+  @test
+  async escrowKinds() {
+    const alice = await this.newUser("alice");
+    await assert.rejects(
+      () => this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") }),
+      (e: any) => e.getResponseCode() === 412
+    );
+    await this.op(alice, alice, "Setup", await this.material(alice));
+    const recovery = fakeEscrow("recovery");
+    await this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: recovery });
+    assert.deepStrictEqual((await this.op(alice, alice, "GetEscrow", { kind: "recovery" })).escrow, recovery);
+    // The blob kind must match the slot, and only known kinds exist
+    await assert.rejects(
+      () => this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("password") }),
+      SealedFormatError
+    );
+    await assert.rejects(() =>
+      this.op(alice, alice, "SetEscrow", { kind: "device", escrow: { ...recovery, kind: "device" } })
+    );
+    await assert.rejects(() => this.op(alice, alice, "GetEscrow", { kind: "device" }));
+    // Removing escrows: the last one cannot go while no device holds the keyring
+    await this.op(alice, alice, "RemoveEscrow", { kind: "password" });
+    await assert.rejects(() => this.op(alice, alice, "RemoveEscrow", { kind: "password" }), WebdaError.NotFound);
+    await assert.rejects(() => this.op(alice, alice, "RemoveEscrow", { kind: "recovery" }), WebdaError.Conflict);
+    await this.op(alice, alice, "RegisterDevice", { name: "phone" });
+    await this.op(alice, alice, "RemoveEscrow", { kind: "recovery" });
+    assert.deepStrictEqual((await this.keysOf(alice)).__escrows, {});
+  }
+
+  @test
+  async devicesRegisterRevoke() {
+    const alice = await this.newUser("alice");
+    await assert.rejects(
+      () => this.op(alice, alice, "RegisterDevice", { name: "laptop" }),
+      (e: any) => e.getResponseCode() === 412
+    );
+    await this.op(alice, alice, "Setup", await this.material(alice));
+    const { id } = await this.op(alice, alice, "RegisterDevice", { name: "laptop" });
+    const { id: id2 } = await this.op(alice, alice, "RegisterDevice", { name: "phone" });
+    assert.ok(typeof id === "string" && id.length > 0 && id !== id2);
+    let keys = await this.keysOf(alice);
+    assert.deepStrictEqual(
+      keys.devices.map(d => [d.id, d.name]),
+      [
+        [id, "laptop"],
+        [id2, "phone"]
+      ]
+    );
+    assert.ok(keys.devices[0].createdAt > 0);
+    await assert.rejects(() => this.op(alice, alice, "RegisterDevice", { name: "" }), WebdaError.BadRequest);
+    await assert.rejects(
+      () => this.op(alice, alice, "RegisterDevice", { name: "x".repeat(129) }),
+      WebdaError.BadRequest
+    );
+    await this.op(alice, alice, "RevokeDevice", { id });
+    keys = await this.keysOf(alice);
+    assert.deepStrictEqual(
+      keys.devices.map(d => d.id),
+      [id2]
+    );
+    await assert.rejects(() => this.op(alice, alice, "RevokeDevice", { id }), WebdaError.NotFound);
+  }
+
+  @test
+  async rejectsPrivateJwk() {
+    const alice = await this.newUser("alice");
+    const m = await this.material(alice);
+    const priv = await crypto.subtle.exportKey("jwk", m.pair.privateKey);
+    const keys = await this.keysOf(alice);
+    // Refused by the operation (input schema or behavior checks) and by the behavior itself
+    const bad = async (input: any) => {
+      await assert.rejects(
+        () => this.op(alice, alice, "Setup", input),
+        (e: any) => e.getResponseCode() === 400
+      );
+      await assert.rejects(() => keys.setup(input.publicKey, input.keyring, input.escrows), SealedFormatError);
+    };
+    // A private JWK (with d) is refused even when its public part is right
+    await bad({ ...m, publicKey: { kid: m.pair.kid, jwk: { ...m.pair.publicJwk, d: priv.d } } });
+    // Not a P-256 public key / invalid point / kid not derived from the key
+    await bad({ ...m, publicKey: { kid: m.pair.kid, jwk: { ...m.pair.publicJwk, crv: "P-384" } } });
+    await bad({ ...m, publicKey: { kid: m.pair.kid, jwk: { ...m.pair.publicJwk, kty: "RSA" } } });
+    await bad({ ...m, publicKey: { kid: m.pair.kid, jwk: { ...m.pair.publicJwk, x: m.pair.publicJwk.y } } });
+    await bad({ ...m, publicKey: { kid: "AAAAAAAAAAAAAAAA", jwk: m.pair.publicJwk } });
+    // Blob shapes
+    const keyring: KeyringBlob = m.keyring;
+    await bad({ ...m, keyring: { ...keyring, v: 2 } });
+    await bad({ ...m, keyring: { ...keyring, iv: "not base64url!" } });
+    await bad({ ...m, keyring: { ...keyring, iv: b64u.encode(new Uint8Array(8)) } });
+    await bad({ ...m, escrows: {} });
+    await bad({ ...m, escrows: { password: { ...m.escrows.password, v: 2 } } });
+    await bad({ ...m, escrows: { password: { ...m.escrows.password, kdf: "scrypt" } } });
+    await bad({ ...m, escrows: { password: { ...m.escrows.password, salt: "+/=" } } });
+    await bad({ ...m, escrows: { password: { ...m.escrows.password, kdfParams: "x" } } });
+    assert.strictEqual((await this.keysOf(alice)).publicKeys.length, 0);
+    // The valid material is still accepted
+    await this.op(alice, alice, "Setup", m);
+  }
+}

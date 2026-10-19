@@ -3796,6 +3796,10 @@
           {
             "attribute": "mfa",
             "behavior": "Webda/MFA"
+          },
+          {
+            "attribute": "keys",
+            "behavior": "Webda/UserKeys"
           }
         ]
       },
@@ -3834,6 +3838,15 @@
           "type": "number"
         },
         "_lastMfaAttemptAt": {
+          "type": "number"
+        },
+        "keys": {
+          "type": "UserKeys"
+        },
+        "_escrowAttempts": {
+          "type": "number"
+        },
+        "_lastEscrowAttemptAt": {
           "type": "number"
         },
         "displayName": {
@@ -3881,6 +3894,53 @@
               },
               "type": "object"
             },
+            "EscrowBlob": {
+              "additionalProperties": false,
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kdf": {
+                  "description": "Supported password KDFs",
+                  "enum": [
+                    "argon2id",
+                    "pbkdf2-sha256"
+                  ],
+                  "type": "string"
+                },
+                "kdfParams": {
+                  "type": "object"
+                },
+                "kind": {
+                  "enum": [
+                    "password",
+                    "recovery"
+                  ],
+                  "type": "string"
+                },
+                "salt": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kdf",
+                "kdfParams",
+                "kind",
+                "salt",
+                "v"
+              ],
+              "type": "object"
+            },
             "FactorEntry<any>": {
               "additionalProperties": false,
               "description": "Stored state for one second factor method",
@@ -3904,6 +3964,100 @@
               },
               "required": [
                 "data"
+              ],
+              "type": "object"
+            },
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "KeyringBlob": {
+              "additionalProperties": false,
+              "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kid",
+                "v"
               ],
               "type": "object"
             },
@@ -3944,6 +4098,19 @@
               ],
               "type": "object"
             },
+            "Partial<Record<\"password\" | \"recovery\", EscrowBlob>>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "password": {
+                  "$ref": "#/definitions/EscrowBlob"
+                },
+                "recovery": {
+                  "$ref": "#/definitions/EscrowBlob"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -3956,6 +4123,113 @@
                 "changedAt": {
                   "description": "Last change, ms since epoch",
                   "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "UserDevice": {
+              "additionalProperties": false,
+              "description": "A device holding the keyring locally: metadata only, the device blob never reaches the server",
+              "properties": {
+                "createdAt": {
+                  "description": "Registration, ms since epoch",
+                  "type": "number"
+                },
+                "id": {
+                  "description": "Device id",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "Last use, ms since epoch",
+                  "type": "number"
+                },
+                "name": {
+                  "description": "Name chosen by the user",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "UserKeys": {
+              "WebdaBehavior": "Webda/UserKeys",
+              "additionalProperties": false,
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts, and the counter is reset by `registerDevice`, the proof that the\nfetched escrow was opened.",
+              "properties": {
+                "__escrows": {
+                  "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
+                  "description": "Escrows of the keyring key by kind, server-only"
+                },
+                "__keyring": {
+                  "$ref": "#/definitions/KeyringBlob",
+                  "description": "Encrypted keyring, server-only"
+                },
+                "devices": {
+                  "description": "Devices holding the keyring (metadata only)",
+                  "items": {
+                    "$ref": "#/definitions/UserDevice"
+                  },
+                  "type": "array"
+                },
+                "publicKeys": {
+                  "description": "Public keys, oldest first: the newest non-retired one is active",
+                  "items": {
+                    "$ref": "#/definitions/UserPublicKey"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "UserPublicKey": {
+              "additionalProperties": false,
+              "description": "A user public key, the recipient of the values sealed while it is active",
+              "properties": {
+                "alg": {
+                  "const": "ECDH-ES+A256GCM",
+                  "description": "Seal algorithm",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "description": "Creation, ms since epoch",
+                  "type": "number"
+                },
+                "jwk": {
+                  "$ref": "#/definitions/JsonWebKey",
+                  "description": "P-256 public JWK"
+                },
+                "kid": {
+                  "description": "Key id: the first 16 characters of the key fingerprint",
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "alg",
+                "createdAt",
+                "jwk",
+                "kid"
+              ],
+              "type": "object"
+            },
+            "keys$publicKeys[]$jwk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
                 }
               },
               "type": "object"
@@ -3974,12 +4248,20 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
             "_groups": {
               "description": "Groups for a user",
               "items": {
                 "type": "string"
               },
               "type": "array"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
             },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
@@ -4005,6 +4287,10 @@
             "email": {
               "description": "Contain main user email if exists",
               "type": "string"
+            },
+            "keys": {
+              "$ref": "#/definitions/UserKeys",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -4047,6 +4333,53 @@
               },
               "type": "object"
             },
+            "EscrowBlob": {
+              "additionalProperties": false,
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kdf": {
+                  "description": "Supported password KDFs",
+                  "enum": [
+                    "argon2id",
+                    "pbkdf2-sha256"
+                  ],
+                  "type": "string"
+                },
+                "kdfParams": {
+                  "type": "object"
+                },
+                "kind": {
+                  "enum": [
+                    "password",
+                    "recovery"
+                  ],
+                  "type": "string"
+                },
+                "salt": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kdf",
+                "kdfParams",
+                "kind",
+                "salt",
+                "v"
+              ],
+              "type": "object"
+            },
             "FactorEntry<any>": {
               "additionalProperties": false,
               "description": "Stored state for one second factor method",
@@ -4070,6 +4403,100 @@
               },
               "required": [
                 "data"
+              ],
+              "type": "object"
+            },
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "KeyringBlob": {
+              "additionalProperties": false,
+              "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kid",
+                "v"
               ],
               "type": "object"
             },
@@ -4102,6 +4529,19 @@
               },
               "type": "object"
             },
+            "Partial<Record<\"password\" | \"recovery\", EscrowBlob>>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "password": {
+                  "$ref": "#/definitions/EscrowBlob"
+                },
+                "recovery": {
+                  "$ref": "#/definitions/EscrowBlob"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -4114,6 +4554,113 @@
                 "changedAt": {
                   "description": "Last change, ms since epoch",
                   "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "UserDevice": {
+              "additionalProperties": false,
+              "description": "A device holding the keyring locally: metadata only, the device blob never reaches the server",
+              "properties": {
+                "createdAt": {
+                  "description": "Registration, ms since epoch",
+                  "type": "number"
+                },
+                "id": {
+                  "description": "Device id",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "Last use, ms since epoch",
+                  "type": "number"
+                },
+                "name": {
+                  "description": "Name chosen by the user",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "UserKeys": {
+              "WebdaBehavior": "Webda/UserKeys",
+              "additionalProperties": false,
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts, and the counter is reset by `registerDevice`, the proof that the\nfetched escrow was opened.",
+              "properties": {
+                "__escrows": {
+                  "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
+                  "description": "Escrows of the keyring key by kind, server-only"
+                },
+                "__keyring": {
+                  "$ref": "#/definitions/KeyringBlob",
+                  "description": "Encrypted keyring, server-only"
+                },
+                "devices": {
+                  "description": "Devices holding the keyring (metadata only)",
+                  "items": {
+                    "$ref": "#/definitions/UserDevice"
+                  },
+                  "type": "array"
+                },
+                "publicKeys": {
+                  "description": "Public keys, oldest first: the newest non-retired one is active",
+                  "items": {
+                    "$ref": "#/definitions/UserPublicKey"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "UserPublicKey": {
+              "additionalProperties": false,
+              "description": "A user public key, the recipient of the values sealed while it is active",
+              "properties": {
+                "alg": {
+                  "const": "ECDH-ES+A256GCM",
+                  "description": "Seal algorithm",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "description": "Creation, ms since epoch",
+                  "type": "number"
+                },
+                "jwk": {
+                  "$ref": "#/definitions/JsonWebKey",
+                  "description": "P-256 public JWK"
+                },
+                "kid": {
+                  "description": "Key id: the first 16 characters of the key fingerprint",
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "alg",
+                "createdAt",
+                "jwk",
+                "kid"
+              ],
+              "type": "object"
+            },
+            "keys$publicKeys[]$jwk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
                 }
               },
               "type": "object"
@@ -4132,12 +4679,20 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
             "_groups": {
               "description": "Groups for a user",
               "items": {
                 "type": "string"
               },
               "type": "array"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
             },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
@@ -4163,6 +4718,10 @@
             "email": {
               "description": "Contain main user email if exists",
               "type": "string"
+            },
+            "keys": {
+              "$ref": "#/definitions/UserKeys",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -4217,6 +4776,53 @@
               },
               "type": "object"
             },
+            "EscrowBlob": {
+              "additionalProperties": false,
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kdf": {
+                  "description": "Supported password KDFs",
+                  "enum": [
+                    "argon2id",
+                    "pbkdf2-sha256"
+                  ],
+                  "type": "string"
+                },
+                "kdfParams": {
+                  "type": "object"
+                },
+                "kind": {
+                  "enum": [
+                    "password",
+                    "recovery"
+                  ],
+                  "type": "string"
+                },
+                "salt": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kdf",
+                "kdfParams",
+                "kind",
+                "salt",
+                "v"
+              ],
+              "type": "object"
+            },
             "FactorEntry<any>": {
               "additionalProperties": false,
               "description": "Stored state for one second factor method",
@@ -4240,6 +4846,100 @@
               },
               "required": [
                 "data"
+              ],
+              "type": "object"
+            },
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "KeyringBlob": {
+              "additionalProperties": false,
+              "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kid",
+                "v"
               ],
               "type": "object"
             },
@@ -4280,6 +4980,19 @@
               ],
               "type": "object"
             },
+            "Partial<Record<\"password\" | \"recovery\", EscrowBlob>>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "password": {
+                  "$ref": "#/definitions/EscrowBlob"
+                },
+                "recovery": {
+                  "$ref": "#/definitions/EscrowBlob"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -4292,6 +5005,113 @@
                 "changedAt": {
                   "description": "Last change, ms since epoch",
                   "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "UserDevice": {
+              "additionalProperties": false,
+              "description": "A device holding the keyring locally: metadata only, the device blob never reaches the server",
+              "properties": {
+                "createdAt": {
+                  "description": "Registration, ms since epoch",
+                  "type": "number"
+                },
+                "id": {
+                  "description": "Device id",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "Last use, ms since epoch",
+                  "type": "number"
+                },
+                "name": {
+                  "description": "Name chosen by the user",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "UserKeys": {
+              "WebdaBehavior": "Webda/UserKeys",
+              "additionalProperties": false,
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts, and the counter is reset by `registerDevice`, the proof that the\nfetched escrow was opened.",
+              "properties": {
+                "__escrows": {
+                  "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
+                  "description": "Escrows of the keyring key by kind, server-only"
+                },
+                "__keyring": {
+                  "$ref": "#/definitions/KeyringBlob",
+                  "description": "Encrypted keyring, server-only"
+                },
+                "devices": {
+                  "description": "Devices holding the keyring (metadata only)",
+                  "items": {
+                    "$ref": "#/definitions/UserDevice"
+                  },
+                  "type": "array"
+                },
+                "publicKeys": {
+                  "description": "Public keys, oldest first: the newest non-retired one is active",
+                  "items": {
+                    "$ref": "#/definitions/UserPublicKey"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "UserPublicKey": {
+              "additionalProperties": false,
+              "description": "A user public key, the recipient of the values sealed while it is active",
+              "properties": {
+                "alg": {
+                  "const": "ECDH-ES+A256GCM",
+                  "description": "Seal algorithm",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "description": "Creation, ms since epoch",
+                  "type": "number"
+                },
+                "jwk": {
+                  "$ref": "#/definitions/JsonWebKey",
+                  "description": "P-256 public JWK"
+                },
+                "kid": {
+                  "description": "Key id: the first 16 characters of the key fingerprint",
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "alg",
+                "createdAt",
+                "jwk",
+                "kid"
+              ],
+              "type": "object"
+            },
+            "keys$publicKeys[]$jwk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
                 }
               },
               "type": "object"
@@ -4310,12 +5130,20 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
             "_groups": {
               "description": "Groups for a user",
               "items": {
                 "type": "string"
               },
               "type": "array"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
             },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
@@ -4341,6 +5169,10 @@
             "email": {
               "description": "Contain main user email if exists",
               "type": "string"
+            },
+            "keys": {
+              "$ref": "#/definitions/UserKeys",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -4404,6 +5236,10 @@
           {
             "attribute": "mfa",
             "behavior": "Webda/MFA"
+          },
+          {
+            "attribute": "keys",
+            "behavior": "Webda/UserKeys"
           }
         ]
       },
@@ -4422,6 +5258,15 @@
           "type": "number"
         },
         "_lastMfaAttemptAt": {
+          "type": "number"
+        },
+        "keys": {
+          "type": "UserKeys"
+        },
+        "_escrowAttempts": {
+          "type": "number"
+        },
+        "_lastEscrowAttemptAt": {
           "type": "number"
         },
         "displayName": {
@@ -4471,6 +5316,53 @@
               },
               "type": "object"
             },
+            "EscrowBlob": {
+              "additionalProperties": false,
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kdf": {
+                  "description": "Supported password KDFs",
+                  "enum": [
+                    "argon2id",
+                    "pbkdf2-sha256"
+                  ],
+                  "type": "string"
+                },
+                "kdfParams": {
+                  "type": "object"
+                },
+                "kind": {
+                  "enum": [
+                    "password",
+                    "recovery"
+                  ],
+                  "type": "string"
+                },
+                "salt": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kdf",
+                "kdfParams",
+                "kind",
+                "salt",
+                "v"
+              ],
+              "type": "object"
+            },
             "FactorEntry<any>": {
               "additionalProperties": false,
               "description": "Stored state for one second factor method",
@@ -4494,6 +5386,100 @@
               },
               "required": [
                 "data"
+              ],
+              "type": "object"
+            },
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "KeyringBlob": {
+              "additionalProperties": false,
+              "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kid",
+                "v"
               ],
               "type": "object"
             },
@@ -4534,6 +5520,19 @@
               ],
               "type": "object"
             },
+            "Partial<Record<\"password\" | \"recovery\", EscrowBlob>>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "password": {
+                  "$ref": "#/definitions/EscrowBlob"
+                },
+                "recovery": {
+                  "$ref": "#/definitions/EscrowBlob"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -4546,6 +5545,113 @@
                 "changedAt": {
                   "description": "Last change, ms since epoch",
                   "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "UserDevice": {
+              "additionalProperties": false,
+              "description": "A device holding the keyring locally: metadata only, the device blob never reaches the server",
+              "properties": {
+                "createdAt": {
+                  "description": "Registration, ms since epoch",
+                  "type": "number"
+                },
+                "id": {
+                  "description": "Device id",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "Last use, ms since epoch",
+                  "type": "number"
+                },
+                "name": {
+                  "description": "Name chosen by the user",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "UserKeys": {
+              "WebdaBehavior": "Webda/UserKeys",
+              "additionalProperties": false,
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts, and the counter is reset by `registerDevice`, the proof that the\nfetched escrow was opened.",
+              "properties": {
+                "__escrows": {
+                  "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
+                  "description": "Escrows of the keyring key by kind, server-only"
+                },
+                "__keyring": {
+                  "$ref": "#/definitions/KeyringBlob",
+                  "description": "Encrypted keyring, server-only"
+                },
+                "devices": {
+                  "description": "Devices holding the keyring (metadata only)",
+                  "items": {
+                    "$ref": "#/definitions/UserDevice"
+                  },
+                  "type": "array"
+                },
+                "publicKeys": {
+                  "description": "Public keys, oldest first: the newest non-retired one is active",
+                  "items": {
+                    "$ref": "#/definitions/UserPublicKey"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "UserPublicKey": {
+              "additionalProperties": false,
+              "description": "A user public key, the recipient of the values sealed while it is active",
+              "properties": {
+                "alg": {
+                  "const": "ECDH-ES+A256GCM",
+                  "description": "Seal algorithm",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "description": "Creation, ms since epoch",
+                  "type": "number"
+                },
+                "jwk": {
+                  "$ref": "#/definitions/JsonWebKey",
+                  "description": "P-256 public JWK"
+                },
+                "kid": {
+                  "description": "Key id: the first 16 characters of the key fingerprint",
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "alg",
+                "createdAt",
+                "jwk",
+                "kid"
+              ],
+              "type": "object"
+            },
+            "keys$publicKeys[]$jwk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
                 }
               },
               "type": "object"
@@ -4564,6 +5670,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
+            },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
               "type": "number"
@@ -4581,6 +5695,10 @@
             "email": {
               "description": "Contain main user email if exists",
               "type": "string"
+            },
+            "keys": {
+              "$ref": "#/definitions/UserKeys",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -4625,6 +5743,53 @@
               },
               "type": "object"
             },
+            "EscrowBlob": {
+              "additionalProperties": false,
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kdf": {
+                  "description": "Supported password KDFs",
+                  "enum": [
+                    "argon2id",
+                    "pbkdf2-sha256"
+                  ],
+                  "type": "string"
+                },
+                "kdfParams": {
+                  "type": "object"
+                },
+                "kind": {
+                  "enum": [
+                    "password",
+                    "recovery"
+                  ],
+                  "type": "string"
+                },
+                "salt": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kdf",
+                "kdfParams",
+                "kind",
+                "salt",
+                "v"
+              ],
+              "type": "object"
+            },
             "FactorEntry<any>": {
               "additionalProperties": false,
               "description": "Stored state for one second factor method",
@@ -4648,6 +5813,100 @@
               },
               "required": [
                 "data"
+              ],
+              "type": "object"
+            },
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "KeyringBlob": {
+              "additionalProperties": false,
+              "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kid",
+                "v"
               ],
               "type": "object"
             },
@@ -4680,6 +5939,19 @@
               },
               "type": "object"
             },
+            "Partial<Record<\"password\" | \"recovery\", EscrowBlob>>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "password": {
+                  "$ref": "#/definitions/EscrowBlob"
+                },
+                "recovery": {
+                  "$ref": "#/definitions/EscrowBlob"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -4692,6 +5964,113 @@
                 "changedAt": {
                   "description": "Last change, ms since epoch",
                   "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "UserDevice": {
+              "additionalProperties": false,
+              "description": "A device holding the keyring locally: metadata only, the device blob never reaches the server",
+              "properties": {
+                "createdAt": {
+                  "description": "Registration, ms since epoch",
+                  "type": "number"
+                },
+                "id": {
+                  "description": "Device id",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "Last use, ms since epoch",
+                  "type": "number"
+                },
+                "name": {
+                  "description": "Name chosen by the user",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "UserKeys": {
+              "WebdaBehavior": "Webda/UserKeys",
+              "additionalProperties": false,
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts, and the counter is reset by `registerDevice`, the proof that the\nfetched escrow was opened.",
+              "properties": {
+                "__escrows": {
+                  "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
+                  "description": "Escrows of the keyring key by kind, server-only"
+                },
+                "__keyring": {
+                  "$ref": "#/definitions/KeyringBlob",
+                  "description": "Encrypted keyring, server-only"
+                },
+                "devices": {
+                  "description": "Devices holding the keyring (metadata only)",
+                  "items": {
+                    "$ref": "#/definitions/UserDevice"
+                  },
+                  "type": "array"
+                },
+                "publicKeys": {
+                  "description": "Public keys, oldest first: the newest non-retired one is active",
+                  "items": {
+                    "$ref": "#/definitions/UserPublicKey"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "UserPublicKey": {
+              "additionalProperties": false,
+              "description": "A user public key, the recipient of the values sealed while it is active",
+              "properties": {
+                "alg": {
+                  "const": "ECDH-ES+A256GCM",
+                  "description": "Seal algorithm",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "description": "Creation, ms since epoch",
+                  "type": "number"
+                },
+                "jwk": {
+                  "$ref": "#/definitions/JsonWebKey",
+                  "description": "P-256 public JWK"
+                },
+                "kid": {
+                  "description": "Key id: the first 16 characters of the key fingerprint",
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "alg",
+                "createdAt",
+                "jwk",
+                "kid"
+              ],
+              "type": "object"
+            },
+            "keys$publicKeys[]$jwk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
                 }
               },
               "type": "object"
@@ -4710,6 +6089,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
+            },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
               "type": "number"
@@ -4727,6 +6114,10 @@
             "email": {
               "description": "Contain main user email if exists",
               "type": "string"
+            },
+            "keys": {
+              "$ref": "#/definitions/UserKeys",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -4783,6 +6174,53 @@
               },
               "type": "object"
             },
+            "EscrowBlob": {
+              "additionalProperties": false,
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kdf": {
+                  "description": "Supported password KDFs",
+                  "enum": [
+                    "argon2id",
+                    "pbkdf2-sha256"
+                  ],
+                  "type": "string"
+                },
+                "kdfParams": {
+                  "type": "object"
+                },
+                "kind": {
+                  "enum": [
+                    "password",
+                    "recovery"
+                  ],
+                  "type": "string"
+                },
+                "salt": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kdf",
+                "kdfParams",
+                "kind",
+                "salt",
+                "v"
+              ],
+              "type": "object"
+            },
             "FactorEntry<any>": {
               "additionalProperties": false,
               "description": "Stored state for one second factor method",
@@ -4806,6 +6244,100 @@
               },
               "required": [
                 "data"
+              ],
+              "type": "object"
+            },
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "KeyringBlob": {
+              "additionalProperties": false,
+              "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "iv",
+                "kid",
+                "v"
               ],
               "type": "object"
             },
@@ -4846,6 +6378,19 @@
               ],
               "type": "object"
             },
+            "Partial<Record<\"password\" | \"recovery\", EscrowBlob>>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "password": {
+                  "$ref": "#/definitions/EscrowBlob"
+                },
+                "recovery": {
+                  "$ref": "#/definitions/EscrowBlob"
+                }
+              },
+              "type": "object"
+            },
             "Password": {
               "WebdaBehavior": "Webda/Password",
               "additionalProperties": false,
@@ -4858,6 +6403,113 @@
                 "changedAt": {
                   "description": "Last change, ms since epoch",
                   "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "UserDevice": {
+              "additionalProperties": false,
+              "description": "A device holding the keyring locally: metadata only, the device blob never reaches the server",
+              "properties": {
+                "createdAt": {
+                  "description": "Registration, ms since epoch",
+                  "type": "number"
+                },
+                "id": {
+                  "description": "Device id",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "Last use, ms since epoch",
+                  "type": "number"
+                },
+                "name": {
+                  "description": "Name chosen by the user",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "UserKeys": {
+              "WebdaBehavior": "Webda/UserKeys",
+              "additionalProperties": false,
+              "description": "End-to-end encryption keys of a user (`User.keys`): public keys in clear, the encrypted keyring holding every\nprivate key and its escrows, and the devices holding the keyring\n\nThe private keys never reach the server in clear: the keyring (PKCS#8 keys by kid) is encrypted on the client with a\nrandom keyring key, itself wrapped by KEKs the server never sees (escrows: Argon2id/PBKDF2 of the password or of a\nrecovery code; devices: WebAuthn PRF, OS keystore or passcode, kept locally). See `src/sealed/` for the formats.\n\nActions, exposed as `User.Keys.<Action>`, are authorised by the owner `canAct(context, \"keys.<action>\")` (the user\nonly, for `User`). `__keyring` and `__escrows` are server-only: `getEscrow` is the only way out, to the owner,\nthrottled on the owner attempts `_escrowAttempts`/`_lastEscrowAttemptAt` and audited by the operation events\n(`Webda.OperationSuccess`/`Webda.OperationFailure`). Opening an escrow happens on the client, so a fetch cannot be\nknown to have succeeded: every fetch counts, and the counter is reset by `registerDevice`, the proof that the\nfetched escrow was opened.",
+              "properties": {
+                "__escrows": {
+                  "$ref": "#/definitions/Partial%3CRecord%3C%22password%22%20%7C%20%22recovery%22%2C%20EscrowBlob%3E%3E",
+                  "description": "Escrows of the keyring key by kind, server-only"
+                },
+                "__keyring": {
+                  "$ref": "#/definitions/KeyringBlob",
+                  "description": "Encrypted keyring, server-only"
+                },
+                "devices": {
+                  "description": "Devices holding the keyring (metadata only)",
+                  "items": {
+                    "$ref": "#/definitions/UserDevice"
+                  },
+                  "type": "array"
+                },
+                "publicKeys": {
+                  "description": "Public keys, oldest first: the newest non-retired one is active",
+                  "items": {
+                    "$ref": "#/definitions/UserPublicKey"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "UserPublicKey": {
+              "additionalProperties": false,
+              "description": "A user public key, the recipient of the values sealed while it is active",
+              "properties": {
+                "alg": {
+                  "const": "ECDH-ES+A256GCM",
+                  "description": "Seal algorithm",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "description": "Creation, ms since epoch",
+                  "type": "number"
+                },
+                "jwk": {
+                  "$ref": "#/definitions/JsonWebKey",
+                  "description": "P-256 public JWK"
+                },
+                "kid": {
+                  "description": "Key id: the first 16 characters of the key fingerprint",
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "alg",
+                "createdAt",
+                "jwk",
+                "kid"
+              ],
+              "type": "object"
+            },
+            "keys$publicKeys[]$jwk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
                 }
               },
               "type": "object"
@@ -4876,6 +6528,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
+            },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
               "type": "number"
@@ -4893,6 +6553,10 @@
             "email": {
               "description": "Contain main user email if exists",
               "type": "string"
+            },
+            "keys": {
+              "$ref": "#/definitions/UserKeys",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -5110,6 +6774,769 @@
       ]
     },
     "Webda/Password.change.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/UserKeys.setup.input": {
+      "type": "object",
+      "properties": {
+        "publicKey": {
+          "additionalProperties": false,
+          "description": "Public key submitted by a client: kid and public JWK",
+          "properties": {
+            "jwk": {
+              "$ref": "#/definitions/JsonWebKey",
+              "description": "P-256 public JWK, without private part"
+            },
+            "kid": {
+              "description": "Key id: the first 16 characters of the key fingerprint",
+              "type": "string"
+            }
+          },
+          "required": [
+            "jwk",
+            "kid"
+          ],
+          "type": "object"
+        },
+        "keyring": {
+          "additionalProperties": false,
+          "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kid": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kid",
+            "v"
+          ],
+          "type": "object"
+        },
+        "escrows": {
+          "additionalProperties": false,
+          "description": "Make all properties in T optional",
+          "properties": {
+            "password": {
+              "$ref": "#/definitions/EscrowBlob"
+            },
+            "recovery": {
+              "$ref": "#/definitions/EscrowBlob"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "publicKey",
+        "keyring",
+        "escrows"
+      ],
+      "definitions": {
+        "JsonWebKey": {
+          "additionalProperties": false,
+          "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+          "properties": {
+            "alg": {
+              "type": "string"
+            },
+            "crv": {
+              "type": "string"
+            },
+            "d": {
+              "type": "string"
+            },
+            "dp": {
+              "type": "string"
+            },
+            "dq": {
+              "type": "string"
+            },
+            "e": {
+              "type": "string"
+            },
+            "ext": {
+              "default": false,
+              "type": "boolean"
+            },
+            "k": {
+              "type": "string"
+            },
+            "key_ops": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "kty": {
+              "type": "string"
+            },
+            "n": {
+              "type": "string"
+            },
+            "oth": {
+              "items": {
+                "$ref": "#/definitions/jwk%24oth%5B%5D"
+              },
+              "type": "array"
+            },
+            "p": {
+              "type": "string"
+            },
+            "q": {
+              "type": "string"
+            },
+            "qi": {
+              "type": "string"
+            },
+            "use": {
+              "type": "string"
+            },
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "jwk$oth[]": {
+          "additionalProperties": false,
+          "properties": {
+            "d": {
+              "type": "string"
+            },
+            "r": {
+              "type": "string"
+            },
+            "t": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "EscrowBlob": {
+          "additionalProperties": false,
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kdf": {
+              "description": "Supported password KDFs",
+              "enum": [
+                "argon2id",
+                "pbkdf2-sha256"
+              ],
+              "type": "string"
+            },
+            "kdfParams": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "password",
+                "recovery"
+              ],
+              "type": "string"
+            },
+            "salt": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kdf",
+            "kdfParams",
+            "kind",
+            "salt",
+            "v"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Webda/UserKeys.setup.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/UserKeys.getEscrow.input": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "password",
+            "recovery"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "Webda/UserKeys.getEscrow.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "escrow": {
+          "$ref": "#/definitions/EscrowBlob"
+        },
+        "keyring": {
+          "$ref": "#/definitions/KeyringBlob"
+        },
+        "publicKeys": {
+          "items": {
+            "$ref": "#/definitions/UserPublicKey"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "escrow",
+        "keyring",
+        "publicKeys"
+      ],
+      "type": "object",
+      "definitions": {
+        "EscrowBlob": {
+          "additionalProperties": false,
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kdf": {
+              "description": "Supported password KDFs",
+              "enum": [
+                "argon2id",
+                "pbkdf2-sha256"
+              ],
+              "type": "string"
+            },
+            "kdfParams": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "password",
+                "recovery"
+              ],
+              "type": "string"
+            },
+            "salt": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kdf",
+            "kdfParams",
+            "kind",
+            "salt",
+            "v"
+          ],
+          "type": "object"
+        },
+        "JsonWebKey": {
+          "additionalProperties": false,
+          "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+          "properties": {
+            "alg": {
+              "type": "string"
+            },
+            "crv": {
+              "type": "string"
+            },
+            "d": {
+              "type": "string"
+            },
+            "dp": {
+              "type": "string"
+            },
+            "dq": {
+              "type": "string"
+            },
+            "e": {
+              "type": "string"
+            },
+            "ext": {
+              "default": false,
+              "type": "boolean"
+            },
+            "k": {
+              "type": "string"
+            },
+            "key_ops": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "kty": {
+              "type": "string"
+            },
+            "n": {
+              "type": "string"
+            },
+            "oth": {
+              "items": {
+                "$ref": "#/definitions/publicKeys%5B%5D%24jwk%24oth%5B%5D"
+              },
+              "type": "array"
+            },
+            "p": {
+              "type": "string"
+            },
+            "q": {
+              "type": "string"
+            },
+            "qi": {
+              "type": "string"
+            },
+            "use": {
+              "type": "string"
+            },
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "KeyringBlob": {
+          "additionalProperties": false,
+          "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kid": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kid",
+            "v"
+          ],
+          "type": "object"
+        },
+        "UserPublicKey": {
+          "additionalProperties": false,
+          "description": "A user public key, the recipient of the values sealed while it is active",
+          "properties": {
+            "alg": {
+              "const": "ECDH-ES+A256GCM",
+              "description": "Seal algorithm",
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation, ms since epoch",
+              "type": "number"
+            },
+            "jwk": {
+              "$ref": "#/definitions/JsonWebKey",
+              "description": "P-256 public JWK"
+            },
+            "kid": {
+              "description": "Key id: the first 16 characters of the key fingerprint",
+              "type": "string"
+            },
+            "retiredAt": {
+              "description": "Retirement (replaced by a rotation), ms since epoch: no new value is sealed to a retired key",
+              "type": "number"
+            }
+          },
+          "required": [
+            "alg",
+            "createdAt",
+            "jwk",
+            "kid"
+          ],
+          "type": "object"
+        },
+        "publicKeys[]$jwk$oth[]": {
+          "additionalProperties": false,
+          "properties": {
+            "d": {
+              "type": "string"
+            },
+            "r": {
+              "type": "string"
+            },
+            "t": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "Webda/UserKeys.setEscrow.input": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "password",
+            "recovery"
+          ],
+          "type": "string"
+        },
+        "escrow": {
+          "additionalProperties": false,
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kdf": {
+              "description": "Supported password KDFs",
+              "enum": [
+                "argon2id",
+                "pbkdf2-sha256"
+              ],
+              "type": "string"
+            },
+            "kdfParams": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "password",
+                "recovery"
+              ],
+              "type": "string"
+            },
+            "salt": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kdf",
+            "kdfParams",
+            "kind",
+            "salt",
+            "v"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "kind",
+        "escrow"
+      ]
+    },
+    "Webda/UserKeys.setEscrow.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/UserKeys.removeEscrow.input": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "password",
+            "recovery"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "Webda/UserKeys.removeEscrow.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/UserKeys.rotate.input": {
+      "type": "object",
+      "properties": {
+        "publicKey": {
+          "additionalProperties": false,
+          "description": "Public key submitted by a client: kid and public JWK",
+          "properties": {
+            "jwk": {
+              "$ref": "#/definitions/JsonWebKey",
+              "description": "P-256 public JWK, without private part"
+            },
+            "kid": {
+              "description": "Key id: the first 16 characters of the key fingerprint",
+              "type": "string"
+            }
+          },
+          "required": [
+            "jwk",
+            "kid"
+          ],
+          "type": "object"
+        },
+        "keyring": {
+          "additionalProperties": false,
+          "description": "Encrypted keyring: `kid` is the active key, in clear but bound by the AAD",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kid": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kid",
+            "v"
+          ],
+          "type": "object"
+        },
+        "escrows": {
+          "additionalProperties": false,
+          "description": "Make all properties in T optional",
+          "properties": {
+            "password": {
+              "$ref": "#/definitions/EscrowBlob"
+            },
+            "recovery": {
+              "$ref": "#/definitions/EscrowBlob"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "publicKey",
+        "keyring"
+      ],
+      "definitions": {
+        "JsonWebKey": {
+          "additionalProperties": false,
+          "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+          "properties": {
+            "alg": {
+              "type": "string"
+            },
+            "crv": {
+              "type": "string"
+            },
+            "d": {
+              "type": "string"
+            },
+            "dp": {
+              "type": "string"
+            },
+            "dq": {
+              "type": "string"
+            },
+            "e": {
+              "type": "string"
+            },
+            "ext": {
+              "default": false,
+              "type": "boolean"
+            },
+            "k": {
+              "type": "string"
+            },
+            "key_ops": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "kty": {
+              "type": "string"
+            },
+            "n": {
+              "type": "string"
+            },
+            "oth": {
+              "items": {
+                "$ref": "#/definitions/jwk%24oth%5B%5D"
+              },
+              "type": "array"
+            },
+            "p": {
+              "type": "string"
+            },
+            "q": {
+              "type": "string"
+            },
+            "qi": {
+              "type": "string"
+            },
+            "use": {
+              "type": "string"
+            },
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "jwk$oth[]": {
+          "additionalProperties": false,
+          "properties": {
+            "d": {
+              "type": "string"
+            },
+            "r": {
+              "type": "string"
+            },
+            "t": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "EscrowBlob": {
+          "additionalProperties": false,
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kdf": {
+              "description": "Supported password KDFs",
+              "enum": [
+                "argon2id",
+                "pbkdf2-sha256"
+              ],
+              "type": "string"
+            },
+            "kdfParams": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "password",
+                "recovery"
+              ],
+              "type": "string"
+            },
+            "salt": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kdf",
+            "kdfParams",
+            "kind",
+            "salt",
+            "v"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Webda/UserKeys.rotate.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/UserKeys.registerDevice.input": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Webda/UserKeys.registerDevice.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "Webda/UserKeys.revokeDevice.input": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "Webda/UserKeys.revokeDevice.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     },
@@ -5625,6 +8052,66 @@
           }
         }
       }
+    },
+    "Webda/UserKeys": {
+      "Identifier": "Webda/UserKeys",
+      "Import": "lib/models/userkeys.model:UserKeys",
+      "Actions": {
+        "setup": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "getEscrow": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "setEscrow": {
+          "rest": {
+            "method": "PUT"
+          }
+        },
+        "removeEscrow": {
+          "rest": {
+            "method": "DELETE"
+          }
+        },
+        "rotate": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "registerDevice": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "revokeDevice": {
+          "rest": {
+            "method": "DELETE"
+          }
+        }
+      },
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Policy of a UserKeys attribute",
+        "properties": {
+          "escrowAttempts": {
+            "description": "Escrow fetches allowed before the lockout, reset when a device registers.",
+            "minimum": 1,
+            "type": "number"
+          },
+          "escrowLockout": {
+            "description": "Escrow lockout duration, ms.",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "Configuration": "lib/models/userkeys.model:UserKeysParameters"
     },
     "Webda/Sealed": {
       "Identifier": "Webda/Sealed",

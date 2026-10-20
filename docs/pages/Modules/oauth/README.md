@@ -36,8 +36,10 @@ operation call, whatever the transport (REST, `/operations`, MCP).
 - `loginUrl` (required) is your application login page. The server redirects an anonymous browser there with
   `?redirect=` pointing back to the pending request.
 - `Webda/OperationsTransport` serves `GET /operations` and `POST /operations/{id}`, the transport the Webda CLI uses.
-  `GET /operations` answers `{ version, operations }`: `version` is a hash of the listed operations (16 hex
-  characters), so it changes whenever an operation the caller can see is added, removed or changed.
+  `GET /operations` answers `{ version, aliases, operations }`: `version` is a hash of the listing (16 hex
+  characters), so it changes whenever an operation the caller can see is added, removed or changed. `aliases` maps a
+  model plural to its singular (`{ "MindNodes": "MindNode" }`) for the models of the listed operations, so the CLI
+  serves `MindNodes.Query` and `MindNode.Get` under one command group.
 - No REST transport is needed: the built-in consent and device pages call routes the OAuthServer serves itself (see
   [Custom pages](#custom-consent-device-and-result-pages)).
 - Use a shared store for `Webda/RevokedAccess` and `Webda/RefreshToken` in multi-instance deployments, see

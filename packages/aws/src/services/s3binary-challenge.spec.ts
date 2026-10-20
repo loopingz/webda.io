@@ -929,4 +929,174 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     );
     assert.deepStrictEqual(await this.images(small.getUUID()), []);
   }
+
+  /**
+   * Without an explicit body the challenge is read from the operation input
+   */
+  @test
+  async challengeFromTheOperationInput() {
+    const { file, info } = await this.file("from input");
+    const user = await ImageUser.create({ uuid: "s3-input" } as any);
+    const context: any = { getInput: async () => ({ ...info, hash: file.hash.toUpperCase() }) };
+    const res = await this.binary.putRedirectUrl(user, "images", undefined, context);
+    assert.strictEqual(res?.method, "PUT");
+    assert.ok(
+      this.written.some(k => k.includes(`_pending/${file.hash}/`)),
+      "the hash is normalised"
+    );
+  }
+
+  /**
+   * A dedup without mimetype nor metadata stores the defaults
+   */
+  @test
+  async dedupWithoutMimetypeNorMetadata() {
+    const { file } = await this.file("bare dedup");
+    this.uploaded("bare dedup");
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`));
+    const user = await ImageUser.create({ uuid: "s3-bare-dedup" } as any);
+    assert.strictEqual(
+      await this.binary.putRedirectUrl(user, "images", { hash: file.hash, challenge: file.challenge } as any),
+      undefined
+    );
+    const [image] = await this.images(user.getUUID());
+    assert.strictEqual(image.mimetype, "application/octet-stream");
+    assert.deepStrictEqual({ ...image.metadata }, {});
+  }
+
+  /**
+   * The data listed but gone before its HEAD (concurrent removal): the client uploads it again
+   */
+  @test
+  async dedupDataGoneBeforeHead() {
+    const { file, info } = await this.file("vanished");
+    this.uploaded("vanished");
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`));
+    vi.spyOn(this.binary, "_getS3").mockResolvedValue(undefined);
+    const user = await ImageUser.create({ uuid: "s3-vanished" } as any);
+    const res = await this.binary.putRedirectUrl(user, "images", info);
+    assert.strictEqual(res?.method, "PUT");
+    assert.deepStrictEqual(await this.images(user.getUUID()), []);
+  }
+
+  /**
+   * A completion without announced mimetype nor metadata stores the defaults
+   */
+  @test
+  async completeWithoutMimetypeNorMetadata() {
+    const { user, file } = await this.pending("bare", { mimetype: undefined, metadata: undefined });
+    this.uploaded("bare");
+    await this.binary.completeUpload(user, "images", file.hash);
+    const [image] = await this.images(user.getUUID());
+    assert.strictEqual(image.mimetype, "application/octet-stream");
+    assert.deepStrictEqual({ ...image.metadata }, {});
+  }
+
+  /**
+   * An unreadable (or `null`) pending marker carries no challenge: the completion is rejected
+   */
+  @test
+  async unreadablePendingMarkerIsRejected() {
+    for (const body of ["not json", "null"]) {
+      const { user, file } = await this.pending(`unreadable ${body}`);
+      this.uploaded(`unreadable ${body}`);
+      const key = this.keys.find(k => k.includes(`_pending/${file.hash}/`));
+      this.objects.get(key).Body = Buffer.from(body);
+      await assert.rejects(
+        () => this.binary.completeUpload(user, "images", file.hash),
+        (e: any) => e.getResponseCode() === 400
+      );
+      assert.deepStrictEqual(await this.images(user.getUUID()), []);
+    }
+  }
+
+  /**
+   * A failure reading the pending marker other than its absence is reported, not taken for a missing upload
+   */
+  @test
+  async pendingReadFailureIsReported() {
+    const { user, file } = await this.pending("read failure");
+    vi.spyOn(this.binary, "getContent").mockRejectedValue(new Error("S3 unavailable"));
+    await assert.rejects(() => this.binary.completeUpload(user, "images", file.hash), /S3 unavailable/);
+  }
+
+  /**
+   * The sweep falls back to the modification date of an unreadable marker, and skips a marker removed meanwhile
+   */
+  @test
+  async sweepUnreadableAndVanishedMarkers() {
+    const stale = await this.pending("unreadable stale");
+    const fresh = await this.pending("unreadable fresh");
+    const staleKey = this.keys.find(k => k.includes(`_pending/${stale.file.hash}/`));
+    const freshKey = this.keys.find(k => k.includes(`_pending/${fresh.file.hash}/`));
+    this.objects.set(staleKey, {
+      ...this.objects.get(staleKey),
+      Body: Buffer.from("not json"),
+      LastModified: new Date(Date.now() - 25 * 3600 * 1000)
+    } as any);
+    this.objects.set(freshKey, {
+      ...this.objects.get(freshKey),
+      Body: Buffer.from("not json"),
+      LastModified: new Date()
+    } as any);
+    assert.strictEqual(await this.binary.sweepPending(), 1);
+    assert.ok(this.deleted.includes(staleKey));
+    assert.ok(this.keys.includes(freshKey));
+    // Listed but removed before it is read (a concurrent completion): nothing to sweep
+    vi.spyOn(this.binary as any, "getPendingUpload").mockResolvedValue(undefined);
+    assert.strictEqual(await this.binary.sweepPending(Date.now() + 48 * 3600 * 1000), 0);
+    assert.ok(this.keys.includes(freshKey));
+  }
+
+  /**
+   * A legacy marker whose model is stored under the `store` metadata key (as S3 returns it) is removed with its model
+   */
+  @test
+  async cascadeDeleteLegacyMarkerStoreMetadata() {
+    const { file } = await this.file("legacy store");
+    this.uploaded("legacy store");
+    const legacy = this.legacyMarker(file.hash, "files", "page", "WebdaDemo/Page");
+    this.objects.set(legacy, { Metadata: { store: "WebdaDemo/Page" }, ContentLength: 0 });
+    await this.binary._cleanUsage(file.hash, "page", "files", "WebdaDemo/Page");
+    assert.ok(this.deleted.includes(legacy));
+  }
+
+  /**
+   * A failing periodic sweep is logged, a failing cascade delete is logged and does not reject
+   */
+  @test
+  async sweepAndCascadeFailuresAreLogged() {
+    const clock = vi.useFakeTimers();
+    try {
+      const log = vi.spyOn(this.binary, "log");
+      vi.spyOn(this.binary, "sweepPending").mockRejectedValue(new Error("sweep failed"));
+      await this.binary.init();
+      await clock.advanceTimersByTimeAsync(this.binary.parameters.pendingTimeout * 250);
+      assert.ok(log.mock.calls.some(c => c[1] === "Cannot sweep pending uploads"));
+      vi.spyOn(this.binary, "_cleanUsage").mockRejectedValue(new Error("clean failed"));
+      await this.binary.cascadeDelete({ hash: "abc" } as any, "page", "files", "WebdaDemo/Page");
+      assert.ok(log.mock.calls.some(c => c[1] === "Cascade delete failed"));
+      await this.binary.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  /**
+   * A challenge for a hash the object already links is a no-op
+   */
+  @test
+  async challengeOfAnAlreadyLinkedHash() {
+    const { user, file } = await this.pending("linked");
+    this.uploaded("linked");
+    await this.binary.completeUpload(user, "images", file.hash);
+    const written = this.written.length;
+    const reloaded = await ImageUser.ref(user.getUUID()).get();
+    assert.strictEqual(
+      await this.binary.putRedirectUrl(reloaded, "images", { ...file.toBinaryFileInfo(), size: 6 }),
+      undefined
+    );
+    assert.strictEqual(this.written.length, written, "nothing written");
+    assert.strictEqual((await this.images(user.getUUID())).length, 1);
+  }
 }

@@ -3,6 +3,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import { EventEmitter } from "events";
 import { Readable } from "stream";
+import * as crypto from "crypto";
 import { WebdaApplicationTest } from "../test/index.js";
 import {
   Binary,
@@ -461,6 +462,32 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
         }
       });
       assert.strictEqual(service.putRedirectUrl.callCount, 0);
+    }
+  }
+
+  /**
+   * Hashes are normalised to lower case: the challenge reaches the service in lower case, `complete` compares and
+   * forwards the lower-case hash. Binary and Binaries.
+   */
+  @test
+  async hashesNormalisedToLowerCase() {
+    for (const kind of ["binary", "binaries"]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ completeUpload: sinon.stub().resolves() });
+      const b: any = kind === "binary" ? makeBinary(parent, service) : makeBinaries(parent, service);
+      await runWithCtx({}, async () => b.attachChallenge({ hash: "DEADBEEF", challenge: "ABCDEF" } as any));
+      assert.strictEqual(service.putRedirectUrl.firstCall.args[2].hash, "deadbeef");
+      assert.strictEqual(service.putRedirectUrl.firstCall.args[2].challenge, "abcdef");
+      await b.complete("ABC");
+      assert.deepStrictEqual(service.completeUpload.firstCall.args, [parent.instance, "image", "abc"]);
+      if (kind === "binary") {
+        b.hash = "abc";
+      } else {
+        b.push(new BinariesItem(b, { hash: "abc", size: 1, name: "a", mimetype: "text/plain" } as any));
+      }
+      // Already linked, whatever the case
+      await b.complete("ABC");
+      assert.strictEqual(service.completeUpload.callCount, 1);
     }
   }
 
@@ -1393,6 +1420,47 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
     const file = await svc.getFile(ctx);
     assert.strictEqual(file.mimetype, "application/octet-stream");
     assert.strictEqual(file.name, "data.bin");
+  }
+
+  /**
+   * `getFile` computes the challenge as md5("WEBDA" || bytes), also for content that is not valid UTF-8
+   */
+  @test
+  async getFileChallengeIsByteCorrect() {
+    const svc = this.makeService();
+    const ctx = new OperationContext();
+    await ctx.init();
+    ctx.setParameters({} as any);
+    const bytes = Buffer.from([0xff, 0xfe, 0x00, 0x80, 0xc3]);
+    (ctx as any).getRawInput = async () => bytes;
+    const file = await svc.getFile(ctx);
+    assert.strictEqual(file.hash, crypto.createHash("md5").update(bytes).digest("hex"));
+    assert.strictEqual(file.challenge, crypto.createHash("md5").update("WEBDA").update(bytes).digest("hex"));
+    // The same value as the hashes computed from the stream
+    assert.deepStrictEqual(await new MemoryBinaryFile(bytes).computeHashes(), {
+      hash: file.hash,
+      challenge: file.challenge
+    });
+  }
+
+  /**
+   * Hashes to store are computed from the bytes: a wrong preset hash is rejected, a preset challenge is replaced, a
+   * preset hash in upper case is accepted and normalised
+   */
+  @test
+  async verifiedHashesComputeFromBytes() {
+    const svc: any = this.makeService();
+    const bytes = Buffer.from("verified");
+    const hash = crypto.createHash("md5").update(bytes).digest("hex");
+    const challenge = crypto.createHash("md5").update("WEBDA").update(bytes).digest("hex");
+    await assert.rejects(
+      () => svc.verifiedHashes(new MemoryBinaryFile(bytes, { hash: "0".repeat(32) })),
+      WebdaError.BadRequest
+    );
+    const file = new MemoryBinaryFile(bytes, { hash: hash.toUpperCase(), challenge: "forged" });
+    assert.deepStrictEqual(await svc.verifiedHashes(file), { hash, challenge });
+    assert.strictEqual(file.hash, hash);
+    assert.strictEqual(file.challenge, challenge);
   }
 
   /**

@@ -191,30 +191,37 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
   abstract get(): Promise<Readable>;
 
   /**
-   * Create hashes
-   * @param buffer - the buffer
+   * Compute the hashes from the content, whatever hash or challenge is already set
+   *
+   * The hash is the md5 of the bytes, the challenge the md5 of "WEBDA" followed by the bytes
+   * @returns the computed hash and challenge
+   */
+  public async computeHashes(): Promise<{ hash: string; challenge: string }> {
+    // Using MD5 as S3 content verification use md5
+    const hash = crypto.createHash("md5");
+    const challenge = crypto.createHash("md5").update("WEBDA");
+    const stream = await this.get();
+    await new Promise<void>((resolve, reject) => {
+      stream.on("error", err => reject(err));
+      stream.on("end", () => resolve());
+      stream.on("data", chunk => {
+        const buffer = Buffer.from(chunk);
+        hash.update(buffer as crypto.BinaryLike);
+        challenge.update(buffer as crypto.BinaryLike);
+      });
+    });
+    return { hash: hash.digest("hex"), challenge: challenge.digest("hex") };
+  }
+
+  /**
+   * Create hashes, computed from the content unless a hash is already set
    * @returns the result
    */
   public async getHashes(): Promise<{ hash: string; challenge: string }> {
     if (!this.hash) {
-      // Using MD5 as S3 content verification use md5
-      const hash = crypto.createHash("md5");
-      const challenge = crypto.createHash("md5");
-      const stream = await this.get();
-      challenge.update("WEBDA");
-      await new Promise<void>((resolve, reject) => {
-        stream.on("error", err => reject(err));
-        stream.on("end", () => {
-          this.hash = hash.digest("hex");
-          this.challenge = challenge.digest("hex");
-          resolve();
-        });
-        stream.on("data", chunk => {
-          const buffer = Buffer.from(chunk);
-          hash.update(buffer as crypto.BinaryLike);
-          challenge.update(buffer as crypto.BinaryLike);
-        });
-      });
+      const { hash, challenge } = await this.computeHashes();
+      this.hash = hash;
+      this.challenge = challenge;
     }
     return {
       hash: this.hash,
@@ -573,6 +580,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (body === undefined) {
       body = await context.getInput();
     }
+    body = normalizeHashes(body);
     if (this.hash === body.hash) {
       return; // already linked
     }
@@ -600,6 +608,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (!parent) {
       throw new Error("Binary parent not yet wired — cannot complete");
     }
+    hash = normalizeHash(hash);
     if (this.hash === hash) {
       return; // already linked
     }
@@ -950,6 +959,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     if (body === undefined) {
       body = await context.getInput();
     }
+    body = normalizeHashes(body);
     if (this.find(item => item.hash === body.hash)) {
       return; // dedup
     }
@@ -976,6 +986,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     if (!parent) {
       throw new Error("Binaries parent not yet wired — cannot complete");
     }
+    hash = normalizeHash(hash);
     if (this.find(item => item.hash === hash)) {
       return; // already linked
     }
@@ -1145,6 +1156,27 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
 export type Binaries<T extends object = {}> = BinariesImpl<T>;
 
 /**
+ * Normalise a hexadecimal hash or challenge to lower case, so the same content is never named by two keys
+ * @param hash - the hash as sent by a client
+ * @returns the lower-case hash, or the value unchanged when it is not a string
+ */
+export function normalizeHash<T>(hash: T): T {
+  return (typeof hash === "string" ? hash.toLowerCase() : hash) as T;
+}
+
+/**
+ * Copy of a challenge body with its hash and challenge normalised to lower case
+ * @param body - the challenge body
+ * @returns the normalised copy
+ */
+export function normalizeHashes<T extends { hash?: string; challenge?: string }>(body: T | undefined): T | undefined {
+  if (!body || typeof body !== "object") {
+    return body;
+  }
+  return { ...body, hash: normalizeHash(body.hash), challenge: normalizeHash(body.challenge) } as T;
+}
+
+/**
  * Reject a direct-upload challenge with an invalid size (not a finite non-negative number) or one exceeding
  * `maxUploadSize`. When a limit is set the client must declare the size.
  * @param service - the binary service
@@ -1203,16 +1235,16 @@ export class BinaryParameters extends ServiceParameters {
   }
   /**
    * Maximum size accepted for a direct-to-bucket upload, undefined means no limit
-   */
-  set maxUploadSize(value: number | string | undefined) {
-    this._maxUploadSize = value === undefined ? undefined : new FileSize(value).valueOf();
-  }
-  /**
-   * Get the max upload size in bytes
-   * @returns the limit or undefined
+   * @returns the limit in bytes or undefined
    */
   get maxUploadSize(): number | undefined {
     return this._maxUploadSize;
+  }
+  /**
+   * Maximum size accepted for a direct-to-bucket upload, undefined means no limit
+   */
+  set maxUploadSize(value: number | string | undefined) {
+    this._maxUploadSize = value === undefined ? undefined : new FileSize(value).valueOf();
   }
 
   /**
@@ -1647,6 +1679,23 @@ export abstract class BinaryService<
   }
 
   /**
+   * Hashes of a file to store, computed from its bytes: a hash or challenge set on the file is never trusted
+   *
+   * A preset hash that differs from the content is rejected; the file then carries the computed values
+   * @param file - the file to store
+   * @returns the computed hash and challenge
+   */
+  protected async verifiedHashes(file: BinaryFile): Promise<{ hash: string; challenge: string }> {
+    const computed = await file.computeHashes();
+    if (file.hash && normalizeHash(file.hash) !== computed.hash) {
+      throw new WebdaError.BadRequest("Hash does not match the content");
+    }
+    file.hash = computed.hash;
+    file.challenge = computed.challenge;
+    return computed;
+  }
+
+  /**
    * Whether the hash is already linked to the object attribute (a collection item or the single binary)
    * @param object - the target object
    * @param property - the property name
@@ -1799,17 +1848,16 @@ export abstract class BinaryService<
       throw new WebdaError.BadRequest("File too big");
     }
     const file = await req.getRawInput(size ?? this.parameters.maxFileSize);
+    const buffer = Buffer.from(file);
     mimetype ??= "application/octet-stream";
     name ??= "data.bin";
-    return new MemoryBinaryFile(Buffer.from(file), {
+    return new MemoryBinaryFile(buffer, {
       mimetype,
       size,
       name: name,
-      hash: crypto.createHash("md5").update(file).digest("hex"),
-      challenge: crypto
-        .createHash("md5")
-        .update("WEBDA" + file)
-        .digest("hex")
+      hash: crypto.createHash("md5").update(buffer).digest("hex"),
+      // md5("WEBDA" || bytes): the bytes are hashed as is, not decoded as a string
+      challenge: crypto.createHash("md5").update("WEBDA").update(buffer).digest("hex")
     });
   }
 

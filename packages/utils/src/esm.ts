@@ -55,7 +55,7 @@ export function toImportSpecifier(file: string): string {
  * @throws {Error} When `importMeta.url` is not available
  */
 export function getFileName(importMeta: ImportMeta): string {
-  if (typeof importMeta === "object" && typeof importMeta.url === "string") {
+  if (typeof importMeta?.url === "string") {
     return url.fileURLToPath(importMeta.url);
   }
   throw new Error("Cannot determine file name from importMeta");
@@ -65,19 +65,11 @@ export function getFileName(importMeta: ImportMeta): string {
  * Return `true` if the module identified by `importMeta` is the process entry point.
  *
  * Symbolic links in `process.argv[1]` are resolved before comparison.
- * Always returns `false` in non-Node environments (e.g. browsers).
  *
  * @param importMeta - The `import.meta` object of the calling module
  * @returns `true` when the calling module is the main entry point, `false` otherwise
  */
 export function isMainModule(importMeta: ImportMeta): boolean {
-  /* v8 ignore next 3 - cannot be tested within a node environment */
-  if (typeof process === "undefined") {
-    return false;
-  }
-  const mainModule = process.argv[1];
-  // mainModule can be a symbolic link so we need to resolve it
-  const realPath = realpathSync(mainModule);
-  // @ts-ignore
-  return importMeta.url === (typeof process !== "undefined" ? `file://${realPath}` : undefined);
+  // The entry point can be a symbolic link so we need to resolve it
+  return importMeta.url === url.pathToFileURL(realpathSync(process.argv[1])).href;
 }

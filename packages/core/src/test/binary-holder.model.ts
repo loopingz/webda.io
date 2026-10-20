@@ -6,7 +6,15 @@ import { BinariesImpl } from "../services/binary.service.js";
  *
  * @WebdaBehavior Test/PhotoLike
  */
-export class PhotoLike extends BinariesImpl {}
+export class PhotoLike extends BinariesImpl {
+  /**
+   * Declared so the content-mapper does not generate its own `toJSON`, which would not match the base signature
+   * @returns the stored items
+   */
+  toJSON() {
+    return super.toJSON();
+  }
+}
 
 /**
  * Test-only model (compiled by the content-mapper like production models) holding a `BinariesImpl` subclass

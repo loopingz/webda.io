@@ -437,6 +437,60 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
   }
 
   /**
+   * Non-finite or negative sizes are rejected, with or without a limit.
+   */
+  @test
+  async challengeRejectsInvalidSize() {
+    for (const parameters of [{}, { maxUploadSize: 100 }]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ parameters });
+      const b = makeBinary(parent, service);
+      const base = { hash: "deadbeef", challenge: "wb-deadbeef" };
+      await runWithCtx({}, async () => {
+        for (const size of [NaN, -1, Infinity, "5"]) {
+          await assert.rejects(() => b.attachChallenge({ ...base, size } as any), WebdaError.BadRequest);
+        }
+      });
+      assert.strictEqual(service.putRedirectUrl.callCount, 0);
+    }
+  }
+
+  /**
+   * `complete(hash)` asks the service to verify and attach; a no-op when the hash is already linked. Binary and
+   * Binaries.
+   */
+  @test
+  async completeDelegatesToService() {
+    for (const kind of ["binary", "binaries"]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ completeUpload: sinon.stub().resolves() });
+      let b: any;
+      if (kind === "binary") {
+        b = makeBinary(parent, service);
+      } else {
+        b = makeBinaries(parent, service);
+      }
+      await b.complete("abc");
+      assert.strictEqual(service.completeUpload.callCount, 1);
+      assert.deepStrictEqual(service.completeUpload.firstCall.args, [parent.instance, "image", "abc"]);
+      // Already linked: nothing to do
+      if (kind === "binary") {
+        b.hash = "abc";
+      } else {
+        b.push(new BinariesItem(b, { hash: "abc", size: 1, name: "a", mimetype: "text/plain" } as any));
+      }
+      await b.complete("abc");
+      assert.strictEqual(service.completeUpload.callCount, 1);
+    }
+    const orphan: any = Object.create(Binary.prototype);
+    orphan[WEBDA_STORAGE] = {};
+    await assert.rejects(() => (orphan as Binary).complete("abc"), /parent not yet wired/);
+    const orphans: any = new BinariesImpl();
+    orphans[WEBDA_STORAGE] = {};
+    await assert.rejects(() => orphans.complete("abc"), /parent not yet wired/);
+  }
+
+  /**
    * Signed URLs use `urlExpiry`; parameters parse maxUploadSize.
    */
   @test
@@ -1476,6 +1530,18 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
     await svc.uploadSuccess(target, "items", file);
     assert.strictEqual(patches.length, 1);
     assert.strictEqual(patches[0].items.length, 1);
+  }
+
+  /**
+   * Services without pending uploads answer 404 on completion.
+   */
+  @test
+  async completeUploadDefaultsToNotFound() {
+    const svc = this.makeService();
+    await assert.rejects(
+      () => svc.completeUpload({} as any, "files", "h"),
+      (e: any) => e instanceof WebdaError.NotFound
+    );
   }
 
   /**

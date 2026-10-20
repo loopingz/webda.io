@@ -586,6 +586,26 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
   }
 
   /**
+   * Declare a direct upload finished.
+   *
+   * `POST /<plural>/{uuid}/<attribute>/complete/{hash}` — after the client PUT the bytes to the URL returned by
+   * {@link attachChallenge}, the BinaryService verifies the uploaded object and only then attaches it. A no-op when
+   * the hash is already linked.
+   * @param hash - the hash announced in the challenge
+   */
+  @Action({ rest: { route: "complete/{hash}", method: "POST" } })
+  async complete(hash: string): Promise<void> {
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binary parent not yet wired — cannot complete");
+    }
+    if (this.hash === hash) {
+      return; // already linked
+    }
+    await this.getService().completeUpload(<any>parent.instance, parent.attribute, hash);
+  }
+
+  /**
    * Stream the binary to the response, or 302-redirect to a signed URL.
    *
    * `GET /<plural>/{uuid}/<attribute>` — if the underlying BinaryService
@@ -943,6 +963,25 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
   }
 
   /**
+   * Declare a direct upload of a new item finished.
+   *
+   * `POST /<plural>/{uuid}/<attribute>/complete/{hash}` — the BinaryService verifies the uploaded object, then
+   * appends it. A no-op when the hash is already in the collection.
+   * @param hash - the hash announced in the challenge
+   */
+  @Action({ rest: { route: "complete/{hash}", method: "POST" } })
+  async complete(hash: string): Promise<void> {
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot complete");
+    }
+    if (this.find(item => item.hash === hash)) {
+      return; // already linked
+    }
+    await this.getService().completeUpload(<any>parent.instance, parent.attribute, hash);
+  }
+
+  /**
    * Stream a single item to the response, or 302-redirect to a signed URL.
    *
    * `GET /<plural>/{uuid}/<attribute>/{index}` — locates the item by `index`
@@ -1105,13 +1144,21 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
 export type Binaries<T extends object = {}> = BinariesImpl<T>;
 
 /**
- * Reject a direct-upload challenge exceeding `maxUploadSize`.
- * When a limit is set the client must declare the size.
+ * Reject a direct-upload challenge with an invalid size (not a finite non-negative number) or one exceeding
+ * `maxUploadSize`. When a limit is set the client must declare the size.
  * @param service - the binary service
+ * @param service.parameters - its parameters
+ * @param service.parameters.maxUploadSize - the size limit, if any
  * @param body - the challenge body
+ * @param body.size - the declared size
  */
 function checkUploadSize(service: { parameters?: { maxUploadSize?: number } }, body: { size?: number }) {
   const max = service.parameters?.maxUploadSize;
+  if (body.size !== undefined && body.size !== null) {
+    if (typeof body.size !== "number" || !Number.isFinite(body.size) || body.size < 0) {
+      throw new WebdaError.BadRequest("Invalid size");
+    }
+  }
   if (max === undefined) {
     return;
   }
@@ -1615,6 +1662,19 @@ export abstract class BinaryService<
     }
     // TODO: Refactor
     return null; //<IStore>useCore().getModelStore(useModel(ctx.parameter("model")));
+  }
+
+  /**
+   * Attach a direct upload once the client declares it finished, after verifying the uploaded object
+   *
+   * By default no pending upload is managed so throws 404
+   *
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the hash announced in the challenge
+   */
+  async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    throw new WebdaError.NotFound("No pending upload");
   }
 
   /**

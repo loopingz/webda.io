@@ -14,7 +14,9 @@ import {
   BinaryParameters,
   BinaryService,
   LocalBinaryFile,
-  MemoryBinaryFile
+  MemoryBinaryFile,
+  normalizeHash,
+  normalizeHashes
 } from "./binary.service.js";
 import { Action } from "../models/decorator.js";
 import {
@@ -1610,6 +1612,61 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
+   * A collection without a stored value yet starts empty
+   */
+  @test
+  async uploadSuccessStartsAnEmptyCollection() {
+    const svc = this.makeService();
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: { Relations: { behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }] } }
+      },
+      getUUID: () => "u",
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "items", { hash: "first", size: 1, name: "f", mimetype: "t" } as any);
+    assert.deepStrictEqual(
+      patches[0].items.map(i => i.hash),
+      ["first"]
+    );
+  }
+
+  /**
+   * A read error while hashing the content rejects the computation
+   */
+  @test
+  async computeHashesPropagatesStreamErrors() {
+    const file = new MemoryBinaryFile(Buffer.from("x"), { name: "x" });
+    file.get = async () =>
+      new Readable({
+        read() {
+          this.destroy(new Error("read failed"));
+        }
+      });
+    await assert.rejects(() => file.computeHashes(), /read failed/);
+  }
+
+  /**
+   * Hash normalisation lower-cases strings and leaves anything else unchanged
+   */
+  @test
+  normalizeHashesKeepsNonStrings() {
+    assert.strictEqual(normalizeHash("ABC"), "abc");
+    assert.strictEqual(normalizeHash(undefined), undefined);
+    assert.strictEqual(normalizeHash(12 as any), 12);
+    assert.strictEqual(normalizeHashes(undefined), undefined);
+    assert.strictEqual(normalizeHashes("ABC" as any), "ABC");
+    assert.deepStrictEqual(normalizeHashes({ hash: "AB", challenge: "CD", name: "N" } as any), {
+      hash: "ab",
+      challenge: "cd",
+      name: "N"
+    });
+  }
+
+  /**
    * The dedup runs on the stored copy: a stale instance does not append a hash another request already linked.
    */
   @test
@@ -2128,6 +2185,100 @@ class BinaryCascadeTest extends WebdaApplicationTest {
     await svc.repo.delete("a");
     assert.strictEqual(svc.cascade.callCount, 2);
     assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
+  }
+
+  /**
+   * A single `Binary` attribute cascades when it holds a hash; an empty one and an unset collection are skipped.
+   * An object without `getUUID` is keyed by its id, an unregistered class by the hooked model's identifier
+   */
+  @test
+  async deleteCascadesSingleBinaries() {
+    const svc = this.makeService();
+    const parent = makeFakeParent();
+    const model = { Metadata: { Identifier: "Test/Single" } };
+    const object = Object.assign(
+      Object.create({
+        constructor: {
+          Metadata: { Relations: { behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }] } }
+        }
+      }),
+      {
+        avatar: makeBinary({ instance: parent, attribute: "avatar" }, svc, { hash: "h3", size: 1 }),
+        empty: makeBinary({ instance: parent, attribute: "empty" }, svc),
+        items: undefined
+      }
+    );
+    svc.repo.objects.set("b", object);
+    (svc as any).hookDelete(model, ["avatar", "empty", "items"]);
+    await svc.repo.delete("b");
+    assert.deepStrictEqual(
+      svc.cascade.getCalls().map(c => [c.args[0].hash, c.args[1], c.args[2], c.args[3]]),
+      [["h3", "b", "avatar", "Test/Single"]]
+    );
+  }
+
+  /**
+   * An attribute no registered service resolves is not owned
+   */
+  @test
+  async ownershipWithoutResolvingService() {
+    const svc = this.makeService({ "WebdaTest/PhotoHolder": ["photos"] });
+    const getBinaryStore = sinon.stub(useCore(), "getBinaryStore").throws(new Error("no binary store"));
+    try {
+      assert.ok(!(svc as any).ownsAttribute({ Metadata: { Identifier: "WebdaTest/PhotoHolder" } }, "photos"));
+    } finally {
+      getBinaryStore.restore();
+    }
+  }
+
+  /**
+   * Outside of an application there is no model to follow; a model whose hook fails is reported and retried
+   */
+  @test
+  async initWithoutApplicationOrFailingHook() {
+    const svc = this.makeService();
+    const getModels = sinon.stub(useApplication(), "getModels").throws(new Error("no application"));
+    try {
+      assert.strictEqual(await svc.init(), svc);
+    } finally {
+      getModels.restore();
+    }
+    const models: any = useApplication().getModels();
+    models["Test/FailingHook"] = {
+      Metadata: { Identifier: "Test/FailingHook", Relations: { behaviors: [{ attribute: "files" }] } }
+    };
+    const log = sinon.stub(svc, "log");
+    const owns = sinon
+      .stub(svc as any, "ownsAttribute")
+      .callsFake((model: any) => model === models["Test/FailingHook"]);
+    const hook = sinon.stub(svc as any, "hookDelete").throws(new Error("no repository"));
+    try {
+      await svc.init();
+      assert.ok(log.getCalls().some(c => c.args[0] === "WARN" && /Test\/FailingHook/.test(c.args[1])));
+      assert.ok(!(svc as any).hookedModels.has("Test/FailingHook"), "retried by a later init");
+      hook.resetBehavior();
+      await svc.init();
+      assert.ok((svc as any).hookedModels.has("Test/FailingHook"));
+    } finally {
+      owns.restore();
+      hook.restore();
+      delete models["Test/FailingHook"];
+    }
+  }
+
+  /**
+   * A `BinariesImpl` subclass serializes as a plain array and, hydrated, exposes its parent
+   */
+  @test
+  photoLikeSerializesAsAnArray() {
+    const holder = this.holder([]);
+    assert.ok(holder.photos instanceof PhotoLike);
+    assert.ok(holder.photos.parent, "the hydrated behavior knows its parent");
+    const photos = new PhotoLike();
+    photos.push({ hash: "h1", size: 1, name: "h1", mimetype: "t" } as any);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(photos)), [
+      { hash: "h1", size: 1, name: "h1", mimetype: "t", metadata: {} }
+    ]);
   }
 
   /**

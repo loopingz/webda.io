@@ -115,4 +115,14 @@ export class FakeCloudBinaryTest extends WebdaApplicationTest {
     assert.throws(() => ContentStorages.resolve("fake:/key"));
     await service.stop();
   }
+
+  /**
+   * Without an explicit expiry the redirect url expires after `urlExpiry`
+   */
+  @test
+  async redirectUrlDefaultsToUrlExpiry() {
+    const service = new CloudBinaryFakeService("expiry-fake", new CloudBinaryParameters().load({ urlExpiry: 120 }));
+    assert.strictEqual(await service.getRedirectUrlFromObject({ hash: "h" } as any, undefined), "h:120");
+    assert.strictEqual(await service.getRedirectUrlFromObject({ hash: "h" } as any, undefined, 5), "h:5");
+  }
 }

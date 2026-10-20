@@ -17,6 +17,7 @@ import {
 import { TestApplication, WebdaApplicationTest } from "@webda/core/lib/test";
 import { useApplication } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
+import { vi } from "vitest";
 import { FileBinary } from "./filebinary.service.js";
 
 /**
@@ -418,5 +419,68 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
       await this.newContext()
     );
     assert.ok(res?.url.includes(`/upload/data/${fresh.hash}?`), res?.url);
+  }
+
+  /**
+   * Without an explicit body the challenge is read from the operation input; the hash, the object identifier and the
+   * model identifier are required
+   */
+  @test
+  async challengeFromTheOperationInput() {
+    const user = await ImageUser.create({ displayName: "input" } as any);
+    const { hash, challenge } = await this.hashes("from input");
+    const ctx: any = { getInput: async () => ({ hash: hash.toUpperCase(), challenge, size: 10, name: "i.txt" }) };
+    const res = await this.binary.putRedirectUrl(user, "images", undefined, ctx);
+    assert.ok(res?.url.includes(`/upload/data/${hash}?`), res?.url);
+    const rejects = (promise: Promise<unknown>, message: RegExp) =>
+      assert.rejects(promise, (e: any) => e instanceof WebdaError.BadRequest && message.test(e.message));
+    await rejects(this.binary.putRedirectUrl(user, "images", undefined, undefined), /Missing binary hash/);
+    const anonymous: any = { constructor: ImageUser, getUUID: () => undefined };
+    await rejects(this.binary.putRedirectUrl(anonymous, "images", { hash } as any), /Missing object identifier/);
+    const getModelId = vi.spyOn(useApplication(), "getModelId").mockReturnValue(undefined);
+    try {
+      await rejects(this.binary.putRedirectUrl(user, "images", { hash } as any), /Missing model identifier/);
+    } finally {
+      getModelId.mockRestore();
+    }
+  }
+
+  /**
+   * A delete needs the binary hash, the object identifier and its model identifier
+   */
+  @test
+  async deleteRequiresTheIdentifiers() {
+    const { user } = await this.storedFor("delete identifiers");
+    const stored: any = await ImageUser.ref(user.getUUID()).get();
+    const rejects = (promise: Promise<unknown>, message: RegExp) =>
+      assert.rejects(promise, (e: any) => e instanceof WebdaError.BadRequest && message.test(e.message));
+    await rejects(this.binary.delete(stored, "images"), /Missing binary hash/);
+    const anonymous: any = { constructor: ImageUser, getUUID: () => undefined, images: stored.images };
+    await rejects(this.binary.delete(anonymous, "images", 0), /Missing object identifier/);
+    const getModelId = vi.spyOn(useApplication(), "getModelId").mockReturnValue(undefined);
+    try {
+      await rejects(this.binary.delete(stored, "images", 0), /Missing model identifier/);
+    } finally {
+      getModelId.mockRestore();
+    }
+    assert.strictEqual((await this.images(user.getUUID())).length, 1, "nothing removed");
+  }
+
+  /**
+   * The usage cleanup of an unknown hash is a no-op; without attribute or model, or for an absent marker, no marker
+   * is removed
+   */
+  @test
+  async cleanUsageOfUnknownHashOrWithoutAttribute() {
+    await this.binary._cleanUsage("0123456789abcdef0123456789abcdef", "u", "images", "WebdaDemo/ImageUser");
+    const { user, hash } = await this.storedFor("clean usage");
+    await this.binary._cleanUsage(hash, user.getUUID(), undefined as any, "WebdaDemo/ImageUser");
+    await this.binary._cleanUsage(hash, user.getUUID(), "images", undefined);
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    // Another owner's marker that does not exist: the stored usage is kept
+    await this.binary._cleanUsage(hash, "someone-else", "images", "WebdaDemo/ImageUser");
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    await this.binary._cleanUsage(hash, user.getUUID(), "images", "WebdaDemo/ImageUser");
+    assert.strictEqual(await this.binary.getUsageCount(hash), 0);
   }
 }

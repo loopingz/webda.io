@@ -174,11 +174,11 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
   async legacyChallengesAreNeitherLoadedNorProofs() {
     const { user, hash } = await this.storedFor("legacy content");
     const { challenge } = await this.hashes("legacy content");
-    // A pre-fix row: the challenge persisted on the map, the legacy `_<challenge>` marker in the folder (no proof_)
+    // A pre-fix row: the challenge persisted on the map, the legacy `_<challenge>` marker in the folder (no vproof_)
     await ImageUser.ref(user.getUUID()).patch({
       images: [{ hash, challenge, size: 14, name: "l.txt", mimetype: "text/plain" }]
     } as any);
-    fs.unlinkSync(this.binary._getPath(hash, `proof_${challenge}`));
+    fs.unlinkSync(this.binary._getPath(hash, `vproof_${challenge}`));
     this.binary._touch(this.binary._getPath(hash, `_${challenge}`));
     assert.strictEqual(await this.binary.getUsageCount(hash), 1, "legacy markers do not count as usages");
     const loaded: any = await ImageUser.ref(user.getUUID()).get();
@@ -329,5 +329,94 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     ok.setParameters({ hash, token: getToken });
     await this.binary.downloadBinaryLink(ok);
     assert.strictEqual(ok.statusCode, 200);
+  }
+  /**
+   * Proofs written before every proof was computed by the service (`proof_<challenge>`) are ignored: a matching
+   * challenge gets an upload URL, nothing is attached
+   */
+  @test
+  async legacyProofIsIgnored() {
+    const { hash } = await this.storedFor("legacy proof");
+    const { challenge } = await this.hashes("legacy proof");
+    fs.unlinkSync(this.binary._getPath(hash, `vproof_${challenge}`));
+    this.binary._touch(this.binary._getPath(hash, `proof_${challenge}`));
+    assert.strictEqual(this.binary.challenge(hash, challenge), false);
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1, "a legacy proof is no usage");
+    const holder = await ImageUser.create({ displayName: "holder" } as any);
+    const info: any = { hash, challenge, size: 12, name: "l.txt", mimetype: "text/plain" };
+    const res = await this.binary.putRedirectUrl(holder, "images", info, await this.newContext());
+    assert.ok(res?.url, "an upload is required");
+    assert.deepStrictEqual(await this.images(holder.getUUID()), []);
+  }
+
+  /**
+   * `store` computes the hashes from the bytes: a preset hash that does not match is rejected and attaches nothing
+   */
+  @test
+  async storeRejectsAPresetWrongHash() {
+    const { hash } = await this.storedFor("someone else's content");
+    const user = await ImageUser.create({ displayName: "forger" } as any);
+    await assert.rejects(
+      () => this.binary.store(user, "images", new MemoryBinaryFile(Buffer.from("mine"), { name: "m.txt", hash })),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
+    assert.deepStrictEqual(await this.images(user.getUUID()), []);
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    assert.ok(!fs.existsSync(this.binary._getPath((await this.hashes("mine")).hash)), "nothing stored");
+  }
+
+  /**
+   * `store` writes the proof of the challenge it computed, never a preset one, also when the data already exists
+   */
+  @test
+  async storeWritesTheComputedProofOnly() {
+    const { challenge, hash } = await this.hashes("proven");
+    for (const name of ["first", "second"]) {
+      const user = await ImageUser.create({ displayName: name } as any);
+      await this.binary.store(
+        user,
+        "images",
+        new MemoryBinaryFile(Buffer.from("proven"), { name: "p.txt", hash: hash.toUpperCase(), challenge: "forged" })
+      );
+      assert.strictEqual((await this.images(user.getUUID()))[0].hash, hash);
+    }
+    const proofs = fs.readdirSync(this.binary._getPath(hash)).filter(f => f.includes("proof_"));
+    assert.deepStrictEqual(proofs, [`vproof_${challenge}`]);
+  }
+
+  /**
+   * `store` writes the data when a challenge created the folder but the upload never came
+   */
+  @test
+  async storeFillsAPendingFolder() {
+    const { hash, challenge } = await this.hashes("awaited");
+    const announcer = await ImageUser.create({ displayName: "announcer" } as any);
+    const info: any = { hash, challenge, size: 7, name: "a.txt", mimetype: "text/plain" };
+    assert.ok((await this.binary.putRedirectUrl(announcer, "images", info, await this.newContext()))?.url);
+    assert.ok(fs.existsSync(this.binary._getPath(hash)) && !fs.existsSync(this.binary._getPath(hash, "data")));
+    const user = await ImageUser.create({ displayName: "storer" } as any);
+    await this.binary.store(user, "images", new MemoryBinaryFile(Buffer.from("awaited"), { name: "a.txt" }));
+    assert.strictEqual(fs.readFileSync(this.binary._getPath(hash, "data")).toString(), "awaited");
+  }
+
+  /**
+   * Hashes are lower case: an upper-case challenge uses the lower-case folder and upload URL
+   */
+  @test
+  async upperCaseHashesAreNormalised() {
+    const { hash } = await this.storedFor("casing");
+    const { challenge: proof } = await this.hashes("casing");
+    const other = await ImageUser.create({ displayName: "other" } as any);
+    const info: any = { hash: hash.toUpperCase(), challenge: proof.toUpperCase(), size: 6, name: "c.txt" };
+    assert.strictEqual(await this.binary.putRedirectUrl(other, "images", info, await this.newContext()), undefined);
+    assert.strictEqual((await this.images(other.getUUID()))[0].hash, hash);
+    const fresh = await this.hashes("fresh casing");
+    const res = await this.binary.putRedirectUrl(
+      other,
+      "images",
+      { hash: fresh.hash.toUpperCase(), challenge: fresh.challenge.toUpperCase(), size: 12, name: "f.txt" } as any,
+      await this.newContext()
+    );
+    assert.ok(res?.url.includes(`/upload/data/${fresh.hash}?`), res?.url);
   }
 }

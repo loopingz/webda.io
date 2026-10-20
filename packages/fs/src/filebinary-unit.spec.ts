@@ -162,7 +162,7 @@ class FileBinaryUnitTest {
     const challenge = "testchallenge";
     const hashDir = path.join(this.binary.getParameters().folder, hash);
     fs.mkdirSync(hashDir);
-    fs.writeFileSync(path.join(hashDir, `proof_${challenge}`), "");
+    fs.writeFileSync(path.join(hashDir, `vproof_${challenge}`), "");
     const result = this.binary.challenge(hash, challenge);
     assert.strictEqual(result, true);
   }

@@ -1398,8 +1398,9 @@ export abstract class BinaryService<
   /**
    * Whether the binary attribute is a collection (`BinariesImpl` or a subclass) rather than a single `Binary`
    *
-   * A hydrated attribute is checked with `instanceof`; otherwise the behavior declared in
-   * `Metadata.Relations.behaviors[]` is compared to `Webda/BinariesImpl`.
+   * Models are hydrated by the compiled `__hydrateBehaviors` (store deserialization, `load`, `patch`), which always
+   * instantiates the behavior class, even for an unset attribute: `instanceof BinariesImpl` therefore covers
+   * subclasses. The relation id comparison is the fallback for objects that were never hydrated.
    *
    * @param object - the target object
    * @param property - the property name
@@ -1468,10 +1469,10 @@ export abstract class BinaryService<
       linked = existing?.hash !== undefined && existing.hash === file.hash;
       await object.patch(<any>{ [property]: file });
     }
+    this.metrics.upload.inc();
     if (!linked) {
       await this.emit("Binary.UploadSuccess", { object: file, service: this, target: object });
     }
-    this.metrics.upload.inc();
   }
 
   /**

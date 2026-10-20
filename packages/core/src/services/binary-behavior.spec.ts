@@ -16,6 +16,7 @@ import {
 } from "./binary.service.js";
 import { Action } from "../models/decorator.js";
 import { WEBDA_STORAGE } from "@webda/models";
+import { PhotoHolder, PhotoLike } from "../test/binary-holder.model.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext } from "../contexts/httpcontext.js";
@@ -1470,27 +1471,30 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
-   * A subclass of `BinariesImpl` is still a collection: uploads append instead of replacing.
+   * A model holding a `BinariesImpl` subclass is hydrated with the behavior even when the attribute is unset
+   * (undefined) or a raw empty array, so uploads append and deletes splice. This is how the runtime guarantees
+   * the classification: `__hydrateBehaviors` runs on every load/patch path.
    */
   @test
   async subclassCollectionAppends() {
-    class PhotoLike extends BinariesImpl {}
     const svc = this.makeService();
-    const target: any = {
-      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "photos", behavior: "Test/PhotoLike" }] } } },
-      photos: new PhotoLike(),
-      patch: async (data: any) => {
-        // A real model re-hydrates the attribute as its behavior class
-        target.photos = new PhotoLike();
-        target.photos.push(...data.photos);
-      }
-    };
-    await svc.uploadSuccess(target, "photos", { hash: "a", size: 1, mimetype: "t", name: "a" });
-    await svc.uploadSuccess(target, "photos", { hash: "b", size: 1, mimetype: "t", name: "b" });
-    assert.deepStrictEqual(
-      Array.from(target.photos as any[], (i: any) => i.hash),
-      ["a", "b"]
-    );
+    for (const raw of [undefined, [], null]) {
+      const holder = new PhotoHolder({ photos: raw });
+      assert.ok(holder.photos instanceof PhotoLike);
+      const target: any = holder;
+      await svc.uploadSuccess(target, "photos", { hash: "a", size: 1, mimetype: "t", name: "a" });
+      await svc.uploadSuccess(target, "photos", { hash: "b", size: 1, mimetype: "t", name: "b" });
+      assert.deepStrictEqual(
+        Array.from(holder.photos as any[], (i: any) => i.hash),
+        ["a", "b"]
+      );
+      assert.ok(holder.photos instanceof PhotoLike);
+      await svc.deleteSuccess(target, "photos", 0);
+      assert.deepStrictEqual(
+        Array.from(holder.photos as any[], (i: any) => i.hash),
+        ["b"]
+      );
+    }
   }
 
   /**

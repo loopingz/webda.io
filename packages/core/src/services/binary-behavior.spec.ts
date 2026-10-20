@@ -1993,8 +1993,8 @@ class CascadeService extends BinaryService {
   }
   async delete(): Promise<void> {}
   async _get(): Promise<any> {}
-  async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
-    await this.cascade(info, uuid);
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
+    await this.cascade(info, uuid, attribute, model);
   }
   protected getRepository(): any {
     return this.repo;
@@ -2030,6 +2030,12 @@ class BinaryCascadeTest extends WebdaApplicationTest {
       ["h1", "h2"]
     );
     assert.strictEqual(svc.cascade.getCall(0).args[1], "a");
+    // The attribute holding the binary: only the exact usage marker of the deleted owner is removed
+    assert.deepStrictEqual(
+      svc.cascade.getCalls().map(c => c.args[2]),
+      ["photos", "photos"]
+    );
+    assert.ok(svc.cascade.getCalls().every(c => typeof c.args[3] === "string" && c.args[3] !== ""));
     assert.strictEqual((svc as any).pendingDeletes.size, 0);
   }
 
@@ -2169,6 +2175,13 @@ class BinaryCascadeTest extends WebdaApplicationTest {
         ["h1", "h2"]
       );
       assert.strictEqual(svc.cascade.getCall(0).args[1], "a");
+      assert.deepStrictEqual(
+        svc.cascade.getCalls().map(c => [c.args[2], c.args[3]]),
+        [
+          ["photos", "WebdaTest/PhotoHolder"],
+          ["photos", "WebdaTest/PhotoHolder"]
+        ]
+      );
     } finally {
       stub.restore();
       delete models["WebdaTest/PhotoHolder"];

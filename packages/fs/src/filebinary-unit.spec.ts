@@ -221,7 +221,7 @@ class FileBinaryUnitTest {
   @test
   async cleanUsageNonExistent() {
     // Should not throw
-    await this.binary._cleanUsage("nonexistent", "uuid1");
+    await this.binary._cleanUsage("nonexistent", "uuid1", "attr", "Store");
   }
 
   @test
@@ -234,7 +234,7 @@ class FileBinaryUnitTest {
     fs.writeFileSync(path.join(hashDir, "Store_attr_uuid1"), "");
     fs.writeFileSync(path.join(hashDir, "Store_attr_uuid2"), "");
 
-    await this.binary._cleanUsage(hash, "uuid1", "attr");
+    await this.binary._cleanUsage(hash, "uuid1", "attr", "Store");
     // The marker for uuid1 should be removed
     assert.ok(!fs.existsSync(path.join(hashDir, "Store_attr_uuid1")));
     // The other marker should still exist
@@ -251,7 +251,7 @@ class FileBinaryUnitTest {
     fs.writeFileSync(path.join(hashDir, "Store_attr__uuid1"), "");
 
     // UUID starting with underscore should not be double-prefixed
-    await this.binary._cleanUsage(hash, "_uuid1", "attr");
+    await this.binary._cleanUsage(hash, "_uuid1", "attr", "Store");
     assert.ok(!fs.existsSync(path.join(hashDir, "Store_attr__uuid1")));
   }
 
@@ -265,7 +265,7 @@ class FileBinaryUnitTest {
     fs.writeFileSync(path.join(hashDir, "Store_attr_uuid1"), "");
 
     // With exactly 3 files and we remove one usage marker, it should clean the whole hash
-    await this.binary._cleanUsage(hash, "uuid1", "attr");
+    await this.binary._cleanUsage(hash, "uuid1", "attr", "Store");
     assert.ok(!fs.existsSync(hashDir));
   }
 
@@ -318,7 +318,7 @@ class FileBinaryUnitTest {
     fs.writeFileSync(path.join(hashDir, "_challenge"), "");
     fs.writeFileSync(path.join(hashDir, "Store_attr_myuuid"), "");
 
-    await this.binary.cascadeDelete({ hash } as any, "myuuid");
+    await this.binary.cascadeDelete({ hash } as any, "myuuid", "attr", "Store");
     // Should have cleaned the usage
     assert.ok(!fs.existsSync(path.join(hashDir, "Store_attr_myuuid")));
   }
@@ -348,10 +348,40 @@ class FileBinaryUnitTest {
     fs.writeFileSync(path.join(hashDir, "Store_attr_uuid1"), "");
     fs.writeFileSync(path.join(hashDir, "Other_thing_uuid1"), "");
 
-    // Without attribute parameter, should match any file ending with _uuid1
+    // Without the attribute and the model the exact marker is unknown: a suffix match could remove the marker of
+    // another owner (`my_uuid1`), so nothing is removed
     await this.binary._cleanUsage(hash, "uuid1");
-    assert.ok(!fs.existsSync(path.join(hashDir, "Store_attr_uuid1")));
-    assert.ok(!fs.existsSync(path.join(hashDir, "Other_thing_uuid1")));
+    await this.binary._cleanUsage(hash, "uuid1", "attr");
+    assert.ok(fs.existsSync(path.join(hashDir, "Store_attr_uuid1")));
+    assert.ok(fs.existsSync(path.join(hashDir, "Other_thing_uuid1")));
+    assert.ok(fs.existsSync(path.join(hashDir, "data")));
+  }
+
+  @test
+  async cascadeDeleteKeepsSuffixSharingOwners() {
+    const hash = "cascade-suffix";
+    const hashDir = path.join(this.binary.getParameters().folder, hash);
+    fs.mkdirSync(hashDir);
+    fs.writeFileSync(path.join(hashDir, "data"), "content");
+    fs.writeFileSync(path.join(hashDir, "vproof_challenge"), "");
+    // Owners `page` and `my_page` of the same model, `page` of another model, all sharing the hash on `files`
+    const page = path.join(hashDir, "WebdaDemo-Page_files_page");
+    const myPage = path.join(hashDir, "WebdaDemo-Page_files_my_page");
+    const otherModel = path.join(hashDir, "WebdaDemo-Other_files_page");
+    [page, myPage, otherModel].forEach(f => fs.writeFileSync(f, ""));
+
+    await this.binary.cascadeDelete({ hash } as any, "page", "files", "WebdaDemo/Page");
+    assert.ok(!fs.existsSync(page), "the deleted owner's marker removed");
+    assert.ok(fs.existsSync(myPage), "my_page marker kept");
+    assert.ok(fs.existsSync(otherModel), "same uuid in another model kept");
+    assert.ok(fs.existsSync(path.join(hashDir, "data")), "data still referenced kept");
+
+    await this.binary.cascadeDelete({ hash } as any, "my_page", "files", "WebdaDemo/Page");
+    assert.ok(fs.existsSync(otherModel));
+    assert.ok(fs.existsSync(path.join(hashDir, "data")), "data still referenced by the other model kept");
+
+    await this.binary.cascadeDelete({ hash } as any, "page", "files", "WebdaDemo/Other");
+    assert.ok(!fs.existsSync(hashDir), "data and proofs gone with the last usage");
   }
 
   @test

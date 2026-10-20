@@ -588,14 +588,20 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @override
    */
-  async _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void> {
+  async _cleanUsage(hash: string, uuid: string, attribute: string, model?: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
-    // A marker ends with `_<attribute>_<uuid>` (see usageMarker)
-    const key = this.safeName(uuid);
-    this.usageMarkers(hash)
-      .filter(f => f.endsWith(attribute ? `_${this.safeName(attribute)}_${key}` : `_${key}`))
-      .forEach(f => fs.unlinkSync(this._getPath(hash, f)));
+    if (!attribute || !model) {
+      // A suffix match would remove the usages of other owners (`my_<uuid>`, another model): the marker must be
+      // named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute or model given`);
+      return;
+    }
+    // The exact marker written on attach (see usageMarker)
+    const marker = this._getPath(hash, this.usageMarker({ model, attribute, uuid }));
+    if (fs.existsSync(marker)) {
+      fs.unlinkSync(marker);
+    }
     if (this.usageMarkers(hash).length === 0) {
       await this._cleanHash(hash);
     }
@@ -611,8 +617,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const hash = map.hash;
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
+    const model = useModelId(object.constructor);
+    if (!model) throw new WebdaError.BadRequest("Missing model identifier");
     await this.deleteSuccess(<any>object, property, index);
-    await this._cleanUsage(hash, uuid, property);
+    await this._cleanUsage(hash, uuid, property, model);
   }
 
   /**
@@ -657,9 +665,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @override
    */
-  async cascadeDelete(info: BinaryMap, uuid: string) {
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string) {
     if (!info.hash) throw new WebdaError.BadRequest("Missing binary hash");
-    return this._cleanUsage(info.hash, uuid);
+    return this._cleanUsage(info.hash, uuid, attribute, model);
   }
 
   /**

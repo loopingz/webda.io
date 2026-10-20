@@ -7,7 +7,7 @@ import * as WebdaError from "../errors/errors.js";
 import { Service } from "./service.js";
 import { NotEnumerable, streamToBuffer, FileSize } from "@webda/utils";
 import { useCore, useModelMetadata } from "../core/hooks.js";
-import { useApplication } from "../application/hooks.js";
+import { useApplication, useModelId } from "../application/hooks.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { Counter } from "../metrics/metrics.js";
 import { IOperationContext } from "../contexts/icontext.js";
@@ -1516,7 +1516,10 @@ export abstract class BinaryService<
    * Binaries of a deleted object, kept between the `Delete` (before) and `Deleted` (after) events of its repository
    */
   @NotEnumerable
-  protected pendingDeletes: Map<string, { uuid: string; infos: BinaryMap[] }> = new Map();
+  protected pendingDeletes: Map<
+    string,
+    { uuid: string; model: string; infos: { info: BinaryMap; attribute: string }[] }
+  > = new Map();
 
   /**
    * Identifiers of the models whose deletion is already followed, so a second `init()` does not cascade twice
@@ -1614,27 +1617,38 @@ export abstract class BinaryService<
         }
         return;
       }
-      const infos: BinaryMap[] = [];
+      // Each binary keeps its attribute: the cascade removes the exact usage marker of (model, attribute, uuid)
+      const infos: { info: BinaryMap; attribute: string }[] = [];
       for (const attribute of attributes) {
         const value = object?.[attribute];
         if (value instanceof BinariesImpl || this.isCollection(object, attribute)) {
-          infos.push(...(Array.from(value ?? []) as BinaryMap[]));
+          infos.push(...(Array.from(value ?? []) as BinaryMap[]).map(info => ({ info, attribute })));
         } else if (value instanceof Binary && value.hash) {
-          infos.push(value as unknown as BinaryMap);
+          infos.push({ info: value as unknown as BinaryMap, attribute });
         }
       }
       if (infos.length) {
-        // The usage markers are named after the object `getUUID()`
-        this.pendingDeletes.set(key(object_id), { uuid: object.getUUID?.() ?? String(object_id), infos });
+        // The usage markers are named after the object model id and `getUUID()`, as written on upload
+        let modelId: string | undefined;
+        try {
+          modelId = useModelId(object.constructor);
+        } catch {
+          // No application model registry: the hooked model's identifier
+        }
+        this.pendingDeletes.set(key(object_id), {
+          uuid: object.getUUID?.() ?? String(object_id),
+          model: modelId ?? model.Metadata.Identifier,
+          infos
+        });
       }
     });
     repo.on("Deleted", async ({ object_id }: { object_id: unknown }) => {
       const pending = this.pendingDeletes.get(key(object_id));
       this.pendingDeletes.delete(key(object_id));
       // The object is gone: a failing cascade must neither reject the delete nor stop the other binaries
-      for (const info of pending?.infos ?? []) {
+      for (const { info, attribute } of pending?.infos ?? []) {
         try {
-          await this.cascadeDelete(info, pending.uuid);
+          await this.cascadeDelete(info, pending.uuid, attribute, pending.model);
         } catch (err) {
           this.log("WARN", `Cannot delete binary ${info.hash} of ${key(object_id)}`, err);
         }
@@ -1795,12 +1809,15 @@ export abstract class BinaryService<
   }
 
   /**
-   * Cascade delete the object
+   * Cascade the deletion of an object to one of its binaries: only the usage of (model, attribute, uuid) is
+   * removed, never the usage of another object sharing the deduplicated data
    *
    * @param info of the map
    * @param uuid of the object
+   * @param attribute - the binary attribute holding the map
+   * @param model - the model identifier of the object
    */
-  abstract cascadeDelete(info: BinaryMap, uuid: string): Promise<void>;
+  abstract cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void>;
 
   /**
    *

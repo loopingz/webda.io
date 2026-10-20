@@ -655,7 +655,8 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     const second = this.binary._getKey(file.hash, "images_owner-b");
     this.keys.push(proof, legacy, first, firstOther, second);
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 3);
-    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a", "images", "WebdaDemo/ImageUser");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a", "profile", "WebdaDemo/ImageUser");
     assert.ok(this.keys.includes(data), "shared data kept");
     assert.ok(this.keys.includes(proof), "proof kept");
     assert.ok(this.keys.includes(second), "the other owner's usage kept");
@@ -663,7 +664,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
     // A pending upload (no proof of possession) still waits for the data: kept
     const waiting = await this.pending("shared", { challenge: "unproven" });
-    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-b");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-b", "images", "WebdaDemo/ImageUser");
     assert.ok(this.keys.includes(data), "data awaited by a pending upload kept");
     await this.binary.sweepPending(Date.now() + 2 * 86400 * 1000);
     assert.ok(!this.keys.includes(data), "unused data removed by the sweep");
@@ -683,10 +684,75 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
       this.binary._getKey(file.hash, "images_owner-a"),
       this.binary._getKey(file.hash, "images_owner-b")
     );
-    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a", "images", "WebdaDemo/ImageUser");
     assert.ok(this.keys.includes(this.binary._getKey(file.hash)));
-    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-b");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-b", "images", "WebdaDemo/ImageUser");
     assert.ok(!this.keys.some(k => k.startsWith(`${file.hash}/`)), "data and proofs gone");
+  }
+
+  /**
+   * A cascade removes the exact usage marker of the deleted owner: owners whose uuid ends with `_<uuid>` (a uuid
+   * `my_page`, a junction id `a_page`) or the same owner on another attribute keep their marker, and the shared data
+   * stays until its last usage goes
+   */
+  @test
+  async cascadeDeleteKeepsSuffixSharingOwners() {
+    const { file } = await this.file("suffix");
+    this.uploaded("suffix");
+    const data = this.binary._getKey(file.hash);
+    const page = this.binary._getKey(file.hash, "files_page");
+    const myPage = this.binary._getKey(file.hash, "files_my_page");
+    const junction = this.binary._getKey(file.hash, "files_a_page");
+    const otherAttribute = this.binary._getKey(file.hash, "profile_page");
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`), page, myPage, junction, otherAttribute);
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/ImageUser");
+    assert.deepStrictEqual(
+      this.deleted.filter(k => k.startsWith(`${file.hash}/`)),
+      [page],
+      "only the exact marker of the deleted owner"
+    );
+    assert.ok(this.keys.includes(myPage), "my_page marker kept");
+    assert.ok(this.keys.includes(junction), "a_page marker kept");
+    assert.ok(this.keys.includes(otherAttribute), "the other attribute's marker kept");
+    assert.ok(this.keys.includes(data), "data still referenced kept");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "my_page", "files", "WebdaDemo/ImageUser");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "a_page", "files", "WebdaDemo/ImageUser");
+    assert.ok(this.keys.includes(data), "data still referenced by profile_page kept");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "profile", "WebdaDemo/ImageUser");
+    assert.ok(!this.keys.some(k => k.startsWith(`${file.hash}/`)), "data and proofs gone with the last usage");
+  }
+
+  /**
+   * Known limitation: S3 usage markers are `<attribute>_<uuid>` without the model, so two models whose objects share
+   * a uuid and a hash on the same attribute write the same marker key. The cascade still deletes only that exact key,
+   * never another model's attribute nor a suffix-sharing uuid
+   */
+  @test
+  async cascadeDeleteSameUuidOtherModel() {
+    const { file } = await this.file("models");
+    this.uploaded("models");
+    const shared = this.binary._getKey(file.hash, "files_page");
+    const otherModelAttribute = this.binary._getKey(file.hash, "attachments_page");
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`), shared, otherModelAttribute);
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/Other");
+    assert.deepStrictEqual(
+      this.deleted.filter(k => k.startsWith(`${file.hash}/`)),
+      [shared]
+    );
+    assert.ok(this.keys.includes(otherModelAttribute), "the other model's attribute marker kept");
+    assert.ok(this.keys.includes(this.binary._getKey(file.hash)), "data kept");
+  }
+
+  /**
+   * Without an attribute the owner's markers cannot be told apart from suffix-sharing ones: nothing is removed
+   */
+  @test
+  async cleanUsageWithoutAttributeKeepsMarkers() {
+    const { file } = await this.file("no attribute");
+    this.uploaded("no attribute");
+    this.keys.push(this.binary._getKey(file.hash, "files_page"), this.binary._getKey(file.hash, "files_my_page"));
+    await this.binary._cleanUsage(file.hash, "page", undefined as any);
+    assert.deepStrictEqual(this.deleted, []);
   }
 
   /**

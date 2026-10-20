@@ -147,24 +147,26 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   /**
    * @override
    */
-  async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
     try {
-      await this._cleanUsage(info.hash, uuid, undefined);
+      await this._cleanUsage(info.hash, uuid, attribute, model);
     } catch (err) {
       this.log("WARN", "Cascade delete failed", err);
     }
   }
 
   /**
-   * Remove the usage markers of an object for a hash, then the data when nothing uses it anymore
+   * Remove the usage marker of an object attribute for a hash, then the data when nothing uses it anymore
    *
-   * Without an attribute every usage marker of the object is removed (the object is deleted), never the usages of
-   * other objects sharing the deduplicated data
+   * Only the exact marker written for (model, attribute, uuid) is removed, never the usages of other objects sharing
+   * the deduplicated data (a uuid ending with `_<uuid>`, another attribute or model). Without the attribute the
+   * marker is unknown: implementations remove nothing
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param attribute - the binary attribute, undefined for all the attributes of the object
+   * @param attribute - the binary attribute
+   * @param model - the model identifier of the object, for the services whose markers include it
    */
-  abstract _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void>;
+  abstract _cleanUsage(hash: string, uuid: string, attribute: string, model?: string): Promise<void>;
 
   /**
    * Retrieve one signed URL to download the file in parameter

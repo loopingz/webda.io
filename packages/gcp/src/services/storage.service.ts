@@ -453,14 +453,20 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @inheritdoc
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param property - the object property
+   * @param property - the object property: only its exact usage marker is removed (see usageMarker)
+   * @param _model - unused: the markers do not include the model
    */
-  async _cleanUsage(hash: string, uuid: string, property?: string) {
-    const suffix = property ? `${property}_${uuid}` : `_${uuid}`;
+  async _cleanUsage(hash: string, uuid: string, property: string, _model?: string) {
+    if (!property) {
+      // A suffix match would remove the usages of other owners (`my_<uuid>`): the marker must be named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute given`);
+      return;
+    }
+    const marker = this._getKey(hash, this.usageMarker(property, uuid));
     let files: File[] = (await this.getStorageBucket().getFiles({ prefix: this._getKey(hash, "") }))[0];
-    await Promise.all(files.filter(f => f.name.endsWith(suffix)).map(f => f.delete()));
+    await Promise.all(files.filter(f => f.name === marker).map(f => f.delete()));
     // If no more usage, delete the data
-    files = files.filter(f => !f.name.endsWith(suffix));
+    files = files.filter(f => f.name !== marker);
     if (files.length == 1) {
       await Promise.all(files.map(f => f.delete()));
     }
@@ -501,7 +507,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
         contentType: file.mimetype
       });
     }
-    await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    await this.putMarker(file.hash, this.usageMarker(property, object.getUUID()), useModelId(object.constructor));
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 
@@ -574,14 +580,14 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       // Attaching existing data needs the proof of possession: the matching challenge
       if (challenge !== undefined && challenge === body.challenge) {
         await this.uploadSuccess(<any>object, property, body);
-        await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+        await this.putMarker(body.hash, this.usageMarker(property, uuid), useModelId(object.constructor));
         return;
       }
       // A hash alone never attaches: the client has to upload the content it claims to hold
     } else {
       // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
       await this.uploadSuccess(<any>object, property, body);
-      await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+      await this.putMarker(body.hash, this.usageMarker(property, uuid), useModelId(object.constructor));
     }
     const url = await this.getSignedUrl(params);
     return {
@@ -686,6 +692,18 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       size,
       count
     };
+  }
+
+  /**
+   * Name of the usage marker of an object attribute: `<attribute>_<uuid>`, the only place the name is built
+   *
+   * Known limitation: the model is not part of the name (it is in the marker metadata)
+   * @param property - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the marker name
+   */
+  protected usageMarker(property: string, uuid: string): string {
+    return `${property}_${uuid}`;
   }
 
   /**

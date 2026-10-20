@@ -88,11 +88,11 @@ class S3BinaryTest extends WebdaAwsTest {
     const user3 = await User.ref("s3user3").create({} as any);
     await this.binary.store(user3, "images", new MemoryBinaryFile(Buffer.from("plop"), { name: "plop.txt" }));
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 2);
-    await this.binary.cascadeDelete({ hash: file.hash } as any, user3.getUUID());
+    await this.binary.cascadeDelete({ hash: file.hash } as any, user3.getUUID(), "images", "Webda/User");
     assert.ok(await this.binary._exists(file.hash));
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
     // The last owner's cascade removes the data
-    await this.binary.cascadeDelete({ hash: file.hash } as any, user.getUUID());
+    await this.binary.cascadeDelete({ hash: file.hash } as any, user.getUUID(), "images", "Webda/User");
     assert.ok(!(await this.binary._exists(file.hash)));
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 0);
   }
@@ -262,7 +262,7 @@ class S3BinaryTest extends WebdaAwsTest {
     };
     try {
       // Errors are logged, not thrown
-      await this.binary.cascadeDelete({ hash: "pp" } as any, "pp");
+      await this.binary.cascadeDelete({ hash: "pp" } as any, "pp", "images", "Webda/User");
     } finally {
       this.binary._s3.deleteObject = original;
     }

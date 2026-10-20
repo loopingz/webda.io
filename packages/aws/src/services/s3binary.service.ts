@@ -477,7 +477,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
           mimetype: body.mimetype || "application/octet-stream",
           metadata: body.metadata ?? {}
         });
-        await this.putMarker(body.hash, `${property}_${uuid}`, store);
+        await this.putMarker(body.hash, this.usageMarker(property, uuid), store);
         return;
       }
     }
@@ -643,7 +643,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await reject("Uploaded content does not match the challenge");
     }
     await this.putMarker(hash, this.proofMarker(computed.challenge), "proof");
-    await this.putMarker(hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    await this.putMarker(hash, this.usageMarker(property, object.getUUID()), useModelId(object.constructor));
     // uploadSuccess re-loads the object: a concurrent completion that linked the hash meanwhile is not repeated
     await this.uploadSuccess(object, property, {
       hash,
@@ -668,6 +668,20 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   protected proofMarker(challenge: string): string {
     return `${S3Binary.PROOF_PREFIX}${challenge}`;
+  }
+
+  /**
+   * Name of the usage marker of an object attribute under `<hash>/`: `<attribute>_<uuid>`, written on attach and
+   * removed on delete, the only place the name is built
+   *
+   * Known limitation: the model is not part of the name (it is in the marker metadata), so two models whose objects
+   * share a uuid and a hash on the same attribute write the same marker: deleting one removes the usage of the other
+   * @param attribute - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the marker name
+   */
+  protected usageMarker(attribute: string, uuid: string): string {
+    return `${attribute}_${uuid}`;
   }
 
   /**
@@ -865,33 +879,38 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @override
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param attribute - the binary attribute, if undefined every usage of the object (its deletion): the usages of the
-   * other objects are kept, the data and its proofs are removed only once no usage and no pending upload remain
+   * @param attribute - the binary attribute: only its exact usage marker is removed (see usageMarker), the usages of
+   * the other objects are kept. The data is kept: the cascade removes it once unused
+   * @param _model - unused: S3 markers do not include the model
    */
-  async _cleanUsage(hash: string, uuid: string, attribute?: string) {
+  async _cleanUsage(hash: string, uuid: string, attribute: string, _model?: string) {
     if (!attribute) {
-      const keys = (
-        (
-          await this._s3.listObjectsV2({
-            Bucket: this.parameters.bucket,
-            Prefix: this._getKey(hash, "")
-          })
-        ).Contents ?? []
-      )
-        .map(c => c.Key)
-        .filter(Key => this.isUsageMarker(Key) && Key.endsWith(`_${uuid}`));
-      for (const Key of keys) {
-        await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key });
-      }
-      await this.deleteUnusedData(hash);
+      // A suffix match would remove the usages of other owners (`my_<uuid>`): the marker must be named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute given`);
       return;
     }
-    // Dont clean data for now
-    const params = {
+    await this._s3.deleteObject({
       Bucket: this.parameters.bucket,
-      Key: this._getKey(hash, `${attribute}_${uuid}`)
-    };
-    await this._s3.deleteObject(params);
+      Key: this._getKey(hash, this.usageMarker(attribute, uuid))
+    });
+  }
+
+  /**
+   * Remove the deleted object's usage marker of the attribute, then the data and its proofs once no usage and no
+   * pending upload remain
+   * @override
+   * @param info - the binary map
+   * @param uuid - the object uuid
+   * @param attribute - the binary attribute
+   * @param model - the model identifier of the object
+   */
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
+    try {
+      await this._cleanUsage(info.hash, uuid, attribute, model);
+      await this.deleteUnusedData(info.hash);
+    } catch (err) {
+      this.log("WARN", "Cascade delete failed", err);
+    }
   }
 
   /**
@@ -1028,7 +1047,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // The proof of possession of the content, computed from the bytes, compared on later challenges
     await this.putMarker(file.hash, this.proofMarker(file.challenge), "proof");
 
-    await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    await this.putMarker(file.hash, this.usageMarker(property, object.getUUID()), useModelId(object.constructor));
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 

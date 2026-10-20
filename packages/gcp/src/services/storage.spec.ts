@@ -127,7 +127,7 @@ class StorageTest extends WebdaApplicationTest {
     await this.binary._cleanUsage(file.hash, user.getUUID(), "images");
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
     // Clean the last usage removes the data
-    await this.binary.cascadeDelete(<any>{ hash: file.hash }, user2.getUUID());
+    await this.binary.cascadeDelete(<any>{ hash: file.hash }, user2.getUUID(), "images", "Webda/User");
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 0);
     const [exists] = await this.binary.getStorageBucket().file(this.binary._getKey(file.hash)).exists();
     assert.strictEqual(exists, false);
@@ -172,7 +172,7 @@ class StorageTest extends WebdaApplicationTest {
       throw new Error("Fake");
     });
     // Should not throw
-    await this.binary.cascadeDelete(<any>{ hash: "pp" }, "pp");
+    await this.binary.cascadeDelete(<any>{ hash: "pp" }, "pp", "images", "Webda/User");
   }
 
   @test

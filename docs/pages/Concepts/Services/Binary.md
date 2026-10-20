@@ -17,10 +17,10 @@ For direct URL-addressed stream read/write access (e.g. `s3://bucket/key`, `gs:/
 Attaching a binary to an attribute is a short handshake. The client never gets the server to trust a value it announced: for new content the server reads the bytes back and checks them before linking.
 
 1. **Challenge** - `PUT /<plural>/{uuid}/<attribute>` with `{ hash, challenge, size?, name?, mimetype?, metadata? }`, where `hash` is the md5 of the content and `challenge` the md5 of `"WEBDA" + content`. The answer is `{ done, md5, url?, method?, headers? }`.
-   - `done: true`: the content is already stored and the caller proved they have it (matching challenge), the binary is attached at once. Nothing else to do.
+   - `done: true`: the content is already stored and the caller proved they have it (challenge matching a server-verified proof), the binary is attached at once with the size of the stored object. Nothing else to do.
    - otherwise `url` is a presigned URL for a direct upload. S3Binary also records a pending marker for the upload.
 2. **PUT** - the client uploads the bytes to `url` with the returned `method` and `headers` (including `Content-MD5` set to `md5`).
-3. **Complete** - `POST /<plural>/{uuid}/<attribute>/complete/{hash}`. The server streams the stored object, checks that md5(bytes) equals `hash` and that md5(`"WEBDA"` + bytes) equals the announced challenge, writes the proof and only then attaches the binary. Without a successful `complete` nothing is linked. `complete` is a no-op when the hash is already linked, and answers `404` when no pending upload exists, `412` when the uploaded object is not there yet (the pending marker stays so the client can retry) and `400` when the size exceeds `maxUploadSize` or the bytes do not match the announced hash or challenge (the pending marker and the unused data are then removed).
+3. **Complete** - `POST /<plural>/{uuid}/<attribute>/complete/{hash}`. The server streams the stored object, checks that md5(bytes) equals `hash` and that md5(`"WEBDA"` + bytes) equals the announced challenge, writes the `vproof_` proof and only then attaches the binary. Without a successful `complete` nothing is linked. `complete` is a no-op when the hash is already linked, and answers `404` when no pending upload exists, `412` when the uploaded object is not there yet (the pending marker stays so the client can retry) and `400` when the size exceeds `maxUploadSize` or the bytes do not match the announced hash or challenge (the pending marker and the unused data are then removed).
 
 The `complete` route is a regular Behavior action: it goes through the model permissions as `<attribute>.complete`, like `<attribute>.attach` or `<attribute>.delete`.
 
@@ -30,11 +30,11 @@ A pending S3 upload that is never completed is swept after `pendingTimeout` seco
 
 ### Parameters
 
-| Parameter        | Default | Description                                                                                                                                                            |
-| ---------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `maxUploadSize`  | none    | Maximum size in bytes. When set, the challenge must announce a finite, non-negative `size` no larger than the limit. S3Binary signs the URL with that `ContentLength`. |
-| `urlExpiry`      | `30`    | Lifetime, in seconds, of the presigned URLs.                                                                                                                           |
-| `pendingTimeout` | `86400` | S3Binary only: seconds before a pending upload is swept.                                                                                                               |
+| Parameter        | Default | Description                                                                                                                                                                                                |
+| ---------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxUploadSize`  | none    | Maximum size in bytes. When set, the challenge must announce a finite, non-negative `size` no larger than the limit. S3Binary signs the URL with that `ContentLength` and checks the stored size on dedup. |
+| `urlExpiry`      | `30`    | Lifetime, in seconds, of the presigned URLs.                                                                                                                                                               |
+| `pendingTimeout` | `86400` | S3Binary only: seconds before a pending upload is swept.                                                                                                                                                   |
 
 ### Events
 
@@ -46,7 +46,13 @@ Deleting a model deletes its binaries (the repository `Delete`/`Deleted` hooks r
 
 ## Migration
 
-Proofs stored before upload completion existed were written from values announced by the client, not from bytes the server had read. They keep working for dedup, but they were never verified; re-upload the content if you need verified proofs. New proofs are only written by `complete` (or by the server for its own uploads).
+Proofs of possession are now stored as `vproof_<challenge>` markers next to the data, and only the server writes them, from a challenge it computed from bytes it read: on `complete`, on its own uploads (`store`, FileBinary uploads). Only `vproof_` markers are accepted for dedup.
+
+Markers written by earlier versions (`proof_<challenge>`, the older `_<challenge>` for FileBinary and `challenge_<challenge>` for S3Binary) came from values announced by the client and are ignored: they neither attach a binary nor count as usages. A holder of such content goes through the upload sequence once (challenge, PUT, `complete`), which writes the `vproof_` marker; later challenges for the same content dedup again. Legacy markers are removed with the data when its last usage goes.
+
+Hashes and challenges are lower-case hexadecimal: the server normalises them, so an upper-case value names the same content.
+
+Deleting a model removes only that model's usage markers: deduplicated data shared with other models (and its proofs) is removed once no usage and no pending upload remain.
 
 ## Map
 

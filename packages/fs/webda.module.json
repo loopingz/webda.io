@@ -54,6 +54,11 @@
             "description": "Maximum size to handle",
             "type": "number"
           },
+          "maxUploadSize": {
+            "description": "Maximum size accepted for a direct-to-bucket upload, undefined means no limit\nGet the max upload size in bytes",
+            "returns": "the limit or undefined",
+            "type": "number"
+          },
           "models": {
             "$ref": "#/definitions/models",
             "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
@@ -68,6 +73,11 @@
           "url": {
             "description": "URL to use for direct download",
             "type": "string"
+          },
+          "urlExpiry": {
+            "default": 30,
+            "description": "Lifetime in seconds of the signed URLs",
+            "type": "number"
           },
           "openapi": {
             "type": "object",

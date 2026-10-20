@@ -3,6 +3,7 @@ import { OperationsTransport, OperationsTransportParameters } from "../services/
 import { canCallOperation, getOperationStreaming, listOperations } from "../core/operations.js";
 import { useApplication } from "../application/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
+import { useModelMetadata } from "../core/hooks.js";
 import * as WebdaError from "../errors/errors.js";
 import type { WebContext } from "../contexts/webcontext.js";
 import { runOperation } from "./streaming.js";
@@ -68,14 +69,16 @@ export class OperationIdTransport<
   }
 
   /**
-   * List the operations the caller (and its token scope) may call: `{ version, operations }`. `version` is a hash of
-   * the listed operations (16 hex characters): it changes whenever an operation the caller sees is added, removed or
-   * changed, so a client can cache the listing
+   * List the operations the caller (and its token scope) may call: `{ version, aliases?, operations }`. `version` is a
+   * hash of the listing (16 hex characters): it changes whenever an operation the caller sees is added, removed or
+   * changed, so a client can cache the listing. `aliases` maps a model plural to its singular (`MindNodes` → `MindNode`),
+   * as model operations use both (`MindNodes.Query`, `MindNode.Get`), for the models of the listed operations only
    * @param ctx - web context
    */
   async list(ctx: WebContext): Promise<void> {
     const app = useApplication();
     const operations: Record<string, any> = {};
+    const aliases: Record<string, string> = {};
     for (const [id, op] of Object.entries(listOperations())) {
       if (!this.isServed(id) || !(await canCallOperation(ctx, id))) continue;
       const streaming = getOperationStreaming(op);
@@ -88,10 +91,16 @@ export class OperationIdTransport<
         destructive: typeof op.mcp === "object" ? op.mcp.destructive : undefined,
         streaming: streaming !== "none" ? streaming : undefined
       };
+      const metadata = op.context?.model ? useModelMetadata(op.context.model) : undefined;
+      const singular = metadata?.Identifier?.split("/").pop();
+      if (metadata?.Plural && singular && metadata.Plural !== singular) {
+        aliases[metadata.Plural] = singular;
+      }
     }
-    const version = createHash("sha256").update(JSON.stringify(operations)).digest("hex").slice(0, 16);
+    const listing = { operations, aliases: Object.keys(aliases).length ? aliases : undefined };
+    const version = createHash("sha256").update(JSON.stringify(listing)).digest("hex").slice(0, 16);
     ctx.setHeader("Content-Type", "application/json");
-    ctx.write({ version, operations });
+    ctx.write({ version, ...listing });
   }
 
   /**

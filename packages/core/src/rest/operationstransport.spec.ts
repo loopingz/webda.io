@@ -5,7 +5,7 @@ import { TestApplication } from "../test/objects.js";
 import { Service } from "../services/service.js";
 import { Session } from "../session/session.js";
 import { useService } from "../core/hooks.js";
-import { useApplication } from "../application/hooks.js";
+import { useApplication, useModel } from "../application/hooks.js";
 import { registerOperation } from "../core/operations.js";
 import { HttpServer } from "../services/httpserver.service.js";
 
@@ -102,6 +102,26 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const wider = await this.http("GET", "/operations", undefined, { bearerScopes: ["*"] });
     assert.notStrictEqual(wider.body.version, res.body.version);
     assert.strictEqual(res.body.operations["Scoped.Read"].id, "Scoped.Read");
+  }
+
+  @test
+  async listsModelPluralAliases() {
+    // Model operations are named after the singular (RefreshToken.Get) and the plural (RefreshTokens.Query)
+    const model = useModel("Webda/RefreshToken");
+    for (const id of ["RefreshToken.Get", "RefreshTokens.Query"]) {
+      registerOperation(id, {
+        service: "Scoped",
+        method: "run",
+        input: "void",
+        output: "void",
+        context: { model }
+      } as any);
+    }
+    const all = await this.http("GET", "/operations", undefined, { bearerScopes: ["*"] });
+    assert.deepStrictEqual(all.body.aliases, { RefreshTokens: "RefreshToken" });
+    // Only the models of the listed operations are disclosed
+    const scoped = await this.http("GET", "/operations", undefined, { bearerScopes: ["Scoped.Read"] });
+    assert.strictEqual(scoped.body.aliases, undefined);
   }
 
   @test

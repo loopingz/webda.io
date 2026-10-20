@@ -554,11 +554,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param hash - the hash announced in the challenge
    */
   async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
-    const current: any = object[property];
-    const linked = this.isCollection(object, property)
-      ? Array.isArray(current) && current.some(i => i?.hash === hash)
-      : current?.hash !== undefined && current.hash === hash;
-    if (!linked) {
+    if (!this.isLinked(object, property, hash)) {
       throw new WebdaError.PreconditionFailed("Upload not complete");
     }
   }

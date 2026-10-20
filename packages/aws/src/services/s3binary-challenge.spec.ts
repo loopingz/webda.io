@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   ListObjectsCommand,
   ListObjectsV2Command,
@@ -10,7 +11,9 @@ import { Binaries, MemoryBinaryFile, MemoryRepository, registerRepository, User 
 import { TestApplication, WebdaApplicationTest } from "@webda/core/lib/test";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import * as crypto from "node:crypto";
 import { mockClient } from "aws-sdk-client-mock";
+import { Readable } from "node:stream";
 import { vi } from "vitest";
 import { contentDisposition, S3Binary, S3BinaryParameters } from "./s3binary.service.js";
 
@@ -45,7 +48,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   /**
    * Object metadata (S3 user metadata) and size, by key
    */
-  objects: Map<string, { Metadata?: Record<string, string>; ContentLength?: number }> = new Map();
+  objects: Map<string, { Metadata?: Record<string, string>; ContentLength?: number; Body?: Buffer }> = new Map();
   /**
    * Binary.UploadSuccess events received
    */
@@ -86,14 +89,22 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     this.mock.on(PutObjectCommand).callsFake(async p => {
       this.written.push(p.Key);
       this.keys.push(p.Key);
-      this.objects.set(p.Key, { Metadata: p.Metadata, ContentLength: 0 });
+      const Body = Buffer.from((p.Body as any) ?? "");
+      this.objects.set(p.Key, { Metadata: p.Metadata, ContentLength: Body.length, Body });
       return {};
+    });
+    this.mock.on(GetObjectCommand).callsFake(async p => {
+      if (!this.keys.includes(p.Key)) {
+        throw Object.assign(new Error("NoSuchKey"), { name: "NoSuchKey", $metadata: { httpStatusCode: 404 } });
+      }
+      return { Body: Readable.from([this.objects.get(p.Key)?.Body ?? Buffer.alloc(0)]) };
     });
     this.mock.on(HeadObjectCommand).callsFake(async p => {
       if (!this.keys.includes(p.Key)) {
         throw Object.assign(new Error("NotFound"), { name: "NotFound", $metadata: { httpStatusCode: 404 } });
       }
-      return { ContentLength: 0, Metadata: {}, ...this.objects.get(p.Key) };
+      const { Body: _body, ...head } = this.objects.get(p.Key) ?? {};
+      return { ContentLength: 0, Metadata: {}, ...head };
     });
     this.mock.on(DeleteObjectCommand).callsFake(async p => {
       this.deleted.push(p.Key);
@@ -113,14 +124,35 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   }
 
   /**
-   * Simulate the client's PUT to the signed url: the data object exists with this size
-   * @param hash - the binary hash
-   * @param size - the object size
+   * Simulate the client's PUT to the signed url: the data object holds these bytes
+   * @param content - the uploaded content
+   * @param size - the size HEAD reports, default to the content length
    */
-  uploaded(hash: string, size: number) {
-    const key = this.binary._getKey(hash);
+  uploaded(content: string, size?: number) {
+    const Body = Buffer.from(content);
+    const key = this.binary._getKey(crypto.createHash("md5").update(Body).digest("hex"));
     this.keys.push(key);
-    this.objects.set(key, { ContentLength: size });
+    this.objects.set(key, { ContentLength: size ?? Body.length, Body });
+  }
+
+  /**
+   * @param key - a pending marker key
+   * @returns its JSON body
+   */
+  pendingInfo(key: string): any {
+    return JSON.parse(this.objects.get(key).Body.toString());
+  }
+
+  /**
+   * Age a pending marker
+   * @param hash - the binary hash
+   * @param hours - its age
+   * @param uuid - the object uuid, when several markers exist for the hash
+   */
+  age(hash: string, hours: number, uuid: string = "") {
+    const key = this.keys.find(k => k.includes(`_pending/${hash}/`) && k.endsWith(uuid));
+    const obj = this.objects.get(key);
+    obj.Body = Buffer.from(JSON.stringify({ ...this.pendingInfo(key), created: Date.now() - hours * 3600 * 1000 }));
   }
 
   /**
@@ -196,7 +228,10 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(res?.method, "PUT");
     assert.strictEqual((attacker as any).images, undefined);
     assert.strictEqual(((await User.ref("s3-attacker").get()) as any).images, undefined);
-    assert.deepStrictEqual(this.written, [], "no marker written for the attacker");
+    assert.ok(
+      this.written.every(k => k.includes("_pending/")),
+      "only a pending marker written for the attacker"
+    );
     // The matching challenge (proof of possession): attached, no upload
     const holder = await User.create({ uuid: "s3-holder" } as any);
     assert.strictEqual(await this.binary.putRedirectUrl(holder, "images", info), undefined);
@@ -215,18 +250,29 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(this.uploadEvents.length, 0);
     const pendingKeys = this.written.filter(k => k.includes(`_pending/${file.hash}/`));
     assert.strictEqual(pendingKeys.length, 1);
-    assert.ok(pendingKeys[0].endsWith(`WebdaDemo-ImageUser_images_${user.getUUID()}`), pendingKeys[0]);
+    assert.ok(pendingKeys[0].endsWith(`WebdaDemo~2FImageUser_images_${user.getUUID()}`), pendingKeys[0]);
     assert.ok(!pendingKeys[0].includes(file.challenge));
     assert.ok(!this.written.some(k => k.endsWith(`proof_${file.challenge}`)), "proof only after verification");
     assert.ok(!this.written.some(k => k.endsWith(`images_${user.getUUID()}`) && !k.includes("_pending/")));
-    // The marker carries what completion needs, server side only
-    const meta = this.objects.get(pendingKeys[0]).Metadata;
-    assert.strictEqual(meta.challenge, file.challenge);
-    assert.strictEqual(meta.size, "5");
-    assert.ok(Math.abs(Date.now() - parseInt(meta.created)) < 10000);
+    // The marker body carries what completion needs, server side only
+    const info = this.pendingInfo(pendingKeys[0]);
+    assert.strictEqual(info.challenge, file.challenge);
+    assert.strictEqual(info.size, 5);
+    assert.strictEqual(info.name, "a.png");
+    assert.ok(Math.abs(Date.now() - info.created) < 10000);
     // Signed with the size
     const params = (this.binary.getSignedUrl as any).mock.calls.at(-1)[2];
     assert.strictEqual(params.ContentLength, 5);
+  }
+
+  @test
+  async largeMetadataFitsThePendingMarker() {
+    // S3 user metadata is limited to 2 KB: the info lives in the marker body
+    const metadata = { text: "é".repeat(1500) };
+    const { user, file } = await this.pending("hello", { metadata });
+    this.uploaded("hello");
+    await this.binary.completeUpload(user, "images", file.hash);
+    assert.deepStrictEqual({ ...(await this.images(user.getUUID()))[0].metadata }, metadata);
   }
 
   @test
@@ -235,15 +281,15 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     const params = (this.binary.getSignedUrl as any).mock.calls.at(-1)[2];
     assert.strictEqual(params.ContentLength, undefined);
     // Any size completes without a declared one (and no limit)
-    this.uploaded(file.hash, 9);
+    this.uploaded("hello");
     await this.binary.completeUpload(user, "images", file.hash);
-    assert.strictEqual((await this.images(user.getUUID()))[0].size, 9);
+    assert.strictEqual((await this.images(user.getUUID()))[0].size, 5);
   }
 
   @test
   async completeAttachesAfterHead() {
     const { user, file } = await this.pending("hello", { name: "l'été.png", metadata: { title: "été" } });
-    this.uploaded(file.hash, 5);
+    this.uploaded("hello");
     await this.binary.completeUpload(user, "images", file.hash);
     const images = await this.images(user.getUUID());
     assert.strictEqual(images.length, 1);
@@ -277,7 +323,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.ok(!this.deleted.some(k => k.includes("_pending/")), "retry possible");
     assert.deepStrictEqual(await this.images(user.getUUID()), []);
     // Uploaded afterwards: the retry attaches
-    this.uploaded(file.hash, 5);
+    this.uploaded("hello");
     await this.binary.completeUpload(user, "images", file.hash);
     assert.strictEqual((await this.images(user.getUUID())).length, 1);
   }
@@ -285,7 +331,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   @test
   async completeSizeMismatch() {
     const { user, file } = await this.pending("hello");
-    this.uploaded(file.hash, 6);
+    this.uploaded("hello", 6);
     await assert.rejects(
       () => this.binary.completeUpload(user, "images", file.hash),
       (e: any) => e.getResponseCode() === 400
@@ -295,7 +341,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
       "unused data removed"
     );
     assert.ok(this.deleted.some(k => k.includes(`_pending/${file.hash}/`)));
-    assert.ok(!this.written.some(k => k.endsWith(`proof_${file.challenge}`)));
+    assert.ok(!this.written.some(k => k.includes("proof_")));
     assert.deepStrictEqual(await this.images(user.getUUID()), []);
     assert.strictEqual(this.uploadEvents.length, 0);
   }
@@ -303,7 +349,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   @test
   async completeSizeMismatchKeepsUsedData() {
     const { user, file } = await this.pending("hello");
-    this.uploaded(file.hash, 6);
+    this.uploaded("hello", 6);
     // Another object uses the data
     this.keys.push(this.binary._getKey(file.hash, "WebdaDemo-ImageUser_images_someone"));
     await assert.rejects(
@@ -318,7 +364,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     this.binary.parameters.maxUploadSize = 10;
     // No declared size: only the limit applies
     const { user, file } = await this.pending("hello", { size: undefined });
-    this.uploaded(file.hash, 11);
+    this.uploaded("hello", 11);
     await assert.rejects(
       () => this.binary.completeUpload(user, "images", file.hash),
       (e: any) => e.getResponseCode() === 400
@@ -326,17 +372,38 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.deepStrictEqual(await this.images(user.getUUID()), []);
     // Within the limit, any size completes when none was declared
     const second = await this.pending("other", { size: undefined });
-    this.uploaded(second.file.hash, 7);
+    this.uploaded("other");
     await this.binary.completeUpload(second.user, "images", second.file.hash);
-    assert.strictEqual((await this.images(second.user.getUUID()))[0].size, 7);
+    assert.strictEqual((await this.images(second.user.getUUID()))[0].size, 5);
   }
 
   @test
   async completeTwiceIsIdempotent() {
     const { user, file } = await this.pending("hello");
-    this.uploaded(file.hash, 5);
+    this.uploaded("hello");
     await this.binary.completeUpload(user, "images", file.hash);
     await this.binary.completeUpload(user, "images", file.hash);
+    assert.strictEqual((await this.images(user.getUUID())).length, 1);
+    assert.strictEqual(this.uploadEvents.length, 1);
+  }
+
+  /**
+   * A second completion racing the first: it passed the pending check with a stale instance; the re-load before
+   * linking sees the item, nothing is appended twice
+   */
+  @test
+  async concurrentCompleteLinksOnce() {
+    const { user, file } = await this.pending("hello");
+    const stale: any = await ImageUser.ref(user.getUUID()).get();
+    const markerKey = this.keys.find(k => k.includes(`_pending/${file.hash}/`));
+    const marker = this.objects.get(markerKey);
+    this.uploaded("hello");
+    await this.binary.completeUpload(user, "images", file.hash);
+    // The racing request still sees the marker and the stale attribute
+    this.keys.push(markerKey);
+    this.objects.set(markerKey, marker);
+    assert.strictEqual([...(stale.images ?? [])].length, 0);
+    await this.binary.completeUpload(stale, "images", file.hash);
     assert.strictEqual((await this.images(user.getUUID())).length, 1);
     assert.strictEqual(this.uploadEvents.length, 1);
   }
@@ -344,7 +411,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   @test
   async completeWithoutPending() {
     const { file } = await this.file("never announced");
-    this.uploaded(file.hash, 15);
+    this.uploaded("never announced");
     const user = await ImageUser.create({ uuid: "s3-nopending" } as any);
     await assert.rejects(
       () => this.binary.completeUpload(user, "images", file.hash),
@@ -357,32 +424,87 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     );
     // Another object's pending upload does not complete this one
     const { file: f2 } = await this.pending("hello");
-    this.uploaded(f2.hash, 5);
+    this.uploaded("hello");
     await assert.rejects(
       () => this.binary.completeUpload(user, "images", f2.hash),
       (e: any) => e.getResponseCode() === 404
     );
   }
 
+  /**
+   * Hash-only attach: announcing a known hash with a made-up challenge, then completing once someone else uploaded
+   * the bytes, attaches nothing (the challenge is checked against the stored bytes)
+   */
   @test
-  async existingDataWithoutProofIsNotPending() {
-    const { file, info } = await this.file("existing");
-    this.uploaded(file.hash, 8);
-    const user = await ImageUser.create({ uuid: "s3-noproof" } as any);
-    // A hash copied from a reader: an upload url, but completing cannot attach the existing data
-    const res = await this.binary.putRedirectUrl(user, "images", { ...info, challenge: "guess" });
-    assert.strictEqual(res?.method, "PUT");
+  async fakeChallengeCannotCompleteAnotherUpload() {
+    const content = "the victim's private file";
+    const { file, info } = await this.file(content);
+    const attacker = await ImageUser.create({ uuid: "s3-attacker2" } as any);
+    await this.binary.putRedirectUrl(attacker, "images", { ...info, challenge: "fake", size: content.length });
+    const victim = await ImageUser.create({ uuid: "s3-victim" } as any);
+    await this.binary.putRedirectUrl(victim, "images", { ...info, size: content.length });
+    this.uploaded(content);
+    await assert.rejects(
+      () => this.binary.completeUpload(attacker, "images", file.hash),
+      (e: any) => e.getResponseCode() === 400
+    );
+    assert.deepStrictEqual(await this.images(attacker.getUUID()), []);
+    assert.ok(!this.written.some(k => k.includes("proof_")), "no proof from a client value");
+    assert.ok(!this.deleted.includes(this.binary._getKey(file.hash)), "the victim's upload is still awaited");
+    await this.binary.completeUpload(victim, "images", file.hash);
+    assert.strictEqual((await this.images(victim.getUUID())).length, 1);
+    assert.deepStrictEqual(
+      this.written.filter(k => k.includes("proof_")),
+      [this.binary._getKey(file.hash, `proof_${file.challenge}`)]
+    );
+    assert.strictEqual(this.uploadEvents.length, 1);
+  }
+
+  @test
+  async completeWithoutChallengeIsRejected() {
+    const { user, file } = await this.pending("hello", { challenge: undefined });
+    this.uploaded("hello");
     await assert.rejects(
       () => this.binary.completeUpload(user, "images", file.hash),
-      (e: any) => e.getResponseCode() === 404
+      (e: any) => e.getResponseCode() === 400
     );
     assert.deepStrictEqual(await this.images(user.getUUID()), []);
+    assert.ok(!this.written.some(k => k.includes("proof_")));
+  }
+
+  /**
+   * Existing data without a matching proof (legacy, or a poisoned proof): the holder proves possession by completing
+   */
+  @test
+  async poisonedProofDoesNotBlockHonestHolders() {
+    const { file, info } = await this.file("existing");
+    this.uploaded("existing");
+    this.keys.push(this.binary._getKey(file.hash, "proof_bogus"));
+    // Another object uses the data: a rejected completion keeps it
+    this.keys.push(this.binary._getKey(file.hash, "WebdaDemo-ImageUser_images_someone"));
+    const guesser = await ImageUser.create({ uuid: "s3-guess" } as any);
+    const res = await this.binary.putRedirectUrl(guesser, "images", { ...info, challenge: "guess" });
+    assert.strictEqual(res?.method, "PUT");
+    await assert.rejects(
+      () => this.binary.completeUpload(guesser, "images", file.hash),
+      (e: any) => e.getResponseCode() === 400
+    );
+    assert.deepStrictEqual(await this.images(guesser.getUUID()), []);
+    const holder = await ImageUser.create({ uuid: "s3-honest" } as any);
+    const upload = await this.binary.putRedirectUrl(holder, "images", info);
+    assert.strictEqual(upload?.method, "PUT", "the bogus proof does not match");
+    await this.binary.completeUpload(holder, "images", file.hash);
+    assert.strictEqual((await this.images(holder.getUUID()))[0].hash, file.hash);
+    // Several proofs now: the real one dedupes at once
+    const next = await ImageUser.create({ uuid: "s3-next" } as any);
+    assert.strictEqual(await this.binary.putRedirectUrl(next, "images", info), undefined);
+    assert.strictEqual((await this.images(next.getUUID())).length, 1);
   }
 
   @test
   async dedupStillAttachesImmediately() {
     const { file, info } = await this.file("dedup");
-    this.uploaded(file.hash, 5);
+    this.uploaded("dedup");
     this.keys.push(this.binary._getKey(file.hash, `proof_${file.challenge}`));
     const user = await ImageUser.create({ uuid: "s3-dedup" } as any);
     assert.strictEqual(await this.binary.putRedirectUrl(user, "images", { ...info, size: 5 }), undefined);
@@ -392,21 +514,47 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   }
 
   @test
+  async invalidHashIsRejected() {
+    const user = await ImageUser.create({ uuid: "s3-badhash" } as any);
+    await assert.rejects(
+      () => this.binary.putRedirectUrl(user, "images", { hash: "../x", challenge: "c" } as any),
+      (e: any) => e.getResponseCode() === 400
+    );
+    assert.deepStrictEqual(this.written, []);
+  }
+
+  @test
+  async pendingKeysAreUnambiguous() {
+    const a: any = { constructor: ImageUser, getUUID: () => "c" };
+    const b: any = { constructor: ImageUser, getUUID: () => "b_c" };
+    const keyA = (this.binary as any).getPendingKey(a, "a_b", "abc");
+    const keyB = (this.binary as any).getPendingKey(b, "a", "abc");
+    assert.notStrictEqual(keyA, keyB);
+    assert.ok(keyA.startsWith("_pending/abc/"), keyA);
+    // No path segment from the parts
+    const c: any = { constructor: ImageUser, getUUID: () => "../../x" };
+    assert.strictEqual((this.binary as any).getPendingKey(c, "p", "abc").split("/").length, 3);
+  }
+
+  @test
+  async pendingTimeoutMustBePositive() {
+    for (const pendingTimeout of [0, -1]) {
+      assert.throws(() => new S3BinaryParameters().load({ bucket: Bucket, pendingTimeout }), /pendingTimeout/);
+    }
+  }
+
+  @test
   async sweepRemovesStalePending() {
     const stale = await this.pending("stale");
-    this.uploaded(stale.file.hash, 5);
+    this.uploaded("stale");
     const fresh = await this.pending("fresh");
-    this.uploaded(fresh.file.hash, 5);
+    this.uploaded("fresh");
     const used = await this.pending("used");
-    this.uploaded(used.file.hash, 4);
+    this.uploaded("used");
     this.keys.push(this.binary._getKey(used.file.hash, "WebdaDemo-ImageUser_images_someone"));
-    const age = (key: string, hours: number) => {
-      const k = this.keys.find(k => k.includes(`_pending/${key}/`));
-      this.objects.get(k).Metadata.created = `${Date.now() - hours * 3600 * 1000}`;
-    };
-    age(stale.file.hash, 25);
-    age(fresh.file.hash, 1);
-    age(used.file.hash, 25);
+    this.age(stale.file.hash, 25);
+    this.age(fresh.file.hash, 1);
+    this.age(used.file.hash, 25);
     assert.strictEqual(await this.binary.sweepPending(Date.now()), 2);
     assert.ok(this.deleted.some(k => k.includes(`_pending/${stale.file.hash}/`)));
     assert.ok(this.deleted.includes(this.binary._getKey(stale.file.hash)), "unused data removed");
@@ -430,9 +578,8 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     // Two objects announce the same new content before it is uploaded
     const first = await this.pending("shared");
     const second = await this.pending("shared");
-    this.uploaded(first.file.hash, 6);
-    const firstKey = this.keys.find(k => k.endsWith(first.user.getUUID()) && k.includes("_pending/"));
-    this.objects.get(firstKey).Metadata.created = `${Date.now() - 25 * 3600 * 1000}`;
+    this.uploaded("shared");
+    this.age(first.file.hash, 25, first.user.getUUID());
     assert.strictEqual(await this.binary.sweepPending(), 1);
     assert.ok(!this.deleted.includes(this.binary._getKey(first.file.hash)), "the data is still awaited");
     await this.binary.completeUpload(second.user, "images", second.file.hash);

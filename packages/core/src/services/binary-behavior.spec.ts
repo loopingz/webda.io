@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
+import { EventEmitter } from "events";
 import { Readable } from "stream";
 import { WebdaApplicationTest } from "../test/index.js";
 import {
@@ -1877,5 +1878,123 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
     const err = new BinaryNotFoundError("h", "store");
     assert.ok(err instanceof WebdaError.CodeError);
     assert.match(err.message, /Binary not found h BinaryService\(store\)/);
+  }
+}
+
+/**
+ * Minimal repository: `Delete` before, `Deleted` after, like the event repository
+ */
+class FakeRepository extends EventEmitter {
+  objects = new Map<string, any>();
+  failDelete = false;
+
+  async get(id: string) {
+    return this.objects.get(id);
+  }
+
+  async emitAsync(event: string, data: any) {
+    for (const listener of this.listeners(event)) {
+      await listener(data);
+    }
+  }
+
+  async delete(id: string) {
+    await this.emitAsync("Delete", { object_id: id });
+    if (this.failDelete) {
+      throw new Error("delete failed");
+    }
+    this.objects.delete(id);
+    await this.emitAsync("Deleted", { object_id: id });
+  }
+}
+
+class CascadeService extends BinaryService {
+  repo = new FakeRepository();
+  cascade = sinon.stub().resolves();
+  async store(): Promise<void> {}
+  async getUsageCount(): Promise<number> {
+    return 0;
+  }
+  async delete(): Promise<void> {}
+  async _get(): Promise<any> {}
+  async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
+    await this.cascade(info, uuid);
+  }
+  protected getRepository(): any {
+    return this.repo;
+  }
+}
+
+@suite
+class BinaryCascadeTest extends WebdaApplicationTest {
+  makeService(models: any = { "*": ["*"] }): CascadeService {
+    const svc = new CascadeService("cascade", new BinaryParameters().load({ models }));
+    (svc as any).metrics = { upload: { inc() {} }, download: { inc() {} }, delete: { inc() {} } };
+    return svc;
+  }
+
+  holder(files: string[]) {
+    return new PhotoHolder({
+      uuid: "a",
+      photos: files.map(hash => ({ hash, size: 1, mimetype: "t", name: hash }))
+    });
+  }
+
+  @test
+  async deleteCascades() {
+    const svc = this.makeService();
+    svc.repo.objects.set("a", this.holder(["h1", "h2"]));
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("a");
+    assert.deepStrictEqual(
+      svc.cascade
+        .getCalls()
+        .map(c => c.args[0].hash)
+        .sort(),
+      ["h1", "h2"]
+    );
+    assert.strictEqual(svc.cascade.getCall(0).args[1], "a");
+    assert.strictEqual((svc as any).pendingDeletes.size, 0);
+  }
+
+  @test
+  async failedDeleteKeepsFiles() {
+    const svc = this.makeService();
+    svc.repo.objects.set("a", this.holder(["h1"]));
+    svc.repo.failDelete = true;
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await assert.rejects(() => svc.repo.delete("a"), /delete failed/);
+    assert.strictEqual(svc.cascade.callCount, 0);
+    // Dropped on the next Delete of the same id
+    svc.repo.failDelete = false;
+    svc.repo.objects.set("a", this.holder([]));
+    await svc.repo.delete("a");
+    assert.strictEqual(svc.cascade.callCount, 0);
+    assert.strictEqual((svc as any).pendingDeletes.size, 0);
+  }
+
+  @test
+  async missingObjectIgnored() {
+    const svc = this.makeService();
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("nope");
+    assert.strictEqual(svc.cascade.callCount, 0);
+  }
+
+  @test
+  async ownership() {
+    const model = { Metadata: { Identifier: "WebdaTest/PhotoHolder" } };
+    const owner = this.makeService({ "WebdaTest/PhotoHolder": ["photos"] });
+    const other = this.makeService({ "Other/Model": ["x"] });
+    const getBinaryStore = sinon.stub(useCore(), "getBinaryStore").returns(owner as any);
+    try {
+      assert.ok((owner as any).ownsAttribute(model, "photos"));
+      assert.ok(!(other as any).ownsAttribute(model, "photos"));
+      // handled by the map but resolved to another service
+      const wildcard = this.makeService();
+      assert.ok(!(wildcard as any).ownsAttribute(model, "photos"));
+    } finally {
+      getBinaryStore.restore();
+    }
   }
 }

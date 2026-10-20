@@ -7,12 +7,13 @@ import * as WebdaError from "../errors/errors.js";
 import { Service } from "./service.js";
 import { NotEnumerable, streamToBuffer, FileSize } from "@webda/utils";
 import { useCore, useModelMetadata } from "../core/hooks.js";
+import { useApplication } from "../application/hooks.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { Counter } from "../metrics/metrics.js";
 import { IOperationContext } from "../contexts/icontext.js";
 import { IStore } from "../core/icore.js";
 import { MappingService } from "../stores/istore.js";
-import { type Model, type Storable, WEBDA_STORAGE } from "@webda/models";
+import { type Model, type Storable, WEBDA_STORAGE, useRepository } from "@webda/models";
 import { Action } from "../models/decorator.js";
 import { useContext } from "../contexts/execution.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
@@ -1477,6 +1478,111 @@ export abstract class BinaryService<
   static streamToBuffer(stream: Readable): Promise<Buffer> {
     // codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer
     return streamToBuffer(stream);
+  }
+
+  /**
+   * Binaries of a deleted object, kept between the `Delete` (before) and `Deleted` (after) events of its repository
+   */
+  @NotEnumerable
+  protected pendingDeletes: Map<string, BinaryMap[]> = new Map();
+
+  /**
+   * Listen to the deletion of every model owning a binary attribute that this service stores
+   *
+   * Exactly one service owns an attribute: the one `getBinaryStore` resolves, so several binary services never
+   * cascade the same attribute twice.
+   * @returns this
+   */
+  async init(): Promise<this> {
+    await super.init();
+    let models: any[];
+    try {
+      models = Object.values(useApplication().getModels());
+    } catch {
+      // Standalone service, outside of an application: no model to follow
+      return this;
+    }
+    for (const model of models) {
+      const behaviors: Array<{ attribute: string }> = (<any>model)?.Metadata?.Relations?.behaviors ?? [];
+      const attributes = behaviors.map(b => b.attribute).filter(attribute => this.ownsAttribute(model, attribute));
+      if (attributes.length) {
+        try {
+          this.hookDelete(<any>model, attributes);
+        } catch (err) {
+          this.log("WARN", `Cannot cascade the deletion of ${model.Metadata.Identifier} binaries`, err);
+        }
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Whether this service is the one storing the binaries of a model attribute
+   * @param model - the model class
+   * @param attribute - the attribute name
+   * @returns true if owned
+   */
+  protected ownsAttribute(model: any, attribute: string): boolean {
+    const identifier = model?.Metadata?.Identifier;
+    if (!identifier || this.handleBinary(identifier, attribute) === -1) {
+      return false;
+    }
+    try {
+      return useCore().getBinaryStore(identifier, attribute) === this;
+    } catch {
+      // No service resolves it (this one is not registered): nothing to cascade
+      return false;
+    }
+  }
+
+  /**
+   * Get the event emitting repository of a model
+   * @param model - the model class
+   * @returns the repository
+   */
+  protected getRepository(model: any): any {
+    return useRepository(model);
+  }
+
+  /**
+   * Cascade the deletion of a model to its binaries
+   *
+   * `Delete` runs before the repository deletion: the object is loaded and its binaries are kept aside. `Deleted`
+   * only fires once the deletion succeeded, so a failed delete leaves the binaries untouched.
+   * @param model - the model class
+   * @param attributes - the candidate behavior attributes
+   */
+  protected hookDelete(model: any, attributes: string[]): void {
+    const repo: any = this.getRepository(model);
+    const key = (id: unknown) => `${model.Metadata.Identifier}#${JSON.stringify(id)}`;
+    repo.on("Delete", async ({ object_id }: { object_id: unknown }) => {
+      this.pendingDeletes.delete(key(object_id));
+      let object: any;
+      try {
+        object = await repo.get(object_id);
+      } catch {
+        return;
+      }
+      const infos: BinaryMap[] = [];
+      for (const attribute of attributes) {
+        const value = object?.[attribute];
+        if (value instanceof BinariesImpl || this.isCollection(object, attribute)) {
+          infos.push(...(Array.from(value ?? []) as BinaryMap[]));
+        } else if (value instanceof Binary && value.hash) {
+          infos.push(value as unknown as BinaryMap);
+        }
+      }
+      if (infos.length) {
+        this.pendingDeletes.set(key(object_id), infos);
+      }
+    });
+    repo.on("Deleted", async ({ object_id }: { object_id: unknown }) => {
+      const infos = this.pendingDeletes.get(key(object_id));
+      this.pendingDeletes.delete(key(object_id));
+      for (const info of infos ?? []) {
+        await this.cascadeDelete(info, String(object_id));
+      }
+    });
   }
 
   /**

@@ -84,7 +84,14 @@ class S3BinaryTest extends WebdaAwsTest {
     // Delete the usage
     await this.binary.delete(user2 as any, "images");
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
-    // Cascade delete remove everything
+    // Cascade delete removes the deleted owner's usages only: the shared data stays
+    const user3 = await User.ref("s3user3").create({} as any);
+    await this.binary.store(user3, "images", new MemoryBinaryFile(Buffer.from("plop"), { name: "plop.txt" }));
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 2);
+    await this.binary.cascadeDelete({ hash: file.hash } as any, user3.getUUID());
+    assert.ok(await this.binary._exists(file.hash));
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
+    // The last owner's cascade removes the data
     await this.binary.cascadeDelete({ hash: file.hash } as any, user.getUUID());
     assert.ok(!(await this.binary._exists(file.hash)));
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 0);

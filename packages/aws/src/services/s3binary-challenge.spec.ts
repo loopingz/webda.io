@@ -221,7 +221,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   async existingDataNeedsTheMatchingChallenge() {
     const { file, info } = await this.file();
     // The binary exists in the bucket with the challenge of its uploader
-    this.keys.push(this.binary._getKey(file.hash), this.binary._getKey(file.hash, `proof_${file.challenge}`));
+    this.keys.push(this.binary._getKey(file.hash), this.binary._getKey(file.hash, `vproof_${file.challenge}`));
     // A reader copying the hash with a wrong challenge: an upload URL, nothing attached
     const attacker = await User.create({ uuid: "s3-attacker" } as any);
     const res = await this.binary.putRedirectUrl(attacker, "images", { ...info, challenge: "not-the-challenge" });
@@ -252,7 +252,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(pendingKeys.length, 1);
     assert.ok(pendingKeys[0].endsWith(`WebdaDemo~2FImageUser_images_${user.getUUID()}`), pendingKeys[0]);
     assert.ok(!pendingKeys[0].includes(file.challenge));
-    assert.ok(!this.written.some(k => k.endsWith(`proof_${file.challenge}`)), "proof only after verification");
+    assert.ok(!this.written.some(k => k.endsWith(`vproof_${file.challenge}`)), "proof only after verification");
     assert.ok(!this.written.some(k => k.endsWith(`images_${user.getUUID()}`) && !k.includes("_pending/")));
     // The marker body carries what completion needs, server side only
     const info = this.pendingInfo(pendingKeys[0]);
@@ -300,7 +300,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.deepStrictEqual({ ...images[0].metadata }, { title: "été" });
     assert.strictEqual(images[0].challenge, undefined, "the challenge is never persisted");
     assert.strictEqual(user.images[0].hash, file.hash);
-    assert.ok(this.written.some(k => k.endsWith(`proof_${file.challenge}`)));
+    assert.ok(this.written.some(k => k.endsWith(`vproof_${file.challenge}`)));
     assert.ok(this.written.some(k => k.endsWith(`images_${user.getUUID()}`) && !k.includes("_pending/")));
     assert.ok(this.deleted.some(k => k.includes(`_pending/${file.hash}/`)));
     assert.ok(!this.keys.some(k => k.includes("_pending/")));
@@ -455,7 +455,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual((await this.images(victim.getUUID())).length, 1);
     assert.deepStrictEqual(
       this.written.filter(k => k.includes("proof_")),
-      [this.binary._getKey(file.hash, `proof_${file.challenge}`)]
+      [this.binary._getKey(file.hash, `vproof_${file.challenge}`)]
     );
     assert.strictEqual(this.uploadEvents.length, 1);
   }
@@ -479,7 +479,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   async poisonedProofDoesNotBlockHonestHolders() {
     const { file, info } = await this.file("existing");
     this.uploaded("existing");
-    this.keys.push(this.binary._getKey(file.hash, "proof_bogus"));
+    this.keys.push(this.binary._getKey(file.hash, "vproof_bogus"));
     // Another object uses the data: a rejected completion keeps it
     this.keys.push(this.binary._getKey(file.hash, "WebdaDemo-ImageUser_images_someone"));
     const guesser = await ImageUser.create({ uuid: "s3-guess" } as any);
@@ -505,7 +505,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   async dedupStillAttachesImmediately() {
     const { file, info } = await this.file("dedup");
     this.uploaded("dedup");
-    this.keys.push(this.binary._getKey(file.hash, `proof_${file.challenge}`));
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`));
     const user = await ImageUser.create({ uuid: "s3-dedup" } as any);
     assert.strictEqual(await this.binary.putRedirectUrl(user, "images", { ...info, size: 5 }), undefined);
     assert.strictEqual((await this.images(user.getUUID()))[0].hash, file.hash);
@@ -616,5 +616,184 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     const res = await this.binary.putRedirectUrl(user, "images", info);
     assert.strictEqual(res?.method, "PUT", "an upload is required");
     assert.strictEqual(((await User.ref("s3-legacy").get()) as any).images, undefined);
+  }
+  /**
+   * Proofs written before every proof was computed by the service (`proof_<challenge>`, from a client announced
+   * value) are ignored: the holder uploads once more
+   */
+  @test
+  async legacyProofIsIgnored() {
+    const { file, info } = await this.file("legacy proof");
+    this.uploaded("legacy proof");
+    this.keys.push(this.binary._getKey(file.hash, `proof_${file.challenge}`));
+    const user = await ImageUser.create({ uuid: "s3-legacy-proof" } as any);
+    const res = await this.binary.putRedirectUrl(user, "images", info);
+    assert.strictEqual(res?.method, "PUT", "an upload is required");
+    assert.deepStrictEqual(await this.images(user.getUUID()), []);
+    assert.ok(
+      this.written.some(k => k.includes(`_pending/${file.hash}/`)),
+      "pending, not attached"
+    );
+    assert.strictEqual(this.uploadEvents.length, 0);
+    // Legacy proofs are no usage either
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 0);
+  }
+
+  /**
+   * Deleting a model removes its own usage markers only: deduplicated data shared with another model is kept until
+   * the last usage goes, then the data and its proofs are removed
+   */
+  @test
+  async cascadeDeleteKeepsSharedData() {
+    const { file } = await this.file("shared");
+    this.uploaded("shared");
+    const data = this.binary._getKey(file.hash);
+    const proof = this.binary._getKey(file.hash, `vproof_${file.challenge}`);
+    const legacy = this.binary._getKey(file.hash, `proof_${file.challenge}`);
+    const first = this.binary._getKey(file.hash, "images_owner-a");
+    const firstOther = this.binary._getKey(file.hash, "profile_owner-a");
+    const second = this.binary._getKey(file.hash, "images_owner-b");
+    this.keys.push(proof, legacy, first, firstOther, second);
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 3);
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a");
+    assert.ok(this.keys.includes(data), "shared data kept");
+    assert.ok(this.keys.includes(proof), "proof kept");
+    assert.ok(this.keys.includes(second), "the other owner's usage kept");
+    assert.ok(!this.keys.includes(first) && !this.keys.includes(firstOther), "every usage of the deleted owner gone");
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
+    // A pending upload (no proof of possession) still waits for the data: kept
+    const waiting = await this.pending("shared", { challenge: "unproven" });
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-b");
+    assert.ok(this.keys.includes(data), "data awaited by a pending upload kept");
+    await this.binary.sweepPending(Date.now() + 2 * 86400 * 1000);
+    assert.ok(!this.keys.includes(data), "unused data removed by the sweep");
+    assert.ok(!this.keys.some(k => k.startsWith(`${file.hash}/`)), "proofs removed with the data");
+    assert.deepStrictEqual(await this.images(waiting.user.getUUID()), []);
+  }
+
+  /**
+   * The last owner's cascade removes the data and its proofs
+   */
+  @test
+  async cascadeDeleteOfTheLastOwnerRemovesData() {
+    const { file } = await this.file("single");
+    this.uploaded("single");
+    this.keys.push(
+      this.binary._getKey(file.hash, `vproof_${file.challenge}`),
+      this.binary._getKey(file.hash, "images_owner-a"),
+      this.binary._getKey(file.hash, "images_owner-b")
+    );
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a");
+    assert.ok(this.keys.includes(this.binary._getKey(file.hash)));
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-b");
+    assert.ok(!this.keys.some(k => k.startsWith(`${file.hash}/`)), "data and proofs gone");
+  }
+
+  /**
+   * `store` computes the hashes from the bytes: a preset hash that does not match is rejected, nothing is written
+   */
+  @test
+  async storeRejectsAPresetWrongHash() {
+    const user = await ImageUser.create({ uuid: "s3-store-hash" } as any);
+    const { file: other } = await this.file("other content");
+    this.uploaded("other content");
+    const forged = new MemoryBinaryFile(Buffer.from("mine"), { name: "m.txt", hash: other.hash });
+    await assert.rejects(
+      () => this.binary.store(user, "images", forged),
+      (e: any) => e.getResponseCode() === 400
+    );
+    assert.deepStrictEqual(this.written, []);
+    assert.deepStrictEqual(await this.images(user.getUUID()), []);
+  }
+
+  /**
+   * `store` writes the proof of the challenge it computed, never a preset one
+   */
+  @test
+  async storeWritesTheComputedProofOnly() {
+    const user = await ImageUser.create({ uuid: "s3-store-challenge" } as any);
+    const { file } = await this.file("stored");
+    this.uploaded("stored");
+    const preset = new MemoryBinaryFile(Buffer.from("stored"), {
+      name: "s.txt",
+      hash: file.hash.toUpperCase(),
+      challenge: "forged"
+    });
+    await this.binary.store(user, "images", preset);
+    assert.deepStrictEqual(
+      this.written.filter(k => k.includes("proof_")),
+      [this.binary._getKey(file.hash, `vproof_${file.challenge}`)]
+    );
+    assert.strictEqual((await this.images(user.getUUID()))[0].hash, file.hash);
+  }
+
+  /**
+   * Hashes are lower case: an upper-case announce names the same keys and completes, dedup attaches the lower case
+   */
+  @test
+  async upperCaseHashesAreNormalised() {
+    const { file, info } = await this.file("casing");
+    const user = await ImageUser.create({ uuid: "s3-case" } as any);
+    const res = await this.binary.putRedirectUrl(user, "images", {
+      ...info,
+      hash: file.hash.toUpperCase(),
+      challenge: file.challenge.toUpperCase()
+    });
+    assert.strictEqual(res?.method, "PUT");
+    assert.ok(
+      this.written.every(k => !k.includes(file.hash.toUpperCase())),
+      "keys use the lower case"
+    );
+    assert.ok(this.written.some(k => k.includes(`_pending/${file.hash}/`)));
+    this.uploaded("casing");
+    await this.binary.completeUpload(user, "images", file.hash.toUpperCase());
+    assert.strictEqual((await this.images(user.getUUID()))[0].hash, file.hash);
+    // Already linked whatever the case
+    await this.binary.completeUpload(user, "images", file.hash.toUpperCase());
+    assert.strictEqual(this.uploadEvents.length, 1);
+    const other = await ImageUser.create({ uuid: "s3-case-2" } as any);
+    assert.strictEqual(
+      await this.binary.putRedirectUrl(other, "images", {
+        ...info,
+        hash: file.hash.toUpperCase(),
+        challenge: file.challenge.toUpperCase()
+      }),
+      undefined
+    );
+    assert.strictEqual((await this.images(other.getUUID()))[0].hash, file.hash);
+  }
+
+  /**
+   * A usage marker of another attribute whose name ends like this one (`userimages_<uuid>` vs `images_<uuid>`) is not
+   * a link: the object's own attribute decides
+   */
+  @test
+  async suffixNamedAttributeIsNotALink() {
+    const { file, info } = await this.file("suffix");
+    this.uploaded("suffix");
+    const user = await ImageUser.create({ uuid: "s3-suffix" } as any);
+    this.keys.push(this.binary._getKey(file.hash, `userimages_${user.getUUID()}`));
+    const res = await this.binary.putRedirectUrl(user, "images", info);
+    assert.strictEqual(res?.method, "PUT", "not done: nothing is linked to images");
+  }
+
+  /**
+   * Dedup records the size of the stored object, not the declared one, and enforces maxUploadSize on it
+   */
+  @test
+  async dedupRecordsTheStoredSize() {
+    const { file, info } = await this.file("dedup size");
+    this.uploaded("dedup size");
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`));
+    const user = await ImageUser.create({ uuid: "s3-dedup-size" } as any);
+    assert.strictEqual(await this.binary.putRedirectUrl(user, "images", { ...info, size: 1 }), undefined);
+    assert.strictEqual((await this.images(user.getUUID()))[0].size, "dedup size".length);
+    this.binary.parameters.maxUploadSize = 4;
+    const small = await ImageUser.create({ uuid: "s3-dedup-small" } as any);
+    await assert.rejects(
+      () => this.binary.putRedirectUrl(small, "images", { ...info, size: 1 }),
+      (e: any) => e.getResponseCode() === 400
+    );
+    assert.deepStrictEqual(await this.images(small.getUUID()), []);
   }
 }

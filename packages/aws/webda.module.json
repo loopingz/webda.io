@@ -1405,9 +1405,12 @@
             "type": "number"
           },
           "maxUploadSize": {
-            "description": "Maximum size accepted for a direct-to-bucket upload, undefined means no limit\nGet the max upload size in bytes",
-            "returns": "the limit or undefined",
-            "type": "number"
+            "description": "Maximum size accepted for a direct-to-bucket upload, undefined means no limit",
+            "returns": "the limit in bytes or undefined",
+            "type": [
+              "string",
+              "number"
+            ]
           },
           "models": {
             "$ref": "#/definitions/models",
@@ -1442,7 +1445,6 @@
         },
         "required": [
           "bucket",
-          "maxUploadSize",
           "models",
           "type"
         ],

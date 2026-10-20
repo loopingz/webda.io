@@ -18,6 +18,8 @@ import {
   CoreModel,
   CoreModelWithBinary,
   lookupMimeType,
+  normalizeHash,
+  normalizeHashes,
   OperationContext,
   parseContentUrl,
   SecretString,
@@ -140,8 +142,9 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
  *
  * The structure used for now is
  * /{hash}/data
- * /{hash}/{targetStore}_{uuid}
- * /{hash}/proof_{challenge} written once the content is verified
+ * /{hash}/{attribute}_{uuid} usage markers
+ * /{hash}/vproof_{challenge} the proof of possession, written once the service read the bytes
+ * /{hash}/proof_{challenge} legacy proof written from a client announced value: ignored
  * /_pending/{hash}/{model}_{attribute}_{uuid} a direct upload waiting for its completion
  *
  * It takes parameters
@@ -413,6 +416,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     context?: OperationContext<BinaryFileInfo>
   ): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
     body ??= await context.getInput();
+    // One key per content: the hash and the challenge are lower-case hexadecimal
+    body = normalizeHashes(body);
     // The hash names S3 keys: hexadecimal only (no path segments)
     this.checkHash(body?.hash);
     const uuid = object.getUUID();
@@ -433,17 +438,15 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Bucket: this.parameters.bucket,
       Prefix: this._getKey(body.hash, "")
     });
-    let foundMap = false;
     let foundData = false;
-    // The proofs the service wrote once it verified the content (`proof_<challenge>`); legacy `challenge_` keys are
-    // no proof. Several may exist (written by older versions): any of them proves possession
+    // The proofs the service wrote once it read the bytes (`vproof_<challenge>`). Legacy `proof_` and `challenge_`
+    // keys were written from client announced values: they are no proof
     const proofs = new Set<string>();
     for (const i in data.Contents) {
-      if (data.Contents[i].Key.endsWith("data")) foundData = true;
-      if (data.Contents[i].Key.endsWith(`${property}_${uuid}`)) foundMap = true;
       const name = data.Contents[i].Key.split("/").pop();
-      if (name.startsWith("proof_")) {
-        proofs.add(name.substring("proof_".length));
+      if (name === "data") foundData = true;
+      if (name.startsWith(S3Binary.PROOF_PREFIX)) {
+        proofs.add(name.substring(S3Binary.PROOF_PREFIX.length));
       }
     }
     const headers = {
@@ -455,14 +458,28 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       method: "PUT",
       headers
     });
-    if (foundMap && foundData) {
+    if (foundData && this.isLinked(<any>object, property, body.hash)) {
       return;
     }
     if (foundData && typeof body.challenge === "string" && proofs.has(body.challenge)) {
-      // The data exists and the client proves possession with the challenge its verified upload produced
-      await this.uploadSuccess(<any>object, property, body);
-      await this.putMarker(body.hash, `${property}_${uuid}`, store);
-      return;
+      // The data exists and the client proves possession with the challenge of the verified content
+      const head = await this._getS3(body.hash);
+      if (head) {
+        const max = this.parameters.maxUploadSize;
+        if (max !== undefined && head.ContentLength > max) {
+          throw new WebdaError.BadRequest("File too big");
+        }
+        // The stored object's size, not the declared one
+        await this.uploadSuccess(<any>object, property, {
+          hash: body.hash,
+          size: head.ContentLength,
+          name: body.name,
+          mimetype: body.mimetype || "application/octet-stream",
+          metadata: body.metadata ?? {}
+        });
+        await this.putMarker(body.hash, `${property}_${uuid}`, store);
+        return;
+      }
     }
     // New content, or existing data without a matching proof (a hash alone never attaches): the signed PUT binds the
     // bytes to the announced hash (Content-MD5). Nothing is attached until the client declares the upload complete
@@ -476,7 +493,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param hash - the binary hash
    */
   protected checkHash(hash: string): void {
-    if (typeof hash !== "string" || !/^[0-9a-f]+$/i.test(hash)) {
+    if (typeof hash !== "string" || !/^[0-9a-f]+$/.test(hash)) {
       throw new WebdaError.BadRequest("Invalid hash");
     }
   }
@@ -592,6 +609,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param hash - the hash announced in the challenge
    */
   async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    hash = normalizeHash(hash);
     if (this.isLinked(object, property, hash)) {
       return;
     }
@@ -621,10 +639,10 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await reject("No challenge announced");
     }
     const computed = await this.hashStoredData(hash);
-    if (computed.hash !== hash.toLowerCase() || computed.challenge !== pending.challenge) {
+    if (computed.hash !== hash || computed.challenge !== normalizeHash(pending.challenge)) {
       await reject("Uploaded content does not match the challenge");
     }
-    await this.putMarker(hash, `proof_${computed.challenge}`, "proof");
+    await this.putMarker(hash, this.proofMarker(computed.challenge), "proof");
     await this.putMarker(hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
     // uploadSuccess re-loads the object: a concurrent completion that linked the hash meanwhile is not repeated
     await this.uploadSuccess(object, property, {
@@ -639,7 +657,36 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * Delete the data of a hash no object uses and no other upload waits for
+   * Prefix of the proof markers written by the service from the bytes it read (`vproof_<challenge>`)
+   */
+  static readonly PROOF_PREFIX = "vproof_";
+
+  /**
+   * Name of the proof marker of a challenge computed by the service
+   * @param challenge - the server computed challenge
+   * @returns the marker name
+   */
+  protected proofMarker(challenge: string): string {
+    return `${S3Binary.PROOF_PREFIX}${challenge}`;
+  }
+
+  /**
+   * Whether a key under `<hash>/` is a usage marker: not the data, nor a proof (verified or legacy)
+   * @param key - the object key
+   * @returns true for a usage marker
+   */
+  protected isUsageMarker(key: string): boolean {
+    const name = key.split("/").pop();
+    return !(
+      name === "data" ||
+      name.startsWith(S3Binary.PROOF_PREFIX) ||
+      name.startsWith("proof_") ||
+      name.startsWith("challenge_")
+    );
+  }
+
+  /**
+   * Delete the data of a hash no object uses and no other upload waits for, with its proofs
    * @param hash - the binary hash
    */
   protected async deleteUnusedData(hash: string): Promise<void> {
@@ -653,7 +700,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     if (pending.Contents?.length) {
       return;
     }
-    await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: this._getKey(hash) });
+    // Only the data and the proofs are left
+    await this._cleanHash(hash);
   }
 
   /**
@@ -784,9 +832,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Prefix: this._getKey(hash, "")
     });
     data.Contents ??= [];
-    return data.Contents.filter(
-      k => !(k.Key.includes("data") || k.Key.includes("challenge") || k.Key.includes("proof_"))
-    ).length;
+    return data.Contents.filter(k => this.isUsageMarker(k.Key)).length;
   }
 
   /**
@@ -819,11 +865,26 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @override
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param attribute - the binary attribute, if undefined clean the whole binary
+   * @param attribute - the binary attribute, if undefined every usage of the object (its deletion): the usages of the
+   * other objects are kept, the data and its proofs are removed only once no usage and no pending upload remain
    */
   async _cleanUsage(hash: string, uuid: string, attribute?: string) {
     if (!attribute) {
-      return this._cleanHash(hash);
+      const keys = (
+        (
+          await this._s3.listObjectsV2({
+            Bucket: this.parameters.bucket,
+            Prefix: this._getKey(hash, "")
+          })
+        ).Contents ?? []
+      )
+        .map(c => c.Key)
+        .filter(Key => this.isUsageMarker(Key) && Key.endsWith(`_${uuid}`));
+      for (const Key of keys) {
+        await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key });
+      }
+      await this.deleteUnusedData(hash);
+      return;
     }
     // Dont clean data for now
     const params = {
@@ -951,7 +1012,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
     this.checkMap(<any>object, property);
-    await file.getHashes();
+    // Computed from the bytes: a preset hash that does not match is rejected, a preset challenge is replaced
+    await this.verifiedHashes(file);
     const data = await this._getS3(file.hash);
     if (data === undefined) {
       const s3metas: Record<string, string> = {};
@@ -963,8 +1025,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         contentType: file.mimetype
       });
     }
-    // The proof of possession of the content, compared on later challenges
-    await this.putMarker(file.hash, `proof_${file.challenge}`, "proof");
+    // The proof of possession of the content, computed from the bytes, compared on later challenges
+    await this.putMarker(file.hash, this.proofMarker(file.challenge), "proof");
 
     await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());

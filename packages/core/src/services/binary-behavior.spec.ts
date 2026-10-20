@@ -16,7 +16,15 @@ import {
   MemoryBinaryFile
 } from "./binary.service.js";
 import { Action } from "../models/decorator.js";
-import { WEBDA_STORAGE } from "@webda/models";
+import {
+  WEBDA_STORAGE,
+  EventRepository,
+  MemoryRepository,
+  Repositories,
+  registerRepository,
+  useRepository
+} from "@webda/models";
+import { useApplication } from "../application/hooks.js";
 import { PhotoHolder, PhotoLike } from "../test/binary-holder.model.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { WebContext } from "../contexts/webcontext.js";
@@ -1995,6 +2003,93 @@ class BinaryCascadeTest extends WebdaApplicationTest {
       assert.ok(!(wildcard as any).ownsAttribute(model, "photos"));
     } finally {
       getBinaryStore.restore();
+    }
+  }
+
+  @test
+  async loadErrorIsLoggedNotSwallowed() {
+    const svc = this.makeService();
+    const log = sinon.stub(svc, "log");
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    svc.repo.get = async () => {
+      throw new Error("db down");
+    };
+    // The delete itself is not blocked
+    await svc.repo.delete("a");
+    assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
+    // A not-found object stays silent
+    log.resetHistory();
+    svc.repo.get = async () => {
+      throw Object.assign(new Error("nf"), { code: "ModelNotFound" });
+    };
+    await svc.repo.delete("a");
+    assert.strictEqual(log.callCount, 0);
+  }
+
+  @test
+  async failingCascadeIsIsolated() {
+    const svc = this.makeService();
+    const log = sinon.stub(svc, "log");
+    svc.repo.objects.set("a", this.holder(["h1", "h2"]));
+    svc.cascade.onFirstCall().rejects(new Error("boom"));
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("a");
+    assert.strictEqual(svc.cascade.callCount, 2);
+    assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
+  }
+
+  /**
+   * End to end: `init()` discovers the model, filters its behavior attributes, hooks the real event repository
+   * once (a second `init()` does not duplicate it) and a real repository delete cascades the binaries
+   */
+  @test
+  async initHooksRealRepository() {
+    class RealCascadeService extends CascadeService {
+      protected getRepository(model: any): any {
+        return useRepository(model);
+      }
+    }
+    const svc = new RealCascadeService("cascade", new BinaryParameters().load({}));
+    const models: any = useApplication().getModels();
+    const previousMetadata = Object.getOwnPropertyDescriptor(PhotoHolder, "Metadata");
+    const previousRepo = Repositories.get(PhotoHolder);
+    Object.defineProperty(PhotoHolder, "Metadata", {
+      value: {
+        Identifier: "WebdaTest/PhotoHolder",
+        PrimaryKey: ["uuid"],
+        Relations: { behaviors: [{ attribute: "photos", behavior: "Test/PhotoLike" }] }
+      },
+      configurable: true
+    });
+    models["WebdaTest/PhotoHolder"] = PhotoHolder;
+    const stub = sinon.stub(useCore(), "getBinaryStore").returns(svc as any);
+    try {
+      (PhotoHolder as any).registerSerializer(true, "WebdaTest/PhotoHolder");
+      const memory = new MemoryRepository(PhotoHolder as any, ["uuid"]);
+      const repo = new EventRepository(PhotoHolder as any, ["uuid"], memory as any);
+      registerRepository(PhotoHolder as any, repo as any);
+      await memory.create(this.holder(["h1", "h2"]) as any);
+      const on = sinon.spy(repo as any, "on");
+      await svc.init();
+      await svc.init();
+      assert.strictEqual(on.getCalls().filter(c => c.args[0] === "Delete").length, 1);
+      assert.strictEqual(on.getCalls().filter(c => c.args[0] === "Deleted").length, 1);
+      await repo.delete("a" as any);
+      assert.deepStrictEqual(
+        svc.cascade
+          .getCalls()
+          .map(c => c.args[0].hash)
+          .sort(),
+        ["h1", "h2"]
+      );
+      assert.strictEqual(svc.cascade.getCall(0).args[1], "a");
+    } finally {
+      stub.restore();
+      delete models["WebdaTest/PhotoHolder"];
+      if (previousMetadata) Object.defineProperty(PhotoHolder, "Metadata", previousMetadata);
+      else delete (PhotoHolder as any).Metadata;
+      if (previousRepo) Repositories.set(PhotoHolder as any, previousRepo);
+      else Repositories.delete(PhotoHolder as any);
     }
   }
 }

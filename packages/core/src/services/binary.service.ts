@@ -1484,7 +1484,13 @@ export abstract class BinaryService<
    * Binaries of a deleted object, kept between the `Delete` (before) and `Deleted` (after) events of its repository
    */
   @NotEnumerable
-  protected pendingDeletes: Map<string, BinaryMap[]> = new Map();
+  protected pendingDeletes: Map<string, { uuid: string; infos: BinaryMap[] }> = new Map();
+
+  /**
+   * Identifiers of the models whose deletion is already followed, so a second `init()` does not cascade twice
+   */
+  @NotEnumerable
+  protected hookedModels: Set<string> = new Set();
 
   /**
    * Listen to the deletion of every model owning a binary attribute that this service stores
@@ -1505,7 +1511,9 @@ export abstract class BinaryService<
     for (const model of models) {
       const behaviors: Array<{ attribute: string }> = (<any>model)?.Metadata?.Relations?.behaviors ?? [];
       const attributes = behaviors.map(b => b.attribute).filter(attribute => this.ownsAttribute(model, attribute));
-      if (attributes.length) {
+      const identifier = model?.Metadata?.Identifier;
+      if (attributes.length && !this.hookedModels.has(identifier)) {
+        this.hookedModels.add(identifier);
         try {
           this.hookDelete(<any>model, attributes);
         } catch (err) {
@@ -1560,7 +1568,16 @@ export abstract class BinaryService<
       let object: any;
       try {
         object = await repo.get(object_id);
-      } catch {
+      } catch (err: any) {
+        // Only a missing object is expected: any other failure must not go unnoticed, nor block the delete
+        if (!(
+          err?.code === "ModelNotFound" ||
+          /NotFound/i.test(`${err?.name}${err?.code}`) ||
+          err?.getResponseCode?.() === 404 ||
+          err?.statusCode === 404
+        )) {
+          this.log("WARN", `Cannot load ${key(object_id)} before its deletion: its binaries will be kept`, err);
+        }
         return;
       }
       const infos: BinaryMap[] = [];
@@ -1573,14 +1590,20 @@ export abstract class BinaryService<
         }
       }
       if (infos.length) {
-        this.pendingDeletes.set(key(object_id), infos);
+        // The usage markers are named after the object `getUUID()`
+        this.pendingDeletes.set(key(object_id), { uuid: object.getUUID?.() ?? String(object_id), infos });
       }
     });
     repo.on("Deleted", async ({ object_id }: { object_id: unknown }) => {
-      const infos = this.pendingDeletes.get(key(object_id));
+      const pending = this.pendingDeletes.get(key(object_id));
       this.pendingDeletes.delete(key(object_id));
-      for (const info of infos ?? []) {
-        await this.cascadeDelete(info, String(object_id));
+      // The object is gone: a failing cascade must neither reject the delete nor stop the other binaries
+      for (const info of pending?.infos ?? []) {
+        try {
+          await this.cascadeDelete(info, pending.uuid);
+        } catch (err) {
+          this.log("WARN", `Cannot delete binary ${info.hash} of ${key(object_id)}`, err);
+        }
       }
     });
   }

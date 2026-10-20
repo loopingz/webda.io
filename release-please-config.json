@@ -48,7 +48,6 @@
     "packages/sql-schema": {},
     "packages/sqlite": {},
     "packages/test": {},
-    "packages/tsc-esm": {},
     "packages/utils": {},
     "packages/versioning": {},
     "packages/workout": {}

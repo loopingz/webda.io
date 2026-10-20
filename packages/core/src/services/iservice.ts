@@ -1,5 +1,4 @@
-import type { CustomConstructor } from "@webda/tsc-esm";
-import type { DeepPartial, Attributes } from "@webda/tsc-esm";
+import type { CustomConstructor, DeepPartial, Attributes } from "@webda/utils";
 import type { JSONed } from "@webda/models";
 import { State, StateOptions } from "@webda/utils";
 import { AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter.js";

@@ -38,7 +38,6 @@
     "@webda/decorators": "workspace:^",
     "@webda/models": "workspace:^",
     "@webda/ql": "workspace:*",
-    "@webda/tsc-esm": "workspace:*",
     "@webda/utils": "workspace:^",
     "@webda/workout": "workspace:*",
     "accept-language": "^3.0.20",
@@ -147,7 +146,6 @@
   },
   "nx": {
     "implicitDependencies": [
-      "@webda/tsc-esm",
       "@webda/workout"
     ]
   },

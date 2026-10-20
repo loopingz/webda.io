@@ -1,4 +1,4 @@
-import type { ArrayElement } from "@webda/tsc-esm";
+import type { ArrayElement } from "@webda/utils";
 import type {
   AggregationResult,
   Query as WebdaQLQuery,

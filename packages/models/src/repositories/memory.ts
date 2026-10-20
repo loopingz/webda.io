@@ -1,4 +1,4 @@
-import type { ArrayElement } from "@webda/tsc-esm";
+import type { ArrayElement } from "@webda/utils";
 import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
 import type { Helpers, JSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";

@@ -1,7 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { existsSync, unlinkSync } from "fs";
-import { assertUnreachable, getFileName, isMainModule, NotEnumerable, StaticInterface } from "./lib";
+import { assertUnreachable, NotEnumerable, StaticInterface } from "./types.js";
 
 interface TestStatic {
   count: number;
@@ -15,20 +14,9 @@ class TestClass {
 }
 
 @suite
-class TscEsmTest {
-  testFiles: string[] = [];
-
-  afterEach() {
-    for (const f of this.testFiles) {
-      if (existsSync(f)) {
-        unlinkSync(f);
-      }
-    }
-    this.testFiles.length = 0;
-  }
-
+class TypesTest {
   @test
-  meta() {
+  notEnumerable() {
     const t = new TestClass();
     assert.ok(!Object.keys(t).includes("notEnumerable"));
   }
@@ -48,17 +36,5 @@ class TscEsmTest {
     f("a");
     f("b");
     assert.throws(() => f("c" as any));
-  }
-
-  @test
-  isMainModuleTest() {
-    assert.ok(!isMainModule(import.meta));
-  }
-
-  @test
-  getFileNameTest() {
-    const fileName = getFileName(import.meta);
-    assert.ok(fileName.match(/lib\.spec\.[tj]s$/));
-    assert.throws(() => getFileName({} as any));
   }
 }

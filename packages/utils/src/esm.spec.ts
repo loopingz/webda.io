@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { getCommonJS, parseImportDescriptor, toImportSpecifier } from "./esm.js";
+import { getCommonJS, getFileName, isMainModule, parseImportDescriptor, toImportSpecifier } from "./esm.js";
 import * as assert from "assert";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -52,5 +52,17 @@ class EsmTest {
     const abs = join(process.cwd(), "lib", "my.js");
     assert.strictEqual(toImportSpecifier(abs), pathToFileURL(abs).href);
     assert.ok(toImportSpecifier(abs).startsWith("file:///"));
+  }
+
+  @test
+  isMainModuleTest() {
+    assert.ok(!isMainModule(import.meta));
+  }
+
+  @test
+  getFileNameTest() {
+    const fileName = getFileName(import.meta);
+    assert.ok(fileName.match(/esm\.spec\.[tj]s$/));
+    assert.throws(() => getFileName({} as any));
   }
 }

@@ -209,8 +209,7 @@ throw new WebdaError.Redirect("https://example.com/new-location");
 |---------|---------|
 | `@webda/models` | Model base classes, relations, repositories |
 | `@webda/compiler` | TypeScript compiler with schema generation |
-| `@webda/tsc-esm` | ESM-aware TypeScript compiler, decorators |
-| `@webda/utils` | Utilities (debounce, dirty tracking, state machines) |
+| `@webda/utils` | Utilities (debounce, dirty tracking, state machines) and shared TypeScript utility types |
 | `@webda/workout` | Logging infrastructure |
 | `@webda/test` | Multi-framework test decorators (vitest, jest, mocha, bun) |
 | `@webda/ql` | WebdaQL query language |

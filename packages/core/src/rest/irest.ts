@@ -1,7 +1,8 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext.js";
-import { createMethodDecorator, DeepPartial } from "@webda/tsc-esm";
+import { createMethodDecorator } from "@webda/decorators";
+import { DeepPartial } from "@webda/utils";
 import { IWebContext } from "../contexts/icontext.js";
 import type { Repository } from "@webda/models";
 import type { RouteAliasDefinition, RouteAliasMode } from "./router.service.js";

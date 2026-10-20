@@ -119,7 +119,10 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
+      # v3 GCP tests target the live webda-dev project, whose billing account is closed.
+      # main runs them against emulators; keep them informational on this maintenance lane.
       - name: Run GCP tests
+        continue-on-error: true
         run: yarn run nx run @webda/gcp:test || yarn nx run @webda/gcp:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"

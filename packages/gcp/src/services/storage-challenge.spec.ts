@@ -85,7 +85,7 @@ class StorageChallengeTest extends WebdaApplicationTest {
     const holder = await User.create({ uuid: "gcs-holder" } as any);
     assert.strictEqual(await this.binary.putRedirectUrl(holder, "images", info as any), undefined);
     assert.strictEqual(((await User.ref("gcs-holder").get()) as any).images.hash, file.hash);
-    assert.deepStrictEqual(this.saved, [this.binary._getKey(file.hash, "images_gcs-holder")]);
+    assert.deepStrictEqual(this.saved, [this.binary._getKey(file.hash, "@Webda~2FUser_images_gcs-holder")]);
   }
 
   @test

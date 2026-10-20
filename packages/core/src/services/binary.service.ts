@@ -1516,6 +1516,48 @@ export abstract class BinaryService<
   }
 
   /**
+   * Whether the hash is already linked to the object attribute (a collection item or the single binary)
+   * @param object - the target object
+   * @param property - the property name
+   * @param hash - the binary hash
+   * @param value - the attribute value to check, default to the object's
+   * @returns true if linked
+   */
+  protected isLinked(
+    object: CoreModelWithBinary,
+    property: string,
+    hash: string,
+    value: any = object?.[property]
+  ): boolean {
+    if (this.isCollection(object, property)) {
+      return Array.isArray(value) && value.some(i => i?.hash === hash);
+    }
+    return value?.hash !== undefined && value.hash === hash;
+  }
+
+  /**
+   * The attribute value as stored: the object is re-loaded from its repository so a link made by a concurrent
+   * request (another instance of the same object) is seen. Objects without a stored copy keep their own value.
+   * @param object - the target object
+   * @param property - the property name
+   * @returns the attribute value
+   */
+  protected async getStoredValue(object: CoreModelWithBinary, property: string): Promise<any> {
+    if (typeof (object as any)?.ref !== "function") {
+      return object?.[property];
+    }
+    try {
+      const fresh = await (object as any).ref().get();
+      if (fresh) {
+        return fresh[property];
+      }
+    } catch {
+      // Not stored (yet): the in-memory value is the reference
+    }
+    return object?.[property];
+  }
+
+  /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    * @param object - the target object
    * @param property - the property name
@@ -1552,20 +1594,18 @@ export abstract class BinaryService<
     file = stored;
     // Persist the BinaryFileInfo on the parent model: collections (`BinariesImpl` and subclasses) append,
     // a single `Binary` is replaced.
-    let linked: boolean;
+    // The dedup runs on the stored value, re-loaded here: two concurrent uploads of the same hash on the same object
+    // both re-loading before either patched remain the residual window (no conditional update on the attribute)
+    const storedValue = await this.getStoredValue(object, property);
+    const linked = this.isLinked(object, property, file.hash, storedValue);
     if (this.isCollection(object, property)) {
-      const current: BinaryFileInfo[] = Array.isArray(object[property])
-        ? [...(object[property] as BinaryFileInfo[])]
-        : [];
+      const current: BinaryFileInfo[] = Array.isArray(storedValue) ? [...(storedValue as BinaryFileInfo[])] : [];
       // Idempotent push: an already linked hash is not appended again
-      linked = current.some(i => i.hash === file.hash);
       if (!linked) {
         current.push(file);
       }
       await object.patch(<any>{ [property]: current });
     } else {
-      const existing = object[property] as BinaryFileInfo | undefined;
-      linked = existing?.hash !== undefined && existing.hash === file.hash;
       await object.patch(<any>{ [property]: file });
     }
     this.metrics.upload.inc();

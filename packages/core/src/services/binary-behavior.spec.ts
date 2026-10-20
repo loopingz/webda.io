@@ -1533,6 +1533,57 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
+   * The dedup runs on the stored copy: a stale instance does not append a hash another request already linked.
+   */
+  @test
+  async uploadSuccessDedupsOnStoredValue() {
+    const svc = this.makeService();
+    const emit = sinon.stub(svc, "emit").resolves();
+    const info: any = { hash: "h1", size: 3, mimetype: "text/plain", name: "a", challenge: "c" };
+    const other = { hash: "h0", size: 1, mimetype: "text/plain", name: "o" };
+    const patches: any[] = [];
+    const stale: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "files", behavior: "Webda/BinariesImpl" }] } } },
+      files: [],
+      ref: () => ({ get: async () => ({ files: [other, { ...info, challenge: undefined }] }) }),
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(stale, "files", { ...info });
+    assert.strictEqual(patches[0].files.length, 2, "the stored items are kept, the hash is not appended");
+    assert.strictEqual(emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess").length, 0);
+    // Not stored yet: the in-memory value is used
+    const fresh: any = {
+      ...stale,
+      ref: () => ({ get: async () => undefined }),
+      files: [other]
+    };
+    patches.length = 0;
+    await svc.uploadSuccess(fresh, "files", { ...info });
+    assert.strictEqual(patches[0].files.length, 2);
+    assert.strictEqual(emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess").length, 1);
+  }
+
+  /**
+   * `isLinked` covers collections and single binaries.
+   */
+  @test
+  async isLinkedHelper() {
+    const svc: any = this.makeService();
+    const collection: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "files", behavior: "Webda/BinariesImpl" }] } } },
+      files: [{ hash: "a" }]
+    };
+    assert.strictEqual(svc.isLinked(collection, "files", "a"), true);
+    assert.strictEqual(svc.isLinked(collection, "files", "b"), false);
+    const single: any = { one: { hash: "a" } };
+    assert.strictEqual(svc.isLinked(single, "one", "a"), true);
+    assert.strictEqual(svc.isLinked(single, "one", "b"), false);
+    assert.strictEqual(svc.isLinked({}, "one", "a"), false);
+  }
+
+  /**
    * Services without pending uploads answer 404 on completion.
    */
   @test

@@ -139,6 +139,33 @@ class RevokeTest extends OAuthTest {
   }
 
   @test
+  async aReplayWithinTheGraceKeepsOneSession() {
+    // the client lost the answer of its refresh and retries: the family is still one session, with the new token
+    const b = await this.browser();
+    const t = await this.fullTokens({ scope: "Task.* offline_access", browser: b });
+    const refresh = () =>
+      this.tokenRequest({ grant_type: "refresh_token", refresh_token: t.refresh_token!, client_id: "app" });
+    const first = await refresh();
+    assert.strictEqual(first.status, 200, JSON.stringify(first.body));
+    const replay = await refresh();
+    assert.strictEqual(replay.status, 200, JSON.stringify(replay.body));
+    assert.notStrictEqual(replay.body.refresh_token, first.body.refresh_token);
+    const sessions = await this.op(b, "OAuth.Sessions");
+    assert.deepStrictEqual(
+      sessions.map((s: any) => s.family),
+      [t.family]
+    );
+    // the retired token is dead, the replayed one works
+    const retired = await this.tokenRequest({
+      grant_type: "refresh_token",
+      refresh_token: first.body.refresh_token,
+      client_id: "app"
+    });
+    assert.strictEqual(retired.status, 400);
+    assert.strictEqual(retired.body.error, "invalid_grant");
+  }
+
+  @test
   async revokeOneFamily() {
     const b = await this.browser();
     const first = await this.fullTokens({ scope: "Task.* offline_access", browser: b });

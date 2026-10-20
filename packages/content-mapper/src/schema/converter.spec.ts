@@ -480,3 +480,23 @@ describe("secret fields", () => {
     expect(JSON.stringify(schemaOf("params.service.ts", "BroadService"))).not.toContain("x-webda-secret");
   });
 });
+
+describe("sealed fields", () => {
+  const options = { project: session.ctx.project, checker: session.ctx.checker };
+  const vault = generateModelSchemas(classOf("sealed.model.ts", "Vault"), options);
+
+  it("schemaMarksSealed: marks a SealedField property x-webda-sealed in every view", () => {
+    for (const view of [vault.Input, vault.Output, vault.Stored]) {
+      const content = (view.properties as Record<string, Record<string, unknown>>).content;
+      expect(content["x-webda-sealed"]).toBe(true);
+    }
+  });
+
+  it("leaves other attributes and behaviors unmarked", () => {
+    for (const view of [vault.Input, vault.Output, vault.Stored]) {
+      const properties = view.properties as Record<string, Record<string, unknown>>;
+      expect(properties.title["x-webda-sealed"]).toBeUndefined();
+      expect(properties.other["x-webda-sealed"]).toBeUndefined();
+    }
+  });
+});

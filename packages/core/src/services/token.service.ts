@@ -50,6 +50,11 @@ export interface IssueOptions {
    * @internal set by {@link TokenService.refresh}
    */
   lastUsedAt?: number;
+  /**
+   * The raw refresh token to store, instead of a new random one
+   * @internal set by {@link TokenService.refresh}, which records its hash on the rotated token before issuing it
+   */
+  refreshToken?: string;
 }
 
 /** Claims carried by an access token */
@@ -96,6 +101,14 @@ export class TokenServiceParameters extends ServiceParameters {
    * @default 10
    */
   revocationCacheTtl: number;
+  /**
+   * Seconds during which a rotated refresh token presented again is rotated once more, as long as the token it was
+   * exchanged for was never used: a client that lost the answer of its refresh (laptop asleep, network drop)
+   * retries with the token it still holds instead of losing its session. The unused replacement is retired; if it
+   * is presented later anyway (two holders), the family is revoked. 0 disables it: any replay revokes the family
+   * @default 86400
+   */
+  refreshGrace: number;
 
   /**
    * @param params - raw parameters
@@ -107,6 +120,7 @@ export class TokenServiceParameters extends ServiceParameters {
     this.refreshTtl ??= 2592000;
     this.revocationCheck ??= true;
     this.revocationCacheTtl ??= 10;
+    this.refreshGrace ??= 86400;
     return this;
   }
 }
@@ -166,6 +180,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * @returns a new raw refresh token
+   */
+  protected newRefreshToken(): string {
+    return randomBytes(32).toString("base64url");
+  }
+
+  /**
    * Issue an access + refresh token pair for a logged session
    *
    * Roles are not persisted: refreshed access tokens carry no roles until they are re-derived.
@@ -184,7 +205,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     }
     const scope = options.scope ? formatScope(options.scope) : undefined;
     const accessTtl = options.accessTtl ?? this.parameters.accessTtl;
-    const refreshToken = randomBytes(32).toString("base64url");
+    const refreshToken = options.refreshToken ?? this.newRefreshToken();
     const now = Date.now();
     await RefreshToken.create({
       hash: this.hash(refreshToken),
@@ -359,16 +380,31 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       throw new TokenInvalid();
     }
     const stored: RefreshToken = await ref.get();
-    if (stored.revokedAt || stored.expiresAt < Date.now()) {
+    const now = Date.now();
+    if (stored.retiredAt) {
+      // replaced, unused, by a replay of its predecessor within the grace, and presented anyway: two holders
+      await this.revokeFamily(stored.family);
+      throw new TokenInvalid("Refresh token reused");
+    }
+    if (stored.revokedAt) {
+      throw new TokenInvalid();
+    }
+    if (stored.expiresAt < now) {
       throw new TokenInvalid();
     }
     // A token issued to an OAuth client is only refreshed by that client: never by a first-party (client-less) caller
     if ((stored.clientId ?? undefined) !== (options.clientId ?? undefined)) {
       throw new TokenInvalid("Refresh token issued to another client");
     }
+    /** replay within the grace: the unused token it was exchanged for, to retire (undefined when never stored) */
+    let retired: RefreshToken | undefined;
     if (stored.rotatedAt) {
-      await this.revokeFamily(stored.family);
-      throw new TokenInvalid("Refresh token reused");
+      const unused = await this.unusedSuccessor(stored, now);
+      if (!unused.ok) {
+        await this.revokeFamily(stored.family);
+        throw new TokenInvalid("Refresh token reused");
+      }
+      retired = unused.record;
     }
     // Checked before the compare-and-set so an invalid narrowing does not burn the refresh token
     const storedScope = stored.scope !== undefined ? parseScope(stored.scope) : undefined;
@@ -379,9 +415,19 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       }
       scope = options.scope;
     }
-    // Compare-and-set: only one caller can move rotatedAt from undefined to a value
+    // The replacement is retired before the rotation: no write may follow it (see below)
+    if (retired) await retired.ref().patch({ retiredAt: now } as any);
+    // The new token is drawn first so the rotated record points at it in the same write
+    const nextToken = this.newRefreshToken();
+    const successor = this.hash(nextToken);
+    // Compare-and-set: only one caller can move rotatedAt from undefined to a value (or, within the grace, replace
+    // the successor it recorded)
     try {
-      await ref.patch({ rotatedAt: Date.now() } as any, "rotatedAt" as any, undefined);
+      if (stored.rotatedAt) {
+        await ref.patch({ successor } as any, "successor" as any, stored.successor as any);
+      } else {
+        await ref.patch({ rotatedAt: now, successor } as any, "rotatedAt" as any, undefined);
+      }
     } catch (err) {
       if (!this.isConditionFailure(err)) {
         throw err;
@@ -405,7 +451,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       refreshTtl: stored.refreshTtl,
       // Written with the new record: a failing write after the rotation would make the client retry a rotated token
       createdAt: stored.createdAt,
-      lastUsedAt: Date.now()
+      lastUsedAt: now,
+      refreshToken: nextToken
     });
     // A revocation may have run between our read and the issue: its scan would have missed the new record
     for await (const _ of RefreshToken.iterate("family = ? AND revokedAt IS NOT NULL LIMIT 1", [stored.family])) {
@@ -415,6 +462,23 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       throw new TokenInvalid("Refresh token revoked");
     }
     return { ...tokens, session, scope };
+  }
+
+  /**
+   * Whether a rotated token presented again may be rotated once more: within `refreshGrace` of its rotation, and
+   * the token it was exchanged for was never used (not rotated, not revoked; a record that was never written, the
+   * issue having failed after the rotation, counts as unused)
+   * @param stored - the rotated token
+   * @param now - ms
+   * @returns ok, with the successor's record to retire when it exists
+   */
+  protected async unusedSuccessor(stored: RefreshToken, now: number): Promise<{ ok: boolean; record?: RefreshToken }> {
+    const grace = this.parameters.refreshGrace * 1000;
+    if (!(grace > 0) || !stored.successor || now - stored.rotatedAt > grace) return { ok: false };
+    const ref = RefreshToken.ref({ hash: stored.successor } as any);
+    if (!(await ref.exists())) return { ok: true };
+    const record: RefreshToken = await ref.get();
+    return record.rotatedAt || record.revokedAt || record.retiredAt ? { ok: false } : { ok: true, record };
   }
 
   /**

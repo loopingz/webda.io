@@ -1396,6 +1396,26 @@ export abstract class BinaryService<
   }
 
   /**
+   * Whether the binary attribute is a collection (`BinariesImpl` or a subclass) rather than a single `Binary`
+   *
+   * A hydrated attribute is checked with `instanceof`; otherwise the behavior declared in
+   * `Metadata.Relations.behaviors[]` is compared to `Webda/BinariesImpl`.
+   *
+   * @param object - the target object
+   * @param property - the property name
+   * @returns true if the attribute holds several binaries
+   */
+  protected isCollection(object: CoreModelWithBinary, property: string): boolean {
+    if (object?.[property] instanceof BinariesImpl) {
+      return true;
+    }
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
+      ?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
+    return beh?.behavior === "Webda/BinariesImpl";
+  }
+
+  /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    * @param object - the target object
    * @param property - the property name
@@ -1430,28 +1450,26 @@ export abstract class BinaryService<
     // object would learn it and could attach the binary to their own objects)
     const { challenge: _challenge, ...stored } = file;
     file = stored;
-    // Persist the BinaryFileInfo on the parent model. After the
-    // Binary→Behavior migration the cardinality lives on
-    // `Metadata.Relations.behaviors[]` (no more `Relations.binaries[]`).
-    // `Webda/BinariesImpl` ⇒ MANY (append), anything else (`Webda/Binary`)
-    // ⇒ ONE (replace).
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
-      ?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
-    const isCollection = beh?.behavior === "Webda/BinariesImpl";
-
-    if (isCollection) {
+    // Persist the BinaryFileInfo on the parent model: collections (`BinariesImpl` and subclasses) append,
+    // a single `Binary` is replaced.
+    let linked: boolean;
+    if (this.isCollection(object, property)) {
       const current: BinaryFileInfo[] = Array.isArray(object[property])
         ? [...(object[property] as BinaryFileInfo[])]
         : [];
-      // Idempotent push — already-linked check (preserves the previous
-      // behaviour of the now-deleted early-return guard above).
-      if (!current.some(i => i.hash === file.hash)) {
+      // Idempotent push: an already linked hash is not appended again
+      linked = current.some(i => i.hash === file.hash);
+      if (!linked) {
         current.push(file);
       }
       await object.patch(<any>{ [property]: current });
     } else {
+      const existing = object[property] as BinaryFileInfo | undefined;
+      linked = existing?.hash !== undefined && existing.hash === file.hash;
       await object.patch(<any>{ [property]: file });
+    }
+    if (!linked) {
+      await this.emit("Binary.UploadSuccess", { object: file, service: this, target: object });
     }
     this.metrics.upload.inc();
   }
@@ -1473,14 +1491,7 @@ export abstract class BinaryService<
    * @returns the result
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
-    // Cardinality lives on `Metadata.Relations.behaviors[]` after the
-    // Binary→Behavior migration. `Webda/BinariesImpl` ⇒ MANY (splice),
-    // anything else (`Webda/Binary`) ⇒ ONE (clear). Mirrors the lookup in
-    // `uploadSuccess`.
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
-      ?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
-    const isCollection = beh?.behavior === "Webda/BinariesImpl";
+    const isCollection = this.isCollection(object, property);
 
     const info: BinaryMap = <BinaryMap>(
       (isCollection && index !== undefined ? object[property][index] : object[property])

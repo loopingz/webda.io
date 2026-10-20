@@ -1429,6 +1429,71 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
+   * `uploadSuccess` emits `Binary.UploadSuccess` once per newly linked item, never exposes the challenge,
+   * and stays silent when the item is already linked.
+   */
+  @test
+  async uploadSuccessEmitsOnce() {
+    const svc = this.makeService();
+    const emit = sinon.stub(svc, "emit").resolves();
+    const info: any = { hash: "h1", size: 3, mimetype: "text/plain", name: "a", challenge: "c" };
+    const target: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "files", behavior: "Webda/BinariesImpl" }] } } },
+      files: [],
+      patch: async (data: any) => {
+        target.files = data.files;
+      }
+    };
+    await svc.uploadSuccess(target, "files", { ...info });
+    await svc.uploadSuccess(target, "files", { ...info });
+    const calls = emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess");
+    assert.strictEqual(calls.length, 1);
+    const payload: any = calls[0].args[1];
+    assert.strictEqual(payload.object.hash, "h1");
+    assert.strictEqual(payload.object.challenge, undefined);
+    assert.strictEqual(payload.service, svc);
+    assert.strictEqual(payload.target, target);
+
+    // Single Binary: same hash twice emits once, a new hash emits again
+    const single: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "one", behavior: "Webda/Binary" }] } } },
+      one: undefined,
+      patch: async (data: any) => {
+        single.one = data.one;
+      }
+    };
+    emit.resetHistory();
+    await svc.uploadSuccess(single, "one", { ...info });
+    await svc.uploadSuccess(single, "one", { ...info });
+    await svc.uploadSuccess(single, "one", { ...info, hash: "h2" });
+    assert.strictEqual(emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess").length, 2);
+  }
+
+  /**
+   * A subclass of `BinariesImpl` is still a collection: uploads append instead of replacing.
+   */
+  @test
+  async subclassCollectionAppends() {
+    class PhotoLike extends BinariesImpl {}
+    const svc = this.makeService();
+    const target: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "photos", behavior: "Test/PhotoLike" }] } } },
+      photos: new PhotoLike(),
+      patch: async (data: any) => {
+        // A real model re-hydrates the attribute as its behavior class
+        target.photos = new PhotoLike();
+        target.photos.push(...data.photos);
+      }
+    };
+    await svc.uploadSuccess(target, "photos", { hash: "a", size: 1, mimetype: "t", name: "a" });
+    await svc.uploadSuccess(target, "photos", { hash: "b", size: 1, mimetype: "t", name: "b" });
+    assert.deepStrictEqual(
+      Array.from(target.photos as any[], (i: any) => i.hash),
+      ["a", "b"]
+    );
+  }
+
+  /**
    * `deleteSuccess` for a `Webda/BinariesImpl` collection drops the item
    * at `index` from a fresh copy of `object[property]` and patches the
    * parent. Mirrors the upload path's persistence shape.

@@ -14,7 +14,6 @@ if (!allowedScripts.has(script)) {
 
 const windowsPackages = new Set([
   "@webda/utils",
-  "@webda/tsc-esm",
   "@webda/workout",
   "@webda/serialize",
   "@webda/ql",

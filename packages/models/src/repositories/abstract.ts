@@ -3,7 +3,7 @@ import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPath
 import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.js";
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
-import type { ArrayElement } from "@webda/tsc-esm";
+import type { ArrayElement } from "@webda/utils";
 import {
   type AggregationQuery,
   type AggregationResult,

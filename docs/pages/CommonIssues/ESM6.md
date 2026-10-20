@@ -7,11 +7,15 @@ require become import
 __dirname, __filename are not available anymore
 ```
 
-Typescript is not adding the `.js` at the end of import, compiling to a non-working code.
-I cannot disagree more with the Microsoft team on this one, so to simplify the `webda build`
-command will add `.js` for every local import found.
+TypeScript does not add the `.js` extension to relative imports, so ESM output needs the extension
+written in the source:
 
-Webda itself have to build the core module with `tsc-esm` it is a mod around typescript to add the `.js` extension for you.
+```
+import { MyClass } from "./myclass.js";
+```
+
+Webda packages build with plain `tsc` under `"module": "nodenext"`, which enforces this. In the Webda
+repository, `scripts/add-import-extensions.mjs` adds the missing extensions to older sources.
 
 If you need `__dirname` or `__filename` you can use:
 

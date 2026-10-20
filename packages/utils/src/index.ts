@@ -13,6 +13,7 @@ export * from "./serializers.js";
 export * from "./state.js";
 export * from "./stream.js";
 export * from "./throttler.js";
+export * from "./types.js";
 export * from "./uuid.js";
 export * from "./waiter.js";
 export * from "./content.js";

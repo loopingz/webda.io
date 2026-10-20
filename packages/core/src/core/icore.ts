@@ -5,7 +5,7 @@ import type { Model, ModelClass } from "@webda/models";
 import type { Service } from "../services/service.js";
 import type { Store } from "../stores/store.js";
 import type CryptoService from "../services/cryptoservice.service.js";
-import { CustomConstructor } from "@webda/tsc-esm";
+import { CustomConstructor } from "@webda/utils";
 export { AbstractService };
 /**
  * Registry interface augmented at build time by `.webda/session-types.d.ts`

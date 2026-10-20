@@ -5,8 +5,7 @@ import { isStorable, isModelClass, PrimaryKeyEquals, ModelClass, WEBDA_PRIMARY_K
 import { MemoryRepository } from "./repositories/memory";
 import { DTO, SelfDTO, SelfJSONed, WebdaFieldsMixIn } from "./types";
 import { registerRepository } from "./repositories/hooks";
-import { Merge } from "@webda/tsc-esm";
-import { track } from "@webda/utils";
+import { Merge, track } from "@webda/utils";
 import { hasSerializer, serializeRaw, unregisterSerializer } from "@webda/serialize";
 import { supportsAtomicOperations, supportsCollectionOperations } from "./repositories/repository";
 

@@ -122,7 +122,6 @@ Deployers package your application for cloud execution environments.
 
 | Package | Description |
 |---------|-------------|
-| [tsc-esm](./tsc-esm/README.md) | Post-compile helper that rewrites TypeScript output to proper ESM `.js` extension specifiers. |
 | [compiler](./compiler/README.md) | See **Foundational** above — `webdac` drives both the build pipeline and module-manifest generation. |
 
 ---
@@ -131,7 +130,7 @@ Deployers package your application for cloud execution environments.
 
 | Package | Description |
 |---------|-------------|
-| [utils](./utils/README.md) | Shared helpers: deep-merge, retry, stream utilities, and path manipulation. |
+| [utils](./utils/README.md) | Shared helpers: deep-merge, retry, stream utilities, path manipulation, and TypeScript utility types. |
 | [serialize](./serialize/README.md) | JSON serializers and deserializers with support for `Date`, `Buffer`, `Map`, `Set`, and circular references. |
 | [versioning](./versioning/README.md) | Object-level patch and diff library — compute and apply JSON-Patch-compatible deltas between model versions. |
 | [offline](./offline/README.md) | Offline replicas of models — scoped sync, revision-checked pushes, and 3-way merge conflicts on the client. |

@@ -1,6 +1,6 @@
 import type { ModelMetadata } from "@webda/compiler";
 import type { Model, ModelClass } from "@webda/models";
-import type { OmitByTypeRecursive } from "@webda/tsc-esm";
+import type { OmitByTypeRecursive } from "@webda/utils";
 import type { HttpMethodType } from "../contexts/httpcontext.js";
 import type { IContextAware } from "../contexts/icontext.js";
 

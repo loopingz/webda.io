@@ -405,6 +405,55 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
   }
 
   /**
+   * `maxUploadSize` rejects oversized or undeclared sizes; Binary and Binaries.
+   */
+  @test
+  async challengeRejectsTooBig() {
+    for (const kind of ["binary", "binaries"]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ parameters: { maxUploadSize: 100 } });
+      const b: any = kind === "binary" ? makeBinary(parent, service) : makeBinaries(parent, service);
+      const base = { hash: "deadbeef", challenge: "wb-deadbeef", name: "x", mimetype: "a/b" };
+      await runWithCtx({}, async () => {
+        await assert.rejects(() => b.attachChallenge({ ...base, size: 101 } as any), /too big/i);
+        await assert.rejects(() => b.attachChallenge({ ...base } as any), /size/i);
+        assert.strictEqual(service.putRedirectUrl.callCount, 0);
+        await b.attachChallenge({ ...base, size: 100 } as any);
+        assert.strictEqual(service.putRedirectUrl.callCount, 1);
+      });
+    }
+  }
+
+  /**
+   * No `maxUploadSize` means no size requirement.
+   */
+  @test
+  async challengeNoLimitNoSize() {
+    const parent = { instance: makeFakeParent(), attribute: "image" };
+    const service = makeServiceStub({ parameters: {} });
+    const b = makeBinary(parent, service);
+    await runWithCtx({}, async () => b.attachChallenge({ hash: "deadbeef", challenge: "wb-deadbeef" } as any));
+    assert.strictEqual(service.putRedirectUrl.callCount, 1);
+  }
+
+  /**
+   * Signed URLs use `urlExpiry`; parameters parse maxUploadSize.
+   */
+  @test
+  async urlUsesExpiry() {
+    const parent = { instance: makeFakeParent(), attribute: "photos" };
+    const service = makeServiceStub({ parameters: { urlExpiry: 3600 } });
+    const b = makeBinaries(parent, service);
+    b.push(new BinariesItem(b, { hash: "p", size: 1, name: "p.bin", mimetype: "text/plain" } as any));
+    await runWithCtx({}, async () => b.getUrl(0));
+    assert.strictEqual(service.getRedirectUrlFromObject.firstCall.args[2], 3600);
+    const p = new BinaryParameters().load({ maxUploadSize: "1 KB" });
+    assert.strictEqual(p.maxUploadSize, 1024);
+    assert.strictEqual(p.urlExpiry, 30);
+    assert.strictEqual(new BinaryParameters().load({}).maxUploadSize, undefined);
+  }
+
+  /**
    * `attachChallenge` short-circuits on dedup (already-linked hash).
    */
   @test

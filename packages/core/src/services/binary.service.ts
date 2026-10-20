@@ -575,6 +575,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (this.hash === body.hash) {
       return; // already linked
     }
+    checkUploadSize(service, body);
     const url = await service.putRedirectUrl(parent.instance, parent.attribute, body, context);
     const md5 = Buffer.from(body.hash, "hex").toString("base64");
     return {
@@ -605,7 +606,11 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (!this.hash) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
-    const url = await service.getRedirectUrlFromObject(this as unknown as BinaryMap, context);
+    const url = await service.getRedirectUrlFromObject(
+      this as unknown as BinaryMap,
+      context,
+      service.parameters?.urlExpiry
+    );
     if (url === null) {
       // No redirect — stream directly through the response.
       context.writeHead(200, {
@@ -640,7 +645,11 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (!this.hash) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
-    const url = await service.getRedirectUrlFromObject(this as unknown as BinaryMap, context);
+    const url = await service.getRedirectUrlFromObject(
+      this as unknown as BinaryMap,
+      context,
+      service.parameters?.urlExpiry
+    );
     if (url === null) {
       // No service-level signed URL: fall back to the same URL minus `/url`.
       if (context instanceof WebContext) {
@@ -923,6 +932,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     if (this.find(item => item.hash === body.hash)) {
       return; // dedup
     }
+    checkUploadSize(service, body);
     const url = await service.putRedirectUrl(parent.instance, parent.attribute, body, context);
     const md5 = Buffer.from(body.hash, "hex").toString("base64");
     return {
@@ -950,7 +960,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
     const file = this[idx];
-    const url = await service.getRedirectUrlFromObject(file, context);
+    const url = await service.getRedirectUrlFromObject(file, context, service.parameters?.urlExpiry);
     if (url === null) {
       context.writeHead(200, {
         "Content-Type": file.mimetype === undefined ? "application/octet-stream" : file.mimetype,
@@ -987,7 +997,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
     const file = this[idx];
-    const url = await service.getRedirectUrlFromObject(file, context);
+    const url = await service.getRedirectUrlFromObject(file, context, service.parameters?.urlExpiry);
     if (url === null) {
       if (context instanceof WebContext) {
         return {
@@ -1094,12 +1104,38 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
  */
 export type Binaries<T extends object = {}> = BinariesImpl<T>;
 
+/**
+ * Reject a direct-upload challenge exceeding `maxUploadSize`.
+ * When a limit is set the client must declare the size.
+ * @param service - the binary service
+ * @param body - the challenge body
+ */
+function checkUploadSize(service: { parameters?: { maxUploadSize?: number } }, body: { size?: number }) {
+  const max = service.parameters?.maxUploadSize;
+  if (max === undefined) {
+    return;
+  }
+  if (typeof body.size !== "number") {
+    throw new WebdaError.BadRequest("size is required");
+  }
+  if (body.size > max) {
+    throw new WebdaError.BadRequest("File too big");
+  }
+}
+
 /** Parameters for BinaryService, defining model mappings and max upload size */
 export class BinaryParameters extends ServiceParameters {
   /**
    * max file size
    */
   protected _maxFileSize: number;
+  protected _maxUploadSize?: number;
+  /**
+   * Lifetime in seconds of the signed URLs
+   *
+   * @default 30
+   */
+  urlExpiry: number;
   /**
    * Define the map of models
    * * indicates all models
@@ -1117,6 +1153,20 @@ export class BinaryParameters extends ServiceParameters {
   set maxFileSize(value: number | string) {
     this._maxFileSize = new FileSize(value).valueOf();
   }
+  /**
+   * Maximum size accepted for a direct-to-bucket upload, undefined means no limit
+   */
+  set maxUploadSize(value: number | string | undefined) {
+    this._maxUploadSize = value === undefined ? undefined : new FileSize(value).valueOf();
+  }
+  /**
+   * Get the max upload size in bytes
+   * @returns the limit or undefined
+   */
+  get maxUploadSize(): number | undefined {
+    return this._maxUploadSize;
+  }
+
   /**
    * Get the max file size in bytes
    * @returns the result number
@@ -1137,6 +1187,8 @@ export class BinaryParameters extends ServiceParameters {
       "*": ["*"]
     };
     this.maxFileSize = new FileSize(params.maxFileSize ?? "10 MB").valueOf();
+    this.maxUploadSize = params.maxUploadSize;
+    this.urlExpiry ??= 30;
     return this;
   }
 }

@@ -1513,9 +1513,10 @@ export abstract class BinaryService<
       const attributes = behaviors.map(b => b.attribute).filter(attribute => this.ownsAttribute(model, attribute));
       const identifier = model?.Metadata?.Identifier;
       if (attributes.length && !this.hookedModels.has(identifier)) {
-        this.hookedModels.add(identifier);
         try {
           this.hookDelete(<any>model, attributes);
+          // Only once hooked, so a failed hook is retried by a later init()
+          this.hookedModels.add(identifier);
         } catch (err) {
           this.log("WARN", `Cannot cascade the deletion of ${model.Metadata.Identifier} binaries`, err);
         }
@@ -1568,14 +1569,15 @@ export abstract class BinaryService<
       let object: any;
       try {
         object = await repo.get(object_id);
-      } catch (err: any) {
-        // Only a missing object is expected: any other failure must not go unnoticed, nor block the delete
-        if (!(
-          err?.code === "ModelNotFound" ||
-          /NotFound/i.test(`${err?.name}${err?.code}`) ||
-          err?.getResponseCode?.() === 404 ||
-          err?.statusCode === 404
-        )) {
+      } catch (err) {
+        // Repositories signal a miss with untyped errors: ask them whether the object exists instead
+        let exists = true;
+        try {
+          exists = await repo.exists(object_id);
+        } catch {
+          // Undecidable: treated as existing so the failure is reported
+        }
+        if (exists) {
           this.log("WARN", `Cannot load ${key(object_id)} before its deletion: its binaries will be kept`, err);
         }
         return;

@@ -2011,19 +2011,37 @@ class BinaryCascadeTest extends WebdaApplicationTest {
     const svc = this.makeService();
     const log = sinon.stub(svc, "log");
     (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    // A failing read of an object that exists is reported, and does not block the delete
+    svc.repo.objects.set("a", this.holder(["h1"]));
     svc.repo.get = async () => {
       throw new Error("db down");
     };
-    // The delete itself is not blocked
+    svc.repo.exists = async (id: string) => svc.repo.objects.has(id);
     await svc.repo.delete("a");
     assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
-    // A not-found object stays silent
+    // A failing existence check is reported too
     log.resetHistory();
-    svc.repo.get = async () => {
-      throw Object.assign(new Error("nf"), { code: "ModelNotFound" });
+    svc.repo.exists = async () => {
+      throw new Error("db down");
     };
     await svc.repo.delete("a");
+    assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
+  }
+
+  /**
+   * A real MemoryRepository miss throws an untyped error: it must stay silent
+   */
+  @test
+  async missingObjectIsSilent() {
+    const svc = this.makeService();
+    const log = sinon.stub(svc, "log");
+    const memory = new MemoryRepository(PhotoHolder as any, ["uuid"]);
+    svc.repo.get = (id: string) => memory.get(id as any) as any;
+    svc.repo.exists = (id: string) => memory.exists(id as any);
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("nope");
     assert.strictEqual(log.callCount, 0);
+    assert.strictEqual(svc.cascade.callCount, 0);
   }
 
   @test

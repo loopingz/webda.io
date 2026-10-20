@@ -287,6 +287,30 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(await this.binary.putRedirectUrl(user, "images", info, ctx), undefined);
   }
 
+  /**
+   * The upload itself attaches (storeBinary): completing resolves once the hash is linked, 412 before
+   */
+  @test
+  async completeResolvesOnlyAfterTheUpload() {
+    const content = `complete content ${Date.now()}`;
+    const { hash } = await this.hashes(content);
+    for (const attribute of ["images", "profile"]) {
+      const user = await ImageUser.create({ displayName: "completer" } as any);
+      const info: any = { hash, challenge: "unknown", size: content.length, name: "c.txt", mimetype: "text/plain" };
+      const res = await this.binary.putRedirectUrl(user, attribute, info, await this.newContext());
+      assert.ok(res?.url);
+      await assert.rejects(
+        () => this.binary.completeUpload(user as any, attribute, hash),
+        (err: WebdaError.HttpError) => err.getResponseCode() === 412
+      );
+      const upload = await this.newContext(content);
+      upload.setParameters({ hash, token: res.url.split("token=")[1] });
+      await this.binary.storeBinary(upload);
+      const stored: any = await ImageUser.ref(user.getUUID()).get();
+      await this.binary.completeUpload(stored, attribute, hash);
+    }
+  }
+
   @test
   async downloadTokensAreNotUploadTokens() {
     const { hash } = await this.storedFor("downloadable");

@@ -101,12 +101,19 @@ class S3BinaryTest extends WebdaAwsTest {
     assert.strictEqual(res.method, "PUT");
     assert.ok(res.url.includes(`/${Bucket}/${file.hash}/data?`));
     assert.strictEqual(res.headers["Content-MD5"], Buffer.from(file.hash, "hex").toString("base64"));
-    assert.strictEqual((user as any).images.hash, file.hash);
-    // Marker exists but no data yet: still need to upload
+    assert.strictEqual((user as any).images, undefined, "attached only once the upload is complete");
+    // Pending but no data yet: still need to upload, completing is refused
     res = await this.binary.putRedirectUrl(user, "images", info);
     assert.strictEqual(res.method, "PUT");
-    // Data is there with the right challenge: no upload needed
+    await assert.rejects(
+      () => this.binary.completeUpload(user as any, "images", file.hash),
+      (e: any) => e.getResponseCode() === 412
+    );
+    // Uploaded: completing verifies the object and attaches it
     await this.binary.putObject(this.binary._getKey(file.hash), "redirect");
+    await this.binary.completeUpload(user as any, "images", file.hash);
+    assert.strictEqual((user as any).images.hash, file.hash);
+    // Data is there with the right challenge: no upload needed
     const user2 = await User.ref("s3redirect2").create({} as any);
     res = await this.binary.putRedirectUrl(user2, "images", info);
     assert.strictEqual(res, undefined);

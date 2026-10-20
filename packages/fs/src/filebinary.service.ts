@@ -546,6 +546,24 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
+   * The upload attaches the binary ({@link storeBinary}): completing only checks it happened
+   *
+   * @override
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the hash announced in the challenge
+   */
+  async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    const current: any = object[property];
+    const linked = this.isCollection(object, property)
+      ? Array.isArray(current) && current.some(i => i?.hash === hash)
+      : current?.hash !== undefined && current.hash === hash;
+    if (!linked) {
+      throw new WebdaError.PreconditionFailed("Upload not complete");
+    }
+  }
+
+  /**
    * @override
    */
   async getUsageCount(hash: string) {

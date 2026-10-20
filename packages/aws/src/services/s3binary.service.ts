@@ -16,6 +16,7 @@ import {
   ContentNotFoundError,
   ContentPutOptions,
   CoreModel,
+  CoreModelWithBinary,
   lookupMimeType,
   OperationContext,
   parseContentUrl,
@@ -24,6 +25,7 @@ import {
   useModelId,
   WebdaError
 } from "@webda/core";
+import { posix } from "node:path";
 import { Readable } from "node:stream";
 import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
@@ -91,6 +93,11 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
    * Skip CloudFormation on deploy
    */
   CloudFormationSkip?: boolean;
+  /**
+   * Seconds a direct upload stays pending before its marker (and its data, when unused) is swept
+   * @default 86400
+   */
+  pendingTimeout?: number;
 
   /**
    * @override
@@ -104,6 +111,7 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
       throw new WebdaError.CodeError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this.forcePathStyle ??= false;
+    this.pendingTimeout ??= 86400;
     return this;
   }
 }
@@ -114,7 +122,8 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
  * The structure used for now is
  * /{hash}/data
  * /{hash}/{targetStore}_{uuid}
- * The challenge is stored on the metadata of the data object
+ * /{hash}/proof_{challenge} written once the content is verified
+ * /_pending/{hash}/{model}_{attribute}_{uuid} a direct upload waiting for its completion
  *
  * It takes parameters
  *  bucket: "bucketName"
@@ -170,8 +179,33 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return client;
   }
 
+  /**
+   * Timer sweeping the stale pending uploads
+   */
+  private sweepTimer?: ReturnType<typeof setInterval>;
+
+  /**
+   * Start sweeping the stale pending uploads every `pendingTimeout / 4`
+   * @override
+   * @returns this
+   */
+  async init(): Promise<this> {
+    await super.init();
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = setInterval(
+      () => {
+        this.sweepPending().catch(err => this.log("WARN", "Cannot sweep pending uploads", err));
+      },
+      (this.parameters.pendingTimeout * 1000) / 4
+    );
+    this.sweepTimer.unref?.();
+    return this;
+  }
+
   /** Release URL-selected clients when the service stops. */
   async stop(): Promise<void> {
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = undefined;
     for (const client of this.contentClients.values()) {
       client.destroy();
     }
@@ -362,12 +396,16 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     const uuid = object.getUUID();
     const store = useModelId(object.constructor);
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
-    const params = {
+    const params: Record<string, any> = {
       Bucket: this.parameters.bucket,
       Key: this._getKey(body.hash),
       ContentType: "application/octet-stream",
       ContentMD5: base64String
     };
+    // The declared size is signed: S3 refuses another Content-Length (browsers set the header themselves)
+    if (typeof body.size === "number") {
+      params.ContentLength = body.size;
+    }
     // List bucket
     const data = await this._s3.listObjectsV2({
       Bucket: this.parameters.bucket,
@@ -388,19 +426,17 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       "Content-MD5": base64String,
       "Content-Type": "application/octet-stream"
     };
-    if (foundMap) {
-      if (foundData) return;
-      return {
-        url: await this.getSignedUrl(params.Key, "putObject", params),
-        method: "PUT",
-        headers
-      };
-    }
     const upload = async () => ({
       url: await this.getSignedUrl(params.Key, "putObject", params),
       method: "PUT",
       headers
     });
+    if (foundMap) {
+      if (foundData) return;
+      // Attached when the client declares the upload complete and the object is verified
+      await this.putPendingMarker(object, property, body);
+      return upload();
+    }
     if (foundData) {
       // The data exists: attaching it needs the proof of possession, the challenge its uploader stored
       if (challenge !== undefined && challenge === body.challenge) {
@@ -411,11 +447,182 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       // A hash alone never attaches: the client has to upload the content it claims to hold
       return upload();
     }
-    // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
-    await this.putMarker(body.hash, `proof_${body.challenge}`, "proof");
-    await this.uploadSuccess(<any>object, property, body);
-    await this.putMarker(body.hash, `${property}_${uuid}`, store);
+    // New content: the signed PUT binds the bytes to the announced hash (Content-MD5). Nothing is attached until
+    // the client declares the upload complete and the object is verified (completeUpload)
+    await this.putPendingMarker(object, property, body);
     return upload();
+  }
+
+  /**
+   * Make a marker part key-safe
+   * @param part - the raw value
+   * @returns the safe part
+   */
+  protected safeName(part: string): string {
+    return `${part}`.replace(/[^A-Za-z0-9_.:@-]/g, "-");
+  }
+
+  /**
+   * Key of the pending upload of an object attribute: `<prefix>/_pending/<hash>/<model>_<attribute>_<uuid>`
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the binary hash
+   * @returns the key
+   */
+  protected getPendingKey(object: CoreModel, property: string, hash: string): string {
+    const marker = [useModelId(object.constructor), property, object.getUUID()].map(p => this.safeName(p)).join("_");
+    return posix.join(this.parameters.prefix || "", "_pending", this.safeName(hash), marker);
+  }
+
+  /**
+   * Record a direct upload waiting for its completion: the announced information lives in the marker's metadata,
+   * server side only (the challenge is never persisted on the object nor returned to clients)
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param body - the announced binary information
+   */
+  protected async putPendingMarker(object: CoreModel, property: string, body: BinaryFileInfo): Promise<void> {
+    const Metadata: Record<string, string> = {
+      // S3 metadata is ASCII only
+      name: encodeURIComponent(body.name ?? ""),
+      mimetype: encodeURIComponent(body.mimetype ?? ""),
+      challenge: encodeURIComponent(body.challenge ?? ""),
+      metadata: encodeURIComponent(JSON.stringify(body.metadata ?? {})),
+      created: `${Date.now()}`
+    };
+    if (typeof body.size === "number") {
+      Metadata.size = `${body.size}`;
+    }
+    await this._s3.putObject({
+      Bucket: this.parameters.bucket,
+      Key: this.getPendingKey(object, property, body.hash),
+      Metadata
+    });
+  }
+
+  /**
+   * Whether the hash is already linked to the object attribute
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the binary hash
+   * @returns true if linked
+   */
+  protected isLinked(object: CoreModelWithBinary, property: string, hash: string): boolean {
+    const current: any = object[property];
+    if (this.isCollection(object, property)) {
+      return Array.isArray(current) && current.some(i => i?.hash === hash);
+    }
+    return current?.hash !== undefined && current.hash === hash;
+  }
+
+  /**
+   * Attach a direct upload once the client declares it finished
+   *
+   * The pending marker written by the challenge is required (404 otherwise), the data object must exist (412
+   * otherwise, the marker stays so the client can retry) and match the declared size and `maxUploadSize` (400
+   * otherwise, the marker and the unused data are removed). Then the proof of possession and the usage marker are
+   * written and the binary is attached.
+   *
+   * @override
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the hash announced in the challenge
+   */
+  async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    if (this.isLinked(object, property, hash)) {
+      return;
+    }
+    // The hash names S3 keys: hexadecimal only (no path segments)
+    if (!/^[0-9a-f]+$/i.test(`${hash}`)) {
+      throw new WebdaError.BadRequest("Invalid hash");
+    }
+    const pendingKey = this.getPendingKey(<any>object, property, hash);
+    const pending = await this.exists(pendingKey);
+    if (!pending) {
+      throw new WebdaError.NotFound("No pending upload");
+    }
+    const data = await this._getS3(hash);
+    if (!data) {
+      throw new WebdaError.PreconditionFailed("Upload not found");
+    }
+    const meta = pending.Metadata ?? {};
+    const declared = meta.size !== undefined && meta.size !== "" ? parseInt(meta.size) : undefined;
+    const max = this.parameters.maxUploadSize;
+    if (
+      (declared !== undefined && data.ContentLength !== declared) ||
+      (max !== undefined && data.ContentLength > max)
+    ) {
+      await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: pendingKey });
+      await this.deleteUnusedData(hash);
+      throw new WebdaError.BadRequest("Uploaded size does not match");
+    }
+    let metadata = {};
+    try {
+      metadata = JSON.parse(decodeURIComponent(meta.metadata ?? "")) ?? {};
+    } catch {
+      // No usable metadata
+    }
+    const challenge = decodeURIComponent(meta.challenge ?? "") || undefined;
+    if (challenge) {
+      await this.putMarker(hash, `proof_${challenge}`, "proof");
+    }
+    await this.putMarker(hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    await this.uploadSuccess(object, property, {
+      hash,
+      challenge,
+      size: data.ContentLength,
+      name: decodeURIComponent(meta.name ?? "") || undefined,
+      mimetype: decodeURIComponent(meta.mimetype ?? "") || "application/octet-stream",
+      metadata
+    });
+    await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: pendingKey });
+  }
+
+  /**
+   * Delete the data of a hash no object uses and no other upload waits for
+   * @param hash - the binary hash
+   */
+  protected async deleteUnusedData(hash: string): Promise<void> {
+    if ((await this.getUsageCount(hash)) > 0) {
+      return;
+    }
+    const pending = await this._s3.listObjectsV2({
+      Bucket: this.parameters.bucket,
+      Prefix: posix.join(this.parameters.prefix || "", "_pending", this.safeName(hash)) + "/"
+    });
+    if (pending.Contents?.length) {
+      return;
+    }
+    await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: this._getKey(hash) });
+  }
+
+  /**
+   * Remove the pending uploads older than `pendingTimeout`, and their data when no object uses it
+   * @param now - the current time in ms
+   * @returns the number of pending uploads removed
+   */
+  async sweepPending(now: number = Date.now()): Promise<number> {
+    const prefix = posix.join(this.parameters.prefix || "", "_pending") + "/";
+    const timeout = this.parameters.pendingTimeout * 1000;
+    let removed = 0;
+    await this.forEachFile(
+      this.parameters.bucket,
+      async Key => {
+        const head = await this.exists(Key);
+        if (!head) {
+          return;
+        }
+        const created = parseInt(head.Metadata?.created ?? "") || head.LastModified?.getTime() || now;
+        if (now - created <= timeout) {
+          return;
+        }
+        await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key });
+        removed++;
+        await this.deleteUnusedData(Key.substring(prefix.length).split("/")[0]);
+      },
+      prefix
+    );
+    return removed;
   }
 
   /**

@@ -1,3 +1,4 @@
+import { useModelId } from "../application/hooks.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
@@ -33,7 +34,7 @@ class CloudBinaryFakeService extends CloudBinary {
   /**
    * Clean usage for a hash
    */
-  async _cleanUsage(hash: string, uuid: string, attribute: string, model?: string): Promise<void> {}
+  async _cleanUsage(hash: string, uuid: string, attribute: string, model: string): Promise<void> {}
 
   /**
    * Return undefined
@@ -85,8 +86,10 @@ export class FakeCloudBinaryTest extends WebdaApplicationTest {
     const model = new CoreModel();
     registerRepository(CoreModel, new MemoryRepository(CoreModel, ["uuid"]));
     model.load({ plop: [{}, { hash: "fake" }] });
+    const clean = sinon.spy(service, "_cleanUsage");
     await service.delete(<CoreModelWithBinary>model, "plop", 1);
-    // Check called with "fake", 1
+    // The exact usage: hash, uuid, attribute and the object's model
+    assert.deepStrictEqual(clean.getCall(0).args, ["fake", model.getUUID(), "plop", useModelId(CoreModel)]);
   }
 
   @test

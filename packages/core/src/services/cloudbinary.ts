@@ -1,4 +1,5 @@
 import { posix } from "path";
+import { useModelId } from "../application/hooks.js";
 import { Readable } from "node:stream";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from "./binary.service.js";
@@ -141,7 +142,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   async delete(object: CoreModelWithBinary, property: string, index: number) {
     const hash = index !== undefined ? object[property][index].hash : (object[property] as BinaryMap).hash;
     await this.deleteSuccess(object, property, index);
-    await this._cleanUsage(hash, object.getUUID(), property);
+    await this._cleanUsage(hash, object.getUUID(), property, useModelId(object.constructor));
   }
 
   /**
@@ -164,9 +165,9 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param hash - the binary hash
    * @param uuid - the object uuid
    * @param attribute - the binary attribute
-   * @param model - the model identifier of the object, for the services whose markers include it
+   * @param model - the model identifier of the object
    */
-  abstract _cleanUsage(hash: string, uuid: string, attribute: string, model?: string): Promise<void>;
+  abstract _cleanUsage(hash: string, uuid: string, attribute: string, model: string): Promise<void>;
 
   /**
    * Retrieve one signed URL to download the file in parameter

@@ -351,6 +351,9 @@ class FileBinaryUnitTest {
     // Without the attribute and the model the exact marker is unknown: a suffix match could remove the marker of
     // another owner (`my_uuid1`), so nothing is removed
     await this.binary._cleanUsage(hash, "uuid1");
+    // No attribute, the model given
+    await this.binary._cleanUsage(hash, "uuid1", undefined as any, "Store");
+    // No model, the attribute given
     await this.binary._cleanUsage(hash, "uuid1", "attr");
     assert.ok(fs.existsSync(path.join(hashDir, "Store_attr_uuid1")));
     assert.ok(fs.existsSync(path.join(hashDir, "Other_thing_uuid1")));

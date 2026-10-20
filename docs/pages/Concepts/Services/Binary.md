@@ -54,6 +54,8 @@ Hashes and challenges are lower-case hexadecimal: the server normalises them, so
 
 Deleting a model removes only that model's usage markers: deduplicated data shared with other models (and its proofs) is removed once no usage and no pending upload remain.
 
+S3Binary and GCS Storage usage markers now name the model: `@<model>_<attribute>_<uuid>`, each part encoded so `_` only separates parts (FileBinary already wrote `<model>_<attribute>_<uuid>`). Markers written by earlier versions (`<attribute>_<uuid>`, the model only in their metadata) still count as usages and need no migration: deleting an object removes such a marker only when its stored model (`x-amz-meta-store` on S3, `webdaModel` on GCS) is the object's model.
+
 ## Map
 
 Binary services define who is responsible for what fields of your CoreModel. With a map, you can define which fields of which objects can store binaries.

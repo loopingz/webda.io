@@ -477,7 +477,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
           mimetype: body.mimetype || "application/octet-stream",
           metadata: body.metadata ?? {}
         });
-        await this.putMarker(body.hash, this.usageMarker(property, uuid), store);
+        await this.putMarker(body.hash, this.usageMarker(store, property, uuid), store);
         return;
       }
     }
@@ -643,7 +643,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await reject("Uploaded content does not match the challenge");
     }
     await this.putMarker(hash, this.proofMarker(computed.challenge), "proof");
-    await this.putMarker(hash, this.usageMarker(property, object.getUUID()), useModelId(object.constructor));
+    const model = useModelId(object.constructor);
+    await this.putMarker(hash, this.usageMarker(model, property, object.getUUID()), model);
     // uploadSuccess re-loads the object: a concurrent completion that linked the hash meanwhile is not repeated
     await this.uploadSuccess(object, property, {
       hash,
@@ -671,16 +672,31 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * Name of the usage marker of an object attribute under `<hash>/`: `<attribute>_<uuid>`, written on attach and
-   * removed on delete, the only place the name is built
-   *
-   * Known limitation: the model is not part of the name (it is in the marker metadata), so two models whose objects
-   * share a uuid and a hash on the same attribute write the same marker: deleting one removes the usage of the other
+   * Prefix of the usage markers naming their model: `@` is no identifier character, so a marker never equals a legacy
+   * `<attribute>_<uuid>` one nor starts like a proof
+   */
+  static readonly USAGE_PREFIX = "@";
+
+  /**
+   * Name of the usage marker of an object attribute under `<hash>/`: `@<model>_<attribute>_<uuid>`, each part encoded
+   * so that `_` only separates parts. Written on attach and removed on delete, the only place the name is built
+   * @param model - the model identifier of the object
    * @param attribute - the binary attribute
    * @param uuid - the object uuid
    * @returns the marker name
    */
-  protected usageMarker(attribute: string, uuid: string): string {
+  protected usageMarker(model: string, attribute: string, uuid: string): string {
+    return S3Binary.USAGE_PREFIX + [model, attribute, uuid].map(p => this.encodeMarkerPart(p)).join("_");
+  }
+
+  /**
+   * Name of the usage markers written before the model was part of the name: `<attribute>_<uuid>`, the model only in
+   * the `x-amz-meta-store` metadata. Still counted as usages, removed only for their own model
+   * @param attribute - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the legacy marker name
+   */
+  protected legacyUsageMarker(attribute: string, uuid: string): string {
     return `${attribute}_${uuid}`;
   }
 
@@ -879,20 +895,26 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @override
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param attribute - the binary attribute: only its exact usage marker is removed (see usageMarker), the usages of
-   * the other objects are kept. The data is kept: the cascade removes it once unused
-   * @param _model - unused: S3 markers do not include the model
+   * @param attribute - the binary attribute: only the exact usage marker of (model, attribute, uuid) is removed (see
+   * usageMarker), the usages of the other objects are kept. The data is kept: the cascade removes it once unused
+   * @param model - the model identifier of the object
    */
-  async _cleanUsage(hash: string, uuid: string, attribute: string, _model?: string) {
-    if (!attribute) {
+  async _cleanUsage(hash: string, uuid: string, attribute: string, model: string) {
+    if (!attribute || !model) {
       // A suffix match would remove the usages of other owners (`my_<uuid>`): the marker must be named exactly
-      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute given`);
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute or model given`);
       return;
     }
     await this._s3.deleteObject({
       Bucket: this.parameters.bucket,
-      Key: this._getKey(hash, this.usageMarker(attribute, uuid))
+      Key: this._getKey(hash, this.usageMarker(model, attribute, uuid))
     });
+    // A legacy marker is shared by every model with this uuid and attribute: removed only when written for this model
+    const legacy = this._getKey(hash, this.legacyUsageMarker(attribute, uuid));
+    const head = await this.exists(legacy);
+    if (head && (head.Metadata?.["x-amz-meta-store"] ?? head.Metadata?.["store"]) === model) {
+      await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: legacy });
+    }
   }
 
   /**
@@ -1047,7 +1069,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // The proof of possession of the content, computed from the bytes, compared on later challenges
     await this.putMarker(file.hash, this.proofMarker(file.challenge), "proof");
 
-    await this.putMarker(file.hash, this.usageMarker(property, object.getUUID()), useModelId(object.constructor));
+    const model = useModelId(object.constructor);
+    await this.putMarker(file.hash, this.usageMarker(model, property, object.getUUID()), model);
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 

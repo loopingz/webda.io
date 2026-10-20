@@ -116,7 +116,7 @@ class StorageTest extends WebdaApplicationTest {
     // The marker metadata reference the model
     const [marker] = await this.binary
       .getStorageBucket()
-      .file(this.binary._getKey(file.hash, `images_${user.getUUID()}`))
+      .file(this.binary._getKey(file.hash, `@Webda~2FUser_images_${user.getUUID()}`))
       .getMetadata();
     assert.strictEqual(marker.metadata.webdaModel, "Webda/User");
 
@@ -124,7 +124,7 @@ class StorageTest extends WebdaApplicationTest {
     assert.ok(url.includes(this.binary._getKey(file.hash)));
 
     // Clean usage for one object keeps the data
-    await this.binary._cleanUsage(file.hash, user.getUUID(), "images");
+    await this.binary._cleanUsage(file.hash, user.getUUID(), "images", "Webda/User");
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
     // Clean the last usage removes the data
     await this.binary.cascadeDelete(<any>{ hash: file.hash }, user2.getUUID(), "images", "Webda/User");

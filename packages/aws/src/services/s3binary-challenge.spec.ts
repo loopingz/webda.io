@@ -640,6 +640,34 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   }
 
   /**
+   * Usage marker name: `@<model>_<attribute>_<uuid>`, each part encoded (`/` is `~2F`, `_` is `~5F`)
+   * @param hash - the binary hash
+   * @param attribute - the binary attribute
+   * @param uuid - the owner uuid
+   * @param model - the model identifier
+   * @returns the marker key
+   */
+  marker(hash: string, attribute: string, uuid: string, model: string = "WebdaDemo/ImageUser"): string {
+    const enc = (p: string) => p.replace(/~/g, "~7E").replace(/\//g, "~2F").replace(/_/g, "~5F");
+    return this.binary._getKey(hash, `@${enc(model)}_${enc(attribute)}_${enc(uuid)}`);
+  }
+
+  /**
+   * A legacy usage marker (`<attribute>_<uuid>`, before the model was in the name), its model in the metadata
+   * @param hash - the binary hash
+   * @param attribute - the binary attribute
+   * @param uuid - the owner uuid
+   * @param model - the model identifier stored in the metadata
+   * @returns the marker key
+   */
+  legacyMarker(hash: string, attribute: string, uuid: string, model: string): string {
+    const key = this.binary._getKey(hash, `${attribute}_${uuid}`);
+    this.keys.push(key);
+    this.objects.set(key, { Metadata: { "x-amz-meta-store": model }, ContentLength: 0 });
+    return key;
+  }
+
+  /**
    * Deleting a model removes its own usage markers only: deduplicated data shared with another model is kept until
    * the last usage goes, then the data and its proofs are removed
    */
@@ -650,9 +678,9 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     const data = this.binary._getKey(file.hash);
     const proof = this.binary._getKey(file.hash, `vproof_${file.challenge}`);
     const legacy = this.binary._getKey(file.hash, `proof_${file.challenge}`);
-    const first = this.binary._getKey(file.hash, "images_owner-a");
-    const firstOther = this.binary._getKey(file.hash, "profile_owner-a");
-    const second = this.binary._getKey(file.hash, "images_owner-b");
+    const first = this.marker(file.hash, "images", "owner-a");
+    const firstOther = this.marker(file.hash, "profile", "owner-a");
+    const second = this.marker(file.hash, "images", "owner-b");
     this.keys.push(proof, legacy, first, firstOther, second);
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 3);
     await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a", "images", "WebdaDemo/ImageUser");
@@ -681,8 +709,8 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     this.uploaded("single");
     this.keys.push(
       this.binary._getKey(file.hash, `vproof_${file.challenge}`),
-      this.binary._getKey(file.hash, "images_owner-a"),
-      this.binary._getKey(file.hash, "images_owner-b")
+      this.marker(file.hash, "images", "owner-a"),
+      this.marker(file.hash, "images", "owner-b")
     );
     await this.binary.cascadeDelete({ hash: file.hash } as any, "owner-a", "images", "WebdaDemo/ImageUser");
     assert.ok(this.keys.includes(this.binary._getKey(file.hash)));
@@ -700,10 +728,10 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     const { file } = await this.file("suffix");
     this.uploaded("suffix");
     const data = this.binary._getKey(file.hash);
-    const page = this.binary._getKey(file.hash, "files_page");
-    const myPage = this.binary._getKey(file.hash, "files_my_page");
-    const junction = this.binary._getKey(file.hash, "files_a_page");
-    const otherAttribute = this.binary._getKey(file.hash, "profile_page");
+    const page = this.marker(file.hash, "files", "page");
+    const myPage = this.marker(file.hash, "files", "my_page");
+    const junction = this.marker(file.hash, "files", "a_page");
+    const otherAttribute = this.marker(file.hash, "profile", "page");
     this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`), page, myPage, junction, otherAttribute);
     await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/ImageUser");
     assert.deepStrictEqual(
@@ -717,30 +745,68 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.ok(this.keys.includes(data), "data still referenced kept");
     await this.binary.cascadeDelete({ hash: file.hash } as any, "my_page", "files", "WebdaDemo/ImageUser");
     await this.binary.cascadeDelete({ hash: file.hash } as any, "a_page", "files", "WebdaDemo/ImageUser");
-    assert.ok(this.keys.includes(data), "data still referenced by profile_page kept");
+    assert.ok(this.keys.includes(data), "data still referenced by the profile marker kept");
     await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "profile", "WebdaDemo/ImageUser");
     assert.ok(!this.keys.some(k => k.startsWith(`${file.hash}/`)), "data and proofs gone with the last usage");
   }
 
   /**
-   * Known limitation: S3 usage markers are `<attribute>_<uuid>` without the model, so two models whose objects share
-   * a uuid and a hash on the same attribute write the same marker key. The cascade still deletes only that exact key,
-   * never another model's attribute nor a suffix-sharing uuid
+   * The marker names the model: two models whose objects share a uuid, an attribute and a hash have their own
+   * marker, deleting one keeps the other's usage and the data
    */
   @test
   async cascadeDeleteSameUuidOtherModel() {
     const { file } = await this.file("models");
     this.uploaded("models");
-    const shared = this.binary._getKey(file.hash, "files_page");
-    const otherModelAttribute = this.binary._getKey(file.hash, "attachments_page");
-    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`), shared, otherModelAttribute);
-    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/Other");
+    const data = this.binary._getKey(file.hash);
+    const mine = this.marker(file.hash, "files", "page", "WebdaDemo/Page");
+    const other = this.marker(file.hash, "files", "page", "WebdaDemo/Other");
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`), mine, other);
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/Page");
     assert.deepStrictEqual(
       this.deleted.filter(k => k.startsWith(`${file.hash}/`)),
-      [shared]
+      [mine]
     );
-    assert.ok(this.keys.includes(otherModelAttribute), "the other model's attribute marker kept");
-    assert.ok(this.keys.includes(this.binary._getKey(file.hash)), "data kept");
+    assert.ok(this.keys.includes(other), "the other model's marker kept");
+    assert.ok(this.keys.includes(data), "data the other model references kept");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/Other");
+    assert.ok(!this.keys.includes(data), "data gone with the last usage");
+  }
+
+  /**
+   * Legacy `<attribute>_<uuid>` markers still count as usages; a cascade removes one only when its stored model is
+   * the deleted object's
+   */
+  @test
+  async cascadeDeleteLegacyMarkerOfItsModelOnly() {
+    const { file } = await this.file("legacy markers");
+    this.uploaded("legacy markers");
+    const data = this.binary._getKey(file.hash);
+    this.keys.push(this.binary._getKey(file.hash, `vproof_${file.challenge}`));
+    const legacy = this.legacyMarker(file.hash, "files", "page", "WebdaDemo/Other");
+    const mine = this.marker(file.hash, "files", "page", "WebdaDemo/Page");
+    this.keys.push(mine);
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 2, "legacy and new markers are usages");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/Page");
+    assert.ok(this.keys.includes(legacy), "another model's legacy marker kept");
+    assert.ok(!this.keys.includes(mine));
+    assert.ok(this.keys.includes(data), "data the legacy usage references kept");
+    await this.binary.cascadeDelete({ hash: file.hash } as any, "page", "files", "WebdaDemo/Other");
+    assert.ok(!this.keys.includes(legacy), "its own model's legacy marker removed");
+    assert.ok(!this.keys.includes(data), "data gone with the last usage");
+  }
+
+  /**
+   * Attaching writes the model-qualified marker with the model in its metadata
+   */
+  @test
+  async attachWritesTheModelMarker() {
+    const user = await ImageUser.create({ uuid: "s3-model_marker" } as any);
+    await this.binary.store(user, "images", new MemoryBinaryFile(Buffer.from("marker"), { name: "m.txt" }));
+    const hash = crypto.createHash("md5").update(Buffer.from("marker")).digest("hex");
+    const key = this.marker(hash, "images", "s3-model_marker");
+    assert.ok(this.written.includes(key), `${key} in ${this.written}`);
+    assert.strictEqual(this.objects.get(key)?.Metadata?.["x-amz-meta-store"], "WebdaDemo/ImageUser");
   }
 
   /**
@@ -750,8 +816,9 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   async cleanUsageWithoutAttributeKeepsMarkers() {
     const { file } = await this.file("no attribute");
     this.uploaded("no attribute");
-    this.keys.push(this.binary._getKey(file.hash, "files_page"), this.binary._getKey(file.hash, "files_my_page"));
-    await this.binary._cleanUsage(file.hash, "page", undefined as any);
+    this.keys.push(this.marker(file.hash, "files", "page"), this.marker(file.hash, "files", "my_page"));
+    await this.binary._cleanUsage(file.hash, "page", undefined as any, "WebdaDemo/ImageUser");
+    await this.binary._cleanUsage(file.hash, "page", "files", undefined as any);
     assert.deepStrictEqual(this.deleted, []);
   }
 

@@ -5,6 +5,7 @@ import { BinariesImpl } from "../services/binary.service.js";
  * Collection behavior declared as a `BinariesImpl` subclass.
  *
  * @WebdaBehavior Test/PhotoLike
+ * @WebdaIgnore
  */
 export class PhotoLike extends BinariesImpl {
   /**

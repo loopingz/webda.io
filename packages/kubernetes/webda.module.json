@@ -161,6 +161,32 @@
             "kubernetes-crd-export"
           ],
           "phase": "resolved"
+        },
+        "kubernetes rbac export": {
+          "description": "Export the RBAC rules of the Kubernetes stores and operators",
+          "method": "rbacExport",
+          "args": {
+            "target": {
+              "type": "string",
+              "default": "./rbac.yaml"
+            },
+            "serviceAccount": {
+              "type": "string",
+              "default": "default"
+            },
+            "serviceAccountNamespace": {
+              "type": "string",
+              "default": "default"
+            },
+            "name": {
+              "type": "string",
+              "default": "webda"
+            }
+          },
+          "requires": [
+            "kubernetes-crd-export"
+          ],
+          "phase": "resolved"
         }
       }
     },

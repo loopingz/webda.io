@@ -1,7 +1,12 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
-import { CoreModel, useModel } from "@webda/core";
+import { CoreModel, ServiceParameters, useModel } from "@webda/core";
+import * as k8s from "@kubernetes/client-node";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { KubernetesCrdExporter } from "../services/crdexporter.service.js";
 import { FakeApiServer } from "../../test/apiserver.js";
 import { KubernetesStore, KubernetesStoreParameters } from "../stores/kubernetesstore.service.js";
 import { setCondition } from "./controller.js";
@@ -327,6 +332,41 @@ class KubernetesOperatorTest extends WebdaApplicationTest {
     await until(() => (second as any).elector.leading);
     await this.tenants.patch("acme", { name: "Acme 3" });
     await until(() => Tenant.calls.length === 3);
+  }
+
+  @test
+  async rbacExport() {
+    await this.operator({ leaderElection: true, leaseNamespace: "ops" });
+    const target = mkdtempSync(join(tmpdir(), "webda-rbac-"));
+    try {
+      const exporter = new KubernetesCrdExporter("exporter", new ServiceParameters().load({}));
+      await exporter.rbacExport(join(target, "rbac.yaml"), "api", "apps", "tenants");
+      const manifests = JSON.parse(
+        JSON.stringify(k8s.loadAllYaml(readFileSync(join(target, "rbac.yaml"), "utf8")))
+      ) as any[];
+      assert.deepStrictEqual(
+        manifests.map(m => `${m.kind}/${m.metadata.namespace}`),
+        ["Role/default", "RoleBinding/default", "Role/ops", "RoleBinding/ops"]
+      );
+      assert.deepStrictEqual(
+        manifests[0].rules.map((r: any) => `${r.apiGroups}:${r.resources}:${r.verbs}`),
+        [
+          `${GROUP}:tenants,plains:get,list,watch,create,update,delete`,
+          `${GROUP}:tenants/status,plains/status:get,update`
+        ]
+      );
+      assert.deepStrictEqual(manifests[2].rules[0].resources, ["leases"]);
+      assert.deepStrictEqual(manifests[1].subjects[0], { kind: "ServiceAccount", name: "api", namespace: "apps" });
+      // installCrds needs the definitions, cluster wide
+      (this.store.getParameters() as any).installCrds = true;
+      await exporter.rbacExport(join(target, "rbac.yaml"));
+      const withCrds = k8s.loadAllYaml(readFileSync(join(target, "rbac.yaml"), "utf8")) as any[];
+      assert.strictEqual(withCrds[0].kind, "ClusterRole");
+      assert.deepStrictEqual(withCrds[0].rules[0].resources, ["customresourcedefinitions"]);
+      assert.strictEqual(withCrds[0].metadata.name, "webda");
+    } finally {
+      rmSync(target, { recursive: true, force: true });
+    }
   }
 
   @test

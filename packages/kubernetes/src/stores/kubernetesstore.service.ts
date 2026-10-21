@@ -10,6 +10,7 @@ import {
 } from "@webda/core";
 import type { ModelClass, Repository } from "@webda/core";
 import { checkResourceKey, getCrdNames } from "../crd/naming.js";
+import type { RbacGrant } from "../crd/rbac.js";
 import { buildCrd, CustomResourceDefinition } from "../crd/schema.js";
 import { getKubernetesApiClient, K8sConfiguration, KubernetesParameters } from "../utils/client.js";
 import { KubernetesRepository } from "./kubernetesrepository.js";
@@ -181,6 +182,33 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
    */
   getCrds(): CustomResourceDefinition[] {
     return this.getRootModels().map(model => this.getCrd(model));
+  }
+
+  /**
+   * Rights the store needs on the Kubernetes API
+   * @returns the rights on its resources (and on the definitions with installCrds)
+   */
+  getRbacGrants(): RbacGrant[] {
+    const plurals = this.getCrds().map(crd => crd.spec.names.plural);
+    const namespace = this.parameters.scope === "Cluster" ? undefined : this.parameters.namespace;
+    const group = this.parameters.group;
+    const grants: RbacGrant[] = [
+      {
+        namespace,
+        rule: { apiGroups: [group], resources: plurals, verbs: ["get", "list", "watch", "create", "update", "delete"] }
+      },
+      { namespace, rule: { apiGroups: [group], resources: plurals.map(p => `${p}/status`), verbs: ["get", "update"] } }
+    ];
+    if (this.parameters.installCrds) {
+      grants.push({
+        rule: {
+          apiGroups: ["apiextensions.k8s.io"],
+          resources: ["customresourcedefinitions"],
+          verbs: ["get", "create", "update"]
+        }
+      });
+    }
+    return grants;
   }
 
   /**

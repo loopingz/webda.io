@@ -14,6 +14,7 @@ import type { ModelClass } from "@webda/core";
 import { CancelablePromise } from "@webda/utils";
 import { hostname } from "node:os";
 import { randomUUID } from "node:crypto";
+import type { RbacGrant } from "../crd/rbac.js";
 import { KubernetesStore } from "../stores/kubernetesstore.service.js";
 import { getKubernetesApiClient, K8sConfiguration, KubernetesParameters } from "../utils/client.js";
 import { ModelController } from "./controller.js";
@@ -211,6 +212,38 @@ export class KubernetesOperator<
     });
   }
 
+  /**
+   * @returns the name of the leader election Lease
+   */
+  getLeaseName(): string {
+    return this.parameters.leaseName ?? `webda-operator-${this.getName().toLowerCase()}`;
+  }
+
+  /**
+   * @returns the namespace of the leader election Lease: the parameter, else the namespace of the first model's store
+   */
+  getLeaseNamespace(): string {
+    return (
+      this.parameters.leaseNamespace ??
+      this.getStore(useModel(this.parameters.models[0])).getParameters().namespace ??
+      "default"
+    );
+  }
+
+  /**
+   * Rights the operator needs besides the ones of the stores of its models
+   * @returns the rights on the leader election Lease
+   */
+  getRbacGrants(): RbacGrant[] {
+    if (!this.parameters.leaderElection) return [];
+    return [
+      {
+        namespace: this.getLeaseNamespace(),
+        rule: { apiGroups: ["coordination.k8s.io"], resources: ["leases"], verbs: ["get", "create", "update"] }
+      }
+    ];
+  }
+
   /** @override */
   async init(): Promise<this> {
     await super.init();
@@ -231,12 +264,11 @@ export class KubernetesOperator<
       await this.startControllers();
       return;
     }
-    const firstStore = this.getStore(this.controllers[0].model);
     this.elector = new LeaderElector(
       getKubernetesApiClient(this.parameters, k8s.CoordinationV1Api),
       {
-        name: this.parameters.leaseName ?? `webda-operator-${this.getName().toLowerCase()}`,
-        namespace: this.parameters.leaseNamespace ?? firstStore.getParameters().namespace ?? "default",
+        name: this.getLeaseName(),
+        namespace: this.getLeaseNamespace(),
         identity: `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`,
         leaseDuration: this.parameters.leaseDuration,
         retryPeriod: this.parameters.leaseRetryPeriod

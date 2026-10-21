@@ -74,10 +74,11 @@ export class ResourceRegistry {
   }
 
   /**
+   * @param models - models to describe, all exposed models by default
    * @returns MCP resource templates
    */
-  templates(): ResourceTemplate[] {
-    return this.entries.map(m => ({
+  templates(models: ResourceModel[] = this.entries): ResourceTemplate[] {
+    return models.map(m => ({
       uriTemplate: `${SCHEME}${m.name}/${m.pkFields.map(f => `{${f}}`).join("/")}`,
       name: m.name,
       mimeType: "application/json"

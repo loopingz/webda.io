@@ -20,6 +20,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 - You are using `@webda/async` and want async job workers to run as Kubernetes Jobs (one pod per job, auto-retried, auto-cleaned).
 - You want to store Webda model instances in Kubernetes Secrets (useful for small, sensitive configuration objects).
 - You need to deploy a scheduled Webda service operation as a Kubernetes CronJob.
+- You read Kubernetes resources from a service: typed API clients and a self-restarting informer for custom resources.
 
 ## Install
 
@@ -81,6 +82,26 @@ pnpm add @webda/kubernetes
   }
 }
 ```
+
+### API clients and informer
+
+```typescript
+import * as k8s from "@kubernetes/client-node";
+import { getKubernetesApiClient, KubernetesInformer } from "@webda/kubernetes";
+
+// In-cluster service account, else the local kubeconfig; each request aborts after 4s
+const core = getKubernetesApiClient({ timeout: 4000 }, k8s.CoreV1Api);
+await core.listNamespacedPod({ namespace: "default" });
+
+// List then watch custom resources, restarting with a backoff after any error
+const projects = new KubernetesInformer({ timeout: 4000 }, { group: "example.com", version: "v1", plural: "projects" });
+projects.on("change", project => console.log("changed", project.metadata?.name));
+projects.on("error", err => console.error("informer restarts", err));
+await projects.start(); // resolves after the first list, check projects.synced
+projects.list();
+```
+
+The informer needs the `list` and `watch` verbs on the resource.
 
 ## Reference
 

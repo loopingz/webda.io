@@ -51,6 +51,25 @@ class TemplateRendererTest {
   }
 
   @test
+  async hasMultiPart() {
+    const r = new TemplateRenderer({ folders: [A] });
+    assert.strictEqual(await r.has("WELCOME"), true);
+    assert.strictEqual(await r.has("WELCOME", { locale: "fr" }), true);
+    assert.strictEqual(await r.has("WELCOME", { locale: "de-DE" }), true);
+    assert.strictEqual(await r.has("WELCOME/html"), true);
+    assert.strictEqual(await r.has("WELCOME/nope"), false);
+    assert.strictEqual(await r.has("missing"), false);
+    // A folder without part files is not a template
+    const dir = await this.tmpFolder();
+    await mkdir(join(dir, "EMPTY", "fr"), { recursive: true });
+    await writeFile(join(dir, "EMPTY", "_partial.mustache"), "x");
+    await writeFile(join(dir, "EMPTY", "notes.txt"), "x");
+    const empty = new TemplateRenderer({ folders: [dir] });
+    assert.strictEqual(await empty.has("EMPTY"), false);
+    assert.strictEqual(await empty.has("EMPTY", { locale: "fr" }), false);
+  }
+
+  @test
   async multiPartRenderAll() {
     const r = new TemplateRenderer({ folders: [A] });
     assert.deepStrictEqual(await r.renderAll("WELCOME", { name: "Bob" }), {

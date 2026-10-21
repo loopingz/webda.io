@@ -222,7 +222,7 @@ export class TemplateRenderer {
   }
 
   /**
-   * Check a template exists
+   * Check a template exists: a single template, a part, or a multi-part template folder with at least one part
    * @param name - `NAME` or `NAME/part`
    * @param options - lookup options
    * @param options.locale - locale to look for
@@ -231,7 +231,11 @@ export class TemplateRenderer {
   async has(name: string, options?: { locale?: string }): Promise<boolean> {
     try {
       const parsed = this.parse(name, options?.locale);
-      return !!(await this.read(parsed.name, parsed.part, options?.locale));
+      if (await this.read(parsed.name, parsed.part, options?.locale)) {
+        return true;
+      }
+      // A bare name can also be a multi-part template folder
+      return parsed.part === undefined && (await this.parts(parsed.name, options?.locale)) !== undefined;
     } catch (err) {
       if (err instanceof TemplateNotFoundError) {
         return false;
@@ -327,14 +331,32 @@ export class TemplateRenderer {
     if (part !== undefined) {
       throw new TemplateNotFoundError(name);
     }
+    const parts = await this.parts(tpl, options.locale);
+    if (!parts) {
+      throw new TemplateNotFoundError(name);
+    }
+    const result: Record<string, string> = {};
+    for (const p of parts) {
+      result[p] = await this.render(`${tpl}/${p}`, data, options);
+    }
+    return result;
+  }
+
+  /**
+   * List the parts of a multi-part template, from the first folder having at least one
+   * @param name - the multi-part template name
+   * @param locale - requested locale
+   * @returns the sorted part names, or undefined if no folder has a part
+   */
+  protected async parts(name: string, locale?: string): Promise<string[] | undefined> {
     const exts = this.extensions();
     for (const folder of this.folders) {
-      const dir = join(folder, tpl);
+      const dir = join(folder, name);
       if (!this.contained(folder, dir)) {
         continue;
       }
       const parts = new Set<string>();
-      for (const candidate of this.candidates(options.locale)) {
+      for (const candidate of this.candidates(locale)) {
         for (const entry of await readDir(candidate ? join(dir, candidate) : dir)) {
           const ext = exts.find(e => entry.name.endsWith("." + e));
           if (entry.isFile() && ext && !entry.name.startsWith("_")) {
@@ -343,14 +365,10 @@ export class TemplateRenderer {
         }
       }
       if (parts.size) {
-        const result: Record<string, string> = {};
-        for (const p of [...parts].sort()) {
-          result[p] = await this.render(`${tpl}/${p}`, data, options);
-        }
-        return result;
+        return [...parts].sort();
       }
     }
-    throw new TemplateNotFoundError(name);
+    return undefined;
   }
 
   /**

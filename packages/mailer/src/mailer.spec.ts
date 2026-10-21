@@ -55,10 +55,7 @@ class MailerTestBase extends WebdaApplicationTest {
     return {
       TrueMailer: {
         type: "Webda/Mailer",
-        templates: "test/templates",
-        config: {
-          transport: "ses"
-        }
+        templates: "test/templates"
       }
     };
   }
@@ -74,7 +71,6 @@ class MailerTestBase extends WebdaApplicationTest {
 
   async beforeEach() {
     await super.beforeEach();
-    sinon.restore();
     // web-resource-inliner (juice) warns on the fixtures `styles.css` link it cannot resolve
     this.warn = sinon.stub(console, "warn");
     this.lastOptions = this.lastCallback = undefined;
@@ -87,6 +83,11 @@ class MailerTestBase extends WebdaApplicationTest {
         return Promise.resolve();
       }
     };
+  }
+
+  async afterEach() {
+    sinon.restore();
+    await super.afterEach();
   }
 
   /**
@@ -174,6 +175,8 @@ class MailerTest extends MailerTestBase {
   @test
   async templateNoResult() {
     const renderer = { has: async () => true, renderAll: async () => ({}) };
+    // A single file template is not a mail template
+    await assert.rejects(() => this.mailer.send({ template: "HTML_ONLY/html" }), /Unknown mail template/);
     sinon.stub(this.mailer, "getTemplates").returns({ renderer, folder: "test/templates" });
     await this.mailer.send({ template: "mine" });
     assert.notStrictEqual(this.lastOptions, undefined);

@@ -52,6 +52,7 @@ class TemplateServiceTest extends WebdaApplicationTest {
     const svc = useService("TemplateService");
     assert.strictEqual((await svc.renderAll("WELCOME", { name: "a" }, { locale: "fr" })).subject, "Bienvenue a");
     assert.ok(await svc.has("single"));
+    assert.ok(await svc.has("WELCOME"));
     assert.ok((await svc.list()).includes("single"));
     assert.strictEqual(await svc.render("single", { name: "a" }), "Single A a");
     assert.strictEqual(await svc.renderString("Hi {{n}}", { n: "x" }), "Hi x");

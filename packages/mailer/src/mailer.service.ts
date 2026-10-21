@@ -86,9 +86,9 @@ export class MailerParameters extends ServiceParameters {
 }
 
 /**
- * Parts of a multi-part mail template
+ * Error code of the @webda/templates TemplateNotFoundError
  */
-const MAIL_PARTS = ["subject", "html", "text"];
+const TEMPLATE_NOT_FOUND = "TEMPLATE_NOT_FOUND";
 
 /**
  * What the mailer needs from a template renderer
@@ -205,35 +205,35 @@ export class Mailer<T extends MailerParameters = MailerParameters> extends Abstr
    *
    * @param name - Template name to check
    * @param locale - Locale to look for
-   * @returns true if the template exists, as a single template or with a subject, html or text part
+   * @returns true if the template exists, single or multi-part
    */
   async hasNotification(name: string, locale?: string): Promise<boolean> {
-    const { renderer } = this.getTemplates();
-    // A mail template is usually multi-part (NAME/subject, NAME/html, NAME/text)
-    for (const candidate of [name, ...MAIL_PARTS.map(part => `${name}/${part}`)]) {
-      if (await renderer.has(candidate, { locale })) {
-        return true;
-      }
-    }
-    return false;
+    return this.getTemplates().renderer.has(name, { locale });
   }
 
   /**
    * Render a template into the subject, html and text of the email
    *
    * @param options - the send options, updated in place
+   * @throws Error "Unknown mail template" if the template is not a multi-part template
    */
   protected async render(options: MailerSendOptions): Promise<void> {
     const { renderer, folder } = this.getTemplates();
-    if (!(await this.hasNotification(options.template!, options.locale))) {
-      this.log("WARN", "No template found for", options.template);
-      throw new Error("Unknown mail template");
+    let result: Record<string, string>;
+    try {
+      result = await renderer.renderAll(
+        options.template!,
+        { ...options.replacements, now: new Date() },
+        { locale: options.locale }
+      );
+    } catch (err: any) {
+      // Compared by code: @webda/templates can be loaded twice (lib and src)
+      if (err?.code === TEMPLATE_NOT_FOUND) {
+        this.log("WARN", "No template found for", options.template);
+        throw new Error("Unknown mail template");
+      }
+      throw err;
     }
-    const result = await renderer.renderAll(
-      options.template!,
-      { ...options.replacements, now: new Date() },
-      { locale: options.locale }
-    );
     if (result.subject) {
       options.subject = result.subject.trim();
     }

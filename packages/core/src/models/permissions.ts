@@ -371,6 +371,11 @@ export function mergePermissionQuery(query: string, permission?: PermissionQuery
  */
 export const MAX_QUERY_LIMIT = 1000;
 /**
+ * Highest total counted for a client query: above it, the total is returned as "at least MAX_QUERY_COUNT"
+ * (`relation: "gte"`)
+ */
+export const MAX_QUERY_COUNT = 10_000;
+/**
  * Rows a permission-filtered query scans to fill one page: ten times the page LIMIT, at least
  * {@link MIN_SCANNED_ROWS}, at most {@link MAX_SCANNED_ROWS}
  */
@@ -542,6 +547,179 @@ function modelIdentifier(model: any): string {
 }
 
 /**
+ * Total number of objects matching a client query, in the Elasticsearch shape: with `relation: "gte"` the real total
+ * is at least `value`
+ */
+export type QueryTotal = {
+  value: number;
+  relation: "eq" | "gte";
+};
+
+/**
+ * JSON schema of a {@link QueryTotal}, used by the query result schemas (REST, OpenAPI)
+ */
+export const QUERY_TOTAL_SCHEMA = {
+  type: "object",
+  properties: {
+    value: { type: "integer" },
+    relation: { type: "string", enum: ["eq", "gte"] }
+  },
+  required: ["value", "relation"]
+};
+
+/**
+ * A client query checked and merged with the model's permission query
+ */
+type ClientQuery = {
+  /**
+   * The client query
+   */
+  client: QueryValidator;
+  /**
+   * The model's permission query, if any
+   */
+  permission?: PermissionQuery | null;
+  /**
+   * The client query ANDed with the permission query
+   */
+  merged: QueryValidator;
+};
+
+/**
+ * Check a client query and merge the model's permission query into it
+ *
+ * @param model - the model class
+ * @param query - the client query
+ * @param context - the caller context
+ * @returns the checked queries, undefined when the model defines no permission check (no row can be read)
+ * @throws WebdaError.BadRequest for a private field ({@link assertNoPrivateFields}) or a statement
+ * ({@link assertFilterOnly})
+ */
+function prepareClientQuery(model: any, query: string, context: IOperationContext): ClientQuery | undefined {
+  const client = new QueryValidator(query ?? "");
+  assertNoPrivateFields(client);
+  assertFilterOnly(client);
+  if (!hasModelPermissionCheck(model)) {
+    return undefined;
+  }
+  const permission: PermissionQuery | null | undefined =
+    typeof model.getPermissionQuery === "function" ? model.getPermissionQuery(context) : undefined;
+  return { client, permission, merged: new QueryValidator(mergePermissionQuery(query ?? "", permission)) };
+}
+
+/**
+ * @param start - a class
+ * @param key - a member name
+ * @param onPrototype - look for an instance member instead of a static one
+ * @returns the class of the chain of `start` defining `key`, undefined when none does
+ */
+function definingClass(start: any, key: string, onPrototype: boolean): any {
+  for (let clazz = start; clazz && clazz !== Function.prototype; clazz = Object.getPrototypeOf(clazz)) {
+    const target = onPrototype ? clazz.prototype : clazz;
+    if (target && Object.prototype.hasOwnProperty.call(target, key)) {
+      return clazz;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * @param model - a model class
+ * @param seen - the subclasses found so far
+ * @returns every subclass of the model, transitively, from its metadata
+ */
+function subclassesOf(model: any, seen: Set<any> = new Set()): any[] {
+  let metadata: any;
+  try {
+    metadata = useModelMetadata(model);
+  } catch {
+    // A class registered without metadata
+  }
+  for (const sub of (metadata ?? model?.Metadata)?.Subclasses ?? []) {
+    if (typeof sub === "function" && !seen.has(sub)) {
+      seen.add(sub);
+      subclassesOf(sub, seen);
+    }
+  }
+  return [...seen];
+}
+
+/**
+ * Whether the `partial: false` statement of a model's permission query covers every `canAct` its rows are checked
+ * with: a `canAct` overridden below the class declaring `getPermissionQuery` (a subclass adding restrictions while
+ * inheriting the filter, or a subclass whose rows are reached through the model) can refuse rows the filter keeps
+ * @param model - the model class
+ * @returns true when no `canAct` is declared below `getPermissionQuery`
+ */
+function permissionQueryCoversCanAct(model: any): boolean {
+  const declaring = definingClass(model, "getPermissionQuery", false);
+  const atOrBelow = (clazz: any, ancestor: any) =>
+    clazz === ancestor || (typeof clazz === "function" && clazz.prototype instanceof ancestor);
+  return [model, ...subclassesOf(model)].every(clazz =>
+    [definingClass(clazz, "canAct", false), definingClass(clazz, "canAct", true)].every(
+      check => check === undefined || atOrBelow(declaring, check)
+    )
+  );
+}
+
+/**
+ * Count a prepared client query, when the store count matches what the caller can read
+ * @param model - the model class
+ * @param prepared - the checked queries
+ * @returns the total, undefined when it cannot be given
+ */
+async function countClientQuery(model: any, prepared: ClientQuery | undefined): Promise<QueryTotal | undefined> {
+  // Rows are filtered with canAct after the store query: the store count only matches the readable rows when the
+  // model states that its permission query alone decides (partial: false)
+  if (
+    prepared?.permission?.partial !== false ||
+    typeof model.count !== "function" ||
+    !permissionQueryCoversCanAct(model)
+  ) {
+    return undefined;
+  }
+  try {
+    // The filter only: ORDER BY, LIMIT and OFFSET do not change a count
+    const { value, relation } = await model.count(prepared.merged.getExpression().toString(), undefined, {
+      max: MAX_QUERY_COUNT
+    });
+    return { value, relation };
+  } catch (err) {
+    if ((err as any)?.code === "AGGREGATION_NOT_NATIVE") {
+      // The store has no native count and its aggregationFallback is deny: the client pages without a total
+      useLog("DEBUG", `No total for ${modelIdentifier(model)}: ${(err as Error).message}`);
+      return undefined;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Count the objects a client query matches, as the caller
+ *
+ * The client query is checked like {@link queryModelWithPermissions} (400 for a private field or a statement) and
+ * counted with the model's permission query ANDed into it, without ORDER BY, LIMIT or OFFSET, up to
+ * {@link MAX_QUERY_COUNT}. `queryModelWithPermissions` drops the rows refused by `canAct` after the store query, so a
+ * store count would count rows the caller cannot read and reveal them: a total is only given when the model's static
+ * `getPermissionQuery(context)` returns `{ partial: false }`, its statement that the filter alone decides. The
+ * statement only covers the `canAct` declared at or above the class declaring `getPermissionQuery`: no total is given
+ * when the model or one of its subclasses overrides `canAct` below it (it may refuse rows the filter keeps).
+ *
+ * @param model - the model class
+ * @param query - the client query
+ * @param context - the caller context
+ * @returns the total, undefined when the model defines no permission check, its permission query is missing or
+ * partial, or its store refuses an in-memory count (`aggregationFallback: "deny"`)
+ */
+export async function countModelWithPermissions(
+  model: any,
+  query: string,
+  context: IOperationContext
+): Promise<QueryTotal | undefined> {
+  return countClientQuery(model, prepareClientQuery(model, query, context));
+}
+
+/**
  * Query a model as the caller
  *
  * - the client query may not read private (`__`) fields (400), and its LIMIT is lowered to {@link MAX_QUERY_LIMIT};
@@ -555,29 +733,30 @@ function modelIdentifier(model: any): string {
  * - the continuation token is sealed ({@link sealContinuationToken}): a store token counting or naming rows
  *   (Postgres/Firestore offsets, Dynamo keys, memory offsets) would otherwise reveal hidden matches. It is bound to
  *   the model, the query and the caller, expires after {@link CONTINUATION_TOKEN_TTL_MS}, and is sent back as is in
- *   `OFFSET`; any other value is a 400.
+ *   `OFFSET`; any other value is a 400;
+ * - with `options.count`, the total ({@link countModelWithPermissions}) is counted concurrently with the page and
+ *   returned as `total` when it can be given. Clients ask for it on the first page only.
  *
  * @param model - the model class
  * @param query - the client query
  * @param context - the caller context
- * @returns the query results the caller may read
+ * @param options - `count` adds the total of the query
+ * @param options.count - count the total of the query
+ * @returns the query results the caller may read, and the total when asked and allowed
  */
 export async function queryModelWithPermissions<T = any>(
   model: any,
   query: string,
-  context: IOperationContext
-): Promise<{ results: T[]; continuationToken?: string }> {
-  const client = new QueryValidator(query ?? "");
-  assertNoPrivateFields(client);
-  assertFilterOnly(client);
-  if (!hasModelPermissionCheck(model)) {
+  context: IOperationContext,
+  options?: { count?: boolean }
+): Promise<{ results: T[]; continuationToken?: string; total?: QueryTotal }> {
+  const prepared = prepareClientQuery(model, query, context);
+  if (!prepared) {
     // Deny by default: no row can be read, the store is not even asked
     return { results: [], continuationToken: undefined };
   }
+  const { client, merged } = prepared;
   const limit = Math.min(client.getLimit(), MAX_QUERY_LIMIT);
-  const permission: PermissionQuery | null | undefined =
-    typeof model.getPermissionQuery === "function" ? model.getPermissionQuery(context) : undefined;
-  const merged = new QueryValidator(mergePermissionQuery(query ?? "", permission));
   // The query without its LIMIT and OFFSET: filter and ORDER BY
   const orderBy = (merged.getQuery().orderBy ?? []).map(o => `${o.field} ${o.direction}`).join(", ");
   const base = `${merged.getExpression().toString()}${orderBy ? ` ORDER BY ${orderBy}` : ""}`.trim();
@@ -590,6 +769,10 @@ export async function queryModelWithPermissions<T = any>(
   if (offset) {
     offset = await unsealContinuationToken(offset, binding);
   }
+  // Started before the first page: the latency is the longest of the two, not their sum
+  const counting = options?.count ? countClientQuery(model, prepared) : undefined;
+  // A failing page must not leave a failing count unhandled: its error is raised when it is awaited
+  counting?.catch(() => {});
   /**
    * @param count - the LIMIT
    * @param token - the store OFFSET
@@ -625,8 +808,10 @@ export async function queryModelWithPermissions<T = any>(
     pages++;
     res = await model.query(page(Math.min(limit - results.length, budget - scanned), token));
   }
+  const total = await counting;
   return {
     results,
-    continuationToken: token ? await sealContinuationToken(String(token), binding) : undefined
+    continuationToken: token ? await sealContinuationToken(String(token), binding) : undefined,
+    ...(total ? { total } : {})
   };
 }

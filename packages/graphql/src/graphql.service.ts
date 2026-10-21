@@ -14,6 +14,8 @@ import {
   useRepository,
   isModelActionAllowed,
   queryModelWithPermissions,
+  countModelWithPermissions,
+  type QueryTotal,
   getClientWritableAttributes,
   assertNoPrivateFields,
   assertFilterOnly,
@@ -38,6 +40,7 @@ import {
   GraphQLFieldConfigArgumentMap,
   GraphQLInputObjectType,
   GraphQLInputType,
+  GraphQLInt,
   GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
@@ -68,6 +71,20 @@ import {
   operationTypeName,
   publicCopy
 } from "./operations.js";
+
+/**
+ * Key of the lazy total of a query result: the `total` field calls it only when it is selected
+ */
+const QUERY_TOTAL = Symbol("webda.graphql.total");
+
+/**
+ * A query result whose `total` field can be resolved
+ */
+type QueryResultWithTotal = {
+  results: any[];
+  continuationToken?: string;
+  [QUERY_TOTAL]?: () => Promise<QueryTotal | undefined>;
+};
 
 /**
  * The fields the schema gives to the CRUD of a model, as `generateSchema()` named them
@@ -245,6 +262,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   schema: GraphQLSchema;
   handler: Handler;
   modelsMap: { [key: string]: GraphQLObjectType };
+  /**
+   * Type of the `total` field of the query results (reset by generateSchema)
+   */
+  protected queryTotalType?: GraphQLObjectType;
   /**
    * Generated named types, by name: a name is generated once per shape (reset by generateSchema)
    */
@@ -454,9 +475,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * Get or create a GraphQL query result wrapper type with results array and continuationToken
+   * Get or create a GraphQL query result wrapper type with results array, continuationToken and total
+   *
+   * `total` is resolved only when selected: the count query runs only then. It is null when the model does not allow
+   * a total (see `countModelWithPermissions`).
    * @param type - GraphQL object type to wrap in a query result
-   * @returns GraphQL object type with results and continuationToken fields
+   * @returns GraphQL object type with results, continuationToken and total fields
    */
   getGraphQLQueryResult(type) {
     const name = `${type.name}QueryResult`;
@@ -467,11 +491,31 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         },
         continuationToken: {
           type: GraphQLString
+        },
+        total: {
+          type: this.getGraphQLQueryTotal(),
+          description: "Total of the query, when the model allows it: with relation gte, the total is at least value",
+          resolve: async (source: QueryResultWithTotal) => (await source?.[QUERY_TOTAL]?.()) ?? null
         }
       },
       name
     });
     return this.modelsMap[name];
+  }
+
+  /**
+   * Get or create the GraphQL type of a query total
+   * @returns the `QueryTotal` type: `{ value: Int!, relation: String! }`
+   */
+  getGraphQLQueryTotal(): GraphQLObjectType {
+    this.queryTotalType ??= new GraphQLObjectType({
+      name: "QueryTotal",
+      fields: {
+        value: { type: new GraphQLNonNull(GraphQLInt) },
+        relation: { type: new GraphQLNonNull(GraphQLString), description: "eq: exact total, gte: at least value" }
+      }
+    });
+    return this.queryTotalType;
   }
 
   /**
@@ -824,6 +868,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     const subscriptions: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
     const models = this.app.getModels();
     this.modelsMap = {};
+    this.queryTotalType = undefined;
     this.namedTypes = new Map();
     this.operationPlacements = {};
     this.modelFields = {};
@@ -1377,9 +1422,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     model: any,
     query: string,
     context: any
-  ): Promise<{ results: any[]; continuationToken?: string }> {
+  ): Promise<QueryResultWithTotal> {
     this.assertFilterQuery(query);
-    return queryModelWithPermissions(model, related.getQuery(query), context);
+    return this.withTotal(model, related.getQuery(query), context);
   }
 
   /**
@@ -1390,9 +1435,23 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @returns the readable results
    * @throws GraphQLError BAD_USER_INPUT for a statement (DELETE, UPDATE, SELECT field list)
    */
-  async queryModel(model: any, query: string, context: any): Promise<{ results: any[]; continuationToken?: string }> {
+  async queryModel(model: any, query: string, context: any): Promise<QueryResultWithTotal> {
     this.assertFilterQuery(query);
-    return queryModelWithPermissions(model, query, context);
+    return this.withTotal(model, query, context);
+  }
+
+  /**
+   * Query a model as the caller and attach the lazy total of the query, resolved by the `total` field
+   * @param model - the model class
+   * @param query - the query, with its relation condition
+   * @param context - the caller context
+   * @returns the readable results
+   */
+  protected async withTotal(model: any, query: string, context: any): Promise<QueryResultWithTotal> {
+    const res: QueryResultWithTotal = await queryModelWithPermissions(model, query, context);
+    // Not enumerable: never serialized, only reached by the field resolver
+    Object.defineProperty(res, QUERY_TOTAL, { value: () => countModelWithPermissions(model, query, context) });
+    return res;
   }
 
   /**

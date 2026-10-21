@@ -256,6 +256,9 @@ class CliSchemaToOptionsTest {
     await cli.parseAsync(["tasks", "query", "-q", "status = 'active'"]);
     assert.strictEqual(calls.length, 1);
     assert.strictEqual(calls[0].parameters.query, "status = 'active'");
+    assert.strictEqual(calls[0].parameters.count, undefined);
+    await cli.parseAsync(["tasks", "query", "-q", "status = 'active'", "--count"]);
+    assert.strictEqual(calls[1].parameters.count, true);
   }
 
   @test

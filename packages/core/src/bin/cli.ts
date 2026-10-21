@@ -74,7 +74,8 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
   },
   searchRequest: {
     options: {
-      query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" }
+      query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" },
+      count: { type: "boolean", describe: "Also return the total of the query" }
     }
   }
 };

@@ -415,13 +415,13 @@ class SdkManifestRestOptionsTest extends SampleAppTest {
       method: "get",
       path: "/api/companies",
       pathParams: [],
-      query: ["q"]
+      query: ["q", "count"]
     });
     assert.deepStrictEqual(manifest.operations["SubSubProjects.Query"].rest, {
       method: "get",
       path: "/api/companies/{pid.0}/sub_sub_projects",
       pathParams: ["pid.0"],
-      query: ["q"]
+      query: ["q", "count"]
     });
     assert.strictEqual(manifest.operations["User.Get"].rest!.path, "/api/companies/{pid.0}/users/{uuid}");
   }

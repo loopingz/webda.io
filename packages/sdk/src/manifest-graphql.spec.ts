@@ -83,9 +83,14 @@ const Item: GraphQLObjectType = new GraphQLObjectType({
 });
 const Tag = new GraphQLObjectType({ name: "Tag", fields: keyed({ ref: [GraphQLString] }) });
 const Ghost = new GraphQLObjectType({ name: "Ghost", fields: keyed({ uuid: [GraphQLID] }) });
+const QueryTotal = new GraphQLObjectType({
+  name: "QueryTotal",
+  fields: keyed({ value: [GraphQLInt], relation: [GraphQLString] })
+});
 const CompanyPage = new GraphQLObjectType({
   name: "CompanyPage",
-  fields: keyed({ results: [new GraphQLList(Company)], continuationToken: [GraphQLString] })
+  // The total runs a count query: it is never part of the default selection
+  fields: keyed({ results: [new GraphQLList(Company)], continuationToken: [GraphQLString], total: [QueryTotal] })
 });
 
 const CompanyInput = new GraphQLInputObjectType({

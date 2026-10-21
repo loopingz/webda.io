@@ -694,6 +694,10 @@
             "description": "Number of hours allowed to decrypt data encrypted with this key",
             "type": "number"
           },
+          "keysFile": {
+            "description": "JSON file holding the keys, typically a mounted Kubernetes secret, instead of the registry\n\nSame shape as the registry entry: `{ \"current\": \"<id>\", \"key_<id>\": { publicKey, privateKey, symetric } }`.\nA relative path is resolved against the application path. Generate one with `webda crypto generate-keys`.\n\nWhen set, the registry is never read nor written: `autoCreate` and `autoRotate` are ignored and\n{@link CryptoService.rotate } fails. Rotate by adding a `key_<id>` to the file and switching `current`, keep\nthe previous keys as long as data encrypted with them must stay readable. The file is reloaded when it\nchanges, no restart needed.",
+            "type": "string"
+          },
           "symetricCipher": {
             "default": "aes-256-ctr",
             "type": "string"
@@ -801,6 +805,18 @@
               "required": true,
               "alias": "f",
               "description": "Configuration file to inspect (json, jsonc or yaml)"
+            }
+          },
+          "phase": "application"
+        },
+        "crypto generate-keys": {
+          "description": "Generate a keys file for the CryptoService keysFile parameter",
+          "method": "cryptoGenerateKeys",
+          "args": {
+            "out": {
+              "type": "string",
+              "default": "keys.json",
+              "description": "Keys file to write"
             }
           },
           "phase": "application"

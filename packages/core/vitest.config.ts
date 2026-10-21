@@ -67,8 +67,6 @@ export default defineConfig({
       "src/services/operationstransport.spec.ts",
       "src/services/httpserver.spec.ts",
       "src/services/clientcertificatefilter.spec.ts",
-      "src/services/mailer.spec.ts",
-      "src/services/mailer.snapshot.spec.ts",
       "src/services/notificationservice.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",

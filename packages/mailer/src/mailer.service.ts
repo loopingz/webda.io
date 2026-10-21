@@ -2,12 +2,9 @@ import Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import * as path from "path";
-import { NotificationService } from "./notificationservice.service.js";
+import { AbstractMailer, type MailerSendOptions } from "@webda/core";
 import { Service } from "./service.js";
 import { SecretString } from "./cryptoservice.service.js";
-import { Counter } from "../metrics/metrics.js";
-import type { User } from "../models/user.model.js";
-import type { Ident } from "../models/ident.model.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { ServicePartialParameters } from "./iservice.js";
 
@@ -30,41 +27,6 @@ interface IEmailTemplate {
  */
 interface TemplatesMap {
   [key: string]: IEmailTemplate;
-}
-
-/**
- * Represent a mailer service
- */
-export interface MailerService extends NotificationService {
-  /**
-   * Send an email
-   *
-   * @param options - Options to pass to the sendMail option of the nodemailer module
-   * @param callback - Callback to pass to sendMail
-   * @returns Promise resolving when the email is sent
-   */
-  send(options: MailerSendOptions, callback: () => void): Promise<any>;
-}
-
-/**
- * Options for sending an email, extending nodemailer's SendMailOptions
- * with template support
- */
-interface MailerSendOptions extends nodemailer.SendMailOptions {
-  /**
-   * Sender of the email
-   *
-   * @default parameters.sender
-   */
-  from?: nodemailer.SendMailOptions["from"];
-  /**
-   * Template to use
-   */
-  template?: string;
-  /**
-   * Replacements for the template
-   */
-  replacements?: Record<string, any>;
 }
 
 /**
@@ -127,93 +89,6 @@ export class MailerParameters extends ServiceParameters {
     this.emailTemplateOptions.juiceResources.webResources ??= {};
     this.emailTemplateOptions.juiceResources.webResources.relativeTo ??= path.resolve(this.templates);
     return this;
-  }
-}
-
-/**
- * Abstract base class for mailer implementations
- *
- * Provides metrics tracking (sent/errors counters) and notification handling.
- * Subclasses must implement {@link send} and {@link hasNotification}.
- *
- * @typeParam T - Service parameters type
- */
-export abstract class AbstractMailer<T extends ServiceParameters = ServiceParameters>
-  extends Service<T>
-  implements MailerService
-{
-  /**
-   * Mailer metrics for tracking sent emails and errors
-   */
-  declare metrics: {
-    sent: Counter;
-    errors: Counter;
-  };
-
-  /**
-   * @override
-   */
-  initMetrics() {
-    super.initMetrics();
-    this.metrics.sent = this.getMetric(Counter, {
-      name: "mailer_sent",
-      help: "Number of emails sent"
-    });
-    this.metrics.errors ??= this.getMetric(Counter, {
-      name: "mailer_errors",
-      help: "Number of emails in error"
-    });
-  }
-
-  /**
-   * @inheritdoc
-   */
-  abstract send(options: MailerSendOptions, callback?: () => void): Promise<any>;
-  /**
-   * @inheritdoc
-   */
-  abstract hasNotification(notification: string);
-
-  /**
-   * Check if notifications can be delivered to a user via email
-   *
-   * @param user - User or Ident to check for email availability
-   * @returns true if the user has an email address
-   */
-  async handleNotificationFor(user: User | Ident): Promise<boolean> {
-    return user.getEmail() !== undefined;
-  }
-
-  /**
-   * Send a notification email to a user
-   *
-   * Resolves the user's email, increments the sent metric, and delegates
-   * to {@link send}. Increments the error metric on failure.
-   *
-   * @param user - User or Ident to send the notification to
-   * @param notification - Template name for the notification
-   * @param replacements - Template variables for rendering
-   * @throws Error if the user has no valid email address
-   * @override
-   */
-  async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
-    const email = user.getEmail();
-    if (!email) {
-      throw new Error(`Cannot find a valid email for ${user}`);
-    }
-    this.metrics.sent.inc();
-    try {
-      await this.send({
-        template: notification,
-        replacements: {
-          ...replacements
-        },
-        to: email
-      });
-    } catch (err) {
-      this.metrics.errors.inc();
-      throw err;
-    }
   }
 }
 

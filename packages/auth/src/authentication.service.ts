@@ -1,6 +1,7 @@
 import {
   type AuthenticationEvents,
   type AuthResult,
+  type StepUpResult,
   Command,
   Counter,
   Ident,
@@ -616,7 +617,13 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     const amr = identity.amr ?? [];
     const secondFactor = amr.some(m => methods.includes(m)) && amr.some(m => PRIMARY_FACTORS.includes(m));
     const mfa = methods.length ? (secondFactor ? "verified" : "pending") : "none";
-    session.login(userId, ident.getUUID(), { provider: identity.provider, amr: identity.amr, mfa });
+    session.login(userId, ident.getUUID(), {
+      provider: identity.provider,
+      amr: identity.amr,
+      mfa,
+      // The provider verified the second factor with this login
+      ...(mfa === "verified" ? { mfaAt: Date.now() } : {})
+    });
     // A later password change of the user ends this session (checked by the session manager on load)
     session.authAt = Date.now();
     // Provider profile and tokens are kept even when MFA is pending
@@ -728,11 +735,12 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       await this.emit("Authentication.MfaEnabled", { context: ctx, user, userId: user.getUUID(), method });
       const tokens = useService("TokenService");
       await runAsSystem(() => tokens.revokeUser(user.getUUID()));
-      session.mfa = "verified";
-      session.amr = [...(session.amr ?? []).filter((value: string) => value !== method), method!];
+      // Confirming a factor proves it
+      session.markMfaVerified([method!]);
       return { ...result, ...(await runAsSystem(() => tokens.issue(session))) };
     }
-    if (verification && session.isPending()) {
+    if (verification) {
+      // Completes a pending login, or steps up a logged session
       return { ...result, ...(await this.completeSecondFactor([result.method])) };
     }
     if (action === "disable") {
@@ -742,14 +750,18 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
-   * Complete second-factor authentication for a pending session
+   * Record a second factor the caller verified: completes a pending login, or steps up a logged session
+   *
+   * A step-up stamps `mfaAt` and keeps the login (`authAt`, ident, refresh family). A Bearer session gets new tokens
+   * in its refresh family carrying the new `mfaAt`; a cookie session is saved with the request. Delegated OAuth
+   * tokens (issued to a client) are not re-issued.
    * @param amr - second factor method(s) used (e.g. ["totp"], ["recovery"])
-   * @returns auth result with issued tokens
+   * @returns auth result, with issued tokens unless a cookie session or delegated token stepped up
    */
-  async completeSecondFactor(amr: string[]): Promise<AuthResult> {
+  async completeSecondFactor(amr: string[]): Promise<AuthResult | StepUpResult> {
     const ctx = useContext<any>();
     const session = ctx.getSession();
-    if (!session?.isPending()) {
+    if (!session?.isPending() && !session?.isLogged()) {
       throw new MfaNotPending();
     }
     const userId = session.userId;
@@ -763,6 +775,9 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     } else if (!amr.some(m => enabledMethods.includes(m))) {
       throw new MfaNotEnabled();
     }
+    if (session.isLogged()) {
+      return this.stepUp(user, session, ctx, amr);
+    }
     const provider = session.provider;
     const ident = await runAsSystem(() => this.getIdentModel().ref(session.identUsed).get());
     const authAt = session.authAt;
@@ -770,10 +785,37 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       provider,
       amr: [...(session.amr ?? []), ...amr],
       mfa: "verified",
+      mfaAt: Date.now(),
       mfaVerifications: session.mfaVerifications
     });
     session.authAt = authAt;
     return this.finish(user, ident, session, ctx, provider);
+  }
+
+  /**
+   * Second factor verified again on a logged session
+   * @param user - the session user
+   * @param session - logged session
+   * @param ctx - operation context
+   * @param amr - second factor method(s) used
+   * @returns auth result, with tokens for a first-party Bearer session
+   */
+  protected async stepUp(user: User, session: any, ctx: any, amr: string[]): Promise<StepUpResult> {
+    session.markMfaVerified(amr);
+    // A stateless session comes from an access token: rotate it inside its family so the client holds the new mfaAt.
+    // Delegated tokens keep their client restrictions, they are not re-issued here
+    const tokens =
+      session.stateless && session.refreshFamily && !session.clientId
+        ? await runAsSystem(() => useService("TokenService").issue(session, session.refreshFamily))
+        : {};
+    await this.emit("Authentication.MfaVerified", {
+      context: ctx,
+      user,
+      userId: user.getUUID(),
+      method: amr[0],
+      stepUp: true
+    } as any);
+    return { status: "ok", user: user.toPublicEntry(), stepUp: true, ...tokens };
   }
 
   /**

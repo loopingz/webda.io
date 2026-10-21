@@ -20,7 +20,7 @@ export class Audited {
  * @WebdaBehavior Custom/Named
  */
 export class Named extends Audited {
-  @Action({ rest: { unknown: "x" } })
+  @Action({ rest: { unknown: "x" }, maxMfaAge: "5m" })
   own() {}
 }
 

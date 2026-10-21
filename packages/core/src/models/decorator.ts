@@ -36,6 +36,11 @@ export interface ActionOptions {
   description?: string;
   /** Free-form summary forwarded into operation metadata. */
   summary?: string;
+  /**
+   * Require the second factor to be verified within this duration (Duration syntax: `600`, `"10m"`), see
+   * `OperationDefinition.maxMfaAge`. Read by the compiler: use a string or number literal
+   */
+  maxMfaAge?: number | string;
 }
 
 /**

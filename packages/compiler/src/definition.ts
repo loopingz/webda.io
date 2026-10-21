@@ -252,6 +252,11 @@ export interface ModelMetadata {
       description?: string;
       summary?: string;
       /**
+       * Require the second factor to be verified within this duration (Duration syntax), see
+       * `OperationDefinition.maxMfaAge`
+       */
+      maxMfaAge?: number | string;
+      /**
        * If true, the action is global (static method) rather than per-instance
        */
       global?: boolean;

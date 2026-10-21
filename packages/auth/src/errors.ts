@@ -5,6 +5,8 @@ export {
   InvalidMfaCode,
   MfaAlreadyEnabled,
   MfaNotEnabled,
+  MfaRequired,
+  MfaStepUpRequired,
   PasswordPolicyError,
   Throttled,
   TokenInvalid

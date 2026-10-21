@@ -111,6 +111,13 @@ export interface OperationDefinition {
    */
   permission?: WebdaQLString<WebdaSessionRegistry["session"]>;
   /**
+   * Require the second factor to be verified within this duration (Duration syntax: `600`, `"10m"`)
+   *
+   * Implies a logged session with a verified second factor: refused with `MFA_REQUIRED` (403) when the user has no
+   * second factor, `MFA_STEP_UP_REQUIRED` (401, `details.maxAge` in seconds) when it was verified too long ago
+   */
+  maxMfaAge?: number | string;
+  /**
    * Service implementing the operation
    *
    * Either service or model should be defined
@@ -221,6 +228,10 @@ export interface OperationDefinitionInfo extends OperationDefinition {
    * Contains the parse permission query
    */
   permissionQuery?: QueryValidator;
+  /**
+   * Contains the parsed `maxMfaAge`, in seconds
+   */
+  maxMfaAgeSeconds?: number;
 }
 
 /**

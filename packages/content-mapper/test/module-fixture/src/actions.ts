@@ -16,7 +16,19 @@ export class Jobs {
 
   @Action({ name: "lookup" })
   static find() {}
+
+  // Second factor freshness: a Duration string or seconds; anything else is ignored
+  @Action({ maxMfaAge: "10m" })
+  payout() {}
+
+  @Action({ maxMfaAge: 600 })
+  static purge() {}
+
+  @Action({ maxMfaAge: dynamicAge })
+  computedAge() {}
 }
+
+const dynamicAge = "1h";
 
 const dynamicName = "dynamic";
 

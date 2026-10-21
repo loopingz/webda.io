@@ -13,6 +13,8 @@ import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
 import { checkStaticModelPermission, loadModelForAction } from "../models/permissions.js";
+import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
+import { Duration } from "@webda/utils";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -39,6 +41,43 @@ export function checkOperationPermission(
     return operation.permissionQuery.eval(context.getSession());
   }
   return true;
+}
+
+/**
+ * Check the second factor freshness an operation requires with `maxMfaAge`
+ *
+ * Synchronous and without I/O: it only reads the session, so every transport and {@link canCallOperation} listing
+ * apply it alike. `maxMfaAge` also makes MFA mandatory.
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @param operation - the operation definition
+ * @throws WebdaError.Unauthorized when the session is anonymous or its second factor is pending
+ * @throws MfaRequired when the user has no second factor
+ * @throws MfaStepUpRequired when the second factor was verified more than `maxMfaAge` ago
+ */
+export function checkOperationMfa(
+  context: OperationContext,
+  operationId: string,
+  operation: OperationDefinition & { maxMfaAgeSeconds?: number } = useInstanceStorage().operations[operationId]
+): void {
+  if (!operation) {
+    throw new WebdaError.NotFound(`${operationId} Unknown`);
+  }
+  if (operation.maxMfaAge === undefined) {
+    return;
+  }
+  operation.maxMfaAgeSeconds ??= new Duration(operation.maxMfaAge).toSeconds();
+  const session = context.getSession();
+  if (!session?.isLogged()) {
+    throw new WebdaError.Unauthorized(`${operationId} requires a login with a second factor`);
+  }
+  if (session.mfa !== "verified") {
+    throw new MfaRequired(`${operationId} requires a second factor`);
+  }
+  // Sessions verified before mfaAt existed have an infinite age: never fresh
+  if (session.mfaAge() > operation.maxMfaAgeSeconds * 1000) {
+    throw new MfaStepUpRequired(operation.maxMfaAgeSeconds);
+  }
 }
 
 /**
@@ -125,7 +164,8 @@ async function runAuthorizers(
 }
 
 /**
- * Check whether the context is allowed to call an operation: the session `permission` then the authorizers
+ * Check whether the context is allowed to call an operation: the session `permission`, the second factor freshness
+ * (`maxMfaAge`) then the authorizers
  *
  * Unlike {@link checkOperation}, this never throws: unknown operations, refusals and errors return false.
  *
@@ -151,6 +191,7 @@ export async function canCallOperation(
     if (!checkOperationPermission(context, operationId, operation)) {
       return false;
     }
+    checkOperationMfa(context, operationId, operation);
     return (
       (await runAuthorizers(context, operationId, operation, {
         input: options?.input,
@@ -569,6 +610,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
   if (!checkOperationPermission(context, operationId, operations[operationId])) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
+  checkOperationMfa(context, operationId, operations[operationId]);
   if (hasStreamedInput(operations[operationId])) {
     if (!context.getExtension("operationInputStream")) {
       throw new WebdaError.BadRequest(`${operationId} expects a stream of messages (gRPC stream or WebSocket)`);
@@ -879,6 +921,12 @@ interface OperationParameters {
    * Permission query to check before executing the operation
    */
   permissionQuery?: string;
+  /**
+   * Require the second factor to be verified within this duration (Duration syntax: `600`, `"10m"`)
+   *
+   * Implies a logged session with a verified second factor
+   */
+  maxMfaAge?: number | string;
   /**
    * REST transport hints
    */

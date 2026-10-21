@@ -232,15 +232,20 @@ class KubernetesInformerTest {
     const errors: any[] = [];
     const added: string[] = [];
     const listener = (obj: any) => added.push(obj.metadata.name);
+    let watching = 0;
     this.informer.on("error", err => errors.push(err));
+    this.informer.on("watching", () => watching++);
     this.informer.on("add", listener);
     await this.informer.start();
     await until(() => this.api.watches.length === 1);
     assert.strictEqual(errors.length, 1);
     assert.strictEqual(errors[0].statusCode, 403);
+    // Only the accepted watch
+    await until(() => watching === 1);
     this.informer.off("add", listener);
     this.api.send("ADDED", this.api.item("d"));
     await until(() => this.informer.get("d") !== undefined);
     assert.deepStrictEqual(added, []);
+    assert.strictEqual(watching, 1);
   }
 }

@@ -51,31 +51,51 @@ type Listeners<T> = {
   error: ((err: any) => void)[];
   connect: (() => void)[];
   synced: ((objects: T[]) => void)[];
+  watching: (() => void)[];
 };
 
 /**
- * Watch calling a hook before each watch request
+ * Watch calling hooks around each watch request
  */
 class NotifyingWatch extends k8s.Watch {
   /**
    * @param config - the kubernetes configuration
    * @param beforeWatch - called before each watch request
+   * @param afterWatch - called when a watch request is accepted
    */
   constructor(
     config: k8s.KubeConfig,
-    protected beforeWatch: () => void
+    protected beforeWatch: () => void,
+    protected afterWatch: () => void
   ) {
     super(config);
   }
 
   /**
-   * Call the hook, then watch
-   * @param args - the arguments of Watch.watch
+   * Watch, calling the hooks
+   * @param path - the path to watch
+   * @param queryParams - the query parameters
+   * @param callback - called with each event
+   * @param done - called when the watch ends, with the error if any
    * @returns the controller of the watch request
    */
-  watch(...args: Parameters<k8s.Watch["watch"]>): Promise<AbortController> {
+  async watch(
+    path: string,
+    queryParams: Record<string, any>,
+    callback: (phase: string, apiObj: any, watchObj?: any) => void,
+    done: (err: any) => void
+  ): Promise<AbortController> {
     this.beforeWatch();
-    return super.watch(...args);
+    // A refused watch calls done before watch returns
+    let ended = false;
+    const controller = await super.watch(path, queryParams, callback, err => {
+      ended = true;
+      done(err);
+    });
+    if (!ended) {
+      this.afterWatch();
+    }
+    return controller;
   }
 }
 
@@ -89,6 +109,7 @@ class NotifyingWatch extends k8s.Watch {
  * - `add`, `update`, `delete`, `change` (any of the three): an object changed
  * - `synced`: a list succeeded, with all the objects
  * - `connect`: the informer (re)connects
+ * - `watching`: a watch request is accepted, the cache follows the changes again
  * - `error`: a list or a watch failed, the informer restarts
  */
 export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesObject> {
@@ -102,7 +123,8 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
     change: [],
     error: [],
     connect: [],
-    synced: []
+    synced: [],
+    watching: []
   };
   protected stopped = true;
   protected restartTimer?: NodeJS.Timeout;
@@ -140,7 +162,11 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
       ? `/apis/${group}/${version}/namespaces/${namespace}/${plural}`
       : `/apis/${group}/${version}/${plural}`;
     // ListWatch updates its cache after a successful list, then watches: emit synced at that point
-    const watch = new NotifyingWatch(getKubeConfig(params), () => this.flushSync());
+    const watch = new NotifyingWatch(
+      getKubeConfig(params),
+      () => this.flushSync(),
+      () => this.emit("watching")
+    );
     this.informer = new k8s.ListWatch<T>(path, watch, list, false, labelSelector);
     for (const event of ["add", "update", "delete"] as const) {
       this.informer.on(event, obj => {

@@ -36,17 +36,71 @@ export function isApiStatus(err: unknown, code: number): boolean {
 }
 
 /**
+ * Versions of the resources written by this process, to tell them from the changes made by others
+ *
+ * Entries expire: a version whose watch event never comes (watch down) does not leak.
+ */
+export class WriteTracker {
+  protected entries = new Map<string, number>();
+  protected nextSweep = 0;
+
+  /**
+   * @param ttl - milliseconds an entry is kept
+   */
+  constructor(protected ttl: number = 300000) {}
+
+  /**
+   * Record a write
+   * @param name - the resource name
+   * @param version - its resourceVersion after the write, `DELETED` for a deletion
+   */
+  record(name: string, version: string | undefined): void {
+    if (version === undefined) return;
+    const now = Date.now();
+    if (now >= this.nextSweep) {
+      for (const [key, expiry] of this.entries) {
+        if (expiry < now) this.entries.delete(key);
+      }
+      this.nextSweep = now + this.ttl;
+    }
+    this.entries.set(`${name}@${version}`, now + this.ttl);
+  }
+
+  /**
+   * Whether a version was written by this process, forgetting it
+   * @param name - the resource name
+   * @param version - the resourceVersion, `DELETED` for a deletion
+   * @returns true for a write of this process
+   */
+  consume(name: string, version: string | undefined): boolean {
+    return version !== undefined && this.entries.delete(`${name}@${version}`);
+  }
+}
+
+/**
  * CRUD on the custom resources of one type, namespaced or cluster scoped
  */
 export class CustomResources {
   /**
    * @param api - the custom objects API
    * @param type - the resources type
+   * @param tracker - records the writes, when the store watches the resources
    */
   constructor(
     protected api: k8s.CustomObjectsApi,
-    readonly type: CustomResourceType
+    readonly type: CustomResourceType,
+    readonly tracker?: WriteTracker
   ) {}
+
+  /**
+   * Record a write in the tracker
+   * @param resource - the resource returned by the write
+   * @returns the resource
+   */
+  protected track(resource: CustomResource): CustomResource {
+    this.tracker?.record(resource.metadata?.name, resource.metadata?.resourceVersion);
+    return resource;
+  }
 
   /**
    * @returns `group/version`
@@ -117,9 +171,11 @@ export class CustomResources {
    * @throws ApiException 409 when it exists
    */
   async create(body: CustomResource): Promise<CustomResource> {
-    return this.type.namespace
-      ? this.api.createNamespacedCustomObject({ ...this.params(), body })
-      : this.api.createClusterCustomObject({ ...this.params(), body });
+    return this.track(
+      await (this.type.namespace
+        ? this.api.createNamespacedCustomObject({ ...this.params(), body })
+        : this.api.createClusterCustomObject({ ...this.params(), body }))
+    );
   }
 
   /**
@@ -130,9 +186,11 @@ export class CustomResources {
    */
   async replace(body: CustomResource): Promise<CustomResource> {
     const name = body.metadata.name;
-    return this.type.namespace
-      ? this.api.replaceNamespacedCustomObject({ ...this.params(), name, body })
-      : this.api.replaceClusterCustomObject({ ...this.params(), name, body });
+    return this.track(
+      await (this.type.namespace
+        ? this.api.replaceNamespacedCustomObject({ ...this.params(), name, body })
+        : this.api.replaceClusterCustomObject({ ...this.params(), name, body }))
+    );
   }
 
   /**
@@ -143,9 +201,11 @@ export class CustomResources {
    */
   async replaceStatus(body: CustomResource): Promise<CustomResource> {
     const name = body.metadata.name;
-    return this.type.namespace
-      ? this.api.replaceNamespacedCustomObjectStatus({ ...this.params(), name, body })
-      : this.api.replaceClusterCustomObjectStatus({ ...this.params(), name, body });
+    return this.track(
+      await (this.type.namespace
+        ? this.api.replaceNamespacedCustomObjectStatus({ ...this.params(), name, body })
+        : this.api.replaceClusterCustomObjectStatus({ ...this.params(), name, body }))
+    );
   }
 
   /**
@@ -159,5 +219,6 @@ export class CustomResources {
     await (this.type.namespace
       ? this.api.deleteNamespacedCustomObject({ ...this.params(), name, body })
       : this.api.deleteClusterCustomObject({ ...this.params(), name, body }));
+    this.tracker?.record(name, "DELETED");
   }
 }

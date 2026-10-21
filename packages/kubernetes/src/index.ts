@@ -3,3 +3,5 @@ export * from "./services/cronexporter.service.js";
 export * from "./services/kuberunner.service.js";
 export * from "./utils/client.js";
 export * from "./utils/informer.js";
+export * from "./crd/naming.js";
+export * from "./crd/schema.js";

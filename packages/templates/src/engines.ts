@@ -1,7 +1,9 @@
 import { useLog } from "@webda/core";
 import type { TemplateEngine } from "./itemplate.js";
 
-const engines: Map<string, TemplateEngine> = new Map();
+// Shared through globalThis so the compiled module (loaded from webda.module.json) and any other copy of the package see the same engines
+const REGISTRY = Symbol.for("@webda/templates:engines");
+const engines: Map<string, TemplateEngine> = ((globalThis as any)[REGISTRY] ??= new Map());
 
 /**
  * Register a template engine

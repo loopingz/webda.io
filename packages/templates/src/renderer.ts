@@ -89,7 +89,7 @@ export class TemplateRenderer {
     if (!name || name.includes("..") || name.startsWith("/") || name.includes("\\") || name.includes("\0")) {
       throw new TemplateNotFoundError(name);
     }
-    if (locale !== undefined && !LOCALE_PATTERN.test(locale)) {
+    if (locale && !LOCALE_PATTERN.test(locale)) {
       throw new TemplateNotFoundError(name);
     }
     const idx = name.lastIndexOf("/");

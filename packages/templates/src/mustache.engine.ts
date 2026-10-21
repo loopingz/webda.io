@@ -1,6 +1,6 @@
 import Mustache from "mustache";
 import type { CompiledTemplate, TemplateEngine, TemplateRenderOptions } from "./itemplate.js";
-import { registerTemplateEngine } from "./engines.js";
+import { getTemplateEngine, registerTemplateEngine } from "./engines.js";
 
 /**
  * Mustache template engine
@@ -21,4 +21,6 @@ export class MustacheEngine implements TemplateEngine {
   }
 }
 
-registerTemplateEngine("mustache", new MustacheEngine());
+if (!getTemplateEngine("mustache")) {
+  registerTemplateEngine("mustache", new MustacheEngine());
+}

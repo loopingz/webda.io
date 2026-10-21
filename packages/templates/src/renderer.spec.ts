@@ -88,6 +88,14 @@ class TemplateRendererTest {
   }
 
   @test
+  async emptyLocaleActsAsNoLocale() {
+    const r = new TemplateRenderer({ folders: [A] });
+    assert.strictEqual(await r.render("single", { name: "Bob" }, { locale: "" }), "Single A Bob");
+    assert.ok(await r.has("single", { locale: "" }));
+    assert.strictEqual((await r.renderAll("WELCOME", { name: "Bob" }, { locale: "" })).subject, "Welcome Bob");
+  }
+
+  @test
   async folderPriority() {
     const r = new TemplateRenderer({ folders: [A, B] });
     assert.strictEqual(await r.render("single", { name: "z" }), "Single A z");

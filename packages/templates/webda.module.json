@@ -2,7 +2,63 @@
   "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
-  "moddas": {},
+  "moddas": {
+    "Webda/TemplateService": {
+      "Import": "lib/template.service:TemplateService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, any>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the TemplateService",
+        "properties": {
+          "cache": {
+            "default": true,
+            "description": "Cache compiled templates, always disabled in debug mode",
+            "type": "boolean"
+          },
+          "engine": {
+            "default": "mustache",
+            "description": "Engine winning when several handle the same extension",
+            "type": "string"
+          },
+          "engines": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+            "description": "Engine options, keyed by engine name, passed to the engine `configure`"
+          },
+          "folders": {
+            "default": [
+              "./templates"
+            ],
+            "description": "Folders to look templates into, in priority order",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "TemplateService"
+      },
+      "Configuration": "lib/template.service:TemplateServiceParameters"
+    }
+  },
   "models": {},
   "schemas": {
     "Webda/BinaryFile": {

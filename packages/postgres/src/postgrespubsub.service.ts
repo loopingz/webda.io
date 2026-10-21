@@ -1,8 +1,9 @@
-import { PubSubService, SecretString, ServiceParameters } from "@webda/core";
+import { PubSubService, ServiceParameters } from "@webda/core";
 import { CancelablePromise, JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { acquirePool, releasePool } from "./pgpool.js";
+import { PostgresListener } from "./pglisten.js";
 
 /**
  * NOTIFY's payload limit is 8000 bytes (the underlying NAMEDATALEN /
@@ -77,11 +78,11 @@ export default class PostgresPubSubService<
   K extends PostgresPubSubParameters = PostgresPubSubParameters
 > extends PubSubService<T, K> {
   /**
-   * Long-lived listener client. One per service instance because LISTEN is
+   * Long-lived LISTEN connection. One per service instance because LISTEN is
    * scoped to the connection that issued it — a pool would silently rotate
    * and drop the subscription.
    */
-  protected client?: pg.Client;
+  protected listener?: PostgresListener;
   /**
    * Shared pool used for the publish side (`pg_notify`). Acquired from
    * the per-config pool registry so multiple services that target the
@@ -93,12 +94,6 @@ export default class PostgresPubSubService<
    * Local callback registrations. Notifications dispatch to all of them.
    */
   protected callbacks: Set<Subscriber<T>> = new Set();
-  /**
-   * Set during {@link stop} so reconnect handlers don't try to come back
-   * after teardown.
-   */
-  protected stopping = false;
-
   /**
    * Channel name used for LISTEN/NOTIFY. Resolved at init time so we can
    * default to the service's name when not configured.
@@ -119,40 +114,16 @@ export default class PostgresPubSubService<
   }
 
   /**
-   * Open a fresh client, run LISTEN, and wire the notification handler.
+   * Open the LISTEN connection, reconnecting on disconnects.
    */
   protected async connect(): Promise<void> {
-    // Validate the channel name before opening any connection: LISTEN
-    // can't be parameterized so the channel name gets inlined into SQL,
-    // which makes it a query-injection vector. Failing fast here keeps
-    // the bad-input case independent of database reachability.
-    const ch = this.channel();
-    if (!/^[a-z_][a-z0-9_]*$/.test(ch)) {
-      throw new Error(`Invalid channel name "${ch}" — must match /^[a-z_][a-z0-9_]*$/`);
-    }
-    const client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer));
-    client.on("notification", (msg: pg.Notification) => {
-      if (msg.channel !== this.channel()) return;
-      this.dispatch(msg.payload ?? "");
+    const listener = new PostgresListener(this.parameters.postgresqlServer, this.channel(), {
+      name: "PostgresPubSub",
+      reconnectDelay: this.parameters.reconnectDelay!,
+      onNotification: payload => this.dispatch(payload)
     });
-    client.on("error", err => useLog("WARN", `PostgresPubSub client error: ${err.message}`));
-    client.on("end", () => this.handleDisconnect());
-    await client.connect();
-    await client.query(`LISTEN ${ch}`);
-    this.client = client;
-  }
-
-  /**
-   * Schedule a reconnect after a short randomized backoff.
-   */
-  protected handleDisconnect(): void {
-    if (this.stopping) return;
-    this.client = undefined;
-    const delay = this.parameters.reconnectDelay! + Math.floor(Math.random() * 250);
-    setTimeout(() => {
-      if (this.stopping) return;
-      this.connect().catch(err => useLog("WARN", `PostgresPubSub reconnect failed: ${(err as Error).message}`));
-    }, delay);
+    await listener.connect();
+    this.listener = listener;
   }
 
   /**
@@ -190,7 +161,7 @@ export default class PostgresPubSubService<
    * @param event - the event to publish
    */
   async sendMessage(event: T): Promise<void> {
-    if (!this.client) throw new Error("PostgresPubSub not connected");
+    if (!this.listener?.connected) throw new Error("PostgresPubSub not connected");
     const payload = JSONUtils.stringify(event);
     if (Buffer.byteLength(payload, "utf-8") > NOTIFY_PAYLOAD_MAX) {
       throw new Error(
@@ -243,19 +214,11 @@ export default class PostgresPubSubService<
    * @override
    */
   async stop(): Promise<void> {
-    this.stopping = true;
     this.callbacks.clear();
-    if (this.client) {
-      const client = this.client;
-      this.client = undefined;
-      try {
-        await client.query(`UNLISTEN ${this.channel()}`);
-      } catch {
-        /* connection may already be dead */
-      }
-      await client.end().catch(() => {
-        /* already ended */
-      });
+    if (this.listener) {
+      const listener = this.listener;
+      this.listener = undefined;
+      await listener.stop();
     }
     if (this.publishPool) {
       this.publishPool = undefined;

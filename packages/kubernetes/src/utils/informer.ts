@@ -262,12 +262,16 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
   }
 
   /**
-   * A list or a watch failed: restart after the backoff delay unless stopped
+   * A list or a watch failed: emit the error and restart after the backoff delay, unless stopped
    * @param err - the error
    */
   protected onError(err: any): void {
+    // Stopping aborts the watch request: not an error
+    if (this.stopped) {
+      return;
+    }
     this.emit("error", err);
-    if (this.stopped || this.restartTimer) {
+    if (this.restartTimer) {
       return;
     }
     const delay = this.currentRestartDelay;

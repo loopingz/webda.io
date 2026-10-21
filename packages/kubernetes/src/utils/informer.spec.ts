@@ -206,6 +206,19 @@ class KubernetesInformerTest {
   }
 
   @test
+  async stopIsNotAnError() {
+    const config = await this.api.start();
+    this.informer = new KubernetesInformer({ config }, { group: "example.com", version: "v1", plural: "projects" });
+    const errors: any[] = [];
+    this.informer.on("error", err => errors.push(err));
+    await this.informer.start();
+    await until(() => this.api.watches.length === 1);
+    await this.informer.stop();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.deepStrictEqual(errors, []);
+  }
+
+  @test
   async stopPreventsRestart() {
     const config = await this.api.start();
     this.api.listFailures = [500];

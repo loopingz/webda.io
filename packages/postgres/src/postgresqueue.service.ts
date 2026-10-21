@@ -1,8 +1,9 @@
 import { MessageReceipt, Queue, QueueParameters, SecretString } from "@webda/core";
-import { JSONUtils } from "@webda/utils";
+import { CancelablePromise, JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { acquirePool, releasePool } from "./pgpool.js";
+import { PostgresListener } from "./pglisten.js";
 
 /**
  * Configuration for {@link PostgresQueueService}.
@@ -57,6 +58,32 @@ export class PostgresQueueParameters extends QueueParameters {
    * @default true
    */
   autoCreateTable?: boolean;
+  /**
+   * Wake up the consumers with LISTEN / NOTIFY instead of polling
+   *
+   * `sendMessage` NOTIFYs a channel named after the table (lowercased), and `consume()` opens a dedicated
+   * LISTEN connection: once the queue is empty, its receives wait for a notification, up to `waitTimeout`,
+   * before querying again. Direct `receiveMessage` calls never wait. Set to false to poll as before.
+   *
+   * @default true
+   */
+  notify?: boolean;
+  /**
+   * Maximum time a receive of `consume()` waits for a notification, in seconds
+   *
+   * The queue is queried at least that often, and at least every `visibilityTimeout`, as a safety net: it
+   * picks up the messages whose visibility lock expired, and the ones whose notification was missed.
+   *
+   * @default 20
+   */
+  waitTimeout?: number;
+  /**
+   * Reconnect delay in milliseconds when the LISTEN connection drops. A
+   * randomized jitter is added. Consumers poll while it is down.
+   *
+   * @default 500
+   */
+  reconnectDelay?: number;
 
   /**
    * @override
@@ -70,6 +97,9 @@ export class PostgresQueueParameters extends QueueParameters {
     this.batchSize ??= 10;
     this.usePool ??= true;
     this.autoCreateTable ??= true;
+    this.notify ??= true;
+    this.waitTimeout ??= 20;
+    this.reconnectDelay ??= 500;
     return this;
   }
 }
@@ -102,6 +132,26 @@ export default class PostgresQueueService<
    * Drives the matching {@link releasePool} call in {@link stop}.
    */
   protected ownsPool = false;
+  /**
+   * LISTEN connection, opened by the first {@link consume} when `notify` is enabled
+   */
+  protected listener?: PostgresListener;
+  /**
+   * Resolved once the LISTEN connection is opened (or failed to): the first receive waits for it
+   */
+  protected listening?: Promise<void>;
+  /**
+   * Number of running {@link consume}: receives only wait for a notification while consuming
+   */
+  protected consumers = 0;
+  /**
+   * Receives waiting for a notification
+   */
+  protected waiters = new Set<(notified: boolean) => void>();
+  /**
+   * Incremented on each notification: a receive does not wait if one arrived while it queried
+   */
+  protected notifications = 0;
 
   /**
    * Resolved table identifier. Validated at init to keep the table name
@@ -110,6 +160,14 @@ export default class PostgresQueueService<
    */
   protected get table(): string {
     return this.parameters.table!;
+  }
+
+  /**
+   * Channel used by LISTEN / NOTIFY: the table name, lowercased as Postgres does for unquoted identifiers
+   * @returns the channel name
+   */
+  protected get channel(): string {
+    return this.table.toLowerCase();
   }
 
   /**
@@ -167,7 +225,16 @@ export default class PostgresQueueService<
   async sendMessage(event: T): Promise<void> {
     if (!this.client) throw new Error("PostgresQueue not connected");
     this.metrics?.messages_sent?.inc();
-    await this.client.query(`INSERT INTO ${this.table} (payload) VALUES ($1::jsonb)`, [JSONUtils.stringify(event)]);
+    if (!this.parameters.notify) {
+      await this.client.query(`INSERT INTO ${this.table} (payload) VALUES ($1::jsonb)`, [JSONUtils.stringify(event)]);
+      return;
+    }
+    // Same statement, so same transaction: the notification is delivered when the row is committed
+    await this.client.query(
+      `WITH inserted AS (INSERT INTO ${this.table} (payload) VALUES ($1::jsonb) RETURNING id)
+      SELECT pg_notify($2, '') FROM inserted`,
+      [JSONUtils.stringify(event), this.channel]
+    );
   }
 
   /**
@@ -183,11 +250,136 @@ export default class PostgresQueueService<
   }
 
   /**
+   * Receive a batch of messages
+   *
+   * Within {@link consume}, when the queue is empty and the LISTEN connection is up, it waits for a
+   * notification, up to `waitTimeout` (or `visibilityTimeout` if shorter), and queries again. Otherwise it
+   * returns immediately.
+   *
    * @override
    * @param proto - optional prototype to rehydrate the payload into
    * @returns the locked batch
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
+    if (this.consumers > 0 && this.listening) {
+      await this.listening;
+    }
+    const waitMs = Math.min(this.parameters.waitTimeout!, this.parameters.visibilityTimeout!) * 1000;
+    const deadline = Date.now() + (this.canWait() ? waitMs : 0);
+    for (;;) {
+      const notifications = this.notifications;
+      const messages = await this.lockMessages(proto);
+      const remaining = deadline - Date.now();
+      if (messages.length > 0 || remaining <= 0 || !this.canWait()) {
+        return messages;
+      }
+      // A notification received during the query may be for a message it did not see
+      if (notifications === this.notifications && !(await this.waitForNotification(remaining))) {
+        // Timeout or cancellation: the next receive of the consumer queries again
+        return [];
+      }
+    }
+  }
+
+  /**
+   * @returns true if a receive can wait for a notification: consuming, with LISTEN active
+   */
+  protected canWait(): boolean {
+    return this.consumers > 0 && this.listener?.connected === true;
+  }
+
+  /**
+   * Wait for a notification, at most `ms`
+   *
+   * @param ms - maximum wait in milliseconds
+   * @returns true if woken up by a notification or a reconnection, false on timeout or cancellation
+   */
+  protected waitForNotification(ms: number): Promise<boolean> {
+    return new Promise(resolve => {
+      const wake = (notified: boolean) => {
+        clearTimeout(timer);
+        this.waiters.delete(wake);
+        resolve(notified);
+      };
+      const timer = setTimeout(() => wake(false), ms);
+      this.waiters.add(wake);
+    });
+  }
+
+  /**
+   * Wake up every receive waiting for a notification
+   *
+   * @param notified - true to query again, false to return no message
+   */
+  protected wakeUp(notified: boolean): void {
+    [...this.waiters].forEach(wake => wake(notified));
+  }
+
+  /**
+   * Open the LISTEN connection if not already done
+   *
+   * It stays open until {@link stop}. If it cannot be opened, the consumers keep polling and the next
+   * {@link consume} tries again.
+   */
+  protected listen(): void {
+    if (this.listening) return;
+    const listener = new PostgresListener(this.parameters.postgresqlServer, this.channel, {
+      name: "PostgresQueue",
+      reconnectDelay: this.parameters.reconnectDelay!,
+      onNotification: () => {
+        this.notifications++;
+        this.wakeUp(true);
+      },
+      // Waiting receives query again: they poll while disconnected, and catch up the missed notifications
+      onDisconnect: () => this.wakeUp(true),
+      onReconnect: () => this.wakeUp(true)
+    });
+    this.listener = listener;
+    this.listening = listener.connect().catch(err => {
+      useLog("WARN", `PostgresQueue cannot LISTEN, falling back to polling: ${(err as Error).message}`);
+      if (this.listener === listener) {
+        this.listener = undefined;
+        this.listening = undefined;
+      }
+    });
+  }
+
+  /**
+   * Work the queue, woken up by LISTEN / NOTIFY when `notify` is enabled
+   *
+   * @override
+   * @param callback - the callback function
+   * @param eventPrototype - the event prototype
+   * @returns the consumer, cancelling it interrupts the wait for a notification
+   */
+  consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
+    if (!this.parameters.notify) {
+      return super.consume(callback, eventPrototype);
+    }
+    this.consumers++;
+    this.listen();
+    const consumer = super.consume(callback, eventPrototype);
+    const cancel = consumer.cancel;
+    let cancelled = false;
+    consumer.cancel = async () => {
+      if (!cancelled) {
+        cancelled = true;
+        this.consumers--;
+      }
+      await cancel();
+      // Stop the receives waiting for a notification: the loop ends
+      this.wakeUp(false);
+    };
+    return consumer;
+  }
+
+  /**
+   * Lock a batch of pending messages
+   *
+   * @param proto - optional prototype to rehydrate the payload into
+   * @returns the locked batch, empty if no message is visible
+   */
+  protected async lockMessages<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     if (!this.client) throw new Error("PostgresQueue not connected");
     // Atomically lock a batch: lock_until is set to now() + visibilityTimeout
     // for rows whose previous lock has expired (or that are pending). Other
@@ -254,6 +446,14 @@ export default class PostgresQueueService<
    * @override
    */
   async stop(): Promise<void> {
+    this.consumers = 0;
+    this.wakeUp(false);
+    if (this.listener) {
+      const listener = this.listener;
+      this.listener = undefined;
+      this.listening = undefined;
+      await listener.stop();
+    }
     if (this.client) {
       const client = this.client;
       const owned = this.ownsPool;

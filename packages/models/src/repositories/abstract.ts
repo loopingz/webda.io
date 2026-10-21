@@ -118,6 +118,65 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   /**
+   * Stored types naming a strict ancestor of the table root (e.g. `UuidModel` in a table of an application model),
+   * for stores filtering in their query language: such rows belong to the table root, like untyped rows
+   * @returns the types, empty when the table root is unknown or this model does not own the untyped rows
+   */
+  protected tableRootAncestorTypes(): string[] {
+    const root: any = this.tableRoot;
+    if (!root || !(this.model as any)?.Metadata?.Identifier) {
+      return [];
+    }
+    // Untyped rows belong to the table root and its ancestors only
+    if (root !== this.model && !(root.prototype instanceof (this.model as any))) {
+      return [];
+    }
+    const resolver = this.typeResolver();
+    const types: string[] = [];
+    for (let clazz = Object.getPrototypeOf(root); clazz && clazz !== Function.prototype;) {
+      if (Object.prototype.hasOwnProperty.call(clazz, "Metadata") && clazz.Metadata?.Identifier) {
+        // acceptedTypes lists the whole family of the ancestor: only the names resolving to the ancestor itself
+        const names = resolver.knows(clazz)
+          ? resolver.acceptedTypes(clazz).filter(name => resolver.resolveStoredType(name) === clazz)
+          : [clazz.Metadata.Identifier];
+        types.push(...names.filter(name => !types.includes(name)));
+      }
+      clazz = Object.getPrototypeOf(clazz);
+    }
+    return types;
+  }
+
+  /**
+   * Stored types a write of this model family rewrites, for stores updating rows in place: each form of a model
+   * (current, short, lower-case, alias) to its current identifier, and the ancestor types of the table root to the
+   * table root identifier
+   * @returns the current identifier by lower-cased stored type, empty when the model carries no Metadata
+   */
+  protected legacyTypeRewrites(): Record<string, string> {
+    if (!(this.model as any)?.Metadata?.Identifier) {
+      return {};
+    }
+    const resolver = this.typeResolver();
+    const rewrites: Record<string, string> = {};
+    const rootIdentifier = this.tableRoot
+      ? (resolver.getIdentifier(this.tableRoot) ?? (this.tableRoot as any).Metadata?.Identifier)
+      : undefined;
+    if (rootIdentifier) {
+      for (const name of this.tableRootAncestorTypes()) {
+        rewrites[name.toLowerCase()] = rootIdentifier;
+      }
+    }
+    for (const name of this.acceptedTypes()) {
+      const resolved: any = resolver.resolveStoredType(name);
+      const current = resolved ? (resolver.getIdentifier(resolved) ?? resolved.Metadata?.Identifier) : undefined;
+      if (current) {
+        rewrites[name.toLowerCase()] = current;
+      }
+    }
+    return rewrites;
+  }
+
+  /**
    * Build the model instance to create from the incoming data
    *
    * Primary key fields that are undefined or null are dropped from the data so a

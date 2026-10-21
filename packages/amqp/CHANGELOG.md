@@ -168,6 +168,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.3.7](https://github.com/loopingz/webda.io/compare/amqp-v3.3.6...amqp-v3.3.7) (2026-10-21)
+
+
+### Bug Fixes
+
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* unit test ([fbbd46b](https://github.com/loopingz/webda.io/commit/fbbd46b53d11c64ed584b533d96e1237e43d23cc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/amqp-v3.2.0...amqp-v3.3.0) (2024-01-16)
 
 

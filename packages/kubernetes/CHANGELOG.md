@@ -137,6 +137,26 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [3.4.3](https://github.com/loopingz/webda.io/compare/kubernetes-v3.4.2...kubernetes-v3.4.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* patch for postHook without condition ([eaa5fd4](https://github.com/loopingz/webda.io/commit/eaa5fd4baf65e8509be4fea6a45127154ac17d39))
+* patch for postHook without condition ([4f6b273](https://github.com/loopingz/webda.io/commit/4f6b27320a886d1a39f66a010f1325eafb555b37))
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* update webda.module.json for kubernetes ([adb6677](https://github.com/loopingz/webda.io/commit/adb6677a260ed553e9290fb67fa99fe17252554a))
+* upgrade k8s client ([e6dd3a6](https://github.com/loopingz/webda.io/commit/e6dd3a63d56f52c7fda96990474ee2c94ceefa9d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.9.3 to ^3.8.0
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/kubernetes-v3.3.4...kubernetes-v3.4.0) (2024-04-12)
 
 

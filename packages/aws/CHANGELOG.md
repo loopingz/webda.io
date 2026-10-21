@@ -186,6 +186,31 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/aws-v3.4.2...aws-v3.5.0) (2026-10-21)
+
+
+### Features
+
+* **docs:** publish v3 documentation lane ([#938](https://github.com/loopingz/webda.io/issues/938)) ([d1792ca](https://github.com/loopingz/webda.io/commit/d1792ca40c987d396c8a4191a938a34783871768))
+* drop node 18 ([6ddf3a2](https://github.com/loopingz/webda.io/commit/6ddf3a26440a329067b42c4e7e1da3bf6a4714bc))
+
+
+### Bug Fixes
+
+* s3 sdk putObject do not accept unknown length Readable anymore ([65f1e55](https://github.com/loopingz/webda.io/commit/65f1e550235792ca762b21003f234a29c87e80d7))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* unit test ([fbbd46b](https://github.com/loopingz/webda.io/commit/fbbd46b53d11c64ed584b533d96e1237e43d23cc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.9.3 to ^3.8.0
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/aws-v3.3.4...aws-v3.4.0) (2024-04-12)
 
 

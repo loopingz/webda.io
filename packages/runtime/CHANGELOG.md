@@ -72,6 +72,26 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.5.3](https://github.com/loopingz/webda.io/compare/runtime-v3.5.2...runtime-v3.5.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* clean shutdown for cluster member ([6fab202](https://github.com/loopingz/webda.io/commit/6fab20272e88ac9ba10c091cec58f5689a21178e))
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* stop is public ([457f603](https://github.com/loopingz/webda.io/commit/457f6039bd9f6a4bbe401714cbed9e00d3821eeb))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* update webda.module.json for kubernetes ([adb6677](https://github.com/loopingz/webda.io/commit/adb6677a260ed553e9290fb67fa99fe17252554a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/runtime-v3.4.0...runtime-v3.5.0) (2024-04-12)
 
 

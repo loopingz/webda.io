@@ -144,6 +144,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.6.0](https://github.com/loopingz/webda.io/compare/hawk-v3.5.1...hawk-v3.6.0) (2026-10-21)
+
+
+### Features
+
+* **hawk:** move canRequest as async to allow more behavior ([43be433](https://github.com/loopingz/webda.io/commit/43be4338ad373e079e197a9a1968fc79403b6c02))
+
+
+### Bug Fixes
+
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/hawk-v3.4.1...hawk-v3.5.0) (2024-06-05)
 
 

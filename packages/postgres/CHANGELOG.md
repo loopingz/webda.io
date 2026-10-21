@@ -96,6 +96,29 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/postgres-v3.4.3...postgres-v3.5.0) (2026-10-21)
+
+
+### Features
+
+* add index for __types and __type ([5e5a1c7](https://github.com/loopingz/webda.io/commit/5e5a1c762595fd312fdcc9f300296bef45393b32))
+
+
+### Bug Fixes
+
+* coalesce on boolean and bigint ([a606e82](https://github.com/loopingz/webda.io/commit/a606e826c8484f8b29d092bf3a98ee7fe2625f5d))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* **webdaql:** bad escape of ' and " ([3479571](https://github.com/loopingz/webda.io/commit/347957107daa10c353ce01d344dd90d35e564cda))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.4.2](https://github.com/loopingz/webda.io/compare/postgres-v3.4.1...postgres-v3.4.2) (2024-05-19)
 
 

@@ -33,6 +33,10 @@ class NamingTest {
       getCrdNames({ Identifier: "Tenant", Plural: "Tenants", ShortName: "TN", PrimaryKey: ["uuid"] }, "a.b").shortNames,
       ["tn"]
     );
+    assert.strictEqual(
+      getCrdNames({ Identifier: "WebdaTest/Ident", Plural: "WebdaTest/Idents", PrimaryKey: ["uuid"] }, "a.b").plural,
+      "idents"
+    );
   }
 
   @test

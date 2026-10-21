@@ -313,6 +313,10 @@ export interface CrdOptions {
    * Fields mirrored as labels, shown as printer columns
    */
   labelFields?: string[];
+  /**
+   * Keep the spec fields the schema does not declare: the fields of the subclasses sharing the resources
+   */
+  preserveUnknownFields?: boolean;
 }
 
 /**
@@ -397,6 +401,7 @@ export function buildCrd(model: CrdModel, options: CrdOptions): CustomResourceDe
     },
     definitions
   );
+  if (options.preserveUnknownFields) spec["x-kubernetes-preserve-unknown-fields"] = true;
   const root: StructuralSchema = {
     type: "object",
     ...(stored.description ? { description: stored.description } : {}),

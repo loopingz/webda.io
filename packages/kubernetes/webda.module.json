@@ -124,6 +124,46 @@
       },
       "Configuration": "lib/services/kuberunner.service:KubeRunnerParameters"
     },
+    "Webda/KubernetesCrdExporter": {
+      "Import": "lib/services/crdexporter.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "KubernetesCrdExporter"
+      },
+      "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters",
+      "commands": {
+        "kubernetes crd export": {
+          "description": "Export the CustomResourceDefinitions of the Kubernetes stores",
+          "method": "crdExport",
+          "args": {
+            "target": {
+              "type": "string",
+              "default": "./crds"
+            }
+          },
+          "requires": [
+            "kubernetes-crd-export"
+          ],
+          "phase": "resolved"
+        }
+      }
+    },
     "Webda/KubernetesCronExporter": {
       "Import": "lib/services/cronexporter.service:default",
       "Schema": {
@@ -173,6 +213,247 @@
           "phase": "resolved"
         }
       }
+    },
+    "Webda/KubernetesStore": {
+      "Import": "lib/stores/kubernetesstore.service:KubernetesStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Cluster": {
+            "additionalProperties": false,
+            "properties": {
+              "caFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Context": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "K8sConfiguration": {
+            "additionalProperties": false,
+            "description": "Kubernetes configuration as found in a kubeconfig file",
+            "properties": {
+              "clusters": {
+                "items": {
+                  "$ref": "#/definitions/Cluster"
+                },
+                "type": "array"
+              },
+              "contexts": {
+                "items": {
+                  "$ref": "#/definitions/Context"
+                },
+                "type": "array"
+              },
+              "currentContext": {
+                "type": "string"
+              },
+              "users": {
+                "items": {
+                  "$ref": "#/definitions/User"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "clusters",
+              "contexts",
+              "currentContext",
+              "users"
+            ],
+            "type": "object"
+          },
+          "Record<string, string[]>": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "User": {
+            "additionalProperties": false,
+            "properties": {
+              "certFile": {
+                "type": "string"
+              },
+              "keyFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "typeCheck#2": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Kubernetes store parameters",
+        "properties": {
+          "aggregationFallback": {
+            "default": "warn",
+            "description": "What to do when an aggregation on this store cannot run natively and must\nstream every matching object through memory",
+            "enum": [
+              "allow",
+              "warn",
+              "deny"
+            ],
+            "type": "string"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/K8sConfiguration"
+              }
+            ],
+            "description": "Kubernetes configuration, the pod's service account or the local kubeconfig when unset\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "users.token",
+              "users.password",
+              "users.keyData",
+              "users.authProvider"
+            ]
+          },
+          "context": {
+            "description": "Kubernetes context to use",
+            "type": "string"
+          },
+          "group": {
+            "description": "API group of the custom resources, e.g. `myapp.example.com`",
+            "type": "string"
+          },
+          "installCrds": {
+            "default": false,
+            "description": "Create or update the CustomResourceDefinitions at init, needs the rights on\n`customresourcedefinitions.apiextensions.k8s.io`",
+            "type": "boolean"
+          },
+          "labelFields": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%5B%5D%3E",
+            "description": "Fields mirrored as labels, by model identifier: queries with `=` or `IN` on them are filtered by the API server"
+          },
+          "maxGroups": {
+            "default": 10000,
+            "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "minimum": 1,
+            "type": "number"
+          },
+          "maxRetries": {
+            "default": 5,
+            "description": "Attempts of a read-modify-write before giving up on conflicts",
+            "type": "number"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "namespace": {
+            "default": "default",
+            "description": "Namespace of the custom resources, ignored when the scope is Cluster",
+            "type": "string"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "scope": {
+            "default": "Namespaced",
+            "description": "Scope of the custom resources",
+            "enum": [
+              "Namespaced",
+              "Cluster"
+            ],
+            "type": "string"
+          },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
+            "type": "number"
+          },
+          "statusFields": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%5B%5D%3E",
+            "description": "Fields stored in the status, by model identifier: written through the status subresource"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "timeout": {
+            "default": 10000,
+            "description": "Milliseconds before a request to the Kubernetes API is aborted",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck%232",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
+          },
+          "version": {
+            "default": "v1",
+            "description": "API version of the custom resources",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "group",
+          "type"
+        ],
+        "type": "object",
+        "title": "KubernetesStore"
+      },
+      "Configuration": "lib/stores/kubernetesstore.service:KubernetesStoreParameters"
     }
   },
   "models": {},
@@ -218,6 +499,7 @@
   },
   "behaviors": {},
   "capabilities": {
-    "kubernetes-cron-export": "Webda/KubernetesCronExporter"
+    "kubernetes-cron-export": "Webda/KubernetesCronExporter",
+    "kubernetes-crd-export": "Webda/KubernetesCrdExporter"
   }
 }

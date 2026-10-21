@@ -5,3 +5,7 @@ export * from "./utils/client.js";
 export * from "./utils/informer.js";
 export * from "./crd/naming.js";
 export * from "./crd/schema.js";
+export * from "./services/crdexporter.service.js";
+export * from "./stores/resources.js";
+export * from "./stores/kubernetesrepository.js";
+export * from "./stores/kubernetesstore.service.js";

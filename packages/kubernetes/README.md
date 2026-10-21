@@ -20,6 +20,9 @@ This module is part of Webda Application Framework that allows you to quickly de
 - You are using `@webda/async` and want async job workers to run as Kubernetes Jobs (one pod per job, auto-retried, auto-cleaned).
 - You want to store Webda model instances in Kubernetes Secrets (useful for small, sensitive configuration objects).
 - You need to deploy a scheduled Webda service operation as a Kubernetes CronJob.
+- You read Kubernetes resources from a service: typed API clients and a self-restarting informer for custom resources.
+- You store configuration-like models as Kubernetes custom resources (`KubernetesStore`), editable with kubectl/GitOps.
+- You reconcile those models like a Kubernetes controller (`KubernetesOperator`).
 
 ## Install
 
@@ -81,6 +84,112 @@ pnpm add @webda/kubernetes
   }
 }
 ```
+
+### KubernetesStore (models as custom resources)
+
+```json
+{
+  "services": {
+    "tenantStore": {
+      "type": "Webda/KubernetesStore",
+      "group": "myapp.example.com",
+      "namespace": "tenants",
+      "models": ["MyApp/Tenant"],
+      "labelFields": { "MyApp/Tenant": ["plan"] },
+      "statusFields": { "MyApp/Tenant": ["ready"] }
+    }
+  }
+}
+```
+
+Each model of `models` is a CustomResourceDefinition `<plural>.<group>`; its subclasses share its resources. The primary
+key is the resource name (a lowercase DNS subdomain: a composite key needs `-` or `.` as `PrimaryKeySeparator`), the
+stored fields its `spec`, the `statusFields` its `status`. Writes are optimistic (`resourceVersion`, retried on
+conflict); `=` and `IN` on `labelFields` are filtered by the API server, the rest of a query in memory.
+
+`webda kubernetes crd export --target ./crds` writes the definitions to apply, or set `installCrds: true` to create
+them at init (needs the rights on `customresourcedefinitions`). `webda kubernetes rbac export --target ./rbac.yaml`
+writes the Roles, ClusterRole and bindings the stores and operators need.
+
+| Parameter | Default | Description |
+|---|---|---|
+| `group` | — (required) | API group of the custom resources |
+| `version` | `v1` | API version |
+| `namespace` | `default` | Namespace of the resources (ignored for `Cluster` scope) |
+| `scope` | `Namespaced` | `Namespaced` or `Cluster` |
+| `labelFields` | `{}` | Fields mirrored as labels, by model |
+| `statusFields` | `{}` | Fields written through the status subresource, by model |
+| `installCrds` | `false` | Create or update the definitions at init |
+| `maxRetries` | `5` | Attempts of a read-modify-write on conflicts |
+| `config`, `context`, `timeout` | in-cluster / kubeconfig, 10000 ms | Kubernetes client |
+
+Kubernetes is not a database: use it for configuration-like models (tens to thousands of objects, at most ~1.5 MiB
+each). A label field must hold label-compatible values; resources created with kubectl need the labels too to be found
+by a query on them.
+
+### KubernetesOperator (reconcile models)
+
+```typescript
+class Tenant extends UuidModel implements Reconcilable {
+  name!: string;
+  ready?: boolean;
+
+  async reconcile() {
+    // provision a database, a namespace...
+    await this.patch({ ready: true });
+    // optional: reconcile again later
+    return { requeueAfter: 60_000 };
+  }
+
+  async finalize() {
+    // clean up before the object is deleted (needs `finalizer`)
+  }
+}
+```
+
+```json
+{
+  "services": {
+    "tenantOperator": {
+      "type": "Webda/KubernetesOperator",
+      "models": ["MyApp/Tenant"],
+      "finalizer": "myapp.example.com/finalizer"
+    }
+  }
+}
+```
+
+`webda kubernetes operator` runs it (or `autoStart: true` at init). The models must be stored in a `KubernetesStore`; the
+CRD of a model with a `reconcile` method gets a status subresource with `observedGeneration` and `conditions`.
+
+- `reconcile()` is called when the spec changes (`metadata.generation`), on resync (`resyncPeriod`, 5 min) and again
+  after a failure (exponential backoff up to `maxBackoff`). Status-only changes, its own included, are not reconciled.
+- The status gets `observedGeneration` and a `Ready` condition (`Reconciled`, or `ReconcileError` with the message).
+- With `finalizer`, it is added to the objects and `finalize()` runs before the API server deletes them.
+- With `leaderElection` (default), only the replica holding the `coordination.k8s.io` Lease reconciles: the service
+  account needs `get`, `create` and `update` on `leases`, and `get`, `list`, `watch`, `update` on the resources and
+  their status.
+- Metrics: `reconcile_total{model,result}`, `reconcile_duration_seconds{model}`, `queue_depth{model}`.
+
+### API clients and informer
+
+```typescript
+import * as k8s from "@kubernetes/client-node";
+import { getKubernetesApiClient, KubernetesInformer } from "@webda/kubernetes";
+
+// In-cluster service account, else the local kubeconfig; each request aborts after 4s
+const core = getKubernetesApiClient({ timeout: 4000 }, k8s.CoreV1Api);
+await core.listNamespacedPod({ namespace: "default" });
+
+// List then watch custom resources, restarting with a backoff after any error
+const projects = new KubernetesInformer({ timeout: 4000 }, { group: "example.com", version: "v1", plural: "projects" });
+projects.on("change", project => console.log("changed", project.metadata?.name));
+projects.on("error", err => console.error("informer restarts", err));
+await projects.start(); // resolves after the first list, check projects.synced
+projects.list();
+```
+
+The informer needs the `list` and `watch` verbs on the resource.
 
 ## Reference
 

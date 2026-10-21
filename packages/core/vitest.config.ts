@@ -29,6 +29,7 @@ export default defineConfig({
       "src/core/*.spec.ts",
       "src/deployers/*.spec.ts",
       "src/errors/*.spec.ts",
+      "src/index.spec.ts",
       "src/loggers/*.spec.ts",
       //"src/models/ownermodel.spec.ts",
       "src/models/ident.spec.ts",

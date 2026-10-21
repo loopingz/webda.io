@@ -73,7 +73,7 @@ class MailerTest extends WebdaApplicationTest {
 
   @test
   async unknownTemplate() {
-    this.mailer._getTemplate("plop");
+    await this.mailer._getTemplate("plop");
     assert.strictEqual(this.lastLevel, "WARN");
     assert.strictEqual(this.lastInfo[0], "No template found for");
     assert.strictEqual(this.lastInfo[1], "plop");
@@ -88,10 +88,12 @@ class MailerTest extends WebdaApplicationTest {
     );
   }
   @test
-  knownTemplate() {
-    this.mailer._getTemplate("PASSPORT_EMAIL_RECOVERY");
+  async knownTemplate() {
+    const template = await this.mailer._getTemplate("PASSPORT_EMAIL_RECOVERY");
+    assert.notStrictEqual(template, undefined);
     assert.strictEqual(this.lastLevel, undefined);
-    this.mailer._getTemplate("PASSPORT_EMAIL_RECOVERY");
+    // Cached
+    assert.strictEqual(await this.mailer._getTemplate("PASSPORT_EMAIL_RECOVERY"), template);
     assert.strictEqual(this.lastLevel, undefined);
   }
   @test

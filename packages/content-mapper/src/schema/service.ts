@@ -168,7 +168,7 @@ function classChain(declaration: ClassDeclaration, checker: Checker, project: Pr
  * @param checker - the checker resolving base types
  * @returns true on a match
  */
-function derivesFrom(type: Type, name: string, checker: Checker): boolean {
+export function derivesFrom(type: Type, name: string, checker: Checker): boolean {
   const seen = new Set<number>();
   const queue: Type[] = [type];
   while (queue.length > 0) {

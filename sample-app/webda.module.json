@@ -5418,91 +5418,13 @@
     },
     "WebdaDemo/Classroom.test.input": {
       "type": "object",
-      "properties": {
-        "context": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {}
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
+      "properties": {},
+      "x-webda-arguments": [
         "context"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "context"
+      ]
     },
     "WebdaDemo/Classroom.test.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5510,91 +5432,13 @@
     },
     "WebdaDemo/Hardware.globalAction.input": {
       "type": "object",
-      "properties": {
-        "context": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {}
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
+      "properties": {},
+      "x-webda-arguments": [
         "context"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "context"
+      ]
     },
     "WebdaDemo/Hardware.globalAction.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5766,91 +5610,13 @@
     },
     "CustomService.testOperation.input": {
       "type": "object",
-      "properties": {
-        "ctx": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {}
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
+      "properties": {},
+      "x-webda-arguments": [
         "ctx"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "ctx"
+      ]
     },
     "CustomService.testOperation.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5858,105 +5624,13 @@
     },
     "CustomService.testOperationWithOutput.input": {
       "type": "object",
-      "properties": {
-        "ctx": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {
-              "$ref": "#/definitions/parameters"
-            }
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
+      "properties": {},
+      "x-webda-arguments": [
         "ctx"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        },
-        "parameters": {
-          "additionalProperties": false,
-          "properties": {
-            "result": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "result"
-          ],
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "ctx"
+      ]
     },
     "CustomService.testOperationWithOutput.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

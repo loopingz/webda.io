@@ -76,6 +76,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       "Classroom.Delete",
       "Classroom.Get",
       "Classroom.Patch",
+      "Classroom.Rename",
       "Classroom.Test",
       "Classroom.Update",
       "Classrooms.Query",
@@ -568,29 +569,18 @@ class DomainServiceTest extends WebdaApplicationTest {
 
   @test
   async modelActionGlobal() {
-    // Hardware.GlobalAction is a global static action
-    // The action schemas have broken $ref that cause AJV errors,
-    // so we remove the input schema registration to test the action path itself
-    const { Hardware } = this.setupClassroomRepos();
-    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
-    const op = getStorage().operations["Hardware.GlobalAction"];
-    const savedInput = op.input;
-    op.input = "void";
-    try {
-      // Hardware only lets the "test" user act, static actions included
-      const anonymous = new FakeOpContext();
-      await anonymous.init();
-      await assert.rejects(() => callOperation(anonymous, "Hardware.GlobalAction"), WebdaError.Forbidden);
-      const ctx = new FakeOpContext();
-      await ctx.init();
-      ctx.newSession().login("test", "test");
-      await callOperation(ctx, "Hardware.GlobalAction");
-      // The globalAction writes {} to context
-      const output = ctx.getOutput();
-      assert.ok(output !== undefined);
-    } finally {
-      op.input = savedInput;
-    }
+    // Hardware.GlobalAction is a global static action receiving the context: `globalAction(context)`
+    this.setupClassroomRepos();
+    // Hardware only lets the "test" user act, static actions included
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    await assert.rejects(() => callOperation(anonymous, "Hardware.GlobalAction"), WebdaError.Forbidden);
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.newSession().login("test", "test");
+    await callOperation(ctx, "Hardware.GlobalAction");
+    // The globalAction writes {} to the context it received
+    assert.strictEqual(ctx.getOutput(), "{}");
   }
 
   @test
@@ -613,6 +603,47 @@ class DomainServiceTest extends WebdaApplicationTest {
     await callOperation(ctx, "Classroom.Test");
     const output = ctx.getOutput();
     assert.ok(output !== undefined);
+  }
+
+  @test
+  async modelActionInstanceReceivesTypedArguments() {
+    // `rename(name: string, force: boolean = false)` gets its parameters, its return value is the output
+    const { Classroom } = this.setupClassroomRepos();
+    const uuid = "550e8400-e29b-41d4-a716-446655440010";
+    await Classroom.create({ uuid, name: "Room201" } as any);
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.newSession().login("test", "test");
+    ctx.setParameters({ uuid });
+    ctx.setInput(JSON.stringify({ name: "Room202" }));
+    await callOperation(ctx, "Classroom.Rename");
+    assert.deepStrictEqual(JSON.parse(ctx.getOutput()), { name: "Room202", force: false });
+  }
+
+  @test
+  async modelActionInstanceValidatesItsInput() {
+    const { Classroom } = this.setupClassroomRepos();
+    const uuid = "550e8400-e29b-41d4-a716-446655440011";
+    await Classroom.create({ uuid, name: "Room203" } as any);
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.newSession().login("test", "test");
+    ctx.setParameters({ uuid });
+    ctx.setInput(JSON.stringify({}));
+    await assert.rejects(
+      () => callOperation(ctx, "Classroom.Rename"),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/name")
+    );
+  }
+
+  @test
+  async modelActionInstanceRegistersARequestSchema() {
+    this.setupClassroomRepos();
+    const op: any = listOperations()["Classroom.Rename"];
+    assert.strictEqual(op.input, "WebdaDemo/Classroom.rename.request");
+    const schema: any = useApplication().getSchema(op.input);
+    assert.deepStrictEqual(schema.required, ["uuid", "name"]);
+    assert.deepStrictEqual(schema["x-webda-arguments"], ["uuid", "name", "force"]);
   }
 
   @test

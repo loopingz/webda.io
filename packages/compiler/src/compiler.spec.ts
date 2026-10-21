@@ -315,9 +315,15 @@ class CompilerTest {
 
     // Model custom actions should be present
     assert.notStrictEqual(operations.operations["TestModel.DoSomething"], undefined, "DoSomething operation");
+    // Instance action: the object uuid then the action parameters
     assert.strictEqual(
       operations.operations["TestModel.DoSomething"].input,
-      "uuidRequest",
+      "TestCompilerOperations/TestModel.doSomething.request",
+      "Instance action takes a request schema"
+    );
+    assert.strictEqual(
+      (operations.schemas["TestCompilerOperations/TestModel.doSomething.request"] as any).required[0],
+      "uuid",
       "Instance action should require uuid"
     );
     assert.strictEqual(

@@ -127,9 +127,14 @@ function processModelOperations(
     const outputSchema = `${modelKey}.${action}.output`;
 
     const entry: Partial<OperationEntry> = {};
-    // Instance actions require a uuid; global (static) ones use their own input schema
+    // Instance actions take the object uuid then their parameters; global (static) ones their own input schema
     if (!actions[action].global) {
-      entry.input = "uuidRequest";
+      if (mod.schemas?.[inputSchema]) {
+        entry.input = `${modelKey}.${action}.request`;
+        result.schemas[entry.input] = actionRequestSchema(mod.schemas[inputSchema]);
+      } else {
+        entry.input = "uuidRequest";
+      }
     } else if (mod.schemas?.[inputSchema]) {
       entry.input = inputSchema;
       result.schemas[inputSchema] = mod.schemas[inputSchema];
@@ -140,6 +145,24 @@ function processModelOperations(
     }
     addOperation(result, id, entry);
   }
+}
+
+/**
+ * Input schema of an instance action operation: the object `uuid` then the action parameters
+ *
+ * Mirrors `DomainService.actionRequestSchema` in `@webda/core`.
+ * @param input - the action `.input` schema
+ * @returns the request schema
+ */
+function actionRequestSchema(input: JSONSchema7): JSONSchema7 {
+  const args = (input as Record<string, unknown>)["x-webda-arguments"] as string[] | undefined;
+  return {
+    ...input,
+    type: "object",
+    properties: { uuid: { type: "string" }, ...input.properties },
+    required: ["uuid", ...(input.required ?? [])],
+    "x-webda-arguments": ["uuid", ...(args ?? Object.keys(input.properties ?? {}))]
+  } as JSONSchema7;
 }
 
 /**

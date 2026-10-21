@@ -1138,7 +1138,8 @@
         }
       },
       "Actions": {
-        "test": {}
+        "test": {},
+        "rename": {}
       },
       "Events": [
         "Create",
@@ -5429,6 +5430,37 @@
     "WebdaDemo/Classroom.test.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
+    },
+    "WebdaDemo/Classroom.rename.input": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "WebdaDemo/Classroom.rename.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "force": {
+          "default": false,
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
     },
     "WebdaDemo/Hardware.globalAction.input": {
       "type": "object",

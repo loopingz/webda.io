@@ -221,7 +221,7 @@ export class MongoStoreTest extends WebdaApplicationTest {
         })
       ),
       [
-        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: { $exists: false } }] } },
+        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: null }, { __type: "" }] } },
         { $group: { _id: { g0: { $ifNull: ["$team.name", null] } }, n: { $sum: 1 }, d: { $addToSet: "$label" } } },
         { $addFields: { d: { $size: { $filter: { input: "$d", cond: { $ne: ["$$this", null] } } } } } },
         { $sort: { n: -1 } },

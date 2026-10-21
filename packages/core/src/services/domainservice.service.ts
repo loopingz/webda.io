@@ -571,7 +571,32 @@ export class DomainService<
    * @returns true when `<model>.<action>.input` exists
    */
   protected hasActionInput(model: ModelClass<Model>, action: { name: string }): boolean {
-    return !!useApplication().getSchema(`${useModelMetadata(model)?.Identifier}.${action.name}.input`);
+    return !!this.actionInput(`${useModelMetadata(model)?.Identifier}`, action.name);
+  }
+
+  /**
+   * The `.input` schema of an action, when it describes its parameters
+   *
+   * A module built before `x-webda-context` expanded an `OperationContext` parameter into the schema: such an
+   * action is treated as taking the context only, as before.
+   * @param modelKey - model identifier
+   * @param name - action name
+   * @returns the input schema, undefined when the action takes no input or has an old-style schema
+   */
+  protected actionInput(modelKey: string, name: string): any {
+    const input: any = useApplication().getSchema(`${modelKey}.${name}.input`);
+    if (!input || input[ARGUMENTS_KEYWORD]) {
+      return input;
+    }
+    // The expanded OperationContext carries its internal fields
+    const expanded = Object.values<any>(input.properties ?? {}).some(
+      property => property?.properties?._promises !== undefined
+    );
+    if (expanded) {
+      this.log("WARN", `${modelKey}.${name}.input expands an OperationContext: rebuild the module with webdac`);
+      return undefined;
+    }
+    return input;
   }
 
   /**
@@ -621,8 +646,15 @@ export class DomainService<
    * @param name - action name
    * @param input - the action `.input` schema (its parameters)
    * @returns the registered schema name, `<modelKey>.<name>.request`
+   * @throws Error when an action parameter is named `uuid`
    */
   protected actionRequestSchema(modelKey: string, name: string, input: any): string {
+    if (input.properties?.uuid !== undefined) {
+      // The uuid identifies the object: a parameter with the same name would receive it, or break the schema
+      throw new Error(
+        `${modelKey}.${name}: parameter "uuid" conflicts with the object primary key, rename the action parameter`
+      );
+    }
     const schemaName = `${modelKey}.${name}.request`;
     const request: any = {
       ...input,
@@ -836,9 +868,11 @@ export class DomainService<
             id
           };
           // An instance action with parameters receives them after the object uuid; without schema: the context
-          const actionInput = app.getSchema(`${modelKey}.${name}.input`);
+          const actionInput = this.actionInput(modelKey, name);
           info.input = actions[name].global
-            ? `${modelKey}.${name}.input`
+            ? actionInput
+              ? `${modelKey}.${name}.input`
+              : "void"
             : actionInput
               ? this.actionRequestSchema(modelKey, name, actionInput)
               : "uuidRequest";

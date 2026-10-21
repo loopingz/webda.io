@@ -6,6 +6,37 @@ import { WebdaModule } from "./definition.js";
 @suite
 class OperationsTest {
   @test
+  async rejectsAnActionParameterNamedLikeThePrimaryKey() {
+    const mod: WebdaModule = {
+      beans: {},
+      deployers: {},
+      moddas: {},
+      models: {
+        "MyApp/Task": {
+          Identifier: "MyApp/Task",
+          Import: "lib/task:Task",
+          Plural: "Tasks",
+          Relations: {},
+          Ancestors: [],
+          Subclasses: [],
+          PrimaryKey: ["uuid"],
+          Events: [],
+          Reflection: {},
+          Schemas: {},
+          Actions: { link: {} }
+        }
+      },
+      schemas: {
+        "MyApp/Task.link.input": { type: "object", properties: { uuid: { type: "string" } }, required: ["uuid"] }
+      }
+    } as any;
+    assert.throws(
+      () => generateOperations(mod),
+      /MyApp\/Task\.link: parameter "uuid" conflicts with the object primary key/
+    );
+  }
+
+  @test
   async generateFromModels() {
     const mod: WebdaModule = {
       beans: {},

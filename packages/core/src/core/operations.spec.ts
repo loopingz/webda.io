@@ -1119,6 +1119,18 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
   }
 
   @test
+  async rejectsInfiniteQueryValues() {
+    const op = this.registerEchoOperation("CoerceInfinity", { limit: { type: "number" } });
+    for (const limit of ["Infinity", "-Infinity", "1e999"]) {
+      await assert.rejects(
+        () => this.echo(op, { limit }),
+        (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/limit"),
+        limit
+      );
+    }
+  }
+
+  @test
   async coercesQueryBooleansFromDigits() {
     const op = this.registerEchoOperation("CoerceBoolean", { notify: { type: "boolean" } });
     assert.deepStrictEqual(await this.echo(op, { notify: "1" }), [true]);

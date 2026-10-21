@@ -453,7 +453,7 @@ function subjectOf(context: OperationContext, operationId: string, args: any[], 
 /**
  * Convert one path/query string to the type its schema declares
  *
- * A value that does not convert (e.g. `"abc"` for a number) is returned unchanged so the
+ * A value that does not convert (e.g. `"abc"` or `"Infinity"` for a number) is returned unchanged so the
  * schema validation rejects it with the field name.
  * @param value - the string received in the URL
  * @param schema - the property schema
@@ -464,7 +464,8 @@ function coerceParameterValue(value: string, schema: any): any {
     case "number":
     case "integer": {
       const n = Number(value);
-      return value.trim() !== "" && !Number.isNaN(n) ? n : value;
+      // NaN and Infinity stay strings: the schema validation rejects them
+      return value.trim() !== "" && Number.isFinite(n) ? n : value;
     }
     case "boolean":
       if (value === "true" || value === "1") return true;

@@ -647,6 +647,116 @@ class DomainServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async modelActionParameterNamedLikeThePrimaryKeyIsRejected() {
+    const service: any = useDynamicService<DomainService>("DomainService");
+    assert.throws(
+      () =>
+        service.actionRequestSchema("WebdaDemo/Classroom", "link", {
+          type: "object",
+          properties: { uuid: { type: "number" } },
+          required: ["uuid"]
+        }),
+      /WebdaDemo\/Classroom\.link: parameter "uuid" conflicts with the object primary key/
+    );
+  }
+
+  @test
+  async modelActionFromAnOldModuleStillGetsTheContext() {
+    // A webda.module.json built before x-webda-context expanded the OperationContext parameter into .input
+    const { Classroom } = this.setupClassroomRepos();
+    const schemas = useApplication().getSchemas();
+    const name = "WebdaDemo/Classroom.test.input";
+    const saved = schemas[name];
+    schemas[name] = {
+      type: "object",
+      properties: {
+        context: {
+          type: "object",
+          description: "OperationContext is used when call to an operation",
+          properties: { _promises: { type: "array" }, caches: {}, parameters: {} },
+          required: ["_promises", "caches", "parameters"]
+        }
+      },
+      required: ["context"]
+    } as any;
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      assert.strictEqual((listOperations()["Classroom.Test"] as any).input, "uuidRequest");
+      const uuid = "550e8400-e29b-41d4-a716-446655440012";
+      await Classroom.create({ uuid, name: "Room204" } as any);
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.newSession().login("test", "test");
+      ctx.setParameters({ uuid });
+      await callOperation(ctx, "Classroom.Test");
+      assert.strictEqual(ctx.getOutput(), "{}");
+    } finally {
+      schemas[name] = saved;
+      useDynamicService<DomainService>("DomainService").initOperations();
+    }
+  }
+
+  @test
+  async staticActionFromAnOldModuleStillGetsTheContext() {
+    this.setupClassroomRepos();
+    const schemas = useApplication().getSchemas();
+    const name = "WebdaDemo/Hardware.globalAction.input";
+    const saved = schemas[name];
+    schemas[name] = {
+      type: "object",
+      properties: {
+        context: { type: "object", properties: { _promises: { type: "array" } }, required: ["_promises"] }
+      },
+      required: ["context"]
+    } as any;
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.newSession().login("test", "test");
+      await callOperation(ctx, "Hardware.GlobalAction");
+      assert.strictEqual(ctx.getOutput(), "{}");
+    } finally {
+      schemas[name] = saved;
+      useDynamicService<DomainService>("DomainService").initOperations();
+    }
+  }
+
+  @test
+  async staticActionReceivesTypedArguments() {
+    // A static action with parameters gets them positionally, without uuid
+    const { Hardware } = this.setupClassroomRepos();
+    const metadata = useModelMetadata(Hardware);
+    const schemas = useApplication().getSchemas();
+    const name = "WebdaDemo/Hardware.countTest.input";
+    (Hardware as any).countTest = async function countTest(prefix: string, limit: number = 10) {
+      return { prefix, limit };
+    };
+    metadata.Actions["countTest"] = { global: true } as any;
+    schemas[name] = {
+      type: "object",
+      properties: { prefix: { type: "string" }, limit: { type: "number" } },
+      required: ["prefix"]
+    } as any;
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      assert.strictEqual((listOperations()["Hardware.CountTest"] as any).input, name);
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.newSession().login("test", "test");
+      ctx.setInput(JSON.stringify({ prefix: "a" }));
+      await callOperation(ctx, "Hardware.CountTest");
+      assert.deepStrictEqual(JSON.parse(ctx.getOutput()), { prefix: "a", limit: 10 });
+    } finally {
+      delete (Hardware as any).countTest;
+      delete metadata.Actions["countTest"];
+      delete schemas[name];
+      delete getStorage().operations["Hardware.CountTest"];
+    }
+  }
+
+  @test
   async modelActionNamed() {
     // `@Action({ name: "exposed" })` on a method `test`: the compiler keys the
     // action by its name and records the method as `handler`

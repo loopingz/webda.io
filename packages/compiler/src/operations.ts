@@ -131,7 +131,7 @@ function processModelOperations(
     if (!actions[action].global) {
       if (mod.schemas?.[inputSchema]) {
         entry.input = `${modelKey}.${action}.request`;
-        result.schemas[entry.input] = actionRequestSchema(mod.schemas[inputSchema]);
+        result.schemas[entry.input] = actionRequestSchema(`${modelKey}.${action}`, mod.schemas[inputSchema]);
       } else {
         entry.input = "uuidRequest";
       }
@@ -151,10 +151,16 @@ function processModelOperations(
  * Input schema of an instance action operation: the object `uuid` then the action parameters
  *
  * Mirrors `DomainService.actionRequestSchema` in `@webda/core`.
+ * @param id - `<model>.<action>`, for the error message
  * @param input - the action `.input` schema
  * @returns the request schema
+ * @throws Error when an action parameter is named `uuid`
  */
-function actionRequestSchema(input: JSONSchema7): JSONSchema7 {
+function actionRequestSchema(id: string, input: JSONSchema7): JSONSchema7 {
+  if (input.properties?.uuid !== undefined) {
+    // The uuid identifies the object: a parameter with the same name would receive it, or break the schema
+    throw new Error(`${id}: parameter "uuid" conflicts with the object primary key, rename the action parameter`);
+  }
   const args = (input as Record<string, unknown>)["x-webda-arguments"] as string[] | undefined;
   return {
     ...input,

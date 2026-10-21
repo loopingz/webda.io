@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.3.0...tsc-esm-v1.3.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+
 ## [1.3.0](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.2.0...tsc-esm-v1.3.0) (2024-01-16)
 
 

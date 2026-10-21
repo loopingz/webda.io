@@ -12,7 +12,7 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
-import { registerOperation } from "../core/operations.js";
+import { ARGUMENTS_KEYWORD, registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 import {
   checkModelParent,
@@ -564,7 +564,46 @@ export class DomainService<
   }
 
   /**
+   * Whether an action has an input schema, so it receives its parameters rather than the context
+   * @param model - the model class
+   * @param action - the action
+   * @param action.name - the action name
+   * @returns true when `<model>.<action>.input` exists
+   */
+  protected hasActionInput(model: ModelClass<Model>, action: { name: string }): boolean {
+    return !!this.actionInput(`${useModelMetadata(model)?.Identifier}`, action.name);
+  }
+
+  /**
+   * The `.input` schema of an action, when it describes its parameters
+   *
+   * A module built before `x-webda-context` expanded an `OperationContext` parameter into the schema: such an
+   * action is treated as taking the context only, as before.
+   * @param modelKey - model identifier
+   * @param name - action name
+   * @returns the input schema, undefined when the action takes no input or has an old-style schema
+   */
+  protected actionInput(modelKey: string, name: string): any {
+    const input: any = useApplication().getSchema(`${modelKey}.${name}.input`);
+    if (!input || input[ARGUMENTS_KEYWORD]) {
+      return input;
+    }
+    // The expanded OperationContext carries its internal fields
+    const expanded = Object.values<any>(input.properties ?? {}).some(
+      property => property?.properties?._promises !== undefined
+    );
+    if (expanded) {
+      this.log("WARN", `${modelKey}.${name}.input expands an OperationContext: rebuild the module with webdac`);
+      return undefined;
+    }
+    return input;
+  }
+
+  /**
    * Action on a model
+   *
+   * An instance action receives `uuid` first (to load the object) then its parameters; a static action its
+   * parameters. Actions without an input schema receive the context.
    * @param args - arguments forwarded to the action method
    * @returns the action result
    */
@@ -582,21 +621,54 @@ export class DomainService<
       // A missing object and an object the caller cannot read answer the same NotFound
       const object = await this.loadModel(model, uuid);
       await this.checkPermission(object, context, action.name, model);
-      return object[handler](context);
+      // With an input schema the arguments follow the uuid (the context included where a parameter asks for it)
+      return this.hasActionInput(model, action) ? object[handler](...args.slice(1)) : object[handler](context);
     } else {
       // Static action: the model's static canAct is asked without object
       await checkStaticModelPermission(model, context, action.name);
-      // With an input schema the arguments are resolved from it (`callOperation`); without one the body is passed,
-      // sanitized like model input (`__`, `_`, protected and read-only attributes removed); no body: the context
+      // With an input schema the arguments are resolved from it (`callOperation`), the context included where a
+      // parameter asks for it; without one the body is passed, sanitized like model input (`__`, `_`, protected
+      // and read-only attributes removed); no body: the context
+      if (this.hasActionInput(model, action)) {
+        return model[handler](...args);
+      }
       const resolved = args.length > 0 && !(args[0] instanceof OperationContext);
-      const hasSchema = !!useApplication().getSchema(`${useModelMetadata(model)?.Identifier}.${action.name}.input`);
-      const callArgs = resolved
-        ? hasSchema
-          ? args
-          : [sanitizeModelInput(model, args[0]), ...args.slice(1)]
-        : [context];
-      return model[handler](...callArgs);
+      return model[handler](...(resolved ? [sanitizeModelInput(model, args[0]), ...args.slice(1)] : [context]));
     }
+  }
+
+  /**
+   * Register the input schema of an instance action operation: the object `uuid` and the action parameters
+   *
+   * The `uuid` comes first in `x-webda-arguments`: `modelAction` loads the object with it and passes the rest
+   * to the action method.
+   * @param modelKey - model identifier
+   * @param name - action name
+   * @param input - the action `.input` schema (its parameters)
+   * @returns the registered schema name, `<modelKey>.<name>.request`
+   * @throws Error when an action parameter is named `uuid`
+   */
+  protected actionRequestSchema(modelKey: string, name: string, input: any): string {
+    if (input.properties?.uuid !== undefined) {
+      // The uuid identifies the object: a parameter with the same name would receive it, or break the schema
+      throw new Error(
+        `${modelKey}.${name}: parameter "uuid" conflicts with the object primary key, rename the action parameter`
+      );
+    }
+    const schemaName = `${modelKey}.${name}.request`;
+    const request: any = {
+      ...input,
+      type: "object",
+      properties: { uuid: { type: "string" }, ...input.properties },
+      required: ["uuid", ...(input.required ?? [])],
+      [ARGUMENTS_KEYWORD]: ["uuid", ...(input[ARGUMENTS_KEYWORD] ?? Object.keys(input.properties ?? {}))]
+    };
+    if (!hasSchema(schemaName)) {
+      registerSchema(schemaName, request);
+    }
+    // Always register in the app schema map (the global registry is process-wide) so getSchema() finds it
+    useApplication().getSchemas()[schemaName] ??= request;
+    return schemaName;
   }
 
   /**
@@ -795,7 +867,15 @@ export class DomainService<
             method: `modelAction`,
             id
           };
-          info.input = actions[name].global ? `${modelKey}.${name}.input` : "uuidRequest";
+          // An instance action with parameters receives them after the object uuid; without schema: the context
+          const actionInput = this.actionInput(modelKey, name);
+          info.input = actions[name].global
+            ? actionInput
+              ? `${modelKey}.${name}.input`
+              : "void"
+            : actionInput
+              ? this.actionRequestSchema(modelKey, name, actionInput)
+              : "uuidRequest";
           info.output = `${modelKey}.${name}.output`;
           info.context = {
             model,

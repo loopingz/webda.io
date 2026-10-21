@@ -86,6 +86,30 @@ class CliSchemaToOptionsTest {
   }
 
   @test
+  async buildCliInstanceActionTakesTheUuidPositional() {
+    // An instance action's request schema: the object uuid then the action parameters
+    const ops = makeOps(
+      { "Task.Rename": { id: "Task.Rename", input: "MyApp/Task.rename.request" } },
+      {
+        "MyApp/Task.rename.request": {
+          type: "object",
+          properties: { uuid: { type: "string" }, name: { type: "string" } },
+          required: ["uuid", "name"],
+          "x-webda-arguments": ["uuid", "name"]
+        } as any
+      }
+    );
+    const calls: OperationCall[] = [];
+    const cli = buildCli(ops, async call => {
+      calls.push(call);
+    });
+    await cli.parseAsync(["task", "rename", "abc-123", "--name", "x"]);
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0].parameters.uuid, "abc-123");
+    assert.deepStrictEqual(calls[0].input, { name: "x" });
+  }
+
+  @test
   async buildCliHandlesCaseInsensitiveCommands() {
     const ops = makeOps({
       "Task.Create": { id: "Task.Create" }

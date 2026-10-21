@@ -80,6 +80,27 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
 };
 
 /**
+ * The well-known parameter mapping of an operation input
+ *
+ * An instance action's request schema (`x-webda-arguments` starting with `uuid`) takes the object
+ * uuid as positional and its other properties as options, like `uuidRequest` plus a body.
+ * @param op - the operation
+ * @param ops - the operations file
+ * @returns the positional/options mapping, `request: true` for an instance action request schema
+ */
+function paramDefOf(
+  op: OperationEntry,
+  ops: OperationsFile
+): { positional?: string; options?: Record<string, Options>; request?: boolean } | undefined {
+  if (!op.input || op.input === "void") return undefined;
+  if (KNOWN_PARAMS[op.input]) return KNOWN_PARAMS[op.input];
+  if ((ops.schemas[op.input] as any)?.["x-webda-arguments"]?.[0] === "uuid") {
+    return { positional: "uuid", request: true };
+  }
+  return undefined;
+}
+
+/**
  * Convert a JSON Schema's properties into yargs option definitions.
  *
  * @param schema - JSON Schema describing an object with properties
@@ -143,7 +164,7 @@ function groupOperations(operations: Record<string, OperationEntry>): Map<string
  */
 function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): Argv {
   const hasInput = op.input && op.input !== "void";
-  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+  const paramDef = paramDefOf(op, ops);
 
   // Add well-known parameter options (e.g., uuidRequest -> positional uuid)
   if (paramDef?.options) {
@@ -153,11 +174,13 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
   }
 
   // Add custom input options from schema
-  if (hasInput && !paramDef && ops.schemas[op.input]) {
+  if (hasInput && (!paramDef || paramDef.request) && ops.schemas[op.input]) {
     // Offer both raw JSON/file and per-property CLI options
     y.option("json", { type: "string", describe: "JSON input (inline)" });
     y.option("file", { type: "string", alias: "f", describe: "JSON input from file" });
     for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input], true))) {
+      // The positional is not an option
+      if (name === paramDef?.positional) continue;
       y.option(name, opt);
     }
   }
@@ -175,8 +198,7 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
  */
 function extractParameters(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): Record<string, any> {
   const params: Record<string, any> = {};
-  const hasInput = op.input && op.input !== "void";
-  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+  const paramDef = paramDefOf(op, ops);
 
   if (paramDef?.positional && args[paramDef.positional] !== undefined) {
     params[paramDef.positional] = args[paramDef.positional];
@@ -214,8 +236,9 @@ function extractInput(args: Record<string, any>, op: OperationEntry, ops: Operat
   // Build input from individual CLI options matching the input schema properties
   if (hasInput && ops.schemas[op.input]?.properties) {
     const input: Record<string, any> = {};
+    const positional = paramDefOf(op, ops)?.positional;
     for (const name of Object.keys(ops.schemas[op.input].properties)) {
-      if (args[name] !== undefined) input[name] = args[name];
+      if (name !== positional && args[name] !== undefined) input[name] = args[name];
     }
     if (Object.keys(input).length > 0) return input;
   }
@@ -260,7 +283,7 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
       for (const op of operations) {
         const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
         const hasInput = op.input && op.input !== "void";
-        const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+        const paramDef = paramDefOf(op, ops);
 
         // Build command string with positional if needed
         const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
@@ -1214,7 +1237,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
             for (const op of operations) {
               const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
               const hasInput = op.input && op.input !== "void";
-              const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+              const paramDef = paramDefOf(op, ops!);
               const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
               groupY.command(
                 cmd,

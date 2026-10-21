@@ -163,6 +163,16 @@ export async function canCallOperation(
 }
 
 /**
+ * JSON Schema keyword listing every parameter of an operation method in order, set when some receive the context
+ */
+export const ARGUMENTS_KEYWORD = "x-webda-arguments";
+
+/**
+ * JSON Schema keyword listing the parameters of an operation method that receive the operation context
+ */
+export const CONTEXT_KEYWORD = "x-webda-context";
+
+/**
  * JSON Schema keyword the compiler sets on a streamed `.input` or `.output` schema
  */
 export const STREAM_SCHEMA_KEYWORD = "x-webda-stream";
@@ -441,10 +451,40 @@ function subjectOf(context: OperationContext, operationId: string, args: any[], 
 }
 
 /**
- * Coerce string-shaped path/query params to the primitive type their schema
- * declares. URL slots arrive as strings even when the operation method
- * expects a number/boolean (e.g. `setMetadata(index: number, ...)` mounted
- * at `{index}/{hash}` — `index` is the literal `"0"` until we coerce).
+ * Convert one path/query string to the type its schema declares
+ *
+ * A value that does not convert (e.g. `"abc"` or `"Infinity"` for a number) is returned unchanged so the
+ * schema validation rejects it with the field name.
+ * @param value - the string received in the URL
+ * @param schema - the property schema
+ * @returns the converted value, or the string
+ */
+function coerceParameterValue(value: string, schema: any): any {
+  switch (schema?.type) {
+    case "number":
+    case "integer": {
+      const n = Number(value);
+      // NaN and Infinity stay strings: the schema validation rejects them
+      return value.trim() !== "" && Number.isFinite(n) ? n : value;
+    }
+    case "boolean":
+      if (value === "true" || value === "1") return true;
+      if (value === "false" || value === "0") return false;
+      return value;
+    case "array":
+      return value === "" ? [] : value.split(",").map(item => coerceParameterValue(item, schema.items));
+    default:
+      return value;
+  }
+}
+
+/**
+ * Coerce path/query params to the type their schema declares. URL slots arrive as strings even
+ * when the operation method expects a number/boolean/array (e.g. `setMetadata(index: number, ...)`
+ * mounted at `{index}/{hash}` — `index` is the literal `"0"` until we coerce).
+ *
+ * Only values coming from the parameters are converted: the body is JSON and stays strict, a
+ * body sending `"20"` for a number is a validation error.
  *
  * We mutate `merged` in place (caller forwards the same object to
  * `resolveArguments`). We do NOT use AJV's `coerceTypes` flag because that
@@ -452,23 +492,21 @@ function subjectOf(context: OperationContext, operationId: string, args: any[], 
  * widens type validation across every other call site (e.g. coercing
  * `123` → `"123"` to satisfy a `string` schema), which is the wrong default
  * for model validation.
- * @param schema - operation input schema with `properties` describing the
- * expected primitive types
+ * @param schema - operation input schema with `properties` describing the expected types
  * @param merged - merged params + body object to coerce in place
+ * @param params - the path/query parameters
+ * @param body - the request body
  */
-function coerceMergedToSchema(schema: any, merged: Record<string, any>): void {
+function coerceParametersToSchema(
+  schema: any,
+  merged: Record<string, any>,
+  params: Record<string, any>,
+  body: Record<string, any>
+): void {
   if (!schema?.properties) return;
   for (const [name, propSchema] of Object.entries(schema.properties as Record<string, any>)) {
-    const value = merged[name];
-    if (typeof value !== "string") continue;
-    const target = (propSchema as any)?.type;
-    if (target === "number" || target === "integer") {
-      const n = Number(value);
-      if (!Number.isNaN(n)) merged[name] = n;
-    } else if (target === "boolean") {
-      if (value === "true") merged[name] = true;
-      else if (value === "false") merged[name] = false;
-    }
+    if (!(name in params) || body[name] !== undefined || typeof merged[name] !== "string") continue;
+    merged[name] = coerceParameterValue(merged[name], propSchema);
   }
 }
 
@@ -496,10 +534,13 @@ function isSameParameterValue(param: any, value: any): boolean {
  * must not act on B).
  * @param context - the execution context
  * @param operationId - the operation identifier
- * @returns the raw body and the merged input
+ * @returns the raw body, the parameters, the body object and the merged input
  * @throws BadRequest if a body value conflicts with a parameter
  */
-async function getOperationInput(context: OperationContext, operationId: string): Promise<{ input: any; merged: any }> {
+async function getOperationInput(
+  context: OperationContext,
+  operationId: string
+): Promise<{ input: any; params: Record<string, any>; body: Record<string, any>; merged: any }> {
   const params = context.getParameters() || {};
   let input: any;
   try {
@@ -514,7 +555,7 @@ async function getOperationInput(context: OperationContext, operationId: string)
     }
     throw new WebdaError.BadRequest(`${operationId} InvalidInput: /${key} conflicts with path parameter`);
   }
-  return { input, merged: { ...params, ...body } };
+  return { input, params, body, merged: { ...params, ...body } };
 }
 
 /**
@@ -541,14 +582,14 @@ async function checkOperation(context: OperationContext, operationId: string) {
       // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
       // and must be merged with the body before validation because schemas like
       // uuidRequest and binaryHashRequest declare them as required properties.
-      const { merged } = await getOperationInput(context, operationId);
-      // Coerce string path params (e.g. `"0"`) to the primitive type the
+      const { merged, params, body } = await getOperationInput(context, operationId);
+      // Coerce string path/query params (e.g. `"0"`) to the type the
       // schema declares before validation runs, so AJV doesn't reject
       // `index: "0"` against `{ type: "number" }`. Mutates `merged` in
       // place so `resolveArguments` sees the typed value too.
       const app = useApplication();
       const inputSchema = app.getSchema(operations[operationId].input);
-      coerceMergedToSchema(inputSchema, merged);
+      coerceParametersToSchema(inputSchema, merged, params, body);
       validateSchema(operations[operationId].input, merged);
       context.setExtension("operationResolvedInput", merged);
     }
@@ -597,11 +638,13 @@ export async function resolveArguments(context: OperationContext, operation: Ope
   // Use input schema properties to determine argument order
   if (operation.input && operation.input !== "void") {
     const app = useApplication();
-    const schema = app.getSchema(operation.input);
+    const schema: any = app.getSchema(operation.input);
     if (schema?.properties) {
-      const propNames = Object.keys(schema.properties);
+      // The compiler lists every parameter when some receive the context instead of an input value
+      const names: string[] = schema[ARGUMENTS_KEYWORD] ?? Object.keys(schema.properties);
+      const contexts = new Set<string>(schema[CONTEXT_KEYWORD] ?? []);
       // Extract values by schema property names from the merged params + body
-      return propNames.map(name => merged[name]);
+      return names.map(name => (contexts.has(name) ? context : merged[name]));
     }
   }
 

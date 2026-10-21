@@ -775,6 +775,15 @@ class ReturnValueService extends Service {
   }
 
   /**
+   * Return the received arguments
+   * @param args - the arguments
+   * @returns the arguments
+   */
+  async echoArgs(...args: any[]): Promise<any[]> {
+    return args;
+  }
+
+  /**
    * Return void (no value)
    */
   async doNothing(): Promise<void> {
@@ -1063,6 +1072,87 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     assert.strictEqual(ctx.getOutput(), "Hello Alice, you are 30 years old");
   }
 
+  /**
+   * Register `ReturnSvc.<id>` calling echoArgs with the given input schema
+   * @param id - operation id suffix
+   * @param properties - input schema properties
+   * @returns the operation id
+   */
+  registerEchoOperation(id: string, properties: any): string {
+    const schema = { type: "object", properties };
+    const name = `ReturnSvc.${id}.input`;
+    useApplication<Application>().getSchemas()[name] = schema;
+    registerSchema(name, schema);
+    registerOperation(`ReturnSvc.${id}`, { service: "ReturnSvc", method: "echoArgs", input: name, output: "void" });
+    return `ReturnSvc.${id}`;
+  }
+
+  /**
+   * Call an echo operation with URL parameters and a body
+   * @param operationId - the operation
+   * @param params - path/query parameters (strings)
+   * @param body - the request body
+   * @returns the arguments the method received
+   */
+  async echo(operationId: string, params: any, body?: any): Promise<any[]> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters(params);
+    if (body !== undefined) ctx.setInput(JSON.stringify(body));
+    await callOperation(ctx, operationId);
+    return JSON.parse(ctx.getOutput());
+  }
+
+  @test
+  async coercesQueryNumbers() {
+    const op = this.registerEchoOperation("CoerceNumber", { limit: { type: "number" } });
+    assert.deepStrictEqual(await this.echo(op, { limit: "20" }), [20]);
+  }
+
+  @test
+  async rejectsNonNumericQueryValues() {
+    const op = this.registerEchoOperation("CoerceNaN", { limit: { type: "number" } });
+    await assert.rejects(
+      () => this.echo(op, { limit: "abc" }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/limit")
+    );
+  }
+
+  @test
+  async rejectsInfiniteQueryValues() {
+    const op = this.registerEchoOperation("CoerceInfinity", { limit: { type: "number" } });
+    for (const limit of ["Infinity", "-Infinity", "1e999"]) {
+      await assert.rejects(
+        () => this.echo(op, { limit }),
+        (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/limit"),
+        limit
+      );
+    }
+  }
+
+  @test
+  async coercesQueryBooleansFromDigits() {
+    const op = this.registerEchoOperation("CoerceBoolean", { notify: { type: "boolean" } });
+    assert.deepStrictEqual(await this.echo(op, { notify: "1" }), [true]);
+    assert.deepStrictEqual(await this.echo(op, { notify: "0" }), [false]);
+    assert.deepStrictEqual(await this.echo(op, { notify: "true" }), [true]);
+  }
+
+  @test
+  async coercesCommaSeparatedArrays() {
+    const op = this.registerEchoOperation("CoerceArray", { ids: { type: "array", items: { type: "number" } } });
+    assert.deepStrictEqual(await this.echo(op, { ids: "1,2,3" }), [[1, 2, 3]]);
+  }
+
+  @test
+  async neverCoercesTheBody() {
+    const op = this.registerEchoOperation("CoerceBody", { limit: { type: "number" } });
+    await assert.rejects(
+      () => this.echo(op, {}, { limit: "20" }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/limit")
+    );
+  }
+
   @test
   async callOperationWithSingleSchemaArg() {
     // Register a schema with one property for echo(message)
@@ -1189,6 +1279,57 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     });
     // Should return values in schema property order
     assert.deepStrictEqual(args, ["John", "Doe", 25]);
+  }
+
+  @test
+  async resolveArgsInjectsTheContext() {
+    useApplication<Application>().getSchemas()["Test.Ctx"] = {
+      type: "object",
+      properties: { message: { type: "string" } },
+      "x-webda-arguments": ["context", "message"],
+      "x-webda-context": ["context"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ message: "hi" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Ctx", output: "void" });
+    assert.strictEqual(args.length, 2);
+    assert.strictEqual(args[0], ctx);
+    assert.strictEqual(args[1], "hi");
+  }
+
+  @test
+  async resolveArgsInjectsTheContextInTheMiddle() {
+    useApplication<Application>().getSchemas()["Test.CtxMiddle"] = {
+      type: "object",
+      properties: { text: { type: "string" }, tags: { type: "array", items: { type: "string" } } },
+      "x-webda-arguments": ["text", "ctx", "tags"],
+      "x-webda-context": ["ctx"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ text: "t", tags: ["a"] }));
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      input: "Test.CtxMiddle",
+      output: "void"
+    });
+    assert.deepStrictEqual(args, ["t", ctx, ["a"]]);
+  }
+
+  @test
+  async resolveArgsOnlyContext() {
+    useApplication<Application>().getSchemas()["Test.CtxOnly"] = {
+      type: "object",
+      properties: {},
+      "x-webda-arguments": ["context"],
+      "x-webda-context": ["context"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.CtxOnly", output: "void" });
+    assert.deepStrictEqual(args, [ctx]);
   }
 
   @test

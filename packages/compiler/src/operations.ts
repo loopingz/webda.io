@@ -127,9 +127,14 @@ function processModelOperations(
     const outputSchema = `${modelKey}.${action}.output`;
 
     const entry: Partial<OperationEntry> = {};
-    // Instance actions require a uuid; global (static) ones use their own input schema
+    // Instance actions take the object uuid then their parameters; global (static) ones their own input schema
     if (!actions[action].global) {
-      entry.input = "uuidRequest";
+      if (mod.schemas?.[inputSchema]) {
+        entry.input = `${modelKey}.${action}.request`;
+        result.schemas[entry.input] = actionRequestSchema(`${modelKey}.${action}`, mod.schemas[inputSchema]);
+      } else {
+        entry.input = "uuidRequest";
+      }
     } else if (mod.schemas?.[inputSchema]) {
       entry.input = inputSchema;
       result.schemas[inputSchema] = mod.schemas[inputSchema];
@@ -140,6 +145,30 @@ function processModelOperations(
     }
     addOperation(result, id, entry);
   }
+}
+
+/**
+ * Input schema of an instance action operation: the object `uuid` then the action parameters
+ *
+ * Mirrors `DomainService.actionRequestSchema` in `@webda/core`.
+ * @param id - `<model>.<action>`, for the error message
+ * @param input - the action `.input` schema
+ * @returns the request schema
+ * @throws Error when an action parameter is named `uuid`
+ */
+function actionRequestSchema(id: string, input: JSONSchema7): JSONSchema7 {
+  if (input.properties?.uuid !== undefined) {
+    // The uuid identifies the object: a parameter with the same name would receive it, or break the schema
+    throw new Error(`${id}: parameter "uuid" conflicts with the object primary key, rename the action parameter`);
+  }
+  const args = (input as Record<string, unknown>)["x-webda-arguments"] as string[] | undefined;
+  return {
+    ...input,
+    type: "object",
+    properties: { uuid: { type: "string" }, ...input.properties },
+    required: ["uuid", ...(input.required ?? [])],
+    "x-webda-arguments": ["uuid", ...(args ?? Object.keys(input.properties ?? {}))]
+  } as JSONSchema7;
 }
 
 /**

@@ -304,6 +304,12 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
     assert.strictEqual(resource.status.count, 2);
     assert.strictEqual(resource.metadata.generation, generation);
 
+    // The status keys the model does not own are kept, and not loaded
+    this.stored("s1").status.observedGeneration = 7;
+    await repo.incrementAttributes("s1", ["count"] as any);
+    assert.deepStrictEqual(this.stored("s1").status, { count: 3, ready: true, observedGeneration: 7 });
+    assert.strictEqual((await repo.get("s1")).observedGeneration, undefined);
+
     // A spec change bumps the generation and updates the labels
     await repo.patch("s1", { name: "front" });
     resource = this.stored("s1");

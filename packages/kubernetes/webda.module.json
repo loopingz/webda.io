@@ -214,6 +214,184 @@
         }
       }
     },
+    "Webda/KubernetesOperator": {
+      "Import": "lib/operator/operator.service:KubernetesOperator",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Cluster": {
+            "additionalProperties": false,
+            "properties": {
+              "caFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Context": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "K8sConfiguration": {
+            "additionalProperties": false,
+            "description": "Kubernetes configuration as found in a kubeconfig file",
+            "properties": {
+              "clusters": {
+                "items": {
+                  "$ref": "#/definitions/Cluster"
+                },
+                "type": "array"
+              },
+              "contexts": {
+                "items": {
+                  "$ref": "#/definitions/Context"
+                },
+                "type": "array"
+              },
+              "currentContext": {
+                "type": "string"
+              },
+              "users": {
+                "items": {
+                  "$ref": "#/definitions/User"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "clusters",
+              "contexts",
+              "currentContext",
+              "users"
+            ],
+            "type": "object"
+          },
+          "User": {
+            "additionalProperties": false,
+            "properties": {
+              "certFile": {
+                "type": "string"
+              },
+              "keyFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Kubernetes operator parameters",
+        "properties": {
+          "autoStart": {
+            "default": false,
+            "description": "Start reconciling at init, instead of with `webda kubernetes operator`",
+            "type": "boolean"
+          },
+          "concurrency": {
+            "default": 1,
+            "description": "Objects of a model reconciled at the same time",
+            "type": "number"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/K8sConfiguration"
+              }
+            ],
+            "description": "Kubernetes configuration for the leader election Lease, the pod's service account or the local kubeconfig when\nunset (the resources are watched with the configuration of their store)\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "users.token",
+              "users.password",
+              "users.keyData",
+              "users.authProvider"
+            ]
+          },
+          "context": {
+            "description": "Kubernetes context to use",
+            "type": "string"
+          },
+          "finalizer": {
+            "description": "Finalizer added to the objects, e.g. `myapp.example.com/finalizer`: `finalize()` is called before they are deleted",
+            "type": "string"
+          },
+          "leaderElection": {
+            "default": true,
+            "description": "Run only on the replica holding a `coordination.k8s.io` Lease",
+            "type": "boolean"
+          },
+          "leaseDuration": {
+            "default": 15000,
+            "description": "Milliseconds a Lease is valid without renewal",
+            "type": "number"
+          },
+          "leaseName": {
+            "description": "Name of the Lease, default to `webda-operator-<service name>`",
+            "type": "string"
+          },
+          "leaseNamespace": {
+            "description": "Namespace of the Lease, default to the namespace of the first model's store",
+            "type": "string"
+          },
+          "leaseRetryPeriod": {
+            "default": 5000,
+            "description": "Milliseconds between two attempts to acquire or renew the Lease",
+            "type": "number"
+          },
+          "maxBackoff": {
+            "default": 300000,
+            "description": "Maximum milliseconds before reconciling again an object that failed",
+            "type": "number"
+          },
+          "maxRetries": {
+            "default": 5,
+            "description": "Attempts of a status or finalizer write on conflicts",
+            "type": "number"
+          },
+          "models": {
+            "description": "Models to reconcile, stored in a KubernetesStore and implementing `reconcile()`",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resyncPeriod": {
+            "default": 300000,
+            "description": "Milliseconds between two reconciliations of every object",
+            "type": "number"
+          },
+          "timeout": {
+            "default": 10000,
+            "description": "Milliseconds before a request to the Kubernetes API is aborted",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "models",
+          "type"
+        ],
+        "type": "object",
+        "title": "KubernetesOperator"
+      },
+      "Configuration": "lib/operator/operator.service:KubernetesOperatorParameters",
+      "commands": {
+        "kubernetes operator": {
+          "description": "Run the Kubernetes operator",
+          "method": "operator",
+          "args": {}
+        }
+      }
+    },
     "Webda/KubernetesStore": {
       "Import": "lib/stores/kubernetesstore.service:KubernetesStore",
       "Schema": {

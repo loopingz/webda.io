@@ -9,3 +9,7 @@ export * from "./services/crdexporter.service.js";
 export * from "./stores/resources.js";
 export * from "./stores/kubernetesrepository.js";
 export * from "./stores/kubernetesstore.service.js";
+export * from "./operator/workqueue.js";
+export * from "./operator/leader.js";
+export * from "./operator/controller.js";
+export * from "./operator/operator.service.js";

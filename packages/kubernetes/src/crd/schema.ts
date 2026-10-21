@@ -317,7 +317,32 @@ export interface CrdOptions {
    * Keep the spec fields the schema does not declare: the fields of the subclasses sharing the resources
    */
   preserveUnknownFields?: boolean;
+  /**
+   * The resources are reconciled by an operator: the status holds `observedGeneration` and `conditions`
+   */
+  reconciled?: boolean;
 }
+
+/** Status fields written by the operator */
+export const RECONCILED_STATUS: Record<string, StructuralSchema> = {
+  observedGeneration: { type: "integer", description: "Generation of the spec last reconciled" },
+  conditions: {
+    type: "array",
+    description: "Conditions of the resource",
+    items: {
+      type: "object",
+      required: ["type", "status"],
+      properties: {
+        type: { type: "string" },
+        status: { type: "string", enum: ["True", "False", "Unknown"] },
+        reason: { type: "string" },
+        message: { type: "string" },
+        observedGeneration: { type: "integer" },
+        lastTransitionTime: { type: "string", format: "date-time" }
+      }
+    }
+  }
+};
 
 /**
  * Model metadata used to build a CustomResourceDefinition
@@ -413,13 +438,17 @@ export function buildCrd(model: CrdModel, options: CrdOptions): CustomResourceDe
       definitions
     );
   }
+  if (options.reconciled) {
+    root.properties!.status ??= { type: "object", properties: {} };
+    root.properties!.status.properties = { ...root.properties!.status.properties, ...RECONCILED_STATUS };
+  }
   const version: CustomResourceDefinition["spec"]["versions"][number] = {
     name: options.version ?? "v1",
     served: true,
     storage: true,
     schema: { openAPIV3Schema: root }
   };
-  if (statusFields.length) version.subresources = { status: {} };
+  if (root.properties!.status) version.subresources = { status: {} };
   if (labelFields.length) {
     version.additionalPrinterColumns = [
       ...labelFields.map(field => {

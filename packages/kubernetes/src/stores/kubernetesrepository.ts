@@ -155,8 +155,10 @@ export class KubernetesRepository<T extends ModelClass> extends MemoryRepository
     delete spec.__type;
     const type = declaredType(item) ?? current?.metadata.annotations?.[TYPE_ANNOTATION];
     for (const field of this.pks) delete spec[field];
-    const status: Record<string, any> = {};
+    // The status keys the model does not own (e.g. the operator's conditions) are kept
+    const status: Record<string, any> = { ...current?.status };
     for (const field of this.statusFields) {
+      delete status[field];
       if (spec[field] !== undefined) status[field] = spec[field];
       delete spec[field];
     }
@@ -205,7 +207,7 @@ export class KubernetesRepository<T extends ModelClass> extends MemoryRepository
     const type = this.typeOf(resource);
     const row = {
       ...resource.spec,
-      ...resource.status,
+      ...Object.fromEntries(this.statusFields.map(field => [field, resource.status?.[field]])),
       ...(this.parseUID(resource.metadata.name, true) as object),
       ...(type ? { __type: type } : {})
     };

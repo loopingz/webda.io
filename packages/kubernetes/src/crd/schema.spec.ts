@@ -279,6 +279,18 @@ class BuildCrdTest {
     assert.strictEqual(version.subresources, undefined);
     assert.strictEqual(version.additionalPrinterColumns, undefined);
     assert.deepStrictEqual(Object.keys(version.schema.openAPIV3Schema.properties!), ["spec"]);
+    const reconciled = buildCrd(this.tenant, { group: "myapp.example.com", reconciled: true }).spec.versions[0];
+    assert.deepStrictEqual(reconciled.subresources, { status: {} });
+    assert.deepStrictEqual(Object.keys(reconciled.schema.openAPIV3Schema.properties!.status.properties!), [
+      "observedGeneration",
+      "conditions"
+    ]);
+    const both = buildCrd(this.tenant, { group: "myapp.example.com", reconciled: true, statusFields: ["ready"] });
+    assert.deepStrictEqual(Object.keys(both.spec.versions[0].schema.openAPIV3Schema.properties!.status.properties!), [
+      "ready",
+      "observedGeneration",
+      "conditions"
+    ]);
     const preserved = buildCrd(this.tenant, { group: "myapp.example.com", preserveUnknownFields: true });
     assert.strictEqual(
       preserved.spec.versions[0].schema.openAPIV3Schema.properties!.spec["x-kubernetes-preserve-unknown-fields"],

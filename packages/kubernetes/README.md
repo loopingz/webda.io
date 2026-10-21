@@ -22,6 +22,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 - You need to deploy a scheduled Webda service operation as a Kubernetes CronJob.
 - You read Kubernetes resources from a service: typed API clients and a self-restarting informer for custom resources.
 - You store configuration-like models as Kubernetes custom resources (`KubernetesStore`), editable with kubectl/GitOps.
+- You reconcile those models like a Kubernetes controller (`KubernetesOperator`).
 
 ## Install
 
@@ -124,6 +125,50 @@ them at init (needs the rights on `customresourcedefinitions`).
 Kubernetes is not a database: use it for configuration-like models (tens to thousands of objects, at most ~1.5 MiB
 each). A label field must hold label-compatible values; resources created with kubectl need the labels too to be found
 by a query on them.
+
+### KubernetesOperator (reconcile models)
+
+```typescript
+class Tenant extends UuidModel implements Reconcilable {
+  name!: string;
+  ready?: boolean;
+
+  async reconcile() {
+    // provision a database, a namespace...
+    await this.patch({ ready: true });
+    // optional: reconcile again later
+    return { requeueAfter: 60_000 };
+  }
+
+  async finalize() {
+    // clean up before the object is deleted (needs `finalizer`)
+  }
+}
+```
+
+```json
+{
+  "services": {
+    "tenantOperator": {
+      "type": "Webda/KubernetesOperator",
+      "models": ["MyApp/Tenant"],
+      "finalizer": "myapp.example.com/finalizer"
+    }
+  }
+}
+```
+
+`webda kubernetes operator` runs it (or `autoStart: true` at init). The models must be stored in a `KubernetesStore`; the
+CRD of a model with a `reconcile` method gets a status subresource with `observedGeneration` and `conditions`.
+
+- `reconcile()` is called when the spec changes (`metadata.generation`), on resync (`resyncPeriod`, 5 min) and again
+  after a failure (exponential backoff up to `maxBackoff`). Status-only changes, its own included, are not reconciled.
+- The status gets `observedGeneration` and a `Ready` condition (`Reconciled`, or `ReconcileError` with the message).
+- With `finalizer`, it is added to the objects and `finalize()` runs before the API server deletes them.
+- With `leaderElection` (default), only the replica holding the `coordination.k8s.io` Lease reconciles: the service
+  account needs `get`, `create` and `update` on `leases`, and `get`, `list`, `watch`, `update` on the resources and
+  their status.
+- Metrics: `reconcile_total{model,result}`, `reconcile_duration_seconds{model}`, `queue_depth{model}`.
 
 ### API clients and informer
 

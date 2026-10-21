@@ -1192,6 +1192,57 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
   }
 
   @test
+  async resolveArgsInjectsTheContext() {
+    useApplication<Application>().getSchemas()["Test.Ctx"] = {
+      type: "object",
+      properties: { message: { type: "string" } },
+      "x-webda-arguments": ["context", "message"],
+      "x-webda-context": ["context"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ message: "hi" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Ctx", output: "void" });
+    assert.strictEqual(args.length, 2);
+    assert.strictEqual(args[0], ctx);
+    assert.strictEqual(args[1], "hi");
+  }
+
+  @test
+  async resolveArgsInjectsTheContextInTheMiddle() {
+    useApplication<Application>().getSchemas()["Test.CtxMiddle"] = {
+      type: "object",
+      properties: { text: { type: "string" }, tags: { type: "array", items: { type: "string" } } },
+      "x-webda-arguments": ["text", "ctx", "tags"],
+      "x-webda-context": ["ctx"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ text: "t", tags: ["a"] }));
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      input: "Test.CtxMiddle",
+      output: "void"
+    });
+    assert.deepStrictEqual(args, ["t", ctx, ["a"]]);
+  }
+
+  @test
+  async resolveArgsOnlyContext() {
+    useApplication<Application>().getSchemas()["Test.CtxOnly"] = {
+      type: "object",
+      properties: {},
+      "x-webda-arguments": ["context"],
+      "x-webda-context": ["context"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.CtxOnly", output: "void" });
+    assert.deepStrictEqual(args, [ctx]);
+  }
+
+  @test
   async resolveArgsSinglePropertySchema() {
     const app = useApplication<Application>();
     app.getSchemas()["Test.SingleProp"] = {

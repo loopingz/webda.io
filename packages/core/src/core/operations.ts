@@ -163,6 +163,16 @@ export async function canCallOperation(
 }
 
 /**
+ * JSON Schema keyword listing every parameter of an operation method in order, set when some receive the context
+ */
+export const ARGUMENTS_KEYWORD = "x-webda-arguments";
+
+/**
+ * JSON Schema keyword listing the parameters of an operation method that receive the operation context
+ */
+export const CONTEXT_KEYWORD = "x-webda-context";
+
+/**
  * JSON Schema keyword the compiler sets on a streamed `.input` or `.output` schema
  */
 export const STREAM_SCHEMA_KEYWORD = "x-webda-stream";
@@ -597,11 +607,13 @@ export async function resolveArguments(context: OperationContext, operation: Ope
   // Use input schema properties to determine argument order
   if (operation.input && operation.input !== "void") {
     const app = useApplication();
-    const schema = app.getSchema(operation.input);
+    const schema: any = app.getSchema(operation.input);
     if (schema?.properties) {
-      const propNames = Object.keys(schema.properties);
+      // The compiler lists every parameter when some receive the context instead of an input value
+      const names: string[] = schema[ARGUMENTS_KEYWORD] ?? Object.keys(schema.properties);
+      const contexts = new Set<string>(schema[CONTEXT_KEYWORD] ?? []);
       // Extract values by schema property names from the merged params + body
-      return propNames.map(name => merged[name]);
+      return names.map(name => (contexts.has(name) ? context : merged[name]));
     }
   }
 

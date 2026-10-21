@@ -54,6 +54,32 @@ type Listeners<T> = {
 };
 
 /**
+ * Watch calling a hook before each watch request
+ */
+class NotifyingWatch extends k8s.Watch {
+  /**
+   * @param config - the kubernetes configuration
+   * @param beforeWatch - called before each watch request
+   */
+  constructor(
+    config: k8s.KubeConfig,
+    protected beforeWatch: () => void
+  ) {
+    super(config);
+  }
+
+  /**
+   * Call the hook, then watch
+   * @param args - the arguments of Watch.watch
+   * @returns the controller of the watch request
+   */
+  watch(...args: Parameters<k8s.Watch["watch"]>): Promise<AbortController> {
+    this.beforeWatch();
+    return super.watch(...args);
+  }
+}
+
+/**
  * Keep an up-to-date cache of custom resources: list them, then watch their changes
  *
  * Unlike the informer of @kubernetes/client-node, it restarts by itself after an error (failed list, lost watch,
@@ -66,7 +92,9 @@ type Listeners<T> = {
  * - `error`: a list or a watch failed, the informer restarts
  */
 export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesObject> {
-  protected informer: k8s.Informer<T> & k8s.ObjectCache<T>;
+  protected informer: k8s.ListWatch<T>;
+  /** objects of the last successful list, until the cache is updated with them */
+  protected pendingSync?: T[];
   protected listeners: Listeners<T> = {
     add: [],
     update: [],
@@ -105,13 +133,15 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
       const result = await (namespace
         ? api.listNamespacedCustomObject({ group, version, plural, namespace, labelSelector })
         : api.listClusterCustomObject({ group, version, plural, labelSelector }));
-      this.onSynced(result.items);
+      this.pendingSync = result.items;
       return result;
     };
     const path = namespace
       ? `/apis/${group}/${version}/namespaces/${namespace}/${plural}`
       : `/apis/${group}/${version}/${plural}`;
-    this.informer = k8s.makeInformer<T>(getKubeConfig(params), path, list, labelSelector);
+    // ListWatch updates its cache after a successful list, then watches: emit synced at that point
+    const watch = new NotifyingWatch(getKubeConfig(params), () => this.flushSync());
+    this.informer = new k8s.ListWatch<T>(path, watch, list, false, labelSelector);
     for (const event of ["add", "update", "delete"] as const) {
       this.informer.on(event, obj => {
         this.emit(event, obj);
@@ -192,10 +222,14 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
   }
 
   /**
-   * A list succeeded: reset the restart backoff
-   * @param objects - all the listed objects
+   * After a successful list, once the cache is updated: reset the restart backoff and emit synced
    */
-  protected onSynced(objects: T[]): void {
+  protected flushSync(): void {
+    const objects = this.pendingSync;
+    if (!objects) {
+      return;
+    }
+    this.pendingSync = undefined;
     this.synced = true;
     this.currentRestartDelay = this.restartDelay;
     this.emit("synced", objects);

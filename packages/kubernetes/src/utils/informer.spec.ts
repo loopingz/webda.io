@@ -121,7 +121,14 @@ class KubernetesInformerTest {
     this.informer.on("add", obj => events.push(`add:${obj.metadata!.name}`));
     this.informer.on("update", obj => events.push(`update:${obj.metadata!.name}`));
     this.informer.on("delete", obj => events.push(`delete:${obj.metadata!.name}`));
-    this.informer.on("synced", () => synced++);
+    this.informer.on("synced", objects => {
+      synced++;
+      // The cache is up to date when synced is emitted
+      assert.deepStrictEqual(
+        this.informer.list().map(p => p.metadata!.name),
+        objects.map(p => p.metadata!.name)
+      );
+    });
     assert.strictEqual(this.informer.synced, false);
     await this.informer.start();
     assert.strictEqual(this.informer.synced, true);

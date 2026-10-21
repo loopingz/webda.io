@@ -2,7 +2,15 @@ import type { WebdaClient } from "./client.js";
 import { Emitter } from "./emitter.js";
 import { SdkError } from "./errors.js";
 import type { SdkModel } from "./model.js";
-import type { CallOptions, ChangeEvent, ModelDescriptor, PrimaryKeyInput, QueryResult } from "./types.js";
+import type {
+  CallOptions,
+  ChangeEvent,
+  ModelDescriptor,
+  PrimaryKeyInput,
+  QueryOptions,
+  QueryResult,
+  QueryTotal
+} from "./types.js";
 
 /** A raw object, as the server sends it */
 export type RawObject = Record<string, unknown>;
@@ -13,7 +21,7 @@ export type RawObject = Record<string, unknown>;
  */
 export interface ModelBackend {
   get(uid: string, options: CallOptions): Promise<RawObject>;
-  query(query: string, options: CallOptions): Promise<QueryResult<RawObject>>;
+  query(query: string, options: QueryOptions): Promise<QueryResult<RawObject>>;
   create(data: RawObject, options: CallOptions): Promise<RawObject>;
   update(uid: string, data: RawObject, options: CallOptions): Promise<RawObject>;
   patch(uid: string, data: RawObject, options: CallOptions): Promise<RawObject>;
@@ -133,19 +141,34 @@ export class RemoteBackend implements ModelBackend {
 
   /**
    * @param query - WebdaQL query
-   * @param options - call options
+   * @param options - call options; `count` also asks for the total of the query
    * @returns the page, from the cache when fresh and every result is cached
    */
-  async query(query: string, options: CallOptions): Promise<QueryResult<RawObject>> {
+  async query(query: string, options: QueryOptions): Promise<QueryResult<RawObject>> {
     const op = this.operation("query");
     const { cache } = this.client;
     const model = this.descriptor.id;
     const mode = options.cache ?? "default";
     const projection = options.select?.length ? options.select.join(",") : undefined;
+    // A next page reuses the total cached with the first page of the same query: the server does not count again
+    const first = withContinuation(query, undefined);
+    const known =
+      options.count && mode !== "no-store" && first !== query.trim() ? cache.getQuery(model, first)?.total : undefined;
+    const count = options.count === true && known === undefined;
+    /**
+     * @param page - the page
+     * @param total - the total of the query
+     * @returns the page, with its total when there is one
+     */
+    const withTotal = (page: QueryResult<RawObject>, total: QueryTotal | undefined): QueryResult<RawObject> =>
+      options.count && total ? { ...page, total } : page;
     const fetch = () =>
-      this.dedupe(`query|${query}|${projection ?? ""}`, async () => {
-        const page = ((await this.client.call(op, { query }, options)) ?? {}) as QueryResult<RawObject>;
+      this.dedupe(`query|${query}|${projection ?? ""}|${count ? "count" : ""}`, async () => {
+        const page = ((await this.client.call(op, count ? { query, count } : { query }, options)) ??
+          {}) as QueryResult<RawObject>;
         const results = page.results ?? [];
+        // The server sends a null total when the model does not allow one
+        const total = page.total ?? known;
         if (mode !== "no-store") {
           const uids = results.map(data => {
             const uid = this.uidOf(data);
@@ -153,24 +176,28 @@ export class RemoteBackend implements ModelBackend {
             return uid;
           });
           // A projected page holds partial objects: it is not a cached query
-          if (projection === undefined) cache.setQuery(model, query, uids, page.continuationToken);
+          if (projection === undefined) cache.setQuery(model, query, uids, page.continuationToken, total ?? undefined);
         }
-        return { results, continuationToken: page.continuationToken };
+        return withTotal({ results, continuationToken: page.continuationToken }, total ?? undefined);
       });
     if (mode !== "no-store" && mode !== "reload") {
       const entry = cache.getQuery(model, query);
-      if (entry && (mode === "force-cache" || cache.isFresh(entry))) {
-        const entities = entry.uids.map(uid => cache.getEntity(model, uid)?.data);
-        if (entities.every(data => data !== undefined)) {
-          return { results: entities as RawObject[], continuationToken: entry.continuationToken };
-        }
-      } else if (entry && cache.staleWhileRevalidate) {
-        const entities = entry.uids.map(uid => cache.getEntity(model, uid)?.data);
-        if (entities.every(data => data !== undefined)) {
-          fetch().catch(() => {
-            // The stale page was served
-          });
-          return { results: entities as RawObject[], continuationToken: entry.continuationToken };
+      // A cached page without its total does not answer a query asking for it
+      if (entry && (!options.count || entry.total !== undefined || known !== undefined)) {
+        const total = entry.total ?? known;
+        if (mode === "force-cache" || cache.isFresh(entry)) {
+          const entities = entry.uids.map(uid => cache.getEntity(model, uid)?.data);
+          if (entities.every(data => data !== undefined)) {
+            return withTotal({ results: entities as RawObject[], continuationToken: entry.continuationToken }, total);
+          }
+        } else if (cache.staleWhileRevalidate) {
+          const entities = entry.uids.map(uid => cache.getEntity(model, uid)?.data);
+          if (entities.every(data => data !== undefined)) {
+            fetch().catch(() => {
+              // The stale page was served
+            });
+            return withTotal({ results: entities as RawObject[], continuationToken: entry.continuationToken }, total);
+          }
         }
       }
     }
@@ -369,12 +396,17 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
 
   /**
    * @param query - WebdaQL query
-   * @param options - call options
+   * @param options - call options; `count` also returns the total of the query (ask on the first page: the next pages
+   *   keep the cached total)
    * @returns the page
    */
-  async query(query: string = "", options: CallOptions = {}): Promise<QueryResult<T>> {
+  async query(query: string = "", options: QueryOptions = {}): Promise<QueryResult<T>> {
     const page = await this.backend.query(query, options);
-    return { results: page.results.map(data => this.hydrate(data)), continuationToken: page.continuationToken };
+    return {
+      results: page.results.map(data => this.hydrate(data)),
+      continuationToken: page.continuationToken,
+      ...(page.total ? { total: page.total } : {})
+    };
   }
 
   /**

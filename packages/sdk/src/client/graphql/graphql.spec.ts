@@ -166,6 +166,29 @@ describe("GraphQLTransport", () => {
     expect(requests[0].body.query).toContain("query Sdk_User_Get($uuid: String) { User(uuid: $uuid) { uuid name");
   });
 
+  it("selects the total of a query result only when count is asked", () => {
+    const transport = new GraphQLTransport({ url: "http://api/graphql" });
+    const query: any = {
+      ...GET,
+      id: "Users.Query",
+      kind: "query",
+      graphql: {
+        kind: "query",
+        name: "Users",
+        args: { query: "String" },
+        selection: { results: { select: USER }, continuationToken: 1 },
+        keys: ["uuid"]
+      }
+    };
+    const plain = transport.prepare(query, { query: "" });
+    expect(plain.query).not.toContain("total");
+    expect(plain.variables).toEqual({ query: "" });
+    const counted = transport.prepare(query, { query: "", count: true }, { select: ["name"] });
+    expect(counted.query).toMatch(/continuationToken total \{ value relation \} \} \}$/);
+    expect(counted.query).toContain("results { uuid name }");
+    expect(counted.variables).toEqual({ query: "" });
+  });
+
   it("wraps the input object of mutations, keeping the fields of its input type", () => {
     const transport = new GraphQLTransport({ url: "http://api/graphql" });
     const update: OperationDescriptor = {

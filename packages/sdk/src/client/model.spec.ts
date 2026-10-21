@@ -289,6 +289,45 @@ describe("ModelClient", () => {
     expect(await api.Task.query("nothing")).toEqual({ results: [], continuationToken: undefined });
   });
 
+  it("asks for the total only with count, and keeps it for the next pages", async () => {
+    const api = stub(
+      {
+        "Tasks.Query": (input: any) => ({
+          results: [{ uuid: input.query.includes("OFFSET") ? "t2" : "t1" }],
+          continuationToken: input.query.includes("OFFSET") ? undefined : "next",
+          ...(input.count ? { total: { value: 2, relation: "eq" } } : {})
+        })
+      },
+      { ttl: 60_000 }
+    );
+    // Without count: no count asked, no total
+    const plain = await api.Task.query("LIMIT 1", { cache: "no-store" });
+    expect(plain.total).toBeUndefined();
+    expect(api.calls[0].input).toEqual({ query: "LIMIT 1" });
+    // First page with count
+    const first = await api.Task.query("LIMIT 1", { count: true });
+    expect(api.calls[1].input).toEqual({ query: "LIMIT 1", count: true });
+    expect(first.total).toEqual({ value: 2, relation: "eq" });
+    expect(api.client.cache.getQuery("App/Task", "LIMIT 1")).toMatchObject({ total: { value: 2, relation: "eq" } });
+    // Served from the cache with its total
+    expect((await api.Task.query("LIMIT 1", { count: true })).total).toEqual({ value: 2, relation: "eq" });
+    expect(api.calls).toHaveLength(2);
+    // The next page reuses the cached total: the server is not asked to count again
+    const next = await api.Task.query(withContinuation("LIMIT 1", first.continuationToken), { count: true });
+    expect(next.results[0].uuid).toBe("t2");
+    expect(api.calls[2].input).toEqual({ query: 'LIMIT 1 OFFSET "next"' });
+    expect(next.total).toEqual({ value: 2, relation: "eq" });
+    // A cached page without total is fetched again when the total is asked
+    await api.Task.query("status = 'x'");
+    expect((await api.Task.query("status = 'x'", { count: true })).total).toEqual({ value: 2, relation: "eq" });
+    expect(api.calls.slice(-1)[0].input).toEqual({ query: "status = 'x'", count: true });
+  });
+
+  it("drops a null total", async () => {
+    const api = stub({ "Tasks.Query": () => ({ results: [], total: null }) });
+    expect(await api.Task.query("", { count: true })).toEqual({ results: [], continuationToken: undefined });
+  });
+
   it("serves a stale page and revalidates it in the background", async () => {
     let fail = false;
     const api = stub(

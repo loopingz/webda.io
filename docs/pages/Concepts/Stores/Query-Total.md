@@ -50,6 +50,17 @@ only):
 }
 ```
 
+SDK (`@webda/sdk`): pass `count: true` to a query. The next pages of the same query reuse the total cached with the
+first page, without asking the server to count again; the offline client counts its replica:
+
+```typescript
+const page = await api.Task.query("status = 'open' LIMIT 50", { count: true });
+page.total; // { value: 1234, relation: "eq" }, undefined when the model does not allow it
+const next = await api.Task.query(withContinuation("status = 'open' LIMIT 50", page.continuationToken), {
+  count: true
+}); // next.total comes from the cache
+```
+
 **Ask for the total on the first page only**, and keep it while paging on: every count scans the matching rows (or up
 to the cap), the next pages do not need it again.
 

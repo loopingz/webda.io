@@ -210,6 +210,15 @@ export interface CallOptions extends CallContext {
   cache?: CacheMode;
 }
 
+/** Options of a query through the client */
+export interface QueryOptions extends CallOptions {
+  /**
+   * Also ask for the total of the query: ask on the first page only, the next pages of the same query keep the
+   * cached total
+   */
+  count?: boolean;
+}
+
 /** A bidirectional stream, from `connect()` */
 export interface BidiStream<I = unknown, O = unknown> extends AsyncIterable<O> {
   /** Send a message to the server */
@@ -243,6 +252,17 @@ export interface Transport {
 export interface QueryResult<T> {
   results: T[];
   continuationToken?: string;
+  /**
+   * Total of the query, when asked with `count` and allowed by the model: with relation "gte", the total is at least
+   * `value`
+   */
+  total?: QueryTotal;
+}
+
+/** Total of a query: `relation` "eq" for an exact total, "gte" when the server stopped counting at `value` */
+export interface QueryTotal {
+  value: number;
+  relation: "eq" | "gte";
 }
 
 /** A primary key: the string uid, or the key attributes of a composite key */

@@ -6,6 +6,22 @@ import { vi } from "vitest";
 import { TemplateService, registerTemplateEngine } from "./index.js";
 
 const configure = vi.fn();
+let configured = false;
+registerTemplateEngine("async-ok", {
+  extensions: ["aok"],
+  configure: async () => {
+    await new Promise(r => setTimeout(r, 20));
+    configured = true;
+  },
+  compile: () => () => ""
+});
+registerTemplateEngine("async-fail", {
+  extensions: ["afail"],
+  configure: async () => {
+    throw new Error("configure failed");
+  },
+  compile: () => () => ""
+});
 registerTemplateEngine("service-fake", { extensions: ["sfake"], configure, compile: () => () => "" });
 
 @suite
@@ -49,16 +65,40 @@ class TemplateServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async asyncConfigureAwaitedByInit() {
+    const svc = useService("TemplateService");
+    Reflect.get(svc, "parameters").engines["async-ok"] = {};
+    configured = false;
+    svc.resolve();
+    assert.strictEqual(configured, false);
+    await svc.init();
+    assert.strictEqual(configured, true);
+  }
+
+  @test
+  async rejectingConfigureFailsInit() {
+    const svc = useService("TemplateService");
+    Reflect.get(svc, "parameters").engines["async-fail"] = {};
+    svc.resolve();
+    await assert.rejects(() => svc.init(), /configure failed/);
+  }
+
+  @test
   async metrics() {
     const svc = useService("TemplateService");
     const metrics = Reflect.get(svc, "metrics");
     const total = async (name: string) =>
       (await metrics[name].get()).values.reduce((a: number, v: any) => a + v.value, 0);
+    const mustache = async () =>
+      (await metrics.render.get()).values
+        .filter((v: any) => v.labels.engine === "mustache")
+        .reduce((a: number, v: any) => a + v.value, 0);
+    const mustacheBefore = await mustache();
     const renders = await total("render");
     const errors = await total("errors");
     await svc.render("single", { name: "a" });
     assert.strictEqual((await total("render")) - renders, 1);
-    assert.ok((await metrics.render.get()).values.some((v: any) => v.labels.engine === "mustache"));
+    assert.strictEqual((await mustache()) - mustacheBefore, 1);
     assert.strictEqual((await total("errors")) - errors, 0);
     await assert.rejects(() => svc.render("nope"), { code: "TEMPLATE_NOT_FOUND" });
     assert.strictEqual((await total("errors")) - errors, 1);

@@ -60,6 +60,7 @@ export class TemplateService<T extends TemplateServiceParameters = TemplateServi
     errors: Counter;
   };
   protected renderer: TemplateRenderer;
+  protected configuring: Promise<void>[] = [];
 
   /**
    * Register a template engine, usable from every TemplateService
@@ -108,14 +109,20 @@ export class TemplateService<T extends TemplateServiceParameters = TemplateServi
    */
   resolve(): this {
     super.resolve();
+    this.configuring = [];
     const options = this.parameters.engines ?? {};
     for (const name of listTemplateEngines()) {
       const engine = getTemplateEngine(name)!;
       if (name in options && engine.configure) {
-        const result = engine.configure(options[name]);
-        if (result instanceof Promise) {
-          result.catch(err => this.log("ERROR", `Engine '${name}' configuration failed`, err));
-        }
+        // Started here, awaited in init()
+        this.configuring.push(
+          Promise.resolve()
+            .then(() => engine.configure!(options[name]))
+            .catch(err => {
+              this.log("ERROR", `Engine '${name}' configuration failed`, err);
+              throw err;
+            })
+        );
       }
     }
     return this;
@@ -127,6 +134,8 @@ export class TemplateService<T extends TemplateServiceParameters = TemplateServi
    */
   async init(): Promise<this> {
     await super.init();
+    // A failing engine configuration fails the init
+    await Promise.all(this.configuring);
     for (const folder of this.parameters.folders!) {
       const isDir = await stat(resolve(process.cwd(), folder)).then(
         s => s.isDirectory(),

@@ -1235,7 +1235,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveArgsInputOverridesParams() {
+  async resolveArgsRejectsBodyConflictingWithParams() {
     const app = useApplication<Application>();
     app.getSchemas()["Test.Override"] = {
       type: "object",
@@ -1249,9 +1249,49 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     await ctx.init();
     ctx.setParameters({ name: "fromParams", value: 1 });
     ctx.setInput(JSON.stringify({ name: "fromBody" }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Override", output: "void" });
-    // Body overrides params for "name", params supplies "value"
-    assert.deepStrictEqual(args, ["fromBody", 1]);
+    // A body value must never replace a path/query parameter
+    await assert.rejects(
+      () => resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Override", output: "void" }),
+      (err: any) => err.getResponseCode?.() === 400 && /\/name conflicts with path parameter/.test(err.message)
+    );
+  }
+
+  @test
+  async resolveArgsAcceptsBodyMatchingParams() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.Same"] = {
+      type: "object",
+      properties: {
+        uuid: { type: "string" },
+        name: { type: "string" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "abc" });
+    ctx.setInput(JSON.stringify({ uuid: "abc", name: "Alice" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Same", output: "void" });
+    assert.deepStrictEqual(args, ["abc", "Alice"]);
+  }
+
+  @test
+  async resolveArgsIgnoresUndefinedParams() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.Undef"] = {
+      type: "object",
+      properties: {
+        parent: { type: "string" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    // Transports may blank a parameter by setting it to undefined
+    ctx.setParameters({ parent: undefined });
+    ctx.setInput(JSON.stringify({ parent: "p1" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Undef", output: "void" });
+    assert.deepStrictEqual(args, ["p1"]);
   }
 
   @test
@@ -1678,6 +1718,47 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       Brand.canAct = open;
       delete getStorage().operations["Brand.GatedDelete"];
       delete getStorage().operations["Brand.GatedQuery"];
+    }
+  }
+
+  @test
+  async callOperationBodyCannotRetargetPathPrimaryKey() {
+    // PUT /brands/A/... with body { uuid: "B" } must not act on B
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+
+    const Brand = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+
+    await Brand.create({ uuid: "brand-a", name: "A" } as any);
+    await Brand.create({ uuid: "brand-b", name: "B" } as any);
+
+    getStorage().operations["Brand.InstanceRetarget"] = {
+      id: "Brand.InstanceRetarget",
+      model: "Brand",
+      method: "delete",
+      static: false,
+      input: "uuidRequest",
+      output: "void"
+    } as any;
+
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters({ uuid: "brand-a" });
+      ctx.setInput(JSON.stringify({ uuid: "brand-b" }));
+      await assert.rejects(
+        () => callOperation(ctx, "Brand.InstanceRetarget"),
+        (err: any) => err.getResponseCode?.() === 400 && /\/uuid conflicts with path parameter/.test(err.message)
+      );
+      for (const uuid of ["brand-a", "brand-b"]) {
+        const obj = await repo.get(uuid);
+        assert.ok(obj && !obj.isDeleted(), `${uuid} must not be deleted`);
+      }
+    } finally {
+      delete getStorage().operations["Brand.InstanceRetarget"];
     }
   }
 

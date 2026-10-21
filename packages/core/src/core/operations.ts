@@ -473,6 +473,51 @@ function coerceMergedToSchema(schema: any, merged: Record<string, any>): void {
 }
 
 /**
+ * Compare a path/query parameter with the body value sent for the same key
+ *
+ * Path and query values are always strings while the body may carry the typed value
+ * @param param - the path/query parameter value
+ * @param value - the body value
+ * @returns true if both designate the same value
+ */
+function isSameParameterValue(param: any, value: any): boolean {
+  if (param === value) {
+    return true;
+  }
+  const isScalar = (v: any) => ["string", "number", "boolean", "bigint"].includes(typeof v);
+  return isScalar(param) && isScalar(value) && String(param) === String(value);
+}
+
+/**
+ * Read the operation input: path/query parameters merged with the request body
+ *
+ * The body can complete the parameters but never replace one, so the URL always
+ * identifies the target of the operation (e.g. `PUT /tasks/A` with `{ "uuid": "B" }`
+ * must not act on B).
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @returns the raw body and the merged input
+ * @throws BadRequest if a body value conflicts with a parameter
+ */
+async function getOperationInput(context: OperationContext, operationId: string): Promise<{ input: any; merged: any }> {
+  const params = context.getParameters() || {};
+  let input: any;
+  try {
+    input = await context.getInput();
+  } catch {
+    // No input (e.g., GET request)
+  }
+  const body = typeof input === "object" && input !== null ? input : {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || body[key] === undefined || isSameParameterValue(value, body[key])) {
+      continue;
+    }
+    throw new WebdaError.BadRequest(`${operationId} InvalidInput: /${key} conflicts with path parameter`);
+  }
+  return { input, merged: { ...params, ...body } };
+}
+
+/**
  * Check if an operation can be executed with the current context.
  * @param context - the execution context
  * @param operationId - the operation identifier
@@ -496,15 +541,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
       // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
       // and must be merged with the body before validation because schemas like
       // uuidRequest and binaryHashRequest declare them as required properties.
-      const params = context.getParameters() || {};
-      let body: any;
-      try {
-        body = await context.getInput();
-      } catch {
-        // No body (e.g., GET request) — skip validation
-      }
-      // Merge path params with body (body overrides params for same keys)
-      const merged = { ...params, ...(typeof body === "object" && body !== null ? body : {}) };
+      const { merged } = await getOperationInput(context, operationId);
       // Coerce string path params (e.g. `"0"`) to the primitive type the
       // schema declares before validation runs, so AJV doesn't reject
       // `index: "0"` against `{ type: "number" }`. Mutates `merged` in
@@ -536,8 +573,8 @@ async function checkOperation(context: OperationContext, operationId: string) {
  *
  * The REST transport merges path/query params into the context so that `context.getParameters()`
  * contains URL-derived values (e.g., `{uuid}`) while `context.getInput()` contains the request
- * body. This function merges both sources (body overrides params) and extracts arguments based
- * on the `input` schema property names and order.
+ * body. This function merges both sources (a body value conflicting with a param is rejected)
+ * and extracts arguments based on the `input` schema property names and order.
  *
  * @param context - the execution context
  * @param operation - the operation definition
@@ -553,17 +590,9 @@ export async function resolveArguments(context: OperationContext, operation: Ope
   // (e.g. string `"0"` from a `{index}` URL slot back to a `number`).
   // Falls back to a fresh merge for code paths that bypass `checkOperation`
   // (currently only `Test.Op` unit tests).
-  let merged = context.getExtension<any>("operationResolvedInput");
-  let input: any;
-  try {
-    input = await context.getInput();
-  } catch {
-    // No input (e.g., GET request)
-  }
-  if (!merged) {
-    const params = context.getParameters() || {};
-    merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
-  }
+  const resolved = await getOperationInput(context, operation.id);
+  const input = resolved.input;
+  const merged = context.getExtension<any>("operationResolvedInput") ?? resolved.merged;
 
   // Use input schema properties to determine argument order
   if (operation.input && operation.input !== "void") {

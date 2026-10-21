@@ -98,13 +98,17 @@ export function hasStaticPermissionCheck(model: any): boolean {
 
 /**
  * Whether a model class defines a permission check at all: a static `canAct` of its own (not the base one), or an
- * instance `canAct`. A model with neither is refused on every transport. Subclasses with their own check do not
- * open a class that has none: an object reached through a class must be allowed by that class too
+ * instance `canAct` of its own (not the base one, which denies). A model with neither is refused on every transport.
+ * Subclasses with their own check do not open a class that has none: an object reached through a class must be
+ * allowed by that class too
  * @param model - the model class
  * @returns true when the model defines one of the two forms
  */
 export function hasModelPermissionCheck(model: any): boolean {
-  return hasStaticPermissionCheck(model) || typeof model?.prototype?.canAct === "function";
+  return (
+    hasStaticPermissionCheck(model) ||
+    (typeof model?.prototype?.canAct === "function" && model.prototype.canAct !== Model.prototype.canAct)
+  );
 }
 
 /**

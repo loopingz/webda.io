@@ -1,5 +1,5 @@
 import { Actionable, ActionsEnum, WEBDA_ACTIONS } from "../src/actionable";
-import { Model, ModelEvents, UuidModel } from "../src/model";
+import { CanActContext, Model, ModelEvents, UuidModel } from "../src/model";
 import { ModelLinksArray, ModelLinksMap, ModelLinksSimpleArray, ModelParent, ModelRelated } from "../src/relations";
 import { JSONed, PrimaryKeyType, SelfJSONed, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } from "../src/storable";
 
@@ -201,10 +201,11 @@ class User extends UuidModel {
 
   /**
    * Determine whether the given action is permitted for this user.
+   * @param _context - the caller context
    * @param action - the action to check
    * @returns true or a string reason if permitted, false otherwise
    */
-  async canAct(action: ActionsEnum<User>): Promise<boolean | string> {
+  async canAct(_context: CanActContext, action: ActionsEnum<User>): Promise<boolean | string> {
     if (action === "mfa.confirm") {
       return true;
     } else if (action === "mfa.verify" || action === "readonly_mfa.verify") {

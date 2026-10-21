@@ -306,7 +306,9 @@ is stored (server-only, never in an API output): the JSON value encrypted with t
 inside a JWT signed with that key, so tampering is detected. Values encrypted before a key rotation still decrypt
 while the old key is in the CryptoService registry. Declare it like any behavior: `secret: EncryptedField<MyType>;`.
 **Every instance must share the CryptoService keys** (the `Registry` store): an instance without the key cannot
-decrypt.
+decrypt. When the Registry is in the same database as the encrypted data, read the keys from a secret file with
+the CryptoService `keysFile` parameter, so a database dump does not contain them (see
+[CryptoService](../Concepts/Services/CryptoService.md#keys-file)).
 
 ## Client certificates
 

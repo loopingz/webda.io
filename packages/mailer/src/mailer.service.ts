@@ -1,62 +1,62 @@
-import Email from "email-templates";
-import * as fs from "fs";
+import {
+  AbstractMailer,
+  SecretString,
+  ServiceParameters,
+  useDynamicService,
+  type MailerSendOptions
+} from "@webda/core";
+import type { ServicePartialParameters } from "@webda/core";
+import { TemplateRenderer, type TemplateService } from "@webda/templates";
+import { convert } from "html-to-text";
+import juice from "juice";
 import * as nodemailer from "nodemailer";
-import * as path from "path";
-import { AbstractMailer, type MailerSendOptions } from "@webda/core";
-import { Service } from "./service.js";
-import { SecretString } from "./cryptoservice.service.js";
-import { ServiceParameters } from "../services/serviceparameters.js";
-import { ServicePartialParameters } from "./iservice.js";
-
-/**
- * Interface for an email template that can render subject, html and text
- */
-interface IEmailTemplate {
-  /**
-   * Render all template variants (subject, html, text) for the given file
-   *
-   * @param file - Template file name to render
-   * @param options - Template variables for rendering
-   * @returns Rendered result with subject, html and text properties
-   */
-  renderAll(file: string, options: any);
-}
-
-/**
- * Map of template names to their email template instances
- */
-interface TemplatesMap {
-  [key: string]: IEmailTemplate;
-}
+import { resolve } from "path";
 
 /**
  * Parameters for the Mailer service configuration
  *
- * Configures the email transport, templates directory and template engine
+ * Configures the email transport and where templates are rendered from
  *
  * @secret auth.pass,SES.credentials - nodemailer transport options to encrypt with `webda config encrypt`
  */
 export class MailerParameters extends ServiceParameters {
   /**
-   * Specify which folder contains templates
+   * Folder containing the mailer templates
    *
-   * @default "templates"
+   * When set (or when `templatesEngine` is set), the mailer renders with its own renderer on this folder,
+   * even if a TemplateService is configured. Left unset, the `templateService` is used if it exists,
+   * otherwise `./templates`
    */
   templates?: string;
   /**
-   * Template engine to use
+   * Template engine to use with the mailer own renderer, `mustache` when unset
    *
-   * @default "mustache"
+   * Setting it makes the mailer use its own renderer, like `templates`
    */
   templatesEngine?: string;
+  /**
+   * Name of the TemplateService to render with when neither `templates` nor `templatesEngine` are set
+   *
+   * @default "TemplateService"
+   */
+  templateService?: string;
   /**
    * Define the default sender
    */
   sender: string;
   /**
-   * @see https://www.npmjs.com/package/email-templates
+   * Rendering options
    */
-  emailTemplateOptions?: any;
+  emailTemplateOptions?: {
+    /**
+     * juice `juiceResources` options used to inline the CSS of the html part
+     *
+     * `webResources.relativeTo` defaults to the templates folder
+     *
+     * @see https://github.com/Automattic/juice
+     */
+    juiceResources?: any;
+  };
   /**
    * Define the type of transport to use
    */
@@ -71,44 +71,80 @@ export class MailerParameters extends ServiceParameters {
   /**
    * Load and apply defaults to the mailer parameters
    *
-   * Sets default templates directory to "./templates/", engine to "mustache",
-   * and configures juice resource options for CSS inlining
+   * `templates` and `templatesEngine` stay undefined when not configured: being set is what makes the
+   * mailer use its own renderer instead of the TemplateService
    *
    * @param params - Raw parameters to load
    * @returns this instance with defaults applied
    */
   load(params: any = {}): this {
     super.load(params);
-    this.templates ??= "./templates";
-    if (!this.templates.endsWith("/")) {
-      this.templates += "/";
-    }
-    this.templatesEngine ??= "mustache";
+    this.templateService ??= "TemplateService";
     this.emailTemplateOptions ??= {};
-    this.emailTemplateOptions.juiceResources ??= {};
-    this.emailTemplateOptions.juiceResources.webResources ??= {};
-    this.emailTemplateOptions.juiceResources.webResources.relativeTo ??= path.resolve(this.templates);
     return this;
   }
 }
 
 /**
- * A basic Mailer based on the nodemailer module
+ * Parts of a multi-part mail template
+ */
+const MAIL_PARTS = ["subject", "html", "text"];
+
+/**
+ * What the mailer needs from a template renderer
+ */
+export type MailerTemplateRenderer = Pick<TemplateRenderer, "has" | "renderAll">;
+
+/**
+ * Resolved templates source of the mailer
+ */
+export interface MailerTemplates {
+  /**
+   * Renderer to use
+   */
+  renderer: MailerTemplateRenderer;
+  /**
+   * Folder used as default juice `webResources.relativeTo`
+   */
+  folder: string;
+}
+
+/**
+ * Render `html` with juice, inlining its CSS
+ * @param html - the html to inline
+ * @param options - juice `juiceResources` options
+ * @returns the inlined html
+ */
+function juiceResources(html: string, options: any): Promise<string> {
+  return new Promise((ok, ko) => {
+    juice.juiceResources(html, options, function onJuiced(err, result) {
+      if (err) {
+        ko(err);
+        return;
+      }
+      ok(result);
+    });
+  });
+}
+
+/**
+ * A Mailer based on the nodemailer module, rendering its templates with `@webda/templates`
  *
- * Inside config it is the nodemailer module option for the method createTransport ( https://nodemailer.com/ )
+ * Its parameters are the nodemailer `createTransport` options ( https://nodemailer.com/ )
  *
- * Only ses transport module is installed by default
+ * Templates are rendered, in this order, by:
+ * 1. a private renderer on `templates` if `templates` or `templatesEngine` is set on the mailer
+ * 2. the `templateService` service (default `TemplateService`) if it exists
+ * 3. a private renderer on `./templates`
  *
- * Parameters
- * config: { ... }
  * @category CoreServices
  * @WebdaModda
  */
-class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMailer<T> {
+export class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMailer<T> {
   /** Nodemailer transport instance used to send emails */
   _transporter: any;
-  /** Cache of loaded email template instances by name */
-  _templates: TemplatesMap = {};
+  /** Resolved templates source, lazily computed */
+  protected templatesSource?: MailerTemplates;
 
   /**
    * Load and instantiate mailer parameters with defaults
@@ -131,56 +167,99 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
     // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
     // Encrypted values (auth.pass, SES credentials...) are unwrapped to plain strings for nodemailer
     this._transporter = nodemailer.createTransport(
-      <nodemailer.TransportConfig>SecretString.unwrap({ ...this.parameters })
+      <nodemailer.TransportOptions>SecretString.unwrap({ ...this.parameters })
     );
     return this;
   }
 
   /**
-   * Get or create a cached email template instance by name
+   * Resolve the renderer used for the templates
    *
-   * Lazily creates and caches an Email template using the configured
-   * templates directory and engine. Logs a warning if the template does not exist.
-   *
-   * @param name - Template name (must correspond to a directory in the templates folder)
-   * @returns The email template instance, or undefined if the template does not exist
+   * @returns the renderer and the folder used as juice `relativeTo`
    */
-  _getTemplate(name: string) {
-    if (!this._templates[name]) {
-      if (!this.hasNotification(name)) {
-        this.log("WARN", "No template found for", name);
-        return;
-      }
-      this._templates[name] = new Email({
-        ...this.parameters.emailTemplateOptions,
-        views: {
-          root: this.parameters.templates,
-          options: {
-            extension: this.parameters.templatesEngine
-          }
-        }
-      });
+  protected getTemplates(): MailerTemplates {
+    if (this.templatesSource) {
+      return this.templatesSource;
     }
-    return this._templates[name];
+    const { templates, templatesEngine, templateService } = this.parameters;
+    if (templates === undefined && templatesEngine === undefined) {
+      const service = useDynamicService<TemplateService | undefined>(templateService!);
+      if (service) {
+        this.templatesSource = {
+          renderer: service,
+          folder: service.getParameters().folders?.[0] ?? "./templates"
+        };
+        return this.templatesSource;
+      }
+    }
+    const folder = templates ?? "./templates";
+    this.templatesSource = {
+      renderer: new TemplateRenderer({ folders: [folder], engine: templatesEngine ?? "mustache" }),
+      folder
+    };
+    return this.templatesSource;
   }
 
   /**
-   * Check if an email template exists on the filesystem
+   * Check if an email template exists
    *
    * @param name - Template name to check
-   * @returns true if the template directory exists
+   * @param locale - Locale to look for
+   * @returns true if the template exists, as a single template or with a subject, html or text part
    */
-  hasNotification(name: string): boolean {
-    // Load template
-    return fs.existsSync(this.parameters.templates + name);
+  async hasNotification(name: string, locale?: string): Promise<boolean> {
+    const { renderer } = this.getTemplates();
+    // A mail template is usually multi-part (NAME/subject, NAME/html, NAME/text)
+    for (const candidate of [name, ...MAIL_PARTS.map(part => `${name}/${part}`)]) {
+      if (await renderer.has(candidate, { locale })) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Render a template into the subject, html and text of the email
+   *
+   * @param options - the send options, updated in place
+   */
+  protected async render(options: MailerSendOptions): Promise<void> {
+    const { renderer, folder } = this.getTemplates();
+    if (!(await this.hasNotification(options.template!, options.locale))) {
+      this.log("WARN", "No template found for", options.template);
+      throw new Error("Unknown mail template");
+    }
+    const result = await renderer.renderAll(
+      options.template!,
+      { ...options.replacements, now: new Date() },
+      { locale: options.locale }
+    );
+    if (result.subject) {
+      options.subject = result.subject.trim();
+    }
+    if (result.html) {
+      const juiceOptions = this.parameters.emailTemplateOptions?.juiceResources ?? {};
+      options.html = await juiceResources(result.html, {
+        ...juiceOptions,
+        webResources: {
+          relativeTo: resolve(folder),
+          images: false,
+          ...juiceOptions.webResources
+        }
+      });
+    }
+    if (result.text) {
+      options.text = result.text;
+    } else if (options.html && result.html) {
+      options.text = convert(options.html, { selectors: [{ selector: "img", format: "skip" }] });
+    }
   }
 
   /**
    * Send an email using the configured nodemailer transport
    *
-   * If a template is specified in options, it will be rendered with the
-   * provided replacements before sending. A `now` Date variable is
-   * automatically added to replacements. Falls back to `parameters.sender`
+   * If a template is specified in options, it is rendered with the provided replacements
+   * (plus a `now` Date) and the `locale` before sending. Falls back to `parameters.sender`
    * if no `from` is provided.
    *
    * @param options - Mail options including optional template and replacements
@@ -188,7 +267,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    * @returns Promise resolving with the nodemailer send result
    * @throws Error if no transporter is configured or the template is unknown
    */
-  async send(options: MailerSendOptions, callback = undefined): Promise<any> {
+  async send(options: MailerSendOptions & nodemailer.SendMailOptions, callback = undefined): Promise<any> {
     if (this._transporter === undefined) {
       this.log("ERROR", "Cannot send email as no transporter is defined");
       return Promise.reject("Cannot send email as no transporter is defined");
@@ -197,28 +276,8 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
       options.from = this.parameters.sender;
     }
     if (options.template) {
-      if (!options.replacements) {
-        options.replacements = {};
-      }
-      options.replacements.now = new Date();
-      const template = this._getTemplate(options.template);
-      if (template) {
-        const result = await template.renderAll(options.template, options.replacements);
-        if (result.subject) {
-          options.subject = result.subject;
-        }
-        if (result.html) {
-          options.html = result.html;
-        }
-        if (result.text) {
-          options.text = result.text;
-        }
-      } else {
-        throw Error("Unknown mail template");
-      }
+      await this.render(options);
     }
     return this._transporter.sendMail(options, callback);
   }
 }
-
-export { Mailer, type TemplatesMap, type IEmailTemplate };

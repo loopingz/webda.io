@@ -1,0 +1,119 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/Mailer": {
+      "Import": "lib/mailer.service:Mailer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "emailTemplateOptions#2": {
+            "additionalProperties": false,
+            "description": "Rendering options",
+            "properties": {
+              "juiceResources": {
+                "description": "juice `juiceResources` options used to inline the CSS of the html part\n\n`webResources.relativeTo` defaults to the templates folder",
+                "see": "https://github.com/Automattic/juice"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters for the Mailer service configuration\n\nConfigures the email transport and where templates are rendered from",
+        "properties": {
+          "SES": {
+            "description": "SES AWS Bean if transport === \"ses\"\n\nCredentials inside can be encrypted with `webda config encrypt`"
+          },
+          "emailTemplateOptions": {
+            "$ref": "#/definitions/emailTemplateOptions%232",
+            "description": "Rendering options"
+          },
+          "sender": {
+            "description": "Define the default sender",
+            "type": "string"
+          },
+          "templateService": {
+            "default": "TemplateService",
+            "description": "Name of the TemplateService to render with when neither `templates` nor `templatesEngine` are set",
+            "type": "string"
+          },
+          "templates": {
+            "description": "Folder containing the mailer templates\n\nWhen set (or when `templatesEngine` is set), the mailer renders with its own renderer on this folder,\neven if a TemplateService is configured. Left unset, the `templateService` is used if it exists,\notherwise `./templates`",
+            "type": "string"
+          },
+          "templatesEngine": {
+            "description": "Template engine to use with the mailer own renderer, `mustache` when unset\n\nSetting it makes the mailer use its own renderer, like `templates`",
+            "type": "string"
+          },
+          "transport": {
+            "description": "Define the type of transport to use",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "sender",
+          "type"
+        ],
+        "type": "object",
+        "x-webda-secret": [
+          "auth.pass",
+          "SES.credentials"
+        ],
+        "title": "Mailer"
+      },
+      "Configuration": "lib/mailer.service:MailerParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {}
+}

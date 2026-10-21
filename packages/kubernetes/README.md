@@ -108,7 +108,8 @@ stored fields its `spec`, the `statusFields` its `status`. Writes are optimistic
 conflict); `=` and `IN` on `labelFields` are filtered by the API server, the rest of a query in memory.
 
 `webda kubernetes crd export --target ./crds` writes the definitions to apply, or set `installCrds: true` to create
-them at init (needs the rights on `customresourcedefinitions`).
+them at init (needs the rights on `customresourcedefinitions`). `webda kubernetes rbac export --target ./rbac.yaml`
+writes the Roles, ClusterRole and bindings the stores and operators need.
 
 | Parameter | Default | Description |
 |---|---|---|

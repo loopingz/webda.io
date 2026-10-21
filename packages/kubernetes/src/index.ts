@@ -13,3 +13,4 @@ export * from "./operator/workqueue.js";
 export * from "./operator/leader.js";
 export * from "./operator/controller.js";
 export * from "./operator/operator.service.js";
+export * from "./crd/rbac.js";

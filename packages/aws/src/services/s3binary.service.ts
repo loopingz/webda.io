@@ -16,7 +16,10 @@ import {
   ContentNotFoundError,
   ContentPutOptions,
   CoreModel,
+  CoreModelWithBinary,
   lookupMimeType,
+  normalizeHash,
+  normalizeHashes,
   OperationContext,
   parseContentUrl,
   SecretString,
@@ -24,6 +27,8 @@ import {
   useModelId,
   WebdaError
 } from "@webda/core";
+import * as crypto from "node:crypto";
+import { posix } from "node:path";
 import { Readable } from "node:stream";
 import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
@@ -46,6 +51,21 @@ export function contentDisposition(name?: string, type: "attachment" | "inline" 
   // encodeURIComponent keeps ' ( ) * which are not valid in an RFC 5987 value
   const encoded = encodeURIComponent(name).replace(/['()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   return `${type}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
+/**
+ * A direct upload waiting for its completion, as announced by the client
+ */
+interface PendingUpload {
+  name?: string;
+  size?: number;
+  mimetype?: string;
+  challenge?: string;
+  metadata?: any;
+  /**
+   * Creation time in ms
+   */
+  created?: number;
 }
 
 /**
@@ -91,6 +111,11 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
    * Skip CloudFormation on deploy
    */
   CloudFormationSkip?: boolean;
+  /**
+   * Seconds a direct upload stays pending before its marker (and its data, when unused) is swept
+   * @default 86400
+   */
+  pendingTimeout?: number;
 
   /**
    * @override
@@ -104,6 +129,10 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
       throw new WebdaError.CodeError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this.forcePathStyle ??= false;
+    this.pendingTimeout ??= 86400;
+    if (typeof this.pendingTimeout !== "number" || !(this.pendingTimeout > 0)) {
+      throw new WebdaError.CodeError("S3PENDINGTIMEOUT_INVALID", "pendingTimeout must be a positive number of seconds");
+    }
     return this;
   }
 }
@@ -113,8 +142,10 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
  *
  * The structure used for now is
  * /{hash}/data
- * /{hash}/{targetStore}_{uuid}
- * The challenge is stored on the metadata of the data object
+ * /{hash}/{attribute}_{uuid} usage markers
+ * /{hash}/vproof_{challenge} the proof of possession, written once the service read the bytes
+ * /{hash}/proof_{challenge} legacy proof written from a client announced value: ignored
+ * /_pending/{hash}/{model}_{attribute}_{uuid} a direct upload waiting for its completion
  *
  * It takes parameters
  *  bucket: "bucketName"
@@ -170,8 +201,34 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return client;
   }
 
+  /**
+   * Timer sweeping the stale pending uploads
+   */
+  private sweepTimer?: ReturnType<typeof setInterval>;
+
+  /**
+   * Start sweeping the stale pending uploads every `pendingTimeout / 4`
+   * @override
+   * @returns this
+   */
+  async init(): Promise<this> {
+    await super.init();
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = setInterval(
+      () => {
+        this.sweepPending().catch(err => this.log("WARN", "Cannot sweep pending uploads", err));
+      },
+      // setInterval delays are 32-bit signed integers
+      Math.min((this.parameters.pendingTimeout * 1000) / 4, 2 ** 31 - 1)
+    );
+    this.sweepTimer.unref?.();
+    return this;
+  }
+
   /** Release URL-selected clients when the service stops. */
   async stop(): Promise<void> {
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = undefined;
     for (const client of this.contentClients.values()) {
       client.destroy();
     }
@@ -359,63 +416,353 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     context?: OperationContext<BinaryFileInfo>
   ): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
     body ??= await context.getInput();
+    // One key per content: the hash and the challenge are lower-case hexadecimal
+    body = normalizeHashes(body);
+    // The hash names S3 keys: hexadecimal only (no path segments)
+    this.checkHash(body?.hash);
     const uuid = object.getUUID();
     const store = useModelId(object.constructor);
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
-    const params = {
+    const params: Record<string, any> = {
       Bucket: this.parameters.bucket,
       Key: this._getKey(body.hash),
       ContentType: "application/octet-stream",
       ContentMD5: base64String
     };
+    // The declared size is signed: S3 refuses another Content-Length (browsers set the header themselves)
+    if (typeof body.size === "number") {
+      params.ContentLength = body.size;
+    }
     // List bucket
     const data = await this._s3.listObjectsV2({
       Bucket: this.parameters.bucket,
       Prefix: this._getKey(body.hash, "")
     });
-    let foundMap = false;
     let foundData = false;
-    let challenge;
+    // The proofs the service wrote once it read the bytes (`vproof_<challenge>`). Legacy `proof_` and `challenge_`
+    // keys were written from client announced values: they are no proof
+    const proofs = new Set<string>();
     for (const i in data.Contents) {
-      if (data.Contents[i].Key.endsWith("data")) foundData = true;
-      if (data.Contents[i].Key.endsWith(`${property}_${uuid}`)) foundMap = true;
-      // The proof the service wrote on upload (`proof_<challenge>`); legacy `challenge_` keys are no proof
-      if (data.Contents[i].Key.split("/").pop().startsWith("proof_")) {
-        challenge = data.Contents[i].Key.split("/").pop().substring("proof_".length);
+      const name = data.Contents[i].Key.split("/").pop();
+      if (name === "data") foundData = true;
+      if (name.startsWith(S3Binary.PROOF_PREFIX)) {
+        proofs.add(name.substring(S3Binary.PROOF_PREFIX.length));
       }
     }
     const headers = {
       "Content-MD5": base64String,
       "Content-Type": "application/octet-stream"
     };
-    if (foundMap) {
-      if (foundData) return;
-      return {
-        url: await this.getSignedUrl(params.Key, "putObject", params),
-        method: "PUT",
-        headers
-      };
-    }
     const upload = async () => ({
       url: await this.getSignedUrl(params.Key, "putObject", params),
       method: "PUT",
       headers
     });
-    if (foundData) {
-      // The data exists: attaching it needs the proof of possession, the challenge its uploader stored
-      if (challenge !== undefined && challenge === body.challenge) {
-        await this.uploadSuccess(<any>object, property, body);
-        await this.putMarker(body.hash, `${property}_${uuid}`, store);
+    if (foundData && this.isLinked(<any>object, property, body.hash)) {
+      return;
+    }
+    if (foundData && typeof body.challenge === "string" && proofs.has(body.challenge)) {
+      // The data exists and the client proves possession with the challenge of the verified content
+      const head = await this._getS3(body.hash);
+      if (head) {
+        const max = this.parameters.maxUploadSize;
+        if (max !== undefined && head.ContentLength > max) {
+          throw new WebdaError.BadRequest("File too big");
+        }
+        // The stored object's size, not the declared one
+        await this.uploadSuccess(<any>object, property, {
+          hash: body.hash,
+          size: head.ContentLength,
+          name: body.name,
+          mimetype: body.mimetype || "application/octet-stream",
+          metadata: body.metadata ?? {}
+        });
+        await this.putMarker(body.hash, this.usageMarker(store, property, uuid), store);
         return;
       }
-      // A hash alone never attaches: the client has to upload the content it claims to hold
-      return upload();
     }
-    // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
-    await this.putMarker(body.hash, `proof_${body.challenge}`, "proof");
-    await this.uploadSuccess(<any>object, property, body);
-    await this.putMarker(body.hash, `${property}_${uuid}`, store);
+    // New content, or existing data without a matching proof (a hash alone never attaches): the signed PUT binds the
+    // bytes to the announced hash (Content-MD5). Nothing is attached until the client declares the upload complete
+    // and the stored bytes are verified against the announced hash and challenge (completeUpload)
+    await this.putPendingMarker(object, property, body);
     return upload();
+  }
+
+  /**
+   * Reject a hash that is not hexadecimal: it names S3 keys
+   * @param hash - the binary hash
+   */
+  protected checkHash(hash: string): void {
+    if (typeof hash !== "string" || !/^[0-9a-f]+$/.test(hash)) {
+      throw new WebdaError.BadRequest("Invalid hash");
+    }
+  }
+
+  /**
+   * Encode a pending marker part: injective and key-safe. Bytes outside `[A-Za-z0-9.:@-]` (so `_`, `/` and `~`
+   * too) become `~XX`, so `_` only separates parts and no `%` reaches the key (content urls decode it)
+   * @param part - the raw value
+   * @returns the encoded part
+   */
+  protected encodeMarkerPart(part: string): string {
+    return [...Buffer.from(`${part}`)]
+      .map(b => {
+        const c = String.fromCharCode(b);
+        return /[A-Za-z0-9.:@-]/.test(c) ? c : `~${b.toString(16).toUpperCase().padStart(2, "0")}`;
+      })
+      .join("");
+  }
+
+  /**
+   * Key of the pending upload of an object attribute: `<prefix>/_pending/<hash>/<model>_<attribute>_<uuid>`, each
+   * part encoded so that `_` only separates parts
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the binary hash (hexadecimal)
+   * @returns the key
+   */
+  protected getPendingKey(object: CoreModel, property: string, hash: string): string {
+    const marker = [useModelId(object.constructor), property, object.getUUID()]
+      .map(p => this.encodeMarkerPart(p))
+      .join("_");
+    return posix.join(this.parameters.prefix || "", "_pending", hash, marker);
+  }
+
+  /**
+   * Record a direct upload waiting for its completion: the announced information is the marker's JSON body, server
+   * side only (the challenge is never persisted on the object nor returned to clients)
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param body - the announced binary information
+   */
+  protected async putPendingMarker(object: CoreModel, property: string, body: BinaryFileInfo): Promise<void> {
+    const info: PendingUpload = {
+      name: body.name,
+      size: typeof body.size === "number" ? body.size : undefined,
+      mimetype: body.mimetype,
+      challenge: body.challenge,
+      metadata: body.metadata,
+      created: Date.now()
+    };
+    await this._s3.putObject({
+      Bucket: this.parameters.bucket,
+      Key: this.getPendingKey(object, property, body.hash),
+      ContentType: "application/json",
+      Body: JSON.stringify(info)
+    });
+  }
+
+  /**
+   * Read a pending upload marker
+   * @param key - the marker key
+   * @returns its information, undefined when absent, `{}` when unreadable
+   */
+  protected async getPendingUpload(key: string): Promise<PendingUpload | undefined> {
+    let stream: Readable;
+    try {
+      stream = await this.getContent(this.getContentUrl(key));
+    } catch (err) {
+      if (err instanceof ContentNotFoundError) {
+        return undefined;
+      }
+      throw err;
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    try {
+      return JSON.parse(Buffer.concat(chunks).toString()) ?? {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Hash the stored data the way clients do: md5 of the bytes, and md5 of "WEBDA" + the bytes (the challenge)
+   * @param hash - the binary hash
+   * @returns the computed hash and challenge
+   */
+  protected async hashStoredData(hash: string): Promise<{ hash: string; challenge: string }> {
+    const md5 = crypto.createHash("md5");
+    const challenge = crypto.createHash("md5").update("WEBDA");
+    for await (const chunk of await this.getContent(this.getContentUrl(this._getKey(hash)))) {
+      const buffer = Buffer.from(chunk);
+      md5.update(buffer);
+      challenge.update(buffer);
+    }
+    return { hash: md5.digest("hex"), challenge: challenge.digest("hex") };
+  }
+
+  /**
+   * Attach a direct upload once the client declares it finished
+   *
+   * The pending marker written by the challenge is required (404 otherwise) and the data object must exist (412
+   * otherwise, the marker stays so the client can retry). The data must match the declared size and
+   * `maxUploadSize`, and its bytes the announced hash and challenge (the proof of possession, computed here from the
+   * stored bytes): otherwise 400, the marker and the unused data are removed. Then the proof of possession (server
+   * computed) and the usage marker are written and the binary is attached.
+   *
+   * @override
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the hash announced in the challenge
+   */
+  async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    hash = normalizeHash(hash);
+    if (this.isLinked(object, property, hash)) {
+      return;
+    }
+    this.checkHash(hash);
+    const pendingKey = this.getPendingKey(<any>object, property, hash);
+    const pending = await this.getPendingUpload(pendingKey);
+    if (!pending) {
+      throw new WebdaError.NotFound("No pending upload");
+    }
+    const data = await this._getS3(hash);
+    if (!data) {
+      throw new WebdaError.PreconditionFailed("Upload not found");
+    }
+    const reject = async (message: string) => {
+      await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: pendingKey });
+      await this.deleteUnusedData(hash);
+      throw new WebdaError.BadRequest(message);
+    };
+    const max = this.parameters.maxUploadSize;
+    if (
+      (typeof pending.size === "number" && data.ContentLength !== pending.size) ||
+      (max !== undefined && data.ContentLength > max)
+    ) {
+      await reject("Uploaded size does not match");
+    }
+    if (typeof pending.challenge !== "string" || pending.challenge === "") {
+      await reject("No challenge announced");
+    }
+    const computed = await this.hashStoredData(hash);
+    if (computed.hash !== hash || computed.challenge !== normalizeHash(pending.challenge)) {
+      await reject("Uploaded content does not match the challenge");
+    }
+    await this.putMarker(hash, this.proofMarker(computed.challenge), "proof");
+    const model = useModelId(object.constructor);
+    await this.putMarker(hash, this.usageMarker(model, property, object.getUUID()), model);
+    // uploadSuccess re-loads the object: a concurrent completion that linked the hash meanwhile is not repeated
+    await this.uploadSuccess(object, property, {
+      hash,
+      challenge: computed.challenge,
+      size: data.ContentLength,
+      name: pending.name,
+      mimetype: pending.mimetype || "application/octet-stream",
+      metadata: pending.metadata ?? {}
+    });
+    await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: pendingKey });
+  }
+
+  /**
+   * Prefix of the proof markers written by the service from the bytes it read (`vproof_<challenge>`)
+   */
+  static readonly PROOF_PREFIX = "vproof_";
+
+  /**
+   * Name of the proof marker of a challenge computed by the service
+   * @param challenge - the server computed challenge
+   * @returns the marker name
+   */
+  protected proofMarker(challenge: string): string {
+    return `${S3Binary.PROOF_PREFIX}${challenge}`;
+  }
+
+  /**
+   * Prefix of the usage markers naming their model: `@` is no identifier character, so a marker never equals a legacy
+   * `<attribute>_<uuid>` one nor starts like a proof
+   */
+  static readonly USAGE_PREFIX = "@";
+
+  /**
+   * Name of the usage marker of an object attribute under `<hash>/`: `@<model>_<attribute>_<uuid>`, each part encoded
+   * so that `_` only separates parts. Written on attach and removed on delete, the only place the name is built
+   * @param model - the model identifier of the object
+   * @param attribute - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the marker name
+   */
+  protected usageMarker(model: string, attribute: string, uuid: string): string {
+    return S3Binary.USAGE_PREFIX + [model, attribute, uuid].map(p => this.encodeMarkerPart(p)).join("_");
+  }
+
+  /**
+   * Name of the usage markers written before the model was part of the name: `<attribute>_<uuid>`, the model only in
+   * the `x-amz-meta-store` metadata. Still counted as usages, removed only for their own model
+   * @param attribute - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the legacy marker name
+   */
+  protected legacyUsageMarker(attribute: string, uuid: string): string {
+    return `${attribute}_${uuid}`;
+  }
+
+  /**
+   * Whether a key under `<hash>/` is a usage marker: not the data, nor a proof (verified or legacy)
+   * @param key - the object key
+   * @returns true for a usage marker
+   */
+  protected isUsageMarker(key: string): boolean {
+    const name = key.split("/").pop();
+    return !(
+      name === "data" ||
+      name.startsWith(S3Binary.PROOF_PREFIX) ||
+      name.startsWith("proof_") ||
+      name.startsWith("challenge_")
+    );
+  }
+
+  /**
+   * Delete the data of a hash no object uses and no other upload waits for, with its proofs
+   * @param hash - the binary hash
+   */
+  protected async deleteUnusedData(hash: string): Promise<void> {
+    if ((await this.getUsageCount(hash)) > 0) {
+      return;
+    }
+    const pending = await this._s3.listObjectsV2({
+      Bucket: this.parameters.bucket,
+      Prefix: posix.join(this.parameters.prefix || "", "_pending", hash) + "/"
+    });
+    if (pending.Contents?.length) {
+      return;
+    }
+    // Only the data and the proofs are left
+    await this._cleanHash(hash);
+  }
+
+  /**
+   * Remove the pending uploads older than `pendingTimeout`, and their data when no object uses it
+   * @param now - the current time in ms
+   * @returns the number of pending uploads removed
+   */
+  async sweepPending(now: number = Date.now()): Promise<number> {
+    const prefix = posix.join(this.parameters.prefix || "", "_pending") + "/";
+    const timeout = this.parameters.pendingTimeout * 1000;
+    let removed = 0;
+    await this.forEachFile(
+      this.parameters.bucket,
+      async Key => {
+        const pending = await this.getPendingUpload(Key);
+        if (!pending) {
+          return;
+        }
+        // An unreadable marker falls back to its modification date
+        const created =
+          typeof pending.created === "number" ? pending.created : (await this.exists(Key))?.LastModified?.getTime();
+        if (created !== undefined && now - created <= timeout) {
+          return;
+        }
+        await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key });
+        removed++;
+        await this.deleteUnusedData(Key.substring(prefix.length).split("/")[0]);
+      },
+      prefix
+    );
+    return removed;
   }
 
   /**
@@ -515,9 +862,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Prefix: this._getKey(hash, "")
     });
     data.Contents ??= [];
-    return data.Contents.filter(
-      k => !(k.Key.includes("data") || k.Key.includes("challenge") || k.Key.includes("proof_"))
-    ).length;
+    return data.Contents.filter(k => this.isUsageMarker(k.Key)).length;
   }
 
   /**
@@ -550,18 +895,44 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @override
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param attribute - the binary attribute, if undefined clean the whole binary
+   * @param attribute - the binary attribute: only the exact usage marker of (model, attribute, uuid) is removed (see
+   * usageMarker), the usages of the other objects are kept. The data is kept: the cascade removes it once unused
+   * @param model - the model identifier of the object
    */
-  async _cleanUsage(hash: string, uuid: string, attribute?: string) {
-    if (!attribute) {
-      return this._cleanHash(hash);
+  async _cleanUsage(hash: string, uuid: string, attribute: string, model: string) {
+    if (!attribute || !model) {
+      // A suffix match would remove the usages of other owners (`my_<uuid>`): the marker must be named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute or model given`);
+      return;
     }
-    // Dont clean data for now
-    const params = {
+    await this._s3.deleteObject({
       Bucket: this.parameters.bucket,
-      Key: this._getKey(hash, `${attribute}_${uuid}`)
-    };
-    await this._s3.deleteObject(params);
+      Key: this._getKey(hash, this.usageMarker(model, attribute, uuid))
+    });
+    // A legacy marker is shared by every model with this uuid and attribute: removed only when written for this model
+    const legacy = this._getKey(hash, this.legacyUsageMarker(attribute, uuid));
+    const head = await this.exists(legacy);
+    if (head && (head.Metadata?.["x-amz-meta-store"] ?? head.Metadata?.["store"]) === model) {
+      await this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: legacy });
+    }
+  }
+
+  /**
+   * Remove the deleted object's usage marker of the attribute, then the data and its proofs once no usage and no
+   * pending upload remain
+   * @override
+   * @param info - the binary map
+   * @param uuid - the object uuid
+   * @param attribute - the binary attribute
+   * @param model - the model identifier of the object
+   */
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
+    try {
+      await this._cleanUsage(info.hash, uuid, attribute, model);
+      await this.deleteUnusedData(info.hash);
+    } catch (err) {
+      this.log("WARN", "Cascade delete failed", err);
+    }
   }
 
   /**
@@ -682,7 +1053,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
     this.checkMap(<any>object, property);
-    await file.getHashes();
+    // Computed from the bytes: a preset hash that does not match is rejected, a preset challenge is replaced
+    await this.verifiedHashes(file);
     const data = await this._getS3(file.hash);
     if (data === undefined) {
       const s3metas: Record<string, string> = {};
@@ -694,10 +1066,11 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         contentType: file.mimetype
       });
     }
-    // The proof of possession of the content, compared on later challenges
-    await this.putMarker(file.hash, `proof_${file.challenge}`, "proof");
+    // The proof of possession of the content, computed from the bytes, compared on later challenges
+    await this.putMarker(file.hash, this.proofMarker(file.challenge), "proof");
 
-    await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    const model = useModelId(object.constructor);
+    await this.putMarker(file.hash, this.usageMarker(model, property, object.getUUID()), model);
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 

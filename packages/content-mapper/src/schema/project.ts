@@ -162,7 +162,7 @@ function actionRoots(ctx: AnalysisContext, options: TopLevelSchemaOptions): [str
     for (const statement of sourceFile.statements) {
       if (!is.isClassDeclaration(statement) || !statement.name) continue;
       const tag = webdaTag(statement, "WebdaBehavior");
-      if (tag === undefined) continue;
+      if (tag === undefined || webdaTag(statement, "WebdaIgnore") !== undefined) continue;
       const bare = tag || statement.name.text;
       const root = bare.includes("/") ? bare : `${options.namespace ?? "Webda"}/${bare}`;
       for (const method of instanceActions(ctx, statement)) pairs.push([root, method]);

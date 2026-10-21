@@ -169,7 +169,9 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
       scope: this.parameters.scope,
       statusFields: this.parameters.statusFields![id],
       labelFields: this.parameters.labelFields![id],
-      preserveUnknownFields: (metadata.Subclasses ?? []).length > 0
+      preserveUnknownFields: (metadata.Subclasses ?? []).length > 0,
+      // A model with a reconcile method is meant for the KubernetesOperator
+      reconciled: typeof (model as any).prototype?.reconcile === "function"
     });
   }
 
@@ -222,7 +224,7 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
    * @param root - the root model
    * @returns the resources client
    */
-  protected getResources(root: ModelClass): CustomResources {
+  getResources(root: ModelClass): CustomResources {
     const metadata = useModelMetadata(root);
     checkResourceKey(metadata as any);
     const { plural, kind } = getCrdNames(metadata as any, this.parameters.group);
@@ -236,16 +238,15 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
   }
 
   /**
-   * Build the repository of a model, on the resources of its root model
+   * Repository of a model on the resources of its root model, without events
    * @param model - the model class
    * @returns the repository
    */
-  @InstanceCache()
-  getRepository<T extends ModelClass>(model: T): Repository<T> {
+  createRepository<T extends ModelClass>(model: T): KubernetesRepository<T> {
     const meta = useModelMetadata(model);
     const root = this.getRootModel(model);
     const rootId = useModelId(root)!;
-    const inner = new KubernetesRepository<T>(
+    return new KubernetesRepository<T>(
       model,
       meta.PrimaryKey,
       this.getResources(root),
@@ -256,7 +257,22 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
       },
       meta.PrimaryKeySeparator
     ).setTableRoot(root);
-    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
+  }
+
+  /**
+   * Build the repository of a model, on the resources of its root model
+   * @param model - the model class
+   * @returns the repository
+   */
+  @InstanceCache()
+  getRepository<T extends ModelClass>(model: T): Repository<T> {
+    const meta = useModelMetadata(model);
+    return new EventRepository<T>(
+      model,
+      meta.PrimaryKey,
+      this.createRepository(model),
+      meta.PrimaryKeySeparator
+    ) as unknown as Repository<T>;
   }
 
   /**

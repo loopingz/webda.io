@@ -1,5 +1,12 @@
 import type { ArrayElement } from "@webda/utils";
-import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
+import type {
+  AggregationQuery,
+  AggregationResult,
+  Expression,
+  Query as WebdaQLQuery,
+  QueryParameters
+} from "@webda/ql";
+import type { CountResult } from "../aggregation.js";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
 import type { Helpers, JSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import {
@@ -569,6 +576,18 @@ export class MemoryRepository<
       return super.executeAggregation(query);
     }
     return { rows: await this.aggregateInMemory(query), native: true };
+  }
+
+  /**
+   * A plain MemoryRepository (MemoryStore, FileStore) counts its own local data: that is native.
+   * Subclasses backed by a remote database (Firestore, Dynamo, ...) inherit the fallback instead.
+   * @override
+   */
+  protected async executeCount(filter: Expression, max?: number): Promise<CountResult> {
+    if (Object.getPrototypeOf(this) !== MemoryRepository.prototype) {
+      return super.executeCount(filter, max);
+    }
+    return { ...(await this.countInMemory(filter, max)), native: true };
   }
 
   /**

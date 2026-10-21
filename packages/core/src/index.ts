@@ -40,7 +40,14 @@ export {
   acceptedTypes,
   belongsToModel
 } from "@webda/models";
-export type { ModelClass, Repository, TypeResolution, TypeResolutionStatus } from "@webda/models";
+export type {
+  CountOptions,
+  CountResult,
+  ModelClass,
+  Repository,
+  TypeResolution,
+  TypeResolutionStatus
+} from "@webda/models";
 export * from "./stores/store.js";
 export * from "./stores/migration.js";
 export * from "./stores/capability.js";

@@ -39,6 +39,10 @@
             "configOnly": {
               "type": "boolean",
               "description": "Only output the deployed configuration"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Allow --config-only to overwrite the configuration file of the application"
             }
           },
           "phase": "resolved"

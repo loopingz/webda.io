@@ -12,6 +12,7 @@ import {
   WebdaError
 } from "../index.js";
 import { TestApplication } from "../test/objects.js";
+import type { IOperationContext } from "../contexts/icontext.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { WEBDA_ACTIONS } from "@webda/models";
 
@@ -42,11 +43,11 @@ class TestTask extends OwnerModel {
     process.exit(1);
   }
 
-  async canAct(action, ctx) {
+  async canAct(ctx: IOperationContext, action: string): Promise<string | boolean> {
     if ("actionable" === action) {
       return true;
     }
-    return super.canAct(action, ctx);
+    return super.canAct(ctx, action);
   }
 }
 

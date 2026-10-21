@@ -35,6 +35,10 @@ interface Located {
   path: string;
   engine: string;
   folder: string;
+  /**
+   * Folder of the multi-part template, for a part
+   */
+  templateDir?: string;
 }
 
 const LOCALE_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -82,14 +86,10 @@ export class TemplateRenderer {
   /**
    * Split a template reference and validate it
    * @param name - `NAME` or `NAME/part`
-   * @param locale - requested locale
    * @returns the name and part
    */
-  protected parse(name: string, locale?: string): { name: string; part?: string } {
+  protected parse(name: string): { name: string; part?: string } {
     if (!name || name.includes("..") || name.startsWith("/") || name.includes("\\") || name.includes("\0")) {
-      throw new TemplateNotFoundError(name);
-    }
-    if (locale && !LOCALE_PATTERN.test(locale)) {
       throw new TemplateNotFoundError(name);
     }
     const idx = name.lastIndexOf("/");
@@ -98,11 +98,15 @@ export class TemplateRenderer {
 
   /**
    * Locale candidates, most specific first
+   *
+   * A locale not matching `[A-Za-z0-9_-]+` is ignored, as if no locale was requested
    * @param locale - requested locale
    * @returns deduped candidates, `undefined` standing for no locale
    */
   protected candidates(locale?: string): (string | undefined)[] {
-    const list = [locale, locale?.split("-")[0], this.options.defaultLocale?.()].filter(l => !!l);
+    const list = [locale, locale?.split("-")[0], this.options.defaultLocale?.()].filter(
+      l => !!l && LOCALE_PATTERN.test(l)
+    );
     return [...new Set(list), undefined];
   }
 
@@ -166,7 +170,12 @@ export class TemplateRenderer {
           if (this.contained(folder, path) && (await isFile(path))) {
             const engine = getEngineForExtension(ext, this.options.engine ?? "mustache");
             if (engine) {
-              return { path, engine: engine.name, folder };
+              return {
+                path,
+                engine: engine.name,
+                folder,
+                templateDir: part !== undefined ? join(folder, name) : undefined
+              };
             }
           }
         }
@@ -177,16 +186,20 @@ export class TemplateRenderer {
 
   /**
    * Collect the partials around a matched file
+   *
+   * Sources, the later winning on a name clash: the folder `partials` directory, the multi-part
+   * template folder `_` files, then the matched file directory `_` files (the locale subfolder of a part)
    * @param located - the matched file
    * @returns partial sources by name
    */
   private async partials(located: Located): Promise<{ [name: string]: string }> {
     const partials: { [name: string]: string } = {};
     const exts = this.extensions();
-    const dirs: [string, boolean][] = [
-      [join(located.folder, "partials"), false],
-      [dirname(located.path), true]
-    ];
+    const dirs: [string, boolean][] = [[join(located.folder, "partials"), false]];
+    if (located.templateDir && located.templateDir !== dirname(located.path)) {
+      dirs.push([located.templateDir, true]);
+    }
+    dirs.push([dirname(located.path), true]);
     for (const [dir, underscore] of dirs) {
       for (const entry of await readDir(dir)) {
         if (!entry.isFile() || (underscore && !entry.name.startsWith("_"))) {
@@ -223,6 +236,8 @@ export class TemplateRenderer {
 
   /**
    * Check a template exists: a single template, a part, or a multi-part template folder with at least one part
+   *
+   * A nested name like `auth/WELCOME` is a multi-part template when the `auth/WELCOME` folder has parts
    * @param name - `NAME` or `NAME/part`
    * @param options - lookup options
    * @param options.locale - locale to look for
@@ -230,12 +245,12 @@ export class TemplateRenderer {
    */
   async has(name: string, options?: { locale?: string }): Promise<boolean> {
     try {
-      const parsed = this.parse(name, options?.locale);
+      const parsed = this.parse(name);
       if (await this.read(parsed.name, parsed.part, options?.locale)) {
         return true;
       }
-      // A bare name can also be a multi-part template folder
-      return parsed.part === undefined && (await this.parts(parsed.name, options?.locale)) !== undefined;
+      // The whole name can also be a multi-part template folder
+      return (await this.parts(name, options?.locale)) !== undefined;
     } catch (err) {
       if (err instanceof TemplateNotFoundError) {
         return false;
@@ -314,30 +329,27 @@ export class TemplateRenderer {
    * @returns the rendered string
    */
   async render(name: string, data: any = {}, options: TemplateRenderOptions = {}): Promise<string> {
-    const parsed = this.parse(name, options.locale);
+    const parsed = this.parse(name);
     const compiled = await this.compiled(parsed.name, parsed.part, options.locale, options);
     return compiled(data, options);
   }
 
   /**
    * Render every part of a multi-part template
-   * @param name - the multi-part template name
+   * @param name - the multi-part template name, the whole name being its folder (`WELCOME`, `auth/WELCOME`)
    * @param data - the data
    * @param options - render options
    * @returns the rendered parts keyed by part name
    */
   async renderAll(name: string, data: any = {}, options: TemplateRenderOptions = {}): Promise<Record<string, string>> {
-    const { name: tpl, part } = this.parse(name, options.locale);
-    if (part !== undefined) {
-      throw new TemplateNotFoundError(name);
-    }
-    const parts = await this.parts(tpl, options.locale);
+    this.parse(name);
+    const parts = await this.parts(name, options.locale);
     if (!parts) {
       throw new TemplateNotFoundError(name);
     }
     const result: Record<string, string> = {};
     for (const p of parts) {
-      result[p] = await this.render(`${tpl}/${p}`, data, options);
+      result[p] = await this.render(`${name}/${p}`, data, options);
     }
     return result;
   }

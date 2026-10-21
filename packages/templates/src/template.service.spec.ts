@@ -85,6 +85,24 @@ class TemplateServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async rejectingConfigureNotUnhandled() {
+    const svc = useService("TemplateService");
+    Reflect.get(svc, "parameters").engines["async-fail"] = {};
+    const unhandled: any[] = [];
+    const listener = (reason: any) => unhandled.push(reason);
+    process.on("unhandledRejection", listener);
+    try {
+      // resolve() without init(): the failed configuration must not be an unhandled rejection
+      svc.resolve();
+      await new Promise(r => setTimeout(r, 50));
+      assert.deepStrictEqual(unhandled, []);
+    } finally {
+      process.off("unhandledRejection", listener);
+      Reflect.get(svc, "configuring").length = 0;
+    }
+  }
+
+  @test
   async metrics() {
     const svc = useService("TemplateService");
     const metrics = Reflect.get(svc, "metrics");

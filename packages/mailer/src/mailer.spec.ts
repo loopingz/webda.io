@@ -1,8 +1,10 @@
 import { suite, test } from "@webda/test";
-import { SecretString, User, useService, type UnpackedConfiguration } from "@webda/core";
+import { SecretString, User, useCore, useService, type UnpackedConfiguration } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import * as assert from "assert";
 import { readFileSync } from "fs";
+import juice from "juice";
+import { resolve } from "path";
 import * as sinon from "sinon";
 import { MailerParameters } from "./index.js";
 
@@ -238,9 +240,49 @@ class MailerTest extends MailerTestBase {
   }
 
   @test
-  async inlinesStyleBlock() {
+  async keepsStyleBlockByDefault() {
+    // email-templates defaults: style tags are neither applied nor removed
+    await this.mailer.send({ template: "STYLED" });
+    assert.ok(this.lastOptions.html.includes("<style>p{color:red}</style>"), this.lastOptions.html);
+    assert.ok(!this.lastOptions.html.includes('<p style="color: red;">'), this.lastOptions.html);
+  }
+
+  @test
+  async inlinesStyleBlockWhenConfigured() {
+    this.mailer.parameters.emailTemplateOptions.juiceResources = { applyStyleTags: true };
     await this.mailer.send({ template: "STYLED" });
     assert.ok(this.lastOptions.html.includes('<p style="color: red;">'), this.lastOptions.html);
+    assert.ok(this.lastOptions.html.includes("<style>p{color:red}</style>"), this.lastOptions.html);
+  }
+
+  @test
+  async juiceOptionsDeepMerged() {
+    const spy = sinon.spy(juice, "juiceResources");
+    this.mailer.parameters.emailTemplateOptions.juiceResources = {
+      removeStyleTags: true,
+      webResources: { links: false }
+    };
+    await this.mailer.send({ template: "STYLED" });
+    const options = spy.firstCall.args[1];
+    assert.strictEqual(options.applyStyleTags, false);
+    assert.strictEqual(options.removeStyleTags, true);
+    assert.strictEqual(options.webResources.images, false);
+    assert.strictEqual(options.webResources.links, false);
+    assert.strictEqual(options.webResources.relativeTo, resolve("test/templates"));
+  }
+
+  @test
+  juiceTableElements() {
+    // email-templates `juiceSettings` default, a juice global setting
+    assert.deepStrictEqual(juice.tableElements, ["TABLE"]);
+  }
+
+  @test
+  privateRendererCache() {
+    assert.strictEqual(this.mailer.getTemplates().renderer.options.cache, true);
+    sinon.stub(useCore(), "isDebug").returns(true);
+    this.mailer.templatesSource = undefined;
+    assert.strictEqual(this.mailer.getTemplates().renderer.options.cache, false);
   }
 
   @test

@@ -34,7 +34,7 @@ The service parameters are also the nodemailer `createTransport` options (`host`
 | `templates` | | Folder of the mailer own templates (see [Templates](#templates)) |
 | `templatesEngine` | `"mustache"` | Engine of the mailer own renderer |
 | `templateService` | `"TemplateService"` | Service to render with when neither `templates` nor `templatesEngine` are set |
-| `emailTemplateOptions.juiceResources` | `{}` | juice `juiceResources` options used on the html part |
+| `emailTemplateOptions.juiceResources` | see [juice options](#juice-options) | juice `juiceResources` options used on the html part |
 | `transport` | | Type of transport, for example `ses` |
 | `SES` | | SES options when `transport` is `ses` |
 
@@ -72,25 +72,46 @@ await useService("Mailer").send({
 ```
 
 - `subject` is trimmed.
-- `html` goes through juice: `<style>` blocks and resolvable `<link>` stylesheets are inlined. Images are not inlined by default.
+- `html` goes through juice with the `email-templates` defaults: resolvable `<link>` stylesheets are fetched into `<style>` blocks, `<style>` blocks are kept and **not** applied to the elements, images are not inlined. Set `juiceResources.applyStyleTags: true` to inline the `<style>` rules as `style` attributes.
 - When the template has an `html` part but no `text` part, `text` is generated from the html with [html-to-text](https://github.com/html-to-text/node-html-to-text) (images skipped).
 - An unknown template rejects with `Unknown mail template`.
 
 ### juice options
 
-`emailTemplateOptions.juiceResources` is passed to `juice.juiceResources`. `webResources.relativeTo` defaults to the templates folder: the mailer `templates` folder in cases 1 and 3, the first folder of the `TemplateService` in case 2. An explicit `webResources.relativeTo` always wins.
+`emailTemplateOptions.juiceResources` is passed to `juice.juiceResources`, deep merged over the `email-templates@13` defaults:
+
+```jsonc
+{
+  "applyStyleTags": false,
+  "removeStyleTags": false,
+  "webResources": { "images": false, "relativeTo": "<templates folder>" }
+}
+```
+
+`webResources.relativeTo` defaults to the templates folder: the mailer `templates` folder in cases 1 and 3, the first folder of the `TemplateService` in case 2. Any option you set wins, `webResources` keys being merged one by one.
 
 ```jsonc
 {
   "type": "Webda/Mailer",
   "emailTemplateOptions": {
     "juiceResources": {
+      // Inline the <style> rules as style attributes and drop the <style> blocks
+      "applyStyleTags": true,
+      "removeStyleTags": true,
       "preserveImportant": true,
       "webResources": { "relativeTo": "./assets/mail", "images": 8 }
     }
   }
 }
 ```
+
+Like `email-templates`, the mailer sets the juice global `tableElements` setting to `["TABLE"]`: juice reads it from its module, it cannot be set per call, so it applies to every juice user of the process.
+
+:::warning Security
+
+juice (through `web-resource-inliner`) fetches the `<link>` stylesheets of the rendered html over the network and reads local files relative to `webResources.relativeTo`. Never put untrusted values unescaped (`{{{…}}}` in mustache) into an html template: an injected `<link>` could make the server fetch arbitrary URLs or inline local files into the email. If your templates do not need external stylesheets, disable them with `emailTemplateOptions.juiceResources.webResources.links: false`.
+
+:::
 
 ## Migration from `@webda/core`
 

@@ -2,11 +2,12 @@ import {
   AbstractMailer,
   SecretString,
   ServiceParameters,
+  useCore,
   useDynamicService,
   type MailerSendOptions
 } from "@webda/core";
 import type { ServicePartialParameters } from "@webda/core";
-import { TemplateRenderer, type TemplateService } from "@webda/templates";
+import { TEMPLATE_NOT_FOUND, TemplateRenderer, type TemplateService } from "@webda/templates";
 import { convert } from "html-to-text";
 import juice from "juice";
 import * as nodemailer from "nodemailer";
@@ -51,7 +52,9 @@ export class MailerParameters extends ServiceParameters {
     /**
      * juice `juiceResources` options used to inline the CSS of the html part
      *
-     * `webResources.relativeTo` defaults to the templates folder
+     * Deep merged over the email-templates defaults:
+     * `{ applyStyleTags: false, removeStyleTags: false, webResources: { images: false, relativeTo } }`,
+     * `webResources.relativeTo` being the templates folder
      *
      * @see https://github.com/Automattic/juice
      */
@@ -84,11 +87,6 @@ export class MailerParameters extends ServiceParameters {
     return this;
   }
 }
-
-/**
- * Error code of the @webda/templates TemplateNotFoundError
- */
-const TEMPLATE_NOT_FOUND = "TEMPLATE_NOT_FOUND";
 
 /**
  * What the mailer needs from a template renderer
@@ -164,6 +162,9 @@ export class Mailer<T extends MailerParameters = MailerParameters> extends Abstr
    * @override
    */
   async init(): Promise<this> {
+    // email-templates@13 `juiceSettings` default: only TABLE gets width/height attributes from CSS
+    // juice reads `tableElements` from its module object, it cannot be set per call
+    juice.tableElements = <any>["TABLE"];
     // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
     // Encrypted values (auth.pass, SES credentials...) are unwrapped to plain strings for nodemailer
     this._transporter = nodemailer.createTransport(
@@ -194,7 +195,11 @@ export class Mailer<T extends MailerParameters = MailerParameters> extends Abstr
     }
     const folder = templates ?? "./templates";
     this.templatesSource = {
-      renderer: new TemplateRenderer({ folders: [folder], engine: templatesEngine ?? "mustache" }),
+      renderer: new TemplateRenderer({
+        folders: [folder],
+        engine: templatesEngine ?? "mustache",
+        cache: !useCore().isDebug()
+      }),
       folder
     };
     return this.templatesSource;
@@ -239,7 +244,10 @@ export class Mailer<T extends MailerParameters = MailerParameters> extends Abstr
     }
     if (result.html) {
       const juiceOptions = this.parameters.emailTemplateOptions?.juiceResources ?? {};
+      // email-templates@13 defaults, user options deep merged over them
       options.html = await juiceResources(result.html, {
+        applyStyleTags: false,
+        removeStyleTags: false,
         ...juiceOptions,
         webResources: {
           relativeTo: resolve(folder),

@@ -4,6 +4,7 @@ import { copyFile, mkdir, mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import {
+  TEMPLATE_NOT_FOUND,
   TemplateEngineNotFoundError,
   TemplateNotFoundError,
   TemplateRenderer,
@@ -157,8 +158,68 @@ class TemplateRendererTest {
     await assert.rejects(() => r.render("../templates-b/onlyb"), TemplateNotFoundError);
     await assert.rejects(() => r.render("/etc/passwd"), TemplateNotFoundError);
     await assert.rejects(() => r.render("a\\b"), TemplateNotFoundError);
-    await assert.rejects(() => r.render("single", {}, { locale: "../x" }), TemplateNotFoundError);
     assert.strictEqual(await r.has("../templates-b/onlyb"), false);
+  }
+
+  @test
+  async invalidLocaleBehavesLikeNoLocale() {
+    const r = new TemplateRenderer({ folders: [A] });
+    // A locale failing the pattern is ignored: the no-locale file is used
+    assert.strictEqual(await r.render("single", { name: "a" }, { locale: "../x" }), "Single A a");
+    assert.strictEqual(await r.has("single", { locale: "../x" }), true);
+    // A traversal through the locale never resolves a path outside the folders
+    const root = await this.tmpFolder();
+    await mkdir(join(root, "tpl", "W"), { recursive: true });
+    await mkdir(join(root, "evil"), { recursive: true });
+    await writeFile(join(root, "tpl", "W", "subject.mustache"), "inside");
+    await writeFile(join(root, "evil", "subject.mustache"), "outside");
+    await writeFile(join(root, "evil", "secret.mustache"), "outside");
+    const t = new TemplateRenderer({ folders: [join(root, "tpl")] });
+    assert.strictEqual(await t.render("W/subject", {}, { locale: "../../evil" }), "inside");
+    assert.deepStrictEqual(await t.renderAll("W", {}, { locale: "../../evil" }), { subject: "inside" });
+    assert.strictEqual(await t.has("W/secret", { locale: "../../evil" }), false);
+    await assert.rejects(() => t.render("W/secret", {}, { locale: "../../evil" }), TemplateNotFoundError);
+  }
+
+  @test
+  async localePartPartialsFromTemplateFolder() {
+    const dir = await this.tmpFolder();
+    await mkdir(join(dir, "W", "fr"), { recursive: true });
+    await writeFile(join(dir, "W", "_sig.mustache"), "SIG");
+    await writeFile(join(dir, "W", "_other.mustache"), "OTHER");
+    await writeFile(join(dir, "W", "fr", "subject.mustache"), "Salut {{>sig}} {{>other}}");
+    const r = new TemplateRenderer({ folders: [dir], cache: false });
+    assert.strictEqual(await r.render("W/subject", {}, { locale: "fr" }), "Salut SIG OTHER");
+    // The locale subfolder wins on a name clash
+    await writeFile(join(dir, "W", "fr", "_sig.mustache"), "SIGNATURE");
+    assert.strictEqual(await r.render("W/subject", {}, { locale: "fr" }), "Salut SIGNATURE OTHER");
+  }
+
+  @test
+  async nestedMultiPart() {
+    const dir = await this.tmpFolder();
+    await mkdir(join(dir, "auth", "WELCOME", "fr"), { recursive: true });
+    await writeFile(join(dir, "auth", "WELCOME", "subject.mustache"), "Welcome {{name}}");
+    await writeFile(join(dir, "auth", "WELCOME", "html.mustache"), "<p>{{name}}</p>");
+    await writeFile(join(dir, "auth", "WELCOME", "fr", "subject.mustache"), "Bienvenue {{name}}");
+    const r = new TemplateRenderer({ folders: [dir] });
+    assert.strictEqual(await r.has("auth/WELCOME"), true);
+    assert.strictEqual(await r.has("auth/WELCOME", { locale: "fr" }), true);
+    assert.strictEqual(await r.has("auth/NOPE"), false);
+    assert.deepStrictEqual(await r.renderAll("auth/WELCOME", { name: "a" }), {
+      html: "<p>a</p>",
+      subject: "Welcome a"
+    });
+    assert.strictEqual((await r.renderAll("auth/WELCOME", { name: "a" }, { locale: "fr" })).subject, "Bienvenue a");
+    assert.strictEqual(await r.render("auth/WELCOME/html", { name: "a" }), "<p>a</p>");
+    await assert.rejects(() => r.renderAll("auth/NOPE"), TemplateNotFoundError);
+    await assert.rejects(() => r.renderAll("auth/WELCOME/html"), TemplateNotFoundError);
+  }
+
+  @test
+  notFoundCode() {
+    assert.strictEqual(TEMPLATE_NOT_FOUND, "TEMPLATE_NOT_FOUND");
+    assert.strictEqual(new TemplateNotFoundError("x").getCode(), TEMPLATE_NOT_FOUND);
   }
 
   @test

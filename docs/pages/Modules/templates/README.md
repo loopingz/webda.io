@@ -57,14 +57,16 @@ await templates.renderString("Hello {{name}}", { name: "Bob" }); // inline sourc
 
 Folders are searched in order, the first folder with a match wins. Template names cannot contain `..` or start with `/`.
 
+Multi-part templates can be nested in subfolders: `renderAll("auth/WELCOME")` and `has("auth/WELCOME")` use the `auth/WELCOME/` folder parts, `render("auth/WELCOME/html")` renders one of them.
+
 ## Locale
 
-For `{ locale: "fr-CA" }` the lookup tries, most specific first: `fr-CA`, `fr`, the application default locale (first of the core locales), then the template without locale. An empty locale is the same as no locale. Each part of a multi-part template falls back on its own.
+For `{ locale: "fr-CA" }` the lookup tries, most specific first: `fr-CA`, `fr`, the application default locale (first of the core locales), then the template without locale. An empty locale, or one not matching `[A-Za-z0-9_-]+`, is the same as no locale. Each part of a multi-part template falls back on its own.
 
 ## Partials
 
 - Files in `<folder>/partials/` are global partials: `partials/footer.mustache` is `{{>footer}}`.
-- In a multi-part folder, files starting with `_` are local partials: `WELCOME/_signature.mustache` is `{{>signature}}`. Local partials win over global ones.
+- In a multi-part folder, files starting with `_` are local partials: `WELCOME/_signature.mustache` is `{{>signature}}`. Local partials win over global ones. A part found in a locale subfolder (`WELCOME/fr/subject.mustache`) also sees the `_` files of `WELCOME/fr/`, which win over the `WELCOME/` ones on a name clash.
 
 ## Custom engine
 

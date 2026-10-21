@@ -14,7 +14,7 @@
             "description": "Rendering options",
             "properties": {
               "juiceResources": {
-                "description": "juice `juiceResources` options used to inline the CSS of the html part\n\n`webResources.relativeTo` defaults to the templates folder",
+                "description": "juice `juiceResources` options used to inline the CSS of the html part\n\nDeep merged over the email-templates defaults:\n`{ applyStyleTags: false, removeStyleTags: false, webResources: { images: false, relativeTo } }`,\n`webResources.relativeTo` being the templates folder",
                 "see": "https://github.com/Automattic/juice"
               }
             },

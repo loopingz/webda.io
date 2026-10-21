@@ -115,14 +115,15 @@ export class TemplateService<T extends TemplateServiceParameters = TemplateServi
       const engine = getTemplateEngine(name)!;
       if (name in options && engine.configure) {
         // Started here, awaited in init()
-        this.configuring.push(
-          Promise.resolve()
-            .then(() => engine.configure!(options[name]))
-            .catch(err => {
-              this.log("ERROR", `Engine '${name}' configuration failed`, err);
-              throw err;
-            })
-        );
+        const configuring = Promise.resolve()
+          .then(() => engine.configure!(options[name]))
+          .catch(err => {
+            this.log("ERROR", `Engine '${name}' configuration failed`, err);
+            throw err;
+          });
+        // Not an unhandled rejection if init() is never called, init() still fails on the original promise
+        configuring.catch(() => {});
+        this.configuring.push(configuring);
       }
     }
     return this;

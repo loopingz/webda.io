@@ -37,6 +37,7 @@
     "@webda/fs": "workspace:^",
     "@webda/graphql": "workspace:^",
     "@webda/grpc": "workspace:^",
+    "@webda/mailer": "workspace:^",
     "@webda/mcp": "workspace:^",
     "@webda/models": "workspace:^",
     "@webda/ql": "workspace:^",

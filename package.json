@@ -60,5 +60,8 @@
   },
   "dependencies": {
     "nx": "^20.8.1"
+  },
+  "resolutions": {
+    "sanitize-html": "2.17.0"
   }
 }

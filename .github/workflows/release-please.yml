@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - main
+      - maintenance/v3.x
   workflow_dispatch:
 
 permissions:
@@ -11,6 +11,8 @@ name: release-please
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -38,19 +40,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Install docs dependencies
-        if: ${{ steps.release.outputs.releases_created }}
-        run: cd docs && yarn install
-
-      - name: Build docs
-        if: ${{ steps.release.outputs.releases_created }}
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-        run: yarn docs
-
-      - name: Deploy docs 🚀
-        if: ${{ steps.release.outputs.releases_created }}
-        uses: JamesIves/github-pages-deploy-action@4.1.4
-        with:
-          branch: gh-pages # The branch the action should deploy to.
-          folder: docs/dist # The folder the action should deploy.
+  docs:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    uses: ./.github/workflows/docs.yml
+    with:
+      ref: ${{ github.sha }}
+      lane: v3

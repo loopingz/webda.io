@@ -37,7 +37,7 @@ jobs:
 
     services:
       localstack:
-        image: localstack/localstack:latest
+        image: localstack/localstack:3.6.0
         ports:
           - 4566:4566
         env:
@@ -75,10 +75,11 @@ jobs:
           sudo sysctl -w vm.max_map_count=262144
 
       - name: Runs Elasticsearch
-        uses: elastic/elastic-github-actions/elasticsearch@master
+        uses: elastic/elastic-github-actions/elasticsearch@98431b45a60cbb6ace481778827bc8e11f12fd65
         with:
-          stack-version: 8.2.0
+          stack-version: 8.15.0
           security-enabled: false
+          wait: 0
 
       - name: Setup postgresql
         uses: Softwarepark/postgresql-action@v2
@@ -109,7 +110,7 @@ jobs:
         run: yarn run build
 
       - name: Run tests
-        run: yarn run test --exclude @webda/aws --exclude @webda/shell --exclude @webda/gcp
+        run: yarn run test --exclude @webda/aws --exclude @webda/shell --exclude @webda/gcp --output-style=stream
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
@@ -118,7 +119,10 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
+      # v3 GCP tests target the live webda-dev project, whose billing account is closed.
+      # main runs them against emulators; keep them informational on this maintenance lane.
       - name: Run GCP tests
+        continue-on-error: true
         run: yarn run nx run @webda/gcp:test || yarn nx run @webda/gcp:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"

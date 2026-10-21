@@ -50,7 +50,8 @@ class AclModelTest {
     assert.deepStrictEqual(await this.model.getPermissions(this._ctx), ["get", "action"]);
     await this.model._onGet();
     // @ts-ignore
-    assert.deepStrictEqual(this.model._permissions, []);
+    assert.ok(Array.isArray(this.model._permissions));
+    assert.strictEqual((this.model as any)._permissions.length, 0);
     this.model.setContext(this._ctx);
     await this.model._onGet();
     // @ts-ignore

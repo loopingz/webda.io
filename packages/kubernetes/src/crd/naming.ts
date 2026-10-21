@@ -7,7 +7,7 @@ export interface CrdModelMetadata {
    */
   Identifier: string;
   /**
-   * Plural of the model, e.g. `Tenants`
+   * Plural of the model, e.g. `Tenants` or `MyApp/Tenants`
    */
   Plural: string;
   /**
@@ -85,7 +85,8 @@ export function getCrdNames(metadata: CrdModelMetadata, group: string): CrdNames
   if (!KIND.test(kind)) {
     throw new Error(`Invalid kind '${kind}' for ${metadata.Identifier}`);
   }
-  const plural = metadata.Plural.toLowerCase();
+  // The plural can be namespaced like the identifier
+  const plural = metadata.Plural.split("/").pop()!.toLowerCase();
   const singular = kind.toLowerCase();
   const shortNames = metadata.ShortName ? [metadata.ShortName.toLowerCase()] : undefined;
   for (const value of [plural, singular, ...(shortNames ?? [])]) {

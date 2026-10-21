@@ -279,6 +279,11 @@ class BuildCrdTest {
     assert.strictEqual(version.subresources, undefined);
     assert.strictEqual(version.additionalPrinterColumns, undefined);
     assert.deepStrictEqual(Object.keys(version.schema.openAPIV3Schema.properties!), ["spec"]);
+    const preserved = buildCrd(this.tenant, { group: "myapp.example.com", preserveUnknownFields: true });
+    assert.strictEqual(
+      preserved.spec.versions[0].schema.openAPIV3Schema.properties!.spec["x-kubernetes-preserve-unknown-fields"],
+      true
+    );
   }
 
   @test

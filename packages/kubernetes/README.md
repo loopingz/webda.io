@@ -21,6 +21,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 - You want to store Webda model instances in Kubernetes Secrets (useful for small, sensitive configuration objects).
 - You need to deploy a scheduled Webda service operation as a Kubernetes CronJob.
 - You read Kubernetes resources from a service: typed API clients and a self-restarting informer for custom resources.
+- You store configuration-like models as Kubernetes custom resources (`KubernetesStore`), editable with kubectl/GitOps.
 
 ## Install
 
@@ -82,6 +83,47 @@ pnpm add @webda/kubernetes
   }
 }
 ```
+
+### KubernetesStore (models as custom resources)
+
+```json
+{
+  "services": {
+    "tenantStore": {
+      "type": "Webda/KubernetesStore",
+      "group": "myapp.example.com",
+      "namespace": "tenants",
+      "models": ["MyApp/Tenant"],
+      "labelFields": { "MyApp/Tenant": ["plan"] },
+      "statusFields": { "MyApp/Tenant": ["ready"] }
+    }
+  }
+}
+```
+
+Each model of `models` is a CustomResourceDefinition `<plural>.<group>`; its subclasses share its resources. The primary
+key is the resource name (a lowercase DNS subdomain: a composite key needs `-` or `.` as `PrimaryKeySeparator`), the
+stored fields its `spec`, the `statusFields` its `status`. Writes are optimistic (`resourceVersion`, retried on
+conflict); `=` and `IN` on `labelFields` are filtered by the API server, the rest of a query in memory.
+
+`webda kubernetes crd export --target ./crds` writes the definitions to apply, or set `installCrds: true` to create
+them at init (needs the rights on `customresourcedefinitions`).
+
+| Parameter | Default | Description |
+|---|---|---|
+| `group` | — (required) | API group of the custom resources |
+| `version` | `v1` | API version |
+| `namespace` | `default` | Namespace of the resources (ignored for `Cluster` scope) |
+| `scope` | `Namespaced` | `Namespaced` or `Cluster` |
+| `labelFields` | `{}` | Fields mirrored as labels, by model |
+| `statusFields` | `{}` | Fields written through the status subresource, by model |
+| `installCrds` | `false` | Create or update the definitions at init |
+| `maxRetries` | `5` | Attempts of a read-modify-write on conflicts |
+| `config`, `context`, `timeout` | in-cluster / kubeconfig, 10000 ms | Kubernetes client |
+
+Kubernetes is not a database: use it for configuration-like models (tens to thousands of objects, at most ~1.5 MiB
+each). A label field must hold label-compatible values; resources created with kubectl need the labels too to be found
+by a query on them.
 
 ### API clients and informer
 

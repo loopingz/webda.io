@@ -16,7 +16,7 @@ export class AbstractDeployer<T extends DeployerResources = DeployerResources> {
    * Using this method should only be exception
    * @returns the result
    */
-  static getSchema(): JSONSchema7 {
+  static getSchema(): JSONSchema7 | undefined {
     return undefined;
   }
 }

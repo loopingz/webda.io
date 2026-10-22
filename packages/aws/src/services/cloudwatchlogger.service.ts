@@ -87,18 +87,18 @@ export class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchL
 {
   _logGroupName: string;
   _logStreamName: string;
-  _seqToken: string;
+  _seqToken?: string;
   _logStream: any;
   _cloudwatch: CloudWatchLogs;
   _bufferedLogs: any[] = [];
   /**
    * Listener on the worker output
    */
-  protected messageListener: (msg: WorkerMessage) => void;
+  protected messageListener?: (msg: WorkerMessage) => void;
   /**
    * Unsubscribe from the Webda.Result core event
    */
-  protected resultListenerOff: () => void;
+  protected resultListenerOff?: () => void;
 
   /**
    * Create the log group and stream, then forward the logs
@@ -115,7 +115,7 @@ export class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchL
     const res = await this._cloudwatch.describeLogGroups({
       logGroupNamePrefix: this._logGroupName
     });
-    if (!res.logGroups.length) {
+    if (!res.logGroups?.length) {
       await this._cloudwatch.createLogGroup({
         logGroupName: this._logGroupName,
         kmsKeyId: this.parameters.kmsKeyId,
@@ -128,10 +128,10 @@ export class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchL
     });
     this.removeListeners();
     this.messageListener = (msg: WorkerMessage) => {
-      if (msg.type !== "log") {
+      if (msg.type !== "log" || !msg.log?.level) {
         return;
       }
-      if (LogFilter(msg.log.level, this.parameters.logLevel)) {
+      if (LogFilter(msg.log.level, this.parameters.logLevel ?? "INFO")) {
         this._log(msg.log.level, ...msg.log.args);
       }
     };
@@ -234,7 +234,7 @@ export class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchL
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
-    const resources = {};
+    const resources: Record<string, any> = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     resources[this.getName() + "LogGroup"] = {
       Type: "AWS::Logs::LogGroup",

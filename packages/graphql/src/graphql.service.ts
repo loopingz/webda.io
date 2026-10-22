@@ -1432,6 +1432,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    */
   protected async getCurrentUserModel(context: WebContext): Promise<ModelDefinition<any>> {
     const user = await context.getCurrentUser();
+    if (!user) throw new GraphQLError("Authentication required", { extensions: { code: "UNAUTHENTICATED" } });
     const modelId = this.app.getModelId(user.constructor as any);
     if (!modelId) {
       throw new GraphQLError("Current user model is not registered", {

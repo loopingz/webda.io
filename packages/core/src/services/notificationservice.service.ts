@@ -101,7 +101,7 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
       return;
     }
     if (!this.parameters.multiple) {
-      return selectedSenders.shift().sendNotification(user, notification, replacements);
+      return selectedSenders[0].sendNotification(user, notification, replacements);
     }
     await Promise.all(selectedSenders.map(s => s.sendNotification(user, notification, replacements)));
   }

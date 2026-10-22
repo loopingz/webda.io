@@ -1,3 +1,4 @@
+import type { CookieOptions } from "../session/cookie.js";
 import { OperationContext } from "./operationcontext.js";
 import acceptLanguage from "accept-language";
 import * as http from "http";
@@ -35,14 +36,14 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   /**
    * Cookies to send back
    */
-  _cookie: Map<string, Cookie>;
+  _cookie: Record<string, Cookie>;
   /**
    *
    */
   headers: Map<string, string>;
   _route: any;
 
-  _ended: Promise<any> = undefined;
+  _ended?: Promise<any>;
   /**
    * Whether the session was already saved
    */
@@ -95,7 +96,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @override
    */
   async getInput(sanitizedOptions?: Parameters<OperationContext["getInput"]>[0]): Promise<T> {
-    if (this.getHttpContext()?.getUniqueHeader("content-type", "").toLowerCase().startsWith("multipart/")) {
+    if (this.getHttpContext()?.getUniqueHeader("content-type", "")?.toLowerCase().startsWith("multipart/")) {
       return sanitizedOptions?.defaultValue;
     }
     return super.getInput(sanitizedOptions);
@@ -151,9 +152,9 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @param {Object} headers to add to the response
    * @returns this for chaining
    */
-  writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
+  writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = {}): this {
     Object.entries(headers || {}).forEach(([key, value]) => {
-      this.setHeader(key, value);
+      if (value !== undefined) this.setHeader(key, value);
     });
     if (statusCode !== undefined) {
       this.statusCode = statusCode;
@@ -182,10 +183,10 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @param value - the value to set
    * @param options - the options
    */
-  cookie(param, value, options = undefined) {
+  cookie(param: string, value: string, options?: Parameters<typeof cookieSerialize>[2] | Partial<CookieOptions>) {
     /** @ignore */
     if (this._cookie === undefined) {
-      this._cookie = new Map();
+      this._cookie = {};
     }
     this._cookie[param] = { name: param, value, options };
   }
@@ -194,7 +195,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * Get all cookies set on the response
    * @returns the result map
    */
-  getResponseCookies(): Map<string, Cookie> {
+  getResponseCookies(): Record<string, Cookie> {
     return this._cookie;
   }
 
@@ -340,7 +341,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
       method: this.getHttpContext().getMethod(),
       rawHeaders: [], // TODO Regenerate headers based on the map
       rawTrailers: [],
-      setTimeout: (msec, callback) => {
+      setTimeout: (msec: number, callback: () => void) => {
         setTimeout(callback, msec);
       },
       socket: undefined,
@@ -429,11 +430,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(
-    httpContext: HttpContext,
-    stream: Writable = undefined,
-    defaultHeaders: http.OutgoingHttpHeaders = undefined
-  ) {
+  constructor(httpContext: HttpContext, stream?: Writable, defaultHeaders?: http.OutgoingHttpHeaders) {
     super(stream);
     this.setHttpContext(httpContext);
     this._outputHeaders = defaultHeaders || {

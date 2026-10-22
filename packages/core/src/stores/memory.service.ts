@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import * as crypto from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { open } from "node:fs/promises";
@@ -37,18 +38,18 @@ export class MemoryStoreParameters extends StoreParameters {
      *
      * @default 1000
      */
-    delay?: number;
+    delay: number;
     /**
      * cipher to use
      */
-    cipher?: string;
+    cipher: string;
     /**
      * Compression level to use
      * @default 9
      * @max 9
      * @min 0
      */
-    compressionLevel?: number;
+    compressionLevel: number;
   };
 
   /**
@@ -96,7 +97,7 @@ class LDJSONMemoryStreamWriter extends Readable {
 /** Writable stream that parses line-delimited JSON or legacy JSON format into a Map */
 class LDJSONMemoryStreamReader extends Writable {
   current: string = "";
-  oldFormat: string = undefined;
+  oldFormat?: string;
   firstBytes: boolean = true;
   /** Create a new LDJSONMemoryStreamReader
    * @param data - the map to populate from the stream
@@ -194,11 +195,11 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
   /**
    * Persistence timeout id
    */
-  private persistenceTimeout;
+  private persistenceTimeout?: ReturnType<typeof setTimeout>;
   /**
    * Current persistence
    */
-  persistencePromise = null;
+  persistencePromise: Promise<void> | null = null;
   /**
    * AES encryption key
    */
@@ -213,28 +214,25 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
    * The objects are already in memory the JSON.parse/stringify would duplicate memory
    */
   async persist() {
+    const persistence = required(this.parameters.persistence, "persistence configuration");
     if (this.persistenceTimeout) {
       clearTimeout(this.persistenceTimeout);
-      this.persistenceTimeout = null;
+      this.persistenceTimeout = undefined;
     }
     const source = new LDJSONMemoryStreamWriter(this.storage);
     let pipeline: Readable = source;
-    if (this.parameters.persistence.compressionLevel > 0) {
+    if (persistence.compressionLevel > 0) {
       pipeline = pipeline.pipe(
         createGzip({
-          level: this.parameters.persistence.compressionLevel
+          level: persistence.compressionLevel
         })
       );
     }
 
-    const dest = createWriteStream(this.parameters.persistence.path);
+    const dest = createWriteStream(persistence.path);
     if (this.key) {
       const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv(
-        this.parameters.persistence.cipher,
-        new Uint8Array(this.key),
-        new Uint8Array(iv)
-      );
+      const cipher = crypto.createCipheriv(persistence.cipher, new Uint8Array(this.key), new Uint8Array(iv));
       pipeline = pipeline.pipe(cipher);
       dest.write(iv);
     }
@@ -255,20 +253,17 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
    * Load a persisted memory data
    */
   async load() {
+    const persistence = required(this.parameters.persistence, "persistence configuration");
     let pipeline: Readable;
     if (this.key) {
-      const fh = await open(this.parameters.persistence.path, "r");
+      const fh = await open(persistence.path, "r");
       const ivBuf = Buffer.alloc(16);
       await fh.read(new Uint8Array(ivBuf.buffer, ivBuf.byteOffset, ivBuf.byteLength), 0, 16);
       const iv = new Uint8Array(ivBuf);
-      const decipher = crypto.createDecipheriv(
-        this.parameters.persistence.cipher,
-        new Uint8Array(this.key),
-        new Uint8Array(iv)
-      );
+      const decipher = crypto.createDecipheriv(persistence.cipher, new Uint8Array(this.key), new Uint8Array(iv));
       pipeline = fh.createReadStream({ start: 16 }).pipe(decipher);
     } else {
-      pipeline = createReadStream(this.parameters.persistence.path);
+      pipeline = createReadStream(persistence.path);
     }
     // Uncompress if needed
     pipeline = pipeline.pipe(new GunzipConditional());
@@ -310,21 +305,22 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
    * Set the persistence function if needed
    */
   setPersistence() {
+    const persistence = required(this.parameters.persistence, "persistence configuration");
     // Set a proxy if we need to delay the persistence
-    if (this.parameters.persistence.delay > 0) {
+    if (persistence.delay > 0) {
       // CustomMap
       this.storage.persistence = () => {
         const timeout = async () => {
           // If we are already persisting, wait for it to finish
           if (this.persistencePromise) {
-            this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
+            this.persistenceTimeout ??= setTimeout(timeout, persistence.delay);
             return;
           }
           this.persistencePromise = this.persist();
           await this.persistencePromise;
           this.persistencePromise = null;
         };
-        this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
+        this.persistenceTimeout ??= setTimeout(timeout, persistence.delay);
       };
       const originalSet = this.storage.set;
       this.storage.set = (key: string, object: string) => {

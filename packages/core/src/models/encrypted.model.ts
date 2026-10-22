@@ -59,7 +59,7 @@ export class EncryptedField<T = any> {
    * @throws Error when the ciphertext is invalid (tampered, or encrypted with an unknown key)
    */
   async get(): Promise<T | undefined> {
-    if (!this.isSet()) {
+    if (!this.__ciphertext) {
       return undefined;
     }
     return crypto().decrypt(this.__ciphertext);

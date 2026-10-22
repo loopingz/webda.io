@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import { posix } from "path";
 import { useModelId } from "../application/hooks.js";
 import { Readable } from "node:stream";
@@ -120,7 +121,11 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param expires - the expiration time
    * @returns the result
    */
-  async getRedirectUrlFromObject(binaryMap, context, expires: number = this.parameters.urlExpiry) {
+  async getRedirectUrlFromObject(
+    binaryMap: BinaryMap,
+    context: OperationContext,
+    expires: number = this.parameters.urlExpiry
+  ) {
     return this.getSignedUrlFromMap(binaryMap, expires, context);
   }
 
@@ -140,9 +145,15 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    */
   // @ts-ignore
   async delete(object: CoreModelWithBinary, property: string, index: number) {
-    const hash = index !== undefined ? object[property][index].hash : (object[property] as BinaryMap).hash;
+    const hash =
+      index !== undefined ? (object[property] as BinaryMap[])[index].hash : (object[property] as BinaryMap).hash;
     await this.deleteSuccess(object, property, index);
-    await this._cleanUsage(hash, object.getUUID(), property, useModelId(object.constructor));
+    await this._cleanUsage(
+      required(hash, "binary hash"),
+      object.getUUID(),
+      property,
+      required(useModelId(object.constructor), "model identifier")
+    );
   }
 
   /**
@@ -150,7 +161,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    */
   async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
     try {
-      await this._cleanUsage(info.hash, uuid, attribute, model);
+      await this._cleanUsage(required(info.hash, "binary hash"), uuid, attribute, model);
     } catch (err) {
       this.log("WARN", "Cascade delete failed", err);
     }

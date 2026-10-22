@@ -216,7 +216,7 @@ export default class AsyncAction extends CoreModel {
     const jobHash = context.getHttpContext().getUniqueHeader("X-Job-Hash");
 
     // Ensure hash mac is correct
-    if (jobHash !== this.getHmac(jobTime)) {
+    if (!jobTime || !jobHash || jobHash !== this.getHmac(jobTime)) {
       useLog("TRACE", "Invalid Job HMAC");
       throw new WebdaError.Forbidden("Invalid Job HMAC");
     }

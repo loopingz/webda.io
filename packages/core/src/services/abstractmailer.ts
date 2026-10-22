@@ -124,7 +124,7 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   /**
    * @inheritdoc
    */
-  abstract hasNotification(notification: string);
+  abstract hasNotification(notification: string): Promise<boolean>;
 
   /**
    * Check if notifications can be delivered to a user via email

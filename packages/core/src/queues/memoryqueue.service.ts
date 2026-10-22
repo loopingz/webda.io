@@ -70,7 +70,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
   /**
    * @override
    */
-  async sendMessage(params) {
+  async sendMessage(params: any) {
     let uid = randomUUID();
     // Avoid duplication
     while (this._queue[uid]) {
@@ -135,7 +135,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
   /**
    * @override
    */
-  async deleteMessage(receipt) {
+  async deleteMessage(receipt: string) {
     if (this._queue[receipt]) {
       delete this._queue[receipt];
     }

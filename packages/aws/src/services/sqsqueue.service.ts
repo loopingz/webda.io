@@ -100,8 +100,8 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
       QueueUrl: this.parameters.queue
     });
     return (
-      parseInt(res["Attributes"]["ApproximateNumberOfMessages"]) +
-      parseInt(res["Attributes"]["ApproximateNumberOfMessagesNotVisible"])
+      parseInt(res.Attributes?.ApproximateNumberOfMessages ?? "0") +
+      parseInt(res.Attributes?.ApproximateNumberOfMessagesNotVisible ?? "0")
     );
   }
 
@@ -111,15 +111,17 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    */
   async sendMessage(params: T): Promise<void> {
     this.metrics.messages_sent.inc();
+    const body = JSON.stringify(params);
+    if (body === undefined) throw new WebdaError.BadRequest("Message is not JSON serializable");
     const sqsParams: SendMessageCommandInput = {
       QueueUrl: this.parameters.queue,
-      MessageBody: JSON.stringify(params)
+      MessageBody: body
     };
     if (this.parameters.MessageGroupId) {
       sqsParams.MessageGroupId = this.parameters.MessageGroupId;
     }
     if (this.parameters.queue.endsWith(".fifo")) {
-      sqsParams.MessageDeduplicationId = createHash("sha256").update(sqsParams.MessageBody).digest("hex");
+      sqsParams.MessageDeduplicationId = createHash("sha256").update(body).digest("hex");
     }
     await this.sqs.sendMessage(sqsParams);
   }
@@ -137,10 +139,12 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     };
     const data = await this.sqs.receiveMessage(queueArg);
     data.Messages ??= [];
-    return data.Messages.map(m => ({
-      ReceiptHandle: m.ReceiptHandle,
-      Message: this.unserialize(m.Body, proto)
-    }));
+    return data.Messages.map(m => {
+      if (m.ReceiptHandle === undefined || m.Body === undefined) {
+        throw new WebdaError.CodeError("INVALID_SQS_MESSAGE", "SQS message is missing its receipt or body");
+      }
+      return { ReceiptHandle: m.ReceiptHandle, Message: this.unserialize(m.Body, proto) };
+    });
   }
 
   /**
@@ -182,10 +186,11 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
         QueueUrl: this.parameters.queue
       });
     } catch (err) {
-      if (fail || err.name !== "AWS.SimpleQueueService.PurgeQueueInProgress") {
+      if (fail || !(err instanceof Error) || err.name !== "AWS.SimpleQueueService.PurgeQueueInProgress") {
         throw err;
       }
-      const delay = Math.floor(err.retryDelay * 1100);
+      const retryDelay = "retryDelay" in err && typeof err.retryDelay === "number" ? err.retryDelay : 60;
+      const delay = Math.floor(retryDelay * 1100);
       // 10% of margin
       await new Promise(resolve => setTimeout(resolve, delay));
       await this.__cleanWithRetry(true);
@@ -244,7 +249,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
       return {};
     }
     const { name: QueueName } = this._getQueueInfosFromUrl();
-    const resources = {};
+    const resources: Record<string, any> = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     this.parameters.CloudFormation.Queue = this.parameters.CloudFormation.Queue || {};
     resources[this.getName() + "Queue"] = {

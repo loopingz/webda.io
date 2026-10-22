@@ -1,3 +1,4 @@
+import { required } from "../required.js";
 import { ACM, CertificateDetail, ListCertificatesResponse, RequestCertificateCommandInput } from "@aws-sdk/client-acm";
 import { EC2 } from "@aws-sdk/client-ec2";
 import { HostedZone, RRType, Route53 } from "@aws-sdk/client-route-53";
@@ -177,8 +178,9 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    */
   async defaultResources(): Promise<void> {
     // Warn once if static secrets are configured in clear text (environment variables are fine)
-    SecretString.from(this.resources.secretAccessKey, "secretAccessKey");
-    SecretString.from(this.resources.sessionToken, "sessionToken");
+    if (this.resources.secretAccessKey !== undefined)
+      SecretString.from(this.resources.secretAccessKey, "secretAccessKey");
+    if (this.resources.sessionToken !== undefined) SecretString.from(this.resources.sessionToken, "sessionToken");
     this.resources.accessKeyId ??= process.env["AWS_ACCESS_KEY_ID"];
     this.resources.secretAccessKey ??= process.env["AWS_SECRET_ACCESS_KEY"];
     this.resources.sessionToken ??= process.env["AWS_SESSION_TOKEN"];
@@ -235,7 +237,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    */
   @InstanceCache()
   async getDefaultVpc(): Promise<{ Id: string; Subnets: any[] } | undefined> {
-    const defaultVpc = {
+    const defaultVpc: { Id: string; Subnets: import("@aws-sdk/client-ec2").Subnet[] } = {
       Id: "",
       Subnets: []
     };
@@ -243,7 +245,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
     const res = await ec2.describeVpcs({});
     for (const vpc of res.Vpcs ?? []) {
       if (vpc.IsDefault) {
-        defaultVpc.Id = vpc.VpcId;
+        defaultVpc.Id = required(vpc.VpcId, "VPC id");
         break;
       }
     }
@@ -300,7 +302,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @param region - of the certificate
    * @returns the certificate
    */
-  async getCertificate(domain: string, region: string = undefined): Promise<any> {
+  async getCertificate(domain: string, region?: string): Promise<any> {
     if (domain.endsWith(".")) {
       domain = domain.substring(0, domain.length - 1);
     }
@@ -332,7 +334,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @returns the zone
    */
   @InstanceCache()
-  async getZoneForDomainName(domain: string): Promise<HostedZone> {
+  async getZoneForDomainName(domain: string): Promise<HostedZone | undefined> {
     return Route53Service.getZoneForDomainName(domain);
   }
 
@@ -363,7 +365,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
     if (!Array.isArray(tags)) {
       return tags;
     }
-    const res = {};
+    const res: Record<string, string> = {};
     tags.forEach(t => (res[t.Key] = t.Value));
     return res;
   }
@@ -374,7 +376,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @param key - of the resources to add, or the tags themselves
    * @returns the tags array
    */
-  getDefaultTags(key: string | TagsDefinition = undefined): { Key: string; Value: string }[] {
+  getDefaultTags(key?: string | TagsDefinition): { Key: string; Value: string }[] {
     let Tags;
     if (typeof key === "string") {
       Tags = this.resources[key] ? this.transformMapTagsToArray(this.resources[key].Tags || []) : [];
@@ -395,7 +397,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @param key - of the resources to add
    * @returns the tags map
    */
-  getDefaultTagsAsMap(key: string | TagsDefinition = undefined): {
+  getDefaultTagsAsMap(key?: string | TagsDefinition): {
     [key: string]: string;
   } {
     return this.transformArrayTagsToMap(this.getDefaultTags(key));
@@ -406,7 +408,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @param key - of the resources to add
    * @returns the url encoded tags
    */
-  getDefaultTagsAsS3Tagging(key: string | TagsDefinition = undefined): string {
+  getDefaultTagsAsS3Tagging(key?: string | TagsDefinition): string {
     return this.getDefaultTags(key)
       .map(tag => `${encodeURIComponent(tag.Key)}=${encodeURIComponent(tag.Value)}`)
       .join("&");
@@ -422,7 +424,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @returns the resolved value
    */
   async waitFor(
-    callback: (resolve?: (value?: any) => void, reject?: (reason?: any) => void) => Promise<boolean>,
+    callback: (resolve: (value: any) => void, reject: (reason?: any) => void) => Promise<boolean>,
     retries: number,
     title: string,
     delay: number
@@ -461,7 +463,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
         const res = await acm.describeCertificate({
           CertificateArn: certificate.CertificateArn
         });
-        if (res.Certificate.DomainValidationOptions && res.Certificate.DomainValidationOptions[0].ResourceRecord) {
+        if (res.Certificate?.DomainValidationOptions?.[0]?.ResourceRecord) {
           resolve(res.Certificate);
           return true;
         }
@@ -476,20 +478,25 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
     }
     if (cert.Status === "PENDING_VALIDATION") {
       // On create need to wait
-      const record = cert.DomainValidationOptions[0].ResourceRecord;
+      const record = required(cert.DomainValidationOptions?.[0]?.ResourceRecord, "certificate validation record");
       this.log("INFO", "Need to validate certificate", cert.CertificateArn);
-      await this.createDNSEntry(record.Name, "CNAME", record.Value, zone);
+      await this.createDNSEntry(
+        required(record.Name, "DNS record name"),
+        "CNAME",
+        required(record.Value, "DNS record value"),
+        zone
+      );
       // Waiting for certificate validation
       cert = await this.waitFor(
         async (resolve, reject) => {
           const res = await acm.describeCertificate({
             CertificateArn: cert.CertificateArn
           });
-          if (res.Certificate.Status === "ISSUED") {
+          if (res.Certificate?.Status === "ISSUED") {
             resolve(res.Certificate);
             return true;
           }
-          if (res.Certificate.Status !== "PENDING_VALIDATION") {
+          if (res.Certificate?.Status !== "PENDING_VALIDATION") {
             reject(res.Certificate);
             return true;
           }
@@ -511,12 +518,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @param value - the value of the record
    * @param targetZone - the zone, found from the domain if not provided
    */
-  public async createDNSEntry(
-    domain: string,
-    type: RRType,
-    value: string,
-    targetZone: HostedZone = undefined
-  ): Promise<void> {
+  public async createDNSEntry(domain: string, type: RRType, value: string, targetZone?: HostedZone): Promise<void> {
     this.log("INFO", `Creating DNS entry ${domain} ${type} ${value}`);
     const r53 = new Route53(this.getClientConfig("Route53"));
     if (!domain.endsWith(".")) {
@@ -585,7 +587,10 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
     for (const service of this.getApplicationServices()) {
       if (typeof (<any>service).getARNPolicy === "function") {
         // Update to match recuring policy - might need to split if policy too big
-        const res = (<IAMPolicyContributor>(<any>service)).getARNPolicy(me.Account, this.getRegion());
+        const res = (<IAMPolicyContributor>(<any>service)).getARNPolicy(
+          required(me.Account, "AWS account"),
+          this.getRegion()
+        );
         if (Array.isArray(res)) {
           statements.push(...res);
         } else {
@@ -593,7 +598,7 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
         }
       }
     }
-    statements.push(...this.getARNPolicy(me.Account, this.getRegion()));
+    statements.push(...this.getARNPolicy(required(me.Account, "AWS account"), this.getRegion()));
     const policyDocument = {
       Version: "2012-10-17",
       Statement: [...statements, ...additionalStatements]
@@ -625,9 +630,9 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
         Bucket
       });
     } catch (err) {
-      if (err.name === "Forbidden") {
+      if (err instanceof Error && err.name === "Forbidden") {
         this.log("ERROR", "S3 bucket already exists in another account or you do not have permissions on it");
-      } else if (err instanceof NotFound || err.name === "NotFound") {
+      } else if (err instanceof NotFound || (err instanceof Error && err.name === "NotFound")) {
         this.log("INFO", "\tCreating S3 Bucket", Bucket);
         await s3.createBucket({
           Bucket
@@ -728,9 +733,12 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
     // Create the bucket
     await this.createBucket(bucket);
     // Retrieve current files to only upload the one we do not have
-    const currentFiles = {};
-    const Prefix = files.reduce((prev, cur) => this.commonPrefix(prev, cur.key), files[0].key);
-    const Params = {
+    const currentFiles: Record<string, import("@aws-sdk/client-s3")._Object> = {};
+    const Prefix = files.reduce(
+      (prev, cur) => this.commonPrefix(prev, required(cur.key, "upload key")),
+      required(files[0].key, "upload key")
+    );
+    const Params: import("@aws-sdk/client-s3").ListObjectsV2CommandInput = {
       Bucket: bucket,
       Prefix,
       MaxKeys: 1000,
@@ -739,13 +747,13 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
     do {
       const res = await s3.listObjectsV2(Params);
       (res.Contents ?? []).forEach(obj => {
-        currentFiles[obj.Key] = obj;
+        if (obj.Key !== undefined) currentFiles[obj.Key] = obj;
       });
       Params.ContinuationToken = res.NextContinuationToken;
     } while (Params.ContinuationToken);
     files = files.filter(info => {
       if (typeof info.src === "string") {
-        const s3obj = currentFiles[info.key];
+        const s3obj = currentFiles[required(info.key, "upload key")];
         const stat = fs.statSync(info.src);
         if (s3obj && stat.size === s3obj.Size) {
           const md5 = `"${this.hash(fs.readFileSync(info.src), "md5", "hex")}"`;
@@ -765,7 +773,10 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
       await Promise.all(
         files.slice(i, i + 5).map(async info => {
           // Need to have mimetype to serve the content correctly
-          const mimetype = info.mimetype || mime.contentType(path.extname(info.key)) || "application/octet-stream";
+          const mimetype =
+            info.mimetype ||
+            mime.contentType(path.extname(required(info.key, "upload key"))) ||
+            "application/octet-stream";
           await s3.putObject({
             Bucket: bucket,
             Body: typeof info.src === "string" ? fs.createReadStream(info.src) : info.src,

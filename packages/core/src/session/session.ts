@@ -65,12 +65,12 @@ export class Session {
   /**
    * Ident used
    */
-  identUsed: string;
+  identUsed?: string;
 
   /**
    * User current roles
    */
-  roles: string[];
+  roles?: string[];
 
   /**
    * Authentication provider used
@@ -231,14 +231,14 @@ export class Session {
     const proxyHandler = {
       set: (obj: this, property: string, value: any) => {
         this.changed = true;
-        obj[property] = value;
+        Reflect.set(obj, property, value);
         return true;
       },
       get: (obj: this, property: string) => {
-        if (typeof obj[property] === "object") {
-          return new Proxy(obj[property], proxyHandler);
+        if (typeof Reflect.get(obj, property) === "object") {
+          return new Proxy(Reflect.get(obj, property) as object, proxyHandler);
         }
-        return obj[property];
+        return Reflect.get(obj, property);
       }
     };
     return new Proxy(this, proxyHandler);

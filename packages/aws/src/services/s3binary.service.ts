@@ -1,3 +1,4 @@
+import { required } from "../required.js";
 // Load the AWS SDK for Node.js
 import { GetObjectCommand, HeadObjectCommandOutput, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
@@ -115,7 +116,7 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
    * Seconds a direct upload stays pending before its marker (and its data, when unused) is swept
    * @default 86400
    */
-  pendingTimeout?: number;
+  pendingTimeout: number;
 
   /**
    * @override
@@ -272,7 +273,11 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       }
       return res.Body as Readable;
     } catch (err: any) {
-      if (err.name === "NoSuchKey" || err.Code === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+      if (
+        (err instanceof Error && err.name === "NoSuchKey") ||
+        err.Code === "NoSuchKey" ||
+        err.$metadata?.httpStatusCode === 404
+      ) {
         throw new ContentNotFoundError(`Content not found: ${url}`);
       }
       throw err;
@@ -295,7 +300,11 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       const existing = await client.headObject({ Bucket: targetBucket, Key: key }).then(
         () => true,
         (err: any) => {
-          if (err.name === "NotFound" || err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404)
+          if (
+            (err instanceof Error && err.name === "NotFound") ||
+            (err instanceof Error && err.name === "NoSuchKey") ||
+            err.$metadata?.httpStatusCode === 404
+          )
             return false;
           throw err;
         }
@@ -380,7 +389,11 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         lastModified: res.LastModified
       };
     } catch (err: any) {
-      if (err.name === "NotFound" || err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+      if (
+        (err instanceof Error && err.name === "NotFound") ||
+        (err instanceof Error && err.name === "NoSuchKey") ||
+        err.$metadata?.httpStatusCode === 404
+      ) {
         return undefined;
       }
       throw err;
@@ -414,18 +427,20 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     property: string,
     body?: BinaryFileInfo,
     context?: OperationContext<BinaryFileInfo>
-  ): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
-    body ??= await context.getInput();
+  ): Promise<{ url: string; method: string; headers: { [key: string]: string } } | undefined> {
+    body ??= await context?.getInput();
+    if (!body) throw new WebdaError.BadRequest("Missing binary information");
     // One key per content: the hash and the challenge are lower-case hexadecimal
-    body = normalizeHashes(body);
+    body = required(normalizeHashes(body), "binary information");
     // The hash names S3 keys: hexadecimal only (no path segments)
-    this.checkHash(body?.hash);
+    this.checkHash(required(body.hash, "binary hash"));
+    const hash = required(body.hash, "binary hash");
     const uuid = object.getUUID();
-    const store = useModelId(object.constructor);
-    const base64String = Buffer.from(body.hash, "hex").toString("base64");
+    const store = required(useModelId(object.constructor), "model identifier");
+    const base64String = Buffer.from(hash, "hex").toString("base64");
     const params: Record<string, any> = {
       Bucket: this.parameters.bucket,
-      Key: this._getKey(body.hash),
+      Key: this._getKey(hash),
       ContentType: "application/octet-stream",
       ContentMD5: base64String
     };
@@ -436,14 +451,14 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // List bucket
     const data = await this._s3.listObjectsV2({
       Bucket: this.parameters.bucket,
-      Prefix: this._getKey(body.hash, "")
+      Prefix: this._getKey(hash, "")
     });
     let foundData = false;
     // The proofs the service wrote once it read the bytes (`vproof_<challenge>`). Legacy `proof_` and `challenge_`
     // keys were written from client announced values: they are no proof
     const proofs = new Set<string>();
-    for (const i in data.Contents) {
-      const name = data.Contents[i].Key.split("/").pop();
+    for (const entry of data.Contents ?? []) {
+      const name = entry.Key?.split("/").pop() ?? "";
       if (name === "data") foundData = true;
       if (name.startsWith(S3Binary.PROOF_PREFIX)) {
         proofs.add(name.substring(S3Binary.PROOF_PREFIX.length));
@@ -458,26 +473,26 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       method: "PUT",
       headers
     });
-    if (foundData && this.isLinked(<any>object, property, body.hash)) {
+    if (foundData && this.isLinked(<any>object, property, hash)) {
       return;
     }
     if (foundData && typeof body.challenge === "string" && proofs.has(body.challenge)) {
       // The data exists and the client proves possession with the challenge of the verified content
-      const head = await this._getS3(body.hash);
+      const head = await this._getS3(hash);
       if (head) {
         const max = this.parameters.maxUploadSize;
-        if (max !== undefined && head.ContentLength > max) {
+        if (max !== undefined && required(head.ContentLength, "S3 content length") > max) {
           throw new WebdaError.BadRequest("File too big");
         }
         // The stored object's size, not the declared one
         await this.uploadSuccess(<any>object, property, {
-          hash: body.hash,
-          size: head.ContentLength,
+          hash,
+          size: required(head.ContentLength, "S3 content length"),
           name: body.name,
           mimetype: body.mimetype || "application/octet-stream",
           metadata: body.metadata ?? {}
         });
-        await this.putMarker(body.hash, this.usageMarker(store, property, uuid), store);
+        await this.putMarker(hash, this.usageMarker(store, property, uuid), store);
         return;
       }
     }
@@ -522,7 +537,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns the key
    */
   protected getPendingKey(object: CoreModel, property: string, hash: string): string {
-    const marker = [useModelId(object.constructor), property, object.getUUID()]
+    const marker = [required(useModelId(object.constructor), "model identifier"), property, object.getUUID()]
       .map(p => this.encodeMarkerPart(p))
       .join("_");
     return posix.join(this.parameters.prefix || "", "_pending", hash, marker);
@@ -546,7 +561,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     };
     await this._s3.putObject({
       Bucket: this.parameters.bucket,
-      Key: this.getPendingKey(object, property, body.hash),
+      Key: this.getPendingKey(object, property, required(body.hash, "binary hash")),
       ContentType: "application/json",
       Body: JSON.stringify(info)
     });
@@ -631,7 +646,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     const max = this.parameters.maxUploadSize;
     if (
       (typeof pending.size === "number" && data.ContentLength !== pending.size) ||
-      (max !== undefined && data.ContentLength > max)
+      (max !== undefined && required(data.ContentLength, "S3 content length") > max)
     ) {
       await reject("Uploaded size does not match");
     }
@@ -643,14 +658,14 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await reject("Uploaded content does not match the challenge");
     }
     await this.putMarker(hash, this.proofMarker(computed.challenge), "proof");
-    const model = useModelId(object.constructor);
+    const model = required(useModelId(object.constructor), "model identifier");
     await this.putMarker(hash, this.usageMarker(model, property, object.getUUID()), model);
     // uploadSuccess re-loads the object: a concurrent completion that linked the hash meanwhile is not repeated
     await this.uploadSuccess(object, property, {
       hash,
       challenge: computed.challenge,
-      size: data.ContentLength,
-      name: pending.name,
+      size: required(data.ContentLength, "S3 content length"),
+      name: pending.name ?? "",
       mimetype: pending.mimetype || "application/octet-stream",
       metadata: pending.metadata ?? {}
     });
@@ -706,7 +721,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns true for a usage marker
    */
   protected isUsageMarker(key: string): boolean {
-    const name = key.split("/").pop();
+    const name = key.split("/").pop() ?? "";
     return !(
       name === "data" ||
       name.startsWith(S3Binary.PROOF_PREFIX) ||
@@ -799,6 +814,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       command = new GetObjectCommand(params);
     } else if (action === "putObject") {
       command = new PutObjectCommand(params);
+    } else {
+      throw new WebdaError.BadRequest(`Unknown S3 action: ${action}`);
     }
     // Create new client as the implementation is an ugly middleware
     return getSignedUrl(new S3(this._s3Config), command, params);
@@ -814,11 +831,11 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: OperationContext) {
     const params: any = {};
     params.Expires = expire; // A get should not take more than 30s
-    params.ResponseContentDisposition = contentDisposition(binaryMap.name || binaryMap.originalname);
+    params.ResponseContentDisposition = contentDisposition(binaryMap.name || binaryMap.originalname || "download");
     params.ResponseContentType = binaryMap.mimetype;
 
     // Access-Control-Allow-Origin
-    return this.getSignedUrl(this._getKey(binaryMap.hash), "getObject", params);
+    return this.getSignedUrl(this._getKey(required(binaryMap.hash, "binary hash")), "getObject", params);
   }
 
   /**
@@ -827,7 +844,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns the binary content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    return this.getContent(this.getContentUrl(this._getKey(info.hash)));
+    return this.getContent(this.getContentUrl(this._getKey(required(info.hash, "binary hash"))));
   }
 
   /**
@@ -843,7 +860,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         Key
       });
     } catch (err) {
-      if (err.name === "NotFound") {
+      if (err instanceof Error && err.name === "NotFound") {
         return null;
       }
       throw err;
@@ -862,7 +879,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Prefix: this._getKey(hash, "")
     });
     data.Contents ??= [];
-    return data.Contents.filter(k => this.isUsageMarker(k.Key)).length;
+    return data.Contents.filter(k => k.Key !== undefined && this.isUsageMarker(k.Key)).length;
   }
 
   /**
@@ -928,8 +945,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
     try {
-      await this._cleanUsage(info.hash, uuid, attribute, model);
-      await this.deleteUnusedData(info.hash);
+      await this._cleanUsage(required(info.hash, "binary hash"), uuid, attribute, model);
+      await this.deleteUnusedData(required(info.hash, "binary hash"));
     } catch (err) {
       this.log("WARN", "Cascade delete failed", err);
     }
@@ -948,7 +965,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       });
       return true;
     } catch (err) {
-      if (err.name !== "NotFound") {
+      if (!(err instanceof Error) || err.name !== "NotFound") {
         throw err;
       }
     }
@@ -967,7 +984,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         Key: this._getKey(hash)
       });
     } catch (err) {
-      if (err.name !== "NotFound") {
+      if (!(err instanceof Error) || err.name !== "NotFound") {
         throw err;
       }
     }
@@ -1005,7 +1022,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     Bucket: string,
     callback: (Key: string, page: number) => Promise<void>,
     Prefix: string = "",
-    filter: RegExp = undefined
+    filter?: RegExp
   ) {
     const params: any = { Bucket, Prefix };
     let page = 0;
@@ -1055,11 +1072,13 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     this.checkMap(<any>object, property);
     // Computed from the bytes: a preset hash that does not match is rejected, a preset challenge is replaced
     await this.verifiedHashes(file);
-    const data = await this._getS3(file.hash);
+    const hash = required(file.hash, "binary hash");
+    const challenge = required(file.challenge, "binary challenge");
+    const data = await this._getS3(hash);
     if (data === undefined) {
       const s3metas: Record<string, string> = {};
-      s3metas["x-amz-meta-challenge"] = file.challenge;
-      const url = this.getContentUrl(this._getKey(file.hash));
+      s3metas["x-amz-meta-challenge"] = challenge;
+      const url = this.getContentUrl(this._getKey(hash));
       await this.putContent(url, await file.get(), {
         metadata: s3metas,
         contentLength: file.size,
@@ -1067,10 +1086,10 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       });
     }
     // The proof of possession of the content, computed from the bytes, compared on later challenges
-    await this.putMarker(file.hash, this.proofMarker(file.challenge), "proof");
+    await this.putMarker(hash, this.proofMarker(challenge), "proof");
 
-    const model = useModelId(object.constructor);
-    await this.putMarker(file.hash, this.usageMarker(model, property, object.getUUID()), model);
+    const model = required(useModelId(object.constructor), "model identifier");
+    await this.putMarker(hash, this.usageMarker(model, property, object.getUUID()), model);
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 
@@ -1117,7 +1136,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
-    const resources = {};
+    const resources: Record<string, any> = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     this.parameters.CloudFormation.Bucket = this.parameters.CloudFormation.Bucket || {};
     resources[this.getName() + "Bucket"] = {

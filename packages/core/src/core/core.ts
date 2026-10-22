@@ -122,12 +122,12 @@ export class Core implements ICore {
    */
   constructor(application?: Application) {
     useInstanceStorage().core = this;
-    this.logger = new Logger(application.getWorkerOutput(), { class: "@webda/core" });
     this.application = application || new UnpackedApplication(".");
+    this.logger = new Logger(this.application.getWorkerOutput(), { class: "@webda/core" });
 
     // Load the configuration and migrate
     this.applicationConfiguration = this.application.getConfiguration();
-    for (const [key, value] of Object.entries(this.applicationConfiguration.services)) {
+    for (const [key, value] of Object.entries(this.applicationConfiguration.services ?? {})) {
       try {
         this.moddas[key] = this.application.getModda(value.type || key);
       } catch (err) {
@@ -152,9 +152,9 @@ export class Core implements ICore {
    */
   protected computeServicesConfiguration() {
     this.configuration = {};
-    for (const [key, value] of Object.entries(this.applicationConfiguration.services)) {
+    for (const [key, value] of Object.entries(this.applicationConfiguration.services ?? {})) {
       this.configuration[key] = Object.freeze(
-        (this.moddas[key]?.filterParameters || (p => p))({
+        (this.moddas[key]?.filterParameters || ((p: any) => p))({
           ...this.applicationConfiguration.parameters,
           ...(value as object)
         })
@@ -224,7 +224,7 @@ export class Core implements ICore {
   private getModelStoreCached<T extends Model>(model: ModelClass<T>): Store {
     // @ts-ignore
     const stores: { [key: string]: Store } = useApplication().getImplementations(Store);
-    let actualScore: number;
+    let actualScore: number | undefined;
 
     let actualStore: Store = this.getService(
       this.applicationConfiguration?.application?.configurationService || "Registry"
@@ -249,10 +249,9 @@ export class Core implements ICore {
    * @returns the result
    */
   getBinaryStore<T extends Model>(modelOrConstructor: ModelClass<T> | T | string, attribute: string): AbstractService {
-    return this.getBinaryStoreCached(
-      typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor),
-      attribute
-    );
+    const modelId = typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor);
+    if (!modelId) throw new Error("No binary store found: unknown model");
+    return this.getBinaryStoreCached(modelId, attribute);
   }
 
   /**
@@ -336,8 +335,8 @@ export class Core implements ICore {
         this.log("DEBUG", `Service ${service} initialized in ${duration}ms`);
       }
     } catch (err) {
-      this.log("ERROR", "Init service " + service + " failed: " + err.message);
-      this.log("TRACE", err.stack);
+      this.log("ERROR", "Init service " + service + " failed: " + (err instanceof Error ? err.message : String(err)));
+      this.log("TRACE", err instanceof Error ? err.stack : err);
     }
   }
 
@@ -364,7 +363,7 @@ export class Core implements ICore {
     this.registerBeans();
     // Create services
     // First create the configuration service if defined
-    const initOrders = [];
+    const initOrders: string[] = [];
     if (this.configurationService) {
       const service = this.createService(this.configurationService) as ConfigurationService;
       if (!service) {
@@ -458,7 +457,8 @@ export class Core implements ICore {
     if (this.services[name] === undefined) {
       this.dependencies[name] ??= new Set<string>();
       depsDetector.run(this.dependencies[name], () => {
-        this.services[name] = this.createService(name)?.resolve();
+        const service = this.createService(name);
+        if (service) this.services[name] = service.resolve();
       });
       this.initOrders.push(name);
     }
@@ -497,7 +497,7 @@ export class Core implements ICore {
     updates.services ??= {};
     updates.parameters ??= {};
     const configuration = this.applicationConfiguration;
-    const newConfiguration = {};
+    const newConfiguration: Record<string, any> = {};
     for (const key in updates.services) {
       if (!this.configuration[key]) {
         delete updates.services[key];
@@ -509,16 +509,16 @@ export class Core implements ICore {
         this.log("WARN", `Cannot update type for service ${key}`);
         continue;
       }
-      newConfiguration[key] = (this.moddas[key]?.filterParameters || (p => p))(
-        deepmerge(configuration.parameters, updates.parameters, configuration[key], updates.services[key])
+      newConfiguration[key] = (this.moddas[key]?.filterParameters || ((p: any) => p))(
+        deepmerge(configuration.parameters, updates.parameters, configuration.services?.[key], updates.services[key])
       );
     }
     for (const key in this.configuration) {
-      newConfiguration[key] = (this.moddas[key]?.filterParameters || (p => p))(
+      newConfiguration[key] = (this.moddas[key]?.filterParameters || ((p: any) => p))(
         deepmerge(
           configuration.parameters || {},
           updates.parameters || {},
-          configuration.services[key] || {},
+          configuration.services?.[key] || {},
           updates.services[key] || {}
         )
       );
@@ -533,7 +533,7 @@ export class Core implements ICore {
     }
     emitCoreEvent("Webda.Configuration.Applying", { configuration: newConfiguration, delta });
     for (const service in this.services) {
-      if (delta[service]) {
+      if (service in delta) {
         this.log("DEBUG", `Updating ${service} due to configuration change`);
         this.services[service]?.parameters.load(newConfiguration[service]);
       }
@@ -564,7 +564,7 @@ export class Core implements ICore {
       this.services[service] = new serviceConstructor(service, params);
     } catch (err) {
       this.serviceErrors[service] = err;
-      this.log("ERROR", "Cannot create service", service, err.message || err);
+      this.log("ERROR", "Cannot create service", service, (err instanceof Error ? err.message : String(err)) || err);
     }
     return this.services[service];
   }
@@ -581,10 +581,10 @@ export class Core implements ICore {
       if (!beanClass) continue;
       // Skip if a configured service already uses this bean
       if (Object.values(this.moddas).includes(beanClass)) continue;
-      const serviceName = beanName.split("/").pop();
+      const serviceName = beanName.split("/").at(-1) ?? beanName;
       if (this.configuration[serviceName]) continue;
       this.moddas[serviceName] = beanClass;
-      const filtered = (beanClass.filterParameters || (p => p))({
+      const filtered = (beanClass.filterParameters || ((p: any) => p))({
         ...this.applicationConfiguration.parameters
       });
       filtered.type = beanName;

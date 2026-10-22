@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as mime from "mime-types";
@@ -70,7 +71,7 @@ export interface BinaryFileInfo<T extends object = {}> {
   /**
    * Name of the file
    */
-  name: string;
+  name?: string;
   /**
    * Mimetype
    */
@@ -102,7 +103,7 @@ export interface StoredBinaryInfo<T extends object = {}> {
   /**
    * Name of the file
    */
-  name: string;
+  name?: string;
   /**
    * Mimetype
    */
@@ -121,7 +122,7 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
   /**
    * Current name
    */
-  name: string;
+  name?: string;
   /**
    * Original name
    */
@@ -225,7 +226,7 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
     }
     return {
       hash: this.hash,
-      challenge: this.challenge
+      challenge: required(this.challenge, "binary challenge")
     };
   }
 }
@@ -302,14 +303,15 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
    * Link to the binary store
    */
   [WEBDA_STORAGE]: {
-    service: BinaryService;
-  } = {} as any;
+    service?: BinaryService;
+    __parent__?: { instance: Storable; attribute: string };
+  } = {};
 
   /** Create a new BinaryMap
    * @param service - the binary service
    * @param obj - the binary file information
    */
-  constructor(service: BinaryService, obj: BinaryFileInfo<T>) {
+  constructor(service: BinaryService | undefined, obj: BinaryFileInfo<T>) {
     super(obj);
     this.set(obj);
     this[WEBDA_STORAGE].service = service;
@@ -321,7 +323,7 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
    * @returns the result
    */
   get(): Promise<Readable> {
-    return this[WEBDA_STORAGE].service.get(this);
+    return required(this[WEBDA_STORAGE].service, "binary service").get(this);
   }
 
   /**
@@ -360,7 +362,7 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
    * @returns the result
    */
   async downloadTo(filename: string): Promise<void> {
-    return this[WEBDA_STORAGE].service.downloadTo(this, filename);
+    return required(this[WEBDA_STORAGE].service, "binary service").downloadTo(this, filename);
   }
 }
 
@@ -417,10 +419,10 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
       attribute !== undefined && model !== undefined
         ? <any>useCore().getBinaryStore(model, attribute)
         : (undefined as any),
-      attribute !== undefined && model !== undefined ? model[attribute] || {} : ({} as any)
+      attribute !== undefined && model !== undefined ? Reflect.get(model, attribute) || {} : ({} as any)
     );
     const eager = attribute !== undefined && model !== undefined;
-    (this[WEBDA_STORAGE] as any).empty = eager ? model[attribute] === undefined : true;
+    (this[WEBDA_STORAGE] as any).empty = eager ? Reflect.get(model, attribute) === undefined : true;
     if (eager) (this[WEBDA_STORAGE] as any)["__parent__"] = { instance: model, attribute };
   }
 
@@ -580,7 +582,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (body === undefined) {
       body = await context.getInput();
     }
-    body = normalizeHashes(body);
+    body = required(normalizeHashes(body), "binary information");
     if (this.hash === body.hash) {
       return; // already linked
     }
@@ -749,7 +751,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
  */
 export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
   [WEBDA_STORAGE]: {
-    service: BinaryService;
+    service?: BinaryService;
     parent: BinariesImpl<T>;
   } = {} as any;
 
@@ -814,7 +816,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
    */
   assign(model: Model, attribute: string): this {
     this[WEBDA_STORAGE]["__parent__"] = { instance: model, attribute };
-    for (const binary of model[attribute] || []) {
+    for (const binary of Reflect.get(model, attribute) || []) {
       this.push(binary);
     }
     this[WEBDA_STORAGE].service = <BinaryService>useCore().getBinaryStore(model, attribute);
@@ -869,7 +871,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
    * @param args - additional arguments
    * @returns the result number
    */
-  push(...args): number {
+  push(...args: (BinaryFileInfo<T> | BinariesItem<T>)[]): number {
     return super.push(...args.map(arg => (arg instanceof BinariesItem ? arg : new BinariesItem(this, arg))));
   }
 
@@ -959,7 +961,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     if (body === undefined) {
       body = await context.getInput();
     }
-    body = normalizeHashes(body);
+    body = required(normalizeHashes(body), "binary information");
     if (this.find(item => item.hash === body.hash)) {
       return; // dedup
     }
@@ -1464,7 +1466,7 @@ export abstract class BinaryService<
    * @param {String} filepath to save the binary to
    * @param filename - the filename
    */
-  async downloadTo(info: BinaryMap, filename): Promise<void> {
+  async downloadTo(info: BinaryMap, filename: string): Promise<void> {
     await this.emit("Binary.Get", {
       object: info,
       service: this
@@ -1645,6 +1647,7 @@ export abstract class BinaryService<
     repo.on("Deleted", async ({ object_id }: { object_id: unknown }) => {
       const pending = this.pendingDeletes.get(key(object_id));
       this.pendingDeletes.delete(key(object_id));
+      if (!pending) return;
       // The object is gone: a failing cascade must neither reject the delete nor stop the other binaries
       for (const { info, attribute } of pending?.infos ?? []) {
         try {
@@ -1764,7 +1767,7 @@ export abstract class BinaryService<
   ): Promise<void> {
     let file: BinaryFileInfo;
     // Ensure we do not have a full object
-    if (fileInfo["toBinaryFileInfo"] && typeof fileInfo["toBinaryFileInfo"] === "function") {
+    if ("toBinaryFileInfo" in fileInfo && typeof fileInfo.toBinaryFileInfo === "function") {
       file = fileInfo["toBinaryFileInfo"]();
     } else {
       file = fileInfo as BinaryFileInfo;
@@ -1791,7 +1794,7 @@ export abstract class BinaryService<
     // The dedup runs on the stored value, re-loaded here: two concurrent uploads of the same hash on the same object
     // both re-loading before either patched remain the residual window (no conditional update on the attribute)
     const storedValue = await this.getStoredValue(object, property);
-    const linked = this.isLinked(object, property, file.hash, storedValue);
+    const linked = this.isLinked(object, property, required(file.hash, "binary hash"), storedValue);
     if (this.isCollection(object, property)) {
       const current: BinaryFileInfo[] = Array.isArray(storedValue) ? [...(storedValue as BinaryFileInfo[])] : [];
       // Idempotent push: an already linked hash is not appended again
@@ -1831,7 +1834,7 @@ export abstract class BinaryService<
     const isCollection = this.isCollection(object, property);
 
     const info: BinaryMap = <BinaryMap>(
-      (isCollection && index !== undefined ? object[property][index] : object[property])
+      (isCollection && index !== undefined ? (object[property] as BinaryMap[])[index] : object[property])
     );
 
     if (isCollection) {
@@ -1891,7 +1894,7 @@ export abstract class BinaryService<
    * @param ctx - the operation context
    * @returns the result
    */
-  protected verifyMapAndStore(ctx: IOperationContext): IStore {
+  protected verifyMapAndStore(ctx: IOperationContext): IStore | null {
     // Check for model
     if (this.handleBinary(ctx.parameter("model"), ctx.parameter("property")) === -1) {
       throw new WebdaError.NotFound("Model not managed by this store");

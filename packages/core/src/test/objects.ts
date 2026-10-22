@@ -216,7 +216,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * @param name - the service name
    * @param params - the service parameters
    */
-  constructor(name, params) {
+  constructor(name: string, params: any) {
     super(name, params);
     if (this.parameters.brokenConstructor) throw Error();
   }
@@ -241,7 +241,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * @param params - the service parameters
    * @returns the result
    */
-  loadParameters(params) {
+  loadParameters(params: any) {
     return new StoreParameters().load(params);
   }
 
@@ -252,19 +252,19 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * No-op default route handler
    * @param _ctx - the operation context
    */
-  _default(_ctx) {}
+  _default(_ctx: IOperationContext) {}
 
   /**
    * No-op query route handler
    * @param _ctx - the operation context
    */
-  _query(_ctx) {}
+  _query(_ctx: IOperationContext) {}
 
   /**
    * Route handler that throws errors based on the type parameter
    * @param ctx - the operation context
    */
-  _brokenRoute(ctx) {
+  _brokenRoute(ctx: IOperationContext) {
     if (ctx.getParameters().type === "401") {
       throw 401;
     } else if (ctx.getParameters().type === "Error") {
@@ -277,7 +277,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * @param _uid - the unique identifier
    * @returns the result
    */
-  exists(_uid) {
+  exists(_uid: string) {
     return Promise.resolve(true);
   }
 
@@ -288,7 +288,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * @param _limit - the maximum count
    * @returns the result
    */
-  _find(_request, _offset, _limit) {
+  _find(_request: any, _offset: number, _limit: number) {
     return Promise.resolve([]);
   }
 
@@ -307,7 +307,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * @param _uid - the unique identifier
    * @returns the result
    */
-  _delete(_uid) {
+  _delete(_uid: string) {
     return Promise.resolve();
   }
 
@@ -317,7 +317,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * @param object - the target object
    * @returns the result
    */
-  _update(_uid, object) {
+  _update(_uid: string, object: any) {
     return Promise.resolve(object);
   }
 
@@ -326,7 +326,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
    * @param _uid - the unique identifier
    * @returns the result
    */
-  async _get(_uid) {
+  async _get(_uid: string) {
     return {};
   }
 
@@ -407,7 +407,7 @@ export class TestIdent extends LegacyIdentFixture {
    * Global index action
    * @param ctx - the operation context
    */
-  static index(ctx) {
+  static index(ctx: IOperationContext) {
     ctx.write("indexer");
   }
 
@@ -416,7 +416,7 @@ export class TestIdent extends LegacyIdentFixture {
    * @param ctx - the operation context
    * @returns the result
    */
-  plop(ctx) {
+  plop(ctx: IOperationContext) {
     ctx.write({ _plop: true });
     return Promise.resolve();
   }
@@ -448,7 +448,7 @@ export class TestApplication extends UnpackedApplication {
     const autoRegistry = configuration.services?.["Registry"] === undefined;
     super.ensureDefaultConfiguration(configuration);
     if (autoRegistry) {
-      delete configuration.services["Registry"].persistence;
+      if (configuration.services?.Registry) delete configuration.services.Registry.persistence;
     }
   }
   /**
@@ -482,10 +482,13 @@ export class TestApplication extends UnpackedApplication {
     try {
       execSync(`tsc -p ${this.applicationPath}`);
     } catch (err) {
-      (err.stdout.toString() + err.stderr.toString())
+      (
+        (err as { stdout: Buffer; stderr: Buffer }).stdout.toString() +
+        (err as { stdout: Buffer; stderr: Buffer }).stderr.toString()
+      )
         .split("\n")
-        .filter(l => l !== "")
-        .forEach(l => {
+        .filter((l: string) => l !== "")
+        .forEach((l: string) => {
           this.log("ERROR", "tsc:", l);
         });
     }
@@ -514,22 +517,20 @@ export class TestApplication extends UnpackedApplication {
     // Only matches the mocked cwd of the framework own tests (vitest.chdir.mts), which ends with a separator
     if (process.cwd() === path.dirname(moduleFile) + path.sep) {
       const module = FileUtils.load(moduleFile);
-      Object.keys(SectionEnum)
-        .filter(k => Number.isNaN(+k))
-        .forEach(p => {
-          for (const key in module[SectionEnum[p]]) {
-            module[SectionEnum[p]][key].Import = path.join(
+      Object.values(SectionEnum).forEach(section => {
+        for (const key in module[section]) {
+          module[section][key].Import = path.join(
+            path.relative(this.getPath(), path.dirname(moduleFile)),
+            module[section][key].Import.replace(/^lib\//, "src/").replace(":", ".ts:")
+          );
+          if (module[section][key].Configuration) {
+            module[section][key].Configuration = path.join(
               path.relative(this.getPath(), path.dirname(moduleFile)),
-              module[SectionEnum[p]][key].Import.replace(/^lib\//, "src/").replace(":", ".ts:")
+              module[section][key].Configuration.replace(/^lib\//, "src/").replace(":", ".ts:")
             );
-            if (module[SectionEnum[p]][key].Configuration) {
-              module[SectionEnum[p]][key].Configuration = path.join(
-                path.relative(this.getPath(), path.dirname(moduleFile)),
-                module[SectionEnum[p]][key].Configuration.replace(/^lib\//, "src/").replace(":", ".ts:")
-              );
-            }
           }
-        });
+        }
+      });
       return module;
     }
     return super.loadWebdaModule(moduleFile);

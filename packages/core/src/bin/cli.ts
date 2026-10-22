@@ -239,7 +239,7 @@ function extractInput(args: Record<string, any>, op: OperationEntry, ops: Operat
   if (hasInput && ops.schemas[op.input]?.properties) {
     const input: Record<string, any> = {};
     const positional = paramDefOf(op, ops)?.positional;
-    for (const name of Object.keys(ops.schemas[op.input].properties)) {
+    for (const name of Object.keys(ops.schemas[op.input].properties ?? {})) {
       if (name !== positional && args[name] !== undefined) input[name] = args[name];
     }
     if (Object.keys(input).length > 0) return input;
@@ -383,7 +383,7 @@ function addCommandTree(
   for (const [word, group] of groups) {
     const leaf = group.find(c => c.parts.length === prefix.length + 1);
     const children = group.filter(c => c.parts.length > prefix.length + 1);
-    if (!children.length) {
+    if (!children.length && leaf) {
       // Simple command (no subcommands)
       y.command(
         word,
@@ -506,7 +506,8 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
         appConfig.services[serviceName] = { type: fullName };
         // Beans aren't loaded as moddas by default — register them so Core can find the type
         if (!app.getModdas()[fullName]) {
-          const meta = modules[section][fullName];
+          const meta = modules[section]?.[fullName];
+          if (!meta) continue;
           const constructor = await importExport(join(resolve(app.getPath()), meta.Import));
           if (constructor) {
             app.getModdas()[fullName] = constructor;
@@ -866,7 +867,7 @@ export function resolveCapabilities(app: Application, requires: string[]): void 
       continue;
     }
     // Check if a service with this type is already configured
-    const shortName = serviceType.split("/").pop();
+    const shortName = serviceType.split("/").at(-1) ?? serviceType;
     const hasProvider =
       Object.values(appConfig.services).some((cfg: any) => cfg.type === serviceType || cfg.type === shortName) ||
       appConfig.services[shortName];
@@ -1038,7 +1039,7 @@ async function runWithWatch(
         }
         await bootCore();
       } catch (err) {
-        useLog("ERROR", "Failed to restart", err.message);
+        useLog("ERROR", "Failed to restart", err instanceof Error ? err.message : String(err));
       } finally {
         restarting = false;
       }
@@ -1377,7 +1378,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
           useLog("ERROR", `Service '${serviceName}' not found for operation '${call.id}'`);
           process.exit(1);
         }
-        if (typeof service[methodName] !== "function") {
+        if (typeof Reflect.get(service, methodName) !== "function") {
           useLog("ERROR", `Method '${methodName}' not found on service '${serviceName}'`);
           process.exit(1);
         }
@@ -1385,7 +1386,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         // Validate input against JSON schema if the operation defines one
         // If interactive and missing properties, prompt the user
         const opEntry = ops?.operations[call.id];
-        if (opEntry?.input && ops.schemas[opEntry.input]) {
+        if (ops && opEntry?.input && ops.schemas[opEntry.input]) {
           const inputSchema = ops.schemas[opEntry.input];
           call.input = await promptForMissingInput(call.input ?? {}, inputSchema);
           const { registerSchema, validateSchema } = await import("../schemas/hooks.js");
@@ -1395,7 +1396,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
 
         // Call the method with input properties as positional arguments
         const inputArgs = call.input ? Object.values(call.input) : [];
-        const result = await service[methodName](...inputArgs);
+        const result = await Reflect.get(service, methodName).apply(service, inputArgs);
         if (result !== undefined) {
           useOutput(typeof result === "string" ? result : JSON.stringify(result, undefined, 2));
         }
@@ -1442,7 +1443,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         }
       }
     } catch (err) {
-      console.error(err.message);
+      console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
   });

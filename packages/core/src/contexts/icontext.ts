@@ -25,7 +25,7 @@ export abstract class Context {
   /**
    * Store response headers
    */
-  private responseHeaders = {};
+  private responseHeaders: Record<string, string | number | string[]> = {};
   /**
    * Contain all registered promises to this context
    */
@@ -53,7 +53,7 @@ export abstract class Context {
    * Register a promise with the context
    * @param promise - the promise to add
    */
-  registerPromise(promise) {
+  registerPromise(promise: Promise<any>) {
     this._promises.push(promise);
   }
   /**
@@ -87,7 +87,7 @@ export abstract class Context {
    * This method is not typed to avoid circular dependencies
    * @returns
    */
-  abstract getCurrentUser(): Promise<any | undefined>;
+  abstract getCurrentUser(): Promise<any | undefined> | undefined;
   /**
    * Can be used to init the context if needed
    * Reading from the input or reaching to a db
@@ -197,7 +197,7 @@ export abstract class IOperationContext<Input = any, Parameters = any, Output = 
    * @deprecated Use getParameters
    */
   parameter(name: string, defaultValue?: any): any {
-    return this.getParameters()[name] ?? defaultValue;
+    return (this.getParameters() as Record<string, any>)[name] ?? defaultValue;
   }
 
   abstract clearInput(): void;

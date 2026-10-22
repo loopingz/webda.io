@@ -163,7 +163,7 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
    * @param event - the event name
    */
   async emit<Key extends keyof E>(eventName: Key, event: E[Key]): Promise<void> {
-    let result;
+    let result: unknown;
     const promises = [];
     const listeners = this.emitter.listeners(<string>eventName);
     for (const listener of listeners) {
@@ -211,7 +211,7 @@ export class EventEmitterUtils {
     longListenerThreshold: number = 100
   ) {
     const promises = [];
-    const elapse = start => {
+    const elapse = (start: number) => {
       const elapsed = Date.now() - start;
       if (elapsed > longListenerThreshold) {
         log("INFO", "Long listener", elapsed, "ms");

@@ -147,7 +147,7 @@ function selectCommands<T extends SelectableCommand>(
         useLog("WARN", `webda.cli.include: no command '${name}'`);
       }
     }
-    commands = commands.filter(c => cli.include.some(name => includes(c, name)));
+    commands = commands.filter(c => cli.include?.some(name => includes(c, name)));
   }
   for (const entry of cli?.exclude || []) {
     const separator = entry.indexOf(":");
@@ -376,7 +376,7 @@ export async function executeServiceCommand(
     for (const [, instanceService] of Object.entries(services)) {
       if (!instanceService || matches.includes(instanceService)) continue;
       // A subclass inherits the command (e.g. an application `Authentication` running `auth migrate`)
-      if (classChainNames(instanceService).includes(shortName)) {
+      if (shortName !== undefined && classChainNames(instanceService).includes(shortName)) {
         matches.push(instanceService);
       }
     }
@@ -390,12 +390,12 @@ export async function executeServiceCommand(
       continue;
     }
     for (const service of matches) {
-      if (!service[svc.method]) {
+      if (!Reflect.get(service, svc.method)) {
         const instanceName = typeof service.getName === "function" ? service.getName() : svc.name;
         useLog("ERROR", `Method '${svc.method}' not found on service '${instanceName}'`);
         return 1;
       }
-      const result = service[svc.method](...commandArgs);
+      const result = Reflect.get(service, svc.method).apply(service, commandArgs);
       if (isCancelable(result)) {
         running.push(result);
       } else {
@@ -406,7 +406,7 @@ export async function executeServiceCommand(
   }
 
   if (!filterMatched) {
-    useLog("ERROR", `No services match filter '${serviceFilter.join(",")}' for command '${cmdName}'`);
+    useLog("ERROR", `No services match filter '${serviceFilter?.join(",")}' for command '${cmdName}'`);
     return 1;
   }
   if (executed === 0) {

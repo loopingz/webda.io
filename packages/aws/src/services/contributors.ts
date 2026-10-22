@@ -33,5 +33,5 @@ export interface CloudFormationContributor {
    * {@link S3Binary.getCloudFormation}
    * @param deployer The current deployer asking for contribution
    */
-  getCloudFormation: (deployer: CloudFormationDeployerInfo) => object;
+  getCloudFormation: (deployer: CloudFormationDeployerInfo) => Record<string, unknown>;
 }

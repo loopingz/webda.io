@@ -1,3 +1,4 @@
+import { hostname } from "node:os";
 import type { IStore } from "./icore.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import pkg from "node-machine-id";
@@ -78,8 +79,8 @@ export function useDynamicService<T = Service>(name: string): T {
  * @returns the result
  */
 export function useModelMetadata(name: string | Model | ModelClass): ModelMetadata {
-  if (name["Metadata"]) {
-    return name["Metadata"];
+  if (typeof name !== "string" && "Metadata" in name) {
+    return name.Metadata as ModelMetadata;
   }
   return useModel(name as string | Model)?.Metadata;
 }
@@ -114,7 +115,7 @@ export function getMachineId() {
     /* c8 ignore next 4 */
   } catch (err) {
     // Useful in k8s pod
-    return process.env["HOSTNAME"];
+    return process.env["HOSTNAME"] || hostname();
   }
 }
 

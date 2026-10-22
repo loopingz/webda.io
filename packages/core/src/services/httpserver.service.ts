@@ -306,7 +306,11 @@ export class HttpServer<
         try {
           await useRouter().execute(webCtx);
         } catch (err) {
-          webCtx.statusCode = err?.getResponseCode?.() || 500;
+          const error =
+            err && typeof err === "object"
+              ? (err as { getResponseCode?: () => number; code?: string; message?: string; details?: unknown })
+              : undefined;
+          webCtx.statusCode = error?.getResponseCode?.() || 500;
           // A Redirect carries its target: without the Location header the client only gets the JSON body
           if (err instanceof WebdaError.Redirect && err.location && !webCtx.hasFlushedHeaders?.()) {
             webCtx.setHeader("Location", err.location);
@@ -322,7 +326,10 @@ export class HttpServer<
           if (webCtx.statusCode >= 500) {
             useLog("ERROR", `${method} ${url} → ${webCtx.statusCode}`, err);
           } else if (webCtx.statusCode >= 400) {
-            useLog("WARN", `${method} ${url} → ${webCtx.statusCode}: ${err?.message ?? err}`);
+            useLog(
+              "WARN",
+              `${method} ${url} → ${webCtx.statusCode}: ${(err instanceof Error ? err.message : String(err)) ?? err}`
+            );
           }
           // Stash the error on the context so listeners (e.g. debug capture)
           // can include it in the request log entry.
@@ -334,16 +341,16 @@ export class HttpServer<
             if (webCtx.statusCode >= 500) {
               webCtx.write({
                 error: {
-                  code: err?.code ?? "INTERNAL_SERVER_ERROR",
+                  code: error?.code ?? "INTERNAL_SERVER_ERROR",
                   message: "Internal server error"
                 }
               });
             } else {
               const body: any = {
-                code: err?.code ?? "BAD_REQUEST",
-                message: err?.message ?? String(err)
+                code: error?.code ?? "BAD_REQUEST",
+                message: (err instanceof Error ? err.message : String(err)) ?? String(err)
               };
-              if (err?.details !== undefined) body.details = err.details;
+              if (error?.details !== undefined) body.details = error.details;
               // RFC 6750 clients read the OAuth error object itself: `{ error, operation }`
               webCtx.write(err instanceof InsufficientScope ? err.details : { error: body });
             }
@@ -571,7 +578,11 @@ export class HttpServer<
         const x509 = parseClientCertificateHeader(value, this.parameters.clientCertHeaderFormat);
         return x509 ? toClientCertificate(x509, true, "proxy") : undefined;
       } catch (err) {
-        this.log("WARN", `Cannot parse the client certificate of ${header}`, err?.message);
+        this.log(
+          "WARN",
+          `Cannot parse the client certificate of ${header}`,
+          err instanceof Error ? err.message : String(err)
+        );
         return undefined;
       }
     }
@@ -781,11 +792,18 @@ export class HttpServer<
       throw err;
     }
 
-    const httpContext = new HttpContext(vhost, <HttpMethodType>req.method, req.url, protocol, port, headers as any);
-    httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket?.remoteAddress));
+    const httpContext = new HttpContext(
+      vhost,
+      <HttpMethodType>req.method,
+      req.url ?? "/",
+      protocol,
+      port,
+      headers as any
+    );
+    httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket?.remoteAddress) ?? "");
     httpContext.setClientCertificate(clientCertificate);
 
-    if (["PUT", "PATCH", "POST", "DELETE"].includes(req.method)) {
+    if (["PUT", "PATCH", "POST", "DELETE"].includes(req.method ?? "")) {
       httpContext.setBody(req);
     }
     return this.newContext({ http: httpContext, stream: <Writable>res });
@@ -796,8 +814,8 @@ export class HttpServer<
    * @param ip - the IP address
    * @returns true if the proxy is trusted
    */
-  isProxyTrusted(ip: string): boolean {
-    return this.subnetChecker?.(ip) ?? false;
+  isProxyTrusted(ip: string | undefined): boolean {
+    return ip ? (this.subnetChecker?.(ip) ?? false) : false;
   }
 
   /**
@@ -807,8 +825,9 @@ export class HttpServer<
    * @returns the created context
    */
   async newContext<T extends Context>(info: ContextProviderInfo, noInit: boolean = false): Promise<Context> {
-    let context: Context;
+    let context: Context | undefined;
     this.contextProviders.find(provider => (context = <Context>provider.getContext(info)) !== undefined);
+    if (!context) throw new Error("No context provider accepted the request");
     if (!noInit) {
       await context.init();
     }

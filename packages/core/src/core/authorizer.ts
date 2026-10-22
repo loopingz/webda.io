@@ -20,7 +20,7 @@ export type AuthorizerFunction = (...args: any[]) => boolean | Promise<boolean>;
  * @returns true if the condition is met
  * @see AuthorizerFunction
  */
-export async function checkAuthorizer(authorizer: AuthorizerFunction[], ...args: any[]): Promise<boolean> {
+export async function checkAuthorizer(authorizer: AuthorizerFunction[], ...args: any[]): Promise<boolean | undefined> {
   // Run all authorizer in parallel and return true if one of them authorize the action
   return await Promise.all(authorizer.map(fn => fn(...args))).then(results => results.find(r => r));
 }

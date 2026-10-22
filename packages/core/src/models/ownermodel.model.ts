@@ -14,7 +14,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
   /**
    * Default owner of the object
    */
-  _user: ModelLink<T>;
+  _user?: ModelLink<T>;
   /**
    * Define if the object is publicly readable
    * @default false
@@ -46,7 +46,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
       this.setOwner(userId as any);
     } else {
       // Never keep an owner the caller did not prove
-      this._user = undefined;
+      Reflect.set(this, "_user", undefined);
     }
   }
 
@@ -65,7 +65,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    * Only the owner can do update to the object
    * @returns the result
    */
-  getOwner(): ModelLink<T> {
+  getOwner(): ModelLink<T> | undefined {
     return this._user;
   }
 

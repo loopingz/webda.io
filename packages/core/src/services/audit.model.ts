@@ -117,7 +117,7 @@ export class AuditServiceParameters extends ServiceParameters {
     if (this.excludedOperations.some(p => this.matchesPattern(operationId, p))) {
       return false;
     }
-    return this.operations.some(p => this.matchesPattern(operationId, p));
+    return (this.operations ?? []).some(p => this.matchesPattern(operationId, p));
   }
 }
 

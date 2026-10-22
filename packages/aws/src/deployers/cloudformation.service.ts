@@ -1,3 +1,4 @@
+import { required } from "../required.js";
 import { APIGateway } from "@aws-sdk/client-api-gateway";
 import { CloudFormation } from "@aws-sdk/client-cloudformation";
 import { Command, Deployer, useApplication, useRouter, WebdaError } from "@webda/core";
@@ -473,7 +474,8 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    * @returns the template
    */
   async generateTemplate(): Promise<any> {
-    const { Description, AssetsBucket } = this.resources;
+    const { Description } = this.resources;
+    const AssetsBucket = required(this.resources.AssetsBucket, "assets bucket");
     this.template = {
       Description,
       Resources: { ...this.resources.CustomResources }
@@ -486,7 +488,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
 
     // Export the OpenAPI definition
     const openapi = await this.completeOpenAPI(useRouter().exportOpenAPI(false));
-    this.openapiS3Object = this.getStringified(openapi, this.resources.OpenAPIFileName);
+    this.openapiS3Object = this.getStringified(openapi, required(this.resources.OpenAPIFileName, "OpenAPI filename"));
     await this.putFilesOnBucket(AssetsBucket, [this.openapiS3Object]);
     // If APIGatewayImportOpenApi update REST API
     if (this.resources.APIGatewayImportOpenApi) {
@@ -505,7 +507,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
     }
 
     // Add any static
-    for (const info of this.resources.Statics) {
+    for (const info of this.resources.Statics ?? []) {
       this.log("TRACE", "Add Static Resource", info.DomainName);
       await this.createStatic(info);
     }
@@ -516,8 +518,12 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    * Upload any asset to bucket
    */
   async uploadStatics(): Promise<void> {
-    for (const { Source, AssetsPath } of this.resources.Statics) {
-      await this.putFolderOnBucket(this.resources.AssetsBucket, useApplication().getPath(Source), AssetsPath);
+    for (const { Source, AssetsPath } of this.resources.Statics ?? []) {
+      await this.putFolderOnBucket(
+        required(this.resources.AssetsBucket, "assets bucket"),
+        useApplication().getPath(Source),
+        AssetsPath
+      );
     }
   }
 
@@ -526,7 +532,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    *
    * @param info - the static website
    */
-  async createStatic(info: CloudFormationDeployerParameters["Statics"][0]): Promise<void> {
+  async createStatic(info: NonNullable<CloudFormationDeployerParameters["Statics"]>[number]): Promise<void> {
     const { DomainName, CloudFront, Bucket } = info;
     const resPrefix = `Static${DomainName.replace(/\./g, "")}`;
     if (Bucket) {
@@ -565,13 +571,13 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    * Copy the CloudFormation template to the Assets bucket
    */
   async sendCloudFormationTemplate(): Promise<void> {
-    const res = this.getStringified(this.template, this.resources.FileName);
+    const res = this.getStringified(this.template, required(this.resources.FileName, "template filename"));
     this.result.CloudFormation = {
       Bucket: this.resources.AssetsBucket,
       Key: res.key
     };
     this.result.CloudFormationContent = res.src.toString();
-    await this.putFilesOnBucket(this.resources.AssetsBucket, [res]);
+    await this.putFilesOnBucket(required(this.resources.AssetsBucket, "assets bucket"), [res]);
   }
 
   /**
@@ -604,7 +610,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
             StackName: this.resources.StackName
           });
         } catch {
-          resolve();
+          resolve(undefined);
           return true;
         }
         return false;
@@ -661,7 +667,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    * @returns the changeset
    */
   async createCloudFormationChangeSet(cloudformation: CloudFormation): Promise<any> {
-    const changeSetParams = {
+    const changeSetParams: import("@aws-sdk/client-cloudformation").CreateChangeSetCommandInput = {
       ...this.resources.StackOptions,
       StackName: this.resources.StackName,
       ChangeSetName: "WebdaCloudFormationDeployer",
@@ -678,39 +684,39 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
         ChangeSetType: update
       });
     } catch (err) {
-      if (err.message.endsWith(" is in ROLLBACK_COMPLETE state and can not be updated.")) {
+      if (err instanceof Error && err.message.endsWith(" is in ROLLBACK_COMPLETE state and can not be updated.")) {
         this.log("WARN", "Deleting buguous stack");
         await this.deleteCloudFormation();
         changeSet = await cloudformation.createChangeSet({
           ...changeSetParams,
           ChangeSetType: this.resources.ChangeSetType
         });
-      } else if (err.message === `Stack [${this.resources.StackName}] does not exist`) {
+      } else if (err instanceof Error && err.message === `Stack [${this.resources.StackName}] does not exist`) {
         changeSet = await cloudformation.createChangeSet({
           ...changeSetParams,
           ChangeSetType: this.resources.ChangeSetType
         });
-      } else if (err.message.endsWith(" state and can not be updated.")) {
+      } else if (err instanceof Error && err.message.endsWith(" state and can not be updated.")) {
         await this.waitFor(
           async resolve => {
             const res = await cloudformation.describeStacks({
               StackName: this.resources.StackName
             });
-            if (res.Stacks.length === 0) {
+            if (!res.Stacks?.length) {
               // If it disapeared, recreate
               changeSet = await cloudformation.createChangeSet({
                 ...changeSetParams,
                 ChangeSetType: this.resources.ChangeSetType
               });
-              resolve();
+              resolve(undefined);
               return true;
             }
-            if (res.Stacks[0].StackStatus.endsWith("COMPLETE")) {
+            if (res.Stacks?.[0]?.StackStatus?.endsWith("COMPLETE")) {
               changeSet = await cloudformation.createChangeSet({
                 ...changeSetParams,
                 ChangeSetType: update
               });
-              resolve();
+              resolve(undefined);
               return true;
             }
             return false;
@@ -719,7 +725,10 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
           "Waiting for COMPLETE state",
           5000
         );
-      } else if (err.name === "AlreadyExistsException" || err.code === "AlreadyExistsException") {
+      } else if (
+        err instanceof Error &&
+        (err.name === "AlreadyExistsException" || ("code" in err && err.code === "AlreadyExistsException"))
+      ) {
         this.log("WARN", "ChangeSet exists and need to be clean");
         await cloudformation.deleteChangeSet({
           StackName: this.resources.StackName,
@@ -746,7 +755,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
     // Wait for change set
     this.log("TRACE", "ChangeSet", changeSet);
     // It will trigger an exception if timeout
-    const changes = await this.waitFor(
+    const changes: import("@aws-sdk/client-cloudformation").DescribeChangeSetCommandOutput = await this.waitFor(
       async resolve => {
         const localChanges = await cloudformation.describeChangeSet({
           ChangeSetName: "WebdaCloudFormationDeployer",
@@ -773,18 +782,21 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
       }
       return;
     }
-    changes.Changes.filter(j => j.Type === "Resource").forEach(({ ResourceChange: info }) =>
-      this.log(
-        "INFO",
-        `${info.Action.toUpperCase().padEnd(38)} ${info.ResourceType.padEnd(30)} ${info.LogicalResourceId}`
-      )
-    );
+    (changes.Changes ?? [])
+      .filter(j => j.Type === "Resource")
+      .forEach(({ ResourceChange: info }) => {
+        if (!info) return;
+        this.log(
+          "INFO",
+          `${(info.Action ?? "").toUpperCase().padEnd(38)} ${(info.ResourceType ?? "").padEnd(30)} ${info.LogicalResourceId}`
+        );
+      });
     this.log("INFO", "Executing Change Set");
     let lastEvent = (
       await cloudformation.describeStackEvents({
         StackName: this.resources.StackName
       })
-    ).StackEvents.shift();
+    ).StackEvents?.shift();
     await cloudformation.executeChangeSet({
       ChangeSetName: "WebdaCloudFormationDeployer",
       StackName: this.resources.StackName
@@ -794,18 +806,19 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
     let i = 0;
     let Timeout = true;
     do {
-      const events = (
-        await cloudformation.describeStackEvents({
-          StackName: this.resources.StackName
-        })
-      ).StackEvents;
+      const events =
+        (
+          await cloudformation.describeStackEvents({
+            StackName: this.resources.StackName
+          })
+        ).StackEvents ?? [];
       let display = !lastEvent;
       let event;
       while ((event = events.pop())) {
         if (display) {
           this.log(
             "INFO",
-            `${event.ResourceStatus.padEnd(38)} ${event.ResourceType.padEnd(30)} ${event.LogicalResourceId}`
+            `${(event.ResourceStatus ?? "").padEnd(38)} ${(event.ResourceType ?? "").padEnd(30)} ${event.LogicalResourceId}`
           );
           lastEvent = event;
           if (
@@ -818,7 +831,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
             Timeout = false;
             break;
           }
-        } else if (event.EventId === lastEvent.EventId) {
+        } else if (event.EventId === lastEvent?.EventId) {
           display = true;
         }
       }
@@ -843,12 +856,13 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
       let restApiId;
       // Retrieve resources
       do {
-        const res = await cloudformation.listStackResources({
-          StackName: this.resources.StackName,
-          NextToken
-        });
+        const res: import("@aws-sdk/client-cloudformation").ListStackResourcesCommandOutput =
+          await cloudformation.listStackResources({
+            StackName: this.resources.StackName,
+            NextToken
+          });
         NextToken = res.NextToken;
-        res.StackResourceSummaries.forEach(resource => {
+        (res.StackResourceSummaries ?? []).forEach(resource => {
           if (resource.ResourceType === "AWS::ApiGateway::Stage") {
             stageName = resource.PhysicalResourceId;
           } else if (resource.ResourceType === "AWS::ApiGateway::RestApi") {
@@ -879,7 +893,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
   async Resources(): Promise<void> {
     for (const service of this.getApplicationServices()) {
       if (typeof (<any>service).getCloudFormation === "function") {
-        const res = (<CloudFormationContributor>(<any>service)).getCloudFormation(this);
+        const res: Record<string, unknown> = (<CloudFormationContributor>(<any>service)).getCloudFormation(this);
         for (const j in res) {
           // Logical ids are alphanumeric
           this.template.Resources[`Service${service.getName()}${j}`.replace(/[^A-Za-z0-9]/g, "")] = res[j];
@@ -1015,18 +1029,17 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    * Add the API Gateway custom domain
    */
   async APIGatewayDomain(): Promise<void> {
+    const domain = required(this.resources.APIGatewayDomain, "API Gateway domain");
     let region;
-    if (this.resources.APIGatewayDomain.EndpointConfiguration) {
-      if (this.resources.APIGatewayDomain.EndpointConfiguration.Types.indexOf("EDGE") >= 0) {
+    if (domain.EndpointConfiguration) {
+      if (domain.EndpointConfiguration.Types.indexOf("EDGE") >= 0) {
         region = "us-east-1";
       }
     } else {
       region = "us-east-1";
     }
-    if (!this.resources.APIGatewayDomain.CertificateArn) {
-      this.resources.APIGatewayDomain.CertificateArn = (
-        await this.getCertificate(this.resources.APIGatewayDomain.DomainName, region)
-      ).CertificateArn;
+    if (!domain.CertificateArn) {
+      domain.CertificateArn = (await this.getCertificate(domain.DomainName, region)).CertificateArn;
     }
 
     this.template.Resources.APIGatewayDomain = {
@@ -1048,7 +1061,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
     // Should do conditional with RegionalDomainName/RegionalHostedZoneId
     await this.createCloudFormationDNSEntry(
       { "Fn::GetAtt": ["APIGatewayDomain", "DistributionDomainName"] },
-      this.resources.APIGatewayDomain.DomainName,
+      domain.DomainName,
       { "Fn::GetAtt": ["APIGatewayDomain", "DistributionHostedZoneId"] }
     );
   }
@@ -1057,7 +1070,9 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    * Add the IAM policy of the application
    */
   async Policy(): Promise<void> {
-    const PolicyDocument = await this.getPolicyDocument(this.resources.Policy.PolicyDocument.Statement);
+    const PolicyDocument = await this.getPolicyDocument(
+      required(this.resources.Policy, "IAM policy").PolicyDocument?.Statement ?? []
+    );
     this.template.Resources.Policy = {
       Type: "AWS::IAM::Policy",
       Properties: {
@@ -1075,7 +1090,7 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
   addAssumeRolePolicyStatement(...statements: any[]): void {
     // If we have a Role generation only
     if (this.resources.Role) {
-      this.resources.Role.AssumeRolePolicyDocument.Statement.push(...statements);
+      required(this.resources.Role.AssumeRolePolicyDocument, "assume role policy").Statement.push(...statements);
     }
   }
 
@@ -1140,9 +1155,9 @@ export class CloudFormationDeployer<T extends CloudFormationDeployerParameters =
    */
   async generateLambdaPackage(): Promise<{ S3Bucket: string; S3Key: string }> {
     const { AssetsBucket: S3Bucket, LambdaPackager, AssetsPrefix = "", KeepPackage = false } = this.resources;
-    const { zipPath } = await this.buildLambdaPackage(LambdaPackager);
+    const { zipPath } = await this.buildLambdaPackage(LambdaPackager ?? {});
     const result = {
-      S3Bucket,
+      S3Bucket: required(S3Bucket, "assets bucket"),
       S3Key: AssetsPrefix + path.basename(zipPath)
     };
     // Copy package to S3

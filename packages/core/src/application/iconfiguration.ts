@@ -11,7 +11,7 @@ export interface CachedModule extends WebdaModule {
    * Contained dynamic information on the project
    * Statically capture on deployment
    */
-  project: ProjectInformation;
+  project?: ProjectInformation;
 }
 
 export enum SectionEnum {

@@ -79,7 +79,7 @@ export class Password {
    * @returns true when it matches
    */
   async verify(plain: string): Promise<boolean> {
-    if (!this.hasPassword() || typeof plain !== "string") {
+    if (!this.__hash || typeof plain !== "string") {
       return false;
     }
     try {

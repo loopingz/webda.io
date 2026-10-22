@@ -134,6 +134,9 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
     const res = await this._client.getSecretValue({
       SecretId
     });
+    if (res.SecretString === undefined) {
+      throw new Error("Secret does not contain a string value");
+    }
     return JSON.parse(res.SecretString);
   }
 

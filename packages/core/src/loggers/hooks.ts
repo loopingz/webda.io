@@ -7,7 +7,7 @@ import { useModelId } from "../application/hooks.js";
 /**
  * Default output
  */
-let output: { log: (level, ...args) => void } = console;
+let output: { log: (level: any, ...args: any[]) => void } = console;
 let workerOutput: WorkerOutput;
 
 export { useLog, useOutput };
@@ -17,7 +17,7 @@ export { useLog, useOutput };
  * @param object - the target object
  * @param object.log - the object.log
  */
-export function setLogContext(object: { log: (level, ...args) => void }) {
+export function setLogContext(object: { log: (level: any, ...args: any[]) => void }) {
   output = object;
   if (output instanceof WorkerOutput) {
     workerOutput = output;
@@ -33,7 +33,7 @@ export function useLogger(clazz: string | AbstractService | Model): Logger {
   let className = typeof clazz === "string" ? clazz : "";
   if (typeof clazz !== "string") {
     if (clazz instanceof Model) {
-      className = useModelId(clazz);
+      className = useModelId(clazz) ?? "Unknown";
     } else {
       className = clazz.getName();
     }

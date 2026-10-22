@@ -47,7 +47,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Format sourceServiceName:sourceId or sourceId if source is this service
    */
-  source: string;
+  source?: string;
   /**
    * List of sources to load and merge ( in order )
    * Format sourceServiceName:sourceId or sourceId if source is this service
@@ -148,7 +148,7 @@ class ConfigurationService<
         sourceService = this;
         sourceId = s;
       }
-      if (!sourceService.getConfiguration) {
+      if (!sourceService || !sourceService.getConfiguration) {
         throw new WebdaError.CodeError(
           "CONFIGURATION_SOURCE_INVALID",
           `Service '${sourceService}' is not implementing ConfigurationProvider interface`

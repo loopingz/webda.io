@@ -115,7 +115,7 @@ export class SecureCookie {
    * @returns the result
    */
   static async load(name: string, session: object, context: IWebContext, options?: JWTOptions) {
-    let cookies = {};
+    let cookies: Record<string, string> = {};
     let raw = "";
     name ??= "webda";
 
@@ -165,7 +165,7 @@ export class SecureCookie {
     cookieOptions?: Partial<CookieOptions>
   ) {
     const value = await useCrypto().jwtSign(Object.assign({}, data), options);
-    this.sendCookie(context, name, value, new CookieOptions(cookieOptions, context.getHttpContext()));
+    this.sendCookie(context, name, value, new CookieOptions(cookieOptions ?? {}, context.getHttpContext()));
   }
 
   /**

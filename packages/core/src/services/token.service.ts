@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import { createHash, randomBytes } from "node:crypto";
 import { getUuid } from "@webda/utils";
 import * as WebdaError from "../errors/errors.js";
@@ -229,8 +230,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     // A refreshed session is re-authenticated by its (unrevoked) refresh token
     session.authAt ??= Date.now();
     const claims: AccessClaims = {
-      sub: session.userId,
-      ident: session.identUsed,
+      sub: required(session.userId, "session user"),
+      ident: required(session.identUsed, "session identity"),
       provider: session.provider,
       amr: session.getPersistentAmr(),
       roles: session.roles,
@@ -474,7 +475,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    */
   protected async unusedSuccessor(stored: RefreshToken, now: number): Promise<{ ok: boolean; record?: RefreshToken }> {
     const grace = this.parameters.refreshGrace * 1000;
-    if (!(grace > 0) || !stored.successor || now - stored.rotatedAt > grace) return { ok: false };
+    if (!(grace > 0) || !stored.successor || stored.rotatedAt === undefined || now - stored.rotatedAt > grace)
+      return { ok: false };
     const ref = RefreshToken.ref({ hash: stored.successor } as any);
     if (!(await ref.exists())) return { ok: true };
     const record: RefreshToken = await ref.get();

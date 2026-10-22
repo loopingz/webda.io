@@ -184,7 +184,7 @@ export class PkiKeyring {
       if (file.startsWith(".") || !statSync(join(dir, file)).isFile()) {
         continue;
       }
-      let kid: string;
+      let kid: string | undefined;
       if (file.endsWith(suffix)) {
         kid = file.substring(0, file.length - suffix.length);
       } else if (optionalSuffix && !file.includes(".pem")) {
@@ -230,7 +230,9 @@ export class PkiKeyring {
         try {
           key = createPublicKey(readFileSync(file));
         } catch (err) {
-          throw new Error(`Cannot load public key '${kid}' from ${file}: ${err.message}`);
+          throw new Error(
+            `Cannot load public key '${kid}' from ${file}: ${err instanceof Error ? err.message : String(err)}`
+          );
         }
       } else if (this.hasPrivateKey(kid)) {
         key = createPublicKey(this.getPrivateKey(kid));
@@ -239,7 +241,9 @@ export class PkiKeyring {
       }
       this.publicKeys.set(kid, checkKey(key, kid));
     }
-    return this.publicKeys.get(kid);
+    const key = this.publicKeys.get(kid);
+    if (!key) throw new Error(`Unknown public key: ${kid}`);
+    return key;
   }
 
   /**
@@ -292,16 +296,20 @@ export class PkiKeyring {
       let key: KeyObject;
       try {
         key = createPrivateKey({
-          key: source.env ? process.env[source.env] : readFileSync(source.file),
+          key: source.env ? (process.env[source.env] ?? "") : readFileSync(source.file ?? ""),
           passphrase: process.env[PKI_PASSPHRASE_ENV]
         });
       } catch (err) {
         // The error never contains the key material
-        throw new Error(`Cannot load private key '${kid}' from ${origin}: ${err.message}`);
+        throw new Error(
+          `Cannot load private key '${kid}' from ${origin}: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
       this.privateKeys.set(kid, checkKey(key, kid));
     }
-    return this.privateKeys.get(kid);
+    const key = this.privateKeys.get(kid);
+    if (!key) throw new Error(`Unknown private key: ${kid}`);
+    return key;
   }
 }
 

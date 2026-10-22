@@ -190,7 +190,7 @@ function walk(
   if (value === undefined || value === null || !schema || typeof schema !== "object") {
     return;
   }
-  const marker = schema[SECRET_KEYWORD];
+  const marker = (schema as JSONSchema7 & { [SECRET_KEYWORD]?: unknown })[SECRET_KEYWORD];
   if (marker === true) {
     checkLeaves(value, path, findings);
     return;

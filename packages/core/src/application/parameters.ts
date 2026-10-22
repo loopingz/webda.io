@@ -10,7 +10,7 @@ export class Parameters {
    */
   @NotEnumerable
   private watchers: {
-    props: string[];
+    props: PropertyKey[];
     callback: (params: any) => void;
   }[] = [];
 
@@ -35,7 +35,7 @@ export class Parameters {
     // Check delta to call watchers
     for (const watcher of this.watchers) {
       if (watcher.props.some(p => p in delta)) {
-        const watchers = [];
+        const watchers: PropertyKey[] = [];
         const proxy = new Proxy(this, {
           get: (target, prop) => {
             if (!watchers.includes(prop)) {
@@ -61,7 +61,7 @@ export class Parameters {
    * @returns this for chaining
    */
   with(callback: (params: this) => void): this {
-    const watchers = [];
+    const watchers: PropertyKey[] = [];
     const proxy = new Proxy(this, {
       get: (target, prop) => {
         if (!watchers.includes(prop)) {

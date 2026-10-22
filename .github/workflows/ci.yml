@@ -128,6 +128,9 @@ jobs:
       - name: Check published package files
         run: node --test scripts/check-package-files.test.mjs
 
+      - name: Check strict TypeScript configuration
+        run: node scripts/check-strict.mjs
+
       # Fail fast on style issues before the long build and test steps
       - name: Check formatting
         run: pnpm run format

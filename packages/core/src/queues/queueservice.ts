@@ -102,7 +102,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    * Delayer between two receives returning no message
    */
   protected idleDelayer: WaitDelayer;
-  eventPrototype: new () => T;
+  eventPrototype?: new () => T;
 
   /**
    * Receive one or several messages
@@ -144,7 +144,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
       if (items.length === 0) {
         return { speed, items: items.length };
       }
-      const msgWorker = async msg => {
+      const msgWorker = async (msg: MessageReceipt<T>) => {
         const end = this.metrics.processing_duration.startTimer();
         try {
           await this.callback(msg.Message);

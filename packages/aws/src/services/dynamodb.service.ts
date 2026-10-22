@@ -395,8 +395,8 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
     const key = this.getKey(primaryKey);
     const object = cleanObject(data);
     const sets: string[] = [];
-    const ExpressionAttributeValues = {};
-    const ExpressionAttributeNames = { "#k": KEY_ATTRIBUTE };
+    const ExpressionAttributeValues: Record<string, any> = {};
+    const ExpressionAttributeNames: Record<string, string> = { "#k": KEY_ATTRIBUTE };
     let i = 1;
     for (const attr in object) {
       if (attr === KEY_ATTRIBUTE || this.pks.includes(attr) || object[attr] === undefined) {
@@ -458,7 +458,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
   /** @override */
   async removeAttribute(primaryKey: any, attribute: any, conditionField?: any, condition?: any): Promise<void> {
     const key = this.getKey(primaryKey);
-    const ExpressionAttributeNames = { "#k": KEY_ATTRIBUTE };
+    const ExpressionAttributeNames: Record<string, string> = { "#k": KEY_ATTRIBUTE };
     const params: any = {
       TableName: this.table,
       Key: { [KEY_ATTRIBUTE]: key },
@@ -493,8 +493,8 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
     if (!entries.length) {
       return;
     }
-    const ExpressionAttributeNames = { "#k": KEY_ATTRIBUTE };
-    const ExpressionAttributeValues = {};
+    const ExpressionAttributeNames: Record<string, string> = { "#k": KEY_ATTRIBUTE };
+    const ExpressionAttributeValues: Record<string, any> = {};
     const adds = entries.map((p, i) => {
       ExpressionAttributeValues[`:v${i}`] = p.value;
       return `${this.attributePath(p.property, ExpressionAttributeNames, `a${i}_`)} :v${i}`;
@@ -564,7 +564,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
           throw new StoreNotFoundError(key as any, this.storeName);
         }
         throw new UpdateConditionFailError(key as any, itemWriteConditionField, itemWriteCondition);
-      } else if (err.name === "ValidationException") {
+      } else if (err instanceof Error && err.name === "ValidationException") {
         throw new StoreNotFoundError(key as any, this.storeName);
       }
       throw err;
@@ -601,7 +601,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
           throw new StoreNotFoundError(key as any, this.storeName);
         }
         throw new UpdateConditionFailError(key as any, itemWriteConditionField, itemWriteCondition);
-      } else if (err.name === "ValidationException") {
+      } else if (err instanceof Error && err.name === "ValidationException") {
         throw new StoreNotFoundError(key as any, this.storeName);
       }
       throw err;
@@ -622,20 +622,20 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
    */
   async find(query: WebdaQL.Query): Promise<DynamoFindResult<InstanceType<T>>> {
     let scan = true;
-    let IndexName = undefined;
+    let IndexName: string | undefined;
     let result: ScanCommandOutput | QueryCommandOutput;
     const limit = query.limit ?? 1000;
-    const primaryKeys = { [KEY_ATTRIBUTE]: null };
+    const primaryKeys: Record<string, string | null> = { [KEY_ATTRIBUTE]: null };
     Object.keys(this.globalIndexes).forEach(name => {
       primaryKeys[this.globalIndexes[name].key] = name;
     });
     // We could use PartQL but localstack is not compatible
     const filter: WebdaQL.AndExpression = new WebdaQL.AndExpression([]);
     let KeyConditionExpression = "";
-    let ExpressionAttributeValues = {};
+    const ExpressionAttributeValues: Record<string, any> = {};
     const FilterExpression: string[] = [];
-    let ExpressionAttributeNames = {};
-    let indexNode;
+    const ExpressionAttributeNames: Record<string, string> = {};
+    let indexNode: WebdaQL.ComparisonExpression | undefined;
     let sortOrder = "ASC";
 
     let processingExpression: WebdaQL.AndExpression;
@@ -741,7 +741,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
         if (child.operator === "IN") {
           // Need to follow `a IN (b, c, d)
           valueExpression = "(" + valueExpression;
-          ExpressionAttributeValues[`:${attr}`] = child.value[0];
+          ExpressionAttributeValues[`:${attr}`] = (<any[]>child.value)[0];
           (<any[]>child.value).slice(1).forEach(v => {
             const subAttr = `:a${count++}`;
             valueExpression += `, ${subAttr}`;
@@ -772,12 +772,6 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
       }
     });
 
-    if (!Object.keys(ExpressionAttributeNames).length) {
-      ExpressionAttributeNames = undefined;
-    }
-    if (!Object.keys(ExpressionAttributeValues).length) {
-      ExpressionAttributeValues = undefined;
-    }
     let ExclusiveStartKey = query.continuationToken
       ? JSON.parse(Buffer.from(query.continuationToken, "base64").toString())
       : undefined;
@@ -789,11 +783,13 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
           TableName: this.table,
           FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
           ExclusiveStartKey,
-          ExpressionAttributeNames,
-          ExpressionAttributeValues,
+          ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length ? ExpressionAttributeNames : undefined,
+          ExpressionAttributeValues: Object.keys(ExpressionAttributeValues).length
+            ? ExpressionAttributeValues
+            : undefined,
           Limit: limit - Items.length
         });
-        Items.push(...result.Items);
+        Items.push(...(result.Items ?? []));
         result.Items = Items;
         ExclusiveStartKey = result.LastEvaluatedKey;
       } while (Items.length < limit && result.LastEvaluatedKey);
@@ -804,14 +800,16 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
         ExclusiveStartKey,
         KeyConditionExpression,
         FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
-        ExpressionAttributeNames,
-        ExpressionAttributeValues,
+        ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length ? ExpressionAttributeNames : undefined,
+        ExpressionAttributeValues: Object.keys(ExpressionAttributeValues).length
+          ? ExpressionAttributeValues
+          : undefined,
         Limit: limit,
         ScanIndexForward: sortOrder === "ASC"
       });
     }
     return {
-      results: result.Items.map(c => this.fromItem(c)),
+      results: (result.Items ?? []).map(c => this.fromItem(c)),
       filter,
       continuationToken: result.LastEvaluatedKey
         ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
@@ -905,7 +903,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
   async __clean(): Promise<void> {
     let ExclusiveStartKey;
     do {
-      const result = await this.client.scan({
+      const result: import("@aws-sdk/lib-dynamodb").ScanCommandOutput = await this.client.scan({
         TableName: this.table,
         Limit: this.scanPage,
         ExclusiveStartKey
@@ -967,15 +965,15 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
     const props = await db.describeTable({
       TableName: source
     });
-    output.startProgress("copyTable", props.Table.ItemCount, `Copying ${source} to ${target}`);
+    output.startProgress("copyTable", props.Table?.ItemCount ?? 0, `Copying ${source} to ${target}`);
     do {
-      const info = await db.scan({
+      const info: import("@aws-sdk/client-dynamodb").ScanCommandOutput = await db.scan({
         TableName: source,
         ExclusiveStartKey
       });
       do {
         const items = [];
-        while (info.Items.length && items.length < 25) {
+        while (info.Items?.length && items.length < 25) {
           items.push(info.Items.shift());
         }
         if (!items.length) {
@@ -1103,7 +1101,7 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
-    const resources = {};
+    const resources: Record<string, any> = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     this.parameters.CloudFormation.Table = this.parameters.CloudFormation.Table || {};
     const KeySchema = this.parameters.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: KEY_ATTRIBUTE }];

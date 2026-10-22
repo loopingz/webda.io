@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import { WorkerLogLevel, WorkerOutput, useWorkerOutput } from "@webda/workout";
 import type {
   CachedModule,
@@ -146,7 +147,7 @@ export class Application {
    *
    * Defaults to the `WEBDA_DEPLOYMENT` environment variable
    */
-  protected currentDeployment: string = process.env.WEBDA_DEPLOYMENT || undefined;
+  protected currentDeployment: string | undefined = process.env.WEBDA_DEPLOYMENT || undefined;
   /**
    * Definition of the current deployment, once loaded
    */
@@ -220,7 +221,7 @@ export class Application {
    * @param file - file path or unpacked configuration to load from
    * @param logger - the logger instance
    */
-  constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
+  constructor(file: string | UnpackedConfiguration, logger?: WorkerOutput) {
     // Default to the global output, where the console loggers (CLI, Lambda) are attached
     this.logger = logger || useWorkerOutput();
     setLogContext(this.logger);
@@ -351,7 +352,7 @@ export class Application {
    * @param type - the type to look up
    * @returns the result
    */
-  getSchema(type: string): JSONSchema7 {
+  getSchema(type: string): JSONSchema7 | undefined {
     // "?" suffix means optional input — return the same schema without required fields
     if (type.endsWith("?")) {
       const base = this.getSchema(type.slice(0, -1));
@@ -360,7 +361,7 @@ export class Application {
       delete copy.required;
       return copy;
     }
-    const cm = this.baseConfiguration.cachedModules;
+    const cm = this.getModules();
     return (
       cm.schemas[type] || cm.models?.[type]?.Schemas?.Input || cm.moddas?.[type]?.Schema || cm.beans?.[type]?.Schema
     );
@@ -371,7 +372,7 @@ export class Application {
    * @returns the result
    */
   getSchemas(): { [key: string]: JSONSchema7 } {
-    return this.baseConfiguration.cachedModules.schemas;
+    return this.getModules().schemas;
   }
 
   /**
@@ -394,7 +395,7 @@ export class Application {
    */
   getPackageWebda(): WebdaPackageDescriptor {
     return (
-      this.baseConfiguration.cachedModules.project?.webda || {
+      this.getModules().project?.webda || {
         namespace: "Webda"
       }
     );
@@ -413,7 +414,7 @@ export class Application {
    * @param level to log for
    * @param args anything to display same as console.log
    */
-  log(level: WorkerLogLevel, ...args) {
+  log(level: WorkerLogLevel, ...args: any[]) {
     this.logger?.log(level, ...args);
   }
 
@@ -431,7 +432,7 @@ export class Application {
    * @param subpath to append to
    * @returns the result string
    */
-  getPath(subpath: string = undefined): string {
+  getPath(subpath?: string): string {
     if (subpath && subpath !== "") {
       if (isAbsolute(subpath)) {
         return subpath;
@@ -717,8 +718,8 @@ export class Application {
    * @param _version - the version string
    * @returns the result
    */
-  getGitInformation(_packageName?: string, _version?: string): GitInformation {
-    return this.baseConfiguration.cachedModules.project?.git;
+  getGitInformation(_packageName?: string, _version?: string): GitInformation | undefined {
+    return this.getModules().project?.git;
   }
 
   /**
@@ -726,14 +727,14 @@ export class Application {
    * @returns the result
    */
   getProjectInfo(): ProjectInformation | undefined {
-    return this.baseConfiguration.cachedModules.project;
+    return this.getModules().project;
   }
 
   /**
    * Get current deployment name
    * @returns the result string
    */
-  getCurrentDeployment(): string {
+  getCurrentDeployment(): string | undefined {
     return this.baseConfiguration.cachedModules?.project?.deployment?.name ?? this.currentDeployment;
   }
 
@@ -744,7 +745,7 @@ export class Application {
    * @returns the result
    */
   getModules(): CachedModule {
-    return this.baseConfiguration.cachedModules;
+    return required(this.baseConfiguration.cachedModules, "cached modules");
   }
 
   /**
@@ -752,7 +753,7 @@ export class Application {
    * @param _deployment - the deployment name
    * @returns the result
    */
-  getConfiguration(_deployment: string = undefined): Configuration {
+  getConfiguration(_deployment?: string): Configuration {
     return this.baseConfiguration;
   }
 
@@ -800,7 +801,7 @@ export class Application {
       }
       return importObject;
     } catch (err) {
-      this.log("ERROR", "Cannot resolve require", info, err.message);
+      this.log("ERROR", "Cannot resolve require", info, err instanceof Error ? err.message : err);
     }
   }
 
@@ -845,7 +846,7 @@ export class Application {
    * @protected
    * @ignore Useless for documentation
    */
-  async loadModule(module: WebdaModule, parent: string = this.applicationPath) {
+  async loadModule(module: WebdaModule | undefined, parent: string = this.applicationPath) {
     if (!module) {
       return;
     }
@@ -881,7 +882,7 @@ export class Application {
       for (const f of Object.keys(info.beans)) {
         if (ignoreBeans === true) continue;
         if (Array.isArray(ignoreBeans) && ignoreBeans.includes(f)) continue;
-        this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
+        (this.getModules().beans ??= {})[f] = info.beans[f];
       }
     }
     // Behaviors are registered by metadata only — the runtime never imports

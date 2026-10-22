@@ -177,11 +177,11 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
       this.log("ERROR", "Cannot find", commandEvent.service);
       return;
     }
-    if (typeof service[commandEvent.method] !== "function") {
+    if (typeof Reflect.get(service, commandEvent.method) !== "function") {
       this.log("ERROR", "Cannot find method", commandEvent.method, "on", commandEvent.service);
       return;
     }
-    await service[commandEvent.method](...args);
+    await Reflect.get(service, commandEvent.method).apply(service, args);
     this.log("INFO", "Finished");
   }
 
@@ -208,7 +208,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
 
     const event: APIGatewayProxyEvent = <APIGatewayProxyEvent>sourceEvent;
     if (context) {
-      context.callbackWaitsForEmptyEventLoop = this.parameters.waitForEmptyEventLoop;
+      context.callbackWaitsForEmptyEventLoop = this.parameters.waitForEmptyEventLoop ?? false;
     }
 
     const headers = event.headers || {};
@@ -235,13 +235,13 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
     }
     this.log("INFO", method, event.path);
     const httpContext = new HttpContext(
-      vhost,
+      vhost ?? "localhost",
       <HttpMethodType>method,
       resourcePath,
       <"http" | "https">protocol,
       port,
-      headers
-    ).setClientIp(headers["X-Real-Ip"]); // Might use identity.sourceIp
+      Object.fromEntries(Object.entries(headers).filter((entry): entry is [string, string] => entry[1] !== undefined))
+    ).setClientIp(headers["X-Real-Ip"] ?? ""); // Might use identity.sourceIp
     // API Gateway stage or custom domain base path: the router matches on the uri relative to it
     this.computePrefix(event, httpContext);
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
@@ -347,10 +347,8 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
       multiValueHeaders: { "Set-Cookie": [] }
     };
     const cookies = context.getResponseCookies();
-    for (const i in cookies) {
-      result.multiValueHeaders["Set-Cookie"].push(
-        cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options || {})
-      );
+    for (const cookie of Object.values(cookies ?? {})) {
+      result.multiValueHeaders["Set-Cookie"].push(cookieSerialize(cookie.name, cookie.value, cookie.options || {}));
     }
     const body = context.getResponseBody();
     if (body !== undefined && body !== false && body !== "") {

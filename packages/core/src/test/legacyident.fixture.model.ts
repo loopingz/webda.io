@@ -75,7 +75,7 @@ export class LegacyIdentFixture extends OwnerModel {
    * @returns the result string
    */
   getEmail(): string {
-    return this.email;
+    return this.email ?? "";
   }
 
   /**
@@ -90,7 +90,7 @@ export class LegacyIdentFixture extends OwnerModel {
    * Set the provider type
    * @param type - the type to look up
    */
-  setType(type) {
+  setType(type: string) {
     this._type = type;
   }
 

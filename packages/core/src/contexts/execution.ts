@@ -4,8 +4,9 @@ import { Context, IContextAware, setContextUpdate } from "./icontext.js";
 
 const globalContext = new GlobalContext();
 // Test are transpiling and creating several instances of 'instancestorage.ts'
-process["webdaContexts"] ??= new AsyncLocalStorage<{ context: Context; previousContext: Context }>();
-const storage = process["webdaContexts"];
+type ExecutionStorage = { context: Context; previousContext?: Context };
+const sharedProcess = process as NodeJS.Process & { webdaContexts?: AsyncLocalStorage<ExecutionStorage> };
+const storage = (sharedProcess.webdaContexts ??= new AsyncLocalStorage<ExecutionStorage>());
 /**
  * Get current execution context
  * @returns the result
@@ -36,7 +37,7 @@ export function useCurrentUserId() {
  * @param models - the models
  * @param context - the execution context
  */
-function attachModels(models: any[], context: Context) {
+function attachModels(models: any[], context: Context | undefined) {
   setContextUpdate(true);
   models.forEach(m => (m.context = context));
   setContextUpdate(false);

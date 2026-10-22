@@ -55,7 +55,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    */
   async tweakApp(app: TestApplication) {
     // Use MemoryStore for Registry without persistence
-    app.getCurrentConfiguration().services.Registry = {
+    (app.getCurrentConfiguration().services ??= {}).Registry = {
       type: "Webda/MemoryStore"
     };
     app
@@ -169,7 +169,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @deprecated use http instead
    */
   getExecutor(
-    ctx: WebContext = undefined,
+    ctx: WebContext | undefined = undefined,
     host: string = "test.webda.io",
     method: HttpMethodType = "GET",
     url: string = "/",
@@ -180,8 +180,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     httpContext.setBody(body);
     httpContext.setClientIp("127.0.0.1");
     if (!ctx) {
-      // @ts-ignore
-      ctx = new WebContext(this.webda, httpContext);
+      ctx = new WebContext(httpContext);
     } else {
       ctx.setHttpContext(httpContext);
     }
@@ -241,13 +240,14 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @returns the result
    */
   async execute(
-    context: WebContext = undefined,
+    context: WebContext | undefined = undefined,
     host: string = "test.webda.io",
     method: HttpMethodType = "GET",
     url: string = "/",
     body: any = {},
     headers: { [key: string]: string } = {}
   ) {
+    context ??= await this.newContext();
     const exec = this.getExecutor(context, host, method, url, body, headers);
     if (!exec) {
       throw new Error(`${method} ${url} route not found`);
@@ -271,7 +271,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @deprecated use sleep instead
    * @returns the result
    */
-  async sleep(time): Promise<void> {
+  async sleep(time: number): Promise<void> {
     return sleep(time);
   }
 
@@ -317,7 +317,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @returns the result
    */
   async addService<P extends Service>(
-    service: new (string, any) => P,
+    service: new (name: string, parameters: any) => P,
     params?: DeepPartial<ReturnType<P["getParameters"]>>,
     name?: string
   ): Promise<P> {

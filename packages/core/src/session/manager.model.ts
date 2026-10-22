@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import { type CryptoService, SecretString } from "../services/cryptoservice.service.js";
 import { JWTOptions } from "../services/icryptoservice.js";
 import { Inject, Service } from "../services/service.js";
@@ -94,7 +95,7 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
         try {
           resolved = await resolver.resolveBearer(token, context);
         } catch (err) {
-          this.log("DEBUG", "Bearer resolver failed", err?.message);
+          this.log("DEBUG", "Bearer resolver failed", err instanceof Error ? err.message : String(err));
         }
         if (resolved) {
           resolved.stateless = true;
@@ -143,7 +144,11 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
     try {
       resolution = await resolver.resolveCertificate(cert, context);
     } catch (err) {
-      this.log("WARN", "Cannot resolve the client certificate, certificate ignored", err?.message);
+      this.log(
+        "WARN",
+        "Cannot resolve the client certificate, certificate ignored",
+        err instanceof Error ? err.message : String(err)
+      );
       return undefined;
     }
     if (!resolution) {
@@ -172,7 +177,11 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
         session.addTransientAmr("mtls");
       }
     } catch (err) {
-      this.log("WARN", "Cannot resolve the client certificate, certificate ignored", err?.message);
+      this.log(
+        "WARN",
+        "Cannot resolve the client certificate, certificate ignored",
+        err instanceof Error ? err.message : String(err)
+      );
     }
     return session;
   }
@@ -190,11 +199,15 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
       return false;
     }
     try {
-      const user: any = await runAsSystem(() => useUserResolver().resolve(session.userId));
+      const user: any = await runAsSystem(() => useUserResolver().resolve(required(session.userId, "session user")));
       const changedAt = user?.password?.changedAt;
       return typeof changedAt === "number" && changedAt > session.authAt;
     } catch (err) {
-      this.log("WARN", "Cannot check the session against the user password, session ignored", err?.message);
+      this.log(
+        "WARN",
+        "Cannot check the session against the user password, session ignored",
+        err instanceof Error ? err.message : String(err)
+      );
       return true;
     }
   }
@@ -225,7 +238,7 @@ export class CookieSessionParameters extends ServiceParameters {
   /**
    * Cookie configuration for session
    */
-  cookie?: CookieOptions;
+  cookie: CookieOptions;
 
   /**
    * Load parameters and initialize cookie options
@@ -275,7 +288,7 @@ export class CookieSessionManager<
     }
     const session = new Session();
     const cookie = await SecureCookie.load(
-      this.parameters.cookie.name,
+      this.parameters.cookie.name ?? "webda",
       session,
       context,
       SecretString.unwrap(this.parameters.jwt)
@@ -318,17 +331,17 @@ export class CookieSessionManager<
         await this.sessionModel.update({
           uuid: session.uuid,
           session: storedSession,
-          ttl: Date.now() + this.parameters.cookie.maxAge * 1000
+          ttl: Date.now() + (this.parameters.cookie.maxAge ?? 0) * 1000
         });
       } else {
         await this.sessionModel.create({
           uuid: session.uuid,
           session: storedSession,
-          ttl: Date.now() + this.parameters.cookie.maxAge * 1000
+          ttl: Date.now() + (this.parameters.cookie.maxAge ?? 0) * 1000
         });
       }
       SecureCookie.save(
-        this.parameters.cookie.name,
+        this.parameters.cookie.name ?? "webda",
         context,
         {},
         SecretString.unwrap({ ...this.parameters.jwt, subject: session.uuid.toString() }),
@@ -337,7 +350,7 @@ export class CookieSessionManager<
       return;
     }
     SecureCookie.save(
-      this.parameters.cookie.name,
+      this.parameters.cookie.name ?? "webda",
       context,
       storedSession,
       SecretString.unwrap(this.parameters.jwt),

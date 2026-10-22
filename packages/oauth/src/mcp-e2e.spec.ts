@@ -49,6 +49,8 @@ class McpOAuthEndToEndTest extends OAuthTest {
     config.services.HttpServer = { type: "Webda/HttpServer", port: 0 };
     config.services.McpAuth = { type: "Webda/McpOAuthAuthenticator" };
     config.services.Mcp = { type: "Webda/McpService", authenticator: "McpAuth" };
+    // The general operations API: an MCP-bound token must not reach it
+    config.services.Operations = { type: "Webda/OperationsTransport" };
     return config;
   }
 
@@ -349,6 +351,13 @@ class McpOAuthEndToEndTest extends OAuthTest {
     assert.strictEqual(tokens.scope, "Task.* offline_access");
     assert.ok(tokens.refresh_token);
     assert.strictEqual(this.audience(tokens.access_token), resource);
+    // Bound to the MCP resource: the general operations API refuses the token, even for an operation in scope
+    const operations = await fetch(`${this.base}/operations/Task.Whoami`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${tokens.access_token}`, "content-type": "application/json" },
+      body: "{}"
+    });
+    assert.strictEqual(operations.status, 401, await operations.text());
     // In scope: listed and callable; out of scope: hidden; never callable by the user: hidden
     const client = await this.mcpClient(tokens.access_token);
     const names = (await client.listTools()).tools.map(t => t.name);

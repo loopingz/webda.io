@@ -19,7 +19,7 @@ import { getKubernetesApiClient } from "../utils/client.js";
 import { KubernetesCrdExporter } from "../services/crdexporter.service.js";
 import { KubernetesRepository, toLabelValue } from "./kubernetesrepository.js";
 import { KubernetesStore, KubernetesStoreParameters } from "./kubernetesstore.service.js";
-import { CustomResources } from "./resources.js";
+import { CustomResources, WriteTracker } from "./resources.js";
 
 /** A model without metadata */
 class Row {
@@ -92,6 +92,18 @@ class SubItem extends Item {
 Item.Metadata.Subclasses.push(SubItem);
 
 const GROUP = "test.webda.io";
+
+/**
+ * Wait until the condition holds
+ * @param condition - checked every 5ms
+ */
+async function until(condition: () => boolean): Promise<void> {
+  const start = Date.now();
+  while (!condition()) {
+    if (Date.now() - start > 5000) throw new Error("Timeout waiting for condition");
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+}
 
 /**
  * Tests against an in-memory Kubernetes API server
@@ -178,6 +190,19 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
     assert.strictEqual(toLabelValue("-a"), undefined);
     assert.strictEqual(toLabelValue("a".repeat(64)), undefined);
     assert.strictEqual(toLabelValue({}), undefined);
+    // Tracked writes are consumed once and expire
+    const tracker = new WriteTracker(10);
+    tracker.record("a", "1");
+    tracker.record("a", undefined);
+    assert.strictEqual(tracker.consume("a", "1"), true);
+    assert.strictEqual(tracker.consume("a", "1"), false);
+    assert.strictEqual(tracker.consume("a", undefined), false);
+    tracker.record("b", "2");
+    const now = Date.now();
+    while (Date.now() < now + 15);
+    tracker.record("c", "3");
+    assert.strictEqual(tracker.consume("b", "2"), false, "expired");
+    assert.strictEqual(tracker.consume("c", "3"), true);
   }
 
   @test
@@ -590,6 +615,75 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
     // A second install replaces it
     await store.installCrds();
     assert.ok(this.api.requests.some(r => r.method === "PUT" && r.path.endsWith("/users.test.webda.io")));
+  }
+
+  @test
+  async watch() {
+    const external = new CustomResources(getKubernetesApiClient({ config: this.config }, k8s.CustomObjectsApi), {
+      group: GROUP,
+      version: "v1",
+      plural: "users",
+      kind: "User",
+      namespace: "default"
+    });
+    const resource = (name: string, spec: any) => ({
+      apiVersion: `${GROUP}/v1`,
+      kind: "User",
+      metadata: { name, annotations: { "webda.io/model": "Webda/User" } },
+      spec
+    });
+    // Known before the watch starts: no event
+    await external.create(resource("before", { email: "before@webda.io" }));
+    const store = await this.registerService(
+      new KubernetesStore(
+        "watcher",
+        this.parameters({ models: ["Webda/User"], watch: true, statusFields: { "Webda/User": ["_mfaAttempts"] } })
+      )
+    )
+      .resolve()
+      .init();
+    const repo = store.getRepository(useModel("Webda/User"));
+    const events: string[] = [];
+    for (const name of ["Created", "Updated", "Deleted"]) {
+      repo.on(name as any, (evt: any) =>
+        events.push(
+          `${name}:${evt.object_id}${evt.object ? `:${evt.object.email}:${evt.object.constructor.name}` : ""}`
+        )
+      );
+    }
+    // Writes of the application: no event from the watch (the repository emits its own)
+    events.length = 0;
+    await repo.create(<any>{ uuid: "own", email: "own@webda.io" });
+    await repo.patch("own" as any, <any>{ email: "own2@webda.io", _mfaAttempts: 1 });
+    await repo.delete("own" as any);
+    const ownEvents = [...events];
+    // Changes made by others
+    const created = await external.create(resource("ext", { email: "ext@webda.io" }));
+    await until(() => events.length > ownEvents.length);
+    const replaced = await external.replace({ ...created, spec: { email: "ext2@webda.io" } });
+    await until(() => events.length > ownEvents.length + 1);
+    // Metadata and foreign status changes are not changes of the object
+    const labeled = await external.replace({ ...replaced, metadata: { ...replaced.metadata, labels: { a: "b" } } });
+    await external.replaceStatus({ ...labeled, status: { conditions: [] } });
+    await external.delete("ext");
+    await until(() => events.length > ownEvents.length + 2);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.deepStrictEqual(events.slice(ownEvents.length), [
+      "Created:ext:ext@webda.io:User",
+      "Updated:ext:ext2@webda.io:User",
+      "Deleted:ext"
+    ]);
+    // The application's own writes emitted their usual events only once
+    assert.deepStrictEqual(
+      ownEvents.filter(e => e.startsWith("Created") || e.startsWith("Deleted")),
+      ["Created:own:own@webda.io:User", "Deleted:own"]
+    );
+    await store.stop();
+    // Stopped: no more event
+    await external.create(resource("after", { email: "after@webda.io" }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.strictEqual(events.at(-1), "Deleted:ext");
+    delete this.webda.getServices()["watcher"];
   }
 
   @test

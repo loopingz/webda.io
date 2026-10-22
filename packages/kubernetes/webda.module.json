@@ -645,6 +645,11 @@
             "description": "API version of the custom resources",
             "type": "string"
           },
+          "watch": {
+            "default": false,
+            "description": "Watch the resources and emit the repository events (`Created`, `Updated`, `Deleted`) of the changes made by others\nthan this process: kubectl, GitOps, another replica",
+            "type": "boolean"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true

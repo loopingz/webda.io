@@ -74,7 +74,7 @@ class ReactEmailEngineTest extends TemplateServiceTestBase {
   @test
   async renderPart() {
     const all = await this.svc().renderAll("event-confirmation", data);
-    assert.strictEqual(await this.svc().render("event-confirmation/html", data), all.html);
+    assert.strictEqual(await this.svc().render("event-confirmation/html", { ...data }), all.html);
   }
 
   @test
@@ -111,7 +111,7 @@ class ReactEmailEngineTest extends TemplateServiceTestBase {
     assert.ok((await this.svc().render("welcome", { name: "Ada" })).includes("Welcome"));
     const res = await this.svc().renderAll("welcome", { name: "Ada" });
     assert.ok(res.html);
-    assert.ok("text" in res);
+    assert.ok(res.text.includes("Welcome Ada"));
   }
 
   @test
@@ -120,6 +120,22 @@ class ReactEmailEngineTest extends TemplateServiceTestBase {
     const before = counter.__emailRenders ?? 0;
     await this.svc().renderAll("counter", {});
     assert.strictEqual(counter.__emailRenders, before + 1);
+  }
+
+  @test
+  async mutatedDataRerenders() {
+    const counter = globalThis as any;
+    const before = counter.__emailRenders ?? 0;
+    const mutable: any = { firstName: "Ada" };
+    const first = await this.svc().renderAll("counter", mutable);
+    mutable.firstName = "Grace";
+    const second = await this.svc().renderAll("counter", mutable);
+    assert.strictEqual(counter.__emailRenders, before + 2);
+    assert.ok(first.html && second.html);
+    const mail: any = { firstName: "Ada", items: [] };
+    assert.ok(flat((await this.svc().renderAll("conditional", mail)).html).includes("Hi Ada"));
+    mail.firstName = "Grace";
+    assert.ok(flat((await this.svc().renderAll("conditional", mail)).html).includes("Hi Grace"));
   }
 
   @test
@@ -148,9 +164,6 @@ class ReactEmailEngineTest extends TemplateServiceTestBase {
 
 @suite
 class ReactEmailEngineOptionsTest extends TemplateServiceTestBase {
-  pretty = true;
-  fixApostrophes?: boolean;
-
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
     return {
       parameters: { ignoreBeans: true },
@@ -159,7 +172,7 @@ class ReactEmailEngineOptionsTest extends TemplateServiceTestBase {
           type: "Webda/TemplateService",
           folders: ["test/emails"],
           engine: "react-email",
-          engines: { "react-email": { pretty: true, fixApostrophes: this.fixApostrophes } }
+          engines: { "react-email": { pretty: true, fixApostrophes: true } }
         }
       }
     };

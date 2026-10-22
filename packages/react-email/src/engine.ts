@@ -28,7 +28,10 @@ export interface ReactEmailEngineOptions {
   extensions?: string[];
 }
 
-type Memo = WeakMap<EmailComponent, WeakMap<object, Map<string, Promise<RenderedEmail>>>>;
+type Memo = WeakMap<
+  EmailComponent,
+  WeakMap<object, Map<string, { fingerprint: string; promise: Promise<RenderedEmail> }>>
+>;
 
 /**
  * Template engine rendering react-email components
@@ -83,12 +86,22 @@ export class ReactEmailEngine implements TemplateEngine {
 
   /**
    * Render once per component, data object and locale
+   *
+   * Each entry keeps a `JSON.stringify` fingerprint of the data and is rendered again when the data was mutated
+   * in between; data that cannot be serialized is never memoized.
    * @param component - the email component
    * @param data - the data
    * @param locale - the locale
    * @returns the rendered email
    */
   protected rendered(component: EmailComponent, data: object, locale?: string): Promise<RenderedEmail> {
+    const render = () => renderEmail(component, { ...data, locale }, this.options);
+    let fingerprint: string;
+    try {
+      fingerprint = JSON.stringify(data);
+    } catch {
+      return render();
+    }
     let byData = this.memo.get(component);
     if (!byData) {
       byData = new WeakMap();
@@ -100,12 +113,17 @@ export class ReactEmailEngine implements TemplateEngine {
       byData.set(data, byLocale);
     }
     const key = String(locale);
-    let promise = byLocale.get(key);
-    if (!promise) {
-      promise = renderEmail(component, { ...data, locale }, this.options);
-      byLocale.set(key, promise);
-      promise.catch(() => byLocale.delete(key));
+    const entry = byLocale.get(key);
+    if (entry && entry.fingerprint === fingerprint) {
+      return entry.promise;
     }
+    const promise = render();
+    byLocale.set(key, { fingerprint, promise });
+    promise.catch(() => {
+      if (byLocale.get(key)?.promise === promise) {
+        byLocale.delete(key);
+      }
+    });
     return promise;
   }
 }

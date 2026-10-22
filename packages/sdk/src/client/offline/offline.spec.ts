@@ -179,6 +179,16 @@ describe("offline()", () => {
     const last = await backend.query(`group = 'g1' ORDER BY uuid LIMIT 3 OFFSET "3"`);
     expect(last.results.map((note: any) => note.uuid)).toEqual(["d"]);
     expect(last.continuationToken).toBeUndefined();
+    // count adds the local total of the filter, whatever the page
+    expect((await backend.query(`group = 'g1' ORDER BY uuid LIMIT 3`)).total).toBeUndefined();
+    expect((await backend.query(`group = 'g1' ORDER BY uuid LIMIT 3`, { count: true })).total).toEqual({
+      value: 4,
+      relation: "eq"
+    });
+    expect((await backend.query(`group = 'g1' LIMIT 3 OFFSET "3"`, { count: true })).total).toEqual({
+      value: 4,
+      relation: "eq"
+    });
     // An unusable offset starts over
     expect(await uuids(`group = 'g1' ORDER BY uuid LIMIT 1 OFFSET 'next'`)).toEqual(["a"]);
     // No clause: every result, unordered pages are copies

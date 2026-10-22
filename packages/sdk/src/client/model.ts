@@ -1,6 +1,6 @@
 import type { WebdaClient } from "./client.js";
 import type { ModelClient } from "./model-client.js";
-import type { CallOptions, PrimaryKeyInput, QueryResult } from "./types.js";
+import type { CallOptions, PrimaryKeyInput, QueryOptions, QueryResult } from "./types.js";
 
 /**
  * Quote a value as a WebdaQL string literal, escaped as `@webda/ql`'s `escape` does (`\\` and doubled `'`)
@@ -274,11 +274,11 @@ export class Related<T extends SdkModel = SdkModel> {
 
   /**
    * @param filter - WebdaQL filter
-   * @param options - call options
+   * @param options - call options; `count` also returns the total of the related objects
    * @returns the page
    */
-  query(filter?: string, options?: CallOptions): Promise<QueryResult<T>> {
-    return this.client.model<T>(this.model).query(this.toQuery(filter), this.options(options));
+  query(filter?: string, options?: QueryOptions): Promise<QueryResult<T>> {
+    return this.client.model<T>(this.model).query(this.toQuery(filter), this.options(options) as QueryOptions);
   }
 
   /**

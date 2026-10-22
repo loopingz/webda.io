@@ -1,5 +1,5 @@
 import { Emitter } from "./emitter.js";
-import type { ChangeEvent } from "./types.js";
+import type { ChangeEvent, QueryTotal } from "./types.js";
 
 /**
  * Where the cache keeps its entries: synchronous key/value strings, as `localStorage`
@@ -147,6 +147,8 @@ export interface EntityEntry {
 export interface QueryEntry {
   uids: string[];
   continuationToken?: string;
+  /** Total of the query, when it was asked */
+  total?: QueryTotal;
   at: number;
 }
 
@@ -268,9 +270,10 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
    * @param key - query key
    * @param uids - uids of the results
    * @param continuationToken - continuation token of the page
+   * @param total - total of the query, when it was asked
    */
-  setQuery(model: string, key: string, uids: string[], continuationToken?: string): void {
-    this.storage.set(this.queryKey(model, key), JSON.stringify({ uids, continuationToken, at: Date.now() }));
+  setQuery(model: string, key: string, uids: string[], continuationToken?: string, total?: QueryTotal): void {
+    this.storage.set(this.queryKey(model, key), JSON.stringify({ uids, continuationToken, total, at: Date.now() }));
   }
 
   /**

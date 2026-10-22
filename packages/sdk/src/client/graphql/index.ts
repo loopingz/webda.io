@@ -233,10 +233,14 @@ export class GraphQLTransport implements Transport {
         variables[name] = data[name];
       }
     }
-    const selection =
+    let selection =
       graphql.selection && ctx.select?.length
         ? projectSelection(graphql.selection, ctx.select, graphql.keys)
         : graphql.selection;
+    // The total of a query result runs a count on the server: selected only when the query asks for it
+    if (data.count === true && selection && "continuationToken" in selection) {
+      selection = { ...selection, total: { select: { value: 1, relation: 1 } } };
+    }
     const declarations = args.length ? `(${args.map(([name, type]) => `$${name}: ${type}`).join(", ")})` : "";
     const call = args.length ? `(${args.map(([name]) => `${name}: $${name}`).join(", ")})` : "";
     const operationName = `Sdk_${op.id.replace(/[^_0-9A-Za-z]/g, "_")}`;

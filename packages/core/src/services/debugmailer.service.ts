@@ -1,5 +1,5 @@
 import { ServiceParameters } from "./serviceparameters.js";
-import { AbstractMailer } from "./mailer.service.js";
+import { AbstractMailer, type MailerSendOptions } from "./abstractmailer.js";
 
 /**
  * Fake Service to help debug mail expedition
@@ -31,7 +31,7 @@ export class DebugMailer extends AbstractMailer {
    * @param callback - the callback function
    * @param _callback - the callback function
    */
-  async send(options, _callback = undefined): Promise<void> {
+  async send(options: MailerSendOptions, _callback = undefined): Promise<void> {
     this.log("DEBUG", "Send a fake email", options);
     this.sent.push(options);
   }

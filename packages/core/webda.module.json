@@ -1240,59 +1240,6 @@
       },
       "Configuration": "lib/configurations/kubernetesconfiguration.service:KubernetesConfigurationParameters"
     },
-    "Webda/Mailer": {
-      "Import": "lib/services/mailer.service:Mailer",
-      "Schema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "additionalProperties": false,
-        "description": "Parameters for the Mailer service configuration\n\nConfigures the email transport, templates directory and template engine",
-        "properties": {
-          "SES": {
-            "description": "SES AWS Bean if transport === \"ses\"\n\nCredentials inside can be encrypted with `webda config encrypt`"
-          },
-          "emailTemplateOptions": {
-            "see": "https://www.npmjs.com/package/email-templates"
-          },
-          "sender": {
-            "description": "Define the default sender",
-            "type": "string"
-          },
-          "templates": {
-            "default": "templates",
-            "description": "Specify which folder contains templates",
-            "type": "string"
-          },
-          "templatesEngine": {
-            "default": "mustache",
-            "description": "Template engine to use",
-            "type": "string"
-          },
-          "transport": {
-            "description": "Define the type of transport to use",
-            "type": "string"
-          },
-          "type": {
-            "description": "Type of the service",
-            "type": "string"
-          },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "sender",
-          "type"
-        ],
-        "type": "object",
-        "x-webda-secret": [
-          "auth.pass",
-          "SES.credentials"
-        ],
-        "title": "Mailer"
-      },
-      "Configuration": "lib/services/mailer.service:MailerParameters"
-    },
     "Webda/MemoryLogger": {
       "Import": "lib/loggers/memory.service:MemoryLoggerService",
       "Schema": {

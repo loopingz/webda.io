@@ -696,8 +696,14 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     const session = ctx.getSession();
     const user: User = mfa.getScope().owner;
     const verification = action === "verify" || action === "recover";
-    if ((!session.isLogged() && !(verification && session.isPending())) || session.userId !== user.getUUID()) {
+    // A pending session completes login: it can ask for a code (challenge) then verify it
+    const pendingAllowed = verification || action === "challenge";
+    if ((!session.isLogged() && !(pendingAllowed && session.isPending())) || session.userId !== user.getUUID()) {
       throw new WebdaError.Unauthorized("Own login MFA required");
+    }
+    if (action === "challenge" && !session.isLogged() && !mfa.isEnabled(method)) {
+      // Codes are only sent to a confirmed factor before login completes
+      throw new MfaNotEnabled();
     }
     if ((action === "disable" || action === "recoveryCodes") && session.mfa !== "verified") {
       throw new WebdaError.Unauthorized("Verified login required");

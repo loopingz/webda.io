@@ -190,6 +190,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       "User.Keys.Rotate",
       "User.Keys.SetEscrow",
       "User.Keys.Setup",
+      "User.Mfa.Challenge",
       "User.Mfa.Confirm",
       "User.Mfa.Disable",
       "User.Mfa.Enroll",

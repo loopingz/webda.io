@@ -1,9 +1,12 @@
 import {
   listOperations,
   OFFLINE_ACCESS,
+  registerProtectedResource,
   Service,
   ServiceParameters,
   WebdaError,
+  unregisterProtectedResource,
+  useService,
   type Session,
   type WebContext
 } from "@webda/core";
@@ -27,6 +30,11 @@ export class McpOAuthAuthenticatorParameters extends ServiceParameters {
    * server advertises: `*`, the top-level operation groups (`<Group>.*`) and `offline_access`
    */
   scopesSupported?: string[];
+  /**
+   * Canonical public origin of the application (absolute, e.g. `https://mcp.example.com`): the token audience and the
+   * advertised resource are derived from it instead of the request headers. Set it in production, notably behind a proxy
+   */
+  publicUrl?: string;
 
   /**
    * @param params - raw parameters
@@ -35,6 +43,9 @@ export class McpOAuthAuthenticatorParameters extends ServiceParameters {
   load(params: any = {}): this {
     super.load(params);
     this.resourceMetadataPath ??= "/.well-known/oauth-protected-resource";
+    if (this.publicUrl) {
+      this.publicUrl = this.publicUrl.replace(/\/+$/, "");
+    }
     return this;
   }
 }
@@ -83,7 +94,45 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
     for (const resource of this.resources) {
       this.addRoute(`${base}${resource}`, ["GET"], this.metadata, { hidden: true } as any);
     }
+    const publicUrl = this.parameters.publicUrl;
+    for (const path of this.resources) {
+      registerProtectedResource({ path, uri: publicUrl ? publicUrl + path : undefined });
+    }
+    if (!publicUrl) {
+      this.log(
+        "WARN",
+        "McpOAuthAuthenticator: publicUrl is not set, the token audience is derived from the request host (development only)"
+      );
+    }
     return this;
+  }
+
+  /**
+   * Unregister the protected resources
+   */
+  async stop(): Promise<void> {
+    for (const path of this.resources) {
+      unregisterProtectedResource(path);
+    }
+    await super.stop();
+  }
+
+  /**
+   * @param ctx - web context
+   * @param path - application path
+   * @returns `publicUrl` + path when configured, else the request based absolute URL
+   */
+  protected resourceUri(ctx: WebContext, path: string): string {
+    const publicUrl = this.parameters.publicUrl;
+    return publicUrl ? publicUrl + path : this.absolute(ctx, path);
+  }
+
+  /**
+   * @param ctx - web context
+   * @returns the absolute protected resource metadata URL for the resource the request targets
+   */
+  resourceMetadataUrl(ctx: WebContext): string {
+    return this.resourceUri(ctx, this.metadataPath(this.resourceFor(ctx)));
   }
 
   /**
@@ -137,8 +186,8 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
     ctx.setHeader("Vary", "Host");
     ctx.write(
       JSON.stringify({
-        resource: this.absolute(ctx, resource),
-        authorization_servers: this.parameters.authorizationServers ?? [this.absolute(ctx, "")],
+        resource: this.resourceUri(ctx, resource),
+        authorization_servers: this.parameters.authorizationServers ?? [this.resourceUri(ctx, "")],
         scopes_supported: this.scopesSupported(),
         bearer_methods_supported: ["header"]
       })
@@ -163,18 +212,25 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   /**
    * @param ctx - web context
    * @returns the bearer session
-   * @throws Unauthorized with a `WWW-Authenticate` challenge when there is no valid bearer token
+   * @throws Unauthorized with a `WWW-Authenticate` challenge when there is no valid bearer token for this resource
    */
   async authenticate(ctx: WebContext): Promise<Session> {
-    const session = ctx.getSession();
-    const bearer = /^Bearer\s/i.test(ctx.getHttpContext().getUniqueHeader("authorization") ?? "");
-    if (!bearer || !session?.isLogged()) {
+    const header = ctx.getHttpContext().getUniqueHeader("authorization") ?? "";
+    const token = /^Bearer\s+(.+)$/i.exec(header)?.[1]?.trim();
+    const session = token
+      ? await useService("SessionManager").sessionFromAccessToken(token, {
+          audience: this.resourceUri(ctx, this.resourceFor(ctx))
+        })
+      : undefined;
+    if (!session?.isLogged()) {
       ctx.setHeader(
         "WWW-Authenticate",
-        `Bearer resource_metadata="${this.absolute(ctx, this.metadataPath(this.resourceFor(ctx)))}"`
+        `Bearer${token ? ' error="invalid_token",' : ""} resource_metadata="${this.resourceMetadataUrl(ctx)}"`
       );
       throw new WebdaError.Unauthorized("Bearer token required");
     }
+    // Operations called by the MCP tools read the context session
+    ctx.setSession(session);
     return session;
   }
 }

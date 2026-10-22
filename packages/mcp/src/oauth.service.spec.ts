@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { HttpContext, Session, useService } from "@webda/core";
+import { HttpContext, listProtectedResources, Session, useService } from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -63,14 +63,19 @@ class McpOAuthBase extends McpFixtureTest {
 
   /**
    * @param scope - operation globs
+   * @param resource - token audience, defaults to the bound MCP resource
    * @returns a bearer access token
    */
-  async bearer(scope: string[]): Promise<string> {
+  async bearer(scope: string[], resource?: string | null): Promise<string> {
+    if (resource === undefined) {
+      resource = `${await this.base()}/mcp`;
+    }
     const session = new Session();
     session.login("alice", "alice:email", { provider: "email", amr: ["pwd"] });
     const tokens = await (useService("TokenService") as any).issue(session, undefined, {
       clientId: "https://mcp.example.com/c.json",
-      scope
+      scope,
+      resource: resource ?? undefined
     });
     return tokens.accessToken;
   }
@@ -111,7 +116,86 @@ class McpOAuthTest extends McpOAuthBase {
       body: JSON.stringify(INIT)
     });
     assert.strictEqual(res.status, 401);
-    assert.ok(res.headers.get("www-authenticate")?.startsWith("Bearer resource_metadata="));
+    assert.ok(res.headers.get("www-authenticate")?.startsWith('Bearer error="invalid_token", resource_metadata='));
+  }
+
+  /**
+   * @param token - bearer token
+   * @param extra - extra headers
+   * @returns the raw initialize response
+   */
+  async rawInit(token: string, extra: Record<string, string> = {}): Promise<Response> {
+    return fetch(`${await this.base()}/mcp`, {
+      method: "POST",
+      headers: { ...HEADERS, authorization: `Bearer ${token}`, ...extra },
+      body: JSON.stringify(INIT)
+    });
+  }
+
+  @test
+  async boundTokenAccepted() {
+    const res = await this.rawInit(await this.bearer(["Fixture.*"]));
+    assert.strictEqual(res.status, 200);
+  }
+
+  @test
+  async appAudienceTokenRefused() {
+    const res = await this.rawInit(await this.bearer(["Fixture.*"], null));
+    assert.strictEqual(res.status, 401);
+    assert.ok(res.headers.get("www-authenticate")?.startsWith('Bearer error="invalid_token", resource_metadata='));
+  }
+
+  @test
+  async otherResourceRefused() {
+    const res = await this.rawInit(await this.bearer(["Fixture.*"], "https://other.example/mcp"));
+    assert.strictEqual(res.status, 401);
+    assert.ok(res.headers.get("www-authenticate")?.includes('error="invalid_token"'));
+  }
+
+  @test
+  async registersResource() {
+    assert.ok(listProtectedResources().some(r => r.path === "/mcp" && r.uri === undefined));
+  }
+
+  @test
+  async publicUrlBehindProxy() {
+    const auth = useService("McpAuth") as McpOAuthAuthenticator;
+    auth.getParameters().publicUrl = "https://mcp.example";
+    const make = () => {
+      const headers: Record<string, string> = {};
+      let body = "";
+      let session: any;
+      const http = new HttpContext("internal", "POST", "/mcp", "http", 8080, {
+        host: "internal:8080",
+        "content-type": "application/json"
+      });
+      const ctx: any = {
+        getHttpContext: () => http,
+        setHeader: (k: string, v: string) => (headers[k] = v),
+        write: (b: string) => (body += b),
+        setSession: (s: any) => (session = s),
+        getSession: () => new Session()
+      };
+      return { http, ctx, headers, body: () => body, session: () => session };
+    };
+    try {
+      const ok = make();
+      ok.http.headers.authorization = `Bearer ${await this.bearer(["Fixture.*"], "https://mcp.example/mcp")}`;
+      assert.ok((await auth.authenticate(ok.ctx)).isLogged());
+      assert.ok(ok.session().isLogged());
+      const bad = make();
+      bad.http.headers.authorization = `Bearer ${await this.bearer(["Fixture.*"], "https://internal:8080/mcp")}`;
+      await assert.rejects(() => auth.authenticate(bad.ctx));
+      assert.strictEqual(
+        bad.headers["WWW-Authenticate"],
+        'Bearer error="invalid_token", resource_metadata="https://mcp.example/.well-known/oauth-protected-resource"'
+      );
+      const meta = make();
+      await auth.metadata(meta.ctx);
+      assert.strictEqual(JSON.parse(meta.body()).resource, "https://mcp.example/mcp");
+    } finally {
+      delete auth.getParameters().publicUrl;
+    }
   }
 
   @test

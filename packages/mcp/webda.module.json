@@ -17,6 +17,10 @@
             },
             "type": "array"
           },
+          "publicUrl": {
+            "description": "Canonical public origin of the application (absolute, e.g. `https://mcp.example.com`): the token audience and the\nadvertised resource are derived from it instead of the request headers. Set it in production, notably behind a proxy",
+            "type": "string"
+          },
           "resourceMetadataPath": {
             "default": "/.well-known/oauth-protected-resource",
             "description": "Path serving the RFC 9728 protected resource metadata",

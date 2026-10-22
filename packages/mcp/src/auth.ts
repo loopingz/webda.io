@@ -13,6 +13,12 @@ export interface McpAuthenticator {
    * @returns the caller session
    */
   authenticate(ctx: WebContext): Promise<Session>;
+
+  /**
+   * @param ctx - the HTTP request context
+   * @returns the absolute protected resource metadata URL advertised in the `WWW-Authenticate` challenge, if any
+   */
+  resourceMetadataUrl?(ctx: WebContext): string;
 }
 
 /**

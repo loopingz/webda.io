@@ -26,6 +26,7 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
+    "@webda/utils": "workspace:*",
     "antlr4-c3": "3.1.1",
     "antlr4ts": "0.5.0-alpha.4"
   },

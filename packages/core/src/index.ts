@@ -1,3 +1,4 @@
+import { registerWebdaPackage } from "@webda/utils";
 export * from "./metrics/metrics.js";
 import * as WebdaError from "./errors/errors.js";
 export { WebdaError };
@@ -166,3 +167,6 @@ export {
   type PublicKeyEntry,
   type SealedEnvelope
 } from "./sealed/index.js";
+
+// Refuse a second copy of the package, see registerWebdaPackage
+registerWebdaPackage("@webda/core", import.meta.url);

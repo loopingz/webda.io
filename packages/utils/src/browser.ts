@@ -12,6 +12,7 @@ export * from "./duration.js";
 export * from "./filesize.js";
 export * from "./freeze.js";
 export * from "./jsoncparser.js";
+export * from "./packages.js";
 export * from "./regexp.js";
 export * from "./throttler.js";
 export * from "./types.js";

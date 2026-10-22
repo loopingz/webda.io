@@ -11,6 +11,7 @@ import {
   GrpcParameters,
   GraphQLParameters,
   canCallOperation,
+  probeOperation,
   checkOperationPermission,
   checkOperationMfa,
   registerOperationAuthorizer,
@@ -18,7 +19,6 @@ import {
   listOperationAuthorizers,
   useCoreEvents
 } from "../index.js";
-import * as WebdaError from "../errors/errors.js";
 import type { OperationDefinition } from "../index.js";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
@@ -31,6 +31,7 @@ import { Application } from "../application/application.js";
 import { Session } from "../session/session.js";
 import { registerSchema } from "../schemas/hooks.js";
 import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
+import { scopeAuthorizer } from "../services/scopeauthorizer.js";
 
 /**
  * Fake operation context that allows setting custom input
@@ -968,6 +969,47 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     const ctx = await this.mfaContext("none");
     await assert.rejects(() => callOperation(ctx, "ReturnSvc.StepUpGuarded"), WebdaError.Forbidden);
     await assert.rejects(() => callOperation(ctx, "ReturnSvc.StepUpGuarded"), /PermissionDenied/);
+  }
+
+  @test
+  async probeSeparatesScopeFromPermission() {
+    registerOperation("ReturnSvc.ProbeScoped", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    registerOperation("ReturnSvc.ProbeGuarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      permission: "userId = 'alice'"
+    } as any);
+    registerOperationAuthorizer(scopeAuthorizer);
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      const session = new Session();
+      ctx.setSession(session);
+      session.scopes = ["ReturnSvc.Other"];
+      // probeReportsScopeRefusal
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.ProbeScoped"), "insufficient_scope");
+      // probeReportsPermissionDenied
+      session.scopes = undefined;
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.ProbeGuarded"), false);
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+      // probeAllowed
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.ProbeScoped"), true);
+      // canCallOperationUnchanged
+      session.scopes = ["ReturnSvc.Other"];
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.ProbeScoped"), false);
+      session.scopes = undefined;
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.ProbeGuarded"), false);
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.ProbeScoped"), true);
+    } finally {
+      unregisterOperationAuthorizer(scopeAuthorizer);
+    }
   }
 
   @test

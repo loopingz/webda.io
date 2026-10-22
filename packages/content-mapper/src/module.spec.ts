@@ -338,6 +338,28 @@ describe("module model aliases", () => {
   });
 });
 
+describe("module events under strict", () => {
+  it("lists the events of an optional [WEBDA_EVENTS]? member", () => {
+    // `strict: true` widens `[WEBDA_EVENTS]?: ModelEvents<this>` to `ModelEvents<this> | undefined`,
+    // whose union has no properties of its own: Events used to come out empty
+    const dir = join(here, "..", "test", "events-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const { module, errors } = generateWebdaModule(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Evt"
+      });
+      expect(errors).toEqual([]);
+      expect(module.models["Evt/Inherited"].Events).toEqual(["Created", "Deleted"]);
+      expect(module.models["Evt/Extended"].Events).toEqual(["Created", "Deleted", "Archived"]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
 describe("module relations", () => {
   const dir = join(here, "..", "test", "relation-fixture");
   let session: Session;

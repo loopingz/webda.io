@@ -456,15 +456,20 @@ function propertiesOf(ctx: AnalysisContext, cls: ClassDeclaration): readonly TsS
 /**
  * Names of the properties of a symbol-keyed member's type — the `Events` of
  * `[WEBDA_EVENTS]` or the declarative `Actions` of `[WEBDA_ACTIONS]`.
+ *
+ * The member is usually optional (`[WEBDA_EVENTS]?: ModelEvents<this>`): under
+ * `strictNullChecks` its type is `ModelEvents<this> | undefined`, a union with no
+ * properties of its own, so `null`/`undefined` are stripped before reading keys.
  * @param ctx - analysis context
  * @param property - the member
  * @returns property names in declaration order
  */
 function memberTypeKeys(ctx: AnalysisContext, property: TsSymbol): string[] {
   const location = valueDeclarationOf(ctx, property);
-  const type = location
+  const declared = location
     ? ctx.checker.getTypeOfSymbolAtLocation(property, location)
     : ctx.checker.getTypeOfSymbol(property);
+  const type = ctx.checker.getNonNullableType(declared);
   const keys: Record<string, true> = {};
   for (const member of ts6PropertyOrder(ctx, type, ctx.checker.getPropertiesOfType(type))) keys[member.name] = true;
   return Object.keys(keys);

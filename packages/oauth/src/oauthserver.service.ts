@@ -1183,6 +1183,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       scope: requested,
       resource: body.resource
     });
+    if (clientId.startsWith(REGISTERED_PREFIX)) await this.touchRegisteredClient(clientId);
     return this.tokenResponse(tokens, tokens.scope ?? []);
   }
 
@@ -1293,10 +1294,13 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    */
   protected async touchRegisteredClient(clientId: string): Promise<void> {
     const now = Date.now();
-    await OAuthRegisteredClient.ref(clientId).patch({
-      lastUsedAt: now,
-      expiresAt: now + this.parameters.registrationIdleTtl * 1000
-    } as any);
+    const ref = OAuthRegisteredClient.ref(clientId);
+    try {
+      await ref.patch({ lastUsedAt: now, expiresAt: now + this.parameters.registrationIdleTtl * 1000 } as any);
+    } catch (err) {
+      // Deleted concurrently (swept): nothing to extend
+      if (await ref.exists()) throw err;
+    }
   }
 
   /**

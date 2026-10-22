@@ -113,6 +113,23 @@ class RegisteredClientsTest extends OAuthTest {
   }
 
   @test
+  async refreshExtendsExpiry() {
+    await this.register();
+    const tokens = await this.dcrTokens();
+    const idle = 7776000_000;
+    await OAuthRegisteredClient.ref(CLIENT_ID).patch({ expiresAt: Date.now() + DAY } as any);
+    const before = Date.now();
+    const res = await this.tokenRequest({
+      grant_type: "refresh_token",
+      refresh_token: tokens.refresh_token,
+      client_id: CLIENT_ID
+    });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    const stored = await OAuthRegisteredClient.ref(CLIENT_ID).get();
+    assert.ok(stored.expiresAt >= before + idle && stored.expiresAt <= Date.now() + idle);
+  }
+
+  @test
   async sweepRevokesExpiredClient() {
     await this.register();
     const tokens = await this.dcrTokens();

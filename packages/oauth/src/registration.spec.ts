@@ -205,6 +205,29 @@ class RegistrationTest extends OAuthTest {
   }
 
   @test
+  async registrationPatternsCannotBeBypassed() {
+    (useService<any>("OAuthServer").getParameters() as any).registrationRedirectPatterns = ["https://*.example.com/*"];
+    for (const uri of [
+      "https://evil.com?.example.com/cb",
+      "https://evil.com\\.example.com/cb",
+      "https://evil.com:443?x.example.com/cb"
+    ]) {
+      const res = await this.register({ redirect_uris: [uri] });
+      assert.strictEqual(res.status, 400, uri);
+      assert.strictEqual(res.body.error, "invalid_redirect_uri", uri);
+    }
+    assert.strictEqual(await this.count(), 0);
+    assert.strictEqual((await this.register({ redirect_uris: ["https://app.example.com/cb"] })).status, 201);
+  }
+
+  @test
+  async registerLongPathCanonical() {
+    // A non canonical string is refused even without patterns
+    const res = await this.register({ redirect_uris: ["https://EXAMPLE.com/a/../cb"] });
+    assert.strictEqual(res.status, 400);
+  }
+
+  @test
   async registrationRateLimited() {
     for (let i = 0; i < 20; i++) {
       assert.strictEqual((await this.register({ redirect_uris: [LOOPBACK] })).status, 201, `${i}`);

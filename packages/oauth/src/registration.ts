@@ -75,7 +75,11 @@ export function parseRegistration(body: unknown, patterns?: string[]): Registrat
   if (uris.length > MAX_REDIRECT_URIS) throw invalid("invalid_redirect_uri", "Too many redirect_uris");
   for (const uri of uris) {
     if (!isAcceptableRedirect(uri)) throw invalid("invalid_redirect_uri", "Unacceptable redirect URI");
-    if (patterns && !patterns.some(p => iamGlobMatch(uri, p))) {
+    // The browser follows the parsed URL: only a canonical string is stored, and patterns match its parsed form
+    const url = new URL(uri);
+    if (url.href !== uri) throw invalid("invalid_redirect_uri", "Redirect URI must be in canonical form");
+    const target = url.host ? `${url.protocol}//${url.host}${url.pathname}` : url.href;
+    if (patterns && !patterns.some(p => iamGlobMatch(target, p))) {
       throw invalid("invalid_redirect_uri", "Redirect URI not allowed");
     }
   }

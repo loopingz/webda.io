@@ -1461,6 +1461,10 @@
             },
             "uri": {
               "type": "string"
+            },
+            "verified": {
+              "default": false,
+              "type": "boolean"
             }
           },
           "required": [

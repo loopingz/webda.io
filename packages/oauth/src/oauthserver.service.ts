@@ -28,6 +28,7 @@ import {
   Session,
   TokenInvalid,
   type TokenService,
+  union,
   useContext,
   useCore,
   useService,
@@ -119,6 +120,9 @@ export interface ConnectedSession {
   lastUsedAt?: number;
 }
 
+/** Host shown for unverified clients redirecting to the machine of the user */
+const LOCAL_APPLICATION = "local application";
+
 /** Remembered consent of the user for a client */
 export interface RememberedGrant {
   clientId: string;
@@ -133,7 +137,7 @@ export interface ConsentRequest {
   /** Authorization code or device flow */
   flow: "code" | "device";
   /** Requesting client */
-  client: { id: string; name: string; logo?: string; uri?: string; host?: string };
+  client: { id: string; name: string; logo?: string; uri?: string; host?: string; verified: boolean };
   /** Signed-in user */
   user: { id: string; name?: string };
   /** Hostname of the device requesting access */
@@ -778,7 +782,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         name: client.name,
         logo: client.logo,
         uri: client.client_uri,
-        host: client.metadataDocument ? new URL(client.id).host : undefined
+        host: client.registered ? this.redirectHost(pending.redirectUri) : this.metadataHost(client),
+        verified: !client.registered
       },
       user: { id: userId },
       hostname: pending.hostname,
@@ -787,6 +792,33 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       rememberable: pending.flow === "code" && this.parameters.rememberConsent,
       csrf: pending.csrf
     };
+  }
+
+  /**
+   * @param client - requesting client
+   * @returns the host publishing a metadata document client, undefined for the others
+   */
+  protected metadataHost(client: OAuthClient): string | undefined {
+    return client.metadataDocument ? new URL(client.id).host : undefined;
+  }
+
+  /**
+   * @param redirectUri - redirect URI of the pending request
+   * @returns where an unverified client redirects: its host, or "local application" for loopback and private-use
+   * scheme redirects
+   */
+  protected redirectHost(redirectUri: string | undefined): string | undefined {
+    if (!redirectUri) return undefined;
+    try {
+      const url = new URL(redirectUri);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return LOCAL_APPLICATION;
+      if (url.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) {
+        return LOCAL_APPLICATION;
+      }
+      return url.host;
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -837,8 +869,17 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       await this.approveDevice(pending, identity, granted);
       return { redirect: withQuery(this.pageUrl(ctx, "result"), { status: "success", client: pending.clientId }) };
     }
+    // Step-up: the still-valid remembered grant is kept, whether or not the new decision is remembered
+    const earlier = await this.rememberedScope(identity.userId, pending.clientId);
     if (remember === true && this.parameters.rememberConsent) {
       await this.remember(identity.userId, pending.clientId, granted);
+    }
+    if (earlier) {
+      // offline_access is never carried over: a refresh token is issued only when this request asked for it
+      granted = union(
+        earlier.filter(s => s !== OFFLINE_ACCESS),
+        granted
+      );
     }
     return { redirect: await this.codeRedirect(pending, identity, granted) };
   }
@@ -890,7 +931,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Remember the consent of a user for a client, replacing the previous one
+   * Remember the consent of a user for a client, adding to the previous one when still valid
    * @param userId - user
    * @param clientId - client
    * @param scope - granted scope
@@ -905,6 +946,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     };
     const ref = OAuthGrant.ref(uuid);
     if (await ref.exists()) {
+      const existing = await ref.get();
+      if (existing.expiresAt > now) update.scope = formatScope(union(parseScope(existing.scope), scope));
       await ref.patch(update);
     } else {
       await OAuthGrant.create({ uuid, userId, clientId, createdAt: now, ...update } as any);

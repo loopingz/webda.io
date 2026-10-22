@@ -159,9 +159,15 @@ const CONSENT_SCRIPT = `"use strict";
       logo.src = req.client.logo;
       head.append(logo);
     }
-    head.append(el("h1", req.client.name || req.client.id));
+    const unverified = req.client.verified === false;
+    head.append(el("h1", unverified ? "\u201c" + (req.client.name || req.client.id) + "\u201d" : req.client.name || req.client.id));
     app.append(head);
-    if (req.client.host) app.append(el("p", "Application published by " + req.client.host, "muted"));
+    if (unverified) {
+      app.append(el("p", "Unverified application: its name was chosen by whoever registered it.", "warning"));
+      if (req.client.host) app.append(el("p", "Redirects to " + req.client.host, "muted"));
+    } else if (req.client.host) {
+      app.append(el("p", "Application published by " + req.client.host, "muted"));
+    }
     if (https(req.client.uri)) {
       const link = el("a", req.client.uri);
       link.href = req.client.uri;

@@ -272,9 +272,15 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * @returns claims, or undefined when invalid/expired
    */
   async verifyAccess(token: string, options: { audience?: string | string[] } = {}): Promise<AccessClaims | undefined> {
+    const audience = options.audience === undefined ? ACCESS_AUDIENCE : options.audience;
+    // Fail closed: jsonwebtoken skips the audience check on a falsy audience
+    const audiences = Array.isArray(audience) ? audience : [audience];
+    if (!audiences.length || audiences.some(a => typeof a !== "string" || !a)) {
+      return undefined;
+    }
     let claims: AccessClaims;
     try {
-      claims = await useCrypto().jwtVerify(token, { audience: options.audience ?? ACCESS_AUDIENCE });
+      claims = await useCrypto().jwtVerify(token, { audience });
     } catch {
       return undefined;
     }

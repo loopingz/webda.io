@@ -702,4 +702,18 @@ class TokenServiceTest extends WebdaApplicationTest {
     assert.deepStrictEqual(session.scopes, ["Task.*"]);
     assert.strictEqual(session.clientId, "c");
   }
+
+  @test
+  async emptyAudienceFailsClosed() {
+    const manager = useService("SessionManager") as any;
+    const t = await this.service.issue(this.session(), undefined, {
+      clientId: "c",
+      resource: "https://app.example/mcp"
+    });
+    for (const audience of ["", [], [""], ["https://app.example/mcp", ""]]) {
+      assert.strictEqual(await this.service.verifyAccess(t.accessToken, { audience }), undefined);
+      assert.strictEqual(await manager.sessionFromAccessToken(t.accessToken, { audience }), undefined);
+    }
+    assert.ok(await this.service.verifyAccess(t.accessToken, { audience: ["x", "https://app.example/mcp"] }));
+  }
 }

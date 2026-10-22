@@ -166,7 +166,7 @@ export interface JWTOptions {
   /**
    * Audience for the jwt
    */
-  audience?: string;
+  audience?: string | string[];
   /**
    * Issuer of the token
    */

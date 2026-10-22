@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/application.js";
 import { Session } from "../session/session.js";
-import { TokenInvalid, TokenService } from "./token.service.js";
+import { InvalidTarget, TokenInvalid, TokenService } from "./token.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
 import { RevokedAccess } from "../models/revokedaccess.model.js";
 import { useService } from "../core/hooks.js";
@@ -640,5 +640,66 @@ class TokenServiceTest extends WebdaApplicationTest {
     };
     assert.strictEqual(await svc.isRevoked({ fam: "f", amr: [], mfa: "none" } as any), false);
     assert.deepStrictEqual(looked, ["fam:f"]);
+  }
+
+  @test
+  async issueBindsResource() {
+    const res = "https://app.example/mcp";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", resource: res });
+    assert.strictEqual(await this.service.verifyAccess(t.accessToken), undefined);
+    const claims = await this.service.verifyAccess(t.accessToken, { audience: res });
+    assert.strictEqual(claims.sub, "u1");
+    assert.strictEqual(claims.aud, res);
+    const stored = await RefreshToken.query(`family = '${claims.fam}'`);
+    assert.strictEqual(stored.results[0].resource, res);
+  }
+
+  @test
+  async refreshKeepsResource() {
+    const res = "https://app.example/mcp";
+    const first = await this.service.issue(this.session(), undefined, { clientId: "c", resource: res });
+    const second = await this.service.refresh(first.refreshToken, { clientId: "c", resource: res });
+    assert.strictEqual(await this.service.verifyAccess(second.accessToken), undefined);
+    assert.ok(await this.service.verifyAccess(second.accessToken, { audience: res }));
+    const third = await this.service.refresh(second.refreshToken, { clientId: "c" });
+    assert.ok(await this.service.verifyAccess(third.accessToken, { audience: res }));
+  }
+
+  @test
+  async refreshRejectsOtherResource() {
+    const first = await this.service.issue(this.session(), undefined, {
+      clientId: "c",
+      resource: "https://app.example/mcp"
+    });
+    await assert.rejects(
+      () => this.service.refresh(first.refreshToken, { clientId: "c", resource: "https://other/mcp" }),
+      (err: any) => err instanceof InvalidTarget && err.code === "invalid_target"
+    );
+    // not burnt by the rejection
+    assert.ok(await this.service.refresh(first.refreshToken, { clientId: "c" }));
+  }
+
+  @test
+  async loadFromTokenRefusesBoundToken() {
+    const manager = useService("SessionManager") as any;
+    const t = await this.service.issue(this.session(), undefined, {
+      clientId: "c",
+      resource: "https://app.example/mcp"
+    });
+    const loaded = await manager.loadFromToken(await this.newContext(), t.accessToken);
+    assert.ok(!loaded.isLogged());
+  }
+
+  @test
+  async sessionFromAccessTokenWithAudience() {
+    const manager = useService("SessionManager") as any;
+    const res = "https://app.example/mcp";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", scope: ["Task.*"], resource: res });
+    assert.strictEqual(await manager.sessionFromAccessToken(t.accessToken), undefined);
+    const session = await manager.sessionFromAccessToken(t.accessToken, { audience: res });
+    assert.ok(session.isLogged());
+    assert.strictEqual(session.stateless, true);
+    assert.deepStrictEqual(session.scopes, ["Task.*"]);
+    assert.strictEqual(session.clientId, "c");
   }
 }

@@ -85,10 +85,11 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
    * @returns the session, anonymous when the token is invalid
    */
   async loadFromToken(context: Context, token: string): Promise<Session> {
-    const session = new Session();
-    session.stateless = true;
-    const claims = await useService("TokenService").verifyAccess(token);
-    if (!claims && token) {
+    const session = await this.sessionFromAccessToken(token);
+    if (session) {
+      return session;
+    }
+    if (token) {
       for (const resolver of bearerResolvers) {
         let resolved: Session | undefined;
         try {
@@ -102,26 +103,46 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
         }
       }
     }
-    if (claims) {
-      session.login(claims.sub, claims.ident, {
-        provider: claims.provider,
-        amr: claims.amr,
-        mfa: claims.mfa,
-        mfaAt: claims.mfaAt,
-        mfaVerifications: claims.mfaVerifications
-      });
-      session.roles = claims.roles;
-      session.refreshFamily = claims.fam;
-      session.authAt = claims.authAt;
-      if (typeof claims.scope === "string") {
-        session.scopes = claims.scope.split(" ").filter(Boolean);
-      }
-      if (claims.client_id) {
-        session.clientId = claims.client_id;
-      }
-      if (await this.isOutdated(session)) {
-        session.logout();
-      }
+    const anonymous = new Session();
+    anonymous.stateless = true;
+    return anonymous;
+  }
+
+  /**
+   * Build a stateless session from a {@link TokenService} access token
+   * @param token - access token
+   * @param options - accepted audience(s), defaults to the tokens bound to no resource
+   * @param options.audience - accepted audience(s)
+   * @returns the session (anonymous when the user is outdated), undefined when the token is invalid
+   */
+  async sessionFromAccessToken(
+    token: string,
+    options: { audience?: string | string[] } = {}
+  ): Promise<Session | undefined> {
+    const claims = await useService("TokenService").verifyAccess(token, options);
+    if (!claims) {
+      return undefined;
+    }
+    const session = new Session();
+    session.stateless = true;
+    session.login(claims.sub, claims.ident, {
+      provider: claims.provider,
+      amr: claims.amr,
+      mfa: claims.mfa,
+      mfaAt: claims.mfaAt,
+      mfaVerifications: claims.mfaVerifications
+    });
+    session.roles = claims.roles;
+    session.refreshFamily = claims.fam;
+    session.authAt = claims.authAt;
+    if (typeof claims.scope === "string") {
+      session.scopes = claims.scope.split(" ").filter(Boolean);
+    }
+    if (claims.client_id) {
+      session.clientId = claims.client_id;
+    }
+    if (await this.isOutdated(session)) {
+      session.logout();
     }
     return session;
   }

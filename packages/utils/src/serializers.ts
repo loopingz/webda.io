@@ -81,7 +81,7 @@ export class NDJSonReader extends Writable {
  * Use {@link BufferWritableStream.get} to retrieve the buffer after the stream closes.
  */
 export class BufferWritableStream extends Writable {
-  chunks = [];
+  chunks: Buffer[] = [];
   buffer: Buffer;
   ends: Promise<Buffer>;
   /** Create a new BufferWritableStream. */
@@ -162,7 +162,7 @@ export class GunzipConditional extends Transform {
    * @param args - Arguments forwarded to the underlying `end()` call.
    * @returns `this`
    */
-  end(...args): this {
+  end(...args: any[]): this {
     if (this.zlib) {
       this.zlib.end(...args);
     } else {
@@ -269,7 +269,7 @@ export const FileUtils: StorageFinder & {
     depth: number = 0
   ) => {
     const files = !options.skipHidden ? readdirSync(path) : readdirSync(path).filter(f => !f.startsWith("."));
-    const fileItemCallback = async p => {
+    const fileItemCallback = async (p: string) => {
       try {
         const stat = lstatSync(p);
         if (stat.isDirectory()) {
@@ -349,7 +349,7 @@ export const FileUtils: StorageFinder & {
    * @returns array of matched file paths
    */
   find: async (currentPath: string, options: FinderOptionsType = { maxDepth: 3 }) => {
-    const found = [];
+    const found: string[] = [];
     const processor = (filepath: string) => {
       if (!options.filterPattern || options.filterPattern.test(filepath)) {
         // unless an existing regexp filter forces to skip
@@ -446,11 +446,13 @@ export const FileUtils: StorageFinder & {
     } else {
       format ??= getFormatFromFilename(filename);
     }
-    let res;
+    let res: string | Buffer;
     if (format === "yaml") {
       res = YAMLProxy.stringify(object);
     } else if (format === "json") {
       res = JSONC.stringify(object, undefined, 2);
+    } else {
+      throw new Error(`Unknown format: ${format}`);
     }
     if (filename.endsWith(".gz")) {
       res = gzipSync(res);
@@ -479,8 +481,8 @@ export const JSONUtils = {
    * @param space - Indentation: number of spaces or a string (default `2`).
    * @returns The JSON string.
    */
-  safeStringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
-    const stringified = [];
+  safeStringify: (value: any, replacer?: (key: string, value: any) => any, space: number | string = 2) => {
+    const stringified: unknown[] = [];
     return JSON.stringify(
       value,
       (key: string, val: any): any => {
@@ -509,8 +511,8 @@ export const JSONUtils = {
    * @returns The JSON string.
    */
   stringify: (
-    value,
-    replacer: (key: string, value: any) => any = undefined,
+    value: any,
+    replacer: ((key: string, value: any) => any) | undefined = undefined,
     space: number | string = 2,
     publicAudience: boolean = false
   ) => {
@@ -527,7 +529,7 @@ export const JSONUtils = {
     try {
       return JSON.stringify(value, fullReplacer, space);
     } catch (err) {
-      if (err.message && err.message.startsWith("Converting circular structure to JSON")) {
+      if (err instanceof Error && err.message.startsWith("Converting circular structure to JSON")) {
         return JSONUtils.safeStringify(value, fullReplacer, space);
       }
       throw err;
@@ -539,7 +541,7 @@ export const JSONUtils = {
    * @param value to parse
    * @returns object parsed
    */
-  parse: value => {
+  parse: (value: string) => {
     // Auto clean any noise
     return JSONC.parse(value);
   },
@@ -549,8 +551,8 @@ export const JSONUtils = {
    * @param value - The object to clone.
    * @returns A deep clone of the object.
    */
-  duplicate: value => {
-    return JSON.parse(JSONUtils.stringify(value));
+  duplicate: (value: any) => {
+    return JSON.parse(JSONUtils.stringify(value) as string);
   },
   /**
    * Load a JSON file. Shorthand for `FileUtils.load(filename, "json")`.
@@ -584,7 +586,7 @@ export const JSONUtils = {
   sortObject: (unordered: any, transformer: (obj: any) => any = a => a): any => {
     return Object.keys(unordered)
       .sort()
-      .reduce((obj, key) => {
+      .reduce<Record<string, any>>((obj, key) => {
         const res = transformer(unordered[key]);
         if (!res) {
           return obj;
@@ -629,10 +631,10 @@ export const YAMLUtils = {
    * @param value to parse
    * @returns object parsed
    */
-  parse: value => {
+  parse: (value: string) => {
     const res = yaml.parseAllDocuments(value);
     if (res.length === 1) {
-      return res.pop().toJSON();
+      return res[0].toJSON();
     }
     return res.map(d => d.toJSON());
   },
@@ -643,7 +645,14 @@ export const YAMLUtils = {
    * @param options - Stringification options as defined by https://eemeli.org/yaml/v1/#yaml-stringify
    * @returns The YAML string.
    */
-  stringify: (value, options = undefined) => {
+  stringify: (
+    value: any,
+    options?: yaml.DocumentOptions &
+      yaml.SchemaOptions &
+      yaml.ParseOptions &
+      yaml.CreateNodeOptions &
+      yaml.ToStringOptions
+  ) => {
     return yaml.stringify(value, options);
   }
 };

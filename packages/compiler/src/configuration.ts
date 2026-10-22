@@ -197,7 +197,10 @@ export function generateConfigurationSchemas(
     ? deploymentFilename
     : resolve(projectDir, deploymentFilename);
   // Build the base configuration schema structure
-  let res: JSONSchema7 = {
+  let res: JSONSchema7 & {
+    properties: NonNullable<JSONSchema7["properties"]>;
+    definitions: NonNullable<JSONSchema7["definitions"]>;
+  } = {
     type: "object",
     properties: {
       $schema: { type: "string" },
@@ -230,7 +233,7 @@ export function generateConfigurationSchemas(
     enum: Object.keys(app.getModdas() || {})
   };
   const addServiceSchema = (type: "ServiceType" | "BeanType") => {
-    return serviceType => {
+    return (serviceType: string) => {
       const key = `${type}$${serviceType.replace(/\//g, "$")}`;
       const definition: JSONSchema7 = (res.definitions[key] = app.getSchema(serviceType));
       /* should try to mock the getSchema */
@@ -242,10 +245,10 @@ export function generateConfigurationSchemas(
       if (definition.properties?.type) {
         (<JSONSchema7>definition.properties.type).pattern = getServiceTypePattern(app, serviceType);
       }
-      (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
+      ((<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf ??= []).push({
         $ref: `#/definitions/${key}`
       });
-      delete res.definitions[key]["$schema"];
+      delete definition["$schema"];
       // Flatten definition (might not be the best idea)
       for (const def in definition.definitions) {
         res.definitions[def] ??= definition.definitions[def];
@@ -253,25 +256,27 @@ export function generateConfigurationSchemas(
       delete definition.definitions;
       // Remove mandatory depending on option
       if (!full) {
-        res.definitions[key]["required"] = ["type"];
+        definition.required = ["type"];
       }
       // Predefine beans
       if (type === "BeanType") {
-        (<JSONSchema7>res.properties.services).properties ??= {};
-        res.properties.services[definition.title] = {
+        const services = <JSONSchema7>res.properties.services;
+        services.properties ??= {};
+        services.properties[definition.title ?? serviceType] = {
           $ref: `#/definitions/${key}`
         };
-        (<JSONSchema7>res.definitions[key]).required ??= [];
-        (<JSONSchema7>res.definitions[key]).required = (<JSONSchema7>res.definitions[key]).required.filter(
-          p => p !== "type"
-        );
+        definition.required = (definition.required ?? []).filter(p => p !== "type");
       }
     };
   };
   Object.keys(app.getModdas()).forEach(addServiceSchema("ServiceType"));
   Object.keys(app.getModules().beans || {}).forEach(addServiceSchema("BeanType"));
   // Model and behavior policies use their own parameter schemas, never instance input schemas.
-  const modelSchemas: JSONSchema7 = { type: "object", additionalProperties: false, properties: {} };
+  const modelSchemas: JSONSchema7 & { properties: NonNullable<JSONSchema7["properties"]> } = {
+    type: "object",
+    additionalProperties: false,
+    properties: {}
+  };
   const parameterSchema = (id: string, source?: JSONSchema7): JSONSchema7 => {
     if (!source) return { type: "object", additionalProperties: true };
     const prefix = `Parameters$${Buffer.from(id).toString("hex")}$`;
@@ -287,7 +292,11 @@ export function generateConfigurationSchemas(
   };
   const modules = app.getModules();
   for (const [id, metadata] of Object.entries(modules.models ?? {})) {
-    const behaviors: JSONSchema7 = { type: "object", additionalProperties: false, properties: {} };
+    const behaviors: JSONSchema7 & { properties: NonNullable<JSONSchema7["properties"]> } = {
+      type: "object",
+      additionalProperties: false,
+      properties: {}
+    };
     for (const relation of metadata.Relations?.behaviors ?? []) {
       behaviors.properties[relation.attribute] = parameterSchema(
         `${id}/${relation.attribute}`,
@@ -339,7 +348,7 @@ export function generateConfigurationSchemas(
       return;
     }
     const key = `Service$${k}`;
-    (<JSONSchema7>res.properties.services).properties[k] = {
+    ((<JSONSchema7>res.properties.services).properties ??= {})[k] = {
       type: "object",
       oneOf: [
         { $ref: `#/definitions/${key}` },
@@ -359,7 +368,7 @@ export function generateConfigurationSchemas(
     if (definition.properties?.type) {
       (<JSONSchema7>definition.properties.type).pattern = getServiceTypePattern(app, serviceType);
     }
-    (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({
+    ((<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf ??= []).push({
       $ref: `#/definitions/${key}`
     });
     delete definition["$schema"];

@@ -869,12 +869,13 @@ export class WebdaProject {
       throw new Error(`Invalid folder ${folder}`);
     }
     this.packageDescription = JSON.parse(readFileSync(join(folder, "package.json")).toString());
-    this.namespace = this.packageDescription.webda?.namespace;
-    if (!this.namespace && this.packageDescription.name.startsWith("@")) {
-      this.namespace = this.packageDescription.name.split("/")[0].substring(1);
-      this.namespace = this.namespace.charAt(0).toUpperCase() + this.namespace.slice(1);
+    const name = this.packageDescription.name ?? "";
+    let namespace = this.packageDescription.webda?.namespace;
+    if (!namespace && name.startsWith("@")) {
+      namespace = name.split("/")[0].substring(1);
+      namespace = namespace.charAt(0).toUpperCase() + namespace.slice(1);
     }
-    this.namespace ??= "Webda";
+    this.namespace = namespace ?? "Webda";
   }
 
   /**

@@ -103,7 +103,7 @@ export class WebdaMorpher {
     const sourceFile = typeof input === "string" ? this.project.addSourceFileAtPath(input) : input;
 
     for (const key in this.modules) {
-      if (this.options.modules.includes(key)) {
+      if (this.options.modules?.includes(key)) {
         this.modules[key](sourceFile);
       }
     }

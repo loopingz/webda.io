@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "25.5.0",
+    "@types/yargs": "^17.0.35",
     "@webda/test": "workspace:*",
     "eslint": "^10.1.0",
     "eslint-plugin-import": "^2.32.0",

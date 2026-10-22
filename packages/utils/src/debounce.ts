@@ -104,8 +104,9 @@ export function debounce<T extends (...args: any[]) => any>(
 
     lastArgs = lastThis = undefined;
     lastInvokeTime = time;
-    result = func.apply(thisArg, args);
-    return result;
+    const value: ReturnType<T> = func.apply(thisArg, args);
+    result = value;
+    return value;
   }
 
   /**

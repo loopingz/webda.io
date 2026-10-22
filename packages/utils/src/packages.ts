@@ -34,8 +34,8 @@ const WEBDA_ALLOW_DUPLICATE_PACKAGES = "WEBDA_ALLOW_DUPLICATE_PACKAGES";
  * @returns the registry
  */
 function getRegistry(): Map<string, WebdaPackageInfo> {
-  globalThis[REGISTRY] ??= new Map<string, WebdaPackageInfo>();
-  return globalThis[REGISTRY];
+  const sharedGlobal = globalThis as typeof globalThis & { [REGISTRY]?: Map<string, WebdaPackageInfo> };
+  return (sharedGlobal[REGISTRY] ??= new Map<string, WebdaPackageInfo>());
 }
 
 /**

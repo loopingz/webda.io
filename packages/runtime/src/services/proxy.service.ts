@@ -214,17 +214,24 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   getRequestHeaders(context: HttpContext) {
     const headers = { ...context.getHeaders() };
     if (this.parameters.proxyHeaders) {
-      let xff = context.getHeader("x-forwarded-for");
-      if (!xff) {
-        xff += `, ${context.getClientIp()}`;
-      } else {
-        xff = context.getClientIp();
-      }
+      const existing = context.getHeader("x-forwarded-for");
+      const previous = Array.isArray(existing) ? existing.join(", ") : existing;
+      // Append the client to the chain built by upstream proxies, or start the chain
+      const xff = previous ? `${previous}, ${context.getClientIp()}` : context.getClientIp();
       const protocol = context.getProtocol();
-      headers["X-Rewrite-URL"] = context.getRelativeUri();
-      headers["X-Forwarded-Host"] = context.getHeader("x-forwarded-host", `${context.getHost()}`);
-      headers["X-Forwarded-Proto"] = context.getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1));
-      headers["X-Forwarded-For"] = xff;
+      const forwarded = {
+        "X-Rewrite-URL": context.getRelativeUri(),
+        // Keep the values set by an upstream proxy, they describe the original request
+        "X-Forwarded-Host": context.getHeader("x-forwarded-host", `${context.getHost()}`),
+        "X-Forwarded-Proto": context.getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
+        "X-Forwarded-Port": context.getHeader("x-forwarded-port", `${context.getPortNumber()}`),
+        "X-Forwarded-For": xff
+      };
+      for (const name in forwarded) {
+        // Incoming headers are lowercased: drop them so only one casing is forwarded
+        delete headers[name.toLowerCase()];
+        headers[name] = forwarded[name];
+      }
     }
     return headers;
   }

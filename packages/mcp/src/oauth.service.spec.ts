@@ -4,9 +4,11 @@ import {
   HttpContext,
   listOperationAuthorizers,
   listProtectedResources,
+  registerOperation,
   registerOperationAuthorizer,
   Session,
   unregisterOperationAuthorizer,
+  useInstanceStorage,
   useService
 } from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
@@ -397,6 +399,29 @@ class McpOAuthTest extends McpOAuthBase {
       await client.close();
     } finally {
       mcp.getParameters().listOutOfScopeTools = false;
+    }
+  }
+
+  @test
+  async oauthOperationsNeverOutOfScope() {
+    // The Webda authorization server never delegates the OAuth operations: a wider grant cannot cover them
+    registerOperation("OAuth.Fixture", { service: "Fixture", method: "version", input: "void", output: "void" });
+    const mcp = useService("Mcp") as McpService;
+    mcp.getParameters().listOutOfScopeTools = true;
+    try {
+      const token = await this.bearer(["Fixture.Echo"]);
+      const client = await this.client(token);
+      const names = (await client.listTools()).tools.map(t => t.name);
+      assert.ok(names.includes("Fixture.Version"), names.join(" "));
+      assert.ok(!names.includes("OAuth.Fixture"), names.join(" "));
+      await assert.rejects(() => client.callTool({ name: "OAuth.Fixture", arguments: {} }), /Unknown tool/);
+      await client.close();
+      const res = await this.rawCall(token, this.callRequest("OAuth.Fixture"));
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers.get("www-authenticate"), null);
+    } finally {
+      mcp.getParameters().listOutOfScopeTools = false;
+      delete useInstanceStorage().operations["OAuth.Fixture"];
     }
   }
 

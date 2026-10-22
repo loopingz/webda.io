@@ -11,6 +11,7 @@ import {
   type WebContext
 } from "@webda/core";
 import type { McpAuthenticator } from "./auth.js";
+import { isDelegable } from "./server.js";
 
 /**
  * McpOAuthAuthenticator parameters
@@ -203,7 +204,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
     if (this.parameters.scopesSupported) return this.parameters.scopesSupported;
     const groups = new Set(
       Object.keys(listOperations())
-        .filter(id => !id.startsWith("OAuth."))
+        .filter(isDelegable)
         .map(id => `${id.split(".")[0]}.*`)
     );
     return ["*", ...groups, OFFLINE_ACCESS];

@@ -48,6 +48,16 @@ export const INSUFFICIENT_SCOPE = -32001;
 export type ToolAccess = "allowed" | "out_of_scope" | "denied";
 
 /**
+ * The Webda authorization server never delegates its own `OAuth.*` operations (they manage consent and only serve
+ * browser sessions): no grant can cover them
+ * @param operationId - operation
+ * @returns true when a delegated token may be granted the operation
+ */
+export function isDelegable(operationId: string): boolean {
+  return !operationId.startsWith("OAuth.");
+}
+
+/**
  * Copy a session without any link to the original: the request session may be a change-tracking
  * Proxy whose writes (even through a prototype view) land on the real session
  * @param session - session to copy, plain or proxied
@@ -85,7 +95,8 @@ export async function toolAccess(context: SimpleOperationContext, operationId: s
   if (result === true) {
     return "allowed";
   }
-  if (result !== "insufficient_scope") {
+  // A grant that can never be obtained is not worth a step-up challenge
+  if (result !== "insufficient_scope" || !isDelegable(operationId)) {
     return "denied";
   }
   // Probe again as if the scope covered the operation, on a copy: the caller's session is never written

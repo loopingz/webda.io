@@ -187,10 +187,10 @@ function processServiceOperations(mod: WebdaModule, result: OperationsExportForm
   // Collect all service/bean class names (short names without namespace)
   const serviceClasses = new Set<string>();
   for (const key of Object.keys(mod.beans || {})) {
-    serviceClasses.add(key.split("/").pop());
+    serviceClasses.add(key.split("/").at(-1) ?? key);
   }
   for (const key of Object.keys(mod.moddas || {})) {
-    serviceClasses.add(key.split("/").pop());
+    serviceClasses.add(key.split("/").at(-1) ?? key);
   }
 
   // Find operation schemas that belong to services/beans (not models)
@@ -213,11 +213,10 @@ function processServiceOperations(mod: WebdaModule, result: OperationsExportForm
     const capitalized = methodName.charAt(0).toUpperCase() + methodName.slice(1);
     const opId = `${className}.${capitalized}`;
 
-    if (!detectedOps.has(opId)) {
-      detectedOps.set(opId, {});
-    }
-    const op = detectedOps.get(opId);
-    op[kind] = schemaName;
+    const op = detectedOps.get(opId) ?? {};
+    if (kind === "input") op.input = schemaName;
+    else op.output = schemaName;
+    detectedOps.set(opId, op);
   }
 
   // Register detected operations

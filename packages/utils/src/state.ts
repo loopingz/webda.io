@@ -45,7 +45,7 @@ function doAfter(result: Function, callback: (err?: any) => void) {
   try {
     result = result();
     if (result instanceof Promise) {
-      let err = undefined;
+      let err: unknown;
       return result
         .catch(error => {
           err = error;
@@ -147,24 +147,25 @@ State.getCurrentState = function getCurrentState(target: any): string {
 State.getStateStatus = function getStateStatus(target: any): StateStatus {
   let stateMap = States.get(target);
   if (!stateMap) {
-    stateMap = {
+    const initial: StateStatus = {
       state: "initial",
       lastTransition: Date.now(),
       transitions: [],
       updateState: (newState: string, exception?: any) => {
         const now = Date.now();
-        stateMap.transitions.push({
-          step: stateMap.state,
-          duration: now - (stateMap.lastTransition ?? now),
+        initial.transitions.push({
+          step: initial.state,
+          duration: now - (initial.lastTransition ?? now),
           exception,
           endTime: now,
-          startTime: stateMap.lastTransition ?? now
+          startTime: initial.lastTransition ?? now
         });
-        stateMap.state = newState;
-        stateMap.lastTransition = now;
+        initial.state = newState;
+        initial.lastTransition = now;
       }
     };
-    States.set(target, stateMap);
+    stateMap = initial;
+    States.set(target, initial);
   }
   return stateMap;
 };

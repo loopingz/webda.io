@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as k8s from "@kubernetes/client-node";
 import * as WebdaQL from "@webda/ql";
-import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkAggregation, checkCount, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import {
   EventRepository,
   MemoryRepository,
@@ -208,6 +208,11 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
   @test
   async aggregationConformance() {
     await checkAggregation(this.repository(Item) as any, { native: false });
+  }
+
+  @test
+  async countConformance() {
+    await checkCount(this.repository(Item) as any, { native: false });
   }
 
   @test

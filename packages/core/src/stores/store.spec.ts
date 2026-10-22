@@ -9,7 +9,7 @@ import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel, useRepository } from "@webda/models";
-import { checkAggregation } from "../test/index.js";
+import { checkAggregation, checkCount } from "../test/index.js";
 import { useCore } from "../core/hooks.js";
 import { useApplication, useParameters } from "../application/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
@@ -856,6 +856,12 @@ class StoreAggregationTest extends WebdaApplicationTest {
   async aggregationConformance() {
     const store = new MemoryStore("aggregation", { models: [] } as any);
     await checkAggregation(store.getRepository(AggregationRow as any), { native: true });
+  }
+
+  @test
+  async countConformance() {
+    const store = new MemoryStore("count", { models: [] } as any);
+    await checkCount(store.getRepository(AggregationRow as any), { native: true });
   }
 
   @test

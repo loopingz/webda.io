@@ -23,6 +23,7 @@ import {
   hasModelPermissionCheck,
   hasStaticPermissionCheck,
   NOT_FOUND_MESSAGE,
+  QUERY_TOTAL_SCHEMA,
   queryModelWithPermissions
 } from "../models/permissions.js";
 
@@ -294,6 +295,9 @@ export class DomainService<
       properties: {
         query: {
           type: "string"
+        },
+        count: {
+          type: "boolean"
         }
       }
     }
@@ -516,9 +520,10 @@ export class DomainService<
   /**
    * Query models
    * @param query - the query string
+   * @param count - also return the total of the query (`total`), when the model allows it
    * @returns the query results
    */
-  async modelQuery(query: string): Promise<any> {
+  async modelQuery(query: string, count?: boolean): Promise<any> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
     if (query !== undefined && query !== null && typeof query !== "string") {
@@ -526,7 +531,7 @@ export class DomainService<
     }
     return runWithContext(context, async () => {
       try {
-        return await queryModelWithPermissions(model, query, context);
+        return await queryModelWithPermissions(model, query, context, { count: count === true });
       } catch (err) {
         if (err instanceof SyntaxError) {
           this.log("INFO", "Query syntax error");
@@ -771,7 +776,8 @@ export class DomainService<
         type: "object",
         properties: {
           continuationToken: { type: "string" },
-          results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } }
+          results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } },
+          total: structuredClone(QUERY_TOTAL_SCHEMA)
         }
       };
       if (!hasSchema(queryResultSchemaName)) {

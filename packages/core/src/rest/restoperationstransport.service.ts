@@ -21,6 +21,7 @@ import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
+import { QUERY_TOTAL_SCHEMA } from "../models/permissions.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
 import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
@@ -609,6 +610,10 @@ export class RESTOperationsTransport<
                       properties: {
                         q: {
                           type: "string"
+                        },
+                        count: {
+                          type: "boolean",
+                          description: "Also return the total of the query (first page only)"
                         }
                       }
                     }
@@ -624,6 +629,14 @@ export class RESTOperationsTransport<
                   description: "Query to execute",
                   schema: {
                     type: "string"
+                  }
+                },
+                {
+                  name: "count",
+                  in: "query",
+                  description: "Also return the total of the query (first page only)",
+                  schema: {
+                    type: "boolean"
                   }
                 }
               ]
@@ -643,6 +656,11 @@ export class RESTOperationsTransport<
                       items: {
                         $ref: `#/components/schemas/${identifier}`
                       }
+                    },
+                    total: {
+                      ...structuredClone(QUERY_TOTAL_SCHEMA),
+                      description:
+                        "Total of the query, when asked with count and allowed by the model: with relation gte, the total is at least value"
                     }
                   }
                 }
@@ -660,10 +678,11 @@ export class RESTOperationsTransport<
     };
 
     this.addRoute(
-      `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
+      `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?,count?}" : ""}`,
       [this.parameters.queryMethod],
       async (context: WebContext) => {
         let queryString = "";
+        let count: unknown;
         const parentId = `pid.${depth - 1}`;
         if (context.getHttpContext().getMethod() === "PUT") {
           const input = await context.getInput();
@@ -677,9 +696,15 @@ export class RESTOperationsTransport<
             throw new WebdaError.BadRequest("Query body must be a JSON object");
           }
           queryString = input?.q ?? "";
+          count = input?.count;
           context.clearInput();
+          if (count !== undefined && typeof count !== "boolean") {
+            throw new WebdaError.BadRequest("count must be a boolean");
+          }
         } else {
           queryString = context.parameter("q", "");
+          // "true" / "1" are coerced by the operation input schema, other values are refused
+          count = context.parameter("count");
         }
         if (typeof queryString !== "string") {
           throw new WebdaError.BadRequest("Query must be a string");
@@ -697,6 +722,9 @@ export class RESTOperationsTransport<
           query.merge(bind(`${injectAttribute} = ?`, [context.parameter(parentId)]));
         }
         context.getParameters().query = query.toString();
+        if (count !== undefined) {
+          context.getParameters().count = count;
+        }
         return callOperation(context, operationId);
       },
       openapi

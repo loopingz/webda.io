@@ -9,7 +9,7 @@ import {
   UpdateConditionFailError,
   useModelMetadata
 } from "@webda/core";
-import type { ModelClass, Repository } from "@webda/core";
+import type { CountResult, ModelClass, Repository } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 import { Collection, Db, DbOptions, Document, MongoClient } from "mongodb";
 
@@ -543,6 +543,16 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
       return { rows: new WebdaQL.Aggregator(query).rows(), native: true };
     }
     return { rows, native: true };
+  }
+
+  /** @override — `countDocuments`, with a limit of max + 1 for a capped count */
+  protected async executeCount(filter: WebdaQL.Expression, max?: number): Promise<CountResult> {
+    const n = await (
+      await this.getCollection()
+    ).countDocuments(this.buildFilter(filter), max !== undefined ? { limit: max + 1 } : {});
+    return max !== undefined && n > max
+      ? { value: max, relation: "gte", native: true }
+      : { value: n, relation: "eq", native: true };
   }
 
   /** @override — translate the WebdaQL query to a MongoDB find */

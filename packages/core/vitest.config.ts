@@ -8,6 +8,8 @@ export default defineConfig({
   plugins: [webdaContentMapper()],
   test: {
     allowOnly: true,
+    // Integration fixtures use the compiled core while specs exercise its sources.
+    env: { WEBDA_ALLOW_DUPLICATE_PACKAGES: "1" },
     testTimeout: 20000,
     hookTimeout: 60000,
     coverage: {

@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { debounce } from "./debounce.js";
 
 @suite
@@ -337,36 +338,26 @@ export class DebounceTest {
   }
 
   @test
-  async "should handle maxWait in tight loop"() {
-    let callCount = 0;
-    const debouncedFunc = debounce(
-      () => {
-        callCount++;
-      },
-      50,
-      { maxWait: 100 }
-    );
+  "should handle maxWait in tight loop"() {
+    vi.useFakeTimers();
+    try {
+      let callCount = 0;
+      const debouncedFunc = debounce(() => callCount++, 50, { maxWait: 100 });
 
-    // Call rapidly to trigger maxWait behavior
-    debouncedFunc();
-    await this.wait(25);
-    debouncedFunc();
-    await this.wait(25);
-    debouncedFunc();
-    await this.wait(25);
-    debouncedFunc();
-
-    // Wait enough time for maxWait to trigger
-    await this.wait(50);
-
-    // Should have been called once due to maxWait
-    assert.strictEqual(callCount, 1);
-
-    // Now stop calling and wait for trailing edge
-    await this.wait(100);
-
-    // Trailing edge should have fired
-    assert.ok(callCount >= 1);
+      debouncedFunc();
+      for (let i = 0; i < 3; i++) {
+        vi.advanceTimersByTime(25);
+        debouncedFunc();
+      }
+      vi.advanceTimersByTime(24);
+      assert.strictEqual(callCount, 0);
+      vi.advanceTimersByTime(1);
+      assert.strictEqual(callCount, 1);
+      vi.advanceTimersByTime(100);
+      assert.strictEqual(callCount, 1);
+    } finally {
+      vi.useRealTimers();
+    }
   }
 
   @test

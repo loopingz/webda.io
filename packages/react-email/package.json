@@ -1,0 +1,80 @@
+{
+  "name": "@webda/react-email",
+  "version": "4.0.0-beta.11",
+  "description": "React Email components as Webda templates",
+  "keywords": [
+    "react-email",
+    "templates",
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/react-email"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
+    "pretest": "npm run build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
+  },
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/templates": "workspace:*"
+  },
+  "files": [
+    "lib",
+    "test",
+    "webda.module.json"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "devDependencies": {
+    "@react-email/components": "^0.4.0",
+    "@react-email/render": "^1.4.0",
+    "@types/node": "25.5.0",
+    "@types/react": "^19.0.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@webda/compiler": "workspace:^",
+    "@webda/test": "workspace:*",
+    "@webda/workout": "workspace:*",
+    "jscodeshift": "^17.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "skott": "^0.35.8",
+    "tsx": "^4.21.0",
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core",
+      "@webda/templates"
+    ]
+  },
+  "license": "LGPL-3.0-only",
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@react-email/render": "^1.4.0"
+  }
+}

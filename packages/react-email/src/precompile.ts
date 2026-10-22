@@ -12,12 +12,12 @@ export interface PrecompileOptions {
    * Folder containing the emails
    * @default "./emails"
    */
-  source: string;
+  source?: string;
   /**
    * Folder where the mustache templates are written
    * @default "./templates"
    */
-  output: string;
+  output?: string;
   /**
    * Pretty print the html
    * @default true

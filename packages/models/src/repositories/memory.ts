@@ -12,6 +12,9 @@ import {
 } from "@webda/serialize";
 import { AbstractRepository } from "./abstract.js";
 import { Repository, WEBDA_TEST } from "./repository.js";
+import { TypeIndexedMap } from "./typeindexedmap.js";
+
+export { TypeIndexedMap } from "./typeindexedmap.js";
 
 /**
  * Parsed query structure expected from the WebdaQL parser.
@@ -55,11 +58,12 @@ export class MemoryRepository<
    * @param model - The model class constructor
    * @param pks - Primary key field names
    * @param separator - Composite key separator (default: "_")
-   * @param map - Optional pre-existing Map to use as storage backend
+   * @param map - Optional pre-existing Map to use as storage backend; a {@link TypeIndexedMap} lets queries skip
+   *   the entries of other models without parsing them
    */
   constructor(model: T, pks: string[], separator?: string, map?: K) {
     super(model, pks, separator);
-    this.storage = map || (new Map<string, string>() as K);
+    this.storage = map || (new TypeIndexedMap() as unknown as K);
   }
   /** @override */
   async get(
@@ -465,13 +469,20 @@ export class MemoryRepository<
    * `__type` belongs to the model (legacy forms included). Untyped entries, and entries typed as a strict ancestor
    * of the table root, belong to the table root and its ancestors. Unreadable entries are kept so their error
    * surfaces.
+   *
+   * A {@link TypeIndexedMap} storage answers from its type index: only the keys of the model are visited. Any other
+   * Map-like storage is scanned, parsing every entry.
    * @param ids - class identifiers (model and subclasses), undefined to keep everything
    * @returns the keys to evaluate
    */
   protected listKeysOfModel(ids?: string[]): string[] {
-    const keys = [...this.storage.keys()];
-    if (!ids) return keys;
-    return keys.filter(key => {
+    if (!ids) return [...this.storage.keys()];
+    // Duck-typed: the map may come from another copy of this module
+    if (typeof (this.storage as any).keysOfTypes === "function") {
+      // Legacy forms resolve to their model; untyped and ancestor-typed rows belong to the table root and ancestors
+      return (this.storage as unknown as TypeIndexedMap).keysOfTypes(type => this.belongsToModel(type));
+    }
+    return [...this.storage.keys()].filter(key => {
       const raw = this.storage.get(key);
       if (typeof raw !== "string") return true;
       let type: unknown;
@@ -481,7 +492,6 @@ export class MemoryRepository<
         // Unreadable: kept so the error surfaces
         return true;
       }
-      // Legacy forms resolve to their model; untyped and ancestor-typed rows belong to the table root and ancestors
       return this.belongsToModel(typeof type === "string" ? type : undefined);
     });
   }

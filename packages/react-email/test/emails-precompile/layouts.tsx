@@ -11,13 +11,32 @@ import {
   Preview,
   Section,
   Text,
-  Button as LibButton,
+  Button as LibButton
 } from "@react-email/components";
 import React from "react";
 
-export function Button({ href, children, style }: { href: string; children: React.ReactNode; style?: React.CSSProperties }) {
+export function Button({
+  href,
+  children,
+  style
+}: {
+  href: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
   return (
-    <LibButton href={href} style={{ ...style, backgroundColor: "#000091", color: "#fff", padding: "12px 20px", borderRadius: "4px", textDecoration: "none", display: "inline-block" }}>
+    <LibButton
+      href={href}
+      style={{
+        ...style,
+        backgroundColor: "#000091",
+        color: "#fff",
+        padding: "12px 20px",
+        borderRadius: "4px",
+        textDecoration: "none",
+        display: "inline-block"
+      }}
+    >
       {children}
     </LibButton>
   );
@@ -26,7 +45,7 @@ export function Button({ href, children, style }: { href: string; children: Reac
 export default function DefaultLayout({
   title,
   children,
-  upperSectionContent,
+  upperSectionContent
 }: {
   title: string;
   children: React.ReactNode;
@@ -60,8 +79,7 @@ export default function DefaultLayout({
             </Section>
           </Section>
           <Text style={footerText}>
-            This message was produced and distributed by Example Club.
-            If you have any questions, please contact us at{" "}
+            This message was produced and distributed by Example Club. If you have any questions, please contact us at{" "}
             <Link href="mailto:contact@example.com" style={link}>
               contact@example.com
             </Link>
@@ -74,14 +92,14 @@ export default function DefaultLayout({
 
 const main = {
   backgroundColor: "#fff",
-  color: "#212121",
+  color: "#212121"
 };
 
 const container = {
   padding: "20px",
   margin: "0 auto",
   backgroundColor: "#eee",
-  maxWidth: "1280px",
+  maxWidth: "1280px"
 };
 
 const h1 = {
@@ -90,19 +108,19 @@ const h1 = {
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
   fontSize: "20px",
   fontWeight: "bold",
-  marginBottom: "15px",
+  marginBottom: "15px"
 };
 
 const outerFrame = {
   border: "4px solid #000091",
   padding: "10px",
-  backgroundColor: "#fff",
+  backgroundColor: "#fff"
 };
 
 const innerFrame = {
   border: "4px solid #E20010",
   padding: "0",
-  backgroundColor: "#fff",
+  backgroundColor: "#fff"
 };
 
 const imageSection = {
@@ -110,21 +128,19 @@ const imageSection = {
   display: "flex",
   padding: "20px",
   alignItems: "center",
-  justifyContent: "center",
+  justifyContent: "center"
 };
 
 const coverSection = { backgroundColor: "#fff" };
 
 const upperSection = { padding: "25px 35px" };
 
-const lowerSection = { padding: "25px 35px" };
-
 const link = {
   color: "#2754C5",
   fontFamily:
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
   fontSize: "14px",
-  textDecoration: "underline",
+  textDecoration: "underline"
 };
 
 const text = {
@@ -132,11 +148,11 @@ const text = {
   fontFamily:
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
   fontSize: "14px",
-  margin: "24px 0",
+  margin: "24px 0"
 };
 
 const footerText = {
   ...text,
   fontSize: "12px",
-  padding: "0 20px",
+  padding: "0 20px"
 };

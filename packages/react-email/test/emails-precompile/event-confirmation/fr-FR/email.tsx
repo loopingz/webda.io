@@ -1,10 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */
-import {
-  Column,
-  Row,
-  Section,
-  Text,
-} from "@react-email/components";
+import { Column, Row, Section, Text } from "@react-email/components";
 import DefaultLayout from "../../layouts";
 
 interface EventConfirmationProps {
@@ -24,20 +19,18 @@ export default function EventConfirmation({
   eventDate,
   eventTime,
   numberOfChildren,
-  locale,
+  locale
 }: EventConfirmationProps) {
   return (
     <DefaultLayout
       title={EventConfirmation.Subject}
       upperSectionContent={
         <>
-          <Text style={mainText}>
-            Bonjour {firstName},
-          </Text>
+          <Text style={mainText}>Bonjour {firstName},</Text>
           <Text style={mainText}>Locale: {locale}</Text>
           <Text style={mainText}>
-            C'est confirmé ! Votre inscription à <strong>{eventName}</strong> est validée.
-            Nous avons hâte de vous y voir.
+            C'est confirmé ! Votre inscription à <strong>{eventName}</strong> est validée. Nous avons hâte de vous y
+            voir.
           </Text>
         </>
       }
@@ -81,9 +74,7 @@ export default function EventConfirmation({
             </Column>
           </Row>
         </Section>
-        <Text style={footNote}>
-          Pour toute question, répondez simplement à cet email. À bientôt !
-        </Text>
+        <Text style={footNote}>Pour toute question, répondez simplement à cet email. À bientôt !</Text>
       </Section>
     </DefaultLayout>
   );
@@ -95,7 +86,7 @@ EventConfirmation.PreviewProps = {
   eventLocation: "Example Cafe, Springfield",
   eventDate: "25 mars 2026",
   eventTime: "10:00 AM - 10:30 AM",
-  numberOfChildren: "2",
+  numberOfChildren: "2"
 } satisfies EventConfirmationProps;
 
 EventConfirmation.Subject = "Vous êtes inscrit !";
@@ -105,7 +96,7 @@ const text = {
   fontFamily:
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
   fontSize: "14px",
-  margin: "24px 0",
+  margin: "24px 0"
 };
 
 const lowerSection = { padding: "25px 35px" };
@@ -118,22 +109,22 @@ const infoPanel = {
   backgroundColor: "#000091",
   borderRadius: "12px",
   padding: "16px 24px",
-  margin: "0 0 16px 0",
+  margin: "0 0 16px 0"
 };
 
 const infoRow = {
-  marginBottom: "8px",
+  marginBottom: "8px"
 };
 
 const infoItem = {
   width: "40px",
-  verticalAlign: "top" as const,
+  verticalAlign: "top" as const
 };
 
 const infoIcon = {
   fontSize: "20px",
   margin: "0",
-  lineHeight: "1",
+  lineHeight: "1"
 };
 
 const infoLabel = {
@@ -142,7 +133,7 @@ const infoLabel = {
   letterSpacing: "1px",
   color: "rgba(255,255,255,0.7)",
   margin: "0",
-  fontFamily: text.fontFamily,
+  fontFamily: text.fontFamily
 };
 
 const infoValue = {
@@ -150,5 +141,5 @@ const infoValue = {
   fontSize: "15px",
   color: "#fff",
   margin: "2px 0 8px 0",
-  fontFamily: text.fontFamily,
+  fontFamily: text.fontFamily
 };

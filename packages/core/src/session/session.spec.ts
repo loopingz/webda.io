@@ -93,6 +93,11 @@ class SessionTest {
     const before = Date.now();
     session.markMfaVerified(["totp"]);
     assert.ok(session.mfaAt >= before && session.mfaAt <= Date.now());
+    // A session without methods yet starts its list with the verified ones
+    const fresh = new Session();
+    fresh.markMfaVerified(["totp"], 1000);
+    assert.deepStrictEqual(fresh.amr, ["totp"]);
+    assert.strictEqual(fresh.mfaAge(1500), 500);
   }
 
   @test

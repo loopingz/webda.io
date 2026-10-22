@@ -12,6 +12,7 @@ import {
   GraphQLParameters,
   canCallOperation,
   checkOperationPermission,
+  checkOperationMfa,
   registerOperationAuthorizer,
   unregisterOperationAuthorizer,
   listOperationAuthorizers,
@@ -873,6 +874,7 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     session.login("alice", "alice");
     assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Guarded"), true);
     assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+    assert.throws(() => checkOperationMfa(ctx, "ReturnSvc.DoesNotExist"), WebdaError.NotFound);
   }
 
   /**
@@ -910,6 +912,7 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
       let ctx = await this.mfaContext("verified", now - 60000);
       assert.strictEqual(checkOperationPermission(ctx, id), true);
       assert.strictEqual(await canCallOperation(ctx, id), true);
+      checkOperationMfa(ctx, id);
       await callOperation(ctx, id);
       // Stale second factor: step-up required, with the max age in seconds
       ctx = await this.mfaContext("verified", now - 11 * 60000);

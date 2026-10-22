@@ -367,21 +367,35 @@ export class DomainService<
   }
 
   /**
+   * The model input of a create, update or patch: always the full request body
+   *
+   * The CRUD methods take no argument: resolveArguments spreads the model schema's properties into positional args, so
+   * the first one is only the value of the first property, which may itself be an object or an array (#911).
+   *
+   * An empty body (undefined) is accepted as "no fields"; any other body that is not a plain object (array, string,
+   * number, boolean or null) is refused.
+   * @param context - the operation context
+   * @returns the request body
+   * @throws BadRequest when the body is not an object
+   */
+  protected async getModelInput(context: OperationContext): Promise<any> {
+    const input = await context.getInput();
+    if (input !== undefined && (typeof input !== "object" || input === null || Array.isArray(input))) {
+      throw new WebdaError.BadRequest("Model input must be an object");
+    }
+    return input;
+  }
+
+  /**
    * Create a model operation implementation
-   * @param input - the model data to create
+   *
+   * The model data is the request body ({@link getModelInput})
    * @returns the created model instance
    */
-  async modelCreate(input: any): Promise<Model> {
+  async modelCreate(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    // resolveArguments spreads the model schema's properties into positional args,
-    // so what lands here as `input` may be a single property value (e.g. slug string)
-    // rather than the full body. Also handles the no-schema fallback where the
-    // OperationContext itself is passed. In all non-object cases, read the raw input.
-    if (typeof input !== "object" || input === null || input instanceof OperationContext) {
-      input = await context.getInput();
-    }
-    input = prepareCreateInput(model, input);
+    const input = prepareCreateInput(model, await this.getModelInput(context));
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
@@ -462,23 +476,17 @@ export class DomainService<
 
   /**
    * Update a model operation implementation
-   * @param uuid - the model primary key
-   * @param input - the update data (may be undefined if schema was not resolvable)
+   *
+   * The update data is the request body ({@link getModelInput})
    * @returns the updated model instance
    */
-  async modelUpdate(input?: any): Promise<Model> {
+  async modelUpdate(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model, pkFields } = context.getExtension<{
       model: ModelClass<Model>;
       pkFields?: string[];
     }>("operationContext");
-    // resolveArguments spreads all model schema properties as positional args.
-    // The first arg becomes the first property value (often the PK value).
-    // Fall back to context for both PK and input when needed.
-    if (typeof input !== "object" || input === null) {
-      input = await context.getInput();
-    }
-    input = sanitizeModelInput(model, input);
+    const input = sanitizeModelInput(model, await this.getModelInput(context));
     // Resolve the PK from the URL params (or the body) using the model's actual PK fields;
     // fall back to "uuid" for legacy operations without pkFields in the context.
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
@@ -544,20 +552,17 @@ export class DomainService<
 
   /**
    * Patch a model
-   * @param uuid - the model primary key
-   * @param input - the partial update data (may be undefined if schema was not resolvable)
+   *
+   * The partial update data is the request body ({@link getModelInput})
    * @returns the patched model instance
    */
-  async modelPatch(input?: any): Promise<Model> {
+  async modelPatch(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model, pkFields } = context.getExtension<{
       model: ModelClass<Model>;
       pkFields?: string[];
     }>("operationContext");
-    if (typeof input !== "object" || input === null) {
-      input = await context.getInput();
-    }
-    input = sanitizeModelInput(model, input);
+    const input = sanitizeModelInput(model, await this.getModelInput(context));
     // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
     const object = await this.loadModel(model, pk);

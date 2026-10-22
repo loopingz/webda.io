@@ -13,6 +13,7 @@ import { runWithContext } from "../contexts/execution.js";
 import { useDynamicService, useModelMetadata } from "../core/hooks.js";
 import { Ident } from "../models/ident.model.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 
 /**
  * Fake operation context that allows setting custom input for testing
@@ -396,10 +397,14 @@ class DomainServiceTest extends WebdaApplicationTest {
 
   /**
    * Run handlers against the sample-app User declared with a Behavior-typed `password` attribute
-   * @param fn - the test body, given a runner executing a DomainService call in an operation context
+   * @param fn - the test body, given a runner executing a DomainService call in an operation context with a body
    */
   private async withPasswordBehavior(
-    fn: (run: (call: (s: DomainService) => Promise<any>) => Promise<any>, User: any, uuid: string) => Promise<void>
+    fn: (
+      run: (body: any, call: (s: DomainService) => Promise<any>) => Promise<any>,
+      User: any,
+      uuid: string
+    ) => Promise<void>
   ) {
     const User = useModel<any>("User");
     registerRepository(User, new MemoryRepository(User, ["uuid"]));
@@ -410,9 +415,10 @@ class DomainServiceTest extends WebdaApplicationTest {
     });
     const uuid = "550e8400-e29b-41d4-a716-446655440077";
     const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
-    const run = async (call: (s: DomainService) => Promise<any>) => {
+    const run = async (body: any, call: (s: DomainService) => Promise<any>) => {
       const ctx = new FakeOpContext();
       await ctx.init();
+      ctx.setInput(JSON.stringify(body));
       ctx.setExtension("operationContext", { model: User });
       ctx.setParameters({ uuid });
       return runWithContext(ctx, () => call(service));
@@ -446,8 +452,8 @@ class DomainServiceTest extends WebdaApplicationTest {
   @test
   async behaviorAttributesNotClientWritablePatch() {
     await this.withPasswordBehavior(async (run, User, uuid) => {
-      await run(s =>
-        s.modelPatch({ uuid, displayName: "Patched", __foo: "x", password: { changedAt: 1, __hash: "h" } })
+      await run({ uuid, displayName: "Patched", __foo: "x", password: { changedAt: 1, __hash: "h" } }, s =>
+        s.modelPatch()
       );
       const stored = await this.assertPasswordIntact(User, uuid);
       assert.strictEqual(stored.displayName, "Patched");
@@ -458,11 +464,11 @@ class DomainServiceTest extends WebdaApplicationTest {
   async behaviorAttributesNotClientWritableUpdate() {
     await this.withPasswordBehavior(async (run, User, uuid) => {
       // No password in the PUT
-      let updated = await run(s => s.modelUpdate({ uuid, displayName: "Put1" }));
+      let updated = await run({ uuid, displayName: "Put1" }, s => s.modelUpdate());
       assert.strictEqual(updated.displayName, "Put1");
       assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
       // Password in the PUT is ignored
-      updated = await run(s => s.modelUpdate({ uuid, displayName: "Put2", password: { changedAt: 1 } }));
+      updated = await run({ uuid, displayName: "Put2", password: { changedAt: 1 } }, s => s.modelUpdate());
       assert.strictEqual(updated.displayName, "Put2");
       assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
       assert.strictEqual(updated.password.changedAt, 1);
@@ -473,8 +479,8 @@ class DomainServiceTest extends WebdaApplicationTest {
   @test
   async behaviorAttributesNotClientWritableCreate() {
     await this.withPasswordBehavior(async (run, User) => {
-      const created = await run(s =>
-        s.modelCreate({ uuid: "created-1", displayName: "New", password: { __hash: "x" } })
+      const created = await run({ uuid: "created-1", displayName: "New", password: { __hash: "x" } }, s =>
+        s.modelCreate()
       );
       assert.strictEqual(created.displayName, "New");
       assert.strictEqual(created.password?.__hash, undefined);
@@ -935,7 +941,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ namespace: "ns-1", slug: "my-brand" });
     ctx.setInput(JSON.stringify({ name: "Updated" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(() => service.modelUpdate({ name: "Updated" }), WebdaError.NotFound);
+      await assert.rejects(() => service.modelUpdate(), WebdaError.NotFound);
     });
   }
 
@@ -953,14 +959,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ slug: "does-not-exist" });
     ctx.setInput(JSON.stringify({ name: "NopePatched" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(() => service.modelPatch({ name: "NopePatched" }), WebdaError.NotFound);
+      await assert.rejects(() => service.modelPatch(), WebdaError.NotFound);
     });
   }
 
   @test
-  async modelCreateRejectsScalarInputByReadingContext() {
-    // When the first arg is a scalar, modelCreate detects it isn't an object
-    // and falls back to context.getInput().
+  async modelCreateReadsContextInput() {
+    // modelCreate takes no argument: the model data is always the context body
     const { Brand } = this.setupBrandRepo();
     const service = new (await import("./domainservice.service.js")).DomainService(
       "DomainService",
@@ -969,14 +974,99 @@ class DomainServiceTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setExtension("operationContext", { model: Brand });
-    ctx.setInput(JSON.stringify({ name: "ScalarFallback" }));
+    ctx.setInput(JSON.stringify({ name: "FromContext" }));
     let created: any;
     await runWithContext(ctx, async () => {
-      // Pass a scalar string — typeof "scalar" !== "object", so the code
-      // re-reads the body from context.getInput().
-      created = await service.modelCreate("a-scalar-pk-value");
+      created = await service.modelCreate();
     });
-    assert.strictEqual(created.name, "ScalarFallback");
+    assert.strictEqual(created.name, "FromContext");
+  }
+
+  /**
+   * Run the test with Brand's CRUD operations taking an input schema listing `first` as its first (sorted) property,
+   * so resolveArguments passes that property value as the first positional argument of the CRUD methods (#911)
+   * @param first - the property schema to prepend
+   * @param fn - the test body
+   */
+  private async withFirstInputProperty(first: Record<string, any>, fn: () => Promise<void>) {
+    const operations = useInstanceStorage().operations;
+    const schemas = useApplication().getSchemas();
+    const name = `Test911/Brand${Object.keys(first)[0]}`;
+    const base: any = useApplication().getSchema(operations["Brand.Create"].input.replace(/\?$/, ""));
+    schemas[name] = { ...base, properties: { ...first, ...base.properties } };
+    const previous: Record<string, string> = {};
+    for (const id of ["Brand.Create", "Brand.Update", "Brand.Patch"]) {
+      previous[id] = operations[id].input;
+      operations[id].input = name + (previous[id].endsWith("?") ? "?" : "");
+    }
+    try {
+      await fn();
+    } finally {
+      for (const id in previous) {
+        operations[id].input = previous[id];
+      }
+      delete schemas[name];
+    }
+  }
+
+  @test
+  async crudUsesFullBodyWhenFirstPropertyIsArrayOrObject() {
+    const { Brand, repo } = this.setupBrandRepo();
+    for (const first of [{ _linkKeys: { type: "array", items: { type: "string" } } }, { author: { type: "object" } }]) {
+      await this.withFirstInputProperty(first, async () => {
+        const extra = first._linkKeys ? { _linkKeys: ["x"] } : { author: { name: "a" } };
+        // Create
+        let ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setInput(JSON.stringify({ ...extra, name: "Created" }));
+        await callOperation(ctx, "Brand.Create");
+        const created = JSON.parse(ctx.getOutput());
+        assert.strictEqual(created.name, "Created");
+        assert.strictEqual(created["0"], undefined);
+        const uuid = created.uuid;
+        // Update
+        ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setParameters({ uuid });
+        ctx.setInput(JSON.stringify({ ...extra, uuid, name: "Updated" }));
+        await callOperation(ctx, "Brand.Update");
+        assert.strictEqual(((await repo.get(uuid)) as any).name, "Updated");
+        // Patch
+        ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setParameters({ uuid });
+        ctx.setInput(JSON.stringify({ ...extra, uuid, name: "Patched" }));
+        await callOperation(ctx, "Brand.Patch");
+        const stored: any = await repo.get(uuid);
+        assert.strictEqual(stored.name, "Patched");
+        assert.strictEqual(stored["0"], undefined);
+      });
+    }
+  }
+
+  @test
+  async crudRejectsNonObjectInput() {
+    const { Brand, repo } = this.setupBrandRepo();
+    const uuid = "550e8400-e29b-41d4-a716-446655440911";
+    await Brand.create({ uuid, name: "Original" } as any);
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    for (const body of [["x"], "x", 1, true, null]) {
+      for (const method of ["modelCreate", "modelUpdate", "modelPatch"]) {
+        const ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setExtension("operationContext", { model: Brand });
+        ctx.setParameters({ uuid });
+        ctx.setInput(JSON.stringify(body));
+        const label = `${method}(${JSON.stringify(body)})`;
+        await runWithContext(ctx, async () => {
+          // A body that is not an object is refused
+          await assert.rejects(() => service[method](), WebdaError.BadRequest, label);
+        });
+      }
+    }
+    const stored: any = await repo.get(uuid);
+    assert.strictEqual(stored.name, "Original");
+    assert.strictEqual(stored["0"], undefined);
   }
 
   @test

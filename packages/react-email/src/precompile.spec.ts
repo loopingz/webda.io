@@ -3,8 +3,9 @@ import { TemplateRenderer } from "@webda/templates";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { existsSync } from "fs";
-import { mkdtemp, readFile, rm } from "fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { resolve } from "path";
+import { vi } from "vitest";
 import { importEmail } from "./loader.js";
 import { precompile } from "./precompile.js";
 import { legacyRender } from "../test/legacy-email-renderer.js";
@@ -21,6 +22,7 @@ class PrecompileTest {
   }
 
   async afterEach() {
+    vi.restoreAllMocks();
     if (this.output) {
       await rm(this.output, { recursive: true, force: true });
     }
@@ -102,5 +104,41 @@ class PrecompileTest {
     await precompile({ source, output });
     const component = await importEmail(resolve(source, "event-confirmation/email.tsx"));
     assert.strictEqual(component.PreviewProps?.firstName, "Marie");
+  }
+
+  /**
+   * Write an email source tree under a temporary folder
+   * @param root - the folder
+   * @param files - relative path to content
+   */
+  async writeTree(root: string, files: Record<string, string>) {
+    for (const [name, content] of Object.entries(files)) {
+      await mkdir(resolve(root, name, ".."), { recursive: true });
+      await writeFile(resolve(root, name), content);
+    }
+  }
+
+  @test
+  async edgeCases() {
+    const root = await this.makeOutput();
+    await this.writeTree(resolve(root, "emails"), {
+      "README.md": "not an email",
+      "bare/email.tsx": "export default function Bare() { return <p>Bare</p>; }\n",
+      "bare/helper.tsx": "export default function Helper() { return <p>Helper</p>; }\n",
+      "node_modules/skipped/email.tsx": "export default function Skipped() { return <p>Skipped</p>; }\n",
+      "plain-throw/email.tsx": [
+        "export default function Plain() { return <p>Plain</p>; }",
+        'Plain.Subject = () => { throw "plain failure"; };',
+        ""
+      ].join("\n")
+    });
+    // Default source and output resolve against the working directory
+    vi.spyOn(process, "cwd").mockReturnValue(root);
+    const result = await precompile({});
+    assert.deepStrictEqual(result.generated, ["bare"]);
+    assert.deepStrictEqual(result.failed, ["plain-throw"]);
+    // No PreviewProps and no Subject: rendered as is, with the legacy default subject
+    assert.strictEqual(await readFile(resolve(root, "templates/bare/subject.mustache"), "utf8"), "No Subject");
+    assert.ok(!existsSync(resolve(root, "templates/node_modules")));
   }
 }

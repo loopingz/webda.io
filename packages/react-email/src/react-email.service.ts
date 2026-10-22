@@ -64,14 +64,6 @@ function exitCode(result: PrecompileResult): number {
  */
 export class ReactEmailService<T extends ReactEmailParameters = ReactEmailParameters> extends Service<T> {
   /**
-   * @param params - raw service parameters
-   * @returns the parameters
-   */
-  static createConfiguration(params: any = {}): ReactEmailParameters {
-    return new ReactEmailParameters().load(params);
-  }
-
-  /**
    * Generate `<output>/<name>/{html,text,subject}.mustache` from `<source>/<name>/email.tsx`
    *
    * @returns 1 when a template failed, otherwise 0

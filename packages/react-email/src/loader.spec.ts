@@ -37,6 +37,8 @@ class LoaderTest {
     const compiled = resolve("test/lib/compiled-src/email.js");
     assert.strictEqual(resolveModulePath(path, { "./test/emails": "./test/lib" }), compiled);
     assert.strictEqual(resolveModulePath(path, { "test/emails/": "test/lib" }), compiled);
+    // A key not prefixing the path is skipped
+    assert.strictEqual(resolveModulePath(path, { "other/": "test/lib/", "test/emails/": "test/lib/" }), compiled);
   }
 
   @test
@@ -110,5 +112,19 @@ class LoaderTest {
     missing.code = "ERR_MODULE_NOT_FOUND";
     tsx.mockRejectedValue(missing);
     await assert.rejects(() => importEmail(resolve("test/emails/welcome.tsx")), /@react-email\/components/);
+  }
+
+  @test
+  async importErrorKept() {
+    const dir = await mkdtemp(resolve("test/tmp-"));
+    this.tmpDirs.push(dir);
+    const path = resolve(dir, "email.tsx");
+    await copyFile(resolve("test/emails/welcome.tsx"), path);
+    const missing: any = new Error("Cannot find package 'left-pad'");
+    missing.code = "ERR_MODULE_NOT_FOUND";
+    vi.spyOn(loader, "importModule").mockRejectedValue(missing);
+    const tsx = vi.spyOn(loader, "importTsx");
+    await assert.rejects(() => importEmail(path), /left-pad/);
+    assert.strictEqual(tsx.mock.calls.length, 0);
   }
 }

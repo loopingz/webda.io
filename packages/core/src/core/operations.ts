@@ -13,6 +13,8 @@ import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
 import { checkStaticModelPermission, loadModelForAction } from "../models/permissions.js";
+import { listOperationTransactionParticipants, OperationTransaction, useOperationTransaction } from "./transactions.js";
+import type { OperationTransactionParticipant } from "./transactions.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -657,10 +659,39 @@ export async function resolveArguments(context: OperationContext, operation: Ope
 
 /**
  * Call an operation within the framework
+ *
+ * When transaction participants are registered (see {@link registerOperationTransactionParticipant}), the outermost
+ * operation runs in a transaction: begun after the checks and before `Webda.BeforeOperation`, committed once the
+ * method resolved (a streamed result fully written) and before `Webda.OperationSuccess`, rolled back before
+ * `Webda.OperationFailure`. Nested operations join it.
  * @param context - the execution context
  * @param operationId - the operation identifier
+ * @returns once the operation finished
  */
 export async function callOperation(context: OperationContext, operationId: string): Promise<void> {
+  const participants = listOperationTransactionParticipants();
+  // A nested operation joins the transaction of the outermost one
+  const transaction =
+    participants.length > 0 && !useOperationTransaction() ? new OperationTransaction(context) : undefined;
+  if (transaction) {
+    return transaction.run(() => executeOperation(context, operationId, transaction, participants));
+  }
+  return executeOperation(context, operationId);
+}
+
+/**
+ * Run an operation: checks, events, method call and result writing
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @param transaction - the transaction to drive, undefined when the operation does not own one
+ * @param participants - the participants to enlist in the transaction
+ */
+async function executeOperation(
+  context: OperationContext,
+  operationId: string,
+  transaction?: OperationTransaction,
+  participants: OperationTransactionParticipant[] = []
+): Promise<void> {
   const operations = useInstanceStorage().operations;
   useLog("DEBUG", "Call operation", operationId);
   let callArgs: any[] = [];
@@ -672,6 +703,12 @@ export async function callOperation(context: OperationContext, operationId: stri
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
     context.setExtension("operationContext", operations[operationId].context || {});
+    if (transaction) {
+      transaction.operation = operations[operationId];
+      for (const participant of participants) {
+        await transaction.enlist(participant);
+      }
+    }
     await Promise.all([
       emitCoreEvent("Webda.BeforeOperation", { context, operationId })
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
@@ -735,6 +772,9 @@ export async function callOperation(context: OperationContext, operationId: stri
       }
     }
 
+    // Commit before the success listeners run: they only ever see committed data
+    await transaction?.commit();
+
     await Promise.all([
       emitCoreEvent("Webda.OperationSuccess", {
         context,
@@ -744,6 +784,8 @@ export async function callOperation(context: OperationContext, operationId: stri
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})
     ]);
   } catch (err) {
+    // Roll back before the failure listeners run; a rollback error is logged and never hides the original error
+    await transaction?.rollback(err);
     await Promise.all([
       emitCoreEvent("Webda.OperationFailure", {
         context,
@@ -895,6 +937,10 @@ interface OperationParameters {
    * MCP transport hints
    */
   mcp?: OperationDefinition["mcp"];
+  /**
+   * Run the operation in a transaction of the registered participants, `false` to opt out
+   */
+  transaction?: boolean;
 }
 
 function Operation<T = {}>(

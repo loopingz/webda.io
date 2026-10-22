@@ -1,5 +1,7 @@
 import { Action, Operation } from "./decorators.js";
 
+const dynamicAge = "1h";
+
 // Not a model (nothing here extends @webda/models): only read by
 // buildModelActions directly, to check the `@Action({ name })` option.
 export class Jobs {
@@ -27,8 +29,6 @@ export class Jobs {
   @Action({ maxMfaAge: dynamicAge })
   computedAge() {}
 }
-
-const dynamicAge = "1h";
 
 const dynamicName = "dynamic";
 

@@ -91,12 +91,15 @@ function detachedCopy(session: Session): Session {
  * @returns the caller's access to the tool
  */
 export async function toolAccess(context: SimpleOperationContext, operationId: string): Promise<ToolAccess> {
+  // A delegated token never reaches the operations no grant can cover, whatever its scope (even `*`)
+  if (context.getSession()?.scopes !== undefined && !isDelegable(operationId)) {
+    return "denied";
+  }
   const result = await probeOperation(context, operationId);
   if (result === true) {
     return "allowed";
   }
-  // A grant that can never be obtained is not worth a step-up challenge
-  if (result !== "insufficient_scope" || !isDelegable(operationId)) {
+  if (result !== "insufficient_scope") {
     return "denied";
   }
   // Probe again as if the scope covered the operation, on a copy: the caller's session is never written

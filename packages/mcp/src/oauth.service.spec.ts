@@ -419,6 +419,16 @@ class McpOAuthTest extends McpOAuthBase {
       const res = await this.rawCall(token, this.callRequest("OAuth.Fixture"));
       assert.strictEqual(res.status, 200);
       assert.strictEqual(res.headers.get("www-authenticate"), null);
+      // Not even a `*` scope covers them: hidden and unknown, whatever the option
+      for (const list of [true, false]) {
+        mcp.getParameters().listOutOfScopeTools = list;
+        const all = await this.client(await this.bearer(["*"]));
+        const listed = (await all.listTools()).tools.map(t => t.name);
+        assert.ok(listed.includes("Fixture.Version"), listed.join(" "));
+        assert.ok(!listed.includes("OAuth.Fixture"), listed.join(" "));
+        await assert.rejects(() => all.callTool({ name: "OAuth.Fixture", arguments: {} }), /Unknown tool/);
+        await all.close();
+      }
     } finally {
       mcp.getParameters().listOutOfScopeTools = false;
       delete useInstanceStorage().operations["OAuth.Fixture"];

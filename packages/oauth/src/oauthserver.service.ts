@@ -768,8 +768,16 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const userId = ctx.getSession().userId!;
     // Consent is never skipped for the device flow, the remembered scope only pre-selects in the code flow
     const remembered = pending.flow === "code" ? await this.rememberedScope(userId, client.id) : undefined;
+    // The decision adds to the remembered grant (step-up): its operations outside the request are carried into the
+    // token too, so they are listed as well, bounded by what the client may still be granted
+    let carried: string[] = [];
+    if (remembered) {
+      let kept = remembered.filter(s => s !== OFFLINE_ACCESS);
+      if (client.allowedScopes !== undefined) kept = intersect(kept, parseScope(client.allowedScopes));
+      carried = (await this.callableOperations(ctx, kept)).filter(id => !callable.includes(id));
+    }
     const groups = new Map<string, ConsentRequest["operations"][number]>();
-    for (const id of callable) {
+    for (const id of [...callable, ...carried]) {
       const group = id.split(".")[0];
       if (!groups.has(group)) groups.set(group, { group, ids: [] });
       groups.get(group)!.ids.push({

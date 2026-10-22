@@ -179,7 +179,10 @@ that the user can call now**, and `offline_access` when requested. The check is 
 scope text: a `*` request remembered as `Task.* User.*` is answered while those are still all the user can call. An
 operation added or made callable since is not covered, so the screen is shown again with the remembered operations
 pre-selected and marked **(already allowed)**: a new decision adds to the remembered consent, it never withdraws
-from it (step-up). The issued token carries the intersection of the request and the remembered scope. The client can force
+from it (step-up). The remembered operations the token will carry are listed too, even outside the request. The issued
+token carries, when the screen is skipped, the intersection of the request and the remembered scope; after a decision
+on the screen, the remembered scope (without `offline_access`) plus the newly allowed operations, bounded by the
+client `allowedScopes`. The client can force
 the screen with `prompt=consent`; the device flow always shows it. Remembered grants are listed and forgotten through
 the connected-apps operations below.
 

@@ -120,6 +120,58 @@ class ConsentTest extends OAuthTest {
   }
 
   @test
+  async rememberedOperationsOutsideRequestAreListed() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await this.authorize(b, { scope: "Task.Get offline_access" });
+    let req = await this.op(b, "OAuth.Consent.Get");
+    await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf: req.csrf, remember: true });
+    // Step-up asking only Task.Update: the remembered Task.Get is carried into the token, so it is shown
+    await this.authorize(b, { scope: "Task.Update" });
+    req = await this.op(b, "OAuth.Consent.Get");
+    const ids = Object.fromEntries(req.operations.flatMap(g => g.ids).map(i => [i.id, i]));
+    assert.deepStrictEqual(Object.keys(ids).sort(), ["Task.Get", "Task.Update"]);
+    assert.strictEqual(ids["Task.Get"].alreadyAllowed, true);
+    assert.strictEqual(ids["Task.Get"].preselected, true);
+    assert.ok(!ids["Task.Update"].alreadyAllowed);
+    // offline_access is never carried over
+    assert.strictEqual(req.offlineAccess, false);
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+      allow: true,
+      operations: ["Task.Update"],
+      csrf: req.csrf
+    });
+    const scope = (await OAuthCode.ref(sha256(query(redirect).code)).get()).scope.split(" ");
+    assert.deepStrictEqual(scope.sort(), ["Task.Get", "Task.Update"]);
+  }
+
+  @test
+  async rememberedOperationsOutsideAllowedScopesAreNotListed() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await OAuthGrant.create({
+      uuid: "u1:app",
+      userId: "u1",
+      clientId: "app",
+      scope: "Task.*",
+      createdAt: 0,
+      lastUsedAt: 0,
+      expiresAt: Date.now() + 100000
+    } as any);
+    const params = useService<any>("OAuthServer").getParameters();
+    const previous = params.clients.app.allowedScopes;
+    try {
+      params.clients.app.allowedScopes = "Task.Update Task.Get offline_access";
+      await this.authorize(b, { scope: "Task.Update", prompt: "consent" });
+      const req = await this.op(b, "OAuth.Consent.Get");
+      const ids = req.operations.flatMap(g => g.ids).map(i => i.id);
+      assert.deepStrictEqual(ids.sort(), ["Task.Get", "Task.Update"]);
+    } finally {
+      params.clients.app.allowedScopes = previous;
+    }
+  }
+
+  @test
   async stepUpHonoursNarrowedAllowedScopes() {
     const b = await this.browser();
     await this.login(b, "u1");

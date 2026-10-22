@@ -48,6 +48,32 @@ export const INSUFFICIENT_SCOPE = -32001;
 export type ToolAccess = "allowed" | "out_of_scope" | "denied";
 
 /**
+ * Copy a session without any link to the original: the request session may be a change-tracking
+ * Proxy whose writes (even through a prototype view) land on the real session
+ * @param session - session to copy, plain or proxied
+ * @returns an unproxied, unchanged session of the same class with copied fields
+ */
+function detachedCopy(session: Session): Session {
+  const copy = Object.create(Object.getPrototypeOf(session)) as Session;
+  const clone = (value: unknown) =>
+    Array.isArray(value)
+      ? [...value]
+      : value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype
+        ? { ...value }
+        : value;
+  for (const key of Object.keys(session)) {
+    (copy as any)[key] = clone((session as any)[key]);
+  }
+  Object.defineProperty(copy, "changed", { value: false, writable: true, configurable: true });
+  Object.defineProperty(copy, "transientAmr", {
+    value: clone(session.transientAmr),
+    writable: true,
+    configurable: true
+  });
+  return copy;
+}
+
+/**
  * Authorizers stop at the first refusal: a scope refusal may hide another authorizer's refusal. A tool is out of
  * scope only when the caller could call it with the operation added to the token scope.
  * @param context - caller context; authorizers (such as IAM) cache the caller's user on it across a listing
@@ -62,10 +88,9 @@ export async function toolAccess(context: SimpleOperationContext, operationId: s
   if (result !== "insufficient_scope") {
     return "denied";
   }
-  // Probe again as if the scope covered the operation, on a view of the session: the real one is left untouched
-  const session = context.getSession();
-  const widened = Object.create(session) as Session;
-  widened.scopes = union(session.scopes ?? [], [operationId]);
+  // Probe again as if the scope covered the operation, on a copy: the caller's session is never written
+  const widened = detachedCopy(context.getSession());
+  widened.scopes = union(widened.scopes ?? [], [operationId]);
   return (await probeOperation(sessionContext(widened), operationId)) === true ? "out_of_scope" : "denied";
 }
 

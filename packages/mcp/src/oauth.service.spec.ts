@@ -2,6 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import {
   HttpContext,
+  listOperationAuthorizers,
   listProtectedResources,
   registerOperationAuthorizer,
   Session,
@@ -477,5 +478,56 @@ class McpOAuthCustomUrlTest extends McpOAuthBase {
     assert.strictEqual(meta.resource, `${base}/api/mcp`);
     const res = await fetch(`${base}/api/mcp`, { method: "POST", headers: HEADERS, body: JSON.stringify(INIT) });
     assert.strictEqual(res.status, 401);
+  }
+}
+
+@suite
+class McpBearerSessionTest extends McpOAuthBase {
+  /**
+   * @returns configuration where the MCP service uses the default (Webda session) authenticator
+   */
+  getTestConfiguration(): any {
+    const config = super.getTestConfiguration();
+    delete config.services.Mcp.authenticator;
+    return config;
+  }
+
+  @test
+  async batchCannotWidenTheScope() {
+    // an application token: the Webda session (a change-tracking proxy) carries its scopes
+    const token = await this.bearer(["Fixture.Echo"], null);
+    // ahead of the scope authorizer, delay every probe but the first one: the later probes of the batch then
+    // run after the first one finished, and would see a scope it widened
+    const registered = listOperationAuthorizers();
+    let probes = 0;
+    const delay = async (_ctx, _id, _op, { probe }) => {
+      if (probe && probes++ > 0) await new Promise(r => setTimeout(r, 30));
+      return true;
+    };
+    registered.forEach(a => unregisterOperationAuthorizer(a));
+    [delay, ...registered].forEach(a => registerOperationAuthorizer(a as any));
+    try {
+      const call = (id: number) => this.callRequest("Fixture.Version", id);
+      const refused = (text: string, id: number) => {
+        const messages = text
+          .split("\n")
+          .filter(l => l.startsWith("data: "))
+          .map(l => JSON.parse(l.slice(6)));
+        assert.strictEqual(messages.find(m => m.id === id)?.error?.code, -32001, text);
+      };
+      probes = 0;
+      const twice = await (await this.rawCall(token, [call(2), call(3)])).text();
+      refused(twice, 2);
+      refused(twice, 3);
+      assert.ok(!twice.includes("1.2.3"), twice);
+      probes = 0;
+      const listed = await (
+        await this.rawCall(token, [{ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }, call(3)])
+      ).text();
+      refused(listed, 3);
+      assert.ok(!listed.includes("1.2.3"), listed);
+    } finally {
+      unregisterOperationAuthorizer(delay as any);
+    }
   }
 }

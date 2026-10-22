@@ -11,7 +11,8 @@ import {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { BrokenModel, GadgetModel, WideModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
-import { createMcpServer } from "./server.js";
+import { createMcpServer, toolAccess } from "./server.js";
+import { sessionContext } from "./invoke.js";
 import { ToolRegistry } from "./tools.js";
 import { ResourceRegistry } from "./resources.js";
 
@@ -164,6 +165,28 @@ class McpServerTest extends McpFixtureTest {
       const all = (await listing.listTools()).tools.map(t => t.name);
       assert.ok(all.includes("Fixture.Version"));
       assert.ok(!all.includes("Fixture.Secret"));
+    } finally {
+      unregisterOperationAuthorizer(authorizer as any);
+    }
+  }
+
+  @test
+  async toolAccessLeavesProxiedSessionUntouched() {
+    registerFixture();
+    const authorizer = async (ctx, operationId, _op, { probe }) =>
+      !probe || ctx.getSession().scopes.includes(operationId) ? true : "insufficient_scope";
+    registerOperationAuthorizer(authorizer as any);
+    try {
+      const original = new Session();
+      original.login("bob", "bob");
+      original.scopes = ["Fixture.Echo"];
+      const proxy = original.getProxy();
+      assert.strictEqual(proxy.isDirty(), false);
+      assert.strictEqual(await toolAccess(sessionContext(proxy), "Fixture.Version"), "out_of_scope");
+      assert.deepStrictEqual(proxy.scopes, ["Fixture.Echo"]);
+      assert.deepStrictEqual(original.scopes, ["Fixture.Echo"]);
+      assert.strictEqual(original.isDirty(), false);
+      assert.strictEqual(await toolAccess(sessionContext(proxy), "Fixture.Version"), "out_of_scope");
     } finally {
       unregisterOperationAuthorizer(authorizer as any);
     }

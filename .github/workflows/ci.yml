@@ -7,7 +7,7 @@ on:
     branches: [main, maintenance/v3.x]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [main, maintenance/v3.x]
+    branches: ["**"]
   schedule:
     - cron: "17 6 * * 0" # Weekly full coverage on Sunday, UTC
 

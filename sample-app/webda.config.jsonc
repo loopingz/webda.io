@@ -20,6 +20,16 @@
       "type": "MemoryStore",
       "table": "local-table"
     },
+    // User store: the keys behavior of a user holds its public keys, escrows and keyring
+    "users": {
+      "model": "WebdaDemo/User",
+      "type": "MemoryStore"
+    },
+    // Note store: the content of a note is sealed to its owner
+    "notes": {
+      "model": "WebdaDemo/Note",
+      "type": "MemoryStore"
+    },
     "DomainService": {
       "type": "DomainService"
     },

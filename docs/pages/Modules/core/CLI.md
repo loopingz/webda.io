@@ -192,6 +192,18 @@ The process exits when the command completes. Importing the module does not star
 | `--service <names>` | Filter command to specific service(s), comma-separated |
 | `--help` | Show help |
 
+## Compile cache
+
+The launcher enables the [Node compile cache](https://nodejs.org/api/module.html#module-compile-cache) (Node >= 22.1)
+for the CLI: the compiled code of the loaded modules is kept in `.webda/compile-cache`, so the next starts skip the
+compilation of the unchanged modules (about 8% of the blog-system cold boot, 13% of the framework import). Node
+invalidates the entries of modified files.
+
+- `NODE_COMPILE_CACHE=<folder>` uses another folder.
+- `WEBDA_COMPILE_CACHE=false` (or `NODE_DISABLE_COMPILE_CACHE=1`) disables it.
+- Running `node node_modules/@webda/core/lib/bin/cli.js` directly (the default container entrypoint) does not enable
+  it: set `NODE_COMPILE_CACHE` in the environment to use it there.
+
 ## Verify
 
 ```bash

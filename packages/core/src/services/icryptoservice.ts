@@ -21,6 +21,18 @@ export class CryptoServiceParameters extends ServiceParameters {
    */
   autoCreate?: boolean;
   /**
+   * JSON file holding the keys, typically a mounted Kubernetes secret, instead of the registry
+   *
+   * Same shape as the registry entry: `{ "current": "<id>", "key_<id>": { publicKey, privateKey, symetric } }`.
+   * A relative path is resolved against the application path. Generate one with `webda crypto generate-keys`.
+   *
+   * When set, the registry is never read nor written: `autoCreate` and `autoRotate` are ignored and
+   * {@link CryptoService.rotate} fails. Rotate by adding a `key_<id>` to the file and switching `current`, keep
+   * the previous keys as long as data encrypted with them must stay readable. The file is reloaded when it
+   * changes, no restart needed.
+   */
+  keysFile?: string;
+  /**
    * To expose JWKS
    *
    * @see https://datatracker.ietf.org/doc/html/rfc7517

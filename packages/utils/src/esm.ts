@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import * as path from "node:path";
 import * as url from "node:url";
 
@@ -44,4 +45,31 @@ export function parseImportDescriptor(descriptor: string): { file: string; expor
  */
 export function toImportSpecifier(file: string): string {
   return path.isAbsolute(file) ? url.pathToFileURL(file).href : file;
+}
+
+/**
+ * Derive the absolute file path of the current module from its `import.meta`.
+ *
+ * @param importMeta - The `import.meta` object of the calling module
+ * @returns The absolute pathname of the current module file
+ * @throws {Error} When `importMeta.url` is not available
+ */
+export function getFileName(importMeta: ImportMeta): string {
+  if (typeof importMeta?.url === "string") {
+    return url.fileURLToPath(importMeta.url);
+  }
+  throw new Error("Cannot determine file name from importMeta");
+}
+
+/**
+ * Return `true` if the module identified by `importMeta` is the process entry point.
+ *
+ * Symbolic links in `process.argv[1]` are resolved before comparison.
+ *
+ * @param importMeta - The `import.meta` object of the calling module
+ * @returns `true` when the calling module is the main entry point, `false` otherwise
+ */
+export function isMainModule(importMeta: ImportMeta): boolean {
+  // The entry point can be a symbolic link so we need to resolve it
+  return importMeta.url === url.pathToFileURL(realpathSync(process.argv[1])).href;
 }

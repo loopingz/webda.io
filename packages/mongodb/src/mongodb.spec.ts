@@ -3,7 +3,13 @@ import * as assert from "node:assert";
 import * as WebdaQL from "@webda/ql";
 import { parse } from "@webda/ql";
 import { MongoClient } from "mongodb";
-import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import {
+  checkAggregation,
+  checkCount,
+  checkCountClassFilter,
+  checkCreateWithoutPrimaryKey,
+  WebdaApplicationTest
+} from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
 import { MongoParameters, MongoRepository, MongoStore, mapExpression } from "./mongodb.service.js";
 
@@ -184,6 +190,55 @@ export class MongoStoreTest extends WebdaApplicationTest {
     await checkAggregation(new MongoRepository(Item as any, ["uuid"], () => this.store._connect()) as any, {
       native: true
     });
+    await collection.deleteMany({});
+  }
+
+  @test
+  async countConformance() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    await checkCount(new MongoRepository(Item as any, ["uuid"], () => this.store._connect()) as any, { native: true });
+    await collection.deleteMany({});
+  }
+
+  @test
+  async countStaysInTheModelHierarchy() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    await checkCountClassFilter(this.repo as any, this.sub as any, async (repo: any, uuid) => {
+      await repo.create(new (repo.getRootModel())({ uuid }));
+    });
+    await collection.deleteMany({});
+  }
+
+  @test
+  async countUsesCountDocuments() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    const calls: any[][] = [];
+    const repo = new MongoRepository(Item as any, ["uuid"], async () => {
+      const real = await this.store._connect();
+      return new Proxy(real, {
+        get: (target: any, prop) =>
+          prop === "countDocuments"
+            ? (...args: any[]) => (calls.push(args), target.countDocuments(...args))
+            : Reflect.get(target, prop)
+      });
+    });
+    for (const uuid of ["a", "b", "c"]) {
+      await repo.create(new Item({ uuid, name: "x" }) as any);
+    }
+    assert.deepStrictEqual(await repo.count("name = 'x'"), { value: 3, relation: "eq", native: true });
+    assert.deepStrictEqual(await repo.count("name = 'x'", undefined, { max: 2 }), {
+      value: 2,
+      relation: "gte",
+      native: true
+    });
+    assert.strictEqual(calls.length, 2, "one countDocuments per count");
+    assert.deepStrictEqual(calls[0][1], {});
+    assert.deepStrictEqual(calls[1][1], { limit: 3 });
+    // The class filter is part of the filter
+    assert.ok(JSON.stringify(calls[0][0]).includes("Test/SubItem"));
     await collection.deleteMany({});
   }
 

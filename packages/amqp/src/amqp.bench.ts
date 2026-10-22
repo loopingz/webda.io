@@ -38,7 +38,8 @@ class AMQPBench extends WebdaApplicationTest {
   }
 
   /**
-   * AMQPQueue: a failed message stays unacknowledged until the channel closes, so there is no redelivery scenario
+   * AMQPQueue: `basic.consume` with a prefetch of `maxConsumers`; a failed message is requeued after the
+   * `workerDelayer` delay (1s for a first failure by default)
    */
   @test
   async queue() {
@@ -52,7 +53,8 @@ class AMQPBench extends WebdaApplicationTest {
         );
         this.services.push(queue);
         return queue;
-      }
+      },
+      redeliveryDelayMs: 1000
     });
   }
 

@@ -19,6 +19,7 @@ import {
   defaultFileContentStorage,
   Inject,
   MemoryBinaryFile,
+  normalizeHashes,
   OperationContext,
   parseContentUrl,
   useModel,
@@ -91,10 +92,11 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  * The structure used for now is
  * /folder/{hash}/data
  * /folder/{hash}/{model}_{attribute}_{uuid}   usage markers
- * /folder/{hash}/proof_{challenge}           proof of possession, written by the service on upload
+ * /folder/{hash}/vproof_{challenge}          proof of possession, written by the service from the bytes it read
  *
- * Before 4.0.0-beta.5 the proof was `_{challenge}` and the challenge was sent to clients: those markers are ignored
- * (a leaked value attaches nothing), the content is uploaded once more to get a `proof_` marker.
+ * Legacy proofs are ignored (a leaked value attaches nothing): `_{challenge}` (before 4.0.0-beta.5, the challenge
+ * was sent to clients) and `proof_{challenge}` (written before every proof was computed by the service). The content
+ * is uploaded once more to get a `vproof_` marker.
  *
  * It takes one parameter
  *  folder: "path"
@@ -469,6 +471,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     context?: OperationContext<BinaryFile>
   ): Promise<{ url: string; method: string } | undefined> {
     info ??= await context?.getInput();
+    // One folder per content: the hash and the challenge are lower-case hexadecimal
+    info = normalizeHashes(info);
     if (!info?.hash) throw new WebdaError.BadRequest("Missing binary hash");
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
@@ -546,6 +550,20 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
+   * The upload attaches the binary ({@link storeBinary}): completing only checks it happened
+   *
+   * @override
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the hash announced in the challenge
+   */
+  async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    if (!this.isLinked(object, property, hash)) {
+      throw new WebdaError.PreconditionFailed("Upload not complete");
+    }
+  }
+
+  /**
    * @override
    */
   async getUsageCount(hash: string) {
@@ -570,14 +588,20 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @override
    */
-  async _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void> {
+  async _cleanUsage(hash: string, uuid: string, attribute: string, model?: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
-    // A marker ends with `_<attribute>_<uuid>` (see usageMarker)
-    const key = this.safeName(uuid);
-    this.usageMarkers(hash)
-      .filter(f => f.endsWith(attribute ? `_${this.safeName(attribute)}_${key}` : `_${key}`))
-      .forEach(f => fs.unlinkSync(this._getPath(hash, f)));
+    if (!attribute || !model) {
+      // A suffix match would remove the usages of other owners (`my_<uuid>`, another model): the marker must be
+      // named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute or model given`);
+      return;
+    }
+    // The exact marker written on attach (see usageMarker)
+    const marker = this._getPath(hash, this.usageMarker({ model, attribute, uuid }));
+    if (fs.existsSync(marker)) {
+      fs.unlinkSync(marker);
+    }
     if (this.usageMarkers(hash).length === 0) {
       await this._cleanHash(hash);
     }
@@ -593,17 +617,20 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const hash = map.hash;
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
+    const model = useModelId(object.constructor);
+    if (!model) throw new WebdaError.BadRequest("Missing model identifier");
     await this.deleteSuccess(<any>object, property, index);
-    await this._cleanUsage(hash, uuid, property);
+    await this._cleanUsage(hash, uuid, property, model);
   }
 
   /**
-   * Name of the proof marker of a challenge (legacy `_<challenge>` markers are not proofs)
-   * @param challenge - the challenge
+   * Name of the proof marker of a challenge computed by the service (legacy `_<challenge>` and `proof_<challenge>`
+   * markers are not proofs)
+   * @param challenge - the server computed challenge
    * @returns the marker file name
    */
   protected proofMarker(challenge: string): string {
-    return `proof_${this.safeName(challenge)}`;
+    return `vproof_${this.safeName(challenge)}`;
   }
 
   /**
@@ -621,7 +648,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * Usage markers of a hash folder: every file but the data and the proof markers (legacy `_` ones included)
+   * Usage markers of a hash folder: every file but the data and the proof markers (legacy `_` and `proof_` included)
    * @param hash - the content hash
    * @returns the marker names
    */
@@ -630,15 +657,17 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     if (!fs.existsSync(path)) {
       return [];
     }
-    return fs.readdirSync(path).filter(f => f !== "data" && !f.startsWith("_") && !f.startsWith("proof_"));
+    return fs
+      .readdirSync(path)
+      .filter(f => f !== "data" && !f.startsWith("_") && !f.startsWith("proof_") && !f.startsWith("vproof_"));
   }
 
   /**
    * @override
    */
-  async cascadeDelete(info: BinaryMap, uuid: string) {
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string) {
     if (!info.hash) throw new WebdaError.BadRequest("Missing binary hash");
-    return this._cleanUsage(info.hash, uuid);
+    return this._cleanUsage(info.hash, uuid, attribute, model);
   }
 
   /**
@@ -649,12 +678,14 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param attribute - the binary attribute name
    */
   async _store(file: BinaryFile, object: CoreModel, attribute: string) {
-    const { hash, challenge } = await file.getHashes();
+    // Computed from the bytes: a preset hash that does not match is rejected, a preset challenge is replaced
+    const { hash, challenge } = await this.verifiedHashes(file);
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
     const model = useModelId(object.constructor);
     if (!model) throw new WebdaError.BadRequest("Missing model identifier");
-    fs.mkdirSync(this._getPath(hash));
+    // The folder may exist already: created by a challenge waiting for its upload
+    fs.mkdirSync(this._getPath(hash), { recursive: true });
     const map = await file.get();
     await new Promise((resolve, reject) => {
       map
@@ -671,14 +702,17 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @override
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<any> {
-    const { hash } = await file.getHashes();
+    // Computed from the bytes: a preset hash that does not match is rejected, a preset challenge is replaced
+    const { hash, challenge } = await this.verifiedHashes(file);
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
     const storeName = useModelId(object.constructor);
     if (!storeName) throw new WebdaError.BadRequest("Missing model identifier");
     const fileInfo = file.toBinaryFileInfo();
     this.checkMap(<any>object, property);
-    if (fs.existsSync(this._getPath(hash))) {
+    // The data may be missing although the folder exists (a challenge waiting for its upload)
+    if (fs.existsSync(this._getPath(hash, "data"))) {
+      this._touch(this._getPath(hash, this.proofMarker(challenge)));
       this._touch(this._getPath(hash, this.usageMarker({ model: storeName, attribute: property, uuid })));
       await this.uploadSuccess(<any>object, property, fileInfo);
       return;

@@ -1434,9 +1434,9 @@ Done on 2026-09-29:
   the `tsc` executable it finds there as its language server. Generated accessors still need the
   `contentMappers` entry described in the compiler plugin page.
 - **`.release-please-manifest.json`** no longer lists `packages/ts-plugin` or `packages/schema`.
-- **`@webda/tsc-esm`** lost its binary in stage 8 and is now only a library of shared types and
-  decorator helpers; its README and description say so, and `debug` and `postgres`, which never
-  imported it, no longer depend on it.
+- **`@webda/tsc-esm`** lost its binary in stage 8. What remained, a library of shared types and
+  decorator helpers, was then merged into `@webda/utils` (the `create*Decorator` helpers are
+  imported from `@webda/decorators`), and the package was removed.
 - **`webdac code`** walked zero files: `WebdaMorpher` built `new Project(undefined)`. It now opens
   `<appPath>/tsconfig.json` and honours `--module`. Three of its five modules — `accessors`,
   `loadParameters` and `unserializer` — wrote into the sources what the build now generates, or

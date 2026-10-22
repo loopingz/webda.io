@@ -3,17 +3,25 @@ import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPath
 import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.js";
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
-import type { ArrayElement } from "@webda/tsc-esm";
+import type { ArrayElement } from "@webda/utils";
 import {
   type AggregationQuery,
   type AggregationResult,
   type Assignment,
   type CompletionField,
+  type Expression,
   fieldsFromSchema,
   type Query as WebdaQLQuery,
   type QueryParameters
 } from "@webda/ql";
-import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type {
+  AggregatedRow,
+  AggregationOptions,
+  AggregationSpec,
+  CountOptions,
+  CountResult,
+  MetricSpec
+} from "../aggregation.js";
 import { ModelTypeResolver, useTypeResolver } from "../types-resolver.js";
 import type { QueryExecutionInfo, QueryMonitorOptions, QueryOperation } from "./monitoring.js";
 
@@ -714,25 +722,73 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   /**
-   * Apply the fallback policy before aggregating in memory
-   * @param query - the aggregation
+   * Apply the fallback policy before aggregating or counting in memory
+   * @param query - the aggregation, undefined for a count
    * @param reason - why it cannot run natively
    * @throws AggregationError AGGREGATION_NOT_NATIVE when the policy is deny
    */
-  protected async checkAggregationFallback(query: AggregationQuery, reason: string): Promise<void> {
+  protected async checkAggregationFallback(query: AggregationQuery | undefined, reason: string): Promise<void> {
     const { fallback, warn } = this.aggregationOptions;
     if (fallback === "allow") return;
     const model = (this.model as any)?.Metadata?.Identifier ?? this.model?.name;
-    const message = `Aggregation on ${model} grouped by [${query.groupBy.join(", ")}] runs in memory: ${reason}`;
+    const operation = query ? `Aggregation on ${model} grouped by [${query.groupBy.join(", ")}]` : `Count on ${model}`;
+    const message = `${operation} runs in memory: ${reason}`;
     if (fallback === "deny") {
       const { AggregationError } = await import("@webda/ql");
       throw new AggregationError("AGGREGATION_NOT_NATIVE", message);
     }
-    const shape = `${query.groupBy.join(",")}|${reason}`;
+    const shape = `${query ? `group:${query.groupBy.join(",")}` : "count"}|${reason}`;
     if (!this.warnedAggregations.has(shape)) {
       this.warnedAggregations.add(shape);
       warn?.(message);
     }
+  }
+
+  /**
+   * Parse the filter, refuse statements, drop ORDER BY / LIMIT / OFFSET and run {@link executeCount}
+   * @override
+   * @throws Error when max is not a positive integer
+   */
+  async count(filter?: string, params?: QueryParameters, options?: CountOptions): Promise<CountResult> {
+    const max = options?.max;
+    if (max !== undefined && !(Number.isSafeInteger(max) && max > 0)) {
+      throw new Error(`Invalid count max '${max}': expected a positive integer`);
+    }
+    const WebdaQL = await import("@webda/ql");
+    const source = filter ?? "";
+    const parsed = WebdaQL.parse(params !== undefined ? WebdaQL.bind(source, params) : source);
+    // DELETE / UPDATE / SELECT statements are not filters
+    WebdaQL.assertFilterQuery(parsed);
+    return this.executeCount(parsed.filter, max);
+  }
+
+  /**
+   * Count the objects matching a validated filter
+   *
+   * Backends override it to count natively. The default scans iterate() in memory, under the fallback policy.
+   * It does not go through {@link executeAggregation}: an aggregation has no cap.
+   * @param filter - the filter, without ORDER BY, LIMIT or OFFSET
+   * @param max - stop after max objects, undefined for an exact count
+   * @returns the count
+   */
+  protected async executeCount(filter: Expression, max?: number): Promise<CountResult> {
+    await this.checkAggregationFallback(undefined, "the backend has no native count");
+    return { ...(await this.countInMemory(filter, max)), native: false };
+  }
+
+  /**
+   * Count by streaming the filtered items, stopping at max + 1
+   * @param filter - the filter
+   * @param max - stop after max objects, undefined for an exact count
+   * @returns the value and its relation
+   */
+  protected async countInMemory(filter: Expression, max?: number): Promise<Omit<CountResult, "native">> {
+    let n = 0;
+    for await (const _item of this.iterate(filter.toString())) {
+      // One past max proves the total is larger: closing the iterator stops the scan
+      if (++n > (max ?? Number.POSITIVE_INFINITY)) break;
+    }
+    return max !== undefined && n > max ? { value: max, relation: "gte" } : { value: n, relation: "eq" };
   }
 
   /**

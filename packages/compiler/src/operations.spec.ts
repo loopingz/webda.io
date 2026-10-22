@@ -6,6 +6,37 @@ import { WebdaModule } from "./definition.js";
 @suite
 class OperationsTest {
   @test
+  async rejectsAnActionParameterNamedLikeThePrimaryKey() {
+    const mod: WebdaModule = {
+      beans: {},
+      deployers: {},
+      moddas: {},
+      models: {
+        "MyApp/Task": {
+          Identifier: "MyApp/Task",
+          Import: "lib/task:Task",
+          Plural: "Tasks",
+          Relations: {},
+          Ancestors: [],
+          Subclasses: [],
+          PrimaryKey: ["uuid"],
+          Events: [],
+          Reflection: {},
+          Schemas: {},
+          Actions: { link: {} }
+        }
+      },
+      schemas: {
+        "MyApp/Task.link.input": { type: "object", properties: { uuid: { type: "string" } }, required: ["uuid"] }
+      }
+    } as any;
+    assert.throws(
+      () => generateOperations(mod),
+      /MyApp\/Task\.link: parameter "uuid" conflicts with the object primary key/
+    );
+  }
+
+  @test
   async generateFromModels() {
     const mod: WebdaModule = {
       beans: {},
@@ -32,6 +63,7 @@ class OperationsTest {
             get: {},
             query: {},
             archive: {},
+            reopen: {},
             publish: { global: true, description: "Publish all tasks" }
           }
         }
@@ -68,9 +100,17 @@ class OperationsTest {
     assert.notStrictEqual(result.operations["Tasks.Query"], undefined, "Query operation should exist");
     assert.strictEqual(result.operations["Tasks.Query"].input, "searchRequest");
 
-    // Custom action (instance)
+    // Custom action (instance): the object uuid then the action parameters
     assert.notStrictEqual(result.operations["Task.Archive"], undefined, "Archive operation should exist");
-    assert.strictEqual(result.operations["Task.Archive"].input, "uuidRequest");
+    assert.strictEqual(result.operations["Task.Archive"].input, "MyApp/Task.archive.request");
+    assert.deepStrictEqual(result.schemas["MyApp/Task.archive.request"], {
+      type: "object",
+      properties: { uuid: { type: "string" }, reason: { type: "string" } },
+      required: ["uuid"],
+      "x-webda-arguments": ["uuid", "reason"]
+    });
+    // Instance action without input schema: only the uuid
+    assert.strictEqual(result.operations["Task.Reopen"].input, "uuidRequest");
     assert.strictEqual(result.operations["Task.Archive"].output, "MyApp/Task.archive.output");
 
     // Custom action (global/static)
@@ -79,7 +119,7 @@ class OperationsTest {
     assert.strictEqual(result.operations["Task.Publish"].output, "MyApp/Task.publish.output");
 
     // Schemas should include referenced schemas
-    // Instance action schemas are not referenced (input is "uuidRequest"), so they are not included
+    // Instance action input schemas are wrapped in their request schema, so they are not referenced
     assert.strictEqual(
       result.schemas["MyApp/Task.archive.input"],
       undefined,

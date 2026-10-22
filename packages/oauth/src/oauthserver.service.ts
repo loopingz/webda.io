@@ -1291,9 +1291,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const userId = this.connectedAppsUser();
     return runAsSystem(async () => {
       const sessions: ConnectedSession[] = [];
-      // Families without offline_access have an expired, not revoked, record: they are not live sessions
+      // Families without offline_access have an expired, not revoked, record: they are not live sessions; a token
+      // retired by a replay of its predecessor (TokenService grace) is not the family's live one either
       for await (const token of RefreshToken.iterate(
-        "userId = ? AND clientId IS NOT NULL AND revokedAt IS NULL AND rotatedAt IS NULL AND expiresAt > ?",
+        "userId = ? AND clientId IS NOT NULL AND revokedAt IS NULL AND rotatedAt IS NULL AND retiredAt IS NULL AND expiresAt > ?",
         [userId, Date.now()]
       )) {
         sessions.push({

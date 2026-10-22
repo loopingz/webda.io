@@ -104,7 +104,7 @@ class StorageChallengeTest extends WebdaApplicationTest {
     const holder = await User.create({ uuid: "gcs-holder" } as any);
     assert.strictEqual(await this.binary.putRedirectUrl(holder, "images", info as any), undefined);
     assert.strictEqual(((await User.ref("gcs-holder").get()) as any).images.hash, file.hash);
-    assert.deepStrictEqual(this.saved, [this.binary._getKey(file.hash, "images_gcs-holder")]);
+    assert.deepStrictEqual(this.saved, [this.binary._getKey(file.hash, "@Webda~2FUser_images_gcs-holder")]);
   }
 
   @test
@@ -128,5 +128,68 @@ class StorageChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(res.headers["x-goog-meta-proof"], file.challenge);
     // The content is bound to the announced hash by Content-MD5 on the signed PUT
     assert.strictEqual(((await User.ref("gcs-new").get()) as any).images.hash, file.hash);
+  }
+
+  /**
+   * Mock a bucket listing for the usage cleanup
+   * @param markers - the marker names under the hash, with their `webdaModel` metadata
+   * @param hash - the binary hash
+   * @returns the keys removed
+   */
+  listed(hash: string, markers: Record<string, string | undefined>): string[] {
+    const deleted: string[] = [];
+    const keys = [this.binary._getKey(hash, "data"), ...Object.keys(markers).map(m => this.binary._getKey(hash, m))];
+    vi.spyOn(this.binary, "getStorageBucket").mockImplementation(
+      () =>
+        <any>{
+          getFiles: async ({ prefix }) => [
+            keys
+              .filter(name => name.startsWith(prefix) && !deleted.includes(name))
+              .map(name => ({
+                name,
+                getMetadata: async () => [{ metadata: { webdaModel: markers[name.split("/").pop()] } }],
+                delete: async () => {
+                  deleted.push(name);
+                }
+              }))
+          ]
+        }
+    );
+    return deleted;
+  }
+
+  /**
+   * A legacy `<attribute>_<uuid>` marker is shared by every model with this uuid: removed only with its own model
+   */
+  @test
+  async cleanUsageRemovesTheLegacyMarkerOfItsModelOnly() {
+    const hash = "0123456789abcdef0123456789abcdef";
+    let deleted = this.listed(hash, { "@Webda~2FPage_files_page": "Webda/Page", files_page: "Webda/Other" });
+    await this.binary._cleanUsage(hash, "page", "files", "Webda/Page");
+    assert.deepStrictEqual(deleted, [this.binary._getKey(hash, "@Webda~2FPage_files_page")]);
+    deleted = this.listed(hash, { files_page: "Webda/Page" });
+    await this.binary._cleanUsage(hash, "page", "files", "Webda/Page");
+    assert.deepStrictEqual(deleted, [this.binary._getKey(hash, "files_page"), this.binary._getKey(hash, "data")]);
+    // No legacy marker: the model marker and the unused data are removed
+    deleted = this.listed(hash, { "@Webda~2FPage_files_page": "Webda/Page" });
+    await this.binary._cleanUsage(hash, "page", "files", "Webda/Page");
+    assert.deepStrictEqual(deleted, [
+      this.binary._getKey(hash, "@Webda~2FPage_files_page"),
+      this.binary._getKey(hash, "data")
+    ]);
+  }
+
+  /**
+   * Without the attribute or the model the exact marker is unknown: nothing is removed
+   */
+  @test
+  async cleanUsageWithoutAttributeOrModelKeepsMarkers() {
+    const hash = "0123456789abcdef0123456789abcdef";
+    const deleted = this.listed(hash, { files_page: "Webda/Page" });
+    const log = vi.spyOn(this.binary, "log");
+    await this.binary._cleanUsage(hash, "page", undefined as any, "Webda/Page");
+    await this.binary._cleanUsage(hash, "page", "files", undefined as any);
+    assert.deepStrictEqual(deleted, []);
+    assert.strictEqual(log.mock.calls.filter(c => c[0] === "WARN").length, 2);
   }
 }

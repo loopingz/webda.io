@@ -1,4 +1,4 @@
-import { createMethodDecorator, createPropertyDecorator } from "@webda/tsc-esm";
+import { createMethodDecorator, createPropertyDecorator } from "@webda/decorators";
 import { truncate } from "fs/promises";
 
 /**

@@ -40,7 +40,14 @@ export {
   acceptedTypes,
   belongsToModel
 } from "@webda/models";
-export type { ModelClass, Repository, TypeResolution, TypeResolutionStatus } from "@webda/models";
+export type {
+  CountOptions,
+  CountResult,
+  ModelClass,
+  Repository,
+  TypeResolution,
+  TypeResolutionStatus
+} from "@webda/models";
 export * from "./stores/store.js";
 export * from "./stores/migration.js";
 export * from "./stores/capability.js";
@@ -53,10 +60,13 @@ export * from "./models/registry.model.js";
 export * from "./models/user.model.js";
 export * from "./models/password.model.js";
 export * from "./models/encrypted.model.js";
+export * from "./models/sealed.model.js";
 export * from "./models/mfa.model.js";
+export * from "./models/userkeys.model.js";
 export * from "./utils/totp.js";
 export * from "./utils/throttle.js";
 export * from "./errors/mfa.js";
+export * from "./errors/sealed.js";
 export * from "./models/coremodel.model.js";
 export * from "./models/ownermodel.model.js";
 export * from "./models/rolemodel.model.js";
@@ -77,11 +87,13 @@ export * from "./deployers/packager.js";
 export * from "./deployers/packager.service.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";
-export * from "./services/mailer.service.js";
+export * from "./services/abstractmailer.js";
 export * from "./configurations/kubernetesconfiguration.service.js";
 export * from "./services/iauthentication.js";
 export * from "./services/domainservice.service.js";
 export * from "./services/imailer.js";
+export * from "./services/ismssender.js";
+export * from "./services/debugsmssender.service.js";
 export * from "./services/notificationservice.service.js";
 export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";
@@ -142,3 +154,15 @@ export {
   ContentStorageNotFoundError
 } from "@webda/utils";
 export type { ContentBody, ContentPutOptions, ContentGetOptions, ContentInfo, ContentStorage } from "@webda/utils";
+// Sealed fields: only types and errors are re-exported from the root. The WebCrypto helpers live in
+// `src/sealed/index.ts` (generic names such as `concat`/`utf8` stay out of the root namespace).
+// The root `SealedFormatError` is the HTTP one (400, `errors/sealed.ts`); the isomorphic error of the same name stays
+// in `src/sealed/` and is mapped to it by `SealedField`.
+export {
+  KeyringPinError,
+  type EscrowBlob,
+  type Keyring,
+  type KeyringBlob,
+  type PublicKeyEntry,
+  type SealedEnvelope
+} from "./sealed/index.js";

@@ -2,8 +2,9 @@ name: "update docs"
 
 # Builds the documentation site (guides + typedoc) and deploys it to GitHub Pages.
 # Runs after each release (called by release-please.yml) and can be run by hand to republish:
-#   gh workflow run docs.yml                 (current main)
-#   gh workflow run docs.yml -f ref=<sha|tag|branch>
+#   gh workflow run docs.yml -f lane=latest
+#   gh workflow run docs.yml -f ref=maintenance/v3.x -f lane=v3
+# Merge a fix into its maintenance branch before republishing that lane.
 on:
   workflow_dispatch:
     inputs:
@@ -11,19 +12,28 @@ on:
         description: "Commit, tag or branch to build the docs from (default: the branch the workflow runs on)"
         type: string
         required: false
+      lane:
+        description: "Documentation lane to publish"
+        type: choice
+        options: [latest, v4, v3]
+        default: latest
   workflow_call:
     inputs:
       ref:
         description: "Commit to build the docs from"
         type: string
         required: false
+      lane:
+        description: "Documentation lane to publish"
+        type: string
+        required: false
+        default: latest
 
 permissions:
   contents: write
 
-# One deployment at a time; a newer one supersedes a pending one
 concurrency:
-  group: docs-deploy
+  group: docs-deploy-${{ inputs.lane || 'latest' }}
   cancel-in-progress: false
 
 jobs:
@@ -41,27 +51,55 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        if: ${{ (inputs.lane || 'latest') != 'v3' }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ (inputs.lane || 'latest') == 'v3' && '20' || '22' }}
 
       # docs is a workspace package, so this installs its dependencies too;
       # typedoc resolves cross-package types through each package's compiled lib/
       - name: Build packages
+        if: ${{ (inputs.lane || 'latest') != 'v3' }}
         run: pnpm install && pnpm run build
 
+      - name: Build v3 packages
+        if: ${{ (inputs.lane || 'latest') == 'v3' }}
+        run: yarn install && yarn run build && (cd docs && yarn install)
+
       - name: Build docs
+        if: ${{ (inputs.lane || 'latest') != 'v3' }}
         timeout-minutes: 45
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           # GA4 usage analytics (Consent Mode v2); leave the repository variable unset to build without analytics
           GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
+          DOCS_BASE_URL: ${{ (inputs.lane || 'latest') == 'latest' && '/' || format('/{0}/', inputs.lane) }}
         run: pnpm run docs
+
+      - name: Build v3 docs
+        if: ${{ (inputs.lane || 'latest') == 'v3' }}
+        timeout-minutes: 45
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          DOCS_BASE_URL: /v3/
+        run: yarn docs
+
+      - name: Keep root assets in the root lane
+        if: ${{ (inputs.lane || 'latest') != 'latest' }}
+        run: rm -f docs/build/CNAME docs/build/versions.json docs/build/sitemap.xml
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
           branch: gh-pages
-          # docusaurus build output (the docs script writes the CNAME there)
+          target-folder: ${{ (inputs.lane || 'latest') == 'latest' && '.' || inputs.lane }}
+          clean: true
+          # Concurrent lanes share gh-pages; retry by rebasing instead of force-pushing.
+          force: false
+          attempt-limit: 5
+          # A root cleanup must preserve independently published major lanes.
+          clean-exclude: |
+            v3
+            v4
           folder: docs/build

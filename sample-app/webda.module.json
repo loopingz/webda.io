@@ -253,9 +253,22 @@
             "description": "Number of seconds before droping message",
             "type": "number"
           },
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
           "maxConsumers": {
             "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
           "timeout": {
@@ -1027,12 +1040,12 @@
           {
             "attribute": "courses",
             "model": "WebdaDemo/Course",
-            "targetAttribute": "Classroom"
+            "targetAttribute": "classroom"
           },
           {
             "attribute": "hardwares",
             "model": "WebdaDemo/Hardware",
-            "targetAttribute": "Classroom"
+            "targetAttribute": "classroom"
           }
         ]
       },
@@ -1125,7 +1138,8 @@
         }
       },
       "Actions": {
-        "test": {}
+        "test": {},
+        "rename": {}
       },
       "Events": [
         "Create",
@@ -1156,12 +1170,12 @@
           {
             "attribute": "_projects",
             "model": "WebdaDemo/Project",
-            "targetAttribute": "Company"
+            "targetAttribute": "company"
           },
           {
             "attribute": "users",
             "model": "WebdaDemo/User",
-            "targetAttribute": "Company"
+            "targetAttribute": "company"
           }
         ]
       },
@@ -1710,8 +1724,7 @@
         "queries": [
           {
             "attribute": "brands",
-            "model": "WebdaDemo/Brand",
-            "targetAttribute": "Hardware"
+            "model": "WebdaDemo/Brand"
           }
         ]
       },
@@ -2640,8 +2653,7 @@
         "queries": [
           {
             "attribute": "brands",
-            "model": "WebdaDemo/Brand",
-            "targetAttribute": "Hardware"
+            "model": "WebdaDemo/Brand"
           }
         ]
       },
@@ -2778,6 +2790,478 @@
         "uuid"
       ],
       "Identifier": "WebdaDemo/Hardware"
+    },
+    "WebdaDemo/Note": {
+      "Plural": "Notes",
+      "Import": "lib/models/note.model:Note",
+      "Relations": {
+        "behaviors": [
+          {
+            "attribute": "content",
+            "behavior": "Webda/Sealed"
+          }
+        ],
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "Webda/User",
+            "type": "LINK"
+          }
+        ]
+      },
+      "Ancestors": [
+        "Webda/OwnerModel",
+        "Webda/AbstractOwnerModel"
+      ],
+      "Subclasses": [],
+      "Reflection": {
+        "content": {
+          "type": "SealedField",
+          "typeParameters": [
+            "{ title: string; body: string; }"
+          ]
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/content%232%24epk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "Partial<SealedEnvelope>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "SealedEnvelope": {
+              "additionalProperties": false,
+              "description": "Sealed value envelope: ECDH-ES (ephemeral key `epk`) + HKDF-SHA-256 + AES-256-GCM",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "epk",
+                "iv",
+                "kid",
+                "v"
+              ],
+              "type": "object"
+            },
+            "content#1$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "content#2$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "A private note: its content is sealed end-to-end to the owner, the server only ever stores the envelope\n\nThe owner devices open `content` with their `KeyVault` (`@webda/sealed-client`).",
+          "properties": {
+            "_user": {
+              "description": "Default owner of the object",
+              "type": "string"
+            },
+            "content": {
+              "WebdaBehavior": "Webda/Sealed",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SealedEnvelope"
+                },
+                {
+                  "$ref": "#/definitions/Partial%3CSealedEnvelope%3E"
+                }
+              ],
+              "description": "Sealed to the owner: `await note.content.seal({ title, body })`",
+              "x-webda-sealed": true
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "content",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "JsonWebKey": {
+              "additionalProperties": false,
+              "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
+              "properties": {
+                "alg": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "ext": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "key_ops": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kty": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "oth": {
+                  "items": {
+                    "$ref": "#/definitions/content%232%24epk%24oth%5B%5D"
+                  },
+                  "type": "array"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "use": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "Partial<SealedEnvelope>": {
+              "additionalProperties": false,
+              "description": "Make all properties in T optional",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "SealedEnvelope": {
+              "additionalProperties": false,
+              "description": "Sealed value envelope: ECDH-ES (ephemeral key `epk`) + HKDF-SHA-256 + AES-256-GCM",
+              "properties": {
+                "ct": {
+                  "type": "string"
+                },
+                "epk": {
+                  "$ref": "#/definitions/JsonWebKey"
+                },
+                "iv": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "v": {
+                  "const": 1,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "ct",
+                "epk",
+                "iv",
+                "kid",
+                "v"
+              ],
+              "type": "object"
+            },
+            "content#1$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "content#2$epk$oth[]": {
+              "additionalProperties": false,
+              "properties": {
+                "d": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "string"
+                },
+                "t": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "A private note: its content is sealed end-to-end to the owner, the server only ever stores the envelope\n\nThe owner devices open `content` with their `KeyVault` (`@webda/sealed-client`).",
+          "properties": {
+            "_user": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {},
+                {
+                  "allOf": [
+                    {
+                      "additionalProperties": false,
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "type": "object"
+                    }
+                  ]
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "content": {
+              "WebdaBehavior": "Webda/Sealed",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SealedEnvelope"
+                },
+                {
+                  "$ref": "#/definitions/Partial%3CSealedEnvelope%3E"
+                }
+              ],
+              "description": "Sealed to the owner: `await note.content.seal({ title, body })`",
+              "x-webda-sealed": true
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "content",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "WebdaDemo/Note"
     },
     "WebdaDemo/Project": {
       "Plural": "Projects",
@@ -3110,7 +3594,7 @@
           {
             "attribute": "courses",
             "model": "WebdaDemo/Course",
-            "targetAttribute": "Student"
+            "targetAttribute": "students"
           }
         ]
       },
@@ -4062,12 +4546,12 @@
           {
             "attribute": "courses",
             "model": "WebdaDemo/Course",
-            "targetAttribute": "Teacher"
+            "targetAttribute": "teacher"
           },
           {
             "attribute": "students",
             "model": "WebdaDemo/Student",
-            "targetAttribute": "Teacher"
+            "targetAttribute": "teachers"
           }
         ]
       },
@@ -4244,18 +4728,22 @@
           {
             "attribute": "mfa",
             "behavior": "Webda/MFA"
+          },
+          {
+            "attribute": "keys",
+            "behavior": "Webda/UserKeys"
           }
         ],
         "queries": [
           {
             "attribute": "computers",
             "model": "WebdaDemo/Computer",
-            "targetAttribute": "User"
+            "targetAttribute": "_user"
           },
           {
             "attribute": "contacts",
             "model": "WebdaDemo/Contact",
-            "targetAttribute": "User"
+            "targetAttribute": "owner"
           }
         ]
       },
@@ -4310,6 +4798,15 @@
         "_lastMfaAttemptAt": {
           "type": "number"
         },
+        "keys": {
+          "type": "UserKeys"
+        },
+        "_escrowAttempts": {
+          "type": "number"
+        },
+        "_lastEscrowAttemptAt": {
+          "type": "number"
+        },
         "displayName": {
           "type": "string"
         },
@@ -4332,7 +4829,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/MFA",
+              "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4430,6 +4927,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
+            },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
               "type": "number"
@@ -4462,6 +4967,10 @@
               "readOnly": true,
               "type": "array"
             },
+            "keys": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
+            },
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
@@ -4488,6 +4997,7 @@
             }
           },
           "required": [
+            "_escrowAttempts",
             "_mfaAttempts",
             "company",
             "displayName",
@@ -4504,7 +5014,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/MFA",
+              "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4515,6 +5025,14 @@
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
+            },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
             },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
@@ -4539,6 +5057,10 @@
               "description": "Contain main user email if exists",
               "type": "string"
             },
+            "keys": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
+            },
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
@@ -4562,6 +5084,7 @@
             }
           },
           "required": [
+            "_escrowAttempts",
             "_mfaAttempts",
             "company",
             "displayName",
@@ -4576,7 +5099,7 @@
           "additionalProperties": false,
           "definitions": {
             "Record<string, any>": {
-              "WebdaBehavior": "Webda/MFA",
+              "WebdaBehavior": "Webda/UserKeys",
               "additionalProperties": {},
               "description": "Construct a type with a set of properties K of type T",
               "type": "object"
@@ -4674,6 +5197,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
+            "_escrowAttempts": {
+              "description": "Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})",
+              "type": "number"
+            },
+            "_lastEscrowAttemptAt": {
+              "description": "Timestamp (ms) of the last counted escrow fetch",
+              "type": "number"
+            },
             "_lastMfaAttemptAt": {
               "description": "Timestamp (ms) of the last counted MFA attempt",
               "type": "number"
@@ -4706,6 +5237,10 @@
               "readOnly": true,
               "type": "array"
             },
+            "keys": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices"
+            },
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
@@ -4732,6 +5267,7 @@
             }
           },
           "required": [
+            "_escrowAttempts",
             "_mfaAttempts",
             "company",
             "displayName",
@@ -4883,183 +5419,58 @@
     },
     "WebdaDemo/Classroom.test.input": {
       "type": "object",
-      "properties": {
-        "context": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {}
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
+      "properties": {},
+      "x-webda-arguments": [
         "context"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "context"
+      ]
     },
     "WebdaDemo/Classroom.test.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     },
-    "WebdaDemo/Hardware.globalAction.input": {
+    "WebdaDemo/Classroom.rename.input": {
       "type": "object",
       "properties": {
-        "context": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {}
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
+        "name": {
+          "type": "string"
+        },
+        "force": {
+          "type": "boolean"
         }
       },
       "required": [
+        "name"
+      ]
+    },
+    "WebdaDemo/Classroom.rename.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "force": {
+          "default": false,
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "WebdaDemo/Hardware.globalAction.input": {
+      "type": "object",
+      "properties": {},
+      "x-webda-arguments": [
         "context"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "context"
+      ]
     },
     "WebdaDemo/Hardware.globalAction.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5231,91 +5642,13 @@
     },
     "CustomService.testOperation.input": {
       "type": "object",
-      "properties": {
-        "ctx": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {}
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
+      "properties": {},
+      "x-webda-arguments": [
         "ctx"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "ctx"
+      ]
     },
     "CustomService.testOperation.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5323,105 +5656,13 @@
     },
     "CustomService.testOperationWithOutput.input": {
       "type": "object",
-      "properties": {
-        "ctx": {
-          "additionalProperties": false,
-          "description": "OperationContext is used when call to an operation",
-          "param": [
-            "T type of input for this context",
-            "U type of output for this context",
-            "P type of parameters for this context"
-          ],
-          "properties": {
-            "_promises": {
-              "description": "Contain all registered promises to this context",
-              "items": {
-                "$ref": "#/definitions/Promise%3Cany%3E"
-              },
-              "type": "array"
-            },
-            "_stream": {
-              "$ref": "#/definitions/Writable",
-              "description": "Output stream"
-            },
-            "action": {},
-            "caches": {
-              "description": "Get the caches linked to the context"
-            },
-            "parameters": {
-              "$ref": "#/definitions/parameters"
-            }
-          },
-          "required": [
-            "_promises",
-            "_stream",
-            "action",
-            "caches",
-            "parameters"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
+      "properties": {},
+      "x-webda-arguments": [
         "ctx"
       ],
-      "definitions": {
-        "Error": {
-          "additionalProperties": false,
-          "properties": {
-            "message": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "message",
-            "name"
-          ],
-          "type": "object"
-        },
-        "Promise<any>": {
-          "additionalProperties": false,
-          "description": "Represents the completion of an asynchronous operation",
-          "type": "object"
-        },
-        "Writable": {
-          "additionalProperties": false,
-          "properties": {
-            "destroyed": {
-              "default": false,
-              "description": "Is `true` after `writable.destroy()` has been called.",
-              "since": "v8.0.0",
-              "type": "boolean"
-            },
-            "writable": {
-              "default": false,
-              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-              "since": "v11.4.0",
-              "type": "boolean"
-            }
-          },
-          "since": "v0.9.4",
-          "type": "object"
-        },
-        "parameters": {
-          "additionalProperties": false,
-          "properties": {
-            "result": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "result"
-          ],
-          "type": "object"
-        }
-      }
+      "x-webda-context": [
+        "ctx"
+      ]
     },
     "CustomService.testOperationWithOutput.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

@@ -18,6 +18,7 @@ import {
   getPlural,
   sortObject
 } from "./module.ts";
+import { buildRelations } from "./module-discovery.ts";
 import { actionNameOption, namespaceOf } from "./schema/project.ts";
 import { handle } from "./schema/worker.ts";
 
@@ -337,6 +338,120 @@ describe("module model aliases", () => {
   });
 });
 
+describe("module events under strict", () => {
+  it("lists the events of an optional [WEBDA_EVENTS]? member", () => {
+    // `strict: true` widens `[WEBDA_EVENTS]?: ModelEvents<this>` to `ModelEvents<this> | undefined`,
+    // whose union has no properties of its own: Events used to come out empty
+    const dir = join(here, "..", "test", "events-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const { module, errors } = generateWebdaModule(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Evt"
+      });
+      expect(errors).toEqual([]);
+      expect(module.models["Evt/Inherited"].Events).toEqual(["Created", "Deleted"]);
+      expect(module.models["Evt/Extended"].Events).toEqual(["Created", "Deleted", "Archived"]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
+describe("module relations", () => {
+  const dir = join(here, "..", "test", "relation-fixture");
+  let session: Session;
+  let result: ReturnType<typeof generateWebdaModule>;
+  beforeAll(() => {
+    session = openSession(join(dir, "tsconfig.json"), dir);
+    result = generateWebdaModule(session.ctx, {
+      appPath: dir,
+      rootDir: join(dir, "src"),
+      outDir: join(dir, "lib"),
+      namespace: "Rel"
+    });
+  }, 120_000);
+  afterAll(() => session?.dispose());
+
+  it("records the relation aliases as the relation type they resolve to", () => {
+    expect(result.module.models["Rel/Post"].Relations).toEqual({
+      parent: { attribute: "author", model: "Rel/Author" },
+      links: [
+        { attribute: "editor", model: "Rel/Author", type: "LINK" },
+        { attribute: "reviewer", model: "Rel/Author", type: "LINK" },
+        { attribute: "sponsor", model: "Rel/Author", type: "LINK" },
+        { attribute: "tags", model: "Rel/Tag", type: "LINKS_ARRAY" },
+        { attribute: "labels", model: "Rel/Tag", type: "LINKS_ARRAY" },
+        { attribute: "related", model: "Rel/Post", type: "LINKS_SIMPLE_ARRAY" }
+      ]
+    });
+    // The same in the discovery helper
+    const relations = buildRelations(
+      session.ctx,
+      undefined,
+      classOf(session, "blog.model.ts", "Post"),
+      name => `Rel/${name}`
+    );
+    expect(relations.parent).toEqual({ attribute: "author", model: "Rel/Author" });
+    expect(relations.links?.map(link => link.type)).toEqual([
+      "LINK",
+      "LINK",
+      "LINK",
+      "LINKS_ARRAY",
+      "LINKS_ARRAY",
+      "LINKS_SIMPLE_ARRAY"
+    ]);
+  });
+
+  it("binds a link declared on a generic base to the subclass type argument", () => {
+    expect(result.module.models["Rel/Owned"].Relations.links).toEqual([
+      { attribute: "owner", type: "LINK" },
+      { attribute: "reader", type: "LINK" }
+    ]);
+    expect(result.module.models["Rel/Draft"].Relations.links).toEqual([
+      { attribute: "owner", model: "Rel/Author", type: "LINK" },
+      { attribute: "reader", model: "Rel/Author", type: "LINK" }
+    ]);
+    // The same in the discovery helper
+    const resolve = (model: string) => (model === "Author" ? "Rel/Author" : undefined);
+    const linksOf = (name: string) =>
+      buildRelations(session.ctx, undefined, classOf(session, "owned.model.ts", name), resolve).links;
+    expect(linksOf("Owned")).toEqual([
+      { attribute: "owner", type: "LINK" },
+      { attribute: "reader", type: "LINK" }
+    ]);
+    expect(linksOf("Draft")).toEqual([
+      { attribute: "owner", model: "Rel/Author", type: "LINK" },
+      { attribute: "reader", model: "Rel/Author", type: "LINK" }
+    ]);
+  });
+
+  it("records the attribute a ModelRelated queries", () => {
+    expect(result.module.models["Rel/Author"].Relations.queries).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "author" }
+    ]);
+    expect(result.module.models["Rel/Tag"].Relations.queries).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
+      { attribute: "untargeted", model: "Rel/Post" }
+    ]);
+    expect(
+      buildRelations(session.ctx, undefined, classOf(session, "blog.model.ts", "Tag"), name => `Rel/${name}`).queries
+    ).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
+      { attribute: "untargeted", model: "Rel/Post", targetAttribute: "" }
+    ]);
+  });
+
+  it("refuses a second parent", () => {
+    expect(result.errors).toEqual([
+      "Rel/Comment has two parents, post and thread: a model has one ModelParent (BelongTo) at most, use ModelLink " +
+        "(ManyToOne) for the other"
+    ]);
+  });
+});
+
 /**
  * Committed module of a package, when its dependencies are installed.
  * @param relative - repo-relative package directory
@@ -402,6 +517,13 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     expect(result!.errors).toEqual([]);
     expect(result!.namingViolations).toEqual([]);
   });
+
+  it.runIf(relative === "packages/core")("binds a link declared on a generic base to the subclass argument", () => {
+    if (!committed) return;
+    const linksOf = (model: string) => result!.module.models[model].Relations.links;
+    expect(linksOf("Webda/AbstractOwnerModel")).toEqual([{ attribute: "_user", type: "LINK" }]);
+    expect(linksOf("Webda/OwnerModel")).toEqual([{ attribute: "_user", model: "Webda/User", type: "LINK" }]);
+  });
 });
 
 /**
@@ -432,7 +554,10 @@ describe("model extending a dependency's model", () => {
 
   it("records relations inherited from the dependency's models", () => {
     if (!available) return;
-    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([{ attribute: "_user", type: "LINK" }]);
+    // `_user: ModelLink<T>` is declared on the generic base, `OwnerModel` binds `T` to `User`
+    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([
+      { attribute: "_user", model: "Webda/User", type: "LINK" }
+    ]);
   });
 });
 

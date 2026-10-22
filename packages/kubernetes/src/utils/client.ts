@@ -17,6 +17,10 @@ export interface KubernetesParameters {
    * Default context to use
    */
   context?: string;
+  /**
+   * Milliseconds before a request to the Kubernetes API is aborted, no timeout when unset
+   */
+  timeout?: number;
 }
 
 /**
@@ -55,13 +59,50 @@ export interface K8sConfiguration {
 }
 
 /**
+ * Middleware aborting each request after a delay
+ * @param timeout - milliseconds before the request is aborted
+ * @returns the middleware
+ */
+function timeoutMiddleware(timeout: number): k8s.Middleware {
+  return {
+    pre: async context => {
+      context.setSignal(AbortSignal.timeout(timeout));
+      return context;
+    },
+    post: async context => context
+  };
+}
+
+/**
  * Get a Kubernetes API client
  * @param params - the kubernetes parameters
  * @param api - the API class to instantiate, generic object API if not specified
  * @returns the API client
  */
+export function getKubernetesApiClient(params: KubernetesParameters): k8s.KubernetesObjectApi;
+export function getKubernetesApiClient<T extends k8s.ApiType>(
+  params: KubernetesParameters,
+  api: k8s.ApiConstructor<T>
+): T;
 export function getKubernetesApiClient(params: KubernetesParameters, api?: any): k8s.ApiType | k8s.KubernetesObjectApi {
   const kc = getKubeConfig(params);
+  const timeout = params.timeout;
+  if (timeout) {
+    // Same as KubeConfig.makeApiClient, with the timeout middleware
+    kc.makeApiClient = type => {
+      const cluster = kc.getCurrentCluster();
+      if (!cluster) {
+        throw new Error("No active cluster!");
+      }
+      return new type(
+        k8s.createConfiguration({
+          baseServer: new k8s.ServerConfiguration(cluster.server, {}),
+          authMethods: { default: kc },
+          promiseMiddleware: [timeoutMiddleware(timeout)]
+        })
+      );
+    };
+  }
   if (api) {
     return kc.makeApiClient(api);
   } else {

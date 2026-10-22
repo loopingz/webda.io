@@ -1,4 +1,5 @@
 import { posix } from "path";
+import { useModelId } from "../application/hooks.js";
 import { Readable } from "node:stream";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from "./binary.service.js";
@@ -119,7 +120,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param expires - the expiration time
    * @returns the result
    */
-  async getRedirectUrlFromObject(binaryMap, context, expires: number = 30) {
+  async getRedirectUrlFromObject(binaryMap, context, expires: number = this.parameters.urlExpiry) {
     return this.getSignedUrlFromMap(binaryMap, expires, context);
   }
 
@@ -141,24 +142,32 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   async delete(object: CoreModelWithBinary, property: string, index: number) {
     const hash = index !== undefined ? object[property][index].hash : (object[property] as BinaryMap).hash;
     await this.deleteSuccess(object, property, index);
-    await this._cleanUsage(hash, object.getUUID(), property);
+    await this._cleanUsage(hash, object.getUUID(), property, useModelId(object.constructor));
   }
 
   /**
    * @override
    */
-  async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
     try {
-      await this._cleanUsage(info.hash, uuid);
+      await this._cleanUsage(info.hash, uuid, attribute, model);
     } catch (err) {
       this.log("WARN", "Cascade delete failed", err);
     }
   }
 
   /**
-   * Clean usage for a hash
+   * Remove the usage marker of an object attribute for a hash, then the data when nothing uses it anymore
+   *
+   * Only the exact marker written for (model, attribute, uuid) is removed, never the usages of other objects sharing
+   * the deduplicated data (a uuid ending with `_<uuid>`, another attribute or model). Without the attribute the
+   * marker is unknown: implementations remove nothing
+   * @param hash - the binary hash
+   * @param uuid - the object uuid
+   * @param attribute - the binary attribute
+   * @param model - the model identifier of the object
    */
-  abstract _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void>;
+  abstract _cleanUsage(hash: string, uuid: string, attribute: string, model: string): Promise<void>;
 
   /**
    * Retrieve one signed URL to download the file in parameter

@@ -1,4 +1,4 @@
-import { createMethodDecorator } from "@webda/tsc-esm";
+import { createMethodDecorator } from "@webda/decorators";
 
 /**
  * Options for the @Command decorator

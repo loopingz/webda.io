@@ -146,6 +146,18 @@ class Classroom extends DefaultTestModel {
       }, 50);
     });
   }
+
+  /**
+   * Typed action: receives its parameters, its return value is the output.
+   *
+   * @param name - the new name
+   * @param force - whether to force the rename
+   * @returns the received arguments
+   */
+  @Action()
+  async rename(name: string, force: boolean = false): Promise<{ name: string; force: boolean }> {
+    return { name, force };
+  }
 }
 
 // @Expose({ root: true })

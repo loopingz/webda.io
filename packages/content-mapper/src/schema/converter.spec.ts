@@ -172,14 +172,16 @@ describe("SchemaConverter", () => {
     expect(properties.createdAt).toBeUndefined();
   });
 
-  it("ignores an @enum payload, which 6.x parsed as a type expression", () => {
-    // `parseEnumTag` omits braces, so the payload never reached the comment
-    // text. Letting it through would populate `enum` from the tag — a
-    // behaviour change, not a port.
-    // `true` is what an empty tag payload becomes, and is what the
-    // committed schemas contain.
-    expect(properties.channel.enum).toBe(true);
+  it("reads the values of an @enum tag", () => {
+    // 6.x parsed the payload as a type expression and saw an empty tag, read
+    // as `true` and appended to the enum of a union: `["a", "b", true]`
+    expect(properties.channel.enum).toEqual(["a", "b"]);
     expect(properties.channel.type).toBe("string");
+    // The tag replaces the values of the union
+    expect(properties.tier.enum).toEqual(["gold", "silver"]);
+    // A payload that is not a list is ignored
+    expect(properties.loose.enum).toBeUndefined();
+    expect(properties.scalarEnum.enum).toBeUndefined();
   });
 
   it("collapses union branches that differ only by annotations", () => {
@@ -365,6 +367,29 @@ describe("top-level schemas", () => {
     expect(schemas["Test/Desk.close.input"].required).toEqual(["reason"]);
   });
 
+  it("drops a context parameter from .input and records the argument order", () => {
+    expect(schemas["Test/Desk.reply.input"]).toEqual({
+      type: "object",
+      properties: { message: { type: "string" }, urgent: { type: "boolean" } },
+      required: ["message"],
+      "x-webda-arguments": ["context", "message", "urgent"],
+      "x-webda-context": ["context"]
+    });
+  });
+
+  it("keeps the position of a context parameter in the middle", () => {
+    const input = schemas["Test/Desk.note.input"];
+    expect(input["x-webda-arguments"]).toEqual(["text", "context", "tags"]);
+    expect(Object.keys(input.properties!)).toEqual(["text", "tags"]);
+    expect(input.required).toEqual(["text"]);
+  });
+
+  it("adds no argument keywords without a context parameter", () => {
+    const input = schemas["Test/Desk.open.input"];
+    expect(input["x-webda-arguments"]).toBeUndefined();
+    expect(input["x-webda-context"]).toBeUndefined();
+  });
+
   it("unwraps Promise for .output and keeps its $schema", () => {
     expect(schemas["Test/Desk.close.output"]).toEqual({
       $schema: "http://json-schema.org/draft-07/schema#",
@@ -476,5 +501,25 @@ describe("secret fields", () => {
     // `@type string` alone, like `Duration`, is not a secret
     expect(properties.masked["x-webda-secret"]).toBeUndefined();
     expect(JSON.stringify(schemaOf("params.service.ts", "BroadService"))).not.toContain("x-webda-secret");
+  });
+});
+
+describe("sealed fields", () => {
+  const options = { project: session.ctx.project, checker: session.ctx.checker };
+  const vault = generateModelSchemas(classOf("sealed.model.ts", "Vault"), options);
+
+  it("schemaMarksSealed: marks a SealedField property x-webda-sealed in every view", () => {
+    for (const view of [vault.Input, vault.Output, vault.Stored]) {
+      const content = (view.properties as Record<string, Record<string, unknown>>).content;
+      expect(content["x-webda-sealed"]).toBe(true);
+    }
+  });
+
+  it("leaves other attributes and behaviors unmarked", () => {
+    for (const view of [vault.Input, vault.Output, vault.Stored]) {
+      const properties = view.properties as Record<string, Record<string, unknown>>;
+      expect(properties.title["x-webda-sealed"]).toBeUndefined();
+      expect(properties.other["x-webda-sealed"]).toBeUndefined();
+    }
   });
 });

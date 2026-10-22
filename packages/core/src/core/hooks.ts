@@ -2,7 +2,7 @@ import type { IStore } from "./icore.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import pkg from "node-machine-id";
 import type { Model, ModelClass, Repository } from "@webda/models";
-import type { CustomConstructor } from "@webda/tsc-esm";
+import type { CustomConstructor } from "@webda/utils";
 import type { Service } from "../services/service.js";
 import type CryptoService from "../services/cryptoservice.service.js";
 import type { TokenService } from "../services/token.service.js";

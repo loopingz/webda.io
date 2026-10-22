@@ -376,6 +376,7 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
     }
     const uid = this.getUUID();
     for (const query of descriptor.queries) {
+      if (!query.targetAttribute) continue;
       Object.defineProperty(this, query.attribute, {
         value: new Related(webda, query.model, query.targetAttribute, uid, descriptor.id),
         enumerable: false,

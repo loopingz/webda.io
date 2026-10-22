@@ -31,6 +31,8 @@ class TokenServiceTest extends WebdaApplicationTest {
     (this.service as any).revocationMisses.clear();
     this.service.getParameters().revocationCheck = true;
     this.service.getParameters().revocationCacheTtl = 10;
+    this.service.getParameters().refreshGrace = 86400;
+    vi.useRealTimers();
     for await (const entry of RevokedAccess.iterate("")) {
       await entry.ref().delete();
     }
@@ -118,6 +120,8 @@ class TokenServiceTest extends WebdaApplicationTest {
 
   @test
   async rotationAndReuse() {
+    // strict reuse detection: no grace
+    this.service.getParameters().refreshGrace = 0;
     const first = await this.service.issue(this.session());
     const second = await this.service.refresh(first.refreshToken);
     assert.notStrictEqual(second.refreshToken, first.refreshToken);
@@ -125,6 +129,97 @@ class TokenServiceTest extends WebdaApplicationTest {
     // reuse of the rotated token revokes the family
     await assert.rejects(() => this.service.refresh(first.refreshToken), TokenInvalid);
     await assert.rejects(() => this.service.refresh(second.refreshToken), TokenInvalid);
+  }
+
+  @test
+  async replayWithinTheGraceRotatesAgainWhenTheSuccessorWasNeverUsed() {
+    // the client lost the answer of its refresh (laptop asleep, network drop) and retries with the same token
+    const first = await this.service.issue(this.session(), undefined, { clientId: "c" });
+    const second = await this.service.refresh(first.refreshToken, { clientId: "c" });
+    const third = await this.service.refresh(first.refreshToken, { clientId: "c" });
+    assert.notStrictEqual(third.refreshToken, second.refreshToken);
+    assert.strictEqual(third.session.userId, "u1");
+    // the same family: the replacement is retired, the new token works
+    const svc: any = this.service;
+    const secondStored = await RefreshToken.ref({ hash: svc.hash(second.refreshToken) } as any).get();
+    assert.ok(secondStored.retiredAt);
+    assert.strictEqual(secondStored.revokedAt, undefined);
+    const thirdStored = await RefreshToken.ref({ hash: svc.hash(third.refreshToken) } as any).get();
+    assert.strictEqual(thirdStored.family, secondStored.family);
+    const fourth = await this.service.refresh(third.refreshToken, { clientId: "c" });
+    assert.ok(await this.service.verifyAccess(fourth.accessToken));
+    // retiring is not revoking: the family lives on, its access tokens included
+    assert.ok(await this.service.verifyAccess(second.accessToken));
+  }
+
+  @test
+  async replayWithinTheGraceWhenTheSuccessorWasNeverStored() {
+    // the rotation succeeded but writing its successor failed: the client retries with the same token
+    const first = await this.service.issue(this.session());
+    const issue = vi.spyOn(this.service, "issue").mockRejectedValueOnce(new Error("store down"));
+    try {
+      await assert.rejects(() => this.service.refresh(first.refreshToken), /store down/);
+    } finally {
+      issue.mockRestore();
+    }
+    const svc: any = this.service;
+    const stored = await RefreshToken.ref({ hash: svc.hash(first.refreshToken) } as any).get();
+    assert.ok(stored.rotatedAt && stored.successor);
+    assert.strictEqual(await RefreshToken.ref({ hash: stored.successor } as any).exists(), false);
+    const second = await this.service.refresh(first.refreshToken);
+    assert.strictEqual(second.session.userId, "u1");
+    assert.ok(await this.service.verifyAccess(second.accessToken));
+  }
+
+  @test
+  async aRetiredSuccessorPresentedLaterRevokesTheFamily() {
+    // two holders of the family's tokens (the replay was not the same client): detected at the next refresh
+    const first = await this.service.issue(this.session());
+    const second = await this.service.refresh(first.refreshToken);
+    const third = await this.service.refresh(first.refreshToken);
+    await assert.rejects(() => this.service.refresh(second.refreshToken), TokenInvalid);
+    await assert.rejects(() => this.service.refresh(third.refreshToken), TokenInvalid);
+    assert.strictEqual(await this.service.verifyAccess(third.accessToken), undefined);
+  }
+
+  @test
+  async replayAfterTheSuccessorWasUsedRevokesTheFamily() {
+    const first = await this.service.issue(this.session());
+    const second = await this.service.refresh(first.refreshToken);
+    const third = await this.service.refresh(second.refreshToken);
+    await assert.rejects(() => this.service.refresh(first.refreshToken), TokenInvalid);
+    await assert.rejects(() => this.service.refresh(third.refreshToken), TokenInvalid);
+  }
+
+  @test
+  async replayAfterTheGraceRevokesTheFamily() {
+    this.service.getParameters().refreshGrace = 60;
+    const first = await this.service.issue(this.session());
+    const second = await this.service.refresh(first.refreshToken);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 61_000);
+      await assert.rejects(() => this.service.refresh(first.refreshToken), TokenInvalid);
+      await assert.rejects(() => this.service.refresh(second.refreshToken), TokenInvalid);
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  @test
+  async concurrentReplaysWithinTheGraceAreAReuse() {
+    // two replays at once are two holders: at most one gets tokens, and the family is revoked
+    const first = await this.service.issue(this.session());
+    await this.service.refresh(first.refreshToken);
+    const results = await Promise.allSettled([
+      this.service.refresh(first.refreshToken),
+      this.service.refresh(first.refreshToken)
+    ]);
+    const fulfilled = results.filter(r => r.status === "fulfilled") as PromiseFulfilledResult<any>[];
+    assert.ok(fulfilled.length <= 1);
+    for (const r of results) if (r.status === "rejected") assert.ok(r.reason instanceof TokenInvalid);
+    await assert.rejects(() => this.service.refresh(first.refreshToken), TokenInvalid);
+    for (const r of fulfilled) await assert.rejects(() => this.service.refresh(r.value.refreshToken), TokenInvalid);
   }
 
   @test

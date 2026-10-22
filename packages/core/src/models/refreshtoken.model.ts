@@ -27,6 +27,13 @@ export class RefreshToken extends Model {
   expiresAt: number;
   /** Set once exchanged */
   rotatedAt?: number;
+  /** Hash of the token it was exchanged for: a replay within the grace checks whether that one was ever used */
+  successor?: string;
+  /**
+   * Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two
+   * holders, and revokes the family
+   */
+  retiredAt?: number;
   /** Set when revoked */
   revokedAt?: number;
   /** OAuth client the token was issued to */

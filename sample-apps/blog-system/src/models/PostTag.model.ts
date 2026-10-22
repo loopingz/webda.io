@@ -1,4 +1,4 @@
-import { Model, WEBDA_PRIMARY_KEY, BelongTo, RelateTo } from "@webda/models";
+import { Model, WEBDA_PRIMARY_KEY, ManyToOne, RelateTo } from "@webda/models";
 import type { Post } from "./Post.model.js";
 import type { Tag } from "./Tag.model.js";
 import { isModelActionAllowed } from "@webda/core";
@@ -25,7 +25,7 @@ export class PostTag extends Model {
   createdAt!: Date;
 
   // Relations to actual objects
-  post!: BelongTo<Post>;
+  post!: ManyToOne<Post>;
   tag!: RelateTo<Tag>;
 
   /**

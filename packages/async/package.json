@@ -66,8 +66,7 @@
   },
   "nx": {
     "implicitDependencies": [
-      "@webda/core",
-      "@webda/tsc-esm"
+      "@webda/core"
     ]
   },
   "license": "LGPL-3.0-only"

@@ -1,5 +1,5 @@
 import { MemoryRepository, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
-import type { ModelClass } from "@webda/core";
+import type { CountResult, ModelClass } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 import type { AggregationQuery, AggregationResult } from "@webda/ql";
 import { SQLComparisonExpression } from "./comparison.js";
@@ -754,17 +754,52 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
   }
 
   /**
+   * SQL condition selecting the rows of this model matching a filter: the filter and the class condition
+   * @param filter - the WebdaQL filter
+   * @returns the condition
+   */
+  protected getFilterCondition(filter: WebdaQL.Expression): string {
+    const where = `(${this.duplicateExpression(filter).toString()})`;
+    const classCondition = this.getClassCondition();
+    return classCondition ? `${where} AND ${classCondition}` : where;
+  }
+
+  /**
+   * Translate a count to SQL: one `COUNT(*)` over the filter, or over a sub-select stopped at max + 1 rows so a
+   * capped count reads at most max + 1 rows
+   * @param filter - the WebdaQL filter
+   * @param max - stop after max rows, undefined for an exact count
+   * @returns the statement, its `n` column holds the count
+   */
+  buildCountSQL(filter: WebdaQL.Expression, max?: number): string {
+    const where = this.getFilterCondition(filter);
+    if (max === undefined) {
+      return `SELECT COUNT(*) AS n FROM ${this.table} WHERE ${where}`;
+    }
+    if (!Number.isSafeInteger(max) || max <= 0) {
+      throw new Error(`Invalid count max: ${max}`);
+    }
+    return `SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${this.table} WHERE ${where} LIMIT ${max + 1}) s`;
+  }
+
+  /** @override COUNT(*) over the data JSON column */
+  protected async executeCount(filter: WebdaQL.Expression, max?: number): Promise<CountResult> {
+    const res = await this.execute(this.buildCountSQL(filter, max));
+    // PostgreSQL returns COUNT(*) as a bigint string
+    const n = Number(res.rows[0]?.n ?? 0);
+    return max !== undefined && n > max
+      ? { value: max, relation: "gte", native: true }
+      : { value: n, relation: "eq", native: true };
+  }
+
+  /**
    * SQL condition selecting the rows a statement targets: its WHERE, restricted to the first LIMIT rows when the
    * statement has a LIMIT (DELETE and UPDATE have none on every engine)
    * @param statement - the parsed statement
    * @returns the condition
    */
   protected getStatementCondition(statement: WebdaQL.Query): string {
-    let where = `(${this.duplicateExpression(statement.filter).toString()})`;
-    const classCondition = this.getClassCondition();
-    if (classCondition) {
-      where += ` AND ${classCondition}`;
-    }
+    const where = this.getFilterCondition(statement.filter);
     if (statement.limit === undefined) {
       return where;
     }

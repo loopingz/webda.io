@@ -30,9 +30,11 @@ import {
   dependencyModelName,
   discoverWebdaObjects,
   exportedName,
+  instantiatedLinkTarget,
   outputTarget,
   packageOf,
   reflectAttributes,
+  relationTypeOf,
   type DiscoveredObject,
   type DiscoveryOptions,
   type ReflectedAttribute,
@@ -454,15 +456,20 @@ function propertiesOf(ctx: AnalysisContext, cls: ClassDeclaration): readonly TsS
 /**
  * Names of the properties of a symbol-keyed member's type — the `Events` of
  * `[WEBDA_EVENTS]` or the declarative `Actions` of `[WEBDA_ACTIONS]`.
+ *
+ * The member is usually optional (`[WEBDA_EVENTS]?: ModelEvents<this>`): under
+ * `strictNullChecks` its type is `ModelEvents<this> | undefined`, a union with no
+ * properties of its own, so `null`/`undefined` are stripped before reading keys.
  * @param ctx - analysis context
  * @param property - the member
  * @returns property names in declaration order
  */
 function memberTypeKeys(ctx: AnalysisContext, property: TsSymbol): string[] {
   const location = valueDeclarationOf(ctx, property);
-  const type = location
+  const declared = location
     ? ctx.checker.getTypeOfSymbolAtLocation(property, location)
     : ctx.checker.getTypeOfSymbol(property);
+  const type = ctx.checker.getNonNullableType(declared);
   const keys: Record<string, true> = {};
   for (const member of ts6PropertyOrder(ctx, type, ctx.checker.getPropertiesOfType(type))) keys[member.name] = true;
   return Object.keys(keys);
@@ -1236,6 +1243,12 @@ function processModels(
       return undefined;
     }
   };
+  // `_user: ModelLink<T>` declared on a generic base: the model's own view of the
+  // property carries the type argument its class tree bound to `T`
+  const instantiatedModelOf = (property: TsSymbol, declaration: ClassDeclaration): string | undefined => {
+    const target = instantiatedLinkTarget(ctx, property, declaration);
+    return target && (byTypeId.get(declaredId(ctx, target)) ?? dependencyModelOf(ctx, target, appPath));
+  };
 
   const entries: Record<string, ModelEntry> = {};
   for (const { object, declaration } of models) {
@@ -1261,15 +1274,25 @@ function processModels(
 
       const attribute = property.name;
       const typeArguments: any[] = (typeNode as any).typeArguments ?? [];
-      const typeName = text(ctx, (typeNode as any).typeName);
+      const typeName = relationTypeOf(text(ctx, (typeNode as any).typeName));
       const addLink = (type: string) => {
         relations.links ??= [];
-        relations.links.push({ attribute, model: modelOf(typeArguments[0]), type });
+        relations.links.push({
+          attribute,
+          model: modelOf(typeArguments[0]) ?? instantiatedModelOf(property, declaration),
+          type
+        });
       };
       switch (typeName) {
         case "ModelParent": {
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find parent model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          if (relations.parent) {
+            errors.push(
+              `${name} has two parents, ${relations.parent.attribute} and ${attribute}: a model has one ModelParent ` +
+                `(BelongTo) at most, use ModelLink (ManyToOne) for the other`
+            );
+          }
           relations.parent = { attribute, model };
           break;
         }
@@ -1280,7 +1303,8 @@ function processModels(
           relations.queries.push({
             attribute,
             model,
-            targetAttribute: typeArguments[1] ? text(ctx, typeArguments[1]).replace(/"/g, "") : undefined
+            // ModelRelated<T, L, K>: K is the attribute of T linking back
+            targetAttribute: typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined
           });
           break;
         }

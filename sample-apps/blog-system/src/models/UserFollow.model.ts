@@ -1,4 +1,4 @@
-import { Model, WEBDA_PRIMARY_KEY, BelongTo } from "@webda/models";
+import { Model, WEBDA_PRIMARY_KEY, ManyToOne } from "@webda/models";
 import type { User } from "./User.model.js";
 import type { IOperationContext } from "@webda/core";
 
@@ -26,8 +26,8 @@ export class UserFollow extends Model {
   createdAt!: Date;
 
   // Relations
-  follower!: BelongTo<User>; // The user doing the following
-  following!: BelongTo<User>; // The user being followed
+  follower!: ManyToOne<User>; // The user doing the following
+  following!: ManyToOne<User>; // The user being followed
 
   /**
    * Permission rule: "get" for anyone, "create" and "delete" for the follower

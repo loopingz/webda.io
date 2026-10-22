@@ -1,4 +1,5 @@
-import type { RelationKind } from "./plan.js";
+import type { DeletePolicy } from "@webda/models";
+import type { ForeignKeyAction, RelationKind } from "./plan.js";
 
 /**
  * JSON schema subset read by the builder
@@ -41,8 +42,14 @@ export interface SchemaModelMetadata {
   Ancestors?: ModelReference[];
   Subclasses?: ModelReference[];
   Relations?: {
-    parent?: { attribute: string; model?: string };
-    links?: { attribute: string; model?: string; type: string }[];
+    /**
+     * `onDelete` defaults to `CASCADE`
+     */
+    parent?: { attribute: string; model?: string; onDelete?: DeletePolicy };
+    /**
+     * `onDelete` defaults to `NONE`
+     */
+    links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: string }[];
     queries?: { attribute: string; model?: string; targetAttribute?: string }[];
     maps?: { attribute: string; model?: string; [key: string]: unknown }[];
     [key: string]: unknown;
@@ -63,6 +70,49 @@ export interface DeclaredRelation {
   target?: string;
   targetAttribute?: string;
   unique?: boolean;
+  /**
+   * Delete policy of the relation, defaulted from its kind
+   */
+  onDelete?: DeletePolicy;
+}
+
+/**
+ * `ON DELETE` of the foreign key of a reference column, from the delete policy of its relation
+ *
+ * `NONE` keeps the `NO ACTION` the references always had: the database still refuses to delete a referenced row.
+ * @param policy - the delete policy
+ * @returns the SQL action
+ */
+export function foreignKeyAction(policy: DeletePolicy | undefined): ForeignKeyAction {
+  switch (policy) {
+    case "CASCADE":
+      return "CASCADE";
+    case "RESTRICT":
+      return "RESTRICT";
+    case "SET_NULL":
+      return "SET NULL";
+    default:
+      return "NO ACTION";
+  }
+}
+
+/**
+ * `ON DELETE` of the target foreign key of a junction table, from the delete policy of its link array relation
+ *
+ * A row of the junction is an item of the array: `SET_NULL` removes it with the target (`CASCADE`). Deleting the
+ * owners of a `CASCADE` array is the runtime work of the `RelationIntegrity` service, not of the junction.
+ * @param policy - the delete policy
+ * @returns the SQL action
+ */
+export function junctionForeignKeyAction(policy: DeletePolicy | undefined): ForeignKeyAction {
+  switch (policy) {
+    case "SET_NULL":
+      return "CASCADE";
+    case "RESTRICT":
+      return "RESTRICT";
+    default:
+      return "NO ACTION";
+  }
 }
 
 /**
@@ -97,7 +147,8 @@ export function declaredRelations(meta: SchemaModelMetadata): Map<string, Declar
     result.set(relations.parent.attribute, {
       attribute: relations.parent.attribute,
       kind: "parent",
-      target: relations.parent.model
+      target: relations.parent.model,
+      onDelete: relations.parent.onDelete ?? "CASCADE"
     });
   }
   for (const link of relations.links ?? []) {
@@ -107,7 +158,9 @@ export function declaredRelations(meta: SchemaModelMetadata): Map<string, Declar
         attribute: link.attribute,
         kind,
         target: link.model,
-        ...(meta.Reflection?.[link.attribute]?.type === "OneToOne" ? { unique: true } : {})
+        ...(meta.Reflection?.[link.attribute]?.type === "OneToOne" ? { unique: true } : {}),
+        // A Contains applies its policy to the listed models when the owner is deleted: not a constraint
+        ...(link.onDelete && link.ownership !== "CONTAINS" ? { onDelete: link.onDelete } : {})
       });
     }
   }

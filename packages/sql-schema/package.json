@@ -28,10 +28,14 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@vitest/coverage-v8": "^4.1.2",
+    "@webda/models": "workspace:^",
     "skott": "^0.35.8",
     "typescript": "7.1.0-dev.20260929.1",
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
+  },
+  "peerDependencies": {
+    "@webda/models": "workspace:^"
   },
   "files": [
     "lib"

@@ -18,7 +18,7 @@ import {
   getPlural,
   sortObject
 } from "./module.ts";
-import { buildRelations } from "./module-discovery.ts";
+import { backfillModelRelations, buildRelations } from "./module-discovery.ts";
 import { actionNameOption, namespaceOf } from "./schema/project.ts";
 import { handle } from "./schema/worker.ts";
 
@@ -355,15 +355,18 @@ describe("module relations", () => {
 
   it("records the relation aliases as the relation type they resolve to", () => {
     expect(result.module.models["Rel/Post"].Relations).toEqual({
-      parent: { attribute: "author", model: "Rel/Author" },
+      parent: { attribute: "author", model: "Rel/Author", onDelete: "CASCADE" },
       links: [
         { attribute: "editor", model: "Rel/Author", type: "LINK" },
         { attribute: "reviewer", model: "Rel/Author", type: "LINK" },
         { attribute: "sponsor", model: "Rel/Author", type: "LINK" },
         { attribute: "tags", model: "Rel/Tag", type: "LINKS_ARRAY" },
-        { attribute: "labels", model: "Rel/Tag", type: "LINKS_ARRAY" },
+        { attribute: "labels", model: "Rel/Tag", type: "LINKS_ARRAY", onDelete: "CASCADE", ownership: "CONTAINS" },
         { attribute: "related", model: "Rel/Post", type: "LINKS_SIMPLE_ARRAY" }
-      ]
+      ],
+      // Comment declares Post as its parent (twice, an error tested below: the last one is kept)
+      children: ["Rel/Comment"],
+      dependents: [{ model: "Rel/Comment", attribute: "thread", type: "PARENT", onDelete: "CASCADE" }]
     });
     // The same in the discovery helper
     const relations = buildRelations(
@@ -372,7 +375,14 @@ describe("module relations", () => {
       classOf(session, "blog.model.ts", "Post"),
       name => `Rel/${name}`
     );
-    expect(relations.parent).toEqual({ attribute: "author", model: "Rel/Author" });
+    expect(relations.parent).toEqual({ attribute: "author", model: "Rel/Author", onDelete: "CASCADE" });
+    expect(relations.links?.find(link => link.attribute === "labels")).toEqual({
+      attribute: "labels",
+      model: "Rel/Tag",
+      type: "LINKS_ARRAY",
+      onDelete: "CASCADE",
+      ownership: "CONTAINS"
+    });
     expect(relations.links?.map(link => link.type)).toEqual([
       "LINK",
       "LINK",
@@ -422,10 +432,105 @@ describe("module relations", () => {
     ]);
   });
 
-  it("refuses a second parent", () => {
+  it("refuses a second parent and invalid delete policies", () => {
     expect(result.errors).toEqual([
       "Rel/Comment has two parents, post and thread: a model has one ModelParent (BelongTo) at most, use ModelLink " +
-        "(ManyToOne) for the other"
+        "(ManyToOne) for the other",
+      "Rel/Broken.owner: unknown @OnDelete FOO, expected one of CASCADE, RESTRICT, SET_NULL, NONE",
+      "Rel/Broken.target: @OnDelete SET_NULL is not allowed on a ModelParent (BelongTo): a parent is mandatory, " +
+        "use CASCADE, RESTRICT or NONE",
+      "Rel/Broken.items: @OnDelete SET_NULL is not allowed on a Contains: the owner holds the keys, use CASCADE, " +
+        "RESTRICT or NONE"
+    ]);
+  });
+
+  it("records the delete policy of each relation, defaulted from its kind", () => {
+    const models = result.module.models;
+    expect(models["Rel/Member"].Relations).toEqual({
+      parent: { attribute: "company", model: "Rel/Company", onDelete: "RESTRICT" },
+      links: [
+        { attribute: "mentor", model: "Rel/Member", type: "LINK", onDelete: "SET_NULL" },
+        { attribute: "projects", model: "Rel/Project", type: "LINKS_SIMPLE_ARRAY", onDelete: "SET_NULL" },
+        // @CascadeDelete is a synonym of @OnDelete CASCADE
+        { attribute: "team", model: "Rel/Company", type: "LINK", onDelete: "CASCADE" },
+        // No tag on a link: NONE, omitted
+        { attribute: "employer", model: "Rel/Company", type: "LINK" },
+        { attribute: "watched", model: "Rel/Project", type: "LINKS_ARRAY" }
+      ],
+      dependents: [{ model: "Rel/Member", attribute: "mentor", type: "LINK", onDelete: "SET_NULL" }]
+    });
+    // A parent behind an application alias of BelongTo
+    expect(models["Rel/SubTask"].Relations.parent).toEqual({
+      attribute: "project",
+      model: "Rel/Project",
+      onDelete: "CASCADE"
+    });
+    // Contains: the owner deletes the listed children
+    expect(models["Rel/Folder"].Relations).toEqual({
+      parent: { attribute: "parent", model: "Rel/Folder", onDelete: "CASCADE" },
+      links: [
+        { attribute: "files", model: "Rel/SubTask", type: "LINKS_ARRAY", onDelete: "CASCADE", ownership: "CONTAINS" },
+        { attribute: "pinned", model: "Rel/Project", type: "LINKS_ARRAY", onDelete: "RESTRICT", ownership: "CONTAINS" }
+      ],
+      children: ["Rel/Folder"],
+      dependents: [{ model: "Rel/Folder", attribute: "parent", type: "PARENT", onDelete: "CASCADE" }]
+    });
+  });
+
+  it("back-fills children and dependents on the targets", () => {
+    const models = result.module.models;
+    expect(models["Rel/Company"].Relations.maps).toEqual([
+      {
+        attribute: "staff",
+        cascadeDelete: true,
+        model: "Rel/Member",
+        targetLink: "employer",
+        targetAttributes: ["uuid"]
+      }
+    ]);
+    // A subclass inherits its parent relation
+    expect(models["Rel/Company"].Relations.children).toEqual(["Rel/Member", "Rel/Project", "Rel/SubProject"]);
+    expect(models["Rel/Company"].Relations.dependents).toEqual([
+      { model: "Rel/Member", attribute: "company", type: "PARENT", onDelete: "RESTRICT" },
+      // From the @CascadeDelete ModelsMapped of Company
+      { model: "Rel/Member", attribute: "employer", type: "LINK", onDelete: "CASCADE" },
+      { model: "Rel/Member", attribute: "team", type: "LINK", onDelete: "CASCADE" },
+      { model: "Rel/Project", attribute: "company", type: "PARENT", onDelete: "CASCADE" },
+      { model: "Rel/SubProject", attribute: "company", type: "PARENT", onDelete: "CASCADE" }
+    ]);
+    // NONE links and Contains are not dependents of their target
+    expect(models["Rel/Project"].Relations.children).toEqual(["Rel/SubTask"]);
+    expect(models["Rel/Project"].Relations.dependents).toEqual([
+      { model: "Rel/Member", attribute: "projects", type: "LINKS_SIMPLE_ARRAY", onDelete: "SET_NULL" },
+      { model: "Rel/SubTask", attribute: "project", type: "PARENT", onDelete: "CASCADE" }
+    ]);
+    expect(models["Rel/SubProject"].Relations).not.toHaveProperty("dependents");
+    expect(models["Rel/SubTask"].Relations).not.toHaveProperty("children");
+  });
+
+  it("does the same in the discovery helper", () => {
+    const resolve = (name: string) => `Rel/${name}`;
+    const relations = Object.fromEntries(
+      ["Company", "Project", "SubTask", "Member"].map(name => [
+        `Rel/${name}`,
+        buildRelations(session.ctx, undefined, classOf(session, "policy.model.ts", name), resolve)
+      ])
+    );
+    backfillModelRelations(relations);
+    expect(relations["Rel/SubTask"].parent).toEqual({
+      attribute: "project",
+      model: "Rel/Project",
+      onDelete: "CASCADE"
+    });
+    expect(relations["Rel/Member"].parent).toEqual({
+      attribute: "company",
+      model: "Rel/Company",
+      onDelete: "RESTRICT"
+    });
+    expect(relations["Rel/Project"].children).toEqual(["Rel/SubTask"]);
+    expect(relations["Rel/Project"].dependents).toEqual([
+      { model: "Rel/Member", attribute: "projects", type: "LINKS_SIMPLE_ARRAY", onDelete: "SET_NULL" },
+      { model: "Rel/SubTask", attribute: "project", type: "PARENT", onDelete: "CASCADE" }
     ]);
   });
 });

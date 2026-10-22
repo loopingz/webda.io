@@ -110,6 +110,55 @@ function columns(plan: RelationalSchemaPlan, name: string): string[] {
 }
 
 describe("RelationalSchemaBuilder", () => {
+  it("derives the ON DELETE of each foreign key from the relation delete policy", () => {
+    const plan = buildSchemaPlan([
+      model("MyApp/User", { uuid }),
+      model("MyApp/Tag", { uuid }),
+      model(
+        "MyApp/Comment",
+        {
+          uuid,
+          author: { type: "string" },
+          reviewer: { type: "string" },
+          editor: { type: "string" },
+          plain: { type: "string" },
+          tags: { type: "array", items: { type: "string" } },
+          pinned: { type: "array", items: { type: "string" } }
+        },
+        {
+          required: ["uuid", "author", "plain"],
+          Relations: {
+            parent: { attribute: "author", model: "MyApp/User", onDelete: "RESTRICT" },
+            links: [
+              { attribute: "reviewer", model: "MyApp/User", type: "LINK", onDelete: "SET_NULL" },
+              { attribute: "editor", model: "MyApp/User", type: "LINK", onDelete: "CASCADE" },
+              { attribute: "plain", model: "MyApp/User", type: "LINK" },
+              { attribute: "tags", model: "MyApp/Tag", type: "LINKS_SIMPLE_ARRAY", onDelete: "SET_NULL" },
+              { attribute: "pinned", model: "MyApp/Tag", type: "LINKS_SIMPLE_ARRAY", onDelete: "RESTRICT" }
+            ]
+          }
+        }
+      ),
+      model(
+        "MyApp/Note",
+        { uuid, owner: { type: "string" } },
+        { Relations: { parent: { attribute: "owner", model: "MyApp/User", onDelete: "NONE" } } }
+      )
+    ]);
+    const onDelete = (name: string) => plan.foreignKeys.find(f => f.name === name)?.onDelete;
+    expect(onDelete("fk_myapp_comment_author")).toBe("RESTRICT");
+    expect(onDelete("fk_myapp_comment_reviewer")).toBe("SET NULL");
+    expect(onDelete("fk_myapp_comment_editor")).toBe("CASCADE");
+    expect(onDelete("fk_myapp_comment_plain")).toBe("NO ACTION");
+    expect(onDelete("fk_myapp_note_owner")).toBe("NO ACTION");
+    // SET_NULL on a link array removes the item: the junction row goes with the target
+    expect(onDelete("fk_myapp_comment_tags_tag")).toBe("CASCADE");
+    expect(onDelete("fk_myapp_comment_pinned_tag")).toBe("RESTRICT");
+    const relation = (attribute: string) => plan.relations.find(r => r.attribute === attribute);
+    expect(relation("reviewer")?.onDelete).toBe("SET NULL");
+    expect(relation("tags")?.onDelete).toBe("CASCADE");
+  });
+
   it("maps the #838 blog sample to typed tables, foreign keys and a junction", () => {
     const plan = buildSchemaPlan(blog());
     expect(plan.version).toBe(1);

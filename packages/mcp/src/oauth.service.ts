@@ -18,7 +18,8 @@ import { isDelegable } from "./server.js";
  */
 export class McpOAuthAuthenticatorParameters extends ServiceParameters {
   /**
-   * Authorization servers advertised in the protected resource metadata; defaults to the request origin
+   * Authorization servers advertised in the protected resource metadata; defaults to `publicUrl` when set, otherwise
+   * the request origin (with the application prefix)
    */
   authorizationServers?: string[];
   /**

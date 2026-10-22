@@ -11,7 +11,7 @@
         "description": "McpOAuthAuthenticator parameters",
         "properties": {
           "authorizationServers": {
-            "description": "Authorization servers advertised in the protected resource metadata; defaults to the request origin",
+            "description": "Authorization servers advertised in the protected resource metadata; defaults to `publicUrl` when set, otherwise\nthe request origin (with the application prefix)",
             "items": {
               "type": "string"
             },

@@ -89,6 +89,7 @@ export * from "./services/notificationservice.service.js";
 export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";
 export * from "./services/resource.service.js";
+export * from "./services/relationintegrity.service.js";
 export * from "./services/cryptoservice.service.js";
 export * from "./services/secretscheck.js";
 export * from "./services/pki.encrypter.js";

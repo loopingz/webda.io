@@ -35,6 +35,10 @@ export class Comment extends UuidModel {
   isEdited!: boolean;
 
   // Relations
+  /**
+   * Post commented: deleting the post deletes its comments
+   * @OnDelete CASCADE
+   */
   post!: ManyToOne<Post>;
   author!: ManyToOne<User>;
 

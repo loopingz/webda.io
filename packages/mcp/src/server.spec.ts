@@ -193,6 +193,29 @@ class McpServerTest extends McpFixtureTest {
   }
 
   @test
+  async toolAccessCopiesProxiedSessionWithNullFields() {
+    registerFixture();
+    const authorizer = async (ctx, operationId, _op, { probe }) =>
+      !probe || ctx.getSession().scopes.includes(operationId) ? true : "insufficient_scope";
+    registerOperationAuthorizer(authorizer as any);
+    try {
+      const original = new Session();
+      original.login("bob", "bob");
+      original.scopes = ["Fixture.Echo"];
+      // A null field: reading it through the session proxy would build `new Proxy(null)`
+      (original as any).nullable = null;
+      (original as any).transientAmr = null;
+      const proxy = original.getProxy();
+      assert.strictEqual(await toolAccess(sessionContext(proxy), "Fixture.Version"), "out_of_scope");
+      assert.strictEqual((original as any).nullable, null);
+      assert.deepStrictEqual(original.scopes, ["Fixture.Echo"]);
+      assert.strictEqual(original.isDirty(), false);
+    } finally {
+      unregisterOperationAuthorizer(authorizer as any);
+    }
+  }
+
+  @test
   async sendsProgressForStreamingOperations() {
     const client = await this.connect();
     const progress: any[] = [];

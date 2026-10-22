@@ -65,18 +65,22 @@ export function isDelegable(operationId: string): boolean {
  */
 function detachedCopy(session: Session): Session {
   const copy = Object.create(Object.getPrototypeOf(session)) as Session;
+  // Raw field value, without the proxy `get` trap: it wraps every `object`, and `new Proxy(null)` throws
+  const raw = (key: string): unknown => Object.getOwnPropertyDescriptor(session, key)?.value;
   const clone = (value: unknown) =>
-    Array.isArray(value)
-      ? [...value]
-      : value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype
-        ? { ...value }
-        : value;
+    value === null || typeof value !== "object"
+      ? value
+      : Array.isArray(value)
+        ? [...value]
+        : Object.getPrototypeOf(value) === Object.prototype
+          ? { ...value }
+          : value;
   for (const key of Object.keys(session)) {
-    (copy as any)[key] = clone((session as any)[key]);
+    (copy as any)[key] = clone(raw(key));
   }
   Object.defineProperty(copy, "changed", { value: false, writable: true, configurable: true });
   Object.defineProperty(copy, "transientAmr", {
-    value: clone(session.transientAmr),
+    value: clone(raw("transientAmr")),
     writable: true,
     configurable: true
   });

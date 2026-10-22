@@ -122,7 +122,7 @@ export function registerWebdaPackage(name: string, url: string, version?: string
     `${name} loaded twice: ${toLocation(current.url)} (${current.version ?? readVersion(name, current.url)}) and ` +
     `${toLocation(url)} (${version ?? readVersion(name, url)}). Webda needs a single instance of each package: ` +
     `dedupe your install (pnpm: a missing direct dependency or an override on a peer)`;
-  if (globalThis.process?.env?.[WEBDA_ALLOW_DUPLICATE_PACKAGES]) {
+  if (globalThis.process?.env?.[WEBDA_ALLOW_DUPLICATE_PACKAGES] === "1") {
     // The logger may not be configured yet at import time
     console.error(`ERROR: ${message}`);
     return;

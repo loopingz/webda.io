@@ -8,7 +8,7 @@
     "module": "nodenext",
     "outDir": "./lib",
     "rootDir": "./src",
-    "strict": false,
+    "strict": true,
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": false,

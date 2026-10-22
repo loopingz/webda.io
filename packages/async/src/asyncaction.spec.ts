@@ -2,6 +2,7 @@ import { HttpContext, OperationContext, useModelMetadata, useParameters, useRout
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as crypto from "node:crypto";
+import * as sinon from "sinon";
 import { AsyncTest } from "../test/fixture.js";
 import { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "./asyncaction.model.js";
 
@@ -22,6 +23,12 @@ class AsyncActionTest extends AsyncTest {
     await assert.rejects(() => action.checkAct(context, "get_binary"), /Invalid Job HMAC/);
     context.getHttpContext()!.headers["x-job-hash"] = crypto.createHmac("sha256", "test").update("time").digest("hex");
     await action.checkAct(context, "get_binary");
+    const verify = sinon.stub(action, "verifyJobRequest").rejects("non-error");
+    verify.callsFake(async () => {
+      throw "non-error";
+    });
+    assert.strictEqual(await action.canAct(context, "status"), "non-error");
+    verify.restore();
     assert.strictEqual(context.getExtension("asyncJob"), action);
     await assert.rejects(() => action.statusAction(new OperationContext()), /Only WebContext can call this action/);
   }
@@ -59,13 +66,18 @@ class AsyncActionTest extends AsyncTest {
   @test
   async getHookUrl() {
     const action = new AsyncAction({ uuid: "hook" });
-    assert.strictEqual(action.getHookUrl(), `http://localhost:18080${useRouter().getModelUrl(action)}/hook/status`);
-    // Without an apiUrl the url is relative
+    const route = sinon.stub(useRouter(), "getModelUrl").returns("/asyncactions");
     const apiUrl = useParameters().apiUrl;
-    delete useParameters().apiUrl;
     try {
-      assert.strictEqual(action.getHookUrl(), `${useRouter().getModelUrl(action)}/hook/status`);
+      assert.strictEqual(action.getHookUrl(), "http://localhost:18080/asyncactions/hook/status");
+      delete useParameters().apiUrl;
+      assert.strictEqual(action.getHookUrl(), "/asyncactions/hook/status");
+      route.returns(undefined);
+      assert.throws(() => action.getHookUrl(), /route is unavailable/);
+      action.uuid = undefined;
+      assert.throws(() => action.getHookUrl(), /no identifier/);
     } finally {
+      route.restore();
       useParameters().apiUrl = apiUrl;
     }
   }

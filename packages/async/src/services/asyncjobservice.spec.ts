@@ -68,6 +68,23 @@ class AsyncJobServiceTest extends AsyncTest {
   }
 
   @test
+  async rejectsUnconfiguredOperationsAndUnsupportedHooks() {
+    const service = this.getValidService();
+    service.operationModel = undefined;
+    await assert.rejects(() => service.callOperation(new OperationContext()), /Operation model is not configured/);
+    const check = sinon.stub(service, "checkOperation").resolves();
+    try {
+      const context = await this.newContext({});
+      context.getParameters().operationId = "Test.Operation";
+      context.getParameters().schedule = Date.now() + 60000;
+      await assert.rejects(() => service.launchOperation(context), /Operation model is not configured/);
+    } finally {
+      check.restore();
+    }
+    await assert.rejects(() => service.postHook({ JOB_HOOK: "ftp://unsupported" } as any, {}), /Unsupported job hook/);
+  }
+
+  @test
   async worker() {
     const service = this.getValidService();
     // @ts-ignore
@@ -627,6 +644,18 @@ class AsyncJobServiceTest extends AsyncTest {
       await action.refresh();
       assert.strictEqual(action.status, "SUCCESS");
       assert.deepStrictEqual(action.results, { myMethod: "async", success: true, args: ["plop", 666] });
+      const fail = sinon.stub(useCore().getServices()["mine"] as any, "myMethod");
+      for (const error of [new Error("execution failed"), "non-error failure"]) {
+        stub.resetHistory();
+        fail.callsFake(async () => {
+          throw error;
+        });
+        await service.runAsyncOperationAction();
+        await action.refresh();
+        assert.strictEqual(action.status, "ERROR");
+        assert.strictEqual(action.errorMessage, error instanceof Error ? error.message : error);
+      }
+      fail.restore();
     } finally {
       sinon.restore();
       delete useCore().getServices()["mine"];

@@ -67,6 +67,25 @@ class StorageChallengeTest extends WebdaApplicationTest {
   }
 
   @test
+  async rejectsMissingBinaryInformation() {
+    await assert.rejects(() => this.binary._get({} as any), /no hash/);
+    assert.throws(() => this.binary.getSignedUrlFromMap({} as any, 1000, undefined), /no hash/);
+    await assert.rejects(() => this.binary.putRedirectUrl(new User(), "avatar"), /information is required/);
+    for (const info of [{}, { hash: "abc" }, { challenge: "proof" }]) {
+      await assert.rejects(() => this.binary.putRedirectUrl(new User(), "avatar", info as any), /hash and challenge/);
+    }
+    const context = await this.newContext({ hash: "", challenge: "" });
+    await assert.rejects(
+      () => this.binary.putRedirectUrl(new User(), "avatar", undefined, context),
+      /hash and challenge/
+    );
+    const file = new MemoryBinaryFile(Buffer.from("unit"));
+    vi.spyOn(file, "getHashes").mockResolvedValue(undefined);
+    vi.spyOn(this.binary, "checkMap").mockImplementation(() => {});
+    await assert.rejects(() => this.binary.store(new User(), "avatar", file), /no hash/);
+  }
+
+  @test
   async existingDataNeedsTheMatchingChallenge() {
     const { file, info } = await this.file();
     // The binary exists with the challenge its uploader sent as metadata

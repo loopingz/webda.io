@@ -1,6 +1,6 @@
 {
   "name": "@webda/sealed-client",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-beta.12",
   "description": "Client KeyVault for Webda sealed (end-to-end encrypted) fields: holds the user keyring on a device and opens sealed values",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

@@ -127,7 +127,8 @@ export async function importEmail(path: string, sourceMap?: Record<string, strin
     try {
       mod = await loader.importTsx(url);
     } catch (tsxErr: any) {
-      if (tsxErr?.code !== "ERR_MODULE_NOT_FOUND" || !String(tsxErr?.message).includes("tsx")) {
+      // Only tsx itself missing: a package missing for the email is reported as is
+      if (tsxErr?.code !== "ERR_MODULE_NOT_FOUND" || !String(tsxErr?.message).includes("'tsx'")) {
         throw tsxErr;
       }
       throw new Error(

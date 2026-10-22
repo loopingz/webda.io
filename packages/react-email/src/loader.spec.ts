@@ -104,7 +104,11 @@ class LoaderTest {
   @test
   async tsxImportErrorKept() {
     this.unknownExtension();
-    vi.spyOn(loader, "importTsx").mockRejectedValue(new SyntaxError("bad email"));
+    const tsx = vi.spyOn(loader, "importTsx").mockRejectedValue(new SyntaxError("bad email"));
     await assert.rejects(() => importEmail(resolve("test/emails/welcome.tsx")), /bad email/);
+    const missing: any = new Error("Cannot find package '@react-email/components' imported from /x/email.tsx");
+    missing.code = "ERR_MODULE_NOT_FOUND";
+    tsx.mockRejectedValue(missing);
+    await assert.rejects(() => importEmail(resolve("test/emails/welcome.tsx")), /@react-email\/components/);
   }
 }

@@ -218,7 +218,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
    */
   async authenticate(ctx: WebContext): Promise<Session> {
     const header = ctx.getHttpContext().getUniqueHeader("authorization") ?? "";
-    const token = /^Bearer\s+(.+)$/i.exec(header)?.[1]?.trim();
+    const token = /^Bearer\s/i.test(header) ? header.slice(7).trim() : undefined;
     const session = token
       ? await useService("SessionManager").sessionFromAccessToken(token, {
           audience: this.resourceUri(ctx, this.resourceFor(ctx))

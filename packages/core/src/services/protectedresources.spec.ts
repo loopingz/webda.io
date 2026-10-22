@@ -28,6 +28,17 @@ describe("protected resources", () => {
   );
 
   it(
+    "strips long trailing slash sequences",
+    isolated(() => {
+      registerProtectedResource({ path: "/mcp" });
+      expect(resolveProtectedResources("https://app.example" + "/".repeat(100000))).toEqual([
+        "https://app.example/mcp"
+      ]);
+      expect(resolveProtectedResources("/".repeat(100000))).toEqual(["/mcp"]);
+    })
+  );
+
+  it(
     "replaces on the same path",
     isolated(() => {
       registerProtectedResource({ path: "/mcp" });

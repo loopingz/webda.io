@@ -53,6 +53,10 @@ export function listProtectedResources(): ProtectedResource[] {
  * @returns the absolute URI of every registered resource
  */
 export function resolveProtectedResources(origin: string): string[] {
-  const base = origin.replace(/\/+$/, "");
+  let end = origin.length;
+  while (end > 0 && origin[end - 1] === "/") {
+    end--;
+  }
+  const base = origin.slice(0, end);
   return useResources().map(r => r.uri ?? base + r.path);
 }

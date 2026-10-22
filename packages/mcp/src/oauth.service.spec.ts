@@ -174,6 +174,17 @@ class McpOAuthTest extends McpOAuthBase {
   }
 
   @test
+  async challengeWithWhitespaceToken() {
+    const res = await fetch(`${await this.base()}/mcp`, {
+      method: "POST",
+      headers: { ...HEADERS, authorization: "Bearer" + " ".repeat(4000) },
+      body: JSON.stringify(INIT)
+    });
+    assert.strictEqual(res.status, 401);
+    assert.ok(!res.headers.get("www-authenticate")?.includes("invalid_token"));
+  }
+
+  @test
   async challengeWithInvalidToken() {
     const base = await this.base();
     const res = await fetch(`${base}/mcp`, {

@@ -114,7 +114,7 @@ describe("module metadata on a fixture", () => {
     });
     const named = buildBehaviorActions(session.ctx, classOf(session, "behaviors.ts", "Named"), "Custom/Named");
     expect(Object.keys(named)).toEqual(["own", "read", "write", "bare"]);
-    expect(named.own).toEqual({});
+    expect(named.own).toEqual({ maxMfaAge: "5m" });
   });
 
   it("records @Shared methods with their source and allowlisted imports", () => {
@@ -223,7 +223,10 @@ describe("module metadata on a fixture", () => {
       status: { description: "Report", handler: "statusAction" },
       run: {},
       same: {},
-      lookup: { global: true, handler: "find" }
+      lookup: { global: true, handler: "find" },
+      payout: { maxMfaAge: "10m" },
+      purge: { global: true, maxMfaAge: 600 },
+      computedAge: {}
     });
   });
 
@@ -280,7 +283,7 @@ describe("module metadata on a fixture", () => {
       Identifier: "Custom/Named",
       Import: "lib/behaviors:Named",
       Actions: {
-        own: {},
+        own: { maxMfaAge: "5m" },
         read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } },
         write: {},
         bare: {}

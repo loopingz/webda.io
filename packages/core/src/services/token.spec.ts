@@ -119,6 +119,27 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async mfaAtIsAProofTimeNotATokenTime() {
+    const session = new Session();
+    session.login("u1", "a@b.c:email", { provider: "email", amr: ["pwd", "totp"], mfa: "verified", mfaAt: 123 });
+    const tokens = await this.service.issue(session);
+    const claims = await this.service.verifyAccess(tokens.accessToken);
+    assert.strictEqual(claims.mfaAt, 123);
+    const stored = await RefreshToken.ref({ hash: (this.service as any).hash(tokens.refreshToken) } as any).get();
+    assert.strictEqual(stored.mfaAt, 123);
+    // Refreshing never advances mfaAt
+    const refreshed = await this.service.refresh(tokens.refreshToken);
+    assert.strictEqual(refreshed.session.mfaAt, 123);
+    assert.strictEqual((await this.service.verifyAccess(refreshed.accessToken)).mfaAt, 123);
+    const again = await this.service.refresh(refreshed.refreshToken);
+    assert.strictEqual(again.session.mfaAt, 123);
+    // A session without second factor carries none
+    const plain = await this.service.issue(this.session());
+    assert.strictEqual((await this.service.verifyAccess(plain.accessToken)).mfaAt, undefined);
+    assert.strictEqual((await this.service.refresh(plain.refreshToken)).session.mfaAt, undefined);
+  }
+
+  @test
   async rotationAndReuse() {
     // strict reuse detection: no grace
     this.service.getParameters().refreshGrace = 0;

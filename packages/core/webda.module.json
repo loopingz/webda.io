@@ -2973,6 +2973,9 @@
         "mfa": {
           "type": "MfaState"
         },
+        "mfaAt": {
+          "type": "number"
+        },
         "mfaVerifications": {
           "type": "Record",
           "typeParameters": [
@@ -3105,6 +3108,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaAt": {
+              "description": "When the second factor was verified (ms): refreshing does not advance it",
+              "type": "number"
             },
             "mfaVerifications": {
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
@@ -3242,6 +3249,10 @@
               ],
               "type": "string"
             },
+            "mfaAt": {
+              "description": "When the second factor was verified (ms): refreshing does not advance it",
+              "type": "number"
+            },
             "mfaVerifications": {
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
@@ -3377,6 +3388,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaAt": {
+              "description": "When the second factor was verified (ms): refreshing does not advance it",
+              "type": "number"
             },
             "mfaVerifications": {
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",

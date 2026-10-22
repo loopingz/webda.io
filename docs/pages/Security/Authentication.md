@@ -426,7 +426,8 @@ Configure each attribute under `models.<Model>.behaviors.<attribute>`, independe
    - The session enters a pending state (`session.mfa = "pending"`). No access or refresh tokens are issued.
 4. **Verification**:
    - `POST users/{uuid}/mfa.verify` with `{ code: "123456" }`.
-   - On success, marks `session.mfa = "verified"`, appends `"totp"` to `session.amr` (`["pwd", "totp"]`), issues access/refresh tokens, and returns `{ status: "ok", accessToken, refreshToken, ... }`.
+   - On success, marks `session.mfa = "verified"`, stamps `session.mfaAt`, appends `"totp"` to `session.amr` (`["pwd", "totp"]`), issues access/refresh tokens, and returns `{ status: "ok", accessToken, refreshToken, ... }`.
+   - On an already logged session it is a step-up, see [MFA freshness / step-up](#mfa-freshness--step-up).
 5. **Recovery**:
    - If the user lost their authenticator, `POST users/{uuid}/mfa.recover` with `{ code: "xxxxx-xxxxx" }`.
    - Consumes the recovery code, sets `session.amr = ["pwd", "recovery"]`, issues tokens, and completes login.
@@ -589,7 +590,8 @@ Each entry records the latest owner verified through that operation; it never au
 A failed verification does not create or refresh an entry. Disabling a factor clears this attribute's entries for
 that owner. Login and logout clear previous verification entries. Cookies and issued access/refresh tokens preserve
 entries, and token refresh preserves their original timestamps. A bearer request's session changes alone do not
-replace its token: use the returned scoped proof for object step-up, or issue a new token from the updated session.
+replace its token: use the returned scoped proof for object step-up, or issue a new token from the updated session
+(the login attribute does it, see [MFA freshness / step-up](#mfa-freshness--step-up)).
 
 For example, a recent payment verification can be required with:
 
@@ -599,6 +601,50 @@ if (!verified || verified.owner !== `Webda/User/${user.getUUID()}` || Date.now()
   throw new WebdaError.Forbidden("Recent payment MFA required");
 }
 ```
+
+### MFA freshness / step-up
+
+The session records when its second factor was verified: `session.mfaAt` (ms), carried by cookies, by the `mfaAt`
+access token claim and by the refresh token. It is a proof time, not a token time: `Auth.Refresh` never advances it, so
+a session verified once stays "verified" for the refresh family lifetime but grows older. It is stamped when:
+
+- a pending login completes with the login attribute `Verify` or `Recover`;
+- a provider login already carries one of the user's MFA methods in its `amr`;
+- the login attribute `Confirm` enables a factor;
+- a logged session verifies the login attribute again (step-up).
+
+`session.mfaAge()` answers the milliseconds since that verification, `Infinity` when it never was (sessions and tokens
+issued before `mfaAt` existed are therefore never fresh).
+
+A sensitive operation requires a recent second factor with `maxMfaAge` (a `Duration`: seconds or `"10m"`), on
+`@Operation` as on model and behavior `@Action` (use a string or number literal: the compiler reads it):
+
+```ts
+@Operation({ id: "Account.Delete", maxMfaAge: "10m", rest: { method: "delete", path: "account" } })
+async deleteAccount() {}
+```
+
+It is checked after the `permission` query, before the operation authorizers, for every transport (REST, GraphQL, gRPC,
+MCP) and by `canCallOperation()` listings, which answer `false` when refused:
+
+| Session                                | Refusal                                                 |
+| -------------------------------------- | ------------------------------------------------------- |
+| anonymous, or second factor pending    | `UNAUTHORIZED` (401)                                    |
+| logged, no second factor (`mfa: none`) | `MFA_REQUIRED` (403): `maxMfaAge` makes MFA mandatory   |
+| verified more than `maxMfaAge` ago     | `MFA_STEP_UP_REQUIRED` (401), `details: { maxAge }` (s) |
+
+On `MFA_STEP_UP_REQUIRED` the client prompts for a code, calls `User.Mfa.Verify` (or `User.Mfa.Recover`) on its logged
+session, then retries. The step-up keeps the login (`authAt`, ident, refresh family), stamps `mfaAt`, emits
+`Authentication.MfaVerified` with `stepUp: true` and answers `{ status: "ok", stepUp: true, user, method, proof }`:
+
+- a Bearer session also receives new `accessToken` / `refreshToken` in its **same refresh family**, carrying the new
+  `mfaAt`; the previous tokens keep the old one;
+- a cookie session is saved with the request, no token is issued;
+- a delegated OAuth token (issued to a client) is not re-issued: it keeps its client restrictions.
+
+`maxMfaAge` reads the session only (no I/O). Since WebdaQL has `NOW()`, a permission query can express the same
+freshness (`permission: "mfa = 'verified' AND mfaAt > NOW('-10m')"`), but it refuses with a plain 403: `maxMfaAge`
+gives clients the dedicated `MFA_STEP_UP_REQUIRED` answer and the `maxAge` to request.
 
 ## Linking policy
 
@@ -636,7 +682,7 @@ Listen on the `Authentication` service. All payloads include `context`.
 | `Authentication.Unlinked`       | `user`, `ident` (projection: `uuid`, `provider`, `providerUid`, `email`, `verifiedAt`, `lastUsedAt`, `userId`; no provider tokens nor profile) |
 | `Authentication.MfaEnabled`     | `user`, `userId`, `method`                                                                                                                     |
 | `Authentication.MfaDisabled`    | `user`, `userId`, `method`                                                                                                                     |
-| `Authentication.MfaVerified`    | `user`, `userId`, `method`                                                                                                                     |
+| `Authentication.MfaVerified`    | `user`, `userId`, `method`, `stepUp` (true when a logged session verified again)                                                               |
 | `Authentication.MfaFailed`      | `user`, `userId`, `method`                                                                                                                     |
 
 The `identity` of `Authentication.Register` and `Authentication.Login` never carries the provider `tokens` (see
@@ -661,7 +707,9 @@ carries `{ context, user }` only (`user` is undefined for an unknown email).
 | `INVALID_MFA_CODE`         | 401  | Invalid, replayed, or unrecognised MFA verification or recovery code |
 | `MFA_NOT_ENABLED`          | 400  | MFA (or specific method) is not enabled for the user                 |
 | `MFA_ALREADY_ENABLED`      | 409  | Factor method is already enabled for the user                        |
-| `MFA_NOT_PENDING`          | 401  | Session has no pending second factor verification                    |
+| `MFA_NOT_PENDING`          | 401  | Session is neither logged in nor pending second factor verification  |
+| `MFA_REQUIRED`             | 403  | The operation has `maxMfaAge` and the user has no second factor      |
+| `MFA_STEP_UP_REQUIRED`     | 401  | Second factor older than `maxMfaAge`, `details.maxAge` in seconds    |
 | `INVALID_PHONE`            | 400  | The SMS enrollment phone is not an E.164 number (`+` country code)   |
 | `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                             |
 | `INVALID_IDENT`            | 400  | Malformed ident                                                      |

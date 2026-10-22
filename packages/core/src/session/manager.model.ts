@@ -107,6 +107,7 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
         provider: claims.provider,
         amr: claims.amr,
         mfa: claims.mfa,
+        mfaAt: claims.mfaAt,
         mfaVerifications: claims.mfaVerifications
       });
       session.roles = claims.roles;

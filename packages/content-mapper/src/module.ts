@@ -500,6 +500,21 @@ function forEachOperationOption(
 }
 
 /**
+ * Record the `maxMfaAge` option (second factor freshness) when it is a Duration string or a number of seconds.
+ * @param key - option name
+ * @param initializer - option value
+ * @param meta - action metadata to complete
+ */
+function readMaxMfaAge(key: string, initializer: any, meta: Record<string, unknown>): void {
+  if (key !== "maxMfaAge") return;
+  if (is.isStringLiteral(initializer)) {
+    meta.maxMfaAge = initializer.text;
+  } else if (is.isNumericLiteral(initializer)) {
+    meta.maxMfaAge = Number(initializer.text);
+  }
+}
+
+/**
  * Decorated instance methods, via the type so inherited ones are included.
  * @param ctx - analysis context
  * @param cls - the class
@@ -556,6 +571,7 @@ export function buildModelActions(
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
+      readMaxMfaAge(key, initializer, meta);
       // `@Action({ name })` exposes the action under another name than the method
       if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
         name = initializer.text;
@@ -1144,6 +1160,7 @@ export function buildBehaviorActions(
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
+      readMaxMfaAge(key, initializer, meta);
       if (key === "rest" && is.isObjectLiteralExpression(initializer)) {
         const rest: Record<string, string> = {};
         for (const restProperty of initializer.properties) {

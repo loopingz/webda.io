@@ -894,6 +894,9 @@ export class DomainService<
           };
           info.summary = `${name.substring(0, 1).toUpperCase() + name.substring(1)} on ${shortId}`;
           info.tags = [shortId];
+          if (actions[name].maxMfaAge !== undefined) {
+            info.maxMfaAge = actions[name].maxMfaAge;
+          }
           info.rest = {
             method: (actions[name].method || "PUT").toLowerCase(),
             path: actions[name].global ? name : `{uuid}/${name}`
@@ -959,7 +962,8 @@ export class DomainService<
             attribute: behaviorRel.attribute,
             behavior: behaviorRel.behavior,
             action: actionName
-          }
+          },
+          ...(actionMeta.maxMfaAge !== undefined ? { maxMfaAge: actionMeta.maxMfaAge } : {})
         });
       });
     });

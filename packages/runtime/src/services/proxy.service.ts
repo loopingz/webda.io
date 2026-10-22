@@ -221,7 +221,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       // Append the client to the chain built by upstream proxies, or start the chain
       const xff = previous ? `${previous}, ${context.getClientIp()}` : context.getClientIp();
       const protocol = context.getProtocol();
-      const forwarded = {
+      const forwarded: Record<string, string | string[]> = {
         "X-Rewrite-URL": context.getRelativeUri(),
         // Keep the values set by an upstream proxy, they describe the original request
         "X-Forwarded-Host": context.getHeader("x-forwarded-host", `${context.getHost()}`),

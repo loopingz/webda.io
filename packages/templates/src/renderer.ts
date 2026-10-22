@@ -216,6 +216,10 @@ export class TemplateRenderer {
           if (this.contained(folder, path) && (await isFile(path))) {
             // The extensions come from the registered engines, one always handles it
             const engine = getEngineForExtension(ext, preferred)!;
+            // A multi-part file without any part (a helper module) is not a template
+            if (multi.includes(ext) && (await engine.engine.parts!(path)).length === 0) {
+              continue;
+            }
             return {
               path,
               engine: engine.name,

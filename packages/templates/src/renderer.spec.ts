@@ -36,7 +36,7 @@ registerTemplateEngine("renderer-multi", {
   compile: () => {
     throw new Error("compile should not be called");
   },
-  parts: async () => ["html", "subject"],
+  parts: async (path: string) => (basename(path).startsWith("helper") ? [] : ["html", "subject"]),
   load: multiLoad
 });
 
@@ -314,6 +314,16 @@ class TemplateRendererTest {
     assert.strictEqual(await r.has("card/html"), true);
     assert.strictEqual(await r.has("welcome/subject"), true);
     assert.strictEqual(await r.has("card/layout"), false);
+  }
+
+  @test
+  async multiFileWithoutParts() {
+    const dir = await this.tmpFolder();
+    await writeFile(join(dir, "helper.multi"), "");
+    const r = new TemplateRenderer({ folders: [dir] });
+    assert.strictEqual(await r.has("helper"), false);
+    await assert.rejects(() => r.render("helper"), TemplateNotFoundError);
+    await assert.rejects(() => r.renderAll("helper"), TemplateNotFoundError);
   }
 
   @test

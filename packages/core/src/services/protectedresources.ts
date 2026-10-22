@@ -1,3 +1,5 @@
+import { useInstanceStorage } from "../core/instancestorage.js";
+
 /**
  * A protected resource server (for example an MCP endpoint) registered so the OAuth server can advertise it
  * and bind tokens to it (RFC 8707), without the resource server depending on the OAuth package.
@@ -9,7 +11,14 @@ export interface ProtectedResource {
   uri?: string;
 }
 
-const resources: ProtectedResource[] = [];
+/**
+ * @returns the protected resources of the current instance
+ */
+function useResources(): ProtectedResource[] {
+  const storage = useInstanceStorage();
+  storage.protectedResources ??= [];
+  return storage.protectedResources as ProtectedResource[];
+}
 
 /**
  * Register a protected resource, replacing any previous one on the same path
@@ -17,7 +26,7 @@ const resources: ProtectedResource[] = [];
  */
 export function registerProtectedResource(resource: ProtectedResource): void {
   unregisterProtectedResource(resource.path);
-  resources.push(resource);
+  useResources().push(resource);
 }
 
 /**
@@ -25,6 +34,7 @@ export function registerProtectedResource(resource: ProtectedResource): void {
  * @param path - the resource path
  */
 export function unregisterProtectedResource(path: string): void {
+  const resources = useResources();
   const index = resources.findIndex(r => r.path === path);
   if (index >= 0) {
     resources.splice(index, 1);
@@ -35,7 +45,7 @@ export function unregisterProtectedResource(path: string): void {
  * @returns the registered protected resources
  */
 export function listProtectedResources(): ProtectedResource[] {
-  return [...resources];
+  return [...useResources()];
 }
 
 /**
@@ -44,5 +54,5 @@ export function listProtectedResources(): ProtectedResource[] {
  */
 export function resolveProtectedResources(origin: string): string[] {
   const base = origin.replace(/\/+$/, "");
-  return resources.map(r => r.uri ?? base + r.path);
+  return useResources().map(r => r.uri ?? base + r.path);
 }

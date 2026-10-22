@@ -79,6 +79,7 @@ export default defineConfig({
       "src/services/service.spec.ts",
       "src/services/token.spec.ts",
       "src/services/scopeauthorizer.spec.ts",
+      "src/services/protectedresources.spec.ts",
       "src/services/serviceparameters.spec.ts",
       "src/session/session.spec.ts",
       "src/session/scope.spec.ts",

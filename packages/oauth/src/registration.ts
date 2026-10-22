@@ -6,6 +6,8 @@ import { OAuthError } from "./errors.js";
 const MAX_REDIRECT_URIS = 20;
 /** Longest accepted `client_name` */
 const MAX_CLIENT_NAME = 100;
+/** Hosts of the loopback redirects */
+const LOOPBACK_HOSTS = ["127.0.0.1", "localhost", "[::1]"];
 /** Grant types a registered client may use */
 const GRANT_TYPES = ["authorization_code", "refresh_token"];
 
@@ -78,7 +80,9 @@ export function parseRegistration(body: unknown, patterns?: string[]): Registrat
     // The browser follows the parsed URL: only a canonical string is stored, and patterns match its parsed form
     const url = new URL(uri);
     if (url.href !== uri) throw invalid("invalid_redirect_uri", "Redirect URI must be in canonical form");
-    const target = url.host ? `${url.protocol}//${url.host}${url.pathname}` : url.href;
+    // Loopback redirects are allowed on any port (RFC 8252 §7.3): the port is not matched
+    const host = LOOPBACK_HOSTS.includes(url.hostname) ? url.hostname : url.host;
+    const target = host ? `${url.protocol}//${host}${url.pathname}` : url.href;
     if (patterns && !patterns.some(p => iamGlobMatch(target, p))) {
       throw invalid("invalid_redirect_uri", "Redirect URI not allowed");
     }

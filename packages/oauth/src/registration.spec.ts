@@ -202,6 +202,8 @@ class RegistrationTest extends OAuthTest {
     assert.strictEqual(bad.body.error, "invalid_redirect_uri");
     assert.strictEqual(await this.count(), 0);
     assert.strictEqual((await this.register({ redirect_uris: ["http://127.0.0.1/cb"] })).status, 201);
+    // Loopback: any port
+    assert.strictEqual((await this.register({ redirect_uris: ["http://127.0.0.1:5555/callback"] })).status, 201);
   }
 
   @test

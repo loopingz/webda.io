@@ -257,9 +257,12 @@ describe("InteractiveConsoleLoggerTest", () => {
   });
 
   it("testOnInputNullMsg", async () => {
-    // Cover lines 268-269 (real importInquirer body) and 296-298 (outer catch):
-    // passing null input causes a TypeError inside the try block which propagates to catch
-    await assert.rejects(() => logger.onInput({ input: null } as any), /Inquirer is not available/);
+    // A message without input is ignored instead of failing with a misleading "Inquirer is not available"
+    const spy = sinon.spy(logger as any, "importInquirer");
+    stubs.push(spy);
+    await logger.onInput({ input: null } as any);
+    assert.strictEqual(spy.callCount, 0);
+    assert.strictEqual(logger.input, undefined);
   });
 
   it("testOnInputInquirerUnavailable", async () => {

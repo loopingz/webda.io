@@ -1,7 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { execFile } from "child_process";
-import { existsSync } from "fs";
 import { mkdtemp, readFile, rm } from "fs/promises";
 import { resolve } from "path";
 import { pathToFileURL } from "url";

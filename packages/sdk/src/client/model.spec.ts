@@ -323,6 +323,37 @@ describe("ModelClient", () => {
     expect(api.calls.slice(-1)[0].input).toEqual({ query: "status = 'x'", count: true });
   });
 
+  it.each([false, true])("keeps per-caller totals for concurrent next pages (count first: %s)", async countFirst => {
+    let release!: (page: unknown) => void;
+    const response = new Promise(resolve => (release = resolve));
+    const api = stub({ "Tasks.Query": () => response }, { ttl: 60_000 });
+    api.client.cache.setQuery("App/Task", "LIMIT 1", [], "next", { value: 2, relation: "eq" });
+    const query = withContinuation("LIMIT 1", "next");
+    const requests = countFirst ? [true, false] : [false, true];
+    const first = api.Task.query(query, { count: requests[0] });
+    const second = api.Task.query(query, { count: requests[1] });
+    release({ results: [{ uuid: "t2" }] });
+    const pages = await Promise.all([first, second]);
+    for (let i = 0; i < requests.length; i++) {
+      expect(pages[i].total).toEqual(requests[i] ? { value: 2, relation: "eq" } : undefined);
+    }
+  });
+
+  it.each([
+    { ttl: 0, mode: "default" as const, expected: 3 },
+    { ttl: 60_000, mode: "reload" as const, expected: 3 },
+    { ttl: 0, mode: "force-cache" as const, expected: 2 }
+  ])("respects the total cache policy %j", async ({ ttl, mode, expected }) => {
+    const api = stub(
+      { "Tasks.Query": input => ({ results: [], ...(input.count ? { total: { value: 3, relation: "eq" } } : {}) }) },
+      { ttl }
+    );
+    api.client.cache.setQuery("App/Task", "LIMIT 1", [], "next", { value: 2, relation: "eq" });
+    const page = await api.Task.query(withContinuation("LIMIT 1", "next"), { count: true, cache: mode });
+    expect(api.calls[0].input.count).toBe(expected === 3 ? true : undefined);
+    expect(page.total).toEqual({ value: expected, relation: "eq" });
+  });
+
   it("drops a null total", async () => {
     const api = stub({ "Tasks.Query": () => ({ results: [], total: null }) });
     expect(await api.Task.query("", { count: true })).toEqual({ results: [], continuationToken: undefined });

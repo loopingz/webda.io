@@ -54,6 +54,7 @@ not as a general-purpose store.
 | `statusFields`                 | `{}`                              | Fields written through the status subresource, by model identifier |
 | `installCrds`                  | `false`                           | Create or update the definitions at init                           |
 | `maxRetries`                   | `5`                               | Attempts of a read-modify-write on conflicts                       |
+| `watch`                        | `false`                           | Emit the events of the changes made by others (see below)          |
 | `config`, `context`, `timeout` | in-cluster or kubeconfig, 10000ms | Kubernetes client                                                  |
 
 ## Mapping
@@ -85,6 +86,24 @@ status: # statusFields, written through the status subresource
 - A label field must hold label-compatible values (at most 63 alphanumeric, `-`, `_` or `.` characters): another value
   is refused on write.
 - A status-only change is one write to the status subresource and does not change `metadata.generation`.
+
+## Changes made by others
+
+With `watch: true`, the store watches its resources and emits the repository events of the changes made outside the
+application (kubectl, GitOps, another replica), on the repository of the object's model:
+
+```typescript
+useRepository(Tenant).on("Updated", ({ object_id, object }) => {
+  // object is the new Tenant
+});
+```
+
+- `Created`, `Updated` (with the object) and `Deleted` (with its key): the objects existing when the store starts emit
+  nothing, nor do the changes of metadata only (labels, finalizers, operator conditions).
+- The writes of the application emit their usual events once: the store remembers the resource versions it wrote and
+  skips their watch events.
+- After the watch reconnects, the changes made meanwhile are emitted.
+- The service account needs `watch` on the resources (`webda kubernetes rbac export` grants it).
 
 ## Definitions and rights
 

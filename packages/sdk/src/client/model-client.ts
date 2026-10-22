@@ -152,8 +152,11 @@ export class RemoteBackend implements ModelBackend {
     const projection = options.select?.length ? options.select.join(",") : undefined;
     // A next page reuses the total cached with the first page of the same query: the server does not count again
     const first = withContinuation(query, undefined);
-    const known =
-      options.count && mode !== "no-store" && first !== query.trim() ? cache.getQuery(model, first)?.total : undefined;
+    const firstEntry =
+      options.count && mode !== "no-store" && mode !== "reload" && first !== query.trim()
+        ? cache.getQuery(model, first)
+        : undefined;
+    const known = mode === "force-cache" || cache.isFresh(firstEntry) ? firstEntry?.total : undefined;
     const count = options.count === true && known === undefined;
     /**
      * @param page - the page
@@ -163,23 +166,27 @@ export class RemoteBackend implements ModelBackend {
     const withTotal = (page: QueryResult<RawObject>, total: QueryTotal | undefined): QueryResult<RawObject> =>
       options.count && total ? { ...page, total } : page;
     const fetch = () =>
-      this.dedupe(`query|${query}|${projection ?? ""}|${count ? "count" : ""}`, async () => {
-        const page = ((await this.client.call(op, count ? { query, count } : { query }, options)) ??
-          {}) as QueryResult<RawObject>;
-        const results = page.results ?? [];
-        // The server sends a null total when the model does not allow one
-        const total = page.total ?? known;
-        if (mode !== "no-store") {
-          const uids = results.map(data => {
-            const uid = this.uidOf(data);
-            this.store(uid, data, projection !== undefined);
-            return uid;
-          });
-          // A projected page holds partial objects: it is not a cached query
-          if (projection === undefined) cache.setQuery(model, query, uids, page.continuationToken, total ?? undefined);
+      this.dedupe(
+        `query|${query}|${projection ?? ""}|${options.count ? "count" : ""}|${count ? "count" : ""}`,
+        async () => {
+          const page = ((await this.client.call(op, count ? { query, count } : { query }, options)) ??
+            {}) as QueryResult<RawObject>;
+          const results = page.results ?? [];
+          // The server sends a null total when the model does not allow one
+          const total = page.total ?? known;
+          if (mode !== "no-store") {
+            const uids = results.map(data => {
+              const uid = this.uidOf(data);
+              this.store(uid, data, projection !== undefined);
+              return uid;
+            });
+            // A projected page holds partial objects: it is not a cached query
+            if (projection === undefined)
+              cache.setQuery(model, query, uids, page.continuationToken, total ?? undefined);
+          }
+          return withTotal({ results, continuationToken: page.continuationToken }, total ?? undefined);
         }
-        return withTotal({ results, continuationToken: page.continuationToken }, total ?? undefined);
-      });
+      );
     if (mode !== "no-store" && mode !== "reload") {
       const entry = cache.getQuery(model, query);
       // A cached page without its total does not answer a query asking for it

@@ -1582,6 +1582,76 @@
         "title": "SQSQueue"
       },
       "Configuration": "lib/services/sqsqueue.service:SQSQueueParameters"
+    },
+    "Webda/SnsSmsSender": {
+      "Import": "lib/services/snssmssender.service:SnsSmsSender",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
+            "properties": {
+              "accessKeyId": {
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "secretAccessKey": {
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "sessionToken": {
+                "type": "string",
+                "x-webda-secret": true
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "SnsSmsSender parameters",
+        "properties": {
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, ...)",
+            "type": "string"
+          },
+          "originationNumber": {
+            "description": "Origination number (E.164) registered in AWS End User Messaging",
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "senderId": {
+            "description": "Alphanumeric sender ID shown to recipients, in the countries supporting it",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SnsSmsSender"
+      },
+      "Configuration": "lib/services/snssmssender.service:SnsSmsSenderParameters"
     }
   },
   "models": {},

@@ -149,6 +149,7 @@ All operations are exposed through the REST API with the path shown (relative to
 | (GET link)                     | `GET <url>?redirect=...`              | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
 | (GET link)                     | `GET <url>/callback`                  | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
 | `User.Mfa.Enroll`              | `POST users/{uuid}/mfa.enroll`        | `method`, `input?`                        | `{ secret, uri }`: start TOTP enrollment (URI formatted for authenticator QR code)                    |
+| `User.Mfa.Challenge`           | `POST users/{uuid}/mfa.challenge`     | `method`                                  | `{ phone, expiresIn }`: send a code (SMS), also allowed on a pending session; phone masked            |
 | `User.Mfa.Confirm`             | `POST users/{uuid}/mfa.confirm`       | `method`, `code`                          | `{ recoveryCodes, ...tokens }`: confirm factor, issue recovery codes, re-issue the caller's tokens    |
 | `User.Mfa.Verify`              | `POST users/{uuid}/mfa.verify`        | `code`, `method?`                         | verify TOTP code on pending session, issue access/refresh tokens                                      |
 | `User.Mfa.Disable`             | `POST users/{uuid}/mfa.disable`       | `method`, `code`                          | disable TOTP method (requires current TOTP code or recovery code)                                     |
@@ -306,7 +307,9 @@ is stored (server-only, never in an API output): the JSON value encrypted with t
 inside a JWT signed with that key, so tampering is detected. Values encrypted before a key rotation still decrypt
 while the old key is in the CryptoService registry. Declare it like any behavior: `secret: EncryptedField<MyType>;`.
 **Every instance must share the CryptoService keys** (the `Registry` store): an instance without the key cannot
-decrypt.
+decrypt. When the Registry is in the same database as the encrypted data, read the keys from a secret file with
+the CryptoService `keysFile` parameter, so a database dump does not contain them (see
+[CryptoService](../Concepts/Services/CryptoService.md#keys-file)).
 
 ## Client certificates
 
@@ -345,8 +348,9 @@ checked.
 
 ## Multi-Factor Authentication (MFA / TOTP)
 
-`@webda/auth` provides second-factor authentication built on top of RFC 6238 Time-based One-Time Passwords (TOTP) and
-single-use recovery codes, with an extensible `SecondFactorService` base class for future factors (e.g. SMS, WebAuthn).
+`@webda/auth` provides second-factor authentication built on top of RFC 6238 Time-based One-Time Passwords (TOTP),
+one-time codes sent by SMS (see [SMS second factor](#sms-second-factor)) and single-use recovery codes, with an
+extensible `SecondFactorService` base class for other factors (e.g. WebAuthn).
 
 The factors and recovery codes live in the `Webda/MFA` behavior of `@webda/core`. Each attribute has its own
 operations, secrets and recovery codes. `purpose: "login"` selects the User attribute used for login. The inherited `User.mfa` attribute has that purpose
@@ -430,22 +434,80 @@ Configure each attribute under `models.<Model>.behaviors.<attribute>`, independe
    - `POST users/{uuid}/mfa.disable` with `{ method: "totp", code: "..." }` disables TOTP (requires valid code or recovery code).
    - `POST users/{uuid}/mfa.recoveryCodes` with `{ code: "..." }` regenerates a fresh set of recovery codes.
 
+### SMS second factor
+
+`Webda/SmsMfaService` sends one-time codes by SMS (`method: "sms"`). It only implements the factor hooks: throttling,
+lock-out, recovery codes, session upgrade and events are the shared `MFA` behavior and `Authentication` logic described
+above. Messages go through a pluggable `SmsSender` service (`send(to, message)`, interface exported by `@webda/core`):
+
+- `Webda/DebugSmsSender` (`@webda/core`) keeps the messages in memory (`sent`) and logs them: tests and local development.
+- `Webda/SnsSmsSender` (`@webda/aws`) publishes transactional SMS with Amazon SNS, see [SnsSmsSender](../Modules/aws/SnsSmsSender.md).
+- Other providers only need a service implementing `SmsSender`.
+
+```jsonc
+{
+  "services": {
+    "SmsSender": { "type": "Webda/SnsSmsSender", "region": "us-east-1" }, // or "Webda/DebugSmsSender"
+    "sms": {
+      "type": "Webda/SmsMfaService",
+      "sender": "SmsSender", // name of the SmsSender service (default "SmsSender")
+      "digits": 6, // code length, 4 to 10 (default 6)
+      "ttl": "5m", // code lifetime (default "5m")
+      "resendDelay": "60s", // minimum delay between two codes of a factor (default "60s")
+      "message": "{code} is your {app} verification code", // template (default)
+      "app": "MyApplication", // {app} value (default: package name or "Webda")
+      "throttle": { "failedBeforeDelay": 5, "lockout": 900000 }
+    }
+  }
+}
+```
+
+Flow, with the operations of the attribute (`User.Mfa.*` for login):
+
+1. **Enroll**: `User.Mfa.Enroll` with `{ method: "sms", input: { phone: "+1 555 010 0089" } }`. The phone is normalised to
+   E.164 (separators removed, the `+` country code is required, otherwise `INVALID_PHONE`), stored pending, and a first
+   code is sent. Answers `{ phone: "+1********89", expiresIn: 300 }`. Enrolling again before confirming replaces the phone.
+2. **Confirm**: `User.Mfa.Confirm` with `{ method: "sms", code }`. This is the phone verification: on success the factor
+   is enabled and, when the owner model declares a `phoneVerifiedAt` attribute, it is set (no core schema change).
+3. **Login**: the primary login answers `{ status: "mfa_required", methods: ["sms"] }`. The pending session calls
+   `User.Mfa.Challenge` with `{ method: "sms" }` to receive a code, then `User.Mfa.Verify` with `{ method: "sms", code }`.
+   A pending session can only challenge a confirmed factor. A logged session can challenge too (step-up, disable,
+   recovery codes regeneration, resending a code during enrollment).
+
+Every new code replaces the previous one. `Challenge` (and a new `Enroll`) before `resendDelay` answers `THROTTLED`
+(429) without sending anything; a failing sender error is returned to the caller and nothing is saved.
+
+Security notes:
+
+- SMS is a weak factor (SIM swap, SS7 interception, phishing relays): do not recommend it as the only second factor,
+  offer TOTP alongside it (`methods: ["totp", "sms"]`) and keep recovery codes.
+- The phone is never output: it is stored in the encrypted factor data (`EncryptedField`, `CryptoService`) and answered
+  masked. Logs of `DebugSmsSender` contain the phone and the code: do not use it in production.
+- Codes come from `crypto.randomInt`, are stored as SHA-256 hashes inside the encrypted factor data, compared in
+  constant time, expire after `ttl` and are single use (cleared on success).
+- Wrong codes count in the same `_mfaAttempts` lock-out as TOTP; `resendDelay` limits the SMS sent per factor.
+
 ### Extending SecondFactorService
 
-Custom MFA factors (SMS, WebAuthn, email codes) can be implemented by extending `SecondFactorService<P>`. The service is
+Custom MFA factors (WebAuthn, email codes...) can be implemented by extending `SecondFactorService<P>`. The service is
 the `SecondFactorProvider` of its method, registered on resolve: the `MFA` behavior of every model uses it. The owner is
 a user or any object holding the behavior.
 
 ```typescript
-export class SmsSecondFactorService extends SecondFactorService<SmsParameters> {
-  readonly method = "sms";
+export class EmailCodeService extends SecondFactorService<EmailCodeParameters> {
+  readonly method = "email";
 
   async startEnrollment(mfa: MFA, owner: any, input?: any): Promise<any> {
-    // Store the phone number in mfa.getFactor("sms").data, send the first code; the caller saves the owner
+    // Store the factor data in mfa.getFactor("email").data, send the first code; the caller saves the owner
+  }
+
+  // Optional: methods delivering codes implement challenge, exposed as <Model>.<Attribute>.Challenge
+  async challenge(mfa: MFA, owner: any): Promise<any> {
+    // Send a new code; the caller saves the owner
   }
 
   async check(mfa: MFA, code: string): Promise<boolean> {
-    // Validate the SMS code
+    // Validate the code
   }
 }
 ```
@@ -485,6 +547,7 @@ The domain service exposes the behavior actions of every such model, allowed by 
 | Operation                 | REST                                   | Input             | Output                                           |
 | ------------------------- | -------------------------------------- | ----------------- | ------------------------------------------------ |
 | `Vault.Mfa.Enroll`        | `POST vaults/{uuid}/mfa.enroll`        | `method`          | the factor enrollment data (TOTP: `secret, uri`) |
+| `Vault.Mfa.Challenge`     | `POST vaults/{uuid}/mfa.challenge`     | `method`          | the challenge data (SMS: `phone, expiresIn`)     |
 | `Vault.Mfa.Confirm`       | `POST vaults/{uuid}/mfa.confirm`       | `method`, `code`  | `{ recoveryCodes }` (first factor only)          |
 | `Vault.Mfa.Verify`        | `POST vaults/{uuid}/mfa.verify`        | `code`, `method?` | `{ method, proof, expiresIn }`                   |
 | `Vault.Mfa.Disable`       | `POST vaults/{uuid}/mfa.disable`       | `method`, `code`  | -                                                |
@@ -599,6 +662,7 @@ carries `{ context, user }` only (`user` is undefined for an unknown email).
 | `MFA_NOT_ENABLED`          | 400  | MFA (or specific method) is not enabled for the user                 |
 | `MFA_ALREADY_ENABLED`      | 409  | Factor method is already enabled for the user                        |
 | `MFA_NOT_PENDING`          | 401  | Session has no pending second factor verification                    |
+| `INVALID_PHONE`            | 400  | The SMS enrollment phone is not an E.164 number (`+` country code)   |
 | `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                             |
 | `INVALID_IDENT`            | 400  | Malformed ident                                                      |
 | `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body                   |

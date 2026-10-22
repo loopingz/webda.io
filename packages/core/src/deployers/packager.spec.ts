@@ -18,6 +18,7 @@ import { dirname, join } from "node:path";
 import {
   getDeployedConfiguration,
   PACKAGED_CONFIGURATION,
+  PACKAGED_INLINE_KEY,
   PACKAGED_MARKER,
   packageApplication,
   writeApplicationPackage
@@ -227,6 +228,32 @@ class PackagerTest {
       !this.getApp().getConfiguration().cachedModules.project.git,
       "the application configuration is untouched"
     );
+  }
+
+  @test
+  deployedConfigurationMarker() {
+    const app = this.getApp();
+    const base = app.getConfiguration();
+    app.getConfiguration = () => ({ ...base, $import: ["webda.import.jsonc"] });
+    assert.strictEqual(PACKAGED_INLINE_KEY, "$packaged");
+    const configuration = getDeployedConfiguration(app, { marker: true });
+    // The inline marker carries the content of the marker file
+    assert.strictEqual(configuration.$packaged.deployment, "Prod");
+    assert.deepStrictEqual(configuration.$packaged.package, { name: "app", version: "1.0.0" });
+    assert.deepStrictEqual(configuration.$packaged.git, configuration.cachedModules.project.git);
+    assert.strictEqual(Object.keys(configuration)[0], PACKAGED_INLINE_KEY, "the marker is the first entry");
+    // The imports are already merged in the configuration
+    assert.strictEqual(configuration.$import, undefined);
+    assert.strictEqual(getDeployedConfiguration(app).$packaged, undefined, "no marker by default");
+  }
+
+  @test
+  async markerFile() {
+    // The marker file and the inline marker share the same content
+    const { files, configuration } = await packageApplication(this.getApp());
+    const marker = JSON.parse(files.find(file => file.target === PACKAGED_MARKER).content.toString());
+    assert.deepStrictEqual(marker, getDeployedConfiguration(this.getApp(), { marker: true }).$packaged);
+    assert.strictEqual(configuration.$packaged, undefined, "the package uses the marker file");
   }
 
   @test

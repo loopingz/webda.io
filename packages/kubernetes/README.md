@@ -51,12 +51,12 @@ pnpm add @webda/kubernetes
 }
 ```
 
-| Parameter | Type | Default | Required | Description |
-|---|---|---|---|---|
-| `jobImage` | string | — | Yes* | Docker image to use for the Kubernetes Job pod (`*` or `jobResources`) |
-| `jobResources` | object \| string | — | Yes* | Full Kubernetes Job manifest (object or path to YAML file) overriding the default template |
-| `config` | string \| object | — | No | Kubernetes config path or inline `K8sConfiguration` (defaults to in-cluster config) |
-| `context` | string | — | No | Kubernetes context name (from kubeconfig) to use |
+| Parameter      | Type             | Default | Required | Description                                                                                |
+| -------------- | ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------ |
+| `jobImage`     | string           | —       | Yes*     | Docker image to use for the Kubernetes Job pod (`*` or `jobResources`)                     |
+| `jobResources` | object \| string | —       | Yes*     | Full Kubernetes Job manifest (object or path to YAML file) overriding the default template |
+| `config`       | string \| object | —       | No       | Kubernetes config path or inline `K8sConfiguration` (defaults to in-cluster config)        |
+| `context`      | string           | —       | No       | Kubernetes context name (from kubeconfig) to use                                           |
 
 ## Usage
 
@@ -111,17 +111,18 @@ conflict); `=` and `IN` on `labelFields` are filtered by the API server, the res
 them at init (needs the rights on `customresourcedefinitions`). `webda kubernetes rbac export --target ./rbac.yaml`
 writes the Roles, ClusterRole and bindings the stores and operators need.
 
-| Parameter | Default | Description |
-|---|---|---|
-| `group` | — (required) | API group of the custom resources |
-| `version` | `v1` | API version |
-| `namespace` | `default` | Namespace of the resources (ignored for `Cluster` scope) |
-| `scope` | `Namespaced` | `Namespaced` or `Cluster` |
-| `labelFields` | `{}` | Fields mirrored as labels, by model |
-| `statusFields` | `{}` | Fields written through the status subresource, by model |
-| `installCrds` | `false` | Create or update the definitions at init |
-| `maxRetries` | `5` | Attempts of a read-modify-write on conflicts |
-| `config`, `context`, `timeout` | in-cluster / kubeconfig, 10000 ms | Kubernetes client |
+| Parameter                      | Default                           | Description                                                                                 |
+| ------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------- |
+| `group`                        | — (required)                      | API group of the custom resources                                                           |
+| `version`                      | `v1`                              | API version                                                                                 |
+| `namespace`                    | `default`                         | Namespace of the resources (ignored for `Cluster` scope)                                    |
+| `scope`                        | `Namespaced`                      | `Namespaced` or `Cluster`                                                                   |
+| `labelFields`                  | `{}`                              | Fields mirrored as labels, by model                                                         |
+| `statusFields`                 | `{}`                              | Fields written through the status subresource, by model                                     |
+| `installCrds`                  | `false`                           | Create or update the definitions at init                                                    |
+| `maxRetries`                   | `5`                               | Attempts of a read-modify-write on conflicts                                                |
+| `watch`                        | `false`                           | Emit the repository events of the changes made by others (kubectl, GitOps, another replica) |
+| `config`, `context`, `timeout` | in-cluster / kubeconfig, 10000 ms | Kubernetes client                                                                           |
 
 Kubernetes is not a database: use it for configuration-like models (tens to thousands of objects, at most ~1.5 MiB
 each). A label field must hold label-compatible values; resources created with kubectl need the labels too to be found

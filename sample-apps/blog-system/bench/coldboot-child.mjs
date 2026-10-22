@@ -3,7 +3,9 @@
 // first requests through the Router.
 //
 // Run by coldboot.bench.ts: prints one JSON line with the time of each phase, in ms since the process started
-// (performance.now() counts from performance.timeOrigin, set when Node starts the process).
+// (performance.now() counts from performance.timeOrigin, set when Node starts the process), and the init time of each
+// service. Can also be run alone to profile a boot: `node bench/coldboot-child.mjs` (set NODE_COMPILE_CACHE to a folder
+// to measure with the Node compile cache, as the `webda` launcher does).
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -59,6 +61,11 @@ async function request(method, url, body) {
 
 let services = 0;
 let core;
+/**
+ * Duration of each Service.init(), in ms
+ * @type {Record<string, number>}
+ */
+const serviceInit = {};
 try {
   await runWithInstanceStorage({}, async () => {
     // The application as shipped: only the store module under test, see loadBlogModule
@@ -76,6 +83,19 @@ try {
     configuration.Registry = blogStore().config(join(folder, "store"));
     configuration.Images = { ...configuration.Images, folder: join(folder, "images") };
     core = new Core(app);
+    // resolve() creates and resolves every service, init() then only initializes them (resolve is cached)
+    await core.resolve();
+    mark("coreResolved");
+    // Services are sealed: time them through Core.initService(name)
+    const initService = core.initService;
+    core.initService = async function timedInitService(name) {
+      const start = performance.now();
+      try {
+        return await initService.call(this, name);
+      } finally {
+        serviceInit[name] = Math.round((performance.now() - start) * 1000) / 1000;
+      }
+    };
     await core.init();
     services = Object.keys(core.getServices()).length;
     mark("coreInitialized");
@@ -89,7 +109,7 @@ try {
     await core.stop();
   });
   process.stdout.write(
-    `\n${JSON.stringify({ phases, services, rssBytes: process.memoryUsage().rss, node: process.version })}\n`
+    `\n${JSON.stringify({ phases, services, serviceInit, rssBytes: process.memoryUsage().rss, node: process.version })}\n`
   );
 } finally {
   rmSync(folder, { recursive: true, force: true });

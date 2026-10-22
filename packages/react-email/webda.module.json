@@ -86,6 +86,11 @@
               "type": "boolean",
               "default": true,
               "description": "Format the generated html"
+            },
+            "fixApostrophes": {
+              "type": "boolean",
+              "default": true,
+              "description": "Replace &#x27; with ' in the html"
             }
           },
           "phase": "application"

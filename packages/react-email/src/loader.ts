@@ -25,6 +25,19 @@ export const loader = {
    */
   importModule(url: string): Promise<any> {
     return import(url);
+  },
+  /**
+   * Import a TypeScript/JSX module with the optional `tsx` peer dependency
+   *
+   * tsx compiles JSX with the classic runtime unless the module is covered by a tsconfig with `"jsx": "react-jsx"`,
+   * so `React` is made global, as the react-email scripts do.
+   * @param url - file URL to import
+   * @returns the module namespace
+   */
+  async importTsx(url: string): Promise<any> {
+    const { tsImport } = await import("tsx/esm/api");
+    (globalThis as any).React ??= (await import("react")).default;
+    return tsImport(url, import.meta.url);
   }
 };
 
@@ -87,18 +100,28 @@ export async function importEmail(path: string, sourceMap?: Record<string, strin
   if (component) {
     return component;
   }
+  const url = `${pathToFileURL(resolved).href}?t=${String(mtime).replace(".", "_")}`;
   let mod: any;
   try {
-    mod = await loader.importModule(`${pathToFileURL(resolved).href}?t=${String(mtime).replace(".", "_")}`);
+    mod = await loader.importModule(url);
   } catch (err: any) {
-    if (err?.code === "ERR_UNKNOWN_FILE_EXTENSION") {
+    if (err?.code !== "ERR_UNKNOWN_FILE_EXTENSION") {
+      throw err;
+    }
+    // Plain node cannot import .tsx/.jsx: fall back to tsx when it is installed
+    try {
+      mod = await loader.importTsx(url);
+    } catch (tsxErr: any) {
+      if (tsxErr?.code !== "ERR_MODULE_NOT_FOUND" || !String(tsxErr?.message).includes("tsx")) {
+        throw tsxErr;
+      }
       throw new Error(
         `Cannot import '${resolved}': TypeScript/JSX sources are not loadable at runtime. ` +
-          "Compile the emails and set the 'sourceMap' parameter to map the sources to the compiled files",
+          "Install 'tsx' to load them, or compile the emails and set the 'sourceMap' parameter " +
+          "to map the sources to the compiled files",
         { cause: err }
       );
     }
-    throw err;
   }
   if (typeof mod?.default !== "function") {
     throw new NoDefaultExportError(resolved);

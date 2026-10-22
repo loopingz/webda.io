@@ -88,6 +88,7 @@ export class ReactEmailService<T extends ReactEmailParameters = ReactEmailParame
    * @param source - folder of the email components
    * @param output - folder of the generated mustache templates
    * @param pretty - format the generated html
+   * @param fixApostrophes - replace `&#x27;` with `'` in the html
    * @returns 1 when a template failed, otherwise 0
    */
   @Command("react-email build", { description: "Precompile react-email templates to mustache", phase: "application" })
@@ -97,9 +98,11 @@ export class ReactEmailService<T extends ReactEmailParameters = ReactEmailParame
     /** @alias o @description Folder of the generated mustache templates */
     output: string = "./templates",
     /** @description Format the generated html */
-    pretty: boolean = true
+    pretty: boolean = true,
+    /** @description Replace &#x27; with ' in the html */
+    fixApostrophes: boolean = true
   ): Promise<number> {
-    const result = await precompile({ source, output, pretty });
+    const result = await precompile({ source, output, pretty, fixApostrophes });
     useLog("INFO", `react-email: ${result.generated.length} template(s) generated`);
     return exitCode(result);
   }

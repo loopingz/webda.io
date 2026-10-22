@@ -55,15 +55,48 @@ class LoaderTest {
     await assert.rejects(() => importEmail(resolve("test/emails/no-default/email.tsx")), /no default export/);
   }
 
-  @test
-  async missingCompiledModuleExplains() {
+  /**
+   * Make the native import fail like plain node does on a .tsx file
+   */
+  unknownExtension() {
     const err: any = new Error("Unknown file extension");
     err.code = "ERR_UNKNOWN_FILE_EXTENSION";
     vi.spyOn(loader, "importModule").mockRejectedValue(err);
+  }
+
+  @test
+  async tsxFallback() {
+    this.unknownExtension();
+    const dir = await mkdtemp(resolve("test/tmp-"));
+    this.tmpDirs.push(dir);
+    const file = resolve(dir, "email.tsx");
+    await copyFile(resolve("test/emails/compiled-src/email.tsx"), file);
+    const tsx = vi.spyOn(loader, "importTsx");
+    assert.strictEqual((await importEmail(file)).Subject, "from source");
+    assert.ok(tsx.mock.calls[0][0].includes("?t="));
+    await writeFile(file, 'export default function Changed() { return "x"; }\nChanged.Subject = "changed";\n');
+    const later = new Date(Date.now() + 5000);
+    await utimes(file, later, later);
+    assert.strictEqual((await importEmail(file)).Subject, "changed");
+  }
+
+  @test
+  async missingTsxExplains() {
+    this.unknownExtension();
+    const err: any = new Error("Cannot find package 'tsx' imported from loader.js");
+    err.code = "ERR_MODULE_NOT_FOUND";
+    vi.spyOn(loader, "importTsx").mockRejectedValue(err);
     const path = resolve("test/emails/compiled-src/email.tsx");
     await assert.rejects(
       () => importEmail(path),
-      (e: Error) => e.message.includes(path) && e.message.includes("sourceMap")
+      (e: Error) => e.message.includes(path) && e.message.includes("sourceMap") && e.message.includes("'tsx'")
     );
+  }
+
+  @test
+  async tsxImportErrorKept() {
+    this.unknownExtension();
+    vi.spyOn(loader, "importTsx").mockRejectedValue(new SyntaxError("bad email"));
+    await assert.rejects(() => importEmail(resolve("test/emails/welcome.tsx")), /bad email/);
   }
 }

@@ -616,6 +616,11 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     }
     let resource: string | undefined;
     try {
+      // A repeated resource is refused (the router keeps a single value of a repeated query parameter)
+      const url = new URL(ctx.getHttpContext().getUrl(), "http://localhost");
+      if (url.searchParams.getAll("resource").length > 1) {
+        throw new OAuthError("invalid_target", "A single resource is supported");
+      }
       resource = this.resolveResource(ctx, client, p("resource"));
     } catch (err) {
       return fail("invalid_target", (err as Error).message);
@@ -1205,6 +1210,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       for (const [key, value] of new URLSearchParams(raw)) {
         // RFC 6749 §3.2: request parameters must not be included more than once
         if (Object.prototype.hasOwnProperty.call(body, key)) {
+          // RFC 8707: several resources are allowed by the spec, a single one is supported here
+          if (key === "resource") throw new OAuthError("invalid_target", "A single resource is supported");
           throw new OAuthError("invalid_request", "Repeated parameter");
         }
         body[key] = value;
@@ -1223,6 +1230,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       }
       for (const [key, value] of Object.entries(parsed)) {
         if (typeof value === "string") body[key] = value;
+        // A resource array (or any other non-string) is refused, never taken as absent
+        else if (key === "resource" && value !== undefined && value !== null) {
+          throw new OAuthError("invalid_target", "A single resource is supported");
+        }
       }
       return body;
     }

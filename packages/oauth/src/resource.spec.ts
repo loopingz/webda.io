@@ -5,7 +5,9 @@ import {
   HttpContext,
   RefreshToken,
   registerProtectedResource,
+  runWithContext,
   unregisterProtectedResource,
+  useRouter,
   useService,
   type WebContext
 } from "@webda/core";
@@ -188,6 +190,73 @@ class ResourceIndicatorTest extends OAuthTest {
       assert.strictEqual(query(location).state, "s");
       assert.strictEqual(b.jar["webda_oauth_pending"], undefined);
     }
+  }
+
+  @test
+  async repeatedResourceIsInvalidTarget() {
+    const resource = await this.resourceUri();
+    // Authorization endpoint: a repeated resource is not treated as absent
+    const b = await this.browser();
+    await this.login(b, "u1");
+    const { verifier, challenge } = this.pkce();
+    b.verifier = verifier;
+    const search = new URLSearchParams([
+      ["response_type", "code"],
+      ["client_id", "app"],
+      ["redirect_uri", REDIRECT_URI],
+      ["code_challenge", challenge],
+      ["code_challenge_method", "S256"],
+      ["state", "s"],
+      ["scope", "Task.*"],
+      ["resource", resource],
+      ["resource", resource]
+    ]);
+    const res = await this.get(b, `/oauth/authorize?${search}`);
+    assert.strictEqual(res.status, 302);
+    assert.strictEqual(query(res.headers.Location).error, "invalid_target", res.headers.Location);
+    // Token endpoint, form body
+    const browser = await this.browser();
+    const code = await this.code(browser, { scope: "Task.*", resource });
+    const http = new HttpContext("test.webda.io", "POST", "/oauth/token", "http", 80, {
+      "content-type": "application/x-www-form-urlencoded"
+    });
+    http.setBody(
+      new URLSearchParams([
+        ["grant_type", "authorization_code"],
+        ["code", code],
+        ["code_verifier", browser.verifier!],
+        ["client_id", "app"],
+        ["redirect_uri", REDIRECT_URI],
+        ["resource", resource],
+        ["resource", resource]
+      ]).toString()
+    );
+    http.setClientIp("127.0.0.1");
+    const call = await this.newWebContext<WebContext>(http);
+    await runWithContext(call, () => useRouter().execute(call));
+    assert.strictEqual(call.statusCode, 400);
+    assert.strictEqual(JSON.parse(call.getResponseBody()!.toString()).error, "invalid_target");
+    // Token endpoint, JSON body with an array
+    const json = await this.browser();
+    const jsonCode = await this.code(json, { scope: "Task.*", resource });
+    const jhttp = new HttpContext("test.webda.io", "POST", "/oauth/token", "http", 80, {
+      "content-type": "application/json"
+    });
+    jhttp.setBody(
+      JSON.stringify({
+        grant_type: "authorization_code",
+        code: jsonCode,
+        code_verifier: json.verifier,
+        client_id: "app",
+        redirect_uri: REDIRECT_URI,
+        resource: [resource, resource]
+      })
+    );
+    jhttp.setClientIp("127.0.0.1");
+    const jcall = await this.newWebContext<WebContext>(jhttp);
+    await runWithContext(jcall, () => useRouter().execute(jcall));
+    assert.strictEqual(jcall.statusCode, 400);
+    assert.strictEqual(JSON.parse(jcall.getResponseBody()!.toString()).error, "invalid_target");
   }
 
   @test

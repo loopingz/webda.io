@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -29,15 +29,20 @@ function writeFixture(dir: string, version: string): string {
 @suite
 class PackagesTest {
   tmp: string;
+  previousEscapeHatch: string | undefined;
 
   beforeEach() {
     this.tmp = mkdtempSync(join(tmpdir(), "webda-packages-"));
+    this.previousEscapeHatch = process.env.WEBDA_ALLOW_DUPLICATE_PACKAGES;
     delete process.env.WEBDA_ALLOW_DUPLICATE_PACKAGES;
   }
 
   afterEach() {
     rmSync(this.tmp, { recursive: true, force: true });
     delete process.env.WEBDA_ALLOW_DUPLICATE_PACKAGES;
+    if (this.previousEscapeHatch !== undefined) {
+      process.env.WEBDA_ALLOW_DUPLICATE_PACKAGES = this.previousEscapeHatch;
+    }
     // Drop the packages registered by the tests from the shared registry
     const registry: Map<string, unknown> = globalThis[Symbol.for("webda.packages")];
     registry.delete("@webda/fixture");
@@ -89,11 +94,32 @@ class PackagesTest {
       () => import(second),
       (err: Error) => {
         // Versions are read from the package.json of each copy
-        assert.ok(err.message.includes(`${join(this.tmp, "a", "fixture", "index.js")} (1.2.3)`), err.message);
-        assert.ok(err.message.includes(`${join(this.tmp, "b", "fixture", "index.js")} (1.2.3)`), err.message);
+        assert.ok(err.message.includes(`${fileURLToPath(first)} (1.2.3)`), err.message);
+        assert.ok(err.message.includes(`${fileURLToPath(second)} (1.2.3)`), err.message);
         return true;
       }
     );
+  }
+
+  @test
+  async duplicatedHelper() {
+    const original = getWebdaPackages().get("@webda/utils");
+    const copy = join(this.tmp, "packages.ts");
+    writeFileSync(copy, readFileSync(new URL("./packages.ts", import.meta.url)));
+    await assert.rejects(() => import(pathToFileURL(copy).href), /@webda\/utils loaded twice/);
+    assert.strictEqual(getWebdaPackages().get("@webda/utils"), original);
+  }
+
+  @test
+  escapeHatchRequiresOne() {
+    registerWebdaPackage("@webda/dummy", "file:///a/index.js", "1.0.0");
+    for (const value of ["0", "false", "true", ""]) {
+      process.env.WEBDA_ALLOW_DUPLICATE_PACKAGES = value;
+      assert.throws(
+        () => registerWebdaPackage("@webda/dummy", "file:///b/index.js", "1.0.0"),
+        /@webda\/dummy loaded twice/
+      );
+    }
   }
 
   @test

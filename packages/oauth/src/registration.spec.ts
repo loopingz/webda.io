@@ -111,6 +111,26 @@ class RegistrationTest extends OAuthTest {
   }
 
   @test
+  async registerEchoesClientAndLogoUri() {
+    const res = await this.register({
+      client_name: "Site",
+      redirect_uris: [LOOPBACK],
+      client_uri: "https://client.example.com/",
+      logo_uri: "https://client.example.com/logo.png"
+    });
+    assert.strictEqual(res.status, 201, JSON.stringify(res.body));
+    // RFC 7591 §3.2.1: the response carries the registered metadata
+    assert.strictEqual(res.body.client_uri, "https://client.example.com/");
+    assert.strictEqual(res.body.logo_uri, "https://client.example.com/logo.png");
+    const stored = await OAuthRegisteredClient.ref(res.body.client_id).get();
+    assert.strictEqual(stored.clientUri, res.body.client_uri);
+    assert.strictEqual(stored.logoUri, res.body.logo_uri);
+    // Absent when not registered
+    const bare = await this.register({ redirect_uris: [LOOPBACK] });
+    assert.ok(!("client_uri" in bare.body) && !("logo_uri" in bare.body), JSON.stringify(bare.body));
+  }
+
+  @test
   async registerCustomScheme() {
     const uri = "cursor://anysphere.cursor-retrieval/oauth/callback";
     const res = await this.register({ client_name: "Cursor", redirect_uris: [uri] });

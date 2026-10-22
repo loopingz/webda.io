@@ -547,6 +547,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         client_id: client.uuid,
         client_id_issued_at: Math.floor(now / 1000),
         client_name: client.name,
+        // RFC 7591 §3.2.1: the registered metadata, undefined (absent) when not sent
+        client_uri: client.clientUri,
+        logo_uri: client.logoUri,
         redirect_uris: client.redirect_uris,
         grant_types: ["authorization_code", "refresh_token"],
         response_types: ["code"],

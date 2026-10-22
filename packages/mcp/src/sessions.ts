@@ -25,6 +25,10 @@ export interface McpSessionEntry {
    * Last activity timestamp (ms)
    */
   lastSeen: number;
+  /**
+   * Origin header values the session transport accepts (empty: any)
+   */
+  allowedOrigins?: string[];
 }
 
 /**

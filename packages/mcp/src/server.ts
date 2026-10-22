@@ -48,6 +48,8 @@ export const INSUFFICIENT_SCOPE = -32001;
 export type ToolAccess = "allowed" | "out_of_scope" | "denied";
 
 /**
+ * Authorizers stop at the first refusal: a scope refusal may hide another authorizer's refusal. A tool is out of
+ * scope only when the caller could call it with the operation added to the token scope.
  * @param context - caller context; authorizers (such as IAM) cache the caller's user on it across a listing
  * @param operationId - operation behind the tool
  * @returns the caller's access to the tool
@@ -57,7 +59,14 @@ export async function toolAccess(context: SimpleOperationContext, operationId: s
   if (result === true) {
     return "allowed";
   }
-  return result === "insufficient_scope" ? "out_of_scope" : "denied";
+  if (result !== "insufficient_scope") {
+    return "denied";
+  }
+  // Probe again as if the scope covered the operation, on a view of the session: the real one is left untouched
+  const session = context.getSession();
+  const widened = Object.create(session) as Session;
+  widened.scopes = union(session.scopes ?? [], [operationId]);
+  return (await probeOperation(sessionContext(widened), operationId)) === true ? "out_of_scope" : "denied";
 }
 
 /**

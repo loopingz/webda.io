@@ -1,6 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { HttpContext, listProtectedResources, Session, useService } from "@webda/core";
+import {
+  HttpContext,
+  listProtectedResources,
+  registerOperationAuthorizer,
+  Session,
+  unregisterOperationAuthorizer,
+  useService
+} from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -98,9 +105,10 @@ class McpOAuthBase extends McpFixtureTest {
    * Open an MCP session with raw HTTP and send one JSON-RPC request in it
    * @param token - bearer token
    * @param message - JSON-RPC request (or batch) sent once the session is initialized
+   * @param extra - extra headers of the request
    * @returns the raw response to the request
    */
-  async rawCall(token: string, message: unknown): Promise<Response> {
+  async rawCall(token: string, message: unknown, extra: Record<string, string> = {}): Promise<Response> {
     const base = await this.base();
     const headers = { ...HEADERS, authorization: `Bearer ${token}` };
     const init = await fetch(`${base}/mcp`, { method: "POST", headers, body: JSON.stringify(INIT) });
@@ -117,7 +125,7 @@ class McpOAuthBase extends McpFixtureTest {
       body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })
     });
     await initialized.text();
-    return fetch(`${base}/mcp`, { method: "POST", headers: session, body: JSON.stringify(message) });
+    return fetch(`${base}/mcp`, { method: "POST", headers: { ...session, ...extra }, body: JSON.stringify(message) });
   }
 
   /**
@@ -318,6 +326,45 @@ class McpOAuthTest extends McpOAuthBase {
     const text = await batch.text();
     assert.ok(text.includes('"code":-32001'), text);
     assert.ok(text.includes('"scope":"Fixture.Echo Fixture.Count Fixture.Version"'), text);
+  }
+
+  @test
+  async otherRefusalBehindScopeStillUnknown() {
+    // registered after the token scope authorizer: the scope refusal comes first and hides this one
+    const authorizer = async (_ctx, operationId) => operationId !== "Fixture.Version";
+    registerOperationAuthorizer(authorizer as any);
+    const mcp = useService("Mcp") as McpService;
+    mcp.getParameters().listOutOfScopeTools = true;
+    try {
+      const token = await this.bearer(["Fixture.Echo"]);
+      const client = await this.client(token);
+      const names = (await client.listTools()).tools.map(t => t.name);
+      assert.ok(names.includes("Fixture.Noop"), names.join(" "));
+      assert.ok(!names.includes("Fixture.Version"), names.join(" "));
+      await assert.rejects(() => client.callTool({ name: "Fixture.Version", arguments: {} }), /Unknown tool/);
+      await client.close();
+      const res = await this.rawCall(token, this.callRequest("Fixture.Version"));
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers.get("www-authenticate"), null);
+    } finally {
+      mcp.getParameters().listOutOfScopeTools = false;
+      unregisterOperationAuthorizer(authorizer as any);
+    }
+  }
+
+  @test
+  async transportChecksBeforeChallenge() {
+    const token = await this.bearer(["Fixture.Echo"]);
+    const origin = await this.rawCall(token, this.callRequest("Fixture.Version"), { origin: "https://evil.example" });
+    assert.strictEqual(origin.status, 403);
+    assert.strictEqual(origin.headers.get("www-authenticate"), null);
+    assert.match(await origin.text(), /Invalid Origin header/);
+    const version = await this.rawCall(token, this.callRequest("Fixture.Version"), {
+      "mcp-protocol-version": "1999-01-01"
+    });
+    assert.strictEqual(version.status, 400);
+    assert.strictEqual(version.headers.get("www-authenticate"), null);
+    assert.match(await version.text(), /Unsupported protocol version/);
   }
 
   @test

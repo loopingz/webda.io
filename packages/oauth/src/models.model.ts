@@ -70,3 +70,24 @@ export class OAuthGrant extends Model {
   lastUsedAt: number;
   expiresAt: number;
 }
+
+/**
+ * Client registered dynamically (RFC 7591), public client without secret
+ * @WebdaModel
+ */
+export class OAuthRegisteredClient extends Model {
+  [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
+  /** The `dcr_…` client_id */
+  uuid: string;
+  name: string;
+  clientUri?: string;
+  logoUri?: string;
+  redirect_uris: string[];
+  scope?: string;
+  createdAt: number;
+  lastUsedAt?: number;
+  /** Extended on use */
+  expiresAt: number;
+  /** Address that registered the client */
+  ip: string;
+}

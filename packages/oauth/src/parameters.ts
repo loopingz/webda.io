@@ -25,6 +25,8 @@ export interface OAuthClient {
   deviceFlow?: boolean;
   /** Loaded from a Client ID Metadata Document */
   metadataDocument?: boolean;
+  /** Registered dynamically (RFC 7591) */
+  registered?: boolean;
 }
 
 /** Built-in Webda CLI client */
@@ -112,6 +114,12 @@ export class OAuthServerParameters extends ServiceParameters {
   rememberConsent: boolean;
   /** @default 7776000 */
   rememberConsentTtl: number;
+  /** Lifetime of a registered client never used (s)
+   * @default 86400 */
+  registrationUnusedTtl: number;
+  /** Lifetime of a registered client since its last use (s)
+   * @default 7776000 */
+  registrationIdleTtl: number;
   /** Advertised scopes; defaults to the top-level operation groups */
   scopesSupported?: string[];
 
@@ -136,6 +144,8 @@ export class OAuthServerParameters extends ServiceParameters {
     this.devicePollInterval ??= 5;
     this.rememberConsent ??= true;
     this.rememberConsentTtl ??= 90 * 24 * 3600;
+    this.registrationUnusedTtl ??= 86400;
+    this.registrationIdleTtl ??= 7776000;
     return this;
   }
 }

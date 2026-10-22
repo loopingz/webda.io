@@ -161,7 +161,8 @@ export const INTERNAL_MODELS: readonly string[] = [
   // Owned by @webda/oauth
   "Webda/OAuthCode",
   "Webda/OAuthDeviceCode",
-  "Webda/OAuthGrant"
+  "Webda/OAuthGrant",
+  "Webda/OAuthRegisteredClient"
 ];
 
 /**

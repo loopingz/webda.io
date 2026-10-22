@@ -1,7 +1,10 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import type { OAuthClient, OAuthServerParameters } from "./parameters.js";
+import { OAuthRegisteredClient } from "./models.model.js";
 
+/** Prefix of the client ids of dynamically registered clients */
+export const REGISTERED_PREFIX = "dcr_";
 /** Maximum size of a Client ID Metadata Document */
 const MAX_DOCUMENT = 64 * 1024;
 /** Maximum length of a redirect_uri */
@@ -108,7 +111,7 @@ export function isPrivateAddress(ip: string): boolean {
  * @param uri - redirect URI from an untrusted metadata document
  * @returns true when it is acceptable: https, loopback http, or a private-use scheme
  */
-function isAcceptableDocumentRedirect(uri: unknown): boolean {
+export function isAcceptableRedirect(uri: unknown): boolean {
   if (typeof uri !== "string" || uri.length > MAX_REDIRECT_URI) return false;
   let url: URL;
   try {
@@ -177,6 +180,7 @@ export class ClientRegistry {
       const configured = this.params.clients[clientId];
       return configured ? { ...copyClient(configured), id: clientId } : undefined;
     }
+    if (clientId.startsWith(REGISTERED_PREFIX)) return this.getRegistered(clientId);
     if (
       !this.params.clientMetadataDocuments ||
       clientId.length > MAX_REDIRECT_URI ||
@@ -199,6 +203,27 @@ export class ClientRegistry {
     }
     const client = await pending;
     return client && copyClient(client);
+  }
+
+  /**
+   * @param clientId - `dcr_` client_id
+   * @returns the registered client, undefined when unknown or expired
+   */
+  protected async getRegistered(clientId: string): Promise<OAuthClient | undefined> {
+    const ref = OAuthRegisteredClient.ref(clientId);
+    if (!(await ref.exists())) return undefined;
+    const stored: OAuthRegisteredClient = await ref.get();
+    if (!(stored.expiresAt > Date.now())) return undefined;
+    return {
+      id: stored.uuid,
+      name: stored.name,
+      redirect_uris: [...stored.redirect_uris],
+      logo: stored.logoUri,
+      client_uri: stored.clientUri,
+      defaultScope: stored.scope,
+      deviceFlow: false,
+      registered: true
+    };
   }
 
   /**
@@ -264,7 +289,7 @@ export class ClientRegistry {
       !Array.isArray(doc.redirect_uris) ||
       doc.redirect_uris.length === 0 ||
       doc.redirect_uris.length > MAX_REDIRECT_URIS ||
-      !doc.redirect_uris.every(isAcceptableDocumentRedirect)
+      !doc.redirect_uris.every(isAcceptableRedirect)
     ) {
       return undefined;
     }

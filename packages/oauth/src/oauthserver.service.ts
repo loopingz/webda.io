@@ -34,7 +34,7 @@ import {
   WebdaError
 } from "@webda/core";
 import { OAuthError } from "./errors.js";
-import { ClientRegistry } from "./clients.js";
+import { ClientRegistry, REGISTERED_PREFIX } from "./clients.js";
 import {
   formatUserCode,
   generateUserCode,
@@ -43,7 +43,7 @@ import {
   sha256,
   splitDeviceCode
 } from "./devicecode.js";
-import { type GrantIdentity, OAuthCode, OAuthDeviceCode, OAuthGrant } from "./models.model.js";
+import { type GrantIdentity, OAuthCode, OAuthDeviceCode, OAuthGrant, OAuthRegisteredClient } from "./models.model.js";
 import { type OAuthClient, OAuthServerParameters } from "./parameters.js";
 import { type PendingRequest, PENDING_TTL, readPending, writePending } from "./pending.js";
 import { consentHtml, deviceHtml, errorHtml, MAX_ECHO, newNonce, pageHeaders, resultHtml } from "./pages.js";
@@ -327,7 +327,34 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         }
       }
     );
+    removed += await this.sweepBatches(
+      () => OAuthRegisteredClient.iterate("expiresAt < ?", [now]),
+      async client => {
+        await this.revokeRegisteredClient(client.uuid);
+        // A use since the read extended the client: it survives (its tokens were revoked with it, as it was expired)
+        try {
+          await client.ref().delete("expiresAt" as any, client.expiresAt as any);
+          return true;
+        } catch (err) {
+          if (!this.isConditionFailure(err) && (await client.ref().exists())) throw err;
+          return false;
+        }
+      }
+    );
     return removed;
+  }
+
+  /**
+   * Revoke every refresh family issued to a client and forget the consents given to it
+   * @param clientId - client
+   */
+  protected async revokeRegisteredClient(clientId: string): Promise<void> {
+    const families = new Set<string>();
+    for await (const token of RefreshToken.iterate("clientId = ?", [clientId])) families.add(token.family);
+    for (const family of families) await this.tokenService().revokeFamily(family);
+    const grants: OAuthGrant[] = [];
+    for await (const grant of OAuthGrant.iterate("clientId = ?", [clientId])) grants.push(grant);
+    for (const grant of grants) await grant.ref().delete();
   }
 
   /**
@@ -1256,7 +1283,20 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       accessTtl: this.parameters.accessTtl,
       refreshTtl: this.parameters.refreshTtl
     });
+    if (clientId.startsWith(REGISTERED_PREFIX)) await this.touchRegisteredClient(clientId);
     return { family: tokens.family, response: await this.tokenResponse(tokens, scope) };
+  }
+
+  /**
+   * A registered client was used: extend its lifetime to the idle TTL
+   * @param clientId - `dcr_` client_id
+   */
+  protected async touchRegisteredClient(clientId: string): Promise<void> {
+    const now = Date.now();
+    await OAuthRegisteredClient.ref(clientId).patch({
+      lastUsedAt: now,
+      expiresAt: now + this.parameters.registrationIdleTtl * 1000
+    } as any);
   }
 
   /**

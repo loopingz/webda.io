@@ -68,6 +68,11 @@
                   "type": "string"
                 },
                 "type": "array"
+              },
+              "registered": {
+                "default": false,
+                "description": "Registered dynamically (RFC 7591)",
+                "type": "boolean"
               }
             },
             "required": [
@@ -136,6 +141,16 @@
           },
           "refreshTtl": {
             "description": "Refresh token lifetime (s); defaults to TokenService",
+            "type": "number"
+          },
+          "registrationIdleTtl": {
+            "default": 7776000,
+            "description": "Lifetime of a registered client since its last use (s)",
+            "type": "number"
+          },
+          "registrationUnusedTtl": {
+            "default": 86400,
+            "description": "Lifetime of a registered client never used (s)",
             "type": "number"
           },
           "rememberConsent": {
@@ -1091,6 +1106,218 @@
         "uuid"
       ],
       "Identifier": "Webda/OAuthGrant"
+    },
+    "Webda/OAuthRegisteredClient": {
+      "Plural": "OAuthRegisteredClients",
+      "Import": "lib/models.model:OAuthRegisteredClient",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "clientUri": {
+          "type": "string"
+        },
+        "logoUri": {
+          "type": "string"
+        },
+        "redirect_uris": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "lastUsedAt": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "ip": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/OAuthRegisteredClient"
     }
   },
   "schemas": {

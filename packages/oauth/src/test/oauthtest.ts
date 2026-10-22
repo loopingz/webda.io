@@ -103,7 +103,8 @@ export abstract class OAuthTest extends AuthTest {
             "Webda/RevokedAccess",
             "Webda/OAuthCode",
             "Webda/OAuthDeviceCode",
-            "Webda/OAuthGrant"
+            "Webda/OAuthGrant",
+            "Webda/OAuthRegisteredClient"
           ]
         },
         Authentication: { type: "Webda/Authentication" },

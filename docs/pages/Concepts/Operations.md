@@ -216,7 +216,9 @@ On any failure (a check, `begin`, the method, the stream or a `commit`), the par
 rollback is logged and never hides it.
 
 A transaction participant implements `OperationTransactionParticipant` (`begin`, `commit`, `rollback`) and is
-registered with `registerOperationTransactionParticipant`. Without registered participants nothing changes.
+registered with `registerOperationTransactionParticipant`. Without registered participants nothing changes. The SQL
+stores (`PostgresStore`, `SQLiteStore`) are participants when configured with `transaction: "operation"`, see
+[PostgreSQL transactions](../Modules/postgres/PostgresStore.md#transactions).
 
 - The transaction follows the async call chain of the operation, not the execution context: code running inside the
   operation under `runAsSystem` or in a nested `callOperation` takes part in it. `useOperationTransaction()` returns it.

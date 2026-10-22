@@ -240,9 +240,22 @@
             "$ref": "#/definitions/SQLDatabase",
             "description": "Services giving the same database name share one handle"
           },
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
           "maxConsumers": {
             "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
           "persistence": {
@@ -471,6 +484,15 @@
           "tables": {
             "$ref": "#/definitions/tables%232",
             "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name."
+          },
+          "transaction": {
+            "default": "none",
+            "description": "Wrap all statements of an operation in a single transaction\n\n- \"none\": autocommit per statement\n- \"operation\": BEGIN on the first statement of an operation, COMMIT when the operation succeeds, ROLLBACK when\n  it fails. Nested operations join the outermost one; `transaction: false` on an operation opts it out.",
+            "enum": [
+              "none",
+              "operation"
+            ],
+            "type": "string"
           },
           "type": {
             "description": "Type of the service",

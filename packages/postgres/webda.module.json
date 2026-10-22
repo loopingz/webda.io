@@ -2320,6 +2320,25 @@
             "$ref": "#/definitions/tables%232",
             "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name."
           },
+          "transaction": {
+            "default": "none",
+            "description": "Wrap all statements of an operation in a single transaction\n\n- \"none\": autocommit per statement\n- \"operation\": BEGIN on the first statement of an operation, COMMIT when the operation succeeds, ROLLBACK when\n  it fails. Nested operations join the outermost one; `transaction: false` on an operation opts it out.",
+            "enum": [
+              "none",
+              "operation"
+            ],
+            "type": "string"
+          },
+          "transactionIsolation": {
+            "default": "READ COMMITTED",
+            "description": "Isolation level of the transactions (`transaction: \"operation\"` and `withTransaction`)",
+            "enum": [
+              "READ COMMITTED",
+              "REPEATABLE READ",
+              "SERIALIZABLE"
+            ],
+            "type": "string"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"
@@ -2330,6 +2349,7 @@
           },
           "usePool": {
             "default": false,
+            "description": "Use a shared pool of connections rather than a single client: required by `transaction: \"operation\"`",
             "type": "boolean"
           },
           "viewPrefix": {

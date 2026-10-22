@@ -1,7 +1,7 @@
-import { Command } from "@webda/core";
+import { Command, useOperationTransaction, WebdaError } from "@webda/core";
 import type { MigratableStore } from "@webda/core";
 import { SQLStore, SQLStoreParameters } from "@webda/sql";
-import type { SQLClient, SQLDialect } from "@webda/sql";
+import type { SQLClient, SQLDialect, SQLTransactionConnection, SQLTransactionState } from "@webda/sql";
 import type { SQLiteConnectionParameters, SQLitePersistence } from "./connection.js";
 import { acquireDatabase, releaseDatabase } from "./dbregistry.js";
 import type { SQLiteHandle } from "./dbregistry.js";
@@ -45,6 +45,10 @@ export class SQLiteStoreParameters extends SQLStoreParameters implements SQLiteC
  * `DatabaseSync` is synchronous: each statement blocks the event loop. Fits development, tests, CLI tools and small
  * single-node applications; use PostgresStore for heavy concurrent traffic.
  *
+ * With `transaction: "operation"`, the services of a database share its single connection: an open transaction holds
+ * it until the operation ends, the statements of the other async chains wait (transactions are serialized) and the
+ * services of the same database used by the operation (another store, a SQLiteQueue) take part in its transaction.
+ *
  * @WebdaModda
  */
 export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters>
@@ -72,6 +76,54 @@ export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters
    */
   getHandle(): SQLiteHandle | undefined {
     return this.handle;
+  }
+
+  /**
+   * One transaction per database: the stores sharing it share the transaction
+   * @override
+   */
+  protected transactionKey(): string {
+    return `sql.tx.sqlite:${this.handle?.key ?? this.getName()}`;
+  }
+
+  /**
+   * Hold the shared connection for the transaction and BEGIN on it
+   *
+   * `BEGIN IMMEDIATE` takes the write lock at once (a deferred transaction upgrading later could fail with
+   * SQLITE_BUSY against another process); a read-only database begins a deferred transaction.
+   * @param state - the transaction state the connection is opened for
+   * @override
+   */
+  protected async openTransaction(state: SQLTransactionState): Promise<SQLTransactionConnection> {
+    const handle = this.handle;
+    if (!handle) {
+      throw new WebdaError.CodeError("SQLITE_NOT_INITIALIZED", `SQLiteStore ${this.getName()} is not initialized`);
+    }
+    const key = this.transactionKey();
+    const release = await handle.client.acquireExclusive(() => useOperationTransaction()?.get(key) === state);
+    try {
+      handle.db.exec(handle.readOnly ? "BEGIN" : "BEGIN IMMEDIATE");
+    } catch (err) {
+      release();
+      throw err;
+    }
+    return {
+      client: handle.client,
+      commit: async () => {
+        handle.db.exec("COMMIT");
+      },
+      rollback: async () => {
+        // A failed COMMIT may have ended the transaction already (isTransaction exists from Node 22.16)
+        if ((handle.db as { isTransaction?: boolean }).isTransaction !== false) {
+          handle.db.exec("ROLLBACK");
+        }
+      },
+      release: () => {
+        release();
+        // Wake the readers that skipped the rows of the transaction (SQLitePubSub)
+        handle.events.emit("released");
+      }
+    };
   }
 
   /**

@@ -156,6 +156,47 @@ subscription {
 }
 ```
 
+## Dry mode
+
+Dry mode allows operations to be validated, checked against permissions, and reported without performing unintended side effects.
+
+### Operation dry-run behaviors
+
+Each operation defines its behavior in dry mode via the `dryRun` option:
+
+- `"execute"`: The operation has no side effects and executes normally. This is the default for read-only operations (`Get`, `Query`, or operations exposed with HTTP `GET`).
+- `"delegate"`: The operation method is executed and decides how to handle dry mode internally via `useDryRun()`.
+- `"skip"`: The method is **not** called. Input validation, permissions, and authorizers still run. Arguments have secrets masked, an INFO log `DRY RUN <operationId>` is emitted, event `Webda.OperationDryRun` is fired, and a `DryRunResult` is written to the context. This is the default for mutating operations.
+
+Example of a `"delegate"` operation:
+
+```ts
+@Operation({ dryRun: "delegate" })
+async migrate(): Promise<MigrationReport> {
+  const dry = useDryRun();
+  // ...compute the migration plan...
+  if (!dry) {
+    await this.apply(plan);
+  }
+  return report;
+}
+```
+
+### Enabling dry mode
+
+Dry mode can be activated via:
+
+1. **Configuration (`parameters.dryRun`)**:
+   - `enabled: true`: Runs every operation in dry mode.
+   - `enforce: ["Billing.*", "User.Delete"]`: Patterns of operations that always run dry.
+   - `exclude: ["Health.*"]`: Patterns of operations excluded from global `enabled` or request flags. `exclude` never overrides `enforce`.
+   - `allowRequest: true`: Allows clients to request dry mode via the `X-Webda-Dry-Run: true` HTTP header.
+2. **CLI**: Global `--dry-run` flag:
+   ```bash
+   webda user delete <uuid> --dry-run
+   ```
+3. **Programmatically**: Using the `runDryRun(fn)` helper in tests or scripts.
+
 ## Calling operations from a frontend
 
 [`@webda/sdk`](../Modules/sdk/README.md) generates a typed client from the operations of the application: every

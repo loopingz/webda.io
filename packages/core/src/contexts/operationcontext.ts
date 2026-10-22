@@ -6,7 +6,7 @@ import { NotEnumerable, JSONUtils } from "@webda/utils";
 import sanitize from "sanitize-html";
 import { useLog } from "../loggers/hooks.js";
 import { HttpError } from "../errors/errors.js";
-import { runAsSystem } from "./execution.js";
+import { runAsSystem } from "./contextstorage.js";
 import { IUser } from "../models/types.js";
 import { useUserResolver } from "../core/hooks.js";
 

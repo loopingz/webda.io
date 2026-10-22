@@ -1,4 +1,4 @@
-import { getOperationStreaming, type OperationDefinition } from "@webda/core";
+import { getOperationStreaming, isReadOnlyOperation, type OperationDefinition } from "@webda/core";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { inlineSchema, JsonSchema, SchemaResolver } from "./schema.js";
 
@@ -86,8 +86,7 @@ export function operationToTool(id: string, op: OperationDefinition, resolve: Sc
     description: op.deprecated ? `${description} (deprecated)` : description,
     inputSchema: inputSchema as Tool["inputSchema"],
     annotations: {
-      readOnlyHint:
-        hints.readOnly ?? (op.rest !== false && op.rest?.method === "get" ? true : /\.(Get|Query)$/.test(id)),
+      readOnlyHint: isReadOnlyOperation(id, op),
       destructiveHint:
         hints.destructive ?? (op.rest !== false && op.rest?.method === "delete" ? true : id.endsWith(".Delete"))
     }

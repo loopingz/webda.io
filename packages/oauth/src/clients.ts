@@ -76,6 +76,27 @@ function toIPv4(hi: number, lo: number): string {
 }
 
 /**
+ * Rate limit key of a client address: an IPv4 address is its own key (an IPv4-mapped IPv6 address keys as its IPv4),
+ * an IPv6 address is keyed by its /64 prefix, the smallest block a single host usually owns. Without a client address
+ * (or with an unparsable one) every such request shares the `ip:unknown` key
+ *
+ * @param ip - client address
+ * @returns the rate limit key
+ */
+export function rateLimitKey(ip: string | undefined): string {
+  if (typeof ip !== "string") return "ip:unknown";
+  const family = isIP(ip.split("%")[0]);
+  if (family === 4) return `ip:${ip}`;
+  const g = family === 6 ? expandIPv6(ip) : undefined;
+  if (!g) return "ip:unknown";
+  if (g.slice(0, 5).every(x => x === 0) && g[5] === 0xffff) return `ip:${toIPv4(g[6], g[7])}`;
+  return `ip:${g
+    .slice(0, 4)
+    .map(x => x.toString(16))
+    .join(":")}::/64`;
+}
+
+/**
  * Fail-closed classification: anything that is not a public unicast address (or is not an IP at all) is private
  *
  * @param ip - address

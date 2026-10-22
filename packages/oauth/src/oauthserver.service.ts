@@ -37,7 +37,7 @@ import {
 } from "@webda/core";
 import { OAuthError } from "./errors.js";
 import { parseRegistration } from "./registration.js";
-import { ClientRegistry, REGISTERED_PREFIX } from "./clients.js";
+import { ClientRegistry, rateLimitKey, REGISTERED_PREFIX } from "./clients.js";
 import {
   formatUserCode,
   generateUserCode,
@@ -499,8 +499,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
-   * Dynamic client registration endpoint (RFC 7591): public clients only, rate limited per client IP. `404` when
-   * registration is off
+   * Dynamic client registration endpoint (RFC 7591): public clients only, rate limited per client IPv4 address or
+   * IPv6 /64 prefix. `404` when registration is off
    * @param ctx - web context
    */
   async register(ctx: WebContext): Promise<void> {
@@ -512,8 +512,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     let status = 201;
     let payload: Record<string, unknown>;
     try {
-      const ip = ctx.getHttpContext()?.getClientIp() ?? "unknown";
-      const key = `ip:${ip}`;
+      const clientIp = ctx.getHttpContext()?.getClientIp();
+      const ip = clientIp ?? "unknown";
+      // IPv6 clients share the bucket of their /64; requests without a client address share `ip:unknown`
+      const key = rateLimitKey(clientIp);
       const now = Date.now();
       const window = this.parameters.registrationRateWindow * 1000;
       if (this.countAttempts(this.registrationRequests, key, now, window) >= this.parameters.registrationRateLimit) {

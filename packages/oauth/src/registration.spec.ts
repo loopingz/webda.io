@@ -239,4 +239,20 @@ class RegistrationTest extends OAuthTest {
     assert.strictEqual(res.body.error, "slow_down");
     assert.strictEqual(await this.count(), 20);
   }
+
+  @test
+  async registrationRateLimitedPerIPv6Prefix() {
+    // Every address of a /64 is one bucket: a single host usually owns the whole prefix
+    for (let i = 0; i < 20; i++) {
+      const res = await this.register({ redirect_uris: [LOOPBACK] }, `2001:db8:1:2::${(i + 1).toString(16)}`);
+      assert.strictEqual(res.status, 201, `${i}`);
+    }
+    const same = await this.register({ redirect_uris: [LOOPBACK] }, "2001:0db8:0001:0002:ffff:ffff:ffff:ffff");
+    assert.strictEqual(same.status, 429);
+    // Another /64 has its own bucket
+    const other = await this.register({ redirect_uris: [LOOPBACK] }, "2001:db8:1:3::1");
+    assert.strictEqual(other.status, 201);
+    // IPv4 stays per address
+    assert.strictEqual((await this.register({ redirect_uris: [LOOPBACK] }, "192.0.2.1")).status, 201);
+  }
 }

@@ -156,7 +156,9 @@ claude.ai and ChatGPT connectors...) register themselves this way the first time
 - The response is `201` with a `client_id` prefixed `dcr_` and `client_id_issued_at`. `scope`, when sent, is kept as
   the client default scope, restricted to the advertised scopes.
 - **Rate limit:** `registrationRateLimit` registrations per client IP per `registrationRateWindow` (default 20 per hour),
-  then `429 slow_down`. The counter is in memory, per process, like the device flow limits.
+  then `429 slow_down`. An IPv4 client is counted per address, an IPv6 client per /64 prefix. Requests without a
+  known client address (no `getClientIp()`) all share a single `unknown` counter. The counter is in memory, per
+  process, like the device flow limits.
 - **Expiry:** a client never used expires after `registrationUnusedTtl` (24 hours); each token issued to it extends its
   life to `registrationIdleTtl` (90 days) after that use. An expired client is refused; the periodic sweep deletes it and revokes its
   refresh tokens and remembered consents.

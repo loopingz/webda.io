@@ -39,6 +39,10 @@ interface Located {
    * Folder of the multi-part template, for a part
    */
   templateDir?: string;
+  /**
+   * Requested part, for a file matched as a multi-part one
+   */
+  part?: string;
 }
 
 const LOCALE_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -122,6 +126,46 @@ export class TemplateRenderer {
   }
 
   /**
+   * Registered extensions handled by a multi-part engine (one defining `parts`)
+   * @returns extensions
+   */
+  protected multiExtensions(): string[] {
+    return this.extensions().filter(
+      ext => !!getEngineForExtension(ext, this.options.engine ?? "mustache")?.engine.parts
+    );
+  }
+
+  /**
+   * Candidate paths of a multi-part file: `NAME/[cand/]email.<ext>` then `NAME[.cand].<ext>`
+   * @param folder - the templates folder
+   * @param name - the template name
+   * @param candidate - the locale candidate
+   * @returns the paths, one pair per multi-part extension
+   */
+  private multiPartFiles(folder: string, name: string, candidate: string | undefined): string[] {
+    return this.multiExtensions().flatMap(ext => [
+      join(folder, name, ...(candidate ? [candidate] : []), `email.${ext}`),
+      join(folder, `${name}${candidate ? "." + candidate : ""}.${ext}`)
+    ]);
+  }
+
+  /**
+   * Check a name is a file next to the `email.<ext>` of a multi-part template folder
+   * @param folder - the templates folder
+   * @param name - the template name
+   * @returns true if the name is such a sibling
+   */
+  private async isSibling(folder: string, name: string): Promise<boolean> {
+    const parent = dirname(join(folder, name));
+    for (const ext of this.multiExtensions()) {
+      if (await isFile(join(parent, `email.${ext}`))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Check a path stays inside its folder
    * @param folder - the folder
    * @param path - the candidate path
@@ -159,23 +203,43 @@ export class TemplateRenderer {
     part: string | undefined,
     locale: string | undefined
   ): Promise<Located | undefined> {
+    const preferred = this.options.engine ?? "mustache";
     const exts = this.extensions();
+    const multi = this.multiExtensions();
     for (const folder of this.folders) {
       for (const candidate of this.candidates(locale)) {
-        for (const ext of exts) {
+        for (const ext of part !== undefined ? exts.filter(e => !multi.includes(e)) : exts) {
           const path =
             part !== undefined
               ? join(folder, name, ...(candidate ? [candidate] : []), `${part}.${ext}`)
               : join(folder, `${name}${candidate ? "." + candidate : ""}.${ext}`);
           if (this.contained(folder, path) && (await isFile(path))) {
             // The extensions come from the registered engines, one always handles it
-            const engine = getEngineForExtension(ext, this.options.engine ?? "mustache")!;
+            const engine = getEngineForExtension(ext, preferred)!;
+            // A multi-part file without any part (a helper module) is not a template
+            if (multi.includes(ext) && (await engine.engine.parts!(path)).length === 0) {
+              continue;
+            }
             return {
               path,
               engine: engine.name,
               folder,
-              templateDir: part !== undefined ? join(folder, name) : undefined
+              templateDir: part !== undefined ? join(folder, name) : undefined,
+              part
             };
+          }
+        }
+        if (part === undefined) {
+          continue;
+        }
+        for (const path of this.multiPartFiles(folder, name, candidate)) {
+          const engine = getEngineForExtension(path.substring(path.lastIndexOf(".") + 1), preferred)!;
+          if (
+            this.contained(folder, path) &&
+            (await isFile(path)) &&
+            (await engine.engine.parts!(path)).includes(part)
+          ) {
+            return { path, engine: engine.name, folder, part };
           }
         }
       }
@@ -226,6 +290,9 @@ export class TemplateRenderer {
    */
   private async compile(located: Located, options: TemplateRenderOptions): Promise<CompiledTemplate> {
     const engine = getTemplateEngine(located.engine)!;
+    if (engine.parts) {
+      return engine.load!(located.path, { ...options, part: located.part });
+    }
     const partials = await this.partials(located);
     if (engine.load) {
       return engine.load(located.path, { partials, ...options });
@@ -367,11 +434,25 @@ export class TemplateRenderer {
         continue;
       }
       const parts = new Set<string>();
+      const multi = this.multiExtensions();
       for (const candidate of this.candidates(locale)) {
         for (const entry of await readDir(candidate ? join(dir, candidate) : dir)) {
           const ext = exts.find(e => entry.name.endsWith("." + e));
-          if (entry.isFile() && ext && !entry.name.startsWith("_")) {
+          if (entry.isFile() && ext && !multi.includes(ext) && !entry.name.startsWith("_")) {
             parts.add(entry.name.substring(0, entry.name.length - ext.length - 1));
+          }
+        }
+        for (const path of this.multiPartFiles(folder, name, candidate)) {
+          // A sibling of a multi-part file is never itself a multi-part template
+          if (!path.startsWith(dir + sep) && (await this.isSibling(folder, name))) {
+            continue;
+          }
+          if (this.contained(folder, path) && (await isFile(path))) {
+            const engine = getEngineForExtension(
+              path.substring(path.lastIndexOf(".") + 1),
+              this.options.engine ?? "mustache"
+            )!;
+            (await engine.engine.parts!(path)).forEach(p => parts.add(p));
           }
         }
       }

@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { copyFile, mkdir, mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
-import { join, resolve } from "path";
+import { basename, join, resolve } from "path";
 import {
   TEMPLATE_NOT_FOUND,
   TemplateEngineNotFoundError,
@@ -10,11 +10,12 @@ import {
   TemplateRenderer,
   registerTemplateEngine
 } from "./index.js";
-import type { TemplateEngine } from "./index.js";
+import type { TemplateEngine, TemplateRenderOptions } from "./index.js";
 import { vi } from "vitest";
 
 const A = resolve("test/templates-a");
 const B = resolve("test/templates-b");
+const M = resolve("test/templates-multi");
 
 registerTemplateEngine("renderer-fake", { extensions: ["fake"], compile: () => () => "FAKE" });
 const load = vi.fn(async () => () => "LOADED");
@@ -26,6 +27,18 @@ const loadEngine: TemplateEngine = {
   load
 };
 registerTemplateEngine("renderer-load", loadEngine);
+const multiLoad = vi.fn(
+  async (path: string, opts?: TemplateRenderOptions) => (data: any) =>
+    `${opts?.part ?? "single"}:${data.x}:${basename(path)}`
+);
+registerTemplateEngine("renderer-multi", {
+  extensions: ["multi"],
+  compile: () => {
+    throw new Error("compile should not be called");
+  },
+  parts: async (path: string) => (basename(path).startsWith("helper") ? [] : ["html", "subject"]),
+  load: multiLoad
+});
 
 @suite
 class TemplateRendererTest {
@@ -241,6 +254,82 @@ class TemplateRendererTest {
     assert.strictEqual(await r.render("auth/WELCOME/html", { name: "a" }), "<p>a</p>");
     await assert.rejects(() => r.renderAll("auth/NOPE"), TemplateNotFoundError);
     await assert.rejects(() => r.renderAll("auth/WELCOME/html"), TemplateNotFoundError);
+  }
+
+  @test
+  async multiPartFileRenderAll() {
+    const r = new TemplateRenderer({ folders: [M] });
+    assert.deepStrictEqual(await r.renderAll("card", { x: 1 }), {
+      html: "html:1:email.multi",
+      subject: "subject:1:email.multi"
+    });
+  }
+
+  @test
+  async multiPartFilePart() {
+    const r = new TemplateRenderer({ folders: [M] });
+    assert.strictEqual(await r.render("card/subject", { x: 2 }), "subject:2:email.multi");
+    await assert.rejects(() => r.render("card/text"), TemplateNotFoundError);
+  }
+
+  @test
+  async multiPartFileHidesSiblings() {
+    multiLoad.mockClear();
+    const r = new TemplateRenderer({ folders: [M] });
+    await assert.rejects(() => r.render("card/email"), TemplateNotFoundError);
+    await assert.rejects(() => r.render("card/layout"), TemplateNotFoundError);
+    await r.renderAll("card", { x: 1 });
+    assert.ok(multiLoad.mock.calls.length > 0);
+    assert.ok(multiLoad.mock.calls.every(c => c[1]?.partials === undefined));
+  }
+
+  @test
+  async multiPartFileLocale() {
+    multiLoad.mockClear();
+    const r = new TemplateRenderer({ folders: [M] });
+    await r.render("card/html", { x: 3 }, { locale: "fr-FR" });
+    assert.ok(multiLoad.mock.calls[0][0].endsWith(join("card", "fr", "email.multi")));
+  }
+
+  @test
+  async singleMultiFile() {
+    const r = new TemplateRenderer({ folders: [M] });
+    assert.strictEqual(await r.render("welcome", { x: 4 }), "single:4:welcome.multi");
+    assert.strictEqual(await r.render("welcome/html", { x: 5 }, { locale: "fr" }), "html:5:welcome.fr.multi");
+    assert.deepStrictEqual(Object.keys(await r.renderAll("welcome")).sort(), ["html", "subject"]);
+  }
+
+  @test
+  async partFilesWinOverMultiFile() {
+    const r = new TemplateRenderer({ folders: [M] });
+    const all = await r.renderAll("mixed", { x: 6 });
+    assert.strictEqual(all.subject, "Mustache 6");
+    assert.strictEqual(all.html, "html:6:email.multi");
+  }
+
+  @test
+  async hasMultiPartFile() {
+    const r = new TemplateRenderer({ folders: [M] });
+    assert.strictEqual(await r.has("card"), true);
+    assert.strictEqual(await r.has("card/html"), true);
+    assert.strictEqual(await r.has("welcome/subject"), true);
+    assert.strictEqual(await r.has("card/layout"), false);
+  }
+
+  @test
+  async multiFileWithoutParts() {
+    const dir = await this.tmpFolder();
+    await writeFile(join(dir, "helper.multi"), "");
+    const r = new TemplateRenderer({ folders: [dir] });
+    assert.strictEqual(await r.has("helper"), false);
+    await assert.rejects(() => r.render("helper"), TemplateNotFoundError);
+    await assert.rejects(() => r.renderAll("helper"), TemplateNotFoundError);
+  }
+
+  @test
+  async listMultiPartFiles() {
+    const r = new TemplateRenderer({ folders: [M] });
+    assert.deepStrictEqual(await r.list(), ["card", "mixed", "welcome"]);
   }
 
   @test

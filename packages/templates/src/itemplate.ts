@@ -11,6 +11,10 @@ export interface TemplateRenderOptions {
    */
   locale?: string;
   /**
+   * Part to render, given to `load` when the file is a multi-part one (engines defining `parts`)
+   */
+  part?: string;
+  /**
    * Engine specific options
    */
   [key: string]: any;
@@ -46,4 +50,12 @@ export interface TemplateEngine {
    * @param options - compile options
    */
   load?(path: string, options?: TemplateRenderOptions): Promise<CompiledTemplate>;
+  /**
+   * Optional: list the parts a single file provides (e.g. `html`, `subject`, `text`), making the engine multi-part
+   *
+   * The renderer then calls `load` with the requested `part` and gives no partials
+   * @param path - the template path
+   * @param options - compile options
+   */
+  parts?(path: string, options?: TemplateRenderOptions): Promise<string[]>;
 }

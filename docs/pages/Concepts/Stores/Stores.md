@@ -42,7 +42,7 @@ The following is the Idents store configuration
         "key": "user", // Property inside Ident Object
         "target": "idents", // Property on the User Object
         "fields": "type", // Fields from the Ident Object ( uuid is added by default )
-        "cascade": true // If User object is delete then delete all the linked Idents
+        "cascade": true // Legacy: now @OnDelete CASCADE on the ModelsMapped attribute
      }
   }
 ```
@@ -80,7 +80,7 @@ Once the Ident saved, the User object will look like
 
 Then if you update the field type on your Ident object the User object will reflect the change, as well as if you delete the ident object it will be removed from the User object.
 
-If cascade = true, then if you delete the User object, all attached Idents will be delete aswell.
+To delete the attached Idents with the User, tag the mapped attribute of the User model with `@OnDelete CASCADE` (or its synonym `@CascadeDelete`): the `RelationIntegrity` service deletes the Idents whose `user` targets the deleted User. See [Delete policies](../../Modules/models/Relationships.md#delete-policies).
 
 ## Events
 

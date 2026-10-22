@@ -155,16 +155,20 @@ export class Task extends UuidModel {
 }
 ```
 
-| Type                                       | Meaning                                                                |
-| ------------------------------------------ | ---------------------------------------------------------------------- |
-| `BelongTo<Parent>`                         | this model belongs to a parent; deleting the parent does not delete it |
-| `RelateTo<Other>`                          | a link to another model, no cascade                                    |
-| `OneToMany<Child, ThisModel, "attribute">` | the children whose `attribute` points to this model                    |
-| `ManyToMany<Other>`                        | many-to-many links                                                     |
+| Type                                       | Meaning                                                        |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `BelongTo<Parent>`                         | this model belongs to a parent; deleting the parent deletes it |
+| `RelateTo<Other>`                          | a link to another model, nothing happens when it is deleted    |
+| `OneToMany<Child, ThisModel, "attribute">` | the children whose `attribute` points to this model            |
+| `ManyToMany<Other>`                        | many-to-many links                                             |
 
 A `BelongTo` or `RelateTo` field stores the key of the target: `Task.create({ title, done: false, project:
 project.getUUID() })`. Import related models with `import type` to avoid circular imports. See
 [Relations](../Concepts/Models/Relations.md).
+
+A tag on the attribute changes what happens when the target is deleted: `@OnDelete RESTRICT` refuses to delete a
+project that still has tasks, `@OnDelete SET_NULL` on a `RelateTo` removes the link, `@OnDelete CASCADE` on a
+`RelateTo` deletes the model. See [Delete policies](../Modules/models/Relationships.md#delete-policies).
 
 ## Your own primary key
 

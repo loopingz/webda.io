@@ -419,6 +419,46 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
   }
 
   @test
+  async deletingAPostDeletesItsCommentsAndTags() {
+    const slug = `cascade-post-${Date.now()}`;
+    const { uuid: alice } = await this.register("alice");
+    const created = await this.createPost(alice, slug);
+    assert.strictEqual(created.statusCode, 200, created.body);
+    const models = useApplication().getModels();
+    const [Post, Comment, Tag, PostTag]: any[] = ["Post", "Comment", "Tag", "PostTag"].map(
+      name => models[`WebdaSample/${name}`]
+    );
+    const tag = `cascade-tag-${Date.now()}`;
+    await Tag.create({ slug: tag, name: "Cascade", description: "Cascade tag", color: "#123456" });
+    const comments: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const comment = await Comment.create({ content: `Comment ${i}`, post: slug, author: alice, isEdited: false });
+      comments.push(comment.getUUID());
+    }
+    const other = `cascade-other-${Date.now()}`;
+    assert.strictEqual((await this.createPost(alice, other)).statusCode, 200);
+    const kept = await Comment.create({ content: "Elsewhere", post: other, author: alice, isEdited: false });
+    await PostTag.create({ post: slug, tag, createdAt: new Date() });
+    const deleted: string[] = [];
+    Comment.getRepository().on("Deleted", (evt: any) => deleted.push(`Comment:${evt.object_id}`));
+    PostTag.getRepository().on("Deleted", (evt: any) => deleted.push(`PostTag:${JSON.stringify(evt.object_id)}`));
+
+    const res = await this.routerHttp({ method: "DELETE", url: `/posts/${slug}`, user: alice });
+    assert.ok(res.statusCode < 300, res.body);
+
+    for (const uuid of comments) {
+      assert.strictEqual(await Comment.getRepository().exists(uuid), false, uuid);
+    }
+    assert.strictEqual(await PostTag.getRepository().exists({ post: slug, tag }), false);
+    assert.strictEqual(deleted.filter(d => d.startsWith("Comment:")).length, 3);
+    assert.strictEqual(deleted.filter(d => d.startsWith("PostTag:")).length, 1);
+    // The other post, its comment and the tag are untouched
+    assert.strictEqual(await Comment.getRepository().exists(kept.getUUID()), true);
+    assert.strictEqual(await Post.getRepository().exists(other), true);
+    assert.strictEqual(await Tag.getRepository().exists(tag), true);
+  }
+
+  @test
   async auditRecordsPostHistory() {
     const slug = `audit-post-${Date.now()}`;
     const { uuid: alice } = await this.register("alice");

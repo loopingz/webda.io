@@ -9,14 +9,14 @@ sidebar_label: "04 — Comment Model"
 
 **Files touched:** `src/models/Comment.model.ts`, `src/models/Post.model.ts`, `src/models/User.model.ts`.
 
-**Concepts:** `UuidModel` for child records, several `BelongTo` relations on one model, `Contains`.
+**Concepts:** `UuidModel` for child records, several `ManyToOne` relations on one model, `@OnDelete CASCADE`, `Contains`.
 
 ## Walkthrough
 
 ### 1. Create `src/models/Comment.model.ts`
 
 ```typescript title="src/models/Comment.model.ts"
-import { UuidModel, BelongTo } from "@webda/models";
+import { UuidModel, ManyToOne } from "@webda/models";
 import type { User } from "./User.model.js";
 import type { Post } from "./Post.model.js";
 import type { IOperationContext } from "@webda/core";
@@ -50,8 +50,12 @@ export class Comment extends UuidModel {
   isEdited!: boolean;
 
   // Relations
-  post!: BelongTo<Post>;
-  author!: BelongTo<User>;
+  /**
+   * Post commented: deleting the post deletes its comments
+   * @OnDelete CASCADE
+   */
+  post!: ManyToOne<Post>;
+  author!: ManyToOne<User>;
 
   /**
    * The author is server-managed: never taken from client input
@@ -92,12 +96,12 @@ export class Comment extends UuidModel {
 ### 2. Declare the other sides
 
 ```typescript title="src/models/Post.model.ts (additions)"
-import { BelongTo, Contains, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
+import { Contains, ManyToOne, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
 import type { Comment } from "./Comment.model.js";
 
 export class Post extends Model {
   // ...
-  author!: BelongTo<User>;
+  author!: ManyToOne<User>;
   comments!: Contains<Comment>;
 }
 ```
@@ -116,15 +120,15 @@ export class User extends UuidModel {
 
 | Field            | Type                                 | Stored as                                       |
 | ---------------- | ------------------------------------ | ----------------------------------------------- |
-| `Comment.post`   | `BelongTo<Post>`                     | the post's key (its slug) in `post`             |
-| `Comment.author` | `BelongTo<User>`                     | the user's uuid in `author`                     |
+| `Comment.post`   | `ManyToOne<Post>`                    | the post's key (its slug) in `post`             |
+| `Comment.author` | `ManyToOne<User>`                    | the user's uuid in `author`                     |
 | `User.comments`  | `OneToMany<Comment, User, "author">` | nothing: a query on `Comment.author`            |
 | `Post.comments`  | `Contains<Comment>`                  | a list of links to comments, stored on the post |
 
-A `BelongTo` field holds the primary key of its target, whatever its name: `"post": "hello-world"` for a post, a uuid for a user. `Contains<T>` is an alias of `ManyToMany<T>`: an array of links kept on the owning object.
+A `ManyToOne` field holds the primary key of its target, whatever its name: `"post": "hello-world"` for a post, a uuid for a user. `Contains<T>` is an alias of `ManyToMany<T>`: an array of links kept on the owning object.
 
-:::note No cascade delete
-Deleting a post does not delete its comments. Delete the children yourself (for example in a service listening to the `Deleted` event of `useRepository(Post)`) when you need it.
+:::note Cascade delete
+`@OnDelete CASCADE` on `Comment.post`: deleting a post deletes its comments, through the comment repository so their own events fire. `Contains<Comment>` cascades too, on the comments the post lists. Without the tag a `ManyToOne` keeps its comments when the post is deleted; `@OnDelete RESTRICT` would refuse to delete a post that still has comments, `@OnDelete SET_NULL` would remove their `post`. A `BelongTo` cascades by default, but makes the post the parent of the comment (a model has one parent, and its routes nest under it). See [Delete policies](../../Modules/models/Relationships.md#delete-policies).
 :::
 
 ### 3. Rebuild and restart

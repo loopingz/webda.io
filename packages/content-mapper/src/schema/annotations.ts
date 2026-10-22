@@ -104,6 +104,11 @@ export function secretKeywordValue(text: string): true | string[] {
  */
 const TYPE_EXPRESSION_TAGS = ["this"];
 
+/**
+ * Tags describing the model metadata, not the value: recorded in `Relations`, kept out of the schemas
+ */
+const METADATA_TAGS = ["OnDelete", "CascadeDelete"];
+
 /** A JSDoc comment and its tags, already rendered to text. */
 export interface SymbolDocs {
   /** The free-text comment, empty when absent. */
@@ -128,6 +133,7 @@ export function readDocs(symbol: TsSymbol, checker: Checker, project: Project): 
     comment: documentationOf(symbol, checker, project),
     tags: symbol
       .getJsDocTags(checker)
+      .filter(tag => !METADATA_TAGS.includes(tag.name))
       .map(tag => ({ name: tag.name, text: TYPE_EXPRESSION_TAGS.includes(tag.name) ? "" : (tag.text ?? "") }))
   };
 }

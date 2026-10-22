@@ -765,8 +765,9 @@ describe("RelationalSchemaBuilder", () => {
       if (module.includes("blog")) {
         expect(columns(plan, "webdasample_posttag").slice(0, 2)).toEqual(["post varchar(250)", "tag varchar(50)"]);
         expect(table(plan, "webdasample_post_tags").junction?.kind).toBe("linksArray");
-        // ManyToOne: a link
-        expect(plan.foreignKeys.find(f => f.name === "fk_webdasample_comment_post")?.onDelete).toBe("NO ACTION");
+        // ManyToOne: a link, tagged @OnDelete CASCADE
+        expect(plan.foreignKeys.find(f => f.name === "fk_webdasample_comment_post")?.onDelete).toBe("CASCADE");
+        expect(plan.foreignKeys.find(f => f.name === "fk_webdasample_comment_author")?.onDelete).toBe("NO ACTION");
         expect(plan.relations.find(r => r.model === "WebdaSample/Tag" && r.attribute === "posts")).toMatchObject({
           kind: "query",
           targetAttribute: "tags"

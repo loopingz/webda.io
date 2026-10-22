@@ -48,6 +48,7 @@ pnpm add @webda/amqp
 | `url` | string | — | Yes | AMQP broker connection URL (e.g. `amqp://user:pass@host:5672`) |
 | `queue` | string | — | Yes | Name of the AMQP queue to assert and consume |
 | `queueOptions` | object | — | No | Options forwarded to `channel.assertQueue()` (e.g. `{ durable: true }`) |
+| `push` | boolean | `true` | No | `consume()` subscribes with `basic.consume` (prefetch `maxConsumers`); a failed message is requeued after the `workerDelayer` delay. `false` polls with `basic.get` |
 
 ### AMQPPubSubService
 

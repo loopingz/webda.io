@@ -21,7 +21,7 @@ export interface Logger {
   logProgressUpdate: (current: number, uid: string, title: string) => void;
 }
 
-let moduleOutput;
+let moduleOutput: WorkerOutput | undefined;
 
 /**
  * Return or set the WorkerOutput
@@ -298,7 +298,7 @@ class WorkerInputEmitter extends WorkerInput {
   /** Promise that resolves when the user provides an answer */
   promise?: Promise<string>;
   /** Resolver function for the promise */
-  resolve?: (value?: string) => void;
+  resolve?: (value: string) => void;
   /** Timeout handle that rejects the promise after a configurable delay */
   timeout?: NodeJS.Timeout;
 
@@ -333,8 +333,8 @@ export type WorkerLogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
  * @param level - the string to check
  * @returns true if the string is a valid log level
  */
-export function isWorkerLogLevel(level: string): level is WorkerLogLevel {
-  return ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"].includes(level);
+export function isWorkerLogLevel(level: string | undefined): level is WorkerLogLevel {
+  return level !== undefined && ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"].includes(level);
 }
 
 /**
@@ -374,6 +374,11 @@ export type WorkerMessageType =
   | "title.set";
 
 /**
+ * Error-like object that may expose a verror-style `cause()` method
+ */
+type ChainedError = { stack?: string; cause?: unknown; toString(): string };
+
+/**
  * Dump long stack traces for exceptions that expose a `cause()` method.
  * Compatible with [verror](https://github.com/davepacheco/node-verror) and
  * [restify v2.0](https://github.com/mcavage/node-restify) error classes.
@@ -383,10 +388,10 @@ export type WorkerMessageType =
  * @param ex - The error whose full stack trace should be returned
  * @returns Multi-line stack trace string, including chained causes
  */
-function getFullErrorStack(ex) {
+function getFullErrorStack(ex: ChainedError): string {
   let ret = ex.stack || ex.toString();
   if (ex.cause && typeof ex.cause === "function") {
-    const cex = ex.cause();
+    const cex = (ex.cause as () => ChainedError | undefined)();
     if (cex) {
       ret += "\nCaused by: " + getFullErrorStack(cex);
     }
@@ -401,10 +406,13 @@ function getFullErrorStack(ex) {
 export function getFileAndLines(): { file: string; line: number; column?: number; function?: string }[] {
   const err = new Error();
   const stacks: { file: string; line: number; column?: number; function?: string }[] = [];
-  const matches = err.stack.matchAll(
+  const matches = (err.stack ?? "").matchAll(
     /\s+at\s+(?<method>[^( ]+)([^(]+)?\((?<filename>.+):(?<line>\d+):(?<column>\d+)\)?$/gm
   );
   for (const match of matches) {
+    if (!match.groups) {
+      continue;
+    }
     stacks.push({
       file: match.groups.filename,
       line: parseInt(match.groups.line),
@@ -461,7 +469,7 @@ export class WorkerMessage {
    * @param workout - WorkerOutput instance whose current state is captured
    * @param infos - Additional properties to merge into the message
    */
-  constructor(type: WorkerMessageType, workout: WorkerOutput, infos: any = {}) {
+  constructor(type: WorkerMessageType, workout?: WorkerOutput, infos: any = {}) {
     this.type = type;
     this.pid = process.pid;
     if (workout) {
@@ -480,15 +488,14 @@ export class WorkerMessage {
    */
   static fromJSON(json: string): WorkerMessage {
     const obj = JSON.parse(json);
-    let message;
+    let message: WorkerMessage;
     if (obj.type === "log") {
       message = new WorkerMessage(obj.type, undefined, { ...obj, log: new WorkerLog(obj.log.level, ...obj.log.args) });
     } else if (obj.type === "input.request" || obj.type === "input.received" || obj.type === "input.timeout") {
-      obj.input.validators = (obj.input.validators || []).map(v => new RegExp(v));
-      message = new WorkerMessage(obj.type, undefined, {
-        input: new WorkerInput(obj.input.uuid, obj.input.title, obj.input.type, obj.input.validators)
-      });
-      message.input.value = obj.input.value;
+      obj.input.validators = (obj.input.validators || []).map((v: string) => new RegExp(v));
+      const input = new WorkerInput(obj.input.uuid, obj.input.title, obj.input.type, obj.input.validators);
+      input.value = obj.input.value;
+      message = new WorkerMessage(obj.type, undefined, { input });
     } else {
       message = new WorkerMessage(obj.type, undefined, obj);
     }
@@ -588,8 +595,8 @@ export class WorkerOutput extends EventEmitter {
    * @param uid - progress identifier
    * @param title - optional title to update
    */
-  incrementProgress(inc: number = 1, uid: string = this.currentProgress, title?: string): void {
-    if (!this.progresses[uid]) {
+  incrementProgress(inc: number = 1, uid: string | undefined = this.currentProgress, title?: string): void {
+    if (uid === undefined || !this.progresses[uid]) {
       throw new Error("Unknown progress");
     }
     this.updateProgress(this.progresses[uid].current + inc, uid, title);
@@ -602,8 +609,8 @@ export class WorkerOutput extends EventEmitter {
    * @param uid id of the progress or default one
    * @param title update title as well
    */
-  updateProgress(current: number, uid: string = this.currentProgress, title?: string): void {
-    if (!this.progresses[uid]) {
+  updateProgress(current: number, uid: string | undefined = this.currentProgress, title?: string): void {
+    if (uid === undefined || !this.progresses[uid]) {
       throw new Error("Unknown progress");
     }
     this.progresses[uid].title = title || this.progresses[uid].title;
@@ -678,7 +685,7 @@ export class WorkerOutput extends EventEmitter {
    * ```
    */
   getBunyanLogger() {
-    const bunyanFormatter = (level: WorkerLogLevel, ...args) => {
+    const bunyanFormatter = (level: WorkerLogLevel, ...args: any[]) => {
       if (args.length === 0) {
         // We cannot know which level is enabled
         return true;
@@ -814,7 +821,12 @@ export class WorkerOutput extends EventEmitter {
     if (!this.inputs[uuid]) {
       throw new Error("Unknown input");
     }
-    return this.inputs[uuid].promise;
+    const promise = this.inputs[uuid].promise;
+    if (!promise) {
+      // Inputs forwarded from another process are answered through returnInput, not awaited here
+      throw new Error("Input cannot be awaited from this process");
+    }
+    return promise;
   }
 
   /**

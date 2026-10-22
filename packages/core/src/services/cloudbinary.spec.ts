@@ -1,3 +1,4 @@
+import { useModelId } from "../application/hooks.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
@@ -33,7 +34,7 @@ class CloudBinaryFakeService extends CloudBinary {
   /**
    * Clean usage for a hash
    */
-  async _cleanUsage(hash: string, uuid: string): Promise<void> {}
+  async _cleanUsage(hash: string, uuid: string, attribute: string, model: string): Promise<void> {}
 
   /**
    * Return undefined
@@ -63,12 +64,16 @@ export class FakeCloudBinaryTest extends WebdaApplicationTest {
     const service = new CloudBinaryFakeService("fake", {});
     const binaryMap: any = { hash: "test", size: 10 };
 
-    await service.cascadeDelete(binaryMap, "plop");
+    const spy = sinon.spy(service, "_cleanUsage");
+    await service.cascadeDelete(binaryMap, "plop", "images", "Test/Model");
+    // The exact usage of the deleted owner: hash, uuid, attribute and model
+    assert.deepStrictEqual(spy.getCall(0).args, ["test", "plop", "images", "Test/Model"]);
+    spy.restore();
     const stub = sinon.stub(service, "_cleanUsage").callsFake(() => {
       throw new Error();
     });
     // Should not fail even with exception
-    await service.cascadeDelete(binaryMap, "plop");
+    await service.cascadeDelete(binaryMap, "plop", "images", "Test/Model");
     stub.restore();
 
     assert.strictEqual(service._getKey("hash"), "hash/data");
@@ -81,8 +86,10 @@ export class FakeCloudBinaryTest extends WebdaApplicationTest {
     const model = new CoreModel();
     registerRepository(CoreModel, new MemoryRepository(CoreModel, ["uuid"]));
     model.load({ plop: [{}, { hash: "fake" }] });
+    const clean = sinon.spy(service, "_cleanUsage");
     await service.delete(<CoreModelWithBinary>model, "plop", 1);
-    // Check called with "fake", 1
+    // The exact usage: hash, uuid, attribute and the object's model
+    assert.deepStrictEqual(clean.getCall(0).args, ["fake", model.getUUID(), "plop", useModelId(CoreModel)]);
   }
 
   @test
@@ -107,5 +114,15 @@ export class FakeCloudBinaryTest extends WebdaApplicationTest {
     await service.init();
     assert.throws(() => ContentStorages.resolve("fake:/key"));
     await service.stop();
+  }
+
+  /**
+   * Without an explicit expiry the redirect url expires after `urlExpiry`
+   */
+  @test
+  async redirectUrlDefaultsToUrlExpiry() {
+    const service = new CloudBinaryFakeService("expiry-fake", new CloudBinaryParameters().load({ urlExpiry: 120 }));
+    assert.strictEqual(await service.getRedirectUrlFromObject({ hash: "h" } as any, undefined), "h:120");
+    assert.strictEqual(await service.getRedirectUrlFromObject({ hash: "h" } as any, undefined, 5), "h:5");
   }
 }

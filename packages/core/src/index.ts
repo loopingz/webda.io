@@ -85,6 +85,8 @@ export * from "./configurations/kubernetesconfiguration.service.js";
 export * from "./services/iauthentication.js";
 export * from "./services/domainservice.service.js";
 export * from "./services/imailer.js";
+export * from "./services/ismssender.js";
+export * from "./services/debugsmssender.service.js";
 export * from "./services/notificationservice.service.js";
 export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";

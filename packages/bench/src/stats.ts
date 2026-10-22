@@ -218,7 +218,7 @@ export function delay(ms: number): Promise<void> {
  * @returns the value of the promise, undefined on timeout or rejection
  */
 export async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
-  let timer: NodeJS.Timeout;
+  let timer: NodeJS.Timeout | undefined;
   try {
     return await Promise.race([
       promise.catch((): undefined => undefined),

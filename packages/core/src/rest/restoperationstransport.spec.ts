@@ -9,6 +9,7 @@ import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { Router, RouterParameters } from "./router.service.js";
 import { runWithContext } from "../contexts/execution.js";
+import { randomUUID } from "node:crypto";
 import { useModel } from "../application/hooks.js";
 import { MemoryRepository, registerRepository } from "@webda/models";
 
@@ -644,6 +645,44 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     } catch {
       // Expected
     }
+  }
+
+  @test
+  async bodyCannotRetargetUrlPrimaryKeyHTTP() {
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+    const Brand = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+    const [a, b] = [randomUUID(), randomUUID()];
+    await Brand.create({ uuid: a, name: "A" } as any);
+    await Brand.create({ uuid: b, name: "B" } as any);
+
+    const transport = new RESTOperationsTransport(
+      "TestRESTTransportRetarget",
+      new RESTOperationsTransportParameters().load({ url: "/rt/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+
+    // The URL targets A: a body uuid must never redirect the operation to B
+    for (const method of ["PUT", "PATCH", "DELETE"] as HttpMethodType[]) {
+      await assert.rejects(
+        () => this.routerHttp({ method, url: `/rt/brands/${a}`, body: { uuid: b, name: "Hacked" } }),
+        (err: any) => err instanceof WebdaError.BadRequest,
+        `${method} with a conflicting body uuid should be rejected`
+      );
+    }
+    for (const uuid of [a, b]) {
+      const obj = await repo.get(uuid);
+      assert.ok(obj && !obj.isDeleted(), `${uuid} must not be deleted`);
+      assert.notStrictEqual(obj.name, "Hacked", `${uuid} must not be modified`);
+    }
+
+    // A body repeating the same uuid is still accepted
+    await this.routerHttp({ method: "PATCH", url: `/rt/brands/${a}`, body: { uuid: a, name: "A2" } });
+    assert.strictEqual((await repo.get(a)).name, "A2");
   }
 
   @test

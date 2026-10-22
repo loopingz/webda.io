@@ -28,8 +28,8 @@ export function typeOfRef(ref: string, names: GeneratorNames, fallback: string =
 }
 
 /**
- * The input type of an operation: the model's input schema for create/update/patch, the action body joined to the
- * primary key for actions
+ * The input type of an operation: the model's input schema for create/update/patch, the request schema of an
+ * instance action with parameters, the action body joined to the primary key for other actions
  * @param manifest - the manifest
  * @param op - the operation
  * @param names - type names
@@ -40,6 +40,10 @@ export function inputType(manifest: SdkManifest, op: SdkManifestOperation, names
   if (model && (op.kind === "create" || op.kind === "update" || op.kind === "patch")) {
     const name = names.types.get(model.inputSchema);
     if (name) return `Partial<T.${name}>`;
+  }
+  // An instance action's request schema already holds the primary key and the action parameters
+  if (op.kind === "action" && op.action && op.input === `${op.model}.${op.action.name}.request`) {
+    return typeOfRef(op.input, names);
   }
   if (model && (op.kind === "action" || op.kind === "behavior")) {
     const body = actionBodyType(manifest, op, names);

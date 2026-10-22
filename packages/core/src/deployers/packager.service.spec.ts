@@ -99,11 +99,31 @@ class ApplicationPackagerTest extends WebdaApplicationTest {
     const json = await packager.package(undefined, true);
     const configuration = JSON.parse(json);
     assert.deepStrictEqual(Object.keys(configuration.services), ["store"]);
+    // The output is runnable: it carries the packaged marker
+    assert.strictEqual(configuration.$packaged.deployment, "Prod");
+    assert.strictEqual(configuration.$packaged.package.name, "app");
     assert.strictEqual(configuration.cachedModules.moddas["App/Local"].Import, "lib/app:Local");
     assert.ok(!existsSync(join(this.appPath, "dist")), "nothing written without output");
 
     await packager.package("prod.json", true);
     assert.deepStrictEqual(JSON.parse(readFileSync(join(this.appPath, "prod.json"), "utf-8")), configuration);
+  }
+
+  @test
+  async configOnlyRefusesActiveConfiguration() {
+    // Overwriting the configuration of the source tree would switch it to packaged mode
+    write(join(this.appPath, "webda.config.json"), { version: 4, parameters: {}, services: {} });
+    const packager = this.getPackager();
+    await assert.rejects(() => packager.package("webda.config.json", true), /--force/);
+    assert.deepStrictEqual(JSON.parse(readFileSync(join(this.appPath, "webda.config.json"), "utf-8")).services, {});
+    await packager.package("webda.config.json", true, true);
+    assert.strictEqual(
+      JSON.parse(readFileSync(join(this.appPath, "webda.config.json"), "utf-8")).$packaged.deployment,
+      "Prod"
+    );
+    // Another file is fine, even a webda.config.json shadowed by the active webda.config.jsonc
+    write(join(this.appPath, "webda.config.jsonc"), { version: 4, parameters: {}, services: {} });
+    await packager.package("webda.config.json", true);
   }
 
   @test

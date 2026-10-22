@@ -39,6 +39,10 @@
             "configOnly": {
               "type": "boolean",
               "description": "Only output the deployed configuration"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Allow --config-only to overwrite the configuration file of the application"
             }
           },
           "phase": "resolved"
@@ -124,6 +128,14 @@
             "returns": "the result number",
             "type": "number"
           },
+          "maxUploadSize": {
+            "description": "Maximum size accepted for a direct-to-bucket upload, undefined means no limit",
+            "returns": "the limit in bytes or undefined",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
           "models": {
             "$ref": "#/definitions/models",
             "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
@@ -131,6 +143,11 @@
           "type": {
             "description": "Type of the service",
             "type": "string"
+          },
+          "urlExpiry": {
+            "default": 30,
+            "description": "Lifetime in seconds of the signed URLs",
+            "type": "number"
           },
           "openapi": {
             "type": "object",
@@ -681,6 +698,10 @@
             "description": "Number of hours allowed to decrypt data encrypted with this key",
             "type": "number"
           },
+          "keysFile": {
+            "description": "JSON file holding the keys, typically a mounted Kubernetes secret, instead of the registry\n\nSame shape as the registry entry: `{ \"current\": \"<id>\", \"key_<id>\": { publicKey, privateKey, symetric } }`.\nA relative path is resolved against the application path. Generate one with `webda crypto generate-keys`.\n\nWhen set, the registry is never read nor written: `autoCreate` and `autoRotate` are ignored and\n{@link CryptoService.rotate } fails. Rotate by adding a `key_<id>` to the file and switching `current`, keep\nthe previous keys as long as data encrypted with them must stay readable. The file is reloaded when it\nchanges, no restart needed.",
+            "type": "string"
+          },
           "symetricCipher": {
             "default": "aes-256-ctr",
             "type": "string"
@@ -791,6 +812,18 @@
             }
           },
           "phase": "application"
+        },
+        "crypto generate-keys": {
+          "description": "Generate a keys file for the CryptoService keysFile parameter",
+          "method": "cryptoGenerateKeys",
+          "args": {
+            "out": {
+              "type": "string",
+              "default": "keys.json",
+              "description": "Keys file to write"
+            }
+          },
+          "phase": "application"
         }
       }
     },
@@ -815,6 +848,30 @@
         ],
         "type": "object",
         "title": "DebugMailer"
+      },
+      "Configuration": "lib/services/serviceparameters:ServiceParameters"
+    },
+    "Webda/DebugSmsSender": {
+      "Import": "lib/services/debugsmssender.service:DebugSmsSender",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "DebugSmsSender"
       },
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
@@ -6664,6 +6721,20 @@
     "Webda/MFA.confirm.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "Webda/MFA.challenge.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "Webda/MFA.challenge.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "Webda/MFA.verify.input": {
       "type": "object",
       "properties": {
@@ -7893,6 +7964,21 @@
     "Webda/Binary.attachChallenge.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "Webda/Binary.complete.input": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hash"
+      ]
+    },
+    "Webda/Binary.complete.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
     "Webda/Binary.download.input": {
       "type": "object",
       "properties": {}
@@ -8034,6 +8120,21 @@
     },
     "Webda/BinariesImpl.attachChallenge.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/BinariesImpl.complete.input": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hash"
+      ]
+    },
+    "Webda/BinariesImpl.complete.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     },
     "Webda/BinariesImpl.get.input": {
       "type": "object",
@@ -8178,6 +8279,12 @@
             "method": "PUT"
           }
         },
+        "complete": {
+          "rest": {
+            "route": "complete/{hash}",
+            "method": "POST"
+          }
+        },
         "download": {
           "rest": {
             "route": ".",
@@ -8212,6 +8319,12 @@
           "rest": {
             "route": ".",
             "method": "PUT"
+          }
+        },
+        "complete": {
+          "rest": {
+            "route": "complete/{hash}",
+            "method": "POST"
           }
         },
         "get": {
@@ -8255,6 +8368,11 @@
           }
         },
         "confirm": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "challenge": {
           "rest": {
             "method": "POST"
           }

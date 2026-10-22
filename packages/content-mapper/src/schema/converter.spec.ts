@@ -367,6 +367,29 @@ describe("top-level schemas", () => {
     expect(schemas["Test/Desk.close.input"].required).toEqual(["reason"]);
   });
 
+  it("drops a context parameter from .input and records the argument order", () => {
+    expect(schemas["Test/Desk.reply.input"]).toEqual({
+      type: "object",
+      properties: { message: { type: "string" }, urgent: { type: "boolean" } },
+      required: ["message"],
+      "x-webda-arguments": ["context", "message", "urgent"],
+      "x-webda-context": ["context"]
+    });
+  });
+
+  it("keeps the position of a context parameter in the middle", () => {
+    const input = schemas["Test/Desk.note.input"];
+    expect(input["x-webda-arguments"]).toEqual(["text", "context", "tags"]);
+    expect(Object.keys(input.properties!)).toEqual(["text", "tags"]);
+    expect(input.required).toEqual(["text"]);
+  });
+
+  it("adds no argument keywords without a context parameter", () => {
+    const input = schemas["Test/Desk.open.input"];
+    expect(input["x-webda-arguments"]).toBeUndefined();
+    expect(input["x-webda-context"]).toBeUndefined();
+  });
+
   it("unwraps Promise for .output and keeps its $schema", () => {
     expect(schemas["Test/Desk.close.output"]).toEqual({
       $schema: "http://json-schema.org/draft-07/schema#",

@@ -1,7 +1,151 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
-import { relative, dirname, resolve, isAbsolute, join } from "node:path";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, sep, resolve, isAbsolute } from "node:path";
+
+/**
+ * File extensions of configuration and deployment files
+ */
+const CONFIGURATION_EXTENSIONS = [".json", ".jsonc", ".yaml", ".yml"];
+
+/**
+ * Schema references written by previous versions of webda, they are considered managed by webda
+ */
+const LEGACY_SCHEMA_REFERENCES = [".webda-config-schema.json", ".webda-deployment-schema.json"];
+
+/**
+ * YAML modeline understood by the YAML language server (VSCode, IntelliJ, ...)
+ *
+ * YAML has no `$schema` keyword, so the reference is written as a comment
+ */
+const YAML_MODELINE = /^#\s*yaml-language-server:\s*\$schema=(\S*).*$/m;
+
+/**
+ * First `$schema` property of a JSON/JSONC document, webda keeps it as first property of the root
+ */
+const JSON_SCHEMA_PROPERTY = /("\$schema"\s*:\s*)"(?:[^"\\]|\\.)*"/;
+
+/**
+ * Check if a schema reference is managed by webda and can be updated
+ *
+ * A reference is managed if it targets the generated schema or a legacy webda schema,
+ * any other reference (remote url, custom schema) is left untouched.
+ *
+ * @param current - the current reference
+ * @param schemaFile - the generated schema file
+ * @returns true if the reference can be replaced
+ */
+function isManagedSchemaReference(current: string, schemaFile: string): boolean {
+  const name = basename(current);
+  return name === basename(schemaFile) || LEGACY_SCHEMA_REFERENCES.includes(name);
+}
+
+/**
+ * Ensure a configuration or deployment file references its JSON schema
+ *
+ * - JSON/JSONC: the `$schema` property is added as first property, formatting and comments are kept
+ * - YAML: a `# yaml-language-server: $schema=...` modeline is added on the first line
+ *
+ * The reference is relative to the file. An existing reference is only replaced if it is
+ * managed by webda (stale path or legacy name), custom references are kept.
+ *
+ * @param file - the configuration or deployment file
+ * @param schemaFile - the schema file to reference
+ * @returns true if the file was updated
+ */
+export function ensureSchemaReference(file: string, schemaFile: string): boolean {
+  const reference = relative(dirname(file), schemaFile).split(sep).join("/");
+  if (/\.ya?ml$/.test(file)) {
+    const content = readFileSync(file, "utf-8");
+    const match = YAML_MODELINE.exec(content);
+    if (!match) {
+      writeFileSync(file, `# yaml-language-server: $schema=${reference}\n${content}`);
+      return true;
+    }
+    if (match[1] === reference || !isManagedSchemaReference(match[1], schemaFile)) {
+      return false;
+    }
+    writeFileSync(file, content.replace(YAML_MODELINE, `# yaml-language-server: $schema=${reference}`));
+    return true;
+  }
+  const content = readFileSync(file, "utf-8");
+  let parsed: any;
+  try {
+    parsed = JSONUtils.parse(content);
+  } catch {
+    return false;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || parsed.$schema === reference) {
+    return false;
+  }
+  if (parsed.$schema !== undefined) {
+    if (typeof parsed.$schema !== "string" || !isManagedSchemaReference(parsed.$schema, schemaFile)) {
+      return false;
+    }
+    writeFileSync(file, content.replace(JSON_SCHEMA_PROPERTY, `$1${JSON.stringify(reference)}`));
+    return true;
+  }
+  writeFileSync(file, insertSchemaProperty(content, reference));
+  return true;
+}
+
+/**
+ * Insert a `$schema` property as first property of a JSON/JSONC document
+ *
+ * The document is edited as text, so formatting and comments are kept as is
+ *
+ * @param content - the JSON/JSONC document, its root must be an object
+ * @param reference - the schema reference
+ * @returns the updated document
+ */
+function insertSchemaProperty(content: string, reference: string): string {
+  // Skip leading whitespaces and comments to find the root object
+  let start = 0;
+  while (start < content.length) {
+    if (/\s/.test(content[start])) {
+      start++;
+    } else if (content.startsWith("//", start)) {
+      const end = content.indexOf("\n", start + 2);
+      start = end + 1;
+    } else if (content.startsWith("/*", start)) {
+      const end = content.indexOf("*/", start + 2);
+      start = end + 2;
+    } else {
+      // ensureSchemaReference has already parsed and validated the root object.
+      start++;
+      break;
+    }
+  }
+  const after = content.substring(start);
+  const property = `"$schema": ${JSON.stringify(reference)}`;
+  // Empty object
+  if (/^\s*}/.test(after)) {
+    return `${content.substring(0, start)} ${property} ${after.trimStart()}`;
+  }
+  // Multiline object: reuse the indentation of the first property
+  const multiline = /^[ \t]*\r?\n(\s*?)([ \t]*)\S/.exec(after);
+  if (multiline) {
+    const eol = after.includes("\r\n") ? "\r\n" : "\n";
+    return `${content.substring(0, start)}${eol}${multiline[2]}${property},${after}`;
+  }
+  return `${content.substring(0, start)}${property},${after}`;
+}
+
+/**
+ * List the deployment files of a deployments folder
+ *
+ * @param deploymentsDir - the `deployments` folder
+ * @returns the deployment files, empty if the folder does not exist
+ */
+export function listDeploymentFiles(deploymentsDir: string): string[] {
+  if (!existsSync(deploymentsDir)) {
+    return [];
+  }
+  return readdirSync(deploymentsDir, { withFileTypes: true })
+    .filter(entry => entry.isFile() && CONFIGURATION_EXTENSIONS.some(ext => entry.name.endsWith(ext)))
+    .map(entry => join(deploymentsDir, entry.name))
+    .sort();
+}
 
 /**
  * Interface for the application methods needed by configuration schema generation
@@ -37,7 +181,7 @@ function getServiceTypePattern(app: ConfigSchemaApplication, type: string): stri
  * @param deploymentFilename to save deployment schema to
  * @param full to keep all required
  * @param configFile - optional config file path to update $schema reference
- * @param deploymentsDir - optional deployments directory to update $schema references
+ * @param deploymentsDir - optional deployments folder, each deployment file gets its $schema reference
  */
 export function generateConfigurationSchemas(
   app: ConfigSchemaApplication,
@@ -165,6 +309,7 @@ export function generateConfigurationSchemas(
   // Ensure builtin deployers are there
   const definitions = JSONUtils.duplicate(res.definitions);
   res = {
+    type: "object",
     properties: {
       $schema: { type: "string" },
       parameters: {
@@ -228,21 +373,9 @@ export function generateConfigurationSchemas(
   }
   FileUtils.save(res, absDeploymentFilename);
 
-  // Ensure $schema is set in the configuration file if not present
-  if (configFile && existsSync(configFile)) {
-    try {
-      const config = FileUtils.load(configFile);
-      if (config && typeof config === "object" && !Array.isArray(config) && !config.$schema) {
-        const schemaRef = relative(dirname(resolve(configFile)), absFilename).replace(/\\/g, "/");
-        const updated = { $schema: schemaRef, ...config };
-        FileUtils.save(updated, configFile);
-      }
-    } catch {
-      // Ignore unparseable configuration file
-    }
+  if (configFile) {
+    ensureSchemaReference(configFile, absFilename);
   }
-
-  // Ensure $schema is set in each deployment file if not present
   const targetDeploymentsDir = deploymentsDir
     ? resolve(projectDir, deploymentsDir)
     : configFile
@@ -250,17 +383,8 @@ export function generateConfigurationSchemas(
       : undefined;
   if (targetDeploymentsDir && existsSync(targetDeploymentsDir)) {
     FileUtils.walkSync(targetDeploymentsDir, filePath => {
-      if (filePath.endsWith(".json") || filePath.endsWith(".jsonc")) {
-        try {
-          const deployment = FileUtils.load(filePath);
-          if (deployment && typeof deployment === "object" && !Array.isArray(deployment) && !deployment.$schema) {
-            const schemaRef = relative(dirname(resolve(filePath)), absDeploymentFilename).replace(/\\/g, "/");
-            const updated = { $schema: schemaRef, ...deployment };
-            FileUtils.save(updated, filePath);
-          }
-        } catch {
-          // Ignore unparseable deployment file
-        }
+      if (CONFIGURATION_EXTENSIONS.some(ext => filePath.endsWith(ext))) {
+        ensureSchemaReference(filePath, absDeploymentFilename);
       }
     });
   }

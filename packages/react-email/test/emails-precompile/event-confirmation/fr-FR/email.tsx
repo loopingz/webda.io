@@ -14,6 +14,7 @@ interface EventConfirmationProps {
   eventDate?: string;
   eventTime?: string;
   numberOfChildren?: string;
+  locale?: string;
 }
 
 export default function EventConfirmation({
@@ -23,6 +24,7 @@ export default function EventConfirmation({
   eventDate,
   eventTime,
   numberOfChildren,
+  locale,
 }: EventConfirmationProps) {
   return (
     <DefaultLayout
@@ -32,6 +34,7 @@ export default function EventConfirmation({
           <Text style={mainText}>
             Bonjour {firstName},
           </Text>
+          <Text style={mainText}>Locale: {locale}</Text>
           <Text style={mainText}>
             C'est confirmé ! Votre inscription à <strong>{eventName}</strong> est validée.
             Nous avons hâte de vous y voir.

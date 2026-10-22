@@ -57,11 +57,24 @@ export class NoDefaultExportError extends Error {
 }
 
 /**
+ * Normalize a source map prefix: no leading `./`, a trailing `/`
+ * @param prefix - the prefix
+ * @returns the normalized prefix
+ */
+function normalizePrefix(prefix: string): string {
+  const normalized = prefix
+    .split("\\")
+    .join("/")
+    .replace(/^(\.\/)+/, "");
+  return normalized.endsWith("/") ? normalized : `${normalized}/`;
+}
+
+/**
  * Resolve the module to import, preferring a compiled one when a source map matches
  *
  * @param path - path of the email source, relative to `process.cwd()` (or absolute)
- * @param sourceMap - source prefix to compiled prefix map; the first matching prefix is replaced
- * and `.tsx`/`.jsx` becomes `.js`
+ * @param sourceMap - source prefix to compiled prefix map, relative to `process.cwd()` (`./emails` and `emails/` are
+ * the same prefix); the first matching prefix is replaced and `.tsx`/`.jsx` becomes `.js`
  * @returns the mapped absolute path if that file exists, else `path` unchanged
  */
 export function resolveModulePath(path: string, sourceMap?: Record<string, string>): string {
@@ -69,7 +82,9 @@ export function resolveModulePath(path: string, sourceMap?: Record<string, strin
     return path;
   }
   const rel = relative(process.cwd(), resolve(path)).split("\\").join("/");
-  for (const [from, to] of Object.entries(sourceMap)) {
+  for (const [rawFrom, rawTo] of Object.entries(sourceMap)) {
+    const from = normalizePrefix(rawFrom);
+    const to = normalizePrefix(rawTo);
     if (rel.startsWith(from)) {
       const mapped = resolve(to + rel.substring(from.length)).replace(/\.[tj]sx$/, ".js");
       if (existsSync(mapped)) {

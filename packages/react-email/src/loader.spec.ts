@@ -32,6 +32,14 @@ class LoaderTest {
   }
 
   @test
+  async sourceMapNormalized() {
+    const path = resolve("test/emails/compiled-src/email.tsx");
+    const compiled = resolve("test/lib/compiled-src/email.js");
+    assert.strictEqual(resolveModulePath(path, { "./test/emails": "./test/lib" }), compiled);
+    assert.strictEqual(resolveModulePath(path, { "test/emails/": "test/lib" }), compiled);
+  }
+
+  @test
   async sameFileImportedOnce() {
     const path = resolve("test/emails/event-confirmation/email.tsx");
     assert.strictEqual(await importEmail(path), await importEmail(path));

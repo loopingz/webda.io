@@ -1,5 +1,5 @@
 import { useLog } from "@webda/core";
-import { mkdirSync, readdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
 import { dirname, join, relative, resolve } from "path";
 import { importEmail } from "./loader.js";
 import { renderEmail } from "./render.js";
@@ -48,6 +48,17 @@ interface Candidate {
   template: string;
   /** Only a template if the default export has Subject or PreviewProps */
   needsProbe: boolean;
+  /** Locale of a locale variant, passed to the component as the `locale` prop */
+  locale?: string;
+}
+
+/**
+ * Check a folder holds an `email.tsx` or `email.jsx` entry
+ * @param dir - the folder
+ * @returns true if it does
+ */
+function hasEmail(dir: string): boolean {
+  return existsSync(join(dir, "email.tsx")) || existsSync(join(dir, "email.jsx"));
 }
 
 /**
@@ -66,14 +77,19 @@ function collect(source: string): Candidate[] {
           walk(file);
         }
       } else if (/^email\.[tj]sx$/.test(entry.name)) {
-        candidates.push({ file, template: relative(source, dirname(file)).split("\\").join("/"), needsProbe: false });
+        const template = relative(source, dirname(file)).split("\\").join("/");
+        // `<name>/<locale>/email.tsx`: a folder below another email folder is a locale variant
+        const locale =
+          dir !== source && hasEmail(dirname(dir)) ? template.substring(template.lastIndexOf("/") + 1) : undefined;
+        candidates.push({ file, template, needsProbe: false, locale });
       } else if (dir === source) {
         const match = entry.name.match(/^([^.]+)(?:\.([^.]+))?\.[tj]sx$/);
         if (match) {
           candidates.push({
             file,
             template: match[2] ? `${match[1]}/${match[2]}` : match[1],
-            needsProbe: true
+            needsProbe: true,
+            locale: match[2]
           });
         }
       }
@@ -88,6 +104,7 @@ function collect(source: string): Candidate[] {
  *
  * Each string or number `PreviewProps` key is replaced by a `{{{key}}}` placeholder before rendering.
  * Templates with other kinds of props are skipped: they need the runtime react-email engine.
+ * A locale variant (`<name>/<locale>/email.tsx` or `<name>.<locale>.tsx`) also gets its `locale` prop, as at runtime.
  *
  * @param options - precompile options
  * @returns the generated, skipped and failed template paths
@@ -96,7 +113,7 @@ export async function precompile(options: PrecompileOptions): Promise<Precompile
   const source = resolve(options.source ?? "./emails");
   const output = resolve(options.output ?? "./templates");
   const result: PrecompileResult = { generated: [], skipped: [], failed: [] };
-  for (const { file, template, needsProbe } of collect(source)) {
+  for (const { file, template, needsProbe, locale } of collect(source)) {
     try {
       const component = await importEmail(file, options.sourceMap);
       if (needsProbe && component.Subject === undefined && component.PreviewProps === undefined) {
@@ -120,7 +137,7 @@ export async function precompile(options: PrecompileOptions): Promise<Precompile
         result.skipped.push(template);
         continue;
       }
-      const rendered = await renderEmail(component, placeholders, {
+      const rendered = await renderEmail(component, locale ? { ...placeholders, locale } : placeholders, {
         pretty: options.pretty ?? true,
         fixApostrophes: options.fixApostrophes ?? true
       });

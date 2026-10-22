@@ -81,6 +81,11 @@ class PrecompileTest {
     const result = await precompile({ source, output });
     assert.ok(result.generated.includes("event-confirmation/fr-FR"));
     assert.ok(existsSync(resolve(output, "event-confirmation/fr-FR/subject.mustache")));
+    const flat = (html: string) => html.replaceAll("<!-- -->", "");
+    const fr = flat(await readFile(resolve(output, "event-confirmation/fr-FR/html.mustache"), "utf8"));
+    assert.match(fr, /Locale:\s*fr-FR/);
+    assert.ok(result.generated.includes("greeting/fr"));
+    assert.match(flat(await readFile(resolve(output, "greeting/fr/html.mustache"), "utf8")), /\(\s*fr\s*\)/);
   }
 
   @test

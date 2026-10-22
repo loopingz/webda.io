@@ -1,13 +1,14 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "node:events";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   child: undefined as any,
   spawnArgs: undefined as any[] | undefined,
-  hasLocalCli: true
+  hasLocalCli: true,
+  compileCache: [] as string[]
 }));
 
 vi.mock("node:child_process", () => ({
@@ -18,7 +19,11 @@ vi.mock("node:child_process", () => ({
 }));
 vi.mock("node:module", async importOriginal => ({
   ...(await importOriginal<typeof import("node:module")>()),
-  createRequire: () => ({ resolve: () => "/app/node_modules/@webda/core/lib/index.js" })
+  createRequire: () => ({ resolve: () => "/app/node_modules/@webda/core/lib/index.js" }),
+  enableCompileCache: (directory: string) => {
+    state.compileCache.push(directory);
+    return { status: 1, directory };
+  }
 }));
 vi.mock("node:fs", async importOriginal => {
   const fs = await importOriginal<typeof import("node:fs")>();
@@ -66,10 +71,19 @@ class LauncherTest {
   }
 
   restoreExit: () => void = () => {};
+  env: NodeJS.ProcessEnv;
+
+  beforeEach() {
+    this.env = { ...process.env };
+    delete process.env.NODE_COMPILE_CACHE;
+    delete process.env.WEBDA_COMPILE_CACHE;
+    state.compileCache = [];
+  }
 
   afterEach() {
     this.restoreExit();
     state.hasLocalCli = true;
+    process.env = this.env;
   }
 
   @test
@@ -79,6 +93,24 @@ class LauncherTest {
     assert.strictEqual(state.spawnArgs[1][0], resolve("/app/node_modules/@webda/core/lib/bin/cli.js"));
     assert.deepStrictEqual(state.spawnArgs[2].stdio, "inherit");
     assert.deepStrictEqual(this.exits, []);
+  }
+
+  @test
+  async enablesTheCompileCacheForTheCli() {
+    await this.launch();
+    const directory = join(process.cwd(), ".webda", "compile-cache");
+    assert.deepStrictEqual(state.compileCache, [directory]);
+    // The CLI child inherits the environment
+    assert.strictEqual(state.spawnArgs[2].env, undefined);
+    assert.strictEqual(process.env.NODE_COMPILE_CACHE, directory);
+  }
+
+  @test
+  async compileCacheOptOut() {
+    process.env.WEBDA_COMPILE_CACHE = "false";
+    await this.launch();
+    assert.deepStrictEqual(state.compileCache, []);
+    assert.strictEqual(process.env.NODE_COMPILE_CACHE, undefined);
   }
 
   @test

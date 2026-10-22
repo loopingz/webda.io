@@ -195,6 +195,14 @@ export interface OperationDefinition {
    */
   generator?: boolean;
   /**
+   * Run the operation in a transaction of the registered participants (e.g. a SQL store with
+   * `transaction: "operation"`)
+   *
+   * `false` opts the operation out, e.g. a long streaming read that should not hold a connection; undefined lets the
+   * participants decide. A nested operation always joins the transaction of the outermost one.
+   */
+  transaction?: boolean;
+  /**
    * Additional transport hints for future extensibility
    */
   extensions?: Record<string, unknown>;

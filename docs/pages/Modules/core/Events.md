@@ -33,7 +33,7 @@ Available Core events:
 | `Webda.Request` | `{ context }` | Before each request handler |
 | `Webda.Result` | `{ context }` | After each request handler |
 | `Webda.404` | `{ context }` | No route matched |
-| `Webda.OperationSuccess` | `{ context }` | Operation completed successfully |
+| `Webda.OperationSuccess` | `{ context }` | Operation completed successfully, after its transaction committed ([lifecycle](../../Concepts/Operations.md#operation-lifecycle-and-transactions)) |
 | `Webda.Configuration.Applied` | — | Configuration hot-reload applied |
 
 ## Store events

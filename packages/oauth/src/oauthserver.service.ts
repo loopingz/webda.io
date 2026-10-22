@@ -12,6 +12,7 @@ import {
   type IssuedTokens,
   InvalidScope,
   InvalidTarget,
+  listProtectedResources,
   listOperations,
   OFFLINE_ACCESS,
   Operation,
@@ -34,6 +35,7 @@ import {
   WebdaError
 } from "@webda/core";
 import { OAuthError } from "./errors.js";
+import { parseRegistration } from "./registration.js";
 import { ClientRegistry, REGISTERED_PREFIX } from "./clients.js";
 import {
   formatUserCode,
@@ -235,6 +237,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   lookupFailures: Map<string, number[]> = new Map();
   /** Times of the recent device authorization requests, by `ip:<client ip>` */
   deviceRequests: Map<string, number[]> = new Map();
+  /** Times of the recent client registrations, by `ip:<client ip>` */
+  registrationRequests: Map<string, number[]> = new Map();
 
   /** @override */
   resolve(): this {
@@ -251,6 +255,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     this.addRoute(`${url}/token`, ["POST"], this.token, { hidden: true });
     this.addRoute(`${url}/revoke`, ["POST"], this.revoke, { hidden: true });
     this.addRoute(`${url}/device_authorization`, ["POST"], this.deviceAuthorization, { hidden: true });
+    this.addRoute(`${url}/register`, ["POST"], this.register, { hidden: true });
     this.addRoute(`${url}/consent`, ["GET"], this.consentPage, { hidden: true });
     this.addRoute(`${url}/device{?user_code?}`, ["GET"], this.devicePage, { hidden: true });
     this.addRoute(`${url}/done{?status?,error?}`, ["GET"], this.resultPage, { hidden: true });
@@ -450,6 +455,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         token_endpoint: `${base}/token`,
         revocation_endpoint: `${base}/revoke`,
         device_authorization_endpoint: `${base}/device_authorization`,
+        registration_endpoint: this.registrationOpen() ? `${base}/register` : undefined,
         response_types_supported: ["code"],
         grant_types_supported: ["authorization_code", "refresh_token", "urn:ietf:params:oauth:grant-type:device_code"],
         code_challenge_methods_supported: ["S256"],
@@ -460,6 +466,91 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         webda_operations_uri: operations ? `${issuer}${operations.getParameters().url}` : undefined
       })
     );
+  }
+
+  /**
+   * @returns true when dynamic client registration is open: configured, or a protected resource is registered
+   */
+  protected registrationOpen(): boolean {
+    return (this.parameters.registration ?? (listProtectedResources().length > 0 ? "open" : "off")) === "open";
+  }
+
+  /**
+   * @param requested - scope string of a registration
+   * @returns the requested scope tokens the server advertises, undefined when none
+   */
+  protected supportedScope(requested: string): string | undefined {
+    const supported = parseScope(this.scopesSupported().join(" "));
+    const kept = requested.split(/\s+/).filter(token => {
+      try {
+        return token !== "" && covers(supported, parseScope(token));
+      } catch {
+        return false;
+      }
+    });
+    return kept.length ? kept.join(" ") : undefined;
+  }
+
+  /**
+   * Dynamic client registration endpoint (RFC 7591): public clients only, rate limited per client IP. `404` when
+   * registration is off
+   * @param ctx - web context
+   */
+  async register(ctx: WebContext): Promise<void> {
+    if (!this.registrationOpen()) {
+      ctx.writeHead(404, TOKEN_HEADERS);
+      ctx.write(JSON.stringify({ error: "not_found", error_description: "Registration is not enabled" }));
+      return;
+    }
+    let status = 201;
+    let payload: Record<string, unknown>;
+    try {
+      const ip = ctx.getHttpContext()?.getClientIp() ?? "unknown";
+      const key = `ip:${ip}`;
+      const now = Date.now();
+      const window = this.parameters.registrationRateWindow * 1000;
+      if (this.countAttempts(this.registrationRequests, key, now, window) >= this.parameters.registrationRateLimit) {
+        throw new OAuthError("slow_down", "Too many registration requests", 429);
+      }
+      this.recordAttempt(this.registrationRequests, [key], now);
+      let body: unknown;
+      try {
+        const type = ctx.getHttpContext().getUniqueHeader("content-type", "").split(";")[0].trim().toLowerCase();
+        if (type !== "application/json") throw new Error("content type");
+        body = JSON.parse(await ctx.getRawInputAsString(MAX_TOKEN_BODY));
+      } catch {
+        throw new OAuthError("invalid_client_metadata", "A JSON body is required");
+      }
+      const request = parseRegistration(body, this.parameters.registrationRedirectPatterns);
+      const scope = request.scope === undefined ? undefined : this.supportedScope(request.scope);
+      const client = await OAuthRegisteredClient.create({
+        uuid: `${REGISTERED_PREFIX}${randomToken(24)}`,
+        name: request.client_name ?? "Unnamed client",
+        clientUri: request.client_uri,
+        logoUri: request.logo_uri,
+        redirect_uris: request.redirect_uris,
+        scope,
+        createdAt: now,
+        expiresAt: now + this.parameters.registrationUnusedTtl * 1000,
+        ip
+      } as any);
+      payload = {
+        client_id: client.uuid,
+        client_id_issued_at: Math.floor(now / 1000),
+        client_name: client.name,
+        redirect_uris: client.redirect_uris,
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+        scope
+      };
+    } catch (err) {
+      const oauth = this.toOAuthError(err);
+      status = oauth.getResponseCode();
+      payload = oauth.toJSON();
+    }
+    ctx.writeHead(status, TOKEN_HEADERS);
+    ctx.write(JSON.stringify(payload));
   }
 
   /**
@@ -1627,10 +1718,16 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param attempts - rate limit state
    * @param key - rate limit key
    * @param now - current time
+   * @param window - window (ms)
    * @returns attempts of the key in the window
    */
-  protected countAttempts(attempts: Map<string, number[]>, key: string, now: number): number {
-    const times = attempts.get(key)?.filter(t => t > now - LOOKUP_WINDOW) ?? [];
+  protected countAttempts(
+    attempts: Map<string, number[]>,
+    key: string,
+    now: number,
+    window: number = LOOKUP_WINDOW
+  ): number {
+    const times = attempts.get(key)?.filter(t => t > now - window) ?? [];
     if (times.length) attempts.set(key, times);
     else attempts.delete(key);
     return times.length;
@@ -1681,6 +1778,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   protected pruneLookupFailures(now: number): void {
     for (const attempts of [this.lookupFailures, this.deviceRequests]) {
       for (const key of [...attempts.keys()]) this.countAttempts(attempts, key, now);
+    }
+    const window = this.parameters.registrationRateWindow * 1000;
+    for (const key of [...this.registrationRequests.keys()]) {
+      this.countAttempts(this.registrationRequests, key, now, window);
     }
   }
 

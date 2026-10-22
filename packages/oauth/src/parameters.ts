@@ -120,6 +120,16 @@ export class OAuthServerParameters extends ServiceParameters {
   /** Lifetime of a registered client since its last use (s)
    * @default 7776000 */
   registrationIdleTtl: number;
+  /** Dynamic client registration (RFC 7591); defaults to `open` when a protected resource is registered, else `off` */
+  registration?: "open" | "off";
+  /** Globs every redirect URI of a registration must match one of */
+  registrationRedirectPatterns?: string[];
+  /** Registrations allowed per client IP in the window
+   * @default 20 */
+  registrationRateLimit: number;
+  /** Window of the registration rate limit (s)
+   * @default 3600 */
+  registrationRateWindow: number;
   /** Advertised scopes; defaults to the top-level operation groups */
   scopesSupported?: string[];
 
@@ -146,6 +156,8 @@ export class OAuthServerParameters extends ServiceParameters {
     this.rememberConsentTtl ??= 90 * 24 * 3600;
     this.registrationUnusedTtl ??= 86400;
     this.registrationIdleTtl ??= 7776000;
+    this.registrationRateLimit ??= 20;
+    this.registrationRateWindow ??= 3600;
     return this;
   }
 }

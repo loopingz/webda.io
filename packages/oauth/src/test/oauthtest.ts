@@ -132,6 +132,7 @@ export abstract class OAuthTest extends AuthTest {
     const server = useService<any>("OAuthServer");
     server.lookupFailures.clear();
     server.deviceRequests.clear();
+    server.registrationRequests.clear();
   }
 
   /**

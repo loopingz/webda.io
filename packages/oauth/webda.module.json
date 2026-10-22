@@ -143,10 +143,35 @@
             "description": "Refresh token lifetime (s); defaults to TokenService",
             "type": "number"
           },
+          "registration": {
+            "description": "Dynamic client registration (RFC 7591); defaults to `open` when a protected resource is registered, else `off`",
+            "enum": [
+              "open",
+              "off"
+            ],
+            "type": "string"
+          },
           "registrationIdleTtl": {
             "default": 7776000,
             "description": "Lifetime of a registered client since its last use (s)",
             "type": "number"
+          },
+          "registrationRateLimit": {
+            "default": 20,
+            "description": "Registrations allowed per client IP in the window",
+            "type": "number"
+          },
+          "registrationRateWindow": {
+            "default": 3600,
+            "description": "Window of the registration rate limit (s)",
+            "type": "number"
+          },
+          "registrationRedirectPatterns": {
+            "description": "Globs every redirect URI of a registration must match one of",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "registrationUnusedTtl": {
             "default": 86400,

@@ -156,6 +156,39 @@ subscription {
 }
 ```
 
+## Operation lifecycle and transactions
+
+`callOperation` runs every operation through the same steps, whatever the transport:
+
+1. Permission (`permission` query), input validation and operation authorizers (`registerOperationAuthorizer`)
+2. **Transaction begin**: every registered transaction participant is begun
+3. `Webda.BeforeOperation`
+4. The method; a streamed result is fully written to the client before the next step
+5. **Transaction commit**, participants in registration order
+6. `Webda.OperationSuccess`: audit and IAM listeners only ever see committed data
+
+On any failure (a check, `begin`, the method, the stream or a `commit`), the participants not committed yet are
+**rolled back** and then `Webda.OperationFailure` is emitted; the original error is rethrown. An error thrown by a
+rollback is logged and never hides it.
+
+A transaction participant implements `OperationTransactionParticipant` (`begin`, `commit`, `rollback`) and is
+registered with `registerOperationTransactionParticipant`. Without registered participants nothing changes. The SQL
+stores (`PostgresStore`, `SQLiteStore`) are participants when configured with `transaction: "operation"`, see
+[PostgreSQL transactions](../Modules/postgres/PostgresStore.md#transactions).
+
+- The transaction follows the async call chain of the operation, not the execution context: code running inside the
+  operation under `runAsSystem` or in a nested `callOperation` takes part in it. `useOperationTransaction()` returns it.
+- Nested operations join the transaction of the outermost operation: only the outermost one begins and finishes it
+  (no savepoints).
+- `transaction: false` on an operation (`@Operation({ transaction: false })` or `registerOperation`) asks the
+  participants to stay out, e.g. for a long streaming read that should not hold a database connection.
+- `runWithTransaction(fn)` runs code outside an operation (CLI, queue workers, tests) in a transaction of the
+  registered participants, or joins the current one.
+- Participants commit one after the other: when the commit of a second participant fails after the first one
+  committed, the first one stays committed (no two-phase commit).
+- Repository events (`Created`, `Updated`...) are emitted when the statement runs, before the commit: a listener may
+  see data that is later rolled back.
+
 ## Calling operations from a frontend
 
 [`@webda/sdk`](../Modules/sdk/README.md) generates a typed client from the operations of the application: every

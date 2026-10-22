@@ -1,6 +1,6 @@
-import { Command, SecretString, useApplication, useCore, useModelMetadata } from "@webda/core";
+import { Command, SecretString, useApplication, useCore, useModelMetadata, WebdaError } from "@webda/core";
 import type { MigratableStore, ModelClass } from "@webda/core";
-import type { SQLDialect } from "@webda/sql";
+import type { SQLDialect, SQLTransactionConnection } from "@webda/sql";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { PostgresDialect } from "./dialect.js";
@@ -19,10 +19,18 @@ import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js"
  */
 
 /**
+ * Isolation levels of a PostgreSQL transaction (READ UNCOMMITTED behaves as READ COMMITTED in PostgreSQL)
+ */
+export type PostgresIsolationLevel = "READ COMMITTED" | "REPEATABLE READ" | "SERIALIZABLE";
+
+const ISOLATION_LEVELS: PostgresIsolationLevel[] = ["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"];
+
+/**
  *
  */
 export class PostgresParameters extends SQLStoreParameters {
   /**
+   * Use a shared pool of connections rather than a single client: required by `transaction: "operation"`
    * @default false
    */
   usePool?: boolean;
@@ -48,6 +56,11 @@ export class PostgresParameters extends SQLStoreParameters {
    * @default [".*"]
    */
   views?: string[];
+  /**
+   * Isolation level of the transactions (`transaction: "operation"` and `withTransaction`)
+   * @default "READ COMMITTED"
+   */
+  transactionIsolation?: PostgresIsolationLevel;
 
   /**
    * @override
@@ -57,6 +70,7 @@ export class PostgresParameters extends SQLStoreParameters {
   load(params: any): this {
     super.load(params);
     this.usePool ??= false;
+    this.transactionIsolation ??= "READ COMMITTED";
     this.viewPrefix ??= "";
     this.views ??= [".*"];
     return this;
@@ -113,15 +127,83 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
       table,
       meta.PrimaryKeySeparator,
       () => this.ensureTable(repo),
-      tableModel
+      tableModel,
+      () => this.getTransactionClient()
     );
     return repo;
+  }
+
+  /**
+   * A transaction needs a connection of its own: a single shared client cannot run concurrent transactions
+   * @override
+   */
+  protected checkTransactionSupport(): void {
+    if (!this.parameters.usePool) {
+      throw new WebdaError.CodeError(
+        "POSTGRES_TRANSACTION_REQUIRES_POOL",
+        `PostgresStore ${this.getName()}: transactions need "usePool": true, a single client cannot hold concurrent transactions`
+      );
+    }
+  }
+
+  /**
+   * Check a pool connection out and BEGIN on it
+   * @override
+   */
+  protected async openTransaction(): Promise<SQLTransactionConnection> {
+    this.checkTransactionSupport();
+    const client = await (this.client as pg.Pool).connect();
+    // The pool only listens to the errors of its idle clients: without a listener, a connection lost while checked out
+    // (server restart, terminated backend) would crash the process. The pending statement fails with it anyway.
+    const onError = (err: Error) => this.log("WARN", "Transaction connection lost", err.message);
+    client.on("error", onError);
+    const release = (error?: unknown) => {
+      client.off("error", onError);
+      // An error destroys the connection rather than giving a possibly broken one back to the pool
+      client.release(error ? (error instanceof Error ? error : true) : undefined);
+    };
+    try {
+      await client.query(`BEGIN ISOLATION LEVEL ${this.getIsolationLevel()}`);
+    } catch (err) {
+      release(err);
+      throw err;
+    }
+    this.log("TRACE", "Transaction begun", this.getIsolationLevel());
+    return {
+      client,
+      commit: async () => {
+        await client.query("COMMIT");
+      },
+      rollback: async () => {
+        await client.query("ROLLBACK");
+      },
+      release
+    };
+  }
+
+  /**
+   * @returns the isolation level of the transactions, checked: it is written in the BEGIN statement
+   * @throws WebdaError.CodeError for an unknown level
+   */
+  protected getIsolationLevel(): PostgresIsolationLevel {
+    const level = this.parameters.transactionIsolation ?? "READ COMMITTED";
+    if (!ISOLATION_LEVELS.includes(level)) {
+      throw new WebdaError.CodeError(
+        "POSTGRES_INVALID_PARAMETER",
+        `Invalid transactionIsolation ${level}: one of ${ISOLATION_LEVELS.join(", ")}`
+      );
+    }
+    return level;
   }
 
   /**
    * @override
    */
   async init(): Promise<this> {
+    this.getIsolationLevel();
+    if (this.parameters.transaction === "operation") {
+      this.checkTransactionSupport();
+    }
     if (this.parameters.usePool) {
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;

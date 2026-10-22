@@ -182,9 +182,8 @@ pre-selected and marked **(already allowed)**: a new decision adds to the rememb
 from it (step-up). The remembered operations the token will carry are listed too, even outside the request. The issued
 token carries, when the screen is skipped, the intersection of the request and the remembered scope; after a decision
 on the screen, the remembered scope (without `offline_access`) plus the newly allowed operations, bounded by the
-client `allowedScopes`. The client can force
-the screen with `prompt=consent`; the device flow always shows it. Remembered grants are listed and forgotten through
-the connected-apps operations below.
+client `allowedScopes`. The client can force the screen with `prompt=consent`; the device flow always shows it.
+Remembered grants are listed and forgotten through the connected-apps operations below.
 
 ## Device flow
 

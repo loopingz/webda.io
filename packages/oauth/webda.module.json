@@ -1495,6 +1495,10 @@
         "operations[]$ids[]": {
           "additionalProperties": false,
           "properties": {
+            "alreadyAllowed": {
+              "default": false,
+              "type": "boolean"
+            },
             "id": {
               "type": "string"
             },

@@ -143,7 +143,10 @@ export interface ConsentRequest {
   /** Hostname of the device requesting access */
   hostname?: string;
   /** Requested operations the user can call, by first segment */
-  operations: { group: string; ids: { id: string; summary?: string; preselected: boolean }[] }[];
+  operations: {
+    group: string;
+    ids: { id: string; summary?: string; preselected: boolean; alreadyAllowed?: boolean }[];
+  }[];
   /** A refresh token is requested */
   offlineAccess: boolean;
   /** The decision can be remembered */
@@ -772,7 +775,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       groups.get(group)!.ids.push({
         id,
         summary: ops[id]?.summary,
-        preselected: remembered ? scopeMatches(remembered, id) : true
+        preselected: remembered ? scopeMatches(remembered, id) : true,
+        // Comes from the remembered grant: the decision cannot withdraw it
+        alreadyAllowed: remembered && scopeMatches(remembered, id) ? true : undefined
       });
     }
     return {
@@ -851,7 +856,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     }
     const requested = parseScope(pending.scope);
     const callable = await this.callableOperations(ctx, requested);
-    // Only operation ids both requested and callable by the user: never a glob, never more than requested
+    // Only operation ids both requested and callable by the user: never a glob; the grant is these plus the
+    // still-valid remembered grant (code flow), narrowed to what the client may still be granted
     const selected = (Array.isArray(operations) ? operations : []).filter(
       (id): id is string => typeof id === "string" && callable.includes(id)
     );
@@ -860,26 +866,29 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     let granted = collapse(selected, requested, this.delegableOperations());
     const client = await this.clients.get(pending.clientId);
     if (!client) throw new WebdaError.BadRequest("Unknown client");
+    const identity = identityOf(ctx.getSession());
+    // Step-up: the still-valid remembered grant is kept, whether or not the new decision is remembered.
+    // offline_access is never carried over: a refresh token is issued only when this request asked for it
+    if (pending.flow === "code") {
+      const earlier = await this.rememberedScope(identity.userId, pending.clientId);
+      if (earlier) {
+        granted = union(
+          earlier.filter(s => s !== OFFLINE_ACCESS),
+          granted
+        );
+      }
+    }
+    // After the union: an administrator narrowing the client also narrows what was remembered
     if (client.allowedScopes !== undefined) granted = intersect(granted, parseScope(client.allowedScopes));
     if (!operationGlobs(granted).length) throw new WebdaError.BadRequest("Select at least one operation");
     if (requested.includes(OFFLINE_ACCESS)) granted.push(OFFLINE_ACCESS);
     await this.clearPending(ctx);
-    const identity = identityOf(ctx.getSession());
     if (pending.flow === "device") {
       await this.approveDevice(pending, identity, granted);
       return { redirect: withQuery(this.pageUrl(ctx, "result"), { status: "success", client: pending.clientId }) };
     }
-    // Step-up: the still-valid remembered grant is kept, whether or not the new decision is remembered
-    const earlier = await this.rememberedScope(identity.userId, pending.clientId);
     if (remember === true && this.parameters.rememberConsent) {
       await this.remember(identity.userId, pending.clientId, granted);
-    }
-    if (earlier) {
-      // offline_access is never carried over: a refresh token is issued only when this request asked for it
-      granted = union(
-        earlier.filter(s => s !== OFFLINE_ACCESS),
-        granted
-      );
     }
     return { redirect: await this.codeRedirect(pending, identity, granted) };
   }

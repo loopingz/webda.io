@@ -94,6 +94,63 @@ class ConsentTest extends OAuthTest {
   }
 
   @test
+  async rememberedOperationsAreAlreadyAllowed() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await this.authorize(b, { scope: "Task.Get" });
+    let req = await this.op(b, "OAuth.Consent.Get");
+    await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf: req.csrf, remember: true });
+    await this.authorize(b, { scope: "Task.Get Task.Update" });
+    req = await this.op(b, "OAuth.Consent.Get");
+    const ids = Object.fromEntries(req.operations.flatMap(g => g.ids).map(i => [i.id, i]));
+    assert.strictEqual(ids["Task.Get"].alreadyAllowed, true);
+    assert.ok(!ids["Task.Update"].alreadyAllowed);
+    // The page renders them disabled
+    const script = (await this.get(b, "/oauth/consent")).text;
+    assert.ok(script.includes("box.disabled = op.alreadyAllowed === true"));
+    assert.ok(script.includes("(already allowed)"));
+    // Unticking is impossible: only the new operation is sent, the token still carries the remembered one
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+      allow: true,
+      operations: ["Task.Update"],
+      csrf: req.csrf
+    });
+    const scope = (await OAuthCode.ref(sha256(query(redirect).code)).get()).scope.split(" ");
+    assert.deepStrictEqual(scope.sort(), ["Task.Get", "Task.Update"]);
+  }
+
+  @test
+  async stepUpHonoursNarrowedAllowedScopes() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await OAuthGrant.create({
+      uuid: "u1:app",
+      userId: "u1",
+      clientId: "app",
+      scope: "Task.*",
+      createdAt: 0,
+      lastUsedAt: 0,
+      expiresAt: Date.now() + 100000
+    } as any);
+    const params = useService<any>("OAuthServer").getParameters();
+    const previous = params.clients.app.allowedScopes;
+    try {
+      params.clients.app.allowedScopes = "Task.Update offline_access";
+      await this.authorize(b, { scope: "Task.Update", prompt: "consent" });
+      const req = await this.op(b, "OAuth.Consent.Get");
+      const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+        allow: true,
+        operations: ["Task.Update"],
+        csrf: req.csrf
+      });
+      const scope = (await OAuthCode.ref(sha256(query(redirect).code)).get()).scope.split(" ");
+      assert.deepStrictEqual(scope, ["Task.Update"]);
+    } finally {
+      params.clients.app.allowedScopes = previous;
+    }
+  }
+
+  @test
   async globKeptOnlyWhenEveryOperationIsSelected() {
     const b = await this.browser();
     await this.login(b, "u1");

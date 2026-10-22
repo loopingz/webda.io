@@ -31,6 +31,19 @@ export const loader = {
 const cache = new Map<string, EmailComponent>();
 
 /**
+ * Thrown when an email module has no default export component (a helper module)
+ */
+export class NoDefaultExportError extends Error {
+  /**
+   * @param path - path of the module
+   */
+  constructor(public path: string) {
+    super(`Email module '${path}' has no default export component`);
+    this.name = "NoDefaultExportError";
+  }
+}
+
+/**
  * Resolve the module to import, preferring a compiled one when a source map matches
  *
  * @param path - path of the email source, relative to `process.cwd()` (or absolute)
@@ -88,7 +101,7 @@ export async function importEmail(path: string, sourceMap?: Record<string, strin
     throw err;
   }
   if (typeof mod?.default !== "function") {
-    throw new Error(`Email module '${resolved}' has no default export component`);
+    throw new NoDefaultExportError(resolved);
   }
   component = mod.default as EmailComponent;
   cache.set(key, component);

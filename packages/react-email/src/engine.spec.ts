@@ -2,7 +2,13 @@ import { suite, test } from "@webda/test";
 import { installConfigurationFactories, useService, type UnpackedConfiguration } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
-import { TemplateRenderer, TemplateService, TemplateServiceParameters, getTemplateEngine } from "@webda/templates";
+import {
+  TemplateNotFoundError,
+  TemplateRenderer,
+  TemplateService,
+  TemplateServiceParameters,
+  getTemplateEngine
+} from "@webda/templates";
 import * as assert from "assert";
 import { cp, mkdtemp, rm, utimes, readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
@@ -104,6 +110,23 @@ class ReactEmailEngineTest extends TemplateServiceTestBase {
     assert.strictEqual(res.subject, "Vous êtes inscrit !");
     const html = await this.svc().render("conditional/html", { firstName: "Ada", items: [] }, { locale: "de" });
     assert.ok(flat(html).includes("Locale: de"));
+  }
+
+  @test
+  async dataLocaleKept() {
+    const html = await this.svc().render("conditional/html", { firstName: "Ada", items: [], locale: "es" });
+    assert.ok(flat(html).includes("Locale: es"));
+  }
+
+  @test
+  async helperIsNotATemplate() {
+    assert.strictEqual(await this.svc().has("helper"), false);
+    await assert.rejects(() => this.svc().render("helper"), TemplateNotFoundError);
+    await assert.rejects(() => this.svc().renderAll("helper"), TemplateNotFoundError);
+    assert.deepStrictEqual(
+      await (getTemplateEngine("react-email") as ReactEmailEngine).parts(resolve("test/emails/helper.tsx")),
+      []
+    );
   }
 
   @test

@@ -1,6 +1,6 @@
 import { getTemplateEngine, registerTemplateEngine } from "@webda/templates";
 import type { CompiledTemplate, TemplateEngine, TemplateRenderOptions } from "@webda/templates";
-import { importEmail, type EmailComponent } from "./loader.js";
+import { NoDefaultExportError, importEmail, type EmailComponent } from "./loader.js";
 import { renderEmail, type RenderedEmail } from "./render.js";
 
 /**
@@ -60,11 +60,21 @@ export class ReactEmailEngine implements TemplateEngine {
 
   /**
    * List the parts of an email module
+   *
+   * A module without a default export component (a shared helper) has no part, so it is not a template
    * @param path - the module path
    * @returns the parts
    */
   async parts(path: string): Promise<string[]> {
-    const component = await importEmail(path, this.options.sourceMap);
+    let component: EmailComponent;
+    try {
+      component = await importEmail(path, this.options.sourceMap);
+    } catch (err) {
+      if (err instanceof NoDefaultExportError) {
+        return [];
+      }
+      throw err;
+    }
     return ["html", ...(component.Subject !== undefined ? ["subject"] : []), "text"];
   }
 
@@ -95,7 +105,7 @@ export class ReactEmailEngine implements TemplateEngine {
    * @returns the rendered email
    */
   protected rendered(component: EmailComponent, data: object, locale?: string): Promise<RenderedEmail> {
-    const render = () => renderEmail(component, { ...data, locale }, this.options);
+    const render = () => renderEmail(component, { ...data, locale: locale ?? (data as any).locale }, this.options);
     let fingerprint: string;
     try {
       fingerprint = JSON.stringify(data);

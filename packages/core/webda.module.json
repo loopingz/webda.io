@@ -384,8 +384,18 @@
                 "type": "string"
               },
               "audience": {
-                "description": "Audience for the jwt",
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Audience for the jwt"
               },
               "expiresIn": {
                 "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\").",
@@ -534,8 +544,18 @@
                 "type": "string"
               },
               "audience": {
-                "description": "Audience for the jwt",
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Audience for the jwt"
               },
               "expiresIn": {
                 "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\").",
@@ -3007,6 +3027,9 @@
         "scope": {
           "type": "string"
         },
+        "resource": {
+          "type": "string"
+        },
         "name": {
           "type": "string"
         },
@@ -3128,6 +3151,10 @@
             "refreshTtl": {
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
+            },
+            "resource": {
+              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "type": "string"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
@@ -3269,6 +3296,10 @@
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
             },
+            "resource": {
+              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "type": "string"
+            },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
               "type": "number"
@@ -3408,6 +3439,10 @@
             "refreshTtl": {
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
+            },
+            "resource": {
+              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "type": "string"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",

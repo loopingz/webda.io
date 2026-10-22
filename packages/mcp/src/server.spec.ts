@@ -11,7 +11,8 @@ import {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { BrokenModel, GadgetModel, WideModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
-import { createMcpServer } from "./server.js";
+import { createMcpServer, toolAccess } from "./server.js";
+import { sessionContext } from "./invoke.js";
 import { ToolRegistry } from "./tools.js";
 import { ResourceRegistry } from "./resources.js";
 
@@ -20,9 +21,12 @@ class McpServerTest extends McpFixtureTest {
   /**
    * Connect an SDK client to a server built over all registered operations
    * @param user - logged-in user id, or undefined for anonymous
+   * @param options - token scopes on the session, listOutOfScopeTools
+   * @param options.scopes - session token scopes
+   * @param options.listOutOfScopeTools - list out-of-scope tools
    * @returns connected client
    */
-  async connect(user?: string): Promise<Client> {
+  async connect(user?: string, options: { scopes?: string[]; listOutOfScopeTools?: boolean } = {}): Promise<Client> {
     registerFixture();
     const ops = useInstanceStorage().operations;
     const tools = new ToolRegistry(name => useApplication().getSchema(name));
@@ -31,11 +35,13 @@ class McpServerTest extends McpFixtureTest {
     resources.build(ops);
     const session = new Session();
     if (user) session.login(user, user);
+    if (options.scopes) session.scopes = options.scopes;
     const server = createMcpServer({
       info: { name: "test", version: "1.0.0" },
       tools,
       resources,
       maxOutputBytes: 1024,
+      listOutOfScopeTools: options.listOutOfScopeTools,
       getSession: () => session
     });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -137,6 +143,76 @@ class McpServerTest extends McpFixtureTest {
     const client = await this.connect();
     await assert.rejects(client.callTool({ name: "Fixture.Nope", arguments: {} }), /Unknown tool/);
     await assert.rejects(client.callTool({ name: "Fixture.Secret", arguments: {} }), /Unknown tool/);
+  }
+
+  @test
+  async outOfScopeToolIsInsufficientScope() {
+    // stand-in for the token scope authorizer: probe refusals outside the session scopes
+    const authorizer = async (ctx, operationId, _op, { probe }) =>
+      !probe || ctx.getSession().scopes.includes(operationId) ? true : "insufficient_scope";
+    registerOperationAuthorizer(authorizer as any);
+    try {
+      const client = await this.connect(undefined, { scopes: ["Fixture.Echo"] });
+      const names = (await client.listTools()).tools.map(t => t.name);
+      assert.deepStrictEqual(names, ["Fixture.Echo"]);
+      const err: any = await client.callTool({ name: "Fixture.Version", arguments: {} }).catch(e => e);
+      assert.strictEqual(err.code, -32001);
+      assert.match(err.message, /insufficient_scope/);
+      assert.deepStrictEqual(err.data, { error: "insufficient_scope", scope: "Fixture.Echo Fixture.Version" });
+      // permission denied stays unknown
+      await assert.rejects(client.callTool({ name: "Fixture.Secret", arguments: {} }), /Unknown tool/);
+      const listing = await this.connect(undefined, { scopes: ["Fixture.Echo"], listOutOfScopeTools: true });
+      const all = (await listing.listTools()).tools.map(t => t.name);
+      assert.ok(all.includes("Fixture.Version"));
+      assert.ok(!all.includes("Fixture.Secret"));
+    } finally {
+      unregisterOperationAuthorizer(authorizer as any);
+    }
+  }
+
+  @test
+  async toolAccessLeavesProxiedSessionUntouched() {
+    registerFixture();
+    const authorizer = async (ctx, operationId, _op, { probe }) =>
+      !probe || ctx.getSession().scopes.includes(operationId) ? true : "insufficient_scope";
+    registerOperationAuthorizer(authorizer as any);
+    try {
+      const original = new Session();
+      original.login("bob", "bob");
+      original.scopes = ["Fixture.Echo"];
+      const proxy = original.getProxy();
+      assert.strictEqual(proxy.isDirty(), false);
+      assert.strictEqual(await toolAccess(sessionContext(proxy), "Fixture.Version"), "out_of_scope");
+      assert.deepStrictEqual(proxy.scopes, ["Fixture.Echo"]);
+      assert.deepStrictEqual(original.scopes, ["Fixture.Echo"]);
+      assert.strictEqual(original.isDirty(), false);
+      assert.strictEqual(await toolAccess(sessionContext(proxy), "Fixture.Version"), "out_of_scope");
+    } finally {
+      unregisterOperationAuthorizer(authorizer as any);
+    }
+  }
+
+  @test
+  async toolAccessCopiesProxiedSessionWithNullFields() {
+    registerFixture();
+    const authorizer = async (ctx, operationId, _op, { probe }) =>
+      !probe || ctx.getSession().scopes.includes(operationId) ? true : "insufficient_scope";
+    registerOperationAuthorizer(authorizer as any);
+    try {
+      const original = new Session();
+      original.login("bob", "bob");
+      original.scopes = ["Fixture.Echo"];
+      // A null field: reading it through the session proxy would build `new Proxy(null)`
+      (original as any).nullable = null;
+      (original as any).transientAmr = null;
+      const proxy = original.getProxy();
+      assert.strictEqual(await toolAccess(sessionContext(proxy), "Fixture.Version"), "out_of_scope");
+      assert.strictEqual((original as any).nullable, null);
+      assert.deepStrictEqual(original.scopes, ["Fixture.Echo"]);
+      assert.strictEqual(original.isDirty(), false);
+    } finally {
+      unregisterOperationAuthorizer(authorizer as any);
+    }
   }
 
   @test

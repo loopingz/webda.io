@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { expand, listOperations, registerOperation, useInstanceStorage, useRouter, useService } from "@webda/core";
 import { OAuthTest, query, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
-import { OAuthCode, OAuthGrant } from "./models.model.js";
+import { OAuthCode, OAuthGrant, OAuthRegisteredClient } from "./models.model.js";
 import { sha256 } from "./devicecode.js";
 import { PENDING_COOKIE } from "./oauthserver.service.js";
 
@@ -22,6 +22,184 @@ class ConsentTest extends OAuthTest {
   async afterEach() {
     unregisterTestOperations();
     await super.afterEach();
+  }
+
+  /**
+   * @param uuid - client id
+   * @param redirect - registered redirect URI
+   * @returns the stored registered client
+   */
+  async registered(uuid: string, redirect: string): Promise<OAuthRegisteredClient> {
+    const now = Date.now();
+    if (await OAuthRegisteredClient.ref(uuid).exists()) await OAuthRegisteredClient.ref(uuid).delete();
+    return OAuthRegisteredClient.create({
+      uuid,
+      name: "Registered",
+      redirect_uris: [redirect],
+      scope: "Task.*",
+      createdAt: now,
+      expiresAt: now + 86400_000,
+      ip: "127.0.0.1"
+    } as any);
+  }
+
+  @test
+  async consentMarksRegisteredUnverified() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    for (const [id, redirect, host] of [
+      ["dcr_loop", "http://127.0.0.1:1234/callback", "local application"],
+      ["dcr_priv", "com.example.app:/cb", "local application"],
+      ["dcr_web", "https://claude.ai/callback", "claude.ai"]
+    ]) {
+      await this.registered(id, redirect);
+      await this.authorize(b, { client_id: id, redirect_uri: redirect, scope: "Task.Get" });
+      const req = await this.op(b, "OAuth.Consent.Get");
+      assert.strictEqual(req.client.verified, false, id);
+      assert.strictEqual(req.client.host, host, id);
+    }
+  }
+
+  @test
+  async staticClientVerified() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await this.authorize(b, { scope: "Task.Get" });
+    const req = await this.op(b, "OAuth.Consent.Get");
+    assert.strictEqual(req.client.verified, true);
+    assert.strictEqual(req.client.host, undefined);
+  }
+
+  @test
+  async stepUpKeepsEarlierScope() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await this.authorize(b, { scope: "Task.Get" });
+    let req = await this.op(b, "OAuth.Consent.Get");
+    await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf: req.csrf, remember: true });
+    // Step-up: Task.Update is not covered, the consent page is shown
+    const step = await this.authorize(b, { scope: "Task.Update" });
+    assert.strictEqual(step.headers.Location, "http://test.webda.io/oauth/consent");
+    req = await this.op(b, "OAuth.Consent.Get");
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+      allow: true,
+      operations: ["Task.Update"],
+      csrf: req.csrf,
+      remember: true
+    });
+    const scope = (await OAuthCode.ref(sha256(query(redirect).code)).get()).scope.split(" ");
+    assert.deepStrictEqual(scope.sort(), ["Task.Get", "Task.Update"]);
+    const grant = await OAuthGrant.ref({ uuid: "u1:app" } as any).get();
+    assert.deepStrictEqual(grant.scope.split(" ").sort(), ["Task.Get", "Task.Update"]);
+  }
+
+  @test
+  async rememberedOperationsAreAlreadyAllowed() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await this.authorize(b, { scope: "Task.Get" });
+    let req = await this.op(b, "OAuth.Consent.Get");
+    await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf: req.csrf, remember: true });
+    await this.authorize(b, { scope: "Task.Get Task.Update" });
+    req = await this.op(b, "OAuth.Consent.Get");
+    const ids = Object.fromEntries(req.operations.flatMap(g => g.ids).map(i => [i.id, i]));
+    assert.strictEqual(ids["Task.Get"].alreadyAllowed, true);
+    assert.ok(!ids["Task.Update"].alreadyAllowed);
+    // The page renders them disabled
+    const script = (await this.get(b, "/oauth/consent")).text;
+    assert.ok(script.includes("box.disabled = op.alreadyAllowed === true"));
+    assert.ok(script.includes("(already allowed)"));
+    // Unticking is impossible: only the new operation is sent, the token still carries the remembered one
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+      allow: true,
+      operations: ["Task.Update"],
+      csrf: req.csrf
+    });
+    const scope = (await OAuthCode.ref(sha256(query(redirect).code)).get()).scope.split(" ");
+    assert.deepStrictEqual(scope.sort(), ["Task.Get", "Task.Update"]);
+  }
+
+  @test
+  async rememberedOperationsOutsideRequestAreListed() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await this.authorize(b, { scope: "Task.Get offline_access" });
+    let req = await this.op(b, "OAuth.Consent.Get");
+    await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf: req.csrf, remember: true });
+    // Step-up asking only Task.Update: the remembered Task.Get is carried into the token, so it is shown
+    await this.authorize(b, { scope: "Task.Update" });
+    req = await this.op(b, "OAuth.Consent.Get");
+    const ids = Object.fromEntries(req.operations.flatMap(g => g.ids).map(i => [i.id, i]));
+    assert.deepStrictEqual(Object.keys(ids).sort(), ["Task.Get", "Task.Update"]);
+    assert.strictEqual(ids["Task.Get"].alreadyAllowed, true);
+    assert.strictEqual(ids["Task.Get"].preselected, true);
+    assert.ok(!ids["Task.Update"].alreadyAllowed);
+    // offline_access is never carried over
+    assert.strictEqual(req.offlineAccess, false);
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+      allow: true,
+      operations: ["Task.Update"],
+      csrf: req.csrf
+    });
+    const scope = (await OAuthCode.ref(sha256(query(redirect).code)).get()).scope.split(" ");
+    assert.deepStrictEqual(scope.sort(), ["Task.Get", "Task.Update"]);
+  }
+
+  @test
+  async rememberedOperationsOutsideAllowedScopesAreNotListed() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await OAuthGrant.create({
+      uuid: "u1:app",
+      userId: "u1",
+      clientId: "app",
+      scope: "Task.*",
+      createdAt: 0,
+      lastUsedAt: 0,
+      expiresAt: Date.now() + 100000
+    } as any);
+    const params = useService<any>("OAuthServer").getParameters();
+    const previous = params.clients.app.allowedScopes;
+    try {
+      params.clients.app.allowedScopes = "Task.Update Task.Get offline_access";
+      await this.authorize(b, { scope: "Task.Update", prompt: "consent" });
+      const req = await this.op(b, "OAuth.Consent.Get");
+      const ids = req.operations.flatMap(g => g.ids).map(i => i.id);
+      assert.deepStrictEqual(ids.sort(), ["Task.Get", "Task.Update"]);
+    } finally {
+      params.clients.app.allowedScopes = previous;
+    }
+  }
+
+  @test
+  async stepUpHonoursNarrowedAllowedScopes() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await OAuthGrant.create({
+      uuid: "u1:app",
+      userId: "u1",
+      clientId: "app",
+      scope: "Task.*",
+      createdAt: 0,
+      lastUsedAt: 0,
+      expiresAt: Date.now() + 100000
+    } as any);
+    const params = useService<any>("OAuthServer").getParameters();
+    const previous = params.clients.app.allowedScopes;
+    try {
+      params.clients.app.allowedScopes = "Task.Update offline_access";
+      await this.authorize(b, { scope: "Task.Update", prompt: "consent" });
+      const req = await this.op(b, "OAuth.Consent.Get");
+      const { redirect } = await this.op(b, "OAuth.Consent.Decide", {
+        allow: true,
+        operations: ["Task.Update"],
+        csrf: req.csrf
+      });
+      const scope = (await OAuthCode.ref(sha256(query(redirect).code)).get()).scope.split(" ");
+      assert.deepStrictEqual(scope, ["Task.Update"]);
+    } finally {
+      params.clients.app.allowedScopes = previous;
+    }
   }
 
   @test
@@ -312,7 +490,7 @@ class ConsentTest extends OAuthTest {
       (await this.authorize(b, { scope: "Task.Get" })).headers.Location,
       "http://test.webda.io/oauth/consent"
     );
-    // A later decision with `remember` replaces the remembered scope
+    // A later decision with `remember` adds to the remembered scope
     const { csrf } = await this.op(b, "OAuth.Consent.Get");
     await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf, remember: true });
     const b2 = await this.browser();
@@ -326,7 +504,7 @@ class ConsentTest extends OAuthTest {
       remember: true
     });
     const grant = await OAuthGrant.ref("u2:app").get();
-    assert.strictEqual(grant.scope, "Task.Update");
+    assert.strictEqual(grant.scope, "Task.* Task.Update");
     assert.strictEqual(grant.createdAt, 0);
     assert.strictEqual((await OAuthGrant.ref("u1:app").get()).scope, "Task.Get");
   }

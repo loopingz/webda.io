@@ -164,13 +164,46 @@ async function runAuthorizers(
 }
 
 /**
- * Check whether the context is allowed to call an operation: the session `permission`, the second factor freshness
- * (`maxMfaAge`) then the authorizers
+ * Probe whether the context may call an operation, telling an authorizer refusal from a denial
+ *
+ * Never throws. Without `options` the authorizers are asked in probe mode ("could the caller call it with some
+ * input?"), for listings. With `options`, they decide on `options.input` exactly.
+ *
+ * @param context - the execution context holding the session
+ * @param operationId - the operation identifier
+ * @param options - the operation input for an exact check
+ * @param options.input - the operation input
+ * @returns false when the operation is unknown, the permission check fails or an error occurs; otherwise the
+ * authorizers result: true if allowed, or the refusal reason (`"insufficient_scope"` for a token scope refusal)
+ */
+export async function probeOperation(
+  context: OperationContext,
+  operationId: string,
+  options?: { input?: any }
+): Promise<true | string | false> {
+  const operation = useInstanceStorage().operations[operationId];
+  if (!operation) {
+    return false;
+  }
+  try {
+    if (!checkOperationPermission(context, operationId, operation)) {
+      return false;
+    }
+    checkOperationMfa(context, operationId, operation);
+    return await runAuthorizers(context, operationId, operation, {
+      input: options?.input,
+      probe: options === undefined
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check whether the context is allowed to call an operation: the session `permission`, MFA freshness then the authorizers
  *
  * Unlike {@link checkOperation}, this never throws: unknown operations, refusals and errors return false.
- *
- * Without `options` the authorizers are asked in probe mode ("could the caller call it with some input?"), for
- * listings. With `options`, they decide on `options.input` exactly.
+ * See {@link probeOperation} to tell the refusal reasons apart.
  *
  * @param context - the execution context holding the session
  * @param operationId - the operation identifier
@@ -183,24 +216,7 @@ export async function canCallOperation(
   operationId: string,
   options?: { input?: any }
 ): Promise<boolean> {
-  const operation = useInstanceStorage().operations[operationId];
-  if (!operation) {
-    return false;
-  }
-  try {
-    if (!checkOperationPermission(context, operationId, operation)) {
-      return false;
-    }
-    checkOperationMfa(context, operationId, operation);
-    return (
-      (await runAuthorizers(context, operationId, operation, {
-        input: options?.input,
-        probe: options === undefined
-      })) === true
-    );
-  } catch {
-    return false;
-  }
+  return (await probeOperation(context, operationId, options)) === true;
 }
 
 /**

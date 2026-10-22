@@ -16,10 +16,17 @@ export interface OAuthClient {
   defaultScope?: string;
   /** Maximum scope ever granted */
   allowedScopes?: string;
+  /**
+   * Resource the tokens are bound to when the request names none (RFC 8707): the absolute URI of a registered
+   * protected resource
+   */
+  defaultResource?: string;
   /** Device authorization grant allowed */
   deviceFlow?: boolean;
   /** Loaded from a Client ID Metadata Document */
   metadataDocument?: boolean;
+  /** Registered dynamically (RFC 7591) */
+  registered?: boolean;
 }
 
 /** Built-in Webda CLI client */
@@ -46,6 +53,22 @@ export function validateClient(id: string, client: any): void {
   if (typeof client.name !== "string" || !client.name) fail("name must be a non-empty string");
   if (!Array.isArray(client.redirect_uris) || !client.redirect_uris.every((u: unknown) => typeof u === "string")) {
     fail("redirect_uris must be an array of strings");
+  }
+  if (client.defaultResource !== undefined && !isHttpUrl(client.defaultResource)) {
+    fail("defaultResource must be an absolute http(s) URL");
+  }
+}
+
+/**
+ * @param value - value to check
+ * @returns true when it is an absolute http or https URL
+ */
+function isHttpUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
   }
 }
 
@@ -91,6 +114,22 @@ export class OAuthServerParameters extends ServiceParameters {
   rememberConsent: boolean;
   /** @default 7776000 */
   rememberConsentTtl: number;
+  /** Lifetime of a registered client never used (s)
+   * @default 86400 */
+  registrationUnusedTtl: number;
+  /** Lifetime of a registered client since its last use (s)
+   * @default 7776000 */
+  registrationIdleTtl: number;
+  /** Dynamic client registration (RFC 7591); defaults to `open` when a protected resource is registered, else `off` */
+  registration?: "open" | "off";
+  /** Globs every redirect URI of a registration must match one of */
+  registrationRedirectPatterns?: string[];
+  /** Registrations allowed per client IP in the window
+   * @default 20 */
+  registrationRateLimit: number;
+  /** Window of the registration rate limit (s)
+   * @default 3600 */
+  registrationRateWindow: number;
   /** Advertised scopes; defaults to the top-level operation groups */
   scopesSupported?: string[];
 
@@ -115,6 +154,10 @@ export class OAuthServerParameters extends ServiceParameters {
     this.devicePollInterval ??= 5;
     this.rememberConsent ??= true;
     this.rememberConsentTtl ??= 90 * 24 * 3600;
+    this.registrationUnusedTtl ??= 86400;
+    this.registrationIdleTtl ??= 7776000;
+    this.registrationRateLimit ??= 20;
+    this.registrationRateWindow ??= 3600;
     return this;
   }
 }

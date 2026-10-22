@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { INTERNAL_MODELS, isInternalModel } from "@webda/core";
 
-const IDS = ["Webda/OAuthCode", "Webda/OAuthDeviceCode", "Webda/OAuthGrant"];
+const IDS = ["Webda/OAuthCode", "Webda/OAuthDeviceCode", "Webda/OAuthGrant", "Webda/OAuthRegisteredClient"];
 
 describe("OAuth models", () => {
   it("are listed as internal so DomainService never exposes them", () => {

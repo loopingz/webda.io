@@ -23,6 +23,8 @@ export type InstanceStorage = Partial<{
   interruptables: Set<{ cancel: () => Promise<void> }>;
   // Awaited operation authorizers (see registerOperationAuthorizer)
   operationAuthorizers: Set<(...args: any[]) => Promise<any>>;
+  // Protected resource servers (see registerProtectedResource)
+  protectedResources: { path: string; uri?: string }[];
   // Second factor methods available to the MFA behavior (see registerSecondFactor)
   secondFactors: Map<string, SecondFactorProvider>;
   loginMfa: LoginMfaPolicy;

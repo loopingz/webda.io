@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { collapse, covers, expand, formatScope, intersect, InvalidScope, parseScope, scopeMatches } from "./scope.js";
+import {
+  collapse,
+  covers,
+  expand,
+  formatScope,
+  intersect,
+  InvalidScope,
+  parseScope,
+  scopeMatches,
+  union
+} from "./scope.js";
 
 const OPS = ["Task.Get", "Task.Update", "Task.Comment.Add", "User.Me", "Auth.Me"];
 
@@ -56,5 +66,13 @@ describe("scope", () => {
     expect(collapse(["Task.Comment.Add"], ["Task.Comment.*"], OPS)).toEqual(["Task.Comment.*"]);
     // An id without a group is listed
     expect(collapse(["Ping"], ["*"], [...OPS, "Ping"])).toEqual(["Ping"]);
+  });
+});
+
+describe("union", () => {
+  it("de-duplicates, keeping the order of a then the new items of b", () => {
+    expect(union(["Task.Get"], ["Task.Get", "Task.Update"])).toEqual(["Task.Get", "Task.Update"]);
+    expect(union(["B", "A"], ["C", "A"])).toEqual(["B", "A", "C"]);
+    expect(union([], [])).toEqual([]);
   });
 });

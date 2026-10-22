@@ -1,7 +1,8 @@
 import { getTemplateEngine, registerTemplateEngine } from "@webda/templates";
 import type { CompiledTemplate, TemplateEngine, TemplateRenderOptions } from "@webda/templates";
 import { NoDefaultExportError, importEmail, type EmailComponent } from "./loader.js";
-import { renderEmail, type RenderedEmail } from "./render.js";
+// render.js imports React: it is loaded on the first render, not with the engine
+import type { RenderedEmail } from "./render.js";
 
 /**
  * Options of the react-email engine
@@ -105,7 +106,10 @@ export class ReactEmailEngine implements TemplateEngine {
    * @returns the rendered email
    */
   protected rendered(component: EmailComponent, data: object, locale?: string): Promise<RenderedEmail> {
-    const render = () => renderEmail(component, { ...data, locale: locale ?? (data as any).locale }, this.options);
+    const render = async () => {
+      const { renderEmail } = await import("./render.js");
+      return renderEmail(component, { ...data, locale: locale ?? (data as any).locale }, this.options);
+    };
     let fingerprint: string;
     try {
       fingerprint = JSON.stringify(data);

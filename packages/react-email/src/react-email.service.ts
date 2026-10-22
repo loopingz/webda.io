@@ -1,6 +1,7 @@
 import { BuildCommand, Command, Service, ServiceParameters, useLog } from "@webda/core";
+// Registers the react-email engine; React itself is only imported when rendering
 import "./engine.js";
-import { precompile, type PrecompileResult } from "./precompile.js";
+import type { PrecompileResult } from "./precompile.js";
 
 /**
  * Parameters of the {@link ReactEmailService}
@@ -77,6 +78,7 @@ export class ReactEmailService<T extends ReactEmailParameters = ReactEmailParame
    */
   @BuildCommand({ description: "Precompile react-email templates to mustache" })
   async build(): Promise<number> {
+    const { precompile } = await import("./precompile.js");
     const result = await precompile(this.parameters);
     this.log("INFO", `react-email: ${result.generated.length} template(s) generated`);
     return exitCode(result);
@@ -102,6 +104,7 @@ export class ReactEmailService<T extends ReactEmailParameters = ReactEmailParame
     /** @description Replace &#x27; with ' in the html */
     fixApostrophes: boolean = true
   ): Promise<number> {
+    const { precompile } = await import("./precompile.js");
     const result = await precompile({ source, output, pretty, fixApostrophes });
     useLog("INFO", `react-email: ${result.generated.length} template(s) generated`);
     return exitCode(result);

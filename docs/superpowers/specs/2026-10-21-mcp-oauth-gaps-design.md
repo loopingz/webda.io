@@ -91,7 +91,9 @@ The first concrete user is LoopCenter, which exposes its models (agent-authored 
 
 ### 5.3 Out-of-scope tool calls
 
-In `packages/mcp/src/server.ts`, when a tool exists but the caller's scope does not cover its operation, answer with an MCP error carrying `insufficient_scope` and, on the HTTP transport, `403` with `WWW-Authenticate: Bearer error="insufficient_scope", scope="<operation glob>", resource_metadata=…` . **Out-of-scope tools stay hidden from `tools/list`** (owner decision): an agent only sees tools it can call, and widening access means re-connecting with a larger scope. The `insufficient_scope` answer is a safety net for clients calling a known tool name. When a client does re-authorize with a larger scope, the consent adds to the remembered `OAuthGrant` rather than replacing it, and the challenge `scope` lists the full set the client needs (already granted ∪ missing). Tools the caller cannot call for **permission** reasons (not scope) keep answering "Unknown tool" so their existence is not disclosed.
+In `packages/mcp/src/server.ts`, when a tool exists but the caller's scope does not cover its operation, answer with an MCP error carrying `insufficient_scope` and, on the HTTP transport, `403` with `WWW-Authenticate: Bearer error="insufficient_scope", scope="<operation glob>", resource_metadata=…` . **Out-of-scope tools stay hidden from `tools/list` by default** (owner decision): an agent only sees tools it can call, and widening access means re-connecting with a larger scope. The `insufficient_scope` answer is then a safety net for clients calling a known tool name.
+
+**Option `listOutOfScopeTools`** (on `McpService`, default `false`, owner request): when `true`, `tools/list` also returns tools the caller's **permissions** allow but its token **scope** does not cover, so an agent can discover them and a call triggers the `insufficient_scope` step-up challenge above. This needs the permission check and the scope check evaluated separately in both `tools/list` and `tools/call` (today the scope authorizer answers `insufficient_scope` in probe mode and `canCallOperation` folds it into `false`): a tool is listed when the permission check passes and either the scope covers it or the option is on. Tools denied by permissions are never listed, whatever the option. When a client does re-authorize with a larger scope, the consent adds to the remembered `OAuthGrant` rather than replacing it, and the challenge `scope` lists the full set the client needs (already granted ∪ missing). Tools the caller cannot call for **permission** reasons (not scope) keep answering "Unknown tool" so their existence is not disclosed.
 
 ### 5.4 Defaults and configuration
 
@@ -100,7 +102,7 @@ In `packages/mcp/src/server.ts`, when a tool exists but the caller's scope does 
 
 ### 5.5 Validation and docs
 
-- **End-to-end tests** (real router, like `packages/oauth/src/e2e.spec.ts`), one per client category, each going register → authorize (with/without `resource`) → consent → token → MCP `tools/list` → in-scope call → out-of-scope call (`insufficient_scope`) → refresh → revoke → `401`:
+- **End-to-end tests** (real router, like `packages/oauth/src/e2e.spec.ts`), one per client category, each going register → authorize (with/without `resource`) → consent → token → MCP `tools/list` → in-scope call → out-of-scope call (`insufficient_scope`) → (with `listOutOfScopeTools: true`: the tool is listed, the call is challenged, re-authorization with the wider scope succeeds and keeps the earlier tools) → refresh → revoke → `401`:
   1. loopback redirect (`http://127.0.0.1:<random port>/callback`) — Claude Code, Codex, Gemini CLI, Goose style;
   2. custom scheme (`cursor://…`, `vscode://…`) — editor style;
   3. hosted https callback (`https://claude.ai/api/mcp/auth_callback`-style) — claude.ai / ChatGPT connector style.
@@ -119,7 +121,8 @@ In `packages/mcp/src/server.ts`, when a tool exists but the caller's scope does 
 | Unused DCR clients expire after 24 h, idle after 90 days | Claude's call |
 | Missing `resource` → bind to the single MCP resource; `invalid_target` if several | Claude's call |
 | Resource-bound tokens are not accepted as general API bearer tokens | Claude's call |
-| Out-of-scope tools stay hidden from `tools/list` | Owner |
+| Out-of-scope tools hidden from `tools/list` by default, `listOutOfScopeTools` option to list them | Owner |
+| `listOutOfScopeTools` lives on `McpService` (it shapes the MCP tool list, not token validation) | Claude's call |
 | No compatibility mode or token migration (nothing uses MCP OAuth tokens today) | Owner |
 | Canonical resource URI from a configured `publicUrl`, compared in full; one resource per endpoint | Claude's call |
 | Step-up consent adds to the existing grant (union with the remembered `OAuthGrant`); the challenge `scope` lists the full set the client needs (granted ∪ missing) | Claude's call |

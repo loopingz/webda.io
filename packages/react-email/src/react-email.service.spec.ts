@@ -79,6 +79,12 @@ class ReactEmailServiceTest extends ReactEmailServiceTestBase {
   }
 
   @test
+  async renderErrorExitCode() {
+    const out = await this.tmp();
+    assert.strictEqual(await ReactEmailService.buildTemplates("test/emails-throwing", out), 1);
+  }
+
+  @test
   engineRegistered() {
     assert.ok(getTemplateEngine("react-email") instanceof ReactEmailEngine);
   }

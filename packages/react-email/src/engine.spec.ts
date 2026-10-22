@@ -113,6 +113,12 @@ class ReactEmailEngineTest extends TemplateServiceTestBase {
   }
 
   @test
+  async renderErrorRejects() {
+    const svc = new TemplateRenderer({ folders: ["test/emails-throwing"], engine: "react-email" });
+    await assert.rejects(() => svc.renderAll("kaboom", { name: "Ada" }), /kaboom Ada/);
+  }
+
+  @test
   async dataLocaleKept() {
     const html = await this.svc().render("conditional/html", { firstName: "Ada", items: [], locale: "es" });
     assert.ok(flat(html).includes("Locale: es"));

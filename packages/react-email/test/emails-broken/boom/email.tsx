@@ -4,7 +4,7 @@ export default function Boom({ name }: { name?: string }) {
 }
 
 Boom.PreviewProps = { name: "Marie" };
-// A throwing component does not fail the render: React falls back to client rendering, so the failure is in Subject
+// The failure is in Subject, see test/emails-throwing for a component throwing in its render body
 Boom.Subject = (p: { name?: string }): string => {
   throw new Error(`boom ${p.name}`);
 };

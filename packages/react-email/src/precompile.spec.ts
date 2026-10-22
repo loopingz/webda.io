@@ -84,6 +84,14 @@ class PrecompileTest {
   }
 
   @test
+  async renderErrorFails() {
+    const output = await this.makeOutput();
+    const result = await precompile({ source: "test/emails-throwing", output });
+    assert.deepStrictEqual(result.failed, ["kaboom"]);
+    assert.ok(!existsSync(resolve(output, "kaboom/html.mustache")));
+  }
+
+  @test
   async previewPropsUntouched() {
     const output = await this.makeOutput();
     await precompile({ source, output });

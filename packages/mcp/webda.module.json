@@ -111,6 +111,11 @@
             "description": "Name of a service implementing McpAuthenticator; default uses the Webda session",
             "type": "string"
           },
+          "listOutOfScopeTools": {
+            "default": false,
+            "description": "List the tools the token scope does not cover in tools/list; calling them still\nanswers insufficient_scope so the client can ask for a wider grant",
+            "type": "boolean"
+          },
           "maxOutputBytes": {
             "default": 1048576,
             "description": "Larger tool/resource outputs are truncated",

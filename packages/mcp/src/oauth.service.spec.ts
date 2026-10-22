@@ -64,14 +64,15 @@ class McpOAuthBase extends McpFixtureTest {
   /**
    * @param scope - operation globs
    * @param resource - token audience, defaults to the bound MCP resource
+   * @param user - token user
    * @returns a bearer access token
    */
-  async bearer(scope: string[], resource?: string | null): Promise<string> {
+  async bearer(scope: string[], resource?: string | null, user: string = "alice"): Promise<string> {
     if (resource === undefined) {
       resource = `${await this.base()}/mcp`;
     }
     const session = new Session();
-    session.login("alice", "alice:email", { provider: "email", amr: ["pwd"] });
+    session.login(user, `${user}:email`, { provider: "email", amr: ["pwd"] });
     const tokens = await (useService("TokenService") as any).issue(session, undefined, {
       clientId: "https://mcp.example.com/c.json",
       scope,
@@ -91,6 +92,60 @@ class McpOAuthBase extends McpFixtureTest {
     const client = new Client({ name: "spec", version: "1.0.0" });
     await client.connect(transport);
     return client;
+  }
+
+  /**
+   * Open an MCP session with raw HTTP and send one JSON-RPC request in it
+   * @param token - bearer token
+   * @param message - JSON-RPC request (or batch) sent once the session is initialized
+   * @returns the raw response to the request
+   */
+  async rawCall(token: string, message: unknown): Promise<Response> {
+    const base = await this.base();
+    const headers = { ...HEADERS, authorization: `Bearer ${token}` };
+    const init = await fetch(`${base}/mcp`, { method: "POST", headers, body: JSON.stringify(INIT) });
+    assert.strictEqual(init.status, 200);
+    await init.text();
+    const session = {
+      ...headers,
+      "mcp-session-id": init.headers.get("mcp-session-id")!,
+      "mcp-protocol-version": "2025-11-25"
+    };
+    const initialized = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: session,
+      body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })
+    });
+    await initialized.text();
+    return fetch(`${base}/mcp`, { method: "POST", headers: session, body: JSON.stringify(message) });
+  }
+
+  /**
+   * @param name - tool name
+   * @param id - JSON-RPC id
+   * @returns a tools/call request
+   */
+  callRequest(name: string, id: number = 2) {
+    return { jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: {} } };
+  }
+
+  /**
+   * Assert a 403 insufficient_scope challenge
+   * @param res - raw response
+   * @param scope - expected challenge scope
+   */
+  async assertChallenge(res: Response, scope: string): Promise<void> {
+    const base = await this.base();
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(
+      res.headers.get("www-authenticate"),
+      `Bearer error="insufficient_scope", scope="${scope}", resource_metadata="${base}/.well-known/oauth-protected-resource"`
+    );
+    assert.deepStrictEqual(await res.json(), {
+      jsonrpc: "2.0",
+      id: 2,
+      error: { code: -32001, message: "insufficient_scope", data: { error: "insufficient_scope", scope } }
+    });
   }
 }
 
@@ -232,9 +287,69 @@ class McpOAuthTest extends McpOAuthBase {
     assert.deepStrictEqual(names, ["Fixture.Echo"]);
     const ok = await client.callTool({ name: "Fixture.Echo", arguments: { text: "hi" } });
     assert.deepStrictEqual(ok.structuredContent, { text: "hi" });
-    // a tool outside the scope is refused as unknown
-    await assert.rejects(() => client.callTool({ name: "Fixture.Version", arguments: {} }), /Unknown tool/);
+    // a tool outside the scope is challenged for a wider scope
+    await assert.rejects(() => client.callTool({ name: "Fixture.Version", arguments: {} }));
     await client.close();
+    await this.assertChallenge(
+      await this.rawCall(await this.bearer(["Fixture.Echo"]), this.callRequest("Fixture.Version")),
+      "Fixture.Echo Fixture.Version"
+    );
+  }
+
+  @test
+  async outOfScopeHiddenByDefault() {
+    const client = await this.client(await this.bearer(["Fixture.Echo"]));
+    const names = (await client.listTools()).tools.map(t => t.name);
+    assert.ok(names.includes("Fixture.Echo"));
+    assert.ok(!names.includes("Fixture.Version"), names.join(" "));
+    await client.close();
+  }
+
+  @test
+  async outOfScopeCallChallenged() {
+    const token = await this.bearer(["Fixture.Echo", "Fixture.Count"]);
+    await this.assertChallenge(
+      await this.rawCall(token, this.callRequest("Fixture.Version")),
+      "Fixture.Echo Fixture.Count Fixture.Version"
+    );
+    // in a batch, the JSON-RPC error is carried in the body (HTTP 200)
+    const batch = await this.rawCall(token, [this.callRequest("Fixture.Version")]);
+    assert.strictEqual(batch.status, 200);
+    const text = await batch.text();
+    assert.ok(text.includes('"code":-32001'), text);
+    assert.ok(text.includes('"scope":"Fixture.Echo Fixture.Count Fixture.Version"'), text);
+  }
+
+  @test
+  async permissionDeniedStillUnknown() {
+    // Fixture.Secret is reserved to alice: refused to bob whatever the token scope
+    for (const scope of [["Fixture.*"], ["Fixture.Echo"]]) {
+      const token = await this.bearer(scope, undefined, "bob");
+      const client = await this.client(token);
+      assert.ok(!(await client.listTools()).tools.some(t => t.name === "Fixture.Secret"));
+      await assert.rejects(() => client.callTool({ name: "Fixture.Secret", arguments: {} }), /Unknown tool/);
+      await client.close();
+      const res = await this.rawCall(token, this.callRequest("Fixture.Secret"));
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers.get("www-authenticate"), null);
+    }
+  }
+
+  @test
+  async listOutOfScopeToolsOption() {
+    const mcp = useService("Mcp") as McpService;
+    assert.strictEqual(mcp.getParameters().listOutOfScopeTools, false);
+    mcp.getParameters().listOutOfScopeTools = true;
+    try {
+      const client = await this.client(await this.bearer(["Fixture.Echo"], undefined, "bob"));
+      const names = (await client.listTools()).tools.map(t => t.name);
+      assert.ok(names.includes("Fixture.Echo"));
+      assert.ok(names.includes("Fixture.Version"), names.join(" "));
+      assert.ok(!names.includes("Fixture.Secret"), names.join(" "));
+      await client.close();
+    } finally {
+      mcp.getParameters().listOutOfScopeTools = false;
+    }
   }
 
   @test

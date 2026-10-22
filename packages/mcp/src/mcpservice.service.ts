@@ -14,14 +14,15 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { isInitializeRequest, isJSONRPCRequest } from "@modelcontextprotocol/sdk/types.js";
 import { useLog } from "@webda/workout";
 import { randomUUID } from "node:crypto";
 import { Writable } from "node:stream";
 import { McpAuthenticator, SessionAuthenticator } from "./auth.js";
-import { jsonRpcError, toRequest, writeResponse } from "./bridge.js";
+import { jsonRpcError, jsonRpcErrorResponse, toRequest, writeResponse } from "./bridge.js";
+import { sessionContext } from "./invoke.js";
 import { ResourceRegistry } from "./resources.js";
-import { createMcpServer } from "./server.js";
+import { challengeScope, createMcpServer, INSUFFICIENT_SCOPE, toolAccess } from "./server.js";
 import { McpSessionEntry, McpSessionManager } from "./sessions.js";
 import { operationsFingerprint, ToolRegistry } from "./tools.js";
 
@@ -96,6 +97,12 @@ export class McpServiceParameters extends OperationsTransportParameters {
    * Name of a service implementing McpAuthenticator; default uses the Webda session
    */
   authenticator?: string;
+  /**
+   * List the tools the token scope does not cover in tools/list; calling them still
+   * answers insufficient_scope so the client can ask for a wider grant
+   * @default false
+   */
+  listOutOfScopeTools: boolean;
 
   /**
    * @param params - raw parameters
@@ -114,6 +121,7 @@ export class McpServiceParameters extends OperationsTransportParameters {
     this.maxSessions ??= 1000;
     this.maxOutputBytes ??= 1048576;
     this.stdio ??= {};
+    this.listOutOfScopeTools ??= false;
     return this;
   }
 }
@@ -274,8 +282,50 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       resources: this.resourceRegistry,
       maxOutputBytes: this.parameters.maxOutputBytes,
       getSession,
-      beforeRequest: () => this.checkForChanges()
+      beforeRequest: () => this.checkForChanges(),
+      listOutOfScopeTools: this.parameters.listOutOfScopeTools
     });
+  }
+
+  /**
+   * @param name - tool name
+   * @returns the operation behind the tool, undefined for an unknown tool
+   */
+  protected toolOperation(name: string): string | undefined {
+    return this.tools.get(name)?.operationId;
+  }
+
+  /**
+   * Refuse a single tools/call whose tool the token scope does not cover with an HTTP 403
+   * `insufficient_scope` challenge: the SDK transport would answer its JSON-RPC error with HTTP 200
+   * @param ctx - the request context
+   * @param session - caller session
+   * @param message - parsed request body
+   * @returns true when the request was answered
+   */
+  protected async challengeOutOfScope(ctx: WebContext, session: Session, message: unknown): Promise<boolean> {
+    if (!isJSONRPCRequest(message) || message.method !== "tools/call") {
+      return false;
+    }
+    const name = (message.params as any)?.name;
+    const operationId = typeof name === "string" ? this.toolOperation(name) : undefined;
+    if (!operationId || (await toolAccess(sessionContext(session), operationId)) !== "out_of_scope") {
+      return false;
+    }
+    const scope = challengeScope(session, operationId);
+    const metadata = this.authenticator.resourceMetadataUrl?.(ctx);
+    jsonRpcErrorResponse(
+      ctx,
+      403,
+      { code: INSUFFICIENT_SCOPE, message: "insufficient_scope", data: { error: "insufficient_scope", scope } },
+      message.id,
+      {
+        "WWW-Authenticate": `Bearer error="insufficient_scope", scope="${scope}"${
+          metadata ? `, resource_metadata="${metadata}"` : ""
+        }`
+      }
+    );
+    return true;
   }
 
   /**
@@ -369,6 +419,9 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       entry = await this.createHttpSession(ctx, userId, origin);
     }
     this.checkForChanges();
+    if (await this.challengeOutOfScope(ctx, session, parsedBody)) {
+      return;
+    }
     const bearer = (http.getUniqueHeader("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const authInfo: AuthInfo = {
       token: bearer,

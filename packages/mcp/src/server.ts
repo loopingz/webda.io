@@ -1,4 +1,12 @@
-import { canCallOperation, Session, SimpleOperationContext, WebdaError } from "@webda/core";
+import {
+  canCallOperation,
+  formatScope,
+  probeOperation,
+  Session,
+  SimpleOperationContext,
+  union,
+  WebdaError
+} from "@webda/core";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import {
@@ -25,6 +33,54 @@ export const RESOURCE_NOT_FOUND = -32002;
  * Number of tools per tools/list page
  */
 export const TOOLS_PAGE_SIZE = 100;
+
+/**
+ * JSON-RPC error code of a tool call refused for insufficient token scope
+ */
+export const INSUFFICIENT_SCOPE = -32001;
+
+/**
+ * Access of a caller to a tool
+ *
+ * `out_of_scope`: only the bearer token scope refuses it, a wider grant would allow it.
+ * `denied`: refused for any other reason (permission, authorizer), as if it did not exist.
+ */
+export type ToolAccess = "allowed" | "out_of_scope" | "denied";
+
+/**
+ * @param context - caller context; authorizers (such as IAM) cache the caller's user on it across a listing
+ * @param operationId - operation behind the tool
+ * @returns the caller's access to the tool
+ */
+export async function toolAccess(context: SimpleOperationContext, operationId: string): Promise<ToolAccess> {
+  const result = await probeOperation(context, operationId);
+  if (result === true) {
+    return "allowed";
+  }
+  return result === "insufficient_scope" ? "out_of_scope" : "denied";
+}
+
+/**
+ * Scope to request for an out-of-scope operation: the current token scope plus the operation
+ * @param session - caller session
+ * @param operationId - refused operation
+ * @returns space-separated scope
+ */
+export function challengeScope(session: Session | undefined, operationId: string): string {
+  return formatScope(union(session?.scopes ?? [], [operationId]));
+}
+
+/**
+ * @param session - caller session
+ * @param operationId - refused operation
+ * @returns the insufficient_scope JSON-RPC error
+ */
+export function insufficientScopeError(session: Session | undefined, operationId: string): McpError {
+  return new McpError(INSUFFICIENT_SCOPE, "insufficient_scope", {
+    error: "insufficient_scope",
+    scope: challengeScope(session, operationId)
+  });
+}
 
 /**
  * Dependencies of an MCP server instance
@@ -54,6 +110,10 @@ export interface McpServerOptions {
    * Hook run before tools/resources requests (tool list change detection)
    */
   beforeRequest?: () => void;
+  /**
+   * List the tools the token scope does not cover (they are still refused with insufficient_scope)
+   */
+  listOutOfScopeTools?: boolean;
 }
 
 /**
@@ -105,8 +165,10 @@ export function createMcpServer(options: McpServerOptions): Server {
     const session = options.getSession(extra);
     const all = tools.list();
     const context = sessionContext(session);
-    const flags = await Promise.all(all.map(e => allowed(context, e.operationId)));
-    const visible = all.filter((_e, i) => flags[i]);
+    const access = await Promise.all(all.map(e => toolAccess(context, e.operationId)));
+    const visible = all.filter(
+      (_e, i) => access[i] === "allowed" || (options.listOutOfScopeTools && access[i] === "out_of_scope")
+    );
     const offset = Number(request.params?.cursor ?? 0) || 0;
     const page = visible.slice(offset, offset + TOOLS_PAGE_SIZE);
     const next = offset + TOOLS_PAGE_SIZE < visible.length ? String(offset + TOOLS_PAGE_SIZE) : undefined;
@@ -117,7 +179,11 @@ export function createMcpServer(options: McpServerOptions): Server {
     options.beforeRequest?.();
     const session = options.getSession(extra);
     const entry = tools.get(request.params.name);
-    if (!entry || !(await allowed(sessionContext(session), entry.operationId))) {
+    const access = entry ? await toolAccess(sessionContext(session), entry.operationId) : "denied";
+    if (access === "out_of_scope") {
+      throw insufficientScopeError(session, entry!.operationId);
+    }
+    if (!entry || access === "denied") {
       throw new McpError(ErrorCode.InvalidParams, `Unknown tool: ${request.params.name}`);
     }
     const args = request.params.arguments ?? {};

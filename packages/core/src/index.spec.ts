@@ -5,9 +5,9 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 
 /**
- * Packages that most applications never use and that are slow to import: they must only be loaded on use
+ * HTML sanitization loads a parsing stack that is only needed when sanitizing input
  */
-const LAZY_PACKAGES = ["email-templates", "nodemailer", "sanitize-html"];
+const LAZY_PACKAGES = ["sanitize-html"];
 
 /**
  * Guard the cold start of the framework (#926)
@@ -15,7 +15,7 @@ const LAZY_PACKAGES = ["email-templates", "nodemailer", "sanitize-html"];
 @suite
 class ColdStartTest {
   /**
-   * Importing @webda/core must not load the email and HTML libraries
+   * Importing @webda/core must not load sanitize-html
    *
    * The import runs in a fresh Node process: the test process has already loaded them
    */

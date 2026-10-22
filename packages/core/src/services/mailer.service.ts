@@ -1,5 +1,6 @@
+import Email from "email-templates";
 import * as fs from "fs";
-import type * as nodemailer from "nodemailer";
+import * as nodemailer from "nodemailer";
 import * as path from "path";
 import { NotificationService } from "./notificationservice.service.js";
 import { Service } from "./service.js";
@@ -252,8 +253,6 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    * @override
    */
   async init(): Promise<this> {
-    // Imported on use: nodemailer is slow to load and most applications never send emails
-    const nodemailer = await import("nodemailer");
     // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
     // Encrypted values (auth.pass, SES credentials...) are unwrapped to plain strings for nodemailer
     this._transporter = nodemailer.createTransport(
@@ -267,18 +266,16 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    *
    * Lazily creates and caches an Email template using the configured
    * templates directory and engine. Logs a warning if the template does not exist.
-   * `email-templates` is only imported with the first template: it loads a whole HTML stack (cheerio, juice...)
    *
    * @param name - Template name (must correspond to a directory in the templates folder)
    * @returns The email template instance, or undefined if the template does not exist
    */
-  async _getTemplate(name: string): Promise<IEmailTemplate | undefined> {
+  _getTemplate(name: string) {
     if (!this._templates[name]) {
       if (!this.hasNotification(name)) {
         this.log("WARN", "No template found for", name);
         return;
       }
-      const { default: Email } = await import("email-templates");
       this._templates[name] = new Email({
         ...this.parameters.emailTemplateOptions,
         views: {
@@ -329,7 +326,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
         options.replacements = {};
       }
       options.replacements.now = new Date();
-      const template = await this._getTemplate(options.template);
+      const template = this._getTemplate(options.template);
       if (template) {
         const result = await template.renderAll(options.template, options.replacements);
         if (result.subject) {

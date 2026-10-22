@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { getEngineForExtension, getTemplateEngine, listTemplateEngines, registerTemplateEngine } from "./index.js";
 import type { TemplateEngine } from "./index.js";
 
@@ -51,6 +52,15 @@ class EnginesTest {
     assert.strictEqual(getEngineForExtension("x")?.name, "first");
     assert.strictEqual(getEngineForExtension("x", "second")?.name, "second");
     assert.strictEqual(getEngineForExtension("nope"), undefined);
+  }
+
+  @test
+  async mustacheKeptWhenLoadedAgain() {
+    const mustache = getTemplateEngine("mustache");
+    // Another copy of the module (compiled lib next to src) must not replace the registered engine
+    vi.resetModules();
+    await import("./mustache.engine.js");
+    assert.strictEqual(getTemplateEngine("mustache"), mustache);
   }
 
   @test

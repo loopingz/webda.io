@@ -196,6 +196,33 @@ class TemplateRendererTest {
   }
 
   @test
+  async partialsFolderSkipsUnknownFiles() {
+    const dir = await this.tmpFolder();
+    await mkdir(join(dir, "partials"), { recursive: true });
+    await writeFile(join(dir, "partials", "head.mustache"), "HEAD");
+    await writeFile(join(dir, "partials", "README.txt"), "not a partial");
+    await writeFile(join(dir, "_notes.txt"), "not a partial either");
+    await writeFile(join(dir, "page.mustache"), "{{>head}} body{{>README}}{{>notes}}");
+    const r = new TemplateRenderer({ folders: [dir] });
+    assert.strictEqual(await r.render("page"), "HEAD body");
+  }
+
+  @test
+  async currentFolderIsNotATemplate() {
+    const r = new TemplateRenderer({ folders: [A] });
+    // "." is the folder itself, never a multi-part template
+    assert.strictEqual(await r.has("."), false);
+    await assert.rejects(() => r.renderAll("."), TemplateNotFoundError);
+  }
+
+  @test
+  async hasPropagatesUnexpectedErrors() {
+    const r = new TemplateRenderer({ folders: [A] });
+    vi.spyOn(r as any, "read").mockRejectedValue(new Error("disk failure"));
+    await assert.rejects(() => r.has("single"), /disk failure/);
+  }
+
+  @test
   async nestedMultiPart() {
     const dir = await this.tmpFolder();
     await mkdir(join(dir, "auth", "WELCOME", "fr"), { recursive: true });

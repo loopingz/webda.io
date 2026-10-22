@@ -1,9 +1,10 @@
 import { suite, test } from "@webda/test";
-import { useService, type UnpackedConfiguration } from "@webda/core";
+import { installConfigurationFactories, useService, type UnpackedConfiguration } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
+import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import * as assert from "assert";
 import { vi } from "vitest";
-import { TemplateService, registerTemplateEngine } from "./index.js";
+import { TemplateService, TemplateServiceParameters, registerTemplateEngine } from "./index.js";
 
 const configure = vi.fn();
 let configured = false;
@@ -24,8 +25,23 @@ registerTemplateEngine("async-fail", {
 });
 registerTemplateEngine("service-fake", { extensions: ["sfake"], configure, compile: () => () => "" });
 
+/**
+ * Run the TemplateService from the sources rather than the compiled module
+ */
+class TemplateServiceTestBase extends WebdaApplicationTest {
+  /**
+   * Register the TemplateService from sources, with the compiled parameters schema
+   * @param app - the test application
+   */
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    installConfigurationFactories(TemplateService, TemplateServiceParameters, app.getSchema("Webda/TemplateService"));
+    app.addModda("Webda/TemplateService", TemplateService);
+  }
+}
+
 @suite
-class TemplateServiceTest extends WebdaApplicationTest {
+class TemplateServiceTest extends TemplateServiceTestBase {
   folders = ["test/templates-a", "test/templates-b"];
 
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
@@ -43,8 +59,7 @@ class TemplateServiceTest extends WebdaApplicationTest {
 
   @test
   availableByName() {
-    // The module is loaded from lib, so compare by name rather than identity
-    assert.strictEqual(useService("TemplateService").constructor.name, TemplateService.name);
+    assert.ok(useService("TemplateService") instanceof TemplateService);
   }
 
   @test
@@ -103,6 +118,30 @@ class TemplateServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  staticEngineHelpers() {
+    const engine = { extensions: ["static"], compile: () => () => "STATIC" };
+    TemplateService.registerEngine("service-static", engine);
+    assert.strictEqual(TemplateService.getEngine("service-static"), engine);
+  }
+
+  @test
+  loadParameters() {
+    const params = useService<TemplateService>("TemplateService").loadParameters({ folders: ["x"] });
+    assert.ok(params instanceof TemplateServiceParameters);
+    assert.deepStrictEqual(params.folders, ["x"]);
+    assert.strictEqual(params.engine, "mustache");
+  }
+
+  @test
+  resolveWithoutEngineOptions() {
+    const svc = useService<TemplateService>("TemplateService");
+    svc.getParameters().engines = undefined;
+    configure.mockClear();
+    svc.resolve();
+    assert.strictEqual(configure.mock.calls.length, 0);
+  }
+
+  @test
   async metrics() {
     const svc = useService("TemplateService");
     const metrics = Reflect.get(svc, "metrics");
@@ -125,7 +164,7 @@ class TemplateServiceTest extends WebdaApplicationTest {
 }
 
 @suite
-class TemplateServiceMissingFolderTest extends WebdaApplicationTest {
+class TemplateServiceMissingFolderTest extends TemplateServiceTestBase {
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
     return {
       parameters: { ignoreBeans: true },

@@ -1,12 +1,20 @@
 import { suite, test } from "@webda/test";
-import { SecretString, User, useCore, useService, type UnpackedConfiguration } from "@webda/core";
+import {
+  SecretString,
+  User,
+  installConfigurationFactories,
+  useCore,
+  useService,
+  type UnpackedConfiguration
+} from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
+import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import * as assert from "assert";
 import { readFileSync } from "fs";
 import juice from "juice";
 import { resolve } from "path";
 import * as sinon from "sinon";
-import { MailerParameters } from "./index.js";
+import { Mailer, MailerParameters } from "./index.js";
 
 /**
  * Replacements used to take the snapshots with the previous email-templates based mailer
@@ -60,6 +68,16 @@ class MailerTestBase extends WebdaApplicationTest {
         templates: "test/templates"
       }
     };
+  }
+
+  /**
+   * Register the Mailer from sources, with the compiled parameters schema
+   * @param app - the test application
+   */
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    installConfigurationFactories(Mailer, MailerParameters, app.getSchema("Webda/Mailer"));
+    app.addModda("Webda/Mailer", Mailer);
   }
 
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
@@ -290,6 +308,37 @@ class MailerTest extends MailerTestBase {
     await this.mailer.send({ template: "HTML_ONLY", replacements: { name: "a" } });
     assert.strictEqual(this.lastOptions.text, "Hi a");
     assert.strictEqual(this.lastOptions.subject, undefined);
+  }
+
+  @test
+  loadParameters() {
+    const params = this.mailer.loadParameters({ sender: "me@webda.io" });
+    assert.ok(params instanceof MailerParameters);
+    assert.strictEqual(params.sender, "me@webda.io");
+    assert.strictEqual(params.templateService, "TemplateService");
+    assert.deepStrictEqual(params.emailTemplateOptions, {});
+  }
+
+  @test
+  async renderErrorsPropagate() {
+    const renderAll = sinon.stub();
+    sinon.stub(this.mailer, "getTemplates").returns({ renderer: { has: async () => true, renderAll }, folder: "." });
+    // Only a missing template becomes "Unknown mail template", other failures reach the caller untouched
+    renderAll.rejects(new Error("engine failure"));
+    await assert.rejects(() => this.mailer.send({ template: "X" }), /engine failure/);
+    renderAll.returns(Promise.reject(null));
+    await assert.rejects(
+      () => this.mailer.send({ template: "X" }),
+      (err: any) => err === null
+    );
+    assert.strictEqual(this.lastOptions, undefined);
+  }
+
+  @test
+  async juiceErrorPropagates() {
+    sinon.stub(juice, "juiceResources").callsFake((_html, _options, callback) => callback(new Error("juice failure")));
+    await assert.rejects(() => this.mailer.send({ template: "STYLED" }), /juice failure/);
+    assert.strictEqual(this.lastOptions, undefined);
   }
 
   @test

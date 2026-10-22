@@ -168,15 +168,14 @@ export class TemplateRenderer {
               ? join(folder, name, ...(candidate ? [candidate] : []), `${part}.${ext}`)
               : join(folder, `${name}${candidate ? "." + candidate : ""}.${ext}`);
           if (this.contained(folder, path) && (await isFile(path))) {
-            const engine = getEngineForExtension(ext, this.options.engine ?? "mustache");
-            if (engine) {
-              return {
-                path,
-                engine: engine.name,
-                folder,
-                templateDir: part !== undefined ? join(folder, name) : undefined
-              };
-            }
+            // The extensions come from the registered engines, one always handles it
+            const engine = getEngineForExtension(ext, this.options.engine ?? "mustache")!;
+            return {
+              path,
+              engine: engine.name,
+              folder,
+              templateDir: part !== undefined ? join(folder, name) : undefined
+            };
           }
         }
       }

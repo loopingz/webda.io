@@ -1,7 +1,7 @@
 import {
   type AuthResult,
   Ident,
-  type Mailer,
+  type AbstractMailer,
   Operation,
   Password,
   Route,
@@ -236,12 +236,12 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     token: string
   ): Promise<void> {
     const ctx = useContext<any>();
-    await useDynamicService<Mailer>(this.parameters.mailer).send({
+    await useDynamicService<AbstractMailer>(this.parameters.mailer).send({
       to,
       locale: ctx?.getLocale?.(),
       template,
       replacements: { url, token, to }
-    } as any);
+    });
   }
 
   /**

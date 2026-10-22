@@ -190,7 +190,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     this.models = useApplication().getModels();
     for (const i in this.models) {
       for (const event of this.models[i].getClientEvents()) {
-        this.models[i].on(<any>event, data => {
+        this.models[i].on(<any>event, (data: unknown) => {
           this.sendMessage({
             event: typeof event === "string" ? event : event.name,
             data,
@@ -353,10 +353,13 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
       name: process.env.HOSTNAME || process.env.HOST || "unknown",
       ...Object.keys(process.env)
         .filter(key => key.startsWith("CLUSTER_"))
-        .reduce((acc, key) => {
-          acc[key.substring(8)] = process.env[key];
-          return acc;
-        }, {})
+        .reduce(
+          (acc, key) => {
+            acc[key.substring(8)] = process.env[key];
+            return acc;
+          },
+          {} as Record<string, string | undefined>
+        )
     };
     return this;
   }

@@ -52,6 +52,29 @@ class ServiceRunnerTest extends AsyncTest {
   }
 
   @test
+  async rejectsIncompleteActions() {
+    const cases = [
+      [new AsyncWebdaAction(), "Action service and method are required"],
+      [new AsyncWebdaAction("calledRunner"), "Action service and method are required"],
+      [new AsyncWebdaAction("missing", "test"), "Service missing was not found"],
+      [new AsyncOperationAction(), "Operation id is required"]
+    ] as const;
+    for (const [action, message] of cases) {
+      await action.save();
+      const launched = await this.runner.launchAction(action, {
+        JOB_HOOK: "",
+        JOB_ID: action.uuid,
+        JOB_ORCHESTRATOR: "test",
+        JOB_SECRET_KEY: ""
+      });
+      await launched.promise;
+      await action.refresh();
+      assert.strictEqual(action.status, "ERROR");
+      assert.strictEqual(action.errorMessage, message);
+    }
+  }
+
+  @test
   async operationAction() {
     const runner = this.runner;
     const ctx = new OperationContext();
@@ -76,6 +99,7 @@ class ServiceRunnerTest extends AsyncTest {
     action.serviceName = "calledRunner";
     action.method = "test";
     await action.save();
+    action.arguments = undefined;
     let serviceAction = await runner.launchAction(action, {
       JOB_HOOK: "",
       JOB_ID: action.uuid,

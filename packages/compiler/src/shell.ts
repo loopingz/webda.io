@@ -274,7 +274,11 @@ Fork(
               };
               generateConfigurationSchemas(app, undefined, undefined, undefined, configPath);
             } catch (err) {
-              useWorkerOutput().log("WARN", "Cannot generate configuration schemas", err.message);
+              useWorkerOutput().log(
+                "WARN",
+                "Cannot generate configuration schemas",
+                err instanceof Error ? err.message : String(err)
+              );
             }
 
             // Generate operations.json
@@ -287,7 +291,11 @@ Fork(
               writeFileSync(join(webdaDir, "operations.json"), JSON.stringify(operations, undefined, 2));
               useWorkerOutput().log("INFO", "Generated .webda/operations.json");
             } catch (err) {
-              useWorkerOutput().log("WARN", "Cannot generate operations.json", err.message);
+              useWorkerOutput().log(
+                "WARN",
+                "Cannot generate operations.json",
+                err instanceof Error ? err.message : String(err)
+              );
             }
 
             // Build-hook dispatch: if any configured service declares a `build`

@@ -58,22 +58,22 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    * Queue to post execution to
    * @default AsyncActionsQueue
    */
-  queue: string;
+  queue!: string;
   /**
    * URL to expose job status report hook
    *
    * @default /async
    */
-  url: string;
+  url!: string;
   /**
    * Fallback on first runner if none match
    * @default false
    */
-  fallbackOnFirst: boolean;
+  fallbackOnFirst!: boolean;
   /**
    * Runners to use
    */
-  runners: string[];
+  runners!: string[];
   /**
    * Limit the maximum number of jobs running in //
    */
@@ -83,13 +83,13 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    *
    * @default false
    */
-  onlyHttpHook?: boolean;
+  onlyHttpHook!: boolean;
   /**
    * Include Cron annotation to launch them as AsyncOperationAction
    *
    * @default true
    */
-  includeCron?: boolean;
+  includeCron!: boolean;
   /**
    * Include the scheduler system in the worker
    */
@@ -103,7 +103,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    *
    * @default 60000
    */
-  schedulerResolution?: number;
+  schedulerResolution!: number;
 
   /**
    * Limit the number of lines of logs available for an async action
@@ -112,21 +112,21 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    *
    * @default 500
    */
-  logsLimit: number;
+  logsLimit!: number;
 
   /**
    * Model to use when launching async action
    *
    * @default Webda/AsyncWebdaAction
    */
-  asyncActionModel?: string;
+  asyncActionModel!: string;
 
   /**
    * Model to use when launching async operation
    *
    * @default Webda/AsyncOperationAction
    */
-  asyncOperationModel?: string;
+  asyncOperationModel!: string;
   /**
    * JSON file of the AsyncOperation definition
    *
@@ -166,12 +166,12 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Queue for execution
    */
-  protected queue: Queue<AsyncActionQueueItem>;
+  protected queue?: Queue<AsyncActionQueueItem>;
 
   /**
    * Runner to use
    */
-  protected runners: Runner[];
+  protected runners!: Runner[];
   /**
    * HMAC Algorithm used for simple auth
    */
@@ -179,12 +179,12 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Model to use when launching action
    */
-  model: (new (serviceName?: string, method?: string, ...args: any[]) => AsyncWebdaAction) &
+  model!: (new (serviceName?: string, method?: string, ...args: any[]) => AsyncWebdaAction) &
     ModelClass<AsyncWebdaAction>;
   /**
    * Model to use when launching operation
    */
-  operationModel: new (
+  operationModel?: new (
     operationId: string,
     context: OperationContext,
     logLevel?: WorkerLogLevel
@@ -192,7 +192,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Operations definition
    */
-  protected operations: {
+  protected operations!: {
     application: { name: string; version: string };
     operations: { [key: string]: { id: string; input: string; output?: string; permission?: string } };
     schemas: { [key: string]: JSONSchema7 };
@@ -208,8 +208,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   resolve(): this {
     super.resolve();
-    this.model = <any>useModel(this.parameters.asyncActionModel);
-    this.queue = this.parameters.queue ? useDynamicService(this.parameters.queue) : undefined;
+    this.model = <any>useModel(this.parameters.asyncActionModel)!;
+    this.queue = this.parameters.queue
+      ? useDynamicService<Queue<AsyncActionQueueItem>>(this.parameters.queue)
+      : undefined;
     if (!this.queue && !this.parameters.localLaunch) {
       throw new Error(`AsyncService requires a valid queue. '${this.parameters.queue}' is invalid`);
     }
@@ -222,7 +224,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         }
         return res;
       })
-      .filter(r => r !== undefined);
+      .filter((r): r is Runner => r !== undefined);
 
     // Add route for operations launch
     if (this.parameters.asyncOperationDefinition) {
@@ -315,7 +317,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     if (this.runners.length === 0) {
       throw new Error(`AsyncJobService.worker requires runners`);
     }
-    const p: CancelablePromise[] = [this.queue.consume(this.handleEvent.bind(this))];
+    const p: CancelablePromise[] = [this.queue!.consume(this.handleEvent.bind(this))];
     if (this.parameters.includeSchedulerInWorker) {
       p.push(this.scheduler());
     }
@@ -380,7 +382,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @returns the hook url
    */
   getHookUrl(): string {
-    return `${useParameters().apiUrl ?? ""}${this.parameters.url}/status`;
+    return `${useParameters()?.apiUrl ?? ""}${this.parameters.url}/status`;
   }
 
   /**
@@ -416,7 +418,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       context.write(Object.keys(filtered.operations));
       return;
     }
-    const schemas = [];
+    const schemas: string[] = [];
     Object.values(filtered.operations).forEach((operation: any) => {
       if (operation.input && operation.input !== "void") {
         schemas.push(operation.input);
@@ -440,6 +442,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @returns the launched action
    */
   async callOperation(context: OperationContext) {
+    if (!this.operationModel) throw new WebdaError.BadRequest("Operation model is not configured");
     return await this.launchAction(new this.operationModel(context.getExtension("operation"), context));
   }
 
@@ -484,6 +487,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     await this.checkOperation(context, operationId);
     let action;
     if (schedule) {
+      if (!this.operationModel) throw new WebdaError.BadRequest("Operation model is not configured");
       action = await this.scheduleAction(
         new this.operationModel(operationId, await SimpleOperationContext.fromContext(context)),
         schedule
@@ -511,7 +515,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       // Directly call the handler but not wait for its result
       this.handleEvent(item);
     } else {
-      await this.queue.sendMessage(item);
+      await this.queue!.sendMessage(item);
     }
     return action;
   }
@@ -527,7 +531,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     action.status = "SCHEDULED";
     action.type = action.constructor.name;
     // Schedule based on the scheduler resolution
-    action.scheduled = timestamp - (timestamp % this.parameters.schedulerResolution);
+    const resolution = this.parameters.schedulerResolution;
+    action.scheduled = timestamp - (timestamp % resolution);
     await action.save();
     return action;
   }
@@ -556,7 +561,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param message - the status report
    * @returns the updated action
    */
-  async postHook(jobInfo: JobInfo, message: any): Promise<AsyncWebdaAction> {
+  async postHook(jobInfo: JobInfo, message: any): Promise<AsyncWebdaAction | AsyncOperationAction> {
     // Http allow to break paradigm between the executor and the orchestrator
     if (jobInfo.JOB_HOOK.startsWith("http")) {
       return (
@@ -568,6 +573,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       // If executor and orchestrator runs within same privilege it simplify the infrastructure
       return <Promise<AsyncWebdaAction>>(await this.model.ref(jobInfo.JOB_ID).get()).update(message);
     }
+    throw new WebdaError.BadRequest(`Unsupported job hook: ${jobInfo.JOB_HOOK}`);
   }
 
   /**
@@ -590,7 +596,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param args - the arguments
    * @returns the execution promise
    */
-  async executeAsAsyncAction(serviceName: string, method: string, ...args): Promise<void> {
+  async executeAsAsyncAction(serviceName: string, method: string, ...args: any[]): Promise<void> {
     let runner = <ServiceRunner>Object.values(useCore().getServices()).find(s => s instanceof ServiceRunner);
     // Create a temporary one if needed
     runner ??= await new ServiceRunner(
@@ -640,13 +646,13 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     this.log("DEBUG", "Getting action to execute from hook", jobInfo);
     // Get action info by calling the hook
-    const action = await this.postHook(jobInfo, {
+    const action = (await this.postHook(jobInfo, {
       agent: {
         ...Runner.getAgentInfo(),
         nodeVersion: process.version
       },
       status: "RUNNING"
-    });
+    })) as AsyncWebdaAction;
     this.log("DEBUG", "Action received", action.serviceName, action.method, action.arguments);
     let results;
     try {
@@ -670,7 +676,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     } catch (err) {
       // Job is in error
       await this.postHook(jobInfo, {
-        errorMessage: <string | undefined>err?.message,
+        errorMessage: err instanceof Error ? err.message : String(err),
         status: "ERROR"
       });
       return;

@@ -41,7 +41,14 @@ export {
   acceptedTypes,
   belongsToModel
 } from "@webda/models";
-export type { ModelClass, Repository, TypeResolution, TypeResolutionStatus } from "@webda/models";
+export type {
+  CountOptions,
+  CountResult,
+  ModelClass,
+  Repository,
+  TypeResolution,
+  TypeResolutionStatus
+} from "@webda/models";
 export * from "./stores/store.js";
 export * from "./stores/migration.js";
 export * from "./stores/capability.js";
@@ -81,11 +88,13 @@ export * from "./deployers/packager.js";
 export * from "./deployers/packager.service.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";
-export * from "./services/mailer.service.js";
+export * from "./services/abstractmailer.js";
 export * from "./configurations/kubernetesconfiguration.service.js";
 export * from "./services/iauthentication.js";
 export * from "./services/domainservice.service.js";
 export * from "./services/imailer.js";
+export * from "./services/ismssender.js";
+export * from "./services/debugsmssender.service.js";
 export * from "./services/notificationservice.service.js";
 export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";

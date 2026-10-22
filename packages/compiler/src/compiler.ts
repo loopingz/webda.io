@@ -261,7 +261,7 @@ export class Compiler {
         sharedImports: this.sharedImports()
       });
     } catch (err) {
-      useLog("ERROR", err.message);
+      useLog("ERROR", err instanceof Error ? err.message : String(err));
       this.project.emit("compilationError");
       return false;
     }

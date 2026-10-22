@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import * as WebdaQL from "@webda/ql";
 import { PostgresDialect } from "./dialect.js";
 import { PostgresRepository, SQLClient, SQLComparisonExpression } from "./sqlstore.js";
+import { Animal, Dog } from "@webda/sql/lib/test";
 
 /**
  * Translation tests: a fake SQL client captures the generated SQL, so no
@@ -380,5 +381,56 @@ describe("PostgresRepository SQL snapshot", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("PostgresRepository count", () => {
+  /**
+   * @param model - the model class
+   * @param n - the count the fake server returns
+   * @returns the repository and the captured statements
+   */
+  function counting(model: any, n: string) {
+    const queries: string[] = [];
+    const client: SQLClient = {
+      query: async (q: string) => {
+        queries.push(q);
+        return { rows: [{ n }], rowCount: 1 };
+      }
+    };
+    return { repo: new PostgresRepository(model, ["uuid"], client, "items"), queries };
+  }
+
+  it("runs one COUNT(*) for an exact count", async () => {
+    const { repo, queries } = counting(FakeModel, "42");
+    // pg returns COUNT(*) as a bigint string
+    expect(await repo.count("name = 'x' ORDER BY name ASC LIMIT 5")).toEqual({
+      value: 42,
+      relation: "eq",
+      native: true
+    });
+    expect(queries).toEqual([`SELECT COUNT(*) AS n FROM items WHERE (data#>>'{name}' = 'x')`]);
+  });
+
+  it("runs one capped sub-select for a count with max", async () => {
+    const { repo, queries } = counting(FakeModel, "11");
+    expect(await repo.count("", undefined, { max: 10 })).toEqual({ value: 10, relation: "gte", native: true });
+    expect(queries).toEqual([`SELECT COUNT(*) AS n FROM (SELECT 1 FROM items WHERE (TRUE) LIMIT 11) s`]);
+    const exact = counting(FakeModel, "10");
+    expect(await exact.repo.count("", undefined, { max: 10 })).toEqual({ value: 10, relation: "eq", native: true });
+  });
+
+  it("keeps the class condition", async () => {
+    const { repo, queries } = counting(Dog, "1");
+    await repo.count("kind = 'dog'");
+    await repo.count("kind = 'dog'", undefined, { max: 3 });
+    const classCondition = `(lower(data->>'__type') IN ('test/dog'))`;
+    expect(queries).toEqual([
+      `SELECT COUNT(*) AS n FROM items WHERE (data#>>'{kind}' = 'dog') AND ${classCondition}`,
+      `SELECT COUNT(*) AS n FROM (SELECT 1 FROM items WHERE (data#>>'{kind}' = 'dog') AND ${classCondition} LIMIT 4) s`
+    ]);
+    const parent = counting(Animal, "2");
+    await parent.repo.count();
+    expect(parent.queries[0]).toMatch(/IN \('test\/animal', 'test\/dog', 'test\/cat'\)/);
   });
 });

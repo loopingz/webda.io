@@ -7,7 +7,7 @@ import { CryptoService, Service, ServiceParameters } from "@webda/core";
 const encrypter = {
   encrypt: async (data: string, key?: string): Promise<string> => {
     key ??= process.env.WEBDA_GCP_KMS_KEY;
-    if (!/^projects\/[^/]+\/locations\/[^/]+\/keyRings\/[^/]+\/cryptoKeys\/[^/]+$/.test(key || "")) {
+    if (!key || !/^projects\/[^/]+\/locations\/[^/]+\/keyRings\/[^/]+\/cryptoKeys\/[^/]+$/.test(key)) {
       throw new Error(
         "A GCP KMS key 'projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>' is required, set WEBDA_GCP_KMS_KEY"
       );
@@ -17,18 +17,9 @@ const encrypter = {
     const client = new KeyManagementServiceClient();
     // Encode the infos in base64
     // Add the encrypted info after a : separator
-    return (
-      Buffer.from(infos.join(":")).toString("base64") +
-      ":" +
-      Buffer.from(
-        (
-          await client.encrypt({
-            name: key,
-            plaintext: Buffer.from(data)
-          })
-        )[0].ciphertext
-      ).toString("base64")
-    );
+    const [result] = await client.encrypt({ name: key, plaintext: Buffer.from(data) });
+    if (!result.ciphertext) throw new Error("GCP KMS returned no ciphertext");
+    return Buffer.from(infos.join(":")).toString("base64") + ":" + Buffer.from(result.ciphertext).toString("base64");
   },
   decrypt: async (data: string): Promise<string> => {
     // Get the info

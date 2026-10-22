@@ -521,5 +521,7 @@ describe("WorkerOutputTest", () => {
     // The input should be stored
     assert.ok(output2.inputs["test-123"]);
     assert.strictEqual(output2.inputs["test-123"].uuid, "test-123");
+    // A forwarded input has no local promise: waiting on it must fail instead of resolving undefined
+    await assert.rejects(() => output2.waitForInput("test-123"), /cannot be awaited/);
   });
 });

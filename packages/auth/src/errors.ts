@@ -5,6 +5,8 @@ export {
   InvalidMfaCode,
   MfaAlreadyEnabled,
   MfaNotEnabled,
+  MfaRequired,
+  MfaStepUpRequired,
   PasswordPolicyError,
   Throttled,
   TokenInvalid
@@ -87,5 +89,13 @@ export class MfaNotPending extends WebdaError.HttpError {
   /** @param message - error message */
   constructor(message: string = "MFA verification is not pending") {
     super(message, 401);
+  }
+}
+
+/** The phone number is not a valid E.164 number (400) */
+export class InvalidPhone extends WebdaError.HttpError {
+  /** @param message - error message */
+  constructor(message: string = "Phone number must be in E.164 format, e.g. +15550100089") {
+    super(message, 400);
   }
 }

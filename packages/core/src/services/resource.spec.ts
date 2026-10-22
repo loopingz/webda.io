@@ -26,7 +26,8 @@ class ResourceTest extends WebdaApplicationTest {
         },
         ModelsResource: {
           type: "Webda/ResourceService",
-          url: "templates"
+          url: "templates",
+          folder: "test/data"
         }
       }
     };
@@ -140,18 +141,13 @@ class ResourceTest extends WebdaApplicationTest {
   // Check Store HTTP mapping
   @test
   async testStoreHttpMapping() {
-    const executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/templates/PASSPORT_EMAIL_RECOVERY/html.mustache"
-    );
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/templates/test.txt");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(
       this.ctx.getResponseBody().toString(),
-      fs.readFileSync(__dirname + "/../../templates/PASSPORT_EMAIL_RECOVERY/html.mustache").toString()
+      fs.readFileSync(__dirname + "/../../test/data/test.txt").toString()
     );
-    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/octet-stream");
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "text/plain; charset=UTF-8");
   }
 }

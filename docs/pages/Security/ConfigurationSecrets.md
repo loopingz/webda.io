@@ -276,7 +276,7 @@ application loads its modules.
 `local`, `password` and `pki` use AES-256-GCM: a wrong key, a wrong password or an altered value fails with an error,
 it never produces a wrong secret.
 
-The `self` encrypter of `CryptoService` relies on the keys in the Registry, which are only available once the services
+The `self` encrypter of `CryptoService` relies on the CryptoService keys (Registry or `keysFile`), which are only available once the services
 are initialized: it cannot be used in the configuration.
 
 ## PKI encrypter

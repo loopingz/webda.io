@@ -3,12 +3,17 @@ import { Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
 import { Session } from "../session/session.js";
 import { NotEnumerable, JSONUtils } from "@webda/utils";
-import sanitize from "sanitize-html";
+import type sanitize from "sanitize-html";
 import { useLog } from "../loggers/hooks.js";
 import { HttpError } from "../errors/errors.js";
 import { runAsSystem } from "./execution.js";
 import { IUser } from "../models/types.js";
 import { useUserResolver } from "../core/hooks.js";
+
+/**
+ * sanitize-html, imported with the first input to sanitize: it loads an HTML and CSS parsing stack
+ */
+let sanitizeHtml: typeof sanitize;
 
 /**
  * OperationInput
@@ -173,7 +178,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     }
     const recursiveSanitize = (obj, options = undefined, path: string = "") => {
       if (typeof obj === "string") {
-        return sanitize(obj, options);
+        return sanitizeHtml(obj, options);
       }
       if (obj !== null && typeof obj === "object") {
         Object.keys(obj).forEach(key => {
@@ -197,6 +202,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
         this._sanitized = sanitizedOptions.defaultValue;
         return this._sanitized;
       }
+      sanitizeHtml ??= (await import("sanitize-html")).default;
       this._sanitized = recursiveSanitize(JSON.parse(data), sanitizedOptions);
     } catch (err) {
       // Unsupported charset, oversized or timed out body are client errors to report

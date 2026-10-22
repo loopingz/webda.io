@@ -199,19 +199,27 @@ export class KubernetesRepository<T extends ModelClass> extends MemoryRepository
   }
 
   /**
-   * Convert a custom resource to the model instance
+   * The object data held by a custom resource: spec, status fields, key and model identifier
    * @param resource - the resource
-   * @returns the model instance
+   * @returns the plain row
    */
-  protected fromResource(resource: CustomResource): InstanceType<T> {
+  toRow(resource: CustomResource): Record<string, any> {
     const type = this.typeOf(resource);
-    const row = {
+    return {
       ...resource.spec,
       ...Object.fromEntries(this.statusFields.map(field => [field, resource.status?.[field]])),
       ...(this.parseUID(resource.metadata.name, true) as object),
       ...(type ? { __type: type } : {})
     };
-    return this.deserialize(JSON.stringify(row));
+  }
+
+  /**
+   * Convert a custom resource to the model instance
+   * @param resource - the resource
+   * @returns the model instance
+   */
+  fromResource(resource: CustomResource): InstanceType<T> {
+    return this.deserialize(JSON.stringify(this.toRow(resource)));
   }
 
   /**

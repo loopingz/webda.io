@@ -114,7 +114,7 @@ describe("module metadata on a fixture", () => {
     });
     const named = buildBehaviorActions(session.ctx, classOf(session, "behaviors.ts", "Named"), "Custom/Named");
     expect(Object.keys(named)).toEqual(["own", "read", "write", "bare"]);
-    expect(named.own).toEqual({});
+    expect(named.own).toEqual({ maxMfaAge: "5m" });
   });
 
   it("records @Shared methods with their source and allowlisted imports", () => {
@@ -223,7 +223,10 @@ describe("module metadata on a fixture", () => {
       status: { description: "Report", handler: "statusAction" },
       run: {},
       same: {},
-      lookup: { global: true, handler: "find" }
+      lookup: { global: true, handler: "find" },
+      payout: { maxMfaAge: "10m" },
+      purge: { global: true, maxMfaAge: 600 },
+      computedAge: {}
     });
   });
 
@@ -280,7 +283,7 @@ describe("module metadata on a fixture", () => {
       Identifier: "Custom/Named",
       Import: "lib/behaviors:Named",
       Actions: {
-        own: {},
+        own: { maxMfaAge: "5m" },
         read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } },
         write: {},
         bare: {}
@@ -332,6 +335,28 @@ describe("module model aliases", () => {
         "Garden/Shrub: @WebdaAlias Garden/Tree is the identifier of another model"
       ]);
       expect(buildModelAliases(classOf(session, "garden.model.ts", "Tree"), "Garden")).toEqual([]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
+describe("module events under strict", () => {
+  it("lists the events of an optional [WEBDA_EVENTS]? member", () => {
+    // `strict: true` widens `[WEBDA_EVENTS]?: ModelEvents<this>` to `ModelEvents<this> | undefined`,
+    // whose union has no properties of its own: Events used to come out empty
+    const dir = join(here, "..", "test", "events-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const { module, errors } = generateWebdaModule(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Evt"
+      });
+      expect(errors).toEqual([]);
+      expect(module.models["Evt/Inherited"].Events).toEqual(["Created", "Deleted"]);
+      expect(module.models["Evt/Extended"].Events).toEqual(["Created", "Deleted", "Archived"]);
     } finally {
       session.dispose();
     }

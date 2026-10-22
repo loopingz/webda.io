@@ -1396,6 +1396,11 @@
             "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
+          "notify": {
+            "default": true,
+            "description": "Wake up the consumers with LISTEN / NOTIFY instead of polling\n\n`sendMessage` NOTIFYs a channel named after the table (lowercased), and `consume()` opens a dedicated\nLISTEN connection: once the queue is empty, its receives wait for a notification, up to `waitTimeout`,\nbefore querying again. Direct `receiveMessage` calls never wait. Set to false to poll as before.",
+            "type": "boolean"
+          },
           "postgresqlServer": {
             "anyOf": [
               {
@@ -1410,6 +1415,11 @@
               "password",
               "connectionString"
             ]
+          },
+          "reconnectDelay": {
+            "default": 500,
+            "description": "Reconnect delay in milliseconds when the LISTEN connection drops. A\nrandomized jitter is added. Consumers poll while it is down.",
+            "type": "number"
           },
           "table": {
             "default": "webda_queue",
@@ -1435,6 +1445,11 @@
           "visibilityTimeout": {
             "default": 30,
             "description": "Visibility timeout in seconds — how long a locked-but-undeleted\nmessage stays invisible to other consumers before being eligible for\nredelivery. Workers that crash mid-process without acking will see\ntheir messages reappear after this window.",
+            "type": "number"
+          },
+          "waitTimeout": {
+            "default": 20,
+            "description": "Maximum time a receive of `consume()` waits for a notification, in seconds\n\nThe queue is queried at least that often, and at least every `visibilityTimeout`, as a safety net: it\npicks up the messages whose visibility lock expired, and the ones whose notification was missed.",
             "type": "number"
           },
           "workerDelayer": {

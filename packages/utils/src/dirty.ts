@@ -20,7 +20,7 @@ export class DirtyState {
    * @param fields - Initial set of dirty field names
    */
   constructor(
-    private parent,
+    private parent: Record<string, any>,
     private fields: Set<string> = new Set()
   ) {}
 

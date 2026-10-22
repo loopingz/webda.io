@@ -8,13 +8,13 @@
  * @param object - The object to freeze recursively.
  * @returns The same object, now deeply frozen.
  */
-export function deepFreeze(object) {
+export function deepFreeze<T extends object>(object: T): T {
   // Retrieve the property names defined on object
   const propNames = Reflect.ownKeys(object);
 
   // Freeze properties before freezing self
   for (const name of propNames) {
-    const value = object[name];
+    const value = Reflect.get(object, name);
 
     if ((value && typeof value === "object") || typeof value === "function") {
       deepFreeze(value);

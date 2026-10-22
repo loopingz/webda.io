@@ -6,7 +6,7 @@ import { SourceFile, ts } from "ts-morph";
  * @param replacePackages - map of package import replacements
  */
 export function updateImports(sourceFile: SourceFile, replacePackages: { [key: string]: string }) {
-  const moveImports = {};
+  const moveImports: Record<string, Record<string, string>> = {};
   // Flat the replacePackage into moveImports
   for (const i in replacePackages) {
     const [pkg, replace = "*"] = i.split(":");
@@ -70,7 +70,7 @@ export function updateImports(sourceFile: SourceFile, replacePackages: { [key: s
             sourceFile.getImportDeclaration(newPkg) ||
             sourceFile.addImportDeclaration({
               moduleSpecifier: newPkg,
-              namedImports: namedImport.startsWith("*") ? undefined : namedImport,
+              namedImports: namedImport.startsWith("*") ? undefined : [namedImport],
               namespaceImport: namedImport.startsWith("*") ? namedImport.substring(1) : undefined
             });
           if (namedImport.startsWith("*")) {

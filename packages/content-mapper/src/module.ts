@@ -456,15 +456,20 @@ function propertiesOf(ctx: AnalysisContext, cls: ClassDeclaration): readonly TsS
 /**
  * Names of the properties of a symbol-keyed member's type — the `Events` of
  * `[WEBDA_EVENTS]` or the declarative `Actions` of `[WEBDA_ACTIONS]`.
+ *
+ * The member is usually optional (`[WEBDA_EVENTS]?: ModelEvents<this>`): under
+ * `strictNullChecks` its type is `ModelEvents<this> | undefined`, a union with no
+ * properties of its own, so `null`/`undefined` are stripped before reading keys.
  * @param ctx - analysis context
  * @param property - the member
  * @returns property names in declaration order
  */
 function memberTypeKeys(ctx: AnalysisContext, property: TsSymbol): string[] {
   const location = valueDeclarationOf(ctx, property);
-  const type = location
+  const declared = location
     ? ctx.checker.getTypeOfSymbolAtLocation(property, location)
     : ctx.checker.getTypeOfSymbol(property);
+  const type = ctx.checker.getNonNullableType(declared);
   const keys: Record<string, true> = {};
   for (const member of ts6PropertyOrder(ctx, type, ctx.checker.getPropertiesOfType(type))) keys[member.name] = true;
   return Object.keys(keys);
@@ -491,6 +496,21 @@ function forEachOperationOption(
   for (const property of (argument as any).properties) {
     if (!is.isPropertyAssignment(property) || !is.isIdentifier((property as any).name)) continue;
     onProperty((property as any).name.text, (property as any).initializer);
+  }
+}
+
+/**
+ * Record the `maxMfaAge` option (second factor freshness) when it is a Duration string or a number of seconds.
+ * @param key - option name
+ * @param initializer - option value
+ * @param meta - action metadata to complete
+ */
+function readMaxMfaAge(key: string, initializer: any, meta: Record<string, unknown>): void {
+  if (key !== "maxMfaAge") return;
+  if (is.isStringLiteral(initializer)) {
+    meta.maxMfaAge = initializer.text;
+  } else if (is.isNumericLiteral(initializer)) {
+    meta.maxMfaAge = Number(initializer.text);
   }
 }
 
@@ -551,6 +571,7 @@ export function buildModelActions(
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
+      readMaxMfaAge(key, initializer, meta);
       // `@Action({ name })` exposes the action under another name than the method
       if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
         name = initializer.text;
@@ -1139,6 +1160,7 @@ export function buildBehaviorActions(
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
+      readMaxMfaAge(key, initializer, meta);
       if (key === "rest" && is.isObjectLiteralExpression(initializer)) {
         const rest: Record<string, string> = {};
         for (const restProperty of initializer.properties) {

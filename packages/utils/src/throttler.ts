@@ -47,7 +47,7 @@ export class Throttler {
   /**
    * Resolver for each call to waitForCompletion
    */
-  protected _waiters: [() => void, (err) => void][] = [];
+  protected _waiters: [() => void, (err: unknown) => void][] = [];
   /**
    * If one promise has failed and we are in fail fast mode
    */

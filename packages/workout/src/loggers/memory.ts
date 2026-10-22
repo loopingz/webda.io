@@ -49,7 +49,7 @@ export class MemoryLogger extends WorkerLogger {
     if (!this.includeAll && msg.type !== "log") {
       return;
     }
-    if (msg.type === "log" && !LogFilter(msg.log.level, this.level())) {
+    if (msg.type === "log" && (!msg.log || !LogFilter(msg.log.level, this.level()))) {
       return;
     }
     this.messages.push(msg);

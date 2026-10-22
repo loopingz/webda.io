@@ -12,6 +12,7 @@ import {
   GraphQLParameters,
   canCallOperation,
   checkOperationPermission,
+  checkOperationMfa,
   registerOperationAuthorizer,
   unregisterOperationAuthorizer,
   listOperationAuthorizers,
@@ -29,6 +30,7 @@ import { useApplication } from "../application/hooks.js";
 import { Application } from "../application/application.js";
 import { Session } from "../session/session.js";
 import { registerSchema } from "../schemas/hooks.js";
+import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
 
 /**
  * Fake operation context that allows setting custom input
@@ -354,6 +356,19 @@ class OperationDecoratorTest extends WebdaApplicationTest {
       vi.useRealTimers();
     }
   }
+
+  @test
+  async decoratorMaxMfaAge() {
+    assert.strictEqual(listOperations()["TestSvc.StepUpOp"].maxMfaAge, "10m");
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const session = new Session();
+    session.login("u1", "ident", { amr: ["pwd", "totp"], mfa: "verified", mfaAt: Date.now() });
+    ctx.setSession(session);
+    assert.strictEqual(await canCallOperation(ctx, "TestSvc.StepUpOp"), true);
+    session.mfaAt = Date.now() - 11 * 60 * 1000;
+    assert.strictEqual(await canCallOperation(ctx, "TestSvc.StepUpOp"), false);
+  }
 }
 
 class DecoratedService extends Service {
@@ -378,6 +393,11 @@ class DecoratedService extends Service {
   @Operation({ id: "FreshOp", permission: "authAt > NOW('-5m')" })
   async freshOp(ctx: OperationContext) {
     ctx.write("fresh");
+  }
+
+  @Operation({ id: "StepUpOp", maxMfaAge: "10m" })
+  async stepUpOp(ctx: OperationContext) {
+    ctx.write("step-up");
   }
 }
 
@@ -854,6 +874,100 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     session.login("alice", "alice");
     assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Guarded"), true);
     assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+    assert.throws(() => checkOperationMfa(ctx, "ReturnSvc.DoesNotExist"), WebdaError.NotFound);
+  }
+
+  /**
+   * Context with a session in the given MFA state
+   * @param mfa - MFA state, undefined for an anonymous session
+   * @param mfaAt - when the second factor was verified
+   * @returns the context
+   */
+  async mfaContext(mfa?: "none" | "pending" | "verified", mfaAt?: number): Promise<FakeOpContext> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const session = new Session();
+    if (mfa) {
+      session.login("alice", "alice", { amr: mfa === "verified" ? ["pwd", "totp"] : ["pwd"], mfa, mfaAt });
+    }
+    ctx.setSession(session);
+    return ctx;
+  }
+
+  @test
+  async maxMfaAge() {
+    for (const [id, maxMfaAge] of [
+      ["ReturnSvc.StepUpSeconds", 600],
+      ["ReturnSvc.StepUpDuration", "10m"]
+    ] as const) {
+      registerOperation(id, {
+        service: "ReturnSvc",
+        method: "getString",
+        input: "void",
+        output: "void",
+        maxMfaAge
+      } as any);
+      const now = Date.now();
+      // Fresh second factor: allowed
+      let ctx = await this.mfaContext("verified", now - 60000);
+      assert.strictEqual(checkOperationPermission(ctx, id), true);
+      assert.strictEqual(await canCallOperation(ctx, id), true);
+      checkOperationMfa(ctx, id);
+      await callOperation(ctx, id);
+      // Stale second factor: step-up required, with the max age in seconds
+      ctx = await this.mfaContext("verified", now - 11 * 60000);
+      assert.strictEqual(await canCallOperation(ctx, id), false);
+      await assert.rejects(
+        () => callOperation(ctx, id),
+        (err: any) => {
+          assert.ok(err instanceof MfaStepUpRequired);
+          assert.strictEqual(err.getResponseCode(), 401);
+          assert.strictEqual(err.code, "MFA_STEP_UP_REQUIRED");
+          assert.deepStrictEqual(err.details, { maxAge: 600 });
+          return true;
+        }
+      );
+      // Verified by a token issued before mfaAt existed: never fresh
+      ctx = await this.mfaContext("verified");
+      await assert.rejects(() => callOperation(ctx, id), MfaStepUpRequired);
+      // No second factor enrolled: MFA is mandatory
+      ctx = await this.mfaContext("none");
+      assert.strictEqual(await canCallOperation(ctx, id), false);
+      await assert.rejects(
+        () => callOperation(ctx, id),
+        (err: any) => {
+          assert.ok(err instanceof MfaRequired);
+          assert.strictEqual(err.getResponseCode(), 403);
+          assert.strictEqual(err.code, "MFA_REQUIRED");
+          return true;
+        }
+      );
+      // Pending second factor or anonymous: not logged
+      for (const state of ["pending", undefined] as const) {
+        ctx = await this.mfaContext(state);
+        assert.strictEqual(await canCallOperation(ctx, id), false);
+        await assert.rejects(
+          () => callOperation(ctx, id),
+          (err: any) => err instanceof WebdaError.Unauthorized && err.getResponseCode() === 401
+        );
+      }
+    }
+  }
+
+  @test
+  async maxMfaAgeAfterPermission() {
+    registerOperation("ReturnSvc.StepUpGuarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      permission: "userId = 'bob'",
+      maxMfaAge: 600
+    } as any);
+    // The permission query is checked first
+    const ctx = await this.mfaContext("none");
+    await assert.rejects(() => callOperation(ctx, "ReturnSvc.StepUpGuarded"), WebdaError.Forbidden);
+    await assert.rejects(() => callOperation(ctx, "ReturnSvc.StepUpGuarded"), /PermissionDenied/);
   }
 
   @test

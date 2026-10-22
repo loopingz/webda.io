@@ -31,3 +31,26 @@ export class MfaAlreadyEnabled extends HttpError {
     super(message, 409);
   }
 }
+
+/** The operation requires a second factor and the session has none enrolled (403) */
+export class MfaRequired extends HttpError {
+  /** @param message - error message */
+  constructor(message: string = "MFA is required") {
+    super(message, 403);
+  }
+}
+
+/**
+ * The second factor was verified too long ago for the operation (401): verify it again (step-up) and retry.
+ * `details.maxAge` is the freshness the operation requires, in seconds
+ */
+export class MfaStepUpRequired extends HttpError {
+  declare details: { maxAge: number };
+  /**
+   * @param maxAge - required freshness in seconds
+   * @param message - error message
+   */
+  constructor(maxAge: number, message: string = "MFA step-up required") {
+    super(message, 401, { maxAge });
+  }
+}

@@ -66,6 +66,8 @@ export interface AccessClaims {
   roles?: string[];
   fam: string;
   mfa: MfaState;
+  /** When the second factor was verified (ms), carried unchanged across refreshes */
+  mfaAt?: number;
   mfaVerifications?: Record<string, MfaVerification>;
   /** When the session was authenticated (ms): checked against the user's last password change */
   authAt?: number;
@@ -214,6 +216,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       provider: session.provider,
       amr: session.getPersistentAmr(),
       mfa: session.mfa ?? "none",
+      mfaAt: session.mfaAt,
       mfaVerifications: session.mfaVerifications,
       family,
       expiresAt: Date.now() + (options.refreshTtl ?? this.parameters.refreshTtl) * 1000,
@@ -236,6 +239,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       roles: session.roles,
       fam: family,
       mfa: session.mfa ?? "none",
+      mfaAt: session.mfaAt,
       mfaVerifications: session.mfaVerifications,
       authAt: session.authAt,
       iatMs: Date.now(),
@@ -441,6 +445,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       provider: stored.provider,
       amr: stored.amr,
       mfa: stored.mfa ?? "none",
+      // The proof time of the second factor, not the refresh time: refreshing never makes MFA fresher
+      mfaAt: stored.mfaAt,
       mfaVerifications: stored.mfaVerifications
     });
     const tokens = await this.issue(session, stored.family, {

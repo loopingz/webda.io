@@ -172,6 +172,43 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
   }
 
   @test
+  async forwardsMaxMfaAgeOfActions() {
+    const app = useApplication<Application>() as any;
+    const previousBehavior = app.behaviors["Test/MFA"];
+    app.behaviors["Test/MFA"] = {
+      metadata: {
+        Identifier: "Test/MFA",
+        Import: "fake:FakeMFA",
+        Actions: { verify: { method: "PUT" }, disable: { method: "PUT", maxMfaAge: "5m" } }
+      }
+    };
+    const User = useModel("User") as any;
+    const previousMetadata = User.Metadata;
+    User.Metadata = Object.freeze({
+      ...previousMetadata,
+      Actions: { ...previousMetadata.Actions, payout: { method: "POST", maxMfaAge: 600 } },
+      Relations: {
+        ...(previousMetadata.Relations || {}),
+        behaviors: [{ attribute: "mfa", behavior: "Test/MFA" }]
+      }
+    });
+    try {
+      this.setupBehaviorDispatcher();
+      const all = listFullOperations();
+      assert.strictEqual(all["User.Payout"].maxMfaAge, 600);
+      assert.strictEqual(all["User.Mfa.Disable"].maxMfaAge, "5m");
+      assert.strictEqual(all["User.Mfa.Verify"].maxMfaAge, undefined);
+    } finally {
+      User.Metadata = previousMetadata;
+      if (previousBehavior === undefined) {
+        delete app.behaviors["Test/MFA"];
+      } else {
+        app.behaviors["Test/MFA"] = previousBehavior;
+      }
+    }
+  }
+
+  @test
   async skipsModelsWithoutBehaviorRelation() {
     // Build a fresh DomainService without patching User. Brand has no
     // behaviors, so no User.*.Verify-style entry should appear, and the

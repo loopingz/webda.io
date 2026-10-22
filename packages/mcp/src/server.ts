@@ -159,9 +159,13 @@ export function createMcpServer(options: McpServerOptions): Server {
     return server;
   }
 
-  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async (_request, extra) => {
     options.beforeRequest?.();
-    return { resourceTemplates: resources.templates() };
+    // Only advertise models the caller may read, like tools/list
+    const context = sessionContext(options.getSession(extra));
+    const models = resources.models();
+    const flags = await Promise.all(models.map(m => allowed(context, m.getOperationId)));
+    return { resourceTemplates: resources.templates(models.filter((_m, i) => flags[i])) };
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request, extra) => {

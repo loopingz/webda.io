@@ -181,6 +181,35 @@ class McpServerTest extends McpFixtureTest {
   }
 
   @test
+  async listsTemplatesFilteredByGetPermission() {
+    registerFixture();
+    registerOperation("Gadget.Get", {
+      service: "Fixture",
+      method: "getThing",
+      input: "Thing.primaryKey",
+      output: "void",
+      permission: "userId = 'alice'",
+      context: { model: GadgetModel, pkFields: ["slug"] }
+    });
+    const templates = async (user?: string) =>
+      (await (await this.connect(user)).listResourceTemplates()).resourceTemplates.map(t => t.uriTemplate);
+    try {
+      assert.deepStrictEqual(await templates(), ["webda://Thing/{slug}"]);
+      assert.deepStrictEqual(await templates("alice"), ["webda://Gadget/{slug}", "webda://Thing/{slug}"]);
+      const authorizer = async (_ctx, operationId) => operationId !== "Thing.Get";
+      registerOperationAuthorizer(authorizer as any);
+      try {
+        assert.deepStrictEqual(await templates("alice"), ["webda://Gadget/{slug}"]);
+      } finally {
+        unregisterOperationAuthorizer(authorizer as any);
+      }
+    } finally {
+      // operations are process-wide: keep the other resource tests unaffected
+      delete useInstanceStorage().operations["Gadget.Get"];
+    }
+  }
+
+  @test
   async paginatesTools() {
     for (let i = 0; i < 105; i++) {
       registerOperation(`Bulk.Op${i}`, { service: "Fixture", method: "version", input: "void", output: "void" });

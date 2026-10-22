@@ -1047,22 +1047,25 @@ class DomainServiceTest extends WebdaApplicationTest {
   }
 
   @test
-  async crudRejectsArrayInput() {
+  async crudRejectsNonObjectInput() {
     const { Brand, repo } = this.setupBrandRepo();
     const uuid = "550e8400-e29b-41d4-a716-446655440911";
     await Brand.create({ uuid, name: "Original" } as any);
     const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
-    for (const method of ["modelCreate", "modelUpdate", "modelPatch"]) {
-      const ctx = new FakeOpContext();
-      await ctx.init();
-      ctx.setExtension("operationContext", { model: Brand });
-      ctx.setParameters({ uuid });
-      ctx.setInput(JSON.stringify(["x"]));
-      await runWithContext(ctx, async () => {
-        // Whatever the positional argument, the array body is refused
-        await assert.rejects(() => service[method](["x"]), WebdaError.BadRequest, method);
-        await assert.rejects(() => service[method](undefined), WebdaError.BadRequest, method);
-      });
+    for (const body of [["x"], "x", 1, true, null]) {
+      for (const method of ["modelCreate", "modelUpdate", "modelPatch"]) {
+        const ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setExtension("operationContext", { model: Brand });
+        ctx.setParameters({ uuid });
+        ctx.setInput(JSON.stringify(body));
+        const label = `${method}(${JSON.stringify(body)})`;
+        await runWithContext(ctx, async () => {
+          // Whatever the positional argument, a body that is not an object is refused
+          await assert.rejects(() => service[method](body), WebdaError.BadRequest, label);
+          await assert.rejects(() => service[method](undefined), WebdaError.BadRequest, label);
+        });
+      }
     }
     const stored: any = await repo.get(uuid);
     assert.strictEqual(stored.name, "Original");

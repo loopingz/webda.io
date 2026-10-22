@@ -368,13 +368,16 @@ export class DomainService<
    * resolveArguments spreads the model schema's properties into positional args, so the first argument of the CRUD
    * methods is only the value of the first (sorted) property, which may itself be an object or an array: it is never
    * the model input (#911).
+   *
+   * An empty body (undefined) is accepted as "no fields"; any other body that is not a plain object (array, string,
+   * number, boolean or null) is refused.
    * @param context - the operation context
    * @returns the request body
-   * @throws BadRequest when the body is an array
+   * @throws BadRequest when the body is not an object
    */
   protected async getModelInput(context: OperationContext): Promise<any> {
     const input = await context.getInput();
-    if (Array.isArray(input)) {
+    if (input !== undefined && (typeof input !== "object" || input === null || Array.isArray(input))) {
       throw new WebdaError.BadRequest("Model input must be an object");
     }
     return input;

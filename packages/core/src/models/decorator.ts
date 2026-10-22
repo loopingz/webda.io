@@ -1,5 +1,4 @@
 import { createMethodDecorator, createPropertyDecorator } from "@webda/decorators";
-import { truncate } from "fs/promises";
 
 /**
  * Options accepted by `@Action()` and `@Operation()`.
@@ -91,9 +90,7 @@ export const Masked = createPropertyDecorator((value: any, context, mask: string
               value = value.substring(0, i) + "X" + value.substring(i + 1);
             }
           }
-          if (truncate) {
-            value = value.substring(0, mask.length);
-          }
+          value = value.substring(0, mask.length);
           this[`__${context.name}`] = value;
         }
       });

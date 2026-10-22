@@ -58,7 +58,7 @@ export default abstract class PubSubService<
    */
   unserialize<L>(data: string, proto?: { new (): L }): L {
     if (proto) {
-      return Object.assign(new proto(), JSON.parse(data));
+      return Object.assign(Object(new proto()), JSON.parse(data));
     }
     return JSON.parse(data);
   }

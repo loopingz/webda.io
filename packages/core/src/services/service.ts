@@ -66,10 +66,10 @@ class Injector {
   resolve(service: Service): void {
     let name = this.value;
     if (this.parameter) {
-      name = service.getParameters()[this.parameter] || this.value;
+      name = Reflect.get(service.getParameters(), this.parameter) || this.value;
     }
-    service[this.property] = useService(name);
-    if (!service[this.property] && !this.optional) {
+    (service as unknown as Record<string, any>)[this.property] = useService(name);
+    if (!(service as unknown as Record<string, any>)[this.property] && !this.optional) {
       if (this.parameter) {
         throw new Error(
           `Injector did not found bean '${name}'(parameter:${this.parameter}) for '${service.getName()}'`

@@ -295,10 +295,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param context - the web context
    */
   protected async statusHook(context: WebContext) {
-    if (!context.getHttpContext().getUniqueHeader("X-Job-Id")) {
+    const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
+    if (!jobId) {
       throw new WebdaError.NotFound("X-Job-Id header required");
     }
-    const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
     if (!(await this.model.ref(jobId).exists())) {
       throw new WebdaError.NotFound(`Unknown Job Id '${jobId}'`);
     }

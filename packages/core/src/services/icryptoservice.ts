@@ -85,11 +85,11 @@ export class CryptoServiceParameters extends ServiceParameters {
   /**
    * @default 256
    */
-  symetricKeyLength?: number;
+  symetricKeyLength: number;
   /**
    * @default "aes-256-ctr"
    */
-  symetricCipher?: string;
+  symetricCipher: string;
   /**
    * Default JWT options
    *

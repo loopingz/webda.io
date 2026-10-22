@@ -78,7 +78,7 @@ export class ResourceAcl extends Array<Ace> {
       }
       if (ace.type === "GROUP") {
         groups ??= (await context.getCurrentUser())?.getGroups?.() ?? [];
-        return groups.includes(ace.principal);
+        return ace.principal !== undefined && (groups ?? []).includes(ace.principal);
       }
       return false;
     };

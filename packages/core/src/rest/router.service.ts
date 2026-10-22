@@ -203,11 +203,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   /**
    * Routes
    */
-  protected routes: Map<string, RouteInfo[]> = new Map();
+  protected routes: Record<string, RouteInfo[]> = {};
   /**
    *
    */
-  protected pathMap: { url: string; config: RouteInfo }[];
+  protected pathMap: { url: string; config: RouteInfo }[] = [];
   protected models: Map<string, string> = new Map();
   /**
    * Route aliases configuration
@@ -275,7 +275,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   getModelUrl(model: string | Storable) {
     if (typeof model !== "string") {
-      model = useModelId(model);
+      const id = useModelId(model);
+      return id ? this.models.get(id) : undefined;
     }
     return this.models.get(model);
   }
@@ -355,7 +356,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param {String} url to remove
    * @param info - the information object
    */
-  removeRoute(url: string, info: RouteInfo = undefined): void {
+  removeRoute(url: string, info?: RouteInfo): void {
     const finalUrl = this.getFinalUrl(url);
     if (!info) {
       delete this.routes[finalUrl];
@@ -461,10 +462,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   /**
    * Compare two route paths for sorting, prioritizing literal segments over parameters
    * @param a - the first route
+   * @param a.url - the first URL
    * @param b - the second route
+   * @param b.url - the second URL
    * @returns the result number
    */
-  protected comparePath(a, b): number {
+  protected comparePath(a: { url: string }, b: { url: string }): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
     const bs = b.url.replace(/\{[^{}]+}/, "{}").split("/");
@@ -490,7 +493,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     }
     const idx = url.indexOf("{?");
     let queryOptional = true;
-    let _queryParams: { name: string; required: boolean }[] | undefined;
+    let _queryParams: { name: string; required: boolean }[] = [];
     let _queryCatchAll: string | undefined;
     let _uriTemplateParse: any;
 
@@ -519,7 +522,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       }
       _uriTemplateParse = {
         fromUri: (testUrl: string) => {
-          return templates.reduce((v, t) => (v ? v : t.fromUri(testUrl)), undefined);
+          return templates.reduce<ReturnType<typeof pathTemplate.fromUri> | undefined>(
+            (v, t) => (v ? v : t.fromUri(testUrl)),
+            undefined
+          );
         },
         varNames: [...pathTemplate.varNames, ..._queryParams.map(q => q.name)]
       };
@@ -537,7 +543,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @hidden
    * @param config - the configuration
    */
-  protected initURITemplates(config: Map<string, RouteInfo[]>): void {
+  protected initURITemplates(config: Record<string, RouteInfo[]>): void {
     // Prepare the URI parser
     for (const map in config) {
       const compiled = this.compileTemplate(map);
@@ -588,11 +594,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     const parse_result = entry._uriTemplateParse.fromUri(target, { strict: true });
     if (parse_result !== undefined) {
       const parseUrl = new URL(`http://localhost${finalUrl}`);
-      if (entry._queryCatchAll) {
-        parse_result[entry._queryCatchAll] = {};
+      const catchAll = entry._queryCatchAll;
+      if (catchAll) {
+        parse_result[catchAll] = {};
         parseUrl.searchParams.forEach((v, k) => {
           if (!entry._queryParams?.find(q => q.name === k)) {
-            parse_result[entry._queryCatchAll][k] = v;
+            parse_result[catchAll][k] = v;
           }
         });
       }
@@ -669,7 +676,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param url - the URL
    * @returns the list of results
    */
-  getRouteMethodsFromUrl(url): HttpMethodType[] {
+  getRouteMethodsFromUrl(url: string): HttpMethodType[] {
     const finalUrl = this.getFinalUrl(url);
     const methods = new Set<HttpMethodType>();
     for (const i in this.pathMap) {
@@ -757,7 +764,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param schema - the schema object
    * @returns the result
    */
-  protected getOpenAPISchema(schema) {
+  protected getOpenAPISchema(schema?: JSONSchema7 | string): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
     if (!schema) {
       return {
         $ref: "#/components/schemas/Object"
@@ -767,7 +774,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         $ref: "#/components/schemas/" + schema
       };
     }
-    return schema;
+    return schema as OpenAPIV3.SchemaObject;
   }
   /**
    * Add all known routes to paths
@@ -776,32 +783,33 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param skipHidden add hidden routes or not
    */
   completeOpenAPI(openapi: OpenAPIV3.Document, skipHidden: boolean = true) {
-    const hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
+    const documentTags = (openapi.tags ??= []);
+    const hasTag = (tag: string) => documentTags.some(t => t.name === tag);
     for (const i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
-        route.openapi = templateVariables(
+        const routeOpenapi: NonNullable<RouteInfo["openapi"]> = (route.openapi = templateVariables(
           route.openapi || {},
           useDynamicService(route.executor).getOpenApiReplacements()
-        );
-        if (route.openapi.hidden && skipHidden) {
+        ));
+        if (routeOpenapi.hidden && skipHidden) {
           return;
         }
-        route.openapi.hidden = false;
+        routeOpenapi.hidden = false;
         let path = i;
         if (i.indexOf("{?") >= 0) {
           path = i.substring(0, i.indexOf("{?"));
         }
-        openapi.paths[path] = openapi.paths[path] || {};
+        const pathItem = (openapi.paths[path] ??= {});
         if (route._uriTemplateParse) {
-          openapi.paths[path].parameters = [];
-          route._uriTemplateParse.varNames.forEach(varName => {
+          const pathParameters: NonNullable<OpenAPIV3.PathItemObject["parameters"]> = (pathItem.parameters = []);
+          route._uriTemplateParse.varNames.forEach((varName: string) => {
             const queryParam = route._queryParams?.find(i => i.name === varName);
             if (queryParam) {
               let name = varName;
               if (name.startsWith("*")) {
                 name = name.substr(1);
               }
-              openapi.paths[path].parameters.push({
+              pathParameters.push({
                 name,
                 in: "query",
                 required: queryParam.required,
@@ -811,7 +819,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
               });
               return;
             }
-            openapi.paths[path].parameters.push({
+            pathParameters.push({
               // ^[a-zA-Z0-9._$-]+$] is the official regex of AWS
               name: varName.replace(/[^a-zA-Z0-9._$-]/g, ""),
               in: "path",
@@ -823,22 +831,23 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
           });
         }
         route.methods.forEach(method => {
-          let responses: { [key: string]: OpenAPIV3.ResponseObject };
-          let schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject;
+          let responses: OpenAPIV3.ResponsesObject | undefined;
+          let schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject | undefined;
           let description;
           let summary;
           let operationId;
           let requestBody;
-          const tags = route.openapi.tags ?? [];
-          // Refactor here
-          if (route.openapi[method.toLowerCase()]) {
-            responses = route.openapi[method.toLowerCase()].responses;
-            schema = this.getOpenAPISchema(route.openapi[method.toLowerCase()].schemas?.output);
-            description = route.openapi[method.toLowerCase()].description;
-            summary = route.openapi[method.toLowerCase()].summary;
-            operationId = route.openapi[method.toLowerCase()].operationId;
-            tags.push(...(route.openapi[method.toLowerCase()].tags || []));
-            requestBody = route.openapi[method.toLowerCase()].requestBody;
+          const tags = routeOpenapi.tags ?? [];
+          const methodName = method.toLowerCase() as OpenAPIV3.HttpMethods;
+          const operation = routeOpenapi[methodName] as import("./irest.js").OpenApiWebdaOperation | undefined;
+          if (operation) {
+            responses = operation.responses as OpenAPIV3.ResponsesObject | undefined;
+            schema = this.getOpenAPISchema(operation.schemas?.output);
+            description = operation.description;
+            summary = operation.summary;
+            operationId = operation.operationId;
+            tags.push(...(operation.tags || []));
+            requestBody = operation.requestBody as OpenAPIV3.RequestBodyObject | OpenAPIV3.ReferenceObject | undefined;
           }
           responses = responses || {
             200: {
@@ -848,10 +857,15 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
           for (const j in responses) {
             // Add default answer
             const code = parseInt(j);
-            if (code < 300 && code >= 200 && !responses[j].description) {
-              responses[j].description = "Operation success";
-              responses[j].content ??= {};
-              responses[j].content["application/json"] = {
+            if (
+              code < 300 &&
+              code >= 200 &&
+              !("$ref" in responses[j]) &&
+              !(responses[j] as OpenAPIV3.ResponseObject).description
+            ) {
+              (responses[j] as OpenAPIV3.ResponseObject).description = "Operation success";
+              const content = ((responses[j] as OpenAPIV3.ResponseObject).content ??= {});
+              content["application/json"] = {
                 schema
               };
             }
@@ -867,23 +881,23 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
             summary,
             operationId,
             requestBody,
-            parameters: route.openapi[method.toLowerCase()]?.parameters
+            parameters: operation?.parameters as OpenAPIV3.OperationObject["parameters"]
           };
-          if (method.toLowerCase().startsWith("p") && route.openapi[method.toLowerCase()]?.schemas?.input) {
+          if (method.toLowerCase().startsWith("p") && operation?.schemas?.input) {
             // Add request schema if exist
             desc.requestBody ??= {
               content: {
                 "application/json": {
-                  schema: this.getOpenAPISchema(route.openapi[method.toLowerCase()]?.schemas?.input)
+                  schema: this.getOpenAPISchema(operation?.schemas?.input)
                 }
               }
             };
           }
-          openapi.paths[path][method.toLowerCase()] = desc;
+          pathItem[method.toLowerCase() as OpenAPIV3.HttpMethods] = desc;
           tags
             .filter(tag => !hasTag(tag))
             .forEach(tag =>
-              openapi.tags.push({
+              documentTags.push({
                 name: tag
               })
             );
@@ -903,14 +917,14 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (path.indexOf("{?") >= 0) {
         path = path.substring(0, path.indexOf("{?"));
       }
-      openapi.paths[path] = openapi.paths[path] || {};
+      const pathItem = (openapi.paths[path] ??= {});
       const aliasDeclaredPathParams: string[] = [];
       if (aliasEntry._uriTemplateParse) {
-        openapi.paths[path].parameters = [];
-        aliasEntry._uriTemplateParse.varNames.forEach(varName => {
+        const pathParameters: NonNullable<OpenAPIV3.PathItemObject["parameters"]> = (pathItem.parameters = []);
+        aliasEntry._uriTemplateParse.varNames.forEach((varName: string) => {
           const queryParam = aliasEntry._queryParams?.find(i => i.name === varName);
           if (queryParam) {
-            openapi.paths[path].parameters.push({
+            pathParameters.push({
               name: varName,
               in: "query",
               required: queryParam.required,
@@ -922,7 +936,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
           }
           const cleanName = varName.replace(/[^a-zA-Z0-9._$-]/g, "");
           aliasDeclaredPathParams.push(cleanName);
-          openapi.paths[path].parameters.push({
+          pathParameters.push({
             name: cleanName,
             in: "path",
             required: true,
@@ -936,7 +950,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (def.mode === "redirect") {
         const methodsToCheck = def.methods || ["GET"];
         methodsToCheck.forEach(m => {
-          openapi.paths[path][m.toLowerCase()] = {
+          pathItem[m.toLowerCase() as OpenAPIV3.HttpMethods] = {
             summary: `Redirect to ${def.target}`,
             responses: {
               [def.redirectCode || 302]: {
@@ -957,9 +971,9 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       for (const p of routePaths) {
         const pTemplate = uriTemplates(p);
         const samplePath = sampleUrl.split("?")[0];
-        if (p === samplePath || pTemplate.fromUri(samplePath, { strict: true }) !== undefined) {
+        if (p === samplePath || pTemplate.fromUri(samplePath) !== undefined) {
           for (const m of allowedMethods) {
-            const candidateOp = openapi.paths[p]?.[m.toLowerCase()];
+            const candidateOp = openapi.paths[p]?.[m.toLowerCase() as OpenAPIV3.HttpMethods];
             if (candidateOp) {
               targetOperations.push({ method: m, op: JSON.parse(JSON.stringify(candidateOp)) });
             }
@@ -981,12 +995,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
               return true;
             });
           }
-          openapi.paths[path][method.toLowerCase()] = op;
+          pathItem[method.toLowerCase() as OpenAPIV3.HttpMethods] = op;
         }
       } else {
         const methodsToEmit = def.methods || ["GET"];
         for (const m of methodsToEmit) {
-          openapi.paths[path][m.toLowerCase()] = {
+          pathItem[m.toLowerCase() as OpenAPIV3.HttpMethods] = {
             summary: `Alias of ${def.target}`,
             responses: {
               200: {
@@ -1125,7 +1139,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
     const packageInfo = useApplication().getPackageDescription();
-    let contact: OpenAPIV3.ContactObject;
+    let contact: OpenAPIV3.ContactObject | undefined;
     if (typeof packageInfo.author === "string") {
       contact = {
         name: packageInfo.author
@@ -1133,7 +1147,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     } else if (packageInfo.author) {
       contact = packageInfo.author;
     }
-    let license: OpenAPIV3.LicenseObject;
+    let license: OpenAPIV3.LicenseObject | undefined;
     if (typeof packageInfo.license === "string") {
       license = {
         name: packageInfo.license
@@ -1164,6 +1178,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       },
       useApplication().getCurrentConfiguration().openapi || {}
     ) as OpenAPIV3.Document;
+    const components = (openapi.components ??= {});
+    const componentSchemas = (components.schemas ??= {});
     const app = useApplication();
     const models = app.getModels();
     const schemas = app.getSchemas();
@@ -1173,12 +1189,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         continue;
       }
       // @ts-ignore
-      openapi.components.schemas[i] ??= schemas[i];
+      componentSchemas[i] ??= schemas[i];
       // Not sure how to test following
       /* c8 ignore next 5 */
       for (const j in schemas[i].definitions) {
         // @ts-ignore
-        openapi.components.schemas[j] ??= schemas[i].definitions[j];
+        componentSchemas[j] ??= schemas[i].definitions[j];
       }
     }
     for (const i in models) {
@@ -1186,7 +1202,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       let desc: JSONSchema7 = {
         type: "object"
       };
-      const modelName = model.name || i.split("/").pop();
+      const modelName = model.name || i.split("/").at(-1) || i;
       // A copy: the definitions move to components below, the application schema must keep them for validation.
       // A JSON one: schemas are JSON, and those of a webda.config.jsonc are JSONC proxies structuredClone rejects
       const appSchema = useApplication().getSchema(i);
@@ -1194,7 +1210,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (schema) {
         for (const j in schema.definitions) {
           // @ts-ignore
-          openapi.components.schemas[j] ??= schema.definitions[j];
+          componentSchemas[j] ??= schema.definitions[j];
         }
         delete schema.definitions;
         desc = schema;
@@ -1208,13 +1224,13 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       // Remove $schema
       delete desc.$schema;
       // Rename all #/definitions/ by #/components/schemas/
-      openapi.components.schemas[modelName] = JSON.parse(
+      componentSchemas[modelName] = JSON.parse(
         JSON.stringify(desc).replace(/#\/definitions\//g, "#/components/schemas/")
       );
     }
     this.completeOpenAPI(openapi, skipHidden);
-    openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    const paths = {};
+    (openapi.tags ??= []).sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    const paths: OpenAPIV3.PathsObject = {};
     Object.keys(openapi.paths)
       .sort()
       .forEach(i => (paths[i] = openapi.paths[i]));

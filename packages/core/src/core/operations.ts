@@ -115,7 +115,7 @@ async function runAuthorizers(
         throw err;
       }
       useLog("WARN", `Operation authorizer failed on ${operationId}`, err);
-      return err?.message ?? "authorizer error";
+      return err instanceof Error ? err.message : "authorizer error";
     }
     if (allowed !== true) {
       return typeof allowed === "string" ? allowed : "refused";
@@ -707,7 +707,7 @@ export async function callOperation(context: OperationContext, operationId: stri
         // Static/class method — the model's static canAct is asked without object
         result = await runWithContext(context, async () => {
           await checkStaticModelPermission(modelClass, context, method);
-          return modelClass[method](...callArgs);
+          return Reflect.get(modelClass, method).apply(modelClass, callArgs);
         });
       }
     } else {
@@ -748,7 +748,7 @@ export async function callOperation(context: OperationContext, operationId: stri
       emitCoreEvent("Webda.OperationFailure", {
         context,
         operationId,
-        error: err,
+        error: err instanceof Error ? err : new Error(String(err)),
         subject: subjectOf(context, operationId, callArgs)
       })
       //emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
@@ -765,14 +765,11 @@ export async function callOperation(context: OperationContext, operationId: stri
  * @returns the result
  */
 export function listOperations(): { [key: string]: Omit<OperationDefinition, "service" | "method"> } {
-  const list = {};
+  const list: Record<string, Omit<OperationDefinition, "service" | "method">> = {};
   const operations = useInstanceStorage().operations;
   Object.keys(operations).forEach(o => {
-    list[o] = {
-      ...operations[o]
-    };
-    delete list[o].service;
-    delete list[o].method;
+    const { service: _service, method: _method, ...definition } = operations[o];
+    list[o] = definition;
   });
   return list;
 }
@@ -803,12 +800,12 @@ export function registerOperation(
   // Check if service and method exist
   if (definition.model !== undefined) {
     const model = useModel(definition.model);
-    if (!model || typeof model[definition.method] !== "function") {
+    if (!model || typeof Reflect.get(model, definition.method) !== "function") {
       throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
     }
   } else if (definition.service !== undefined) {
     const service = useDynamicService(definition.service);
-    if (!service || typeof service[definition.method] !== "function") {
+    if (!service || typeof Reflect.get(service, definition.method) !== "function") {
       throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
     }
   } else {
@@ -822,7 +819,7 @@ export function registerOperation(
     input: definition.input ?? "void",
     output: definition.output ?? "void"
   } as OperationDefinitionInfo;
-  ["input", "output"]
+  (["input", "output"] as const)
     .filter(key => operations[operationId][key] && operations[operationId][key] !== "void")
     .forEach(key => {
       if (!useApplication().getSchema(operations[operationId][key])) {
@@ -916,7 +913,7 @@ function Operation(...args: any[]) {
       static: context.static,
       generator: isGeneratorFunction(target)
     });
-    const wrapper = function operationWrapper(this: any, ...args) {
+    const wrapper = function operationWrapper(this: any, ...args: any[]) {
       return target.call(this, ...args);
     };
     (wrapper as any).__original = target;

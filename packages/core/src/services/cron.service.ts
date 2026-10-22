@@ -85,7 +85,7 @@ class CronService extends Service {
    * @param args - additional arguments
    * @returns the result
    */
-  static Annotation(cron: string, description: string = "", ...args): MethodDecorator {
+  static Annotation(cron: string, description: string = "", ...args: any[]): MethodDecorator {
     return (_target: any, property: string | symbol, descriptor: PropertyDescriptor) => {
       descriptor.value.cron = descriptor.value.cron || [];
       descriptor.value.cron.push(new CronDefinition(cron, args, "", <string>property, description));
@@ -122,11 +122,11 @@ class CronService extends Service {
    * @param services - the services
    * @returns the list of results
    */
-  static loadAnnotations(services): CronDefinition[] {
+  static loadAnnotations(services: Record<string, object & { [CronSymbol]?: CronDefinition[] }>): CronDefinition[] {
     const cronsResult: CronDefinition[] = [];
     for (const i in services) {
       if (services[i]?.[CronSymbol]) {
-        services[i]?.[CronSymbol].forEach((cron: CronDefinition) => {
+        services[i]?.[CronSymbol]?.forEach((cron: CronDefinition) => {
           cron.serviceName = i;
           cronsResult.push(cron);
         });
@@ -180,7 +180,8 @@ class CronService extends Service {
     }
     for (const cron of crons) {
       this.log("INFO", `Running cron ${cron.toString()}`);
-      await useService(cron.serviceName as ServiceName)[cron.method](...cron.args);
+      const service = useService(cron.serviceName as ServiceName);
+      await Reflect.get(service, cron.method).apply(service, cron.args);
     }
   }
 
@@ -202,18 +203,19 @@ class CronService extends Service {
         this.schedule(i.cron, i.cb);
       } else {
         this.schedule(i.cron, () => {
-          useService(i.serviceName as ServiceName)[i.method](...i.args);
+          const service = useService(i.serviceName as ServiceName);
+          if (i.method) Reflect.get(service, i.method).apply(service, i.args ?? []);
         });
       }
     });
 
-    const msgs = [];
+    const msgs: string[] = [];
     // Display before
     this.crons.forEach(c => {
       if (c.cb) {
         msgs.push(`[NativeCode:${c.context || ""}]`);
       } else {
-        msgs.push(`${c.serviceName}.${c.method}(${c.args.length ? "..." + c.args : ""})`);
+        msgs.push(`${c.serviceName}.${c.method}(${c.args?.length ? "..." + c.args : ""})`);
       }
     });
     const cronPad = Math.max(...this.crons.map(c => c.cron.length));
@@ -244,8 +246,8 @@ class CronService extends Service {
         throw new Error();
       } catch (err) {
         // Based on stack trace (not super clean)
-        const info = err.stack.split("\n")[2].match(/\((.*)\)/);
-        context = info[1].replace(process.cwd() + "/", "");
+        const info = err instanceof Error ? err.stack?.split("\n")[2]?.match(/\((.*)\)/) : undefined;
+        context = info?.[1]?.replace(process.cwd() + "/", "") ?? "";
       }
       this.crons.push({ cron, cb, description, context });
     }
@@ -266,7 +268,9 @@ export function Cron(cron: string, description = "", ...args: any[]) {
   ) {
     // Store metadata on each instance when it's constructed
     context.addInitializer(function cronInitializer(this: Service) {
-      (this[CronSymbol] ??= []).push(new CronDefinition(cron, args, this.name, context.name as string, description));
+      ((this as Service & { [CronSymbol]?: CronDefinition[] })[CronSymbol] ??= []).push(
+        new CronDefinition(cron, args, this.name, context.name as string, description)
+      );
     });
 
     // You can return the same method, or wrap it if you need

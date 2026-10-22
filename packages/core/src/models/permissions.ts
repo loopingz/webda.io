@@ -136,7 +136,7 @@ async function askPermission(
     if (!(err instanceof WebdaError.HttpError)) {
       useLog("WARN", `canAct('${action}') failed on ${object?.constructor?.name ?? "model"}`, err);
     }
-    return err?.message ?? false;
+    return err instanceof Error ? err.message : false;
   }
 }
 
@@ -261,7 +261,7 @@ export async function checkModelParent(model: any, parentId: any, context: IOper
 export async function checkModelReparent(model: any, object: any, input: any, context: IOperationContext) {
   const parent = getParentRelation(model);
   const value = parent ? input?.[parent.attribute] : undefined;
-  if (value === undefined || value === null || String(value) === String(object?.[parent.attribute] ?? "")) {
+  if (!parent || value === undefined || value === null || String(value) === String(object?.[parent.attribute] ?? "")) {
     return;
   }
   await checkModelParent(model, value, context);
@@ -340,7 +340,7 @@ export async function createModel<T = any>(object: T): Promise<T> {
   try {
     await (object as any).getRepository().create(object);
   } catch (err) {
-    if (/^Already exists/.test(`${err?.message}`)) {
+    if (/^Already exists/.test(`${err instanceof Error ? err.message : err}`)) {
       throw new WebdaError.Conflict("Object already exists");
     }
     throw err;
@@ -791,9 +791,9 @@ export async function queryModelWithPermissions<T = any>(
     scanned += rows.length;
     // Each row is checked with the queried class and, for a subclass row, its own class too
     const readable = await Promise.all(
-      rows.map(async r => (await askPermission(staticCanAct(model, r), context, "get", r)) === true)
+      rows.map(async (r: any) => (await askPermission(staticCanAct(model, r), context, "get", r)) === true)
     );
-    results.push(...rows.filter((_r, i) => readable[i]));
+    results.push(...rows.filter((_r: any, i: number) => readable[i]));
     token = res.continuationToken;
     if (!token || results.length >= limit) {
       // Store exhausted, or page full

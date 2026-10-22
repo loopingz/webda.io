@@ -108,13 +108,13 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
    * @see https://blog.boot.dev/clean-code/casings-in-coding/
    * @default camelCase
    */
-  nameTransformer?: TransformCaseType;
+  nameTransformer: TransformCaseType;
   /**
    * Method used for query objects
    *
    * @default "PUT"
    */
-  queryMethod?: "PUT" | "GET";
+  queryMethod: "PUT" | "GET";
   /**
    * Largest message (bytes) a client may send on a bidirectional WebSocket operation; a bigger one closes the socket
    *
@@ -126,13 +126,13 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
    *
    * @default 1000
    */
-  webSocketMaxQueuedMessages?: number;
+  webSocketMaxQueuedMessages: number;
   /**
    * Most bytes of unconsumed messages a bidirectional operation may have queued; above it the socket closes with 4413
    *
    * @default 16777216
    */
-  webSocketMaxQueuedBytes?: number;
+  webSocketMaxQueuedBytes: number;
   /**
    * Milliseconds between two keep-alive comments on an open `text/event-stream` response of a server-streaming
    * operation (0 disables them)
@@ -528,14 +528,14 @@ export class RESTOperationsTransport<
     const app = useApplication();
     const { Relations: relations, Identifier, Plural: plural, Actions: actions } = metadata;
     const injectAttribute = relations?.parent?.attribute;
-    const shortId = Identifier.split("/").pop();
+    const shortId = Identifier.split("/").at(-1) ?? Identifier;
     const name = plural;
 
     // Build prefix for this model
     const prefix = basePrefix + this.transformName(name);
 
     // Register the model url with the router
-    useRouter()?.registerModelUrl(app.getModelId(model), prefix);
+    useRouter()?.registerModelUrl(Identifier, prefix);
 
     // Register routes for standard CRUD operations
     this.exposeQueryRoute(prefix, plural, shortId, Identifier, depth, injectAttribute, operations);
@@ -1064,7 +1064,7 @@ export class RESTOperationsTransport<
       ...action.openapi
     };
     (action.methods || ["PUT"]).forEach((method, index) => {
-      openapi[method.toLowerCase()] = {
+      openapi[method.toLowerCase() as import("openapi-types").OpenAPIV3.HttpMethods] = {
         tags: [shortId],
         // operationIds must be unique: when an action accepts several methods,
         // the first one carries the operation the route dispatches to
@@ -1076,14 +1076,16 @@ export class RESTOperationsTransport<
       Object.keys(openapi)
         .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
         .forEach(k => {
-          openapi[k].responses = { ...this.streamedResponses(), ...openapi[k].responses };
+          const operation = (openapi[k as import("openapi-types").OpenAPIV3.HttpMethods] ??= {});
+          operation.responses = { ...this.streamedResponses(), ...operation.responses };
         });
     }
     if (hasSchema(`${identifier}.${actionName}.input`)) {
       Object.keys(openapi)
         .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
         .forEach(k => {
-          openapi[k].requestBody = {
+          const operation = (openapi[k as import("openapi-types").OpenAPIV3.HttpMethods] ??= {});
+          operation.requestBody = {
             content: {
               "application/json": {
                 schema: {
@@ -1101,9 +1103,10 @@ export class RESTOperationsTransport<
       Object.keys(openapi)
         .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
         .forEach(k => {
-          openapi[k].responses ??= {};
-          openapi[k].responses["200"] ??= {};
-          openapi[k].responses["200"].content = {
+          const operation = (openapi[k as import("openapi-types").OpenAPIV3.HttpMethods] ??= {});
+          operation.responses ??= {};
+          const response = (operation.responses["200"] ??= {});
+          (response as import("openapi-types").OpenAPIV3.ResponseObject).content = {
             "application/json": {
               schema: {
                 $ref: `#/components/schemas/${identifier}.${actionName}.output`
@@ -1192,10 +1195,11 @@ export class RESTOperationsTransport<
           operationId
         }
       };
+      const operation = (openapi[methodKey as import("openapi-types").OpenAPIV3.HttpMethods] ??= {});
       const inputSchema = `${behavior.behavior}.${actionName}.input`;
       const outputSchema = `${behavior.behavior}.${actionName}.output`;
       if (hasSchema(inputSchema)) {
-        openapi[methodKey].requestBody = {
+        operation.requestBody = {
           content: {
             "application/json": {
               schema: {
@@ -1206,9 +1210,9 @@ export class RESTOperationsTransport<
         };
       }
       if (getOperationStreaming(op) === "server") {
-        openapi[methodKey].responses = this.streamedResponses();
+        operation.responses = this.streamedResponses();
       } else if (hasSchema(outputSchema)) {
-        openapi[methodKey].responses = {
+        operation.responses = {
           "200": {
             description: "Operation success",
             content: {

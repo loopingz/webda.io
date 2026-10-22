@@ -97,7 +97,7 @@ export class WebdaInternalTest extends WebdaApplicationTest {
       for (let j = i; j < i + 6; j++) {
         const s = students[j % 10];
         courseStudents.push({
-          uuid: s.getUuid(),
+          uuid: s.getUUID(),
           email: s.email,
           firstName: s.firstName,
           lastName: s.lastName
@@ -129,7 +129,7 @@ export class WebdaInternalTest extends WebdaApplicationTest {
 
     let count = 1;
     for (const course of courses) {
-      course.classroom.set(classrooms[count++ % 3].uuid);
+      course.classroom = classrooms[count++ % 3].uuid;
       await course.save();
     }
 

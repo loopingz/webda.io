@@ -13,7 +13,7 @@ export class WebdaAsyncStorageTest extends WebdaTest {
    * @param callback - the callback function
    * @returns the result
    */
-  wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
+  async wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
     // @ts-ignore
     global.it ??= () => {};
     if (type === "beforeAll") {

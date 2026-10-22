@@ -307,7 +307,7 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
     ctx.setSession(session);
     try {
       const result = await runWithContext(ctx, () => useAuthentication().complete(identity));
-      if (result.status !== "ok" || !session.userId) {
+      if (result.status !== "ok" || !session.userId || !session.identUsed) {
         return undefined;
       }
       const value = { userId: session.userId, identId: session.identUsed };

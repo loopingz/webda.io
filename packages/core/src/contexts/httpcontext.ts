@@ -399,7 +399,18 @@ export class HttpContext {
    * @param def - the default value
    * @returns the list of results
    */
-  getHeader(name: string, def?: string): string | string[] {
+  getHeader(name: string, def: string): string | string[];
+  /** Read a header without a fallback. */
+  getHeader(name: string): string | string[] | undefined;
+  /** Read a header with an optional fallback. */
+  getHeader(name: string, def?: string): string | string[] | undefined;
+  /**
+   * Read a header, using the fallback when absent.
+   * @param name - the header name
+   * @param def - the fallback value
+   * @returns the header or its fallback
+   */
+  getHeader(name: string, def?: string): string | string[] | undefined {
     return this.headers[name.toLowerCase()] || def;
   }
 
@@ -409,7 +420,18 @@ export class HttpContext {
    * @param def - the default value
    * @returns the result string
    */
-  getUniqueHeader(name: string, def?: string): string {
+  getUniqueHeader(name: string, def: string): string;
+  /** Read the last value of a header without a fallback. */
+  getUniqueHeader(name: string): string | undefined;
+  /** Read a header with an optional fallback. */
+  getUniqueHeader(name: string, def?: string): string | undefined;
+  /**
+   * Read the last header value, using the fallback when absent.
+   * @param name - the header name
+   * @param def - the fallback value
+   * @returns the header or its fallback
+   */
+  getUniqueHeader(name: string, def?: string): string | undefined {
     const header = this.getHeader(name, def);
     if (Array.isArray(header)) {
       return header.pop() || def;

@@ -1,4 +1,4 @@
-import { CallbackOptionallyAsync, testWrapper, getMetadata } from "@webda/test";
+import { testWrapper, getMetadata } from "@webda/test";
 import { beforeAll } from "vitest";
 import { ConsoleLogger, MemoryLogger, useLog, useWorkerOutput } from "@webda/workout";
 import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
@@ -25,7 +25,7 @@ export class WebdaTest {
    * @param callback - the callback function
    * @returns the result
    */
-  async wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
+  async wrap(type: "beforeAll" | "test" | "afterAll", callback: Function) {
     return callback();
   }
 
@@ -35,7 +35,7 @@ export class WebdaTest {
    * @param type - the type to look up
    */
   @testWrapper
-  protected async testWrapper(type: "beforeAll" | "test" | "afterAll" = "test", callback: CallbackOptionallyAsync) {
+  protected async testWrapper(type: "beforeAll" | "test" | "afterAll" = "test", callback: Function) {
     let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
     const memoryLogger = new MemoryLogger(useWorkerOutput(), "TRACE");
     const start = Date.now();
@@ -65,7 +65,7 @@ export class WebdaTest {
    */
   static exportMemoryLogger(
     type: "beforeAll" | "test" | "afterAll" = "test",
-    object,
+    object: Record<string, any>,
     method: string,
     memory: MemoryLogger,
     start: number
@@ -78,7 +78,7 @@ export class WebdaTest {
     }
     let suiteName = "UnknownSuite";
     let testName = method;
-    const metadata = getMetadata(object.constructor);
+    const metadata = getMetadata(object.constructor as new (...args: any[]) => any);
     if (metadata["webda:suite"]?.name) {
       suiteName = metadata["webda:suite"].name;
     }

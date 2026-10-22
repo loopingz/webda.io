@@ -14,10 +14,10 @@ export class SimpleOperationContext extends OperationContext {
    * @returns the result
    */
   static async fromContext(context: OperationContext): Promise<SimpleOperationContext> {
-    const ctx = new SimpleOperationContext(context["_webda"]);
+    const ctx = new SimpleOperationContext();
     ctx.setSession(context.getSession());
     const stream = context.getRawStream();
-    ctx.setInput(await streamToBuffer(stream));
+    if (stream) ctx.setInput(await streamToBuffer(stream));
     return ctx;
   }
 

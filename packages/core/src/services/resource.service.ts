@@ -37,7 +37,7 @@ export class ResourceServiceParameters extends ServiceParameters {
    *
    * @default "." + url
    */
-  folder?: string;
+  folder: string;
   /**
    * Add the / root to redirect to /{url}
    *
@@ -49,7 +49,7 @@ export class ResourceServiceParameters extends ServiceParameters {
    *
    * @default index.html
    */
-  index?: string;
+  index: string;
   /**
    * Return the index file for any unfound resource
    * Useful for single page application
@@ -61,14 +61,14 @@ export class ResourceServiceParameters extends ServiceParameters {
    * Cache control header to set
    * @default "public, max-age=31536000"
    */
-  cacheControl?: string;
+  cacheControl: string;
   /**
    * Cache control for index file
    * SPA usually do not cache the index file
    *
    * @default "no-cache, no-store, must-revalidate"
    */
-  indexCacheControl?: string;
+  indexCacheControl: string;
   /**
    * Serve also . prefixed files
    * . files usually have some secrets and should not be served
@@ -159,7 +159,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
     // A folder is served at `url` with its trailing slash; send the bare URL
     // there, where relative links in the index (`app.js`) resolve inside it
     if (!this.fileOnly && this.parameters.url !== "/") {
-      this.addRoute(this.parameters.url.slice(0, -1), ["GET"], this._redirectToFolder, {
+      this.addRoute((this.parameters.url ?? "/").slice(0, -1), ["GET"], this._redirectToFolder, {
         hidden: true,
         get: {
           description: "Redirect to the exposed folder with its trailing slash",
@@ -255,7 +255,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
         ctx
           .parameter("resource")
           .split("/")
-          .find(f => f.startsWith(".")) &&
+          .find((f: string) => f.startsWith(".")) &&
         !this.parameters.allowHiddenFiles
       ) {
         throw new WebdaError.NotFound("Hidden files are not allowed");

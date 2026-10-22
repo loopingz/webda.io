@@ -29,7 +29,7 @@ export class GlobalContext extends Context {
   /**
    * @override
    */
-  getCurrentUser(): Promise<undefined> {
+  getCurrentUser(): undefined {
     return undefined;
   }
 

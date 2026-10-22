@@ -424,13 +424,16 @@ export class InvitationService<
    * @param model - target model the invitation is for (may be undefined if deleted)
    */
   async answerInvitation(ctx: WebContext<InvitationAnswerBody>, model: CoreModel) {
+    const userId = ctx.getCurrentUserId();
+    if (!userId) throw new WebdaError.Unauthorized("Authenticated user required");
     const body = await ctx.getInput();
     // Invitation on the model is gone
     if (model === undefined) {
-      await this.removeInvitationFromUser(ctx.getCurrentUserId(), ctx.getParameters().uuid);
+      await this.removeInvitationFromUser(userId, ctx.getParameters().uuid);
       throw new WebdaError.Gone("Invitation is gone");
     }
     const user = await ctx.getCurrentUser<User>();
+    if (!user) throw new WebdaError.Unauthorized("Authenticated user required");
     const pendings = this.getInvitationMap(model, this.parameters.pendingAttribute);
     let metadata: unknown = undefined;
     ((user as any).getIdents?.() || []).forEach((i: any) => {
@@ -611,6 +614,7 @@ export class InvitationService<
       await loadModelForAction(this.model, ctx.getParameters().uuid, ctx, method === "DELETE" ? "uninvite" : "invite")
     );
     const inviter = await ctx.getCurrentUser<User>();
+    if (!inviter) throw new WebdaError.Unauthorized("Authenticated inviter required");
     model[this.parameters.attribute] ??= {};
     model[this.parameters.pendingAttribute] ??= {};
     if (method === "DELETE") {

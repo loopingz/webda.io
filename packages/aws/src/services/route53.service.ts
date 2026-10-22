@@ -1,4 +1,12 @@
-import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, RRType, Route53 } from "@aws-sdk/client-route-53";
+import {
+  HostedZone,
+  ListHostedZonesRequest,
+  ListHostedZonesResponse,
+  RRType,
+  Route53,
+  ResourceRecordSet,
+  ListResourceRecordSetsCommandOutput
+} from "@aws-sdk/client-route-53";
 import { Service, useLog } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 
@@ -12,9 +20,9 @@ export class Route53Service extends Service {
    * @param domain to get zone for
    * @returns the closest hosted zone or undefined
    */
-  static async getZoneForDomainName(domain: string): Promise<HostedZone> {
+  static async getZoneForDomainName(domain: string): Promise<HostedZone | undefined> {
     domain = this.completeDomain(domain);
-    let targetZone: HostedZone;
+    let targetZone: HostedZone | undefined;
     // Find the right zone
     const r53: Route53 = new Route53({});
     let res: ListHostedZonesResponse;
@@ -22,10 +30,9 @@ export class Route53Service extends Service {
     // Identify the right zone first
     do {
       res = await r53.listHostedZones(params);
-      for (const i in res.HostedZones) {
-        const zone = res.HostedZones[i];
-        if (domain.endsWith(zone.Name)) {
-          if (targetZone && targetZone.Name.length > zone.Name.length) {
+      for (const zone of res.HostedZones ?? []) {
+        if (zone.Name && domain.endsWith(zone.Name)) {
+          if (targetZone && (targetZone.Name?.length ?? 0) > zone.Name.length) {
             // The previous target zone is closer to the domain
             continue;
           }
@@ -62,7 +69,7 @@ export class Route53Service extends Service {
     domain: string,
     type: RRType,
     value: string,
-    targetZone: HostedZone = undefined,
+    targetZone?: HostedZone,
     Comment: string = "@webda/aws-created"
   ): Promise<void> {
     const r53 = new Route53({});
@@ -108,14 +115,14 @@ export class Route53Service extends Service {
     if (!zone) {
       throw new Error(`Domain '${domain}' is not handled on AWS`);
     }
-    const result = [];
-    let res;
+    const result: ResourceRecordSet[] = [];
+    let res: ListResourceRecordSetsCommandOutput | undefined;
     do {
       res = await r53.listResourceRecordSets({
         HostedZoneId: zone.Id,
         StartRecordIdentifier: res ? res.NextRecordIdentifier : undefined
       });
-      result.push(...res.ResourceRecordSets);
+      result.push(...(res.ResourceRecordSets ?? []));
     } while (res.IsTruncated);
     return result;
   }
@@ -136,7 +143,7 @@ export class Route53Service extends Service {
     },
     log: (level: "INFO" | "ERROR", ...args: any[]) => void = useLog
   ) {
-    const data = JSONUtils.loadFile(options.file);
+    const data: { domain: string; entries: ResourceRecordSet[] } = JSONUtils.loadFile(options.file);
     const targetZone = await this.getZoneForDomainName(data.domain);
     const r53 = new Route53({});
     if (!targetZone) {
@@ -149,7 +156,7 @@ export class Route53Service extends Service {
           Changes: data.entries
             .filter(r => !(r.Type === "NS" && r.Name === targetZone.Name))
             .map(r => {
-              if (!r.ResourceRecords.length) {
+              if (!r.ResourceRecords?.length) {
                 delete r.ResourceRecords;
               }
               return r;
@@ -163,15 +170,15 @@ export class Route53Service extends Service {
       if (!options.sync) {
         return;
       }
-      let continuationToken;
+      let continuationToken: string | undefined;
       const toDelete = [];
       do {
-        const records = await r53.listResourceRecordSets({
+        const records: ListResourceRecordSetsCommandOutput = await r53.listResourceRecordSets({
           HostedZoneId: targetZone.Id,
           StartRecordIdentifier: continuationToken
         });
         toDelete.push(
-          ...records.ResourceRecordSets.filter(r => {
+          ...(records.ResourceRecordSets ?? []).filter(r => {
             return data.entries.findIndex(e => e.Name === r.Name && e.Type === r.Type) === -1;
           })
         );

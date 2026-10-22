@@ -165,7 +165,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
   resolve() {
     super.resolve();
     this.parameters.with(parameters => {
-      register.setDefaultLabels(parameters.labels);
+      register.setDefaultLabels(parameters.labels ?? {});
       if (!parameters.portNumber) {
         this.addRoute(parameters.url || "/metrics", ["GET"], this.serveMetrics);
       } else {
@@ -217,7 +217,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
             );
             this.metrics.http_response_sizes.observe(
               this.parameters.partitionHistogram ? labels : staticLabels,
-              Number.parseInt(context.getResponseHeaders["content-length"] || "0")
+              Number.parseInt(context.getResponseHeaders()["content-length"] || "0")
             );
           }
           this.metrics.http_request_in_flight.dec(staticLabels, 1);

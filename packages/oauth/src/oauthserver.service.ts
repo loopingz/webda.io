@@ -189,8 +189,9 @@ function withQuery(url: string, params: Record<string, string | undefined>): str
  * @returns the identity carried by the issued tokens
  */
 function identityOf(session: Session): GrantIdentity {
+  if (!session.userId || !session.identUsed) throw new OAuthError("invalid_grant", "Authenticated session required");
   return {
-    userId: session.userId!,
+    userId: session.userId,
     identId: session.identUsed,
     provider: session.provider,
     amr: session.amr ?? [],

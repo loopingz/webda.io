@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import {
   createCipheriv,
   createDecipheriv,
@@ -138,12 +139,12 @@ export class SecretString {
   }
   /**
    * Custom inspect handler to mask the secret in Node.js util.inspect
-   * @param depth - the depth level
-   * @param options - the options
-   * @param inspect - the inspect function
+   * @param _depth - the depth level
+   * @param _options - the options
+   * @param _inspect - the inspect function
    * @returns the result
    */
-  [util.inspect.custom](depth, options, inspect) {
+  [util.inspect.custom](_depth: number, _options: util.InspectOptions, _inspect: typeof util.inspect) {
     return SECRET_MASK;
   }
 }
@@ -180,8 +181,9 @@ const ENCRYPTER_SEGMENT = /^([A-Za-z0-9_.-]+):([\s\S]*)$/;
 /**
  * A parsed encrypted or to-encrypt configuration value
  */
-export interface EncryptedValue {
-  mode: "encrypt" | "crypt";
+export type EncryptedValue = (
+  { mode: "encrypt"; encrypter: string | undefined } | { mode: "crypt"; encrypter: string }
+) & {
   /**
    * `sencrypt:` or `scrypt:`: decrypted to a plain string instead of a SecretString
    */
@@ -189,13 +191,12 @@ export interface EncryptedValue {
   /**
    * Encrypter name, undefined for `encrypt:<value>` when no default encrypter is set
    */
-  encrypter: string | undefined;
   data: string;
   /**
    * The encrypter is written in the value, false when the default encrypter is used
    */
   explicit: boolean;
-}
+};
 
 /**
  * Parse an encrypted or to-encrypt configuration value
@@ -455,7 +456,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
   currentSymetricKey: string;
   currentAsymetricKey: { publicKey: string; privateKey: string };
-  current: string;
+  current: string | undefined;
   age: number;
   keys: {
     [key: string]: KeysDefinition;
@@ -595,8 +596,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @returns true once the keys are loaded
    */
   protected async refreshKeysFile(): Promise<boolean> {
-    const file = this.getKeysFile();
-    let signature: string;
+    const file = required(this.getKeysFile(), "keys file");
+    let signature: string | undefined;
     try {
       // Checking the file metadata is cheap: an unknown key id in a token does not reparse the file
       const info = await stat(file);
@@ -608,9 +609,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       // Public keys of a key id can change with the file
       this.jwks = {};
     } catch (err) {
-      const error = err.message.startsWith("keysFile")
-        ? err
-        : new Error(`Cannot read keysFile ${file}: ${err.message}`);
+      const error =
+        err instanceof Error && err.message.startsWith("keysFile")
+          ? err
+          : new Error(`Cannot read keysFile ${file}: ${err instanceof Error ? err.message : String(err)}`);
       if (!this.keys) {
         throw error;
       }
@@ -631,7 +633,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     try {
       content = JSON.parse(await readFile(file, "utf-8"));
     } catch (err) {
-      throw new Error(`keysFile ${file} is not valid JSON: ${err.message}`);
+      throw new Error(`keysFile ${file} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`);
     }
     if (!content || typeof content !== "object" || Array.isArray(content)) {
       throw new Error(`keysFile ${file} must contain a JSON object`);
@@ -643,8 +645,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       throw new Error(`keysFile ${file} has no 'key_${content.current}' for the current key`);
     }
     for (const id of Object.keys(content).filter(k => k.startsWith("key_"))) {
-      for (const field of ["publicKey", "privateKey", "symetric"]) {
-        if (typeof content[id]?.[field] !== "string") {
+      for (const field of ["publicKey", "privateKey", "symetric"] as const) {
+        if (typeof content[id as `key_${string}`]?.[field] !== "string") {
           throw new Error(`keysFile ${file}: ${id}.${field} must be a string`);
         }
       }
@@ -661,10 +663,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     Object.keys(load)
       .filter(k => k.startsWith("key_"))
       .forEach(k => {
-        this.keys[k.substring(4)] = load[k];
+        this.keys[k.substring(4)] = load[k as `key_${string}`];
       });
     this.current = load.current.startsWith("init-") ? undefined : load.current;
-    this.age = parseInt(this.current, 36);
+    this.age = this.current === undefined ? NaN : parseInt(this.current, 36);
   }
 
   /**
@@ -758,7 +760,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     if (!res.secretOrPublicKey) {
       const keyInfo = await this.getCurrentKeys();
       // Depending on the algo fallback to the right key
-      if (res.algorithm.startsWith("HS")) {
+      if ((res.algorithm ?? "HS256").startsWith("HS")) {
         key = keyInfo.keys.symetric;
         res.keyid = "S" + keyInfo.id;
       } else {
@@ -767,7 +769,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       }
     }
     delete res.secretOrPublicKey;
-    return jwt.sign(data, key, res);
+    return jwt.sign(data, required(key, "JWT signing key"), res as jwt.SignOptions);
   }
 
   /**
@@ -799,7 +801,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @param header - the JWT header
    * @param callback - the callback function
    */
-  public async getJWTKey(header, callback) {
+  public async getJWTKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
     if (!header.kid) {
       callback(new Error("Unknown key"));
       return;
@@ -833,8 +835,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
         token,
         options?.secretOrPublicKey || this.getJWTKey.bind(this),
         {
-          ...options,
-          secretOrPublicKey: undefined
+          ...options
         },
         (err, result) => {
           if (err) {
@@ -986,12 +987,12 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       }
       const target = pass.migrate || encrypter;
       if (target === encrypter) {
-        const current = await CryptoService.useEncrypter(encrypter, pass, path);
+        const current = await CryptoService.useEncrypter(required(encrypter, "encrypter"), pass, path);
         if (current.needsUpgrade && !current.needsUpgrade(parsed.data)) {
           return data;
         }
       }
-      plain = await CryptoService.decryptValue(encrypter, parsed.data, path, pass);
+      plain = await CryptoService.decryptValue(required(encrypter, "encrypter"), parsed.data, path, pass);
       encrypter = target;
     } else if (!encrypter) {
       throw new Error(`No default encrypter for the value at ${formatPath(path)}, set ${SETTINGS_PATH}.default`);
@@ -1001,7 +1002,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
           `or set ${SETTINGS_PATH}.default to encrypt the whole value with the default encrypter`
       );
     }
-    const encrypted = await (await CryptoService.useEncrypter(encrypter, pass, path)).encrypt(plain);
+    const encrypted = await (
+      await CryptoService.useEncrypter(required(encrypter, "encrypter"), pass, path)
+    ).encrypt(plain);
     return `${parsed.plain ? "s" : ""}crypt:${encrypter}:${encrypted}`;
   }
 
@@ -1020,12 +1023,14 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     pass?: EncryptionPass
   ): Promise<string> {
     const impl = pass
-      ? await CryptoService.useEncrypter(encrypter, pass, path)
+      ? await CryptoService.useEncrypter(required(encrypter, "encrypter"), pass, path)
       : CryptoService.requireEncrypter(encrypter, path);
     try {
       return await impl.decrypt(data);
     } catch (err) {
-      throw new Error(`Cannot decrypt the value at ${formatPath(path)} with encrypter '${encrypter}': ${err.message}`);
+      throw new Error(
+        `Cannot decrypt the value at ${formatPath(path)} with encrypter '${encrypter}': ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
@@ -1188,7 +1193,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       return [resolve(app.getPath(), file)];
     }
     const files = [app.configurationFile, app.getDeployment() ? app.deploymentFile : undefined].filter(
-      f => f && existsSync(f)
+      (f): f is string => typeof f === "string" && existsSync(f)
     );
     if (!files.length) {
       throw new Error("No configuration file found, use --file");
@@ -1317,6 +1322,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     }
     for (const finding of plain) {
       // The encrypter is explicit: a plain value starting with an encrypter name is not misread
+      if (!finding.location) continue;
       const parent = finding.location.slice(0, -1).reduce((target, segment) => target[segment], data);
       const key = finding.location[finding.location.length - 1];
       parent[key] = `encrypt:${settings.default}:${parent[key]}`;
@@ -1502,7 +1508,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     try {
       writeFileSync(file, JSON.stringify(keys, undefined, 2), { mode: 0o600, flag: "wx" });
     } catch (err) {
-      throw err.code === "EEXIST" ? new Error(`${file} already exists`) : err;
+      throw err instanceof Error && "code" in err && err.code === "EEXIST" ? new Error(`${file} already exists`) : err;
     }
     useLog("INFO", `Keys written to ${file}, never commit it`);
     useLog(
@@ -1587,7 +1593,7 @@ export const ENCRYPTION_FORMAT_V2 = "v2:";
  * @returns the key derived from the machine id
  */
 function getLocalKey(): Uint8Array {
-  return new Uint8Array(createHash("sha256").update(getMachineId()).digest());
+  return new Uint8Array(createHash("sha256").update(required(getMachineId(), "machine identifier")).digest());
 }
 
 /**

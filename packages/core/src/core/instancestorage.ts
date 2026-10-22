@@ -29,19 +29,24 @@ export type InstanceStorage = Partial<{
 }>;
 
 // Test are transpiling and creating several instances of 'instancestorage.ts'
-process["webdaInstanceStorage"] ??= new AsyncLocalStorage<InstanceStorage>();
-const storage = process["webdaInstanceStorage"];
+const sharedProcess = process as NodeJS.Process & { webdaInstanceStorage?: AsyncLocalStorage<InstanceStorage> };
+const storage = (sharedProcess.webdaInstanceStorage ??= new AsyncLocalStorage<InstanceStorage>());
 
 /**
  * Retrieve the current async-local InstanceStorage, throwing if called outside a storage context
  * @returns the result
  */
-export function useInstanceStorage(): InstanceStorage {
+export function useInstanceStorage(): InstanceStorage &
+  Required<Pick<InstanceStorage, "operations" | "interruptables" | "contextProviders">> {
   const store = storage.getStore();
   if (!store) {
     throw new Error("Webda launched outside of a InstanceStorage context");
   }
-  return store;
+  return Object.assign(store, {
+    operations: store.operations ?? {},
+    interruptables: store.interruptables ?? new Set(),
+    contextProviders: store.contextProviders ?? []
+  });
 }
 
 /**
@@ -50,7 +55,7 @@ export function useInstanceStorage(): InstanceStorage {
  * @param fn - the function to wrap
  * @returns the result
  */
-export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn) {
+export function runWithInstanceStorage<T>(instanceStorage: InstanceStorage = {}, fn: () => T): T {
   return storage.run(
     {
       application: undefined,

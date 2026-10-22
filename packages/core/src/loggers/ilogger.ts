@@ -53,7 +53,7 @@ export class Logger implements WorkoutLogger {
    * @param level - the log level
    * @param args - additional arguments
    */
-  log(level: WorkerLogLevel, ...args) {
+  log(level: WorkerLogLevel, ...args: any[]) {
     this.logWithContext(level, this.context, ...args);
   }
 
@@ -63,7 +63,7 @@ export class Logger implements WorkoutLogger {
    * @param context - the execution context
    * @param args - additional arguments
    */
-  logWithContext(level: WorkerLogLevel, context: any, ...args) {
+  logWithContext(level: WorkerLogLevel, context: any, ...args: any[]) {
     if (!context.class) {
       context.class = this.context.class;
     }
@@ -89,7 +89,7 @@ export class Logger implements WorkoutLogger {
    * @param total - the total count
    * @param title - the title
    */
-  logProgressStart(uid: string, total: number, title: string = undefined) {
+  logProgressStart(uid: string, total: number, title?: string) {
     this.output.startProgress(uid, total, title);
   }
 
@@ -98,7 +98,7 @@ export class Logger implements WorkoutLogger {
    * @param inc - the increment value
    * @param uid - the unique identifier
    */
-  logProgressIncrement(inc: number = 1, uid: string = undefined) {
+  logProgressIncrement(inc: number = 1, uid?: string) {
     this.output.incrementProgress(inc, uid);
   }
   /**
@@ -107,7 +107,7 @@ export class Logger implements WorkoutLogger {
    * @param uid - the unique identifier
    * @param title - the title
    */
-  logProgressUpdate(current: number, uid: string = undefined, title: string = undefined) {
+  logProgressUpdate(current: number, uid?: string, title?: string) {
     this.output.updateProgress(current, uid, title);
   }
 

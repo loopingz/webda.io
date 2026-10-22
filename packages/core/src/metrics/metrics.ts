@@ -42,7 +42,7 @@ export function useMetric<T = Gauge | Counter | Histogram>(
   configuration: MetricConfiguration<T>
 ): T {
   const metrics = useParameters().metrics;
-  if (metrics === false) {
+  if (!metrics) {
     // Return a mock
     const mock: any = {
       inc: () => {},
@@ -61,13 +61,13 @@ export function useMetric<T = Gauge | Counter | Histogram>(
     return mock;
   }
   const name = `${metrics.prefix}webda_${configuration.name}`;
-  const labelNames = [...(configuration.labelNames || []), ...Object.keys(metrics.labels)];
+  const labelNames = [...(configuration.labelNames || []), ...Object.keys(metrics.labels ?? {})];
   // Will probably need to override with a staticLabels property
   return (
     <T>register.getSingleMetric(name) ||
     new type({
       ...configuration,
-      ...metrics.config[configuration.name],
+      ...metrics.config?.[configuration.name],
       name,
       labelNames
     })

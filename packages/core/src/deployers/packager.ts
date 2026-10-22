@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import { useLog } from "@webda/workout";
 import {
   chmodSync,
@@ -417,7 +418,7 @@ export async function packageApplication(app: Application, options: PackageOptio
   };
   const queue = dependenciesOf(description, true).map(dep => ({ ...dep, from: realAppPath, parent: "" }));
   while (queue.length) {
-    const { name, optional, from, parent } = queue.shift();
+    const { name, optional, from, parent } = required(queue.shift(), "dependency in queue");
     const real = findDependency(name, from);
     if (!real) {
       if (!optional) {

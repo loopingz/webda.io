@@ -13,10 +13,11 @@ export class RegistryEntry extends UuidModel {
   }
 
   /**
-   * Registry entries are not serializable to DTO
+   * Registry entries are not serializable to DTO. The broad return type preserves
+   * the undefined sentinel while satisfying the generic model DTO contract.
    * @returns the result
    */
-  toDTO(): undefined {
+  toDTO(): any {
     return undefined;
   }
 

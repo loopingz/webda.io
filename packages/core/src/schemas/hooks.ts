@@ -18,7 +18,9 @@ let ajvInstance: (Ajv & { rawSchema: Record<string, JSONSchema7> }) | null = nul
  */
 function getAjv(): Ajv & { rawSchema: Record<string, JSONSchema7> } {
   if (!ajvInstance) {
-    ajvInstance = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true }) as any;
+    ajvInstance = Object.assign(new Ajv({ allErrors: true, strict: false, allowUnionTypes: true }), {
+      rawSchema: {} as Record<string, JSONSchema7>
+    });
     // When content is generated
     ajvInstance.addKeyword("$generated");
     addFormats.default(ajvInstance);
@@ -61,7 +63,7 @@ export function validateModelSchema(
   const cacheName = `$WEBDA_${name}`;
   const ajv = getAjv();
   if (!ajv.rawSchema[cacheName]) {
-    const schema = useApplication()?.getSchema(name);
+    const schema = useApplication()?.getSchema(name ?? "");
     if (!schema) {
       useLog("WARN", `No schema found for ${name}`);
       return null;
@@ -133,7 +135,7 @@ export function validateSchema(
   if (ajv.validate(schema, object)) {
     return true;
   }
-  throw new ValidationError(ajv.errors);
+  throw new ValidationError(ajv.errors ?? []);
 }
 
 /**
@@ -144,7 +146,7 @@ export function validateSchema(
 export function validateSchemaDefinition(schema: JSONSchema7, object: any): void {
   const ajv = getAjv();
   if (!ajv.validate(schema, object)) {
-    throw new ValidationError(ajv.errors);
+    throw new ValidationError(ajv.errors ?? []);
   }
 }
 

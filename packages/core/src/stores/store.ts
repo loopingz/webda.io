@@ -477,7 +477,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         continue;
       }
       let currentValue = -1;
-      let currentStore: Store = undefined;
+      let currentStore: Store | undefined;
       for (const store of stores) {
         const value = store.handleModel(model);
         if (value < 0 || (value > currentValue && currentValue !== -1)) {
@@ -647,7 +647,10 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       await this.checkStoredTypes();
     } catch (err) {
       // The check informs, it never fails startup
-      this.log("WARN", `Cannot check the stored types of ${this.getName()}: ${err?.message ?? err}`);
+      this.log(
+        "WARN",
+        `Cannot check the stored types of ${this.getName()}: ${err instanceof Error ? err.message : err}`
+      );
     }
     return this;
   }
@@ -1137,7 +1140,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   handleModel(model: ModelClass | Model): number {
     const name = useModelId(model);
-    return this._modelsHierarchy[name] ?? -1;
+    return name === undefined ? -1 : (this._modelsHierarchy[name] ?? -1);
   }
 
   /**

@@ -10,7 +10,10 @@ import type { RouteAliasDefinition, RouteAliasMode } from "./router.service.js";
 /**
  * Define overridable OpenAPI description
  */
-export interface OpenAPIWebdaDefinition extends DeepPartial<OpenAPIV3.PathItemObject> {
+export interface OpenAPIWebdaDefinition
+  extends
+    Omit<DeepPartial<OpenAPIV3.PathItemObject>, OpenAPIV3.HttpMethods>,
+    Partial<Record<OpenAPIV3.HttpMethods, OpenApiWebdaOperation>> {
   /**
    * Do not output for this specific Route
    *
@@ -68,9 +71,11 @@ export const Route = createMethodDecorator(
     methods: HttpMethodType | HttpMethodType[] = ["GET"],
     openapi: OpenAPIWebdaDefinition = {}
   ) => {
-    context.metadata["webda.route"] ??= {};
-    context.metadata["webda.route"][route] ??= [];
-    context.metadata["webda.route"][route].push({
+    const routes = (context.metadata["webda.route"] ??= {}) as Record<
+      string,
+      { methods: HttpMethodType[]; executor: string | symbol; openapi: OpenAPIWebdaDefinition }[]
+    >;
+    (routes[route] ??= []).push({
       methods: Array.isArray(methods) ? methods : [methods],
       executor: context.name,
       openapi
@@ -209,8 +214,8 @@ export interface IRouter {
    */
   exportOpenAPI(arg0: boolean): any;
   registerModelUrl(arg0: any, prefix: string): unknown;
-  registerRequestFilter(filter: RequestFilter);
-  registerCORSFilter(filter: CORSFilter);
+  registerRequestFilter(filter: RequestFilter): void;
+  registerCORSFilter(filter: CORSFilter): void;
   execute(context: IWebContext): Promise<void>;
   /**
    * Add a route alias dynamically

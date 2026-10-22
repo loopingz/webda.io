@@ -59,6 +59,6 @@ export function useModelId(object: any): string | undefined {
  * Get the current application parameters from the active configuration
  * @returns the result
  */
-export function useParameters(): Configuration["parameters"] {
-  return useApplication().getConfiguration().parameters;
+export function useParameters(): NonNullable<Configuration["parameters"]> {
+  return useApplication().getConfiguration().parameters ?? {};
 }

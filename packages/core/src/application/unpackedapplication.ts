@@ -1,3 +1,4 @@
+import { required } from "../utils/required.js";
 import { WorkerOutput } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as fs from "fs";
@@ -149,7 +150,7 @@ export class UnpackedApplication extends Application {
    */
   async loadConfiguration(file: string): Promise<void> {
     if (!file && this.baseConfiguration) {
-      this.baseConfiguration = this.completeConfiguration({ version: 4, ...this.baseConfiguration });
+      this.baseConfiguration = this.completeConfiguration({ ...this.baseConfiguration });
     } else if (!fs.existsSync(file)) {
       this.baseConfiguration = this.completeConfiguration({ version: 4, parameters: {} });
     } else {
@@ -379,7 +380,7 @@ export class UnpackedApplication extends Application {
     this.log("TRACE", "Searching for modules in", this.getPath("node_modules"));
     files.push(...(await UnpackedApplication.findModulesFiles(this.getPath("node_modules"))));
     // Search workspace for webda.module.json
-    if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
+    if (module.project?.webda.workspaces && module.project.webda.workspaces.path !== "") {
       this.log("TRACE", "Searching for modules in", join(module.project.webda.workspaces.path, "node_modules"));
       files.push(
         ...(await UnpackedApplication.findModulesFiles(join(module.project.webda.workspaces.path, "node_modules")))
@@ -425,23 +426,21 @@ export class UnpackedApplication extends Application {
         project: undefined
       };
     }
-    Object.keys(SectionEnum)
-      .filter(k => Number.isNaN(+k))
-      .forEach(p => {
-        // Do not keep Beans from other modules
-        if (this.getPath("webda.module.json") !== moduleFile && SectionEnum[p] === "beans") {
-          delete module[SectionEnum[p]];
-          return;
+    Object.values(SectionEnum).forEach(section => {
+      // Do not keep Beans from other modules
+      if (this.getPath("webda.module.json") !== moduleFile && section === "beans") {
+        delete module[section];
+        return;
+      }
+      for (const key in module[section]) {
+        // Relative to the application, the files of a dependency looked up like Node does
+        const rebase = (info: string) => relative(this.getPath(), resolveModuleFile(dirname(moduleFile), info));
+        module[section][key].Import = rebase(module[section][key].Import);
+        if (module[section][key].Configuration) {
+          module[section][key].Configuration = rebase(module[section][key].Configuration);
         }
-        for (const key in module[SectionEnum[p]]) {
-          // Relative to the application, the files of a dependency looked up like Node does
-          const rebase = (info: string) => relative(this.getPath(), resolveModuleFile(dirname(moduleFile), info));
-          module[SectionEnum[p]][key].Import = rebase(module[SectionEnum[p]][key].Import);
-          if (module[SectionEnum[p]][key].Configuration) {
-            module[SectionEnum[p]][key].Configuration = rebase(module[SectionEnum[p]][key].Configuration);
-          }
-        }
-      });
+      }
+    });
     return module;
   }
 
@@ -453,7 +452,7 @@ export class UnpackedApplication extends Application {
    * @returns the result
    */
   async mergeModules(configuration: Configuration) {
-    const module: CachedModule = configuration.cachedModules;
+    const module: CachedModule = required(configuration.cachedModules, "cached modules");
     const appModule = this.getPath("webda.module.json");
     const files = await this.findModules(module);
     const value = files
@@ -475,11 +474,9 @@ export class UnpackedApplication extends Application {
         merged.schemas = { ...(prev.schemas ?? {}), ...(val.schemas ?? {}) };
         return merged;
       }, module);
-    Object.keys(SectionEnum)
-      .filter(k => Number.isNaN(+k))
-      .forEach(p => {
-        module[SectionEnum[p]] = value[SectionEnum[p]];
-      });
+    Object.values(SectionEnum).forEach(section => {
+      Reflect.set(module, section, value[section]);
+    });
     // Copying schemas, capabilities, and behaviors. `behaviors` lives outside
     // SectionEnum because Behavior classes are intentionally not models /
     // moddas / beans / deployers — but the merged value must still flow

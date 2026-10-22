@@ -509,7 +509,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const result = await new MemoryBinaryFile(body as any, {
       mimetype: (ctx.getHttpContext().getUniqueHeader("content-type") || "application/json").split(";")[0],
       name: "",
-      size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length"))
+      size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length") ?? "")
     }).getHashes();
     if (ctx.parameter("hash") !== result.hash) {
       this.log("WARN", "Request hash differ", ctx.parameter("hash"), "!==", result.hash);

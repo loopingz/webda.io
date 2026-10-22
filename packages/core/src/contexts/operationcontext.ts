@@ -46,12 +46,12 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   /**
    * Output
    */
-  protected _body: string;
+  protected _body: string | undefined;
 
   /**
    * Loaded user if exist
    */
-  private user: IUser;
+  private user: IUser | undefined;
 
   parameters: Parameters;
 
@@ -59,14 +59,15 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(stream: Writable = undefined) {
+  constructor(stream?: Writable) {
     super();
     this.extensions = {};
     this._promises = [];
     this._body = undefined;
-    this._stream = stream;
     if (stream === undefined) {
       this.createStream();
+    } else {
+      this._stream = stream;
     }
     this.parameters = <any>{};
   }
@@ -99,7 +100,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * @returns the result
    */
   public parameter(name: string, defaultValue: any = undefined): any {
-    return this.getParameters()[name] ?? defaultValue;
+    return (this.getParameters() as Record<string, any>)[name] ?? defaultValue;
   }
 
   /**
@@ -133,7 +134,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * Register a promise with the context
    * @param promise - the promise to add
    */
-  addAsyncRequest(promise) {
+  addAsyncRequest(promise: Promise<any>) {
     this._promises.push(promise);
   }
 
@@ -141,7 +142,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * Get output as string, if a OutputStream is provided it will returned null
    * @returns the result string
    */
-  getOutput(): string {
+  getOutput(): string | undefined {
     if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
       return (<WritableStreamBuffer>this._stream).getContents().toString();
     }
@@ -176,7 +177,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     if (this._sanitized && !sanitizedOptions.raw) {
       return this._sanitized;
     }
-    const recursiveSanitize = (obj, options = undefined, path: string = "") => {
+    const recursiveSanitize = (obj: any, options?: sanitize.IOptions, path: string = ""): any => {
       if (typeof obj === "string") {
         return sanitizeHtml(obj, options);
       }
@@ -240,7 +241,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   /**
    * @override
    */
-  getRawStream(): Readable {
+  getRawStream(): Readable | undefined {
     return undefined;
   }
 
@@ -348,14 +349,15 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * @param refresh - whether to refresh
    * @returns the result
    */
-  async getCurrentUser<K extends IUser>(refresh: boolean = false): Promise<K> {
+  async getCurrentUser<K extends IUser>(refresh: boolean = false): Promise<K | undefined> {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
     // Caching the answer
     if (!this.user || refresh) {
       await runAsSystem(async () => {
-        this.user = await useUserResolver().resolve(this.getCurrentUserId());
+        const userId = this.getCurrentUserId();
+        this.user = userId ? await useUserResolver().resolve(userId) : undefined;
       });
     }
     return <K>this.user;

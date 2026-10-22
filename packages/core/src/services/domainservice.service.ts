@@ -88,7 +88,7 @@ export function prepareCreateInput<T = any>(model: ModelClass<any>, input: T): T
   if (!out || typeof out !== "object" || Array.isArray(out)) {
     return out;
   }
-  if (parentId !== undefined && parentId !== null && parentId !== "") {
+  if (parent && parentId !== undefined && parentId !== null && parentId !== "") {
     out[parent.attribute] = parentId;
   }
   if ((model as any)?.prototype instanceof UuidModel) {
@@ -191,13 +191,13 @@ export class DomainServiceParameters extends ServiceParameters {
    * @see https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go
    * @default camelCase
    */
-  nameTransfomer?: TransformCaseType;
+  nameTransfomer: TransformCaseType;
   /**
    * Method used for query objects
    *
    * @default "PUT"
    */
-  queryMethod?: "PUT" | "GET";
+  queryMethod: "PUT" | "GET";
   /**
    * List of models to include
    *
@@ -205,7 +205,7 @@ export class DomainServiceParameters extends ServiceParameters {
    *
    * @default ["*"]
    */
-  models?: string[];
+  models: string[];
   /**
    * Used to store the excluded models
    * @SchemaIgnore
@@ -280,7 +280,7 @@ export class DomainService<
   E extends DomainServiceEvents = DomainServiceEvents
 > extends Service<T, E> {
   app: Application;
-  static schemas = {
+  static schemas: Record<string, import("json-schema").JSONSchema7> = {
     uuidRequest: {
       type: "object",
       properties: {
@@ -468,7 +468,12 @@ export class DomainService<
   protected async checkReparent(model: ModelClass<Model>, object: Model, input: any, context: OperationContext) {
     const parent = getParentRelation(model);
     const value = parent ? input?.[parent.attribute] : undefined;
-    if (value === undefined || value === null || String(value) === String(object[parent.attribute] ?? "")) {
+    if (
+      !parent ||
+      value === undefined ||
+      value === null ||
+      String(value) === String(Reflect.get(object, parent.attribute) ?? "")
+    ) {
       return;
     }
     await this.checkParent(model, value, context);
@@ -632,7 +637,9 @@ export class DomainService<
       const object = await this.loadModel(model, uuid);
       await this.checkPermission(object, context, action.name, model);
       // With an input schema the arguments follow the uuid (the context included where a parameter asks for it)
-      return this.hasActionInput(model, action) ? object[handler](...args.slice(1)) : object[handler](context);
+      return this.hasActionInput(model, action)
+        ? Reflect.get(object, handler).apply(object, args.slice(1))
+        : Reflect.get(object, handler).call(object, context);
     } else {
       // Static action: the model's static canAct is asked without object
       await checkStaticModelPermission(model, context, action.name);
@@ -640,10 +647,13 @@ export class DomainService<
       // parameter asks for it; without one the body is passed, sanitized like model input (`__`, `_`, protected
       // and read-only attributes removed); no body: the context
       if (this.hasActionInput(model, action)) {
-        return model[handler](...args);
+        return Reflect.get(model, handler).apply(model, args);
       }
       const resolved = args.length > 0 && !(args[0] instanceof OperationContext);
-      return model[handler](...(resolved ? [sanitizeModelInput(model, args[0]), ...args.slice(1)] : [context]));
+      return Reflect.get(model, handler).apply(
+        model,
+        resolved ? [sanitizeModelInput(model, args[0]), ...args.slice(1)] : [context]
+      );
     }
   }
 
@@ -711,12 +721,12 @@ export class DomainService<
       if (hasSchema(i)) {
         continue;
       }
-      registerSchema(i, DomainService.schemas[i]);
+      registerSchema(i, DomainService.schemas[i as keyof typeof DomainService.schemas]);
     }
     // Register schemas in application schema registry so that
     // resolveArguments can find them for typed parameter extraction.
     for (const name of Object.keys(DomainService.schemas)) {
-      appSchemas[name] ??= DomainService.schemas[name];
+      appSchemas[name] ??= DomainService.schemas[name as keyof typeof DomainService.schemas];
     }
 
     const models = app.getModels();
@@ -757,7 +767,7 @@ export class DomainService<
           );
         }
       }
-      const shortId = Metadata.Identifier.split("/").pop();
+      const shortId = Metadata.Identifier.split("/").at(-1) ?? Metadata.Identifier;
       const plural = Metadata.Plural;
       const modelSchema = modelKey;
       const actionsName = Object.keys(Metadata.Actions);
@@ -1028,10 +1038,11 @@ export class DomainService<
     if (loginMfa) {
       // Pending sessions may access only their own configured login attribute. Its lifecycle checks the action.
       const session = context.getSession();
-      if (!session.userId || (uuid !== undefined && uuid !== session.userId)) {
+      const userId = session.userId;
+      if (!userId || (uuid !== undefined && uuid !== userId)) {
         throw new WebdaError.Unauthorized("Own login MFA required");
       }
-      instance = await runAsSystem(() => model.ref(session.userId).get());
+      instance = await runAsSystem(() => model.ref(userId).get());
     } else {
       instance = await this.loadModel(model, uuid);
       await this.checkPermission(instance, context, `${attribute}.${action}`, model);

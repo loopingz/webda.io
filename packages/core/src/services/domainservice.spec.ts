@@ -940,7 +940,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ namespace: "ns-1", slug: "my-brand" });
     ctx.setInput(JSON.stringify({ name: "Updated" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(() => service.modelUpdate({ name: "Updated" }), WebdaError.NotFound);
+      await assert.rejects(() => service.modelUpdate(), WebdaError.NotFound);
     });
   }
 
@@ -958,14 +958,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ slug: "does-not-exist" });
     ctx.setInput(JSON.stringify({ name: "NopePatched" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(() => service.modelPatch({ name: "NopePatched" }), WebdaError.NotFound);
+      await assert.rejects(() => service.modelPatch(), WebdaError.NotFound);
     });
   }
 
   @test
-  async modelCreateRejectsScalarInputByReadingContext() {
-    // When the first arg is a scalar, modelCreate detects it isn't an object
-    // and falls back to context.getInput().
+  async modelCreateReadsContextInput() {
+    // modelCreate takes no argument: the model data is always the context body
     const { Brand } = this.setupBrandRepo();
     const service = new (await import("./domainservice.service.js")).DomainService(
       "DomainService",
@@ -974,14 +973,12 @@ class DomainServiceTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setExtension("operationContext", { model: Brand });
-    ctx.setInput(JSON.stringify({ name: "ScalarFallback" }));
+    ctx.setInput(JSON.stringify({ name: "FromContext" }));
     let created: any;
     await runWithContext(ctx, async () => {
-      // Pass a scalar string — typeof "scalar" !== "object", so the code
-      // re-reads the body from context.getInput().
-      created = await service.modelCreate("a-scalar-pk-value");
+      created = await service.modelCreate();
     });
-    assert.strictEqual(created.name, "ScalarFallback");
+    assert.strictEqual(created.name, "FromContext");
   }
 
   /**
@@ -1061,9 +1058,8 @@ class DomainServiceTest extends WebdaApplicationTest {
         ctx.setInput(JSON.stringify(body));
         const label = `${method}(${JSON.stringify(body)})`;
         await runWithContext(ctx, async () => {
-          // Whatever the positional argument, a body that is not an object is refused
-          await assert.rejects(() => service[method](body), WebdaError.BadRequest, label);
-          await assert.rejects(() => service[method](undefined), WebdaError.BadRequest, label);
+          // A body that is not an object is refused
+          await assert.rejects(() => service[method](), WebdaError.BadRequest, label);
         });
       }
     }

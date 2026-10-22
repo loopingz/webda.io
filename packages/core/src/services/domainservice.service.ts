@@ -365,9 +365,8 @@ export class DomainService<
   /**
    * The model input of a create, update or patch: always the full request body
    *
-   * resolveArguments spreads the model schema's properties into positional args, so the first argument of the CRUD
-   * methods is only the value of the first (sorted) property, which may itself be an object or an array: it is never
-   * the model input (#911).
+   * The CRUD methods take no argument: resolveArguments spreads the model schema's properties into positional args, so
+   * the first one is only the value of the first property, which may itself be an object or an array (#911).
    *
    * An empty body (undefined) is accepted as "no fields"; any other body that is not a plain object (array, string,
    * number, boolean or null) is refused.
@@ -386,11 +385,10 @@ export class DomainService<
   /**
    * Create a model operation implementation
    *
-   * The model data is the request body ({@link getModelInput}), never the positional argument
-   * @param _input - the first resolved argument, ignored
+   * The model data is the request body ({@link getModelInput})
    * @returns the created model instance
    */
-  async modelCreate(_input?: any): Promise<Model> {
+  async modelCreate(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const input = prepareCreateInput(model, await this.getModelInput(context));
@@ -475,11 +473,10 @@ export class DomainService<
   /**
    * Update a model operation implementation
    *
-   * The update data is the request body ({@link getModelInput}), never the positional argument
-   * @param _input - the first resolved argument, ignored
+   * The update data is the request body ({@link getModelInput})
    * @returns the updated model instance
    */
-  async modelUpdate(_input?: any): Promise<Model> {
+  async modelUpdate(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model, pkFields } = context.getExtension<{
       model: ModelClass<Model>;
@@ -551,11 +548,10 @@ export class DomainService<
   /**
    * Patch a model
    *
-   * The partial update data is the request body ({@link getModelInput}), never the positional argument
-   * @param _input - the first resolved argument, ignored
+   * The partial update data is the request body ({@link getModelInput})
    * @returns the patched model instance
    */
-  async modelPatch(_input?: any): Promise<Model> {
+  async modelPatch(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model, pkFields } = context.getExtension<{
       model: ModelClass<Model>;

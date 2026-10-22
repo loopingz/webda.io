@@ -9,3 +9,4 @@ export * from "./certificate/certificate.service.js";
 export * from "./compat/upgrade.js";
 export * from "./mfa/secondfactor.service.js";
 export * from "./mfa/totp.service.js";
+export * from "./mfa/sms.service.js";

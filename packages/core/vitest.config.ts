@@ -57,6 +57,7 @@ export default defineConfig({
       "src/services/pki.encrypter.spec.ts",
       "src/services/secretscheck.spec.ts",
       "src/services/debugmailer.spec.ts",
+      "src/services/debugsmssender.spec.ts",
       "src/services/domainservice.spec.ts",
       "src/services/domainservice-behaviors.spec.ts",
       "src/services/domainservice-permissions.spec.ts",

@@ -847,6 +847,30 @@
       },
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
+    "Webda/DebugSmsSender": {
+      "Import": "lib/services/debugsmssender.service:DebugSmsSender",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "DebugSmsSender"
+      },
+      "Configuration": "lib/services/serviceparameters:ServiceParameters"
+    },
     "Webda/DomainService": {
       "Import": "lib/services/domainservice.service:DomainService",
       "Schema": {
@@ -6746,6 +6770,20 @@
     "Webda/MFA.confirm.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "Webda/MFA.challenge.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "Webda/MFA.challenge.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "Webda/MFA.verify.input": {
       "type": "object",
       "properties": {
@@ -8379,6 +8417,11 @@
           }
         },
         "confirm": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "challenge": {
           "rest": {
             "method": "POST"
           }

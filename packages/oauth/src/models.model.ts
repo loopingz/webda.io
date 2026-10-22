@@ -23,6 +23,8 @@ export class OAuthCode extends Model {
   identity: GrantIdentity;
   scope: string;
   name?: string;
+  /** Resource the tokens are bound to (RFC 8707) */
+  resource?: string;
   expiresAt: number;
   /** Set when exchanged */
   usedAt?: number;

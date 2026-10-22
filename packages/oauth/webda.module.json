@@ -36,6 +36,10 @@
                 "description": "Home page",
                 "type": "string"
               },
+              "defaultResource": {
+                "description": "Resource the tokens are bound to when the request names none (RFC 8707): the absolute URI of a registered\nprotected resource",
+                "type": "string"
+              },
               "defaultScope": {
                 "description": "Scope when the request has none",
                 "type": "string"
@@ -207,6 +211,9 @@
         "name": {
           "type": "string"
         },
+        "resource": {
+          "type": "string"
+        },
         "expiresAt": {
           "type": "number"
         },
@@ -289,6 +296,10 @@
               "type": "string"
             },
             "redirectUri": {
+              "type": "string"
+            },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
               "type": "string"
             },
             "reusedAt": {
@@ -385,6 +396,10 @@
             "redirectUri": {
               "type": "string"
             },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
+              "type": "string"
+            },
             "reusedAt": {
               "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
               "type": "number"
@@ -477,6 +492,10 @@
               "type": "string"
             },
             "redirectUri": {
+              "type": "string"
+            },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
               "type": "string"
             },
             "reusedAt": {

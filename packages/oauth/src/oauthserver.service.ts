@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import {
+  ACCESS_AUDIENCE,
   callOperation,
   canCallOperation,
   collapse,
@@ -10,6 +11,7 @@ import {
   intersect,
   type IssuedTokens,
   InvalidScope,
+  InvalidTarget,
   listOperations,
   OFFLINE_ACCESS,
   Operation,
@@ -17,6 +19,7 @@ import {
   operationGlobs,
   parseScope,
   RefreshToken,
+  resolveProtectedResources,
   runAsSystem,
   type Scope,
   scopeMatches,
@@ -87,7 +90,8 @@ const AUTHORIZE_PARAMS = [
   "state",
   "scope",
   "prompt",
-  "hostname"
+  "hostname",
+  "resource"
 ];
 
 /** Browser operations served on routes below `url`: method, path, operation */
@@ -483,6 +487,12 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     } catch (err) {
       return fail("invalid_scope", (err as Error).message);
     }
+    let resource: string | undefined;
+    try {
+      resource = this.resolveResource(ctx, client, p("resource"));
+    } catch (err) {
+      return fail("invalid_target", (err as Error).message);
+    }
     const pending: PendingRequest = {
       flow: "code",
       clientId: client.id,
@@ -491,6 +501,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       codeChallenge: challenge,
       scope: formatScope(scope),
       hostname: this.cleanHostname(p("hostname")),
+      resource,
       csrf: randomToken(24),
       expires: Date.now() + PENDING_TTL * 1000
     };
@@ -540,6 +551,28 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     }
     if (!operationGlobs(scope).length) throw new InvalidScope("No operation requested");
     return scope;
+  }
+
+  /**
+   * Resource the tokens of an authorization request are bound to (RFC 8707): only a registered protected resource.
+   * Without `resource`, the client default resource; else, for registered and metadata document clients, the only
+   * registered resource; static clients without a default resource get tokens bound to no resource
+   * @param ctx - web context
+   * @param client - requesting client
+   * @param requested - `resource` parameter
+   * @returns the absolute URI of the resource, undefined for tokens bound to no resource
+   * @throws OAuthError invalid_target when the resource is not registered or cannot be chosen
+   */
+  protected resolveResource(ctx: WebContext, client: OAuthClient, requested?: string): string | undefined {
+    const known = resolveProtectedResources(this.issuer(ctx));
+    const target = requested ?? client.defaultResource;
+    if (target !== undefined) {
+      if (!known.includes(target)) throw new OAuthError("invalid_target", "Unknown resource");
+      return target;
+    }
+    if (!client.id.startsWith("dcr_") && !client.metadataDocument) return undefined;
+    if (known.length > 1) throw new OAuthError("invalid_target", "A resource parameter is required");
+    return known[0];
   }
 
   /**
@@ -798,6 +831,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       scope: formatScope(scope),
       identity,
       name: await this.familyName(pending),
+      resource: pending.resource,
       expiresAt: Date.now() + this.parameters.codeTtl * 1000
     } as any);
     return code;
@@ -966,6 +1000,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       return new OAuthError("invalid_scope", "Requested scope is invalid or exceeds the granted scope");
     }
     if (err instanceof TokenInvalid) return new OAuthError("invalid_grant", "Invalid refresh token");
+    if (err instanceof InvalidTarget) {
+      return new OAuthError("invalid_target", "Requested resource is invalid or differs from the granted one");
+    }
     this.log("ERROR", "Token request failed", err);
     return new OAuthError("server_error", "Internal error", 500);
   }
@@ -1057,7 +1094,17 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     ) {
       throw invalidCode();
     }
-    const issued = await this.issueTokens(stored.identity, stored.clientId, parseScope(stored.scope), stored.name);
+    // RFC 8707 §2.2: the resource of the token request, when given, is the one consented to
+    if (body.resource !== undefined && body.resource !== (stored.resource ?? undefined)) {
+      throw new OAuthError("invalid_target", "Requested resource differs from the authorized one");
+    }
+    const issued = await this.issueTokens(
+      stored.identity,
+      stored.clientId,
+      parseScope(stored.scope),
+      stored.name,
+      stored.resource ?? undefined
+    );
     // Recorded only while the code is not marked reused: a concurrent presentation that marked it first could not
     // see the family, so revoke it here (the tokens are returned but no longer valid)
     try {
@@ -1104,7 +1151,11 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       requested = parseScope(body.scope);
       if (!operationGlobs(requested).length) throw new InvalidScope("No operation requested");
     }
-    const tokens = await this.tokenService().refresh(refreshToken, { clientId, scope: requested });
+    const tokens = await this.tokenService().refresh(refreshToken, {
+      clientId,
+      scope: requested,
+      resource: body.resource
+    });
     return this.tokenResponse(tokens, tokens.scope ?? []);
   }
 
@@ -1181,13 +1232,15 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param clientId - client
    * @param scope - granted scope
    * @param name - display name of the family
+   * @param resource - resource the tokens are bound to (RFC 8707), none by default
    * @returns the family and the response
    */
   protected async issueTokens(
     identity: GrantIdentity,
     clientId: string,
     scope: Scope,
-    name?: string
+    name?: string,
+    resource?: string
   ): Promise<{ family: string; response: TokenResponse }> {
     const session = new Session();
     session.login(identity.userId, identity.identId, {
@@ -1199,6 +1252,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       clientId,
       scope,
       name,
+      resource,
       accessTtl: this.parameters.accessTtl,
       refreshTtl: this.parameters.refreshTtl
     });
@@ -1238,7 +1292,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       if (!token || !clientId) throw new OAuthError("invalid_request", "token and client_id are required");
       if (!(await this.clients.get(clientId))) throw new OAuthError("invalid_client", "Unknown client", 401);
       // token_type_hint is only an optimization (RFC 7009 §2.1): both kinds are always tried
-      const family = (await this.refreshFamily(token, clientId)) ?? (await this.accessFamily(token, clientId));
+      const family =
+        (await this.refreshFamily(token, clientId)) ?? (await this.accessFamily(token, clientId, this.issuer(ctx)));
       if (family) await this.tokenService().revokeFamily(family);
     } catch (err) {
       const oauth = this.toOAuthError(err);
@@ -1264,10 +1319,14 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   /**
    * @param token - presented token
    * @param clientId - authenticated client
-   * @returns the family of the access token, when it is a valid one issued to the client
+   * @param issuer - issuer, origin of the protected resources
+   * @returns the family of the access token, when it is a valid one issued to the client, bound to no resource or to
+   * a registered one
    */
-  protected async accessFamily(token: string, clientId: string): Promise<string | undefined> {
-    const claims = await this.tokenService().verifyAccess(token);
+  protected async accessFamily(token: string, clientId: string, issuer: string): Promise<string | undefined> {
+    const claims = await this.tokenService().verifyAccess(token, {
+      audience: [ACCESS_AUDIENCE, ...resolveProtectedResources(issuer)]
+    });
     return claims?.client_id === clientId ? claims.fam : undefined;
   }
 

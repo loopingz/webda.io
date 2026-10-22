@@ -16,6 +16,11 @@ export interface OAuthClient {
   defaultScope?: string;
   /** Maximum scope ever granted */
   allowedScopes?: string;
+  /**
+   * Resource the tokens are bound to when the request names none (RFC 8707): the absolute URI of a registered
+   * protected resource
+   */
+  defaultResource?: string;
   /** Device authorization grant allowed */
   deviceFlow?: boolean;
   /** Loaded from a Client ID Metadata Document */
@@ -46,6 +51,22 @@ export function validateClient(id: string, client: any): void {
   if (typeof client.name !== "string" || !client.name) fail("name must be a non-empty string");
   if (!Array.isArray(client.redirect_uris) || !client.redirect_uris.every((u: unknown) => typeof u === "string")) {
     fail("redirect_uris must be an array of strings");
+  }
+  if (client.defaultResource !== undefined && !isHttpUrl(client.defaultResource)) {
+    fail("defaultResource must be an absolute http(s) URL");
+  }
+}
+
+/**
+ * @param value - value to check
+ * @returns true when it is an absolute http or https URL
+ */
+function isHttpUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
   }
 }
 

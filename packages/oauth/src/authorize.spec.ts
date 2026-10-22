@@ -231,7 +231,7 @@ class AuthorizeTest extends OAuthTest {
   @test
   async extraParametersAreIgnored() {
     const b = await this.browser();
-    const res = await this.authorize(b, { scope: "Task.*", resource: "https://mcp.example.com" });
+    const res = await this.authorize(b, { scope: "Task.*", audience: "https://mcp.example.com" });
     assert.ok(res.headers.Location.startsWith("/login?redirect="), res.headers.Location);
     assert.ok(b.jar["webda_oauth_pending"]);
   }

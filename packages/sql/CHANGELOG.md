@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/sql-v4.0.0-beta.4...sql-v4.0.0-beta.5) (2026-10-23)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+
 ## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/sql-v4.0.0-beta.3...sql-v4.0.0-beta.4) (2026-10-22)
 
 

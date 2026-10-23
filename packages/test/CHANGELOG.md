@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.7...test-v4.0.0-beta.8) (2026-10-22)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.6...test-v4.0.0-beta.7) (2026-10-12)
 
 

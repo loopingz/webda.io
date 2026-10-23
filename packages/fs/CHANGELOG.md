@@ -1,5 +1,32 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.11...fs-v4.0.0-beta.12) (2026-10-22)
+
+
+### Features
+
+* **binary:** attach direct uploads on verified client completion ([#944](https://github.com/loopingz/webda.io/issues/944)) ([736942e](https://github.com/loopingz/webda.io/commit/736942eb194f66924ceeaefd14d8515c2d0b84d7))
+* opt-in total count for paginated queries (Repository.count, REST/GraphQL total) ([#967](https://github.com/loopingz/webda.io/issues/967)) ([b43e6d1](https://github.com/loopingz/webda.io/commit/b43e6d18820773d24a8b754013dc4dec4c57e1c7))
+
+
+### Bug Fixes
+
+* **core:** Queue.consume waits between receives returning no message ([#920](https://github.com/loopingz/webda.io/issues/920)) ([7a41465](https://github.com/loopingz/webda.io/commit/7a41465f0afbc264e5409dfd491f3a3212408bf2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+    * @webda/ql bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.12
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.10...fs-v4.0.0-beta.11) (2026-10-16)
 
 

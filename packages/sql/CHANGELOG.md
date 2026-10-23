@@ -1,5 +1,28 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/sql-v4.0.0-beta.3...sql-v4.0.0-beta.4) (2026-10-22)
+
+
+### Features
+
+* opt-in total count for paginated queries (Repository.count, REST/GraphQL total) ([#967](https://github.com/loopingz/webda.io/issues/967)) ([b43e6d1](https://github.com/loopingz/webda.io/commit/b43e6d18820773d24a8b754013dc4dec4c57e1c7))
+
+
+### Bug Fixes
+
+* **sql:** match an absent field in write conditions with IS NULL ([#936](https://github.com/loopingz/webda.io/issues/936)) ([df61645](https://github.com/loopingz/webda.io/commit/df61645951da9223ca6ca8281297bff086babbbe)), closes [#935](https://github.com/loopingz/webda.io/issues/935)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/sql-v4.0.0-beta.2...sql-v4.0.0-beta.3) (2026-10-16)
 
 

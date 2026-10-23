@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunk_webda_docs||=[]).push([[79555],{811(a){a.exports=JSON.parse('{"name":"webda-configuration","id":"default"}')}}]);

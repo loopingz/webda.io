@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-typedoc docs-version-current docs-doc-page docs-doc-id-postgres/interfaces/SQLDialect" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">SQLDialect | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="robots" content="noindex, nofollow"><meta data-rh="true" property="og:image" content="https://webda.io/v4/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/v4/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/v4/typedoc/postgres/interfaces/SQLDialect"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" property="og:title" content="SQLDialect | Webda.io"><meta data-rh="true" name="description" content="@webda/postgres"><meta data-rh="true" property="og:description" content="@webda/postgres"><link data-rh="true" rel="icon" href="/v4/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/v4/typedoc/postgres/interfaces/SQLDialect"><link data-rh="true" rel="alternate" href="https://webda.io/v4/typedoc/postgres/interfaces/SQLDialect" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/v4/typedoc/postgres/interfaces/SQLDialect" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"@webda/postgres","item":"https://webda.io/v4/typedoc/postgres/"},{"@type":"ListItem","position":2,"name":"SQLDialect","item":"https://webda.io/v4/typedoc/postgres/interfaces/SQLDialect"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/v4/opensearch.xml">
+
+
+
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.a423b68e.css">
+<script src="/v4/assets/js/runtime~main.d20e9c5a.js" defer="defer"></script>
+<script src="/v4/assets/js/main.e1a48775.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const a=new URLSearchParams(window.location.search).entries();for(var[t,e]of a)if(t.startsWith("docusaurus-data-")){var n=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(n,e)}}catch(t){}}(),document.documentElement.setAttribute("data-announcement-bar-initially-dismissed",function(){try{return"true"===localStorage.getItem("docusaurus.announcement.dismiss")}catch(t){}return!1}())</script><div id="__docusaurus"><link rel="preload" as="image" href="/v4/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_MWLN" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><div class="theme-announcement-bar announcementBar_C9Y_" role="banner"><div class="content_xAOW announcementBarContent_dEes">You are viewing documentation for v4. <a href="/">See the latest docs here.</a></div></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/v4/"><div class="navbar__logo"><img src="/v4/img/webda.svg" alt="Webda.io Logo" class="themedComponent_nG_l themedComponent--light_DcG1"><img src="/v4/img/webda.svg" alt="Webda.io Logo" class="themedComponent_nG_l themedComponent--dark_faob"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/v4/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/v4/docs/Concepts">Concepts</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/v4/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a href="/v4/debug/" target="_self" rel="noopener noreferrer" class="navbar__item navbar__link" title="My Application — debug dashboard">My Application</a><a class="navbar__item navbar__link" href="/v4/contribute/Contribute">Contribute</a><div class="navbar__item dropdown dropdown--hoverable dropdown--right"><a href="#" aria-haspopup="true" aria-expanded="false" role="button" class="navbar__link">Docs: v4</a><ul class="dropdown__menu"><li><a href="https://webda.io/" target="_blank" rel="noopener noreferrer" class="dropdown__link">latest (v4 HEAD)<svg width="12" height="12" aria-label="(opens in new tab)" class="iconExternalLink_FTz2"><use href="#theme-svg-external-link"></use></svg></a></li><li><a href="https://webda.io/v4/" target="_blank" rel="noopener noreferrer" class="dropdown__link">v4<svg width="12" height="12" aria-label="(opens in new tab)" class="iconExternalLink_FTz2"><use href="#theme-svg-external-link"></use></svg></a></li><li><a href="https://webda.io/v3/" target="_blank" rel="noopener noreferrer" class="dropdown__link">v3<svg width="12" height="12" aria-label="(opens in new tab)" class="iconExternalLink_FTz2"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link header-github-link" aria-label="GitHub repository"></a><div class="navbar-search-centered navbarSearchContainer_iIFX"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div><div class="toggle_noWv colorModeToggle_oozF"><button class="clean-btn toggleButton_pFnF toggleButtonDisabled_kNkN" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU lightToggleIcon_bBiL"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU darkToggleIcon_pGW8"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU systemToggleIcon_zcqz"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_UUZP"><div class="docsWrapper_nU0q"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_LFjF" type="button"></button><div class="docRoot_zh1L"><aside class="theme-doc-sidebar-container docSidebarContainer_Pr5l"><div class="sidebarViewport_UJlQ"><div class="sidebar_SBgp"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_iyWm menuWithAnnouncementBar_INR9"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/amqp/"><span class="categoryLinkLabel_6V4C">@webda/amqp</span></a><button aria-label="Expand sidebar category &#x27;@webda/amqp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/async/"><span class="categoryLinkLabel_6V4C">@webda/async</span></a><button aria-label="Expand sidebar category &#x27;@webda/async&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/auth/"><span class="categoryLinkLabel_6V4C">@webda/auth</span></a><button aria-label="Expand sidebar category &#x27;@webda/auth&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/aws/"><span class="categoryLinkLabel_6V4C">@webda/aws</span></a><button aria-label="Expand sidebar category &#x27;@webda/aws&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/bench/"><span class="categoryLinkLabel_6V4C">@webda/bench</span></a><button aria-label="Expand sidebar category &#x27;@webda/bench&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/cache/"><span class="categoryLinkLabel_6V4C">@webda/cache</span></a><button aria-label="Expand sidebar category &#x27;@webda/cache&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/cloudevents/"><span class="categoryLinkLabel_6V4C">@webda/cloudevents</span></a><button aria-label="Expand sidebar category &#x27;@webda/cloudevents&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/compiler/"><span class="categoryLinkLabel_6V4C">@webda/compiler</span></a><button aria-label="Expand sidebar category &#x27;@webda/compiler&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/content-mapper/"><span class="categoryLinkLabel_6V4C">@webda/content-mapper</span></a><button aria-label="Expand sidebar category &#x27;@webda/content-mapper&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/core/"><span class="categoryLinkLabel_6V4C">@webda/core</span></a><button aria-label="Expand sidebar category &#x27;@webda/core&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/create/"><span class="categoryLinkLabel_6V4C">@webda/create</span></a><button aria-label="Expand sidebar category &#x27;@webda/create&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/debug/"><span class="categoryLinkLabel_6V4C">@webda/debug</span></a><button aria-label="Expand sidebar category &#x27;@webda/debug&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/decorators/"><span class="categoryLinkLabel_6V4C">@webda/decorators</span></a><button aria-label="Expand sidebar category &#x27;@webda/decorators&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/elasticsearch/"><span class="categoryLinkLabel_6V4C">@webda/elasticsearch</span></a><button aria-label="Expand sidebar category &#x27;@webda/elasticsearch&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/fs/"><span class="categoryLinkLabel_6V4C">@webda/fs</span></a><button aria-label="Expand sidebar category &#x27;@webda/fs&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/gcp/"><span class="categoryLinkLabel_6V4C">@webda/gcp</span></a><button aria-label="Expand sidebar category &#x27;@webda/gcp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/google-auth/"><span class="categoryLinkLabel_6V4C">@webda/google-auth</span></a><button aria-label="Expand sidebar category &#x27;@webda/google-auth&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/graphql/"><span class="categoryLinkLabel_6V4C">@webda/graphql</span></a><button aria-label="Expand sidebar category &#x27;@webda/graphql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/grpc/"><span class="categoryLinkLabel_6V4C">@webda/grpc</span></a><button aria-label="Expand sidebar category &#x27;@webda/grpc&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/hawk/"><span class="categoryLinkLabel_6V4C">@webda/hawk</span></a><button aria-label="Expand sidebar category &#x27;@webda/hawk&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/iam/"><span class="categoryLinkLabel_6V4C">@webda/iam</span></a><button aria-label="Expand sidebar category &#x27;@webda/iam&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/kubernetes/"><span class="categoryLinkLabel_6V4C">@webda/kubernetes</span></a><button aria-label="Expand sidebar category &#x27;@webda/kubernetes&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/mailer/"><span class="categoryLinkLabel_6V4C">@webda/mailer</span></a><button aria-label="Expand sidebar category &#x27;@webda/mailer&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/mcp/"><span class="categoryLinkLabel_6V4C">@webda/mcp</span></a><button aria-label="Expand sidebar category &#x27;@webda/mcp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/mock/"><span class="categoryLinkLabel_6V4C">@webda/mock</span></a><button aria-label="Expand sidebar category &#x27;@webda/mock&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/models/"><span class="categoryLinkLabel_6V4C">@webda/models</span></a><button aria-label="Expand sidebar category &#x27;@webda/models&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/mongodb/"><span class="categoryLinkLabel_6V4C">@webda/mongodb</span></a><button aria-label="Expand sidebar category &#x27;@webda/mongodb&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/oauth/"><span class="categoryLinkLabel_6V4C">@webda/oauth</span></a><button aria-label="Expand sidebar category &#x27;@webda/oauth&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/oci/"><span class="categoryLinkLabel_6V4C">@webda/oci</span></a><button aria-label="Expand sidebar category &#x27;@webda/oci&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/offline/"><span class="categoryLinkLabel_6V4C">@webda/offline</span></a><button aria-label="Expand sidebar category &#x27;@webda/offline&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/oidc/"><span class="categoryLinkLabel_6V4C">@webda/oidc</span></a><button aria-label="Expand sidebar category &#x27;@webda/oidc&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/otel/"><span class="categoryLinkLabel_6V4C">@webda/otel</span></a><button aria-label="Expand sidebar category &#x27;@webda/otel&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--active" href="/v4/typedoc/postgres/"><span class="categoryLinkLabel_6V4C">@webda/postgres</span></a><button aria-label="Collapse sidebar category &#x27;@webda/postgres&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/v4/typedoc/postgres/CHANGELOG"><span class="linkLabel_N6h3">Changelog</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/v4/typedoc/postgres/classes/PostgresDialect"><span class="categoryLinkLabel_6V4C">classes</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/v4/typedoc/postgres/functions/sqlString"><span class="categoryLinkLabel_6V4C">functions</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/v4/typedoc/postgres/globals"><span class="linkLabel_N6h3">globals</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role="button" aria-expanded="true" tabindex="0" href="/v4/typedoc/postgres/interfaces/SQLClient"><span class="categoryLinkLabel_6V4C">interfaces</span></a></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/v4/typedoc/postgres/interfaces/SQLClient"><span class="linkLabel_N6h3">SQLClient</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/v4/typedoc/postgres/interfaces/SQLDatabase"><span class="linkLabel_N6h3">SQLDatabase</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/v4/typedoc/postgres/interfaces/SQLDialect"><span class="linkLabel_N6h3">SQLDialect</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/v4/typedoc/postgres/interfaces/SQLResult"><span class="linkLabel_N6h3">SQLResult</span></a></li></ul></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/ql/"><span class="categoryLinkLabel_6V4C">@webda/ql</span></a><button aria-label="Expand sidebar category &#x27;@webda/ql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/react-email/"><span class="categoryLinkLabel_6V4C">@webda/react-email</span></a><button aria-label="Expand sidebar category &#x27;@webda/react-email&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/runtime/"><span class="categoryLinkLabel_6V4C">@webda/runtime</span></a><button aria-label="Expand sidebar category &#x27;@webda/runtime&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/sdk/"><span class="categoryLinkLabel_6V4C">@webda/sdk</span></a><button aria-label="Expand sidebar category &#x27;@webda/sdk&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/sealed-client/"><span class="categoryLinkLabel_6V4C">@webda/sealed-client</span></a><button aria-label="Expand sidebar category &#x27;@webda/sealed-client&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/sql/"><span class="categoryLinkLabel_6V4C">@webda/sql</span></a><button aria-label="Expand sidebar category &#x27;@webda/sql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/sql-schema/"><span class="categoryLinkLabel_6V4C">@webda/sql-schema</span></a><button aria-label="Expand sidebar category &#x27;@webda/sql-schema&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/sqlite/"><span class="categoryLinkLabel_6V4C">@webda/sqlite</span></a><button aria-label="Expand sidebar category &#x27;@webda/sqlite&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/templates/"><span class="categoryLinkLabel_6V4C">@webda/templates</span></a><button aria-label="Expand sidebar category &#x27;@webda/templates&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/test/"><span class="categoryLinkLabel_6V4C">@webda/test</span></a><button aria-label="Expand sidebar category &#x27;@webda/test&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/utils/"><span class="categoryLinkLabel_6V4C">@webda/utils</span></a><button aria-label="Expand sidebar category &#x27;@webda/utils&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/versioning/"><span class="categoryLinkLabel_6V4C">@webda/versioning</span></a><button aria-label="Expand sidebar category &#x27;@webda/versioning&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/v4/typedoc/workout/"><span class="categoryLinkLabel_6V4C">@webda/workout</span></a><button aria-label="Expand sidebar category &#x27;@webda/workout&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li></ul></nav></div></div></aside><main class="docMainContainer_qpv5"><div class="container padding-top--md padding-bottom--lg"><div class="wrapper_xJ_b"><canvas aria-hidden="true" class="network_l8Fo band_NwgC band_TnFH"></canvas><canvas aria-hidden="true" class="network_l8Fo bandArea_R8Vj band_TnFH"></canvas><div class="row"><div class="col docItemCol_NWVy"><div class="docItemContainer_dtc9"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_zWSF" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/v4/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_v8bk"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/v4/typedoc/postgres/"><span>@webda/postgres</span></a></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">interfaces</span></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">SQLDialect</span></li></ul></nav><div class="tocCollapsible_Kr7U theme-doc-toc-mobile tocMobile_A93Z"><button type="button" class="clean-btn tocCollapsibleButton_C54N">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>SQLDialect</h1></header><p><a class="" href="/v4/typedoc/postgres/"><strong>@webda/postgres</strong></a></p>
+<hr>
+<h1>Interface: SQLDialect</h1>
+<p>Defined in: sql/lib/dialect.d.ts:34</p>
+<p>Engine syntax for the &quot;one JSON document per row&quot; model of SQLRepository: a <code>uuid</code> key column and a <code>data</code> JSON
+column. Paths handed to a dialect are validated (<code>[A-Za-z0-9_]+</code> segments) and safe to interpolate.</p>
+<p>Methods taking <code>args</code> push the parameters they bind and refer to them by <code>args.length</code>: the caller appends its own
+parameters afterwards.</p>
+<h2 class="anchor anchorTargetStickyNavbar_K0WN" id="properties">Properties<a href="#properties" class="hash-link" aria-label="Direct link to Properties" title="Direct link to Properties" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="binarycollation">binaryCollation<a href="#binarycollation" class="hash-link" aria-label="Direct link to binaryCollation" title="Direct link to binaryCollation" translate="no">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>binaryCollation</strong>: <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:36</p>
+<p>Clause ordering text in code unit order: <code>COLLATE &quot;C&quot;</code> / <code>COLLATE BINARY</code></p>
+<h2 class="anchor anchorTargetStickyNavbar_K0WN" id="methods">Methods<a href="#methods" class="hash-link" aria-label="Direct link to Methods" title="Direct link to Methods" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="asnumber">asNumber()<a href="#asnumber" class="hash-link" aria-label="Direct link to asNumber()" title="Direct link to asNumber()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>asNumber</strong>(<code>json</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:85</p>
+<p>Comparable number of a JSON value known to be a number</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="json">json<a href="#json" class="hash-link" aria-label="Direct link to json" title="Direct link to json" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>a JSON value expression</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns">Returns<a href="#returns" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="asstring">asString()<a href="#asstring" class="hash-link" aria-label="Direct link to asString()" title="Direct link to asString()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>asString</strong>(<code>json</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:91</p>
+<p>Text of a JSON value known to be a string</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-1">Parameters<a href="#parameters-1" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="json-1">json<a href="#json-1" class="hash-link" aria-label="Direct link to json" title="Direct link to json" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>a JSON value expression</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-1">Returns<a href="#returns-1" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="backfilltypes">backfillTypes()<a href="#backfilltypes" class="hash-link" aria-label="Direct link to backfillTypes()" title="Direct link to backfillTypes()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>backfillTypes</strong>(<code>table</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:220</p>
+<p>Statement stamping <code>__type</code> = parameter 1 on the untyped rows of the table</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="table">table<a href="#table" class="hash-link" aria-label="Direct link to table" title="Direct link to table" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the table name</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-2">Returns<a href="#returns-2" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the statement</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="bulkassign">bulkAssign()<a href="#bulkassign" class="hash-link" aria-label="Direct link to bulkAssign()" title="Direct link to bulkAssign()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>bulkAssign</strong>(<code>table</code>, <code>assignments</code>, <code>args</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:211</p>
+<p><code>data</code> with the UPDATE SET assignments applied: missing parents created, existing arrays indexed; binds values</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-3">Parameters<a href="#parameters-3" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="table-1">table<a href="#table-1" class="hash-link" aria-label="Direct link to table" title="Direct link to table" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the table name</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="assignments">assignments<a href="#assignments" class="hash-link" aria-label="Direct link to assignments" title="Direct link to assignments" translate="no">​</a></h5>
+<p><code>object</code>[]</p>
+<p>the SET assignments</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="args">args<a href="#args" class="hash-link" aria-label="Direct link to args" title="Direct link to args" translate="no">​</a></h5>
+<p><code>any</code>[]</p>
+<p>the statement parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-3">Returns<a href="#returns-3" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="collectionitemcondition">collectionItemCondition()<a href="#collectionitemcondition" class="hash-link" aria-label="Direct link to collectionItemCondition()" title="Direct link to collectionItemCondition()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>collectionItemCondition</strong>(<code>attr</code>, <code>index</code>, <code>field</code>, <code>valueParam</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:203</p>
+<p>Condition: the field of the item at <code>index</code> of the top-level array equals the parameter</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-4">Parameters<a href="#parameters-4" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="attr">attr<a href="#attr" class="hash-link" aria-label="Direct link to attr" title="Direct link to attr" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the array attribute</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="index">index<a href="#index" class="hash-link" aria-label="Direct link to index" title="Direct link to index" translate="no">​</a></h5>
+<p><code>number</code> | <code>undefined</code></p>
+<p>the index</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="field">field<a href="#field" class="hash-link" aria-label="Direct link to field" title="Direct link to field" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the item field</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="valueparam">valueParam<a href="#valueparam" class="hash-link" aria-label="Direct link to valueParam" title="Direct link to valueParam" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>position of the bound value</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-4">Returns<a href="#returns-4" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the condition</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="contains">contains()<a href="#contains" class="hash-link" aria-label="Direct link to contains()" title="Direct link to contains()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>contains</strong>(<code>json</code>, <code>value</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:113</p>
+<p>Condition: the JSON value is an array holding the value (a literal, inlined)</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-5">Parameters<a href="#parameters-5" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="json-2">json<a href="#json-2" class="hash-link" aria-label="Direct link to json" title="Direct link to json" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>a JSON value expression</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="value">value<a href="#value" class="hash-link" aria-label="Direct link to value" title="Direct link to value" translate="no">​</a></h5>
+<p><code>string</code> | <code>number</code> | <code>boolean</code></p>
+<p>the value</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-5">Returns<a href="#returns-5" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the condition</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="countstoredtypes">countStoredTypes()<a href="#countstoredtypes" class="hash-link" aria-label="Direct link to countStoredTypes()" title="Direct link to countStoredTypes()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>countStoredTypes</strong>(<code>table</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:226</p>
+<p>Statement returning <code>type</code>, <code>n</code> per stored type (parameter 1 = unreadable label, 2 = untyped label)</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-6">Parameters<a href="#parameters-6" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="table-2">table<a href="#table-2" class="hash-link" aria-label="Direct link to table" title="Direct link to table" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the table name</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-6">Returns<a href="#returns-6" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the statement</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="createtable">createTable()<a href="#createtable" class="hash-link" aria-label="Direct link to createTable()" title="Direct link to createTable()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>createTable</strong>(<code>table</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:126</p>
+<p><code>CREATE TABLE IF NOT EXISTS</code> statement of a document table</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-7">Parameters<a href="#parameters-7" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="table-3">table<a href="#table-3" class="hash-link" aria-label="Direct link to table" title="Direct link to table" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the table name</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-7">Returns<a href="#returns-7" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the statement</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="decode">decode()<a href="#decode" class="hash-link" aria-label="Direct link to decode()" title="Direct link to decode()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>decode</strong>(<code>value</code>): <code>any</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:237</p>
+<p>Decode a JSON column of a result row: the object (pg parses jsonb), parsed text otherwise</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-8">Parameters<a href="#parameters-8" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="value-1">value<a href="#value-1" class="hash-link" aria-label="Direct link to value" title="Direct link to value" translate="no">​</a></h5>
+<p><code>any</code></p>
+<p>the column value</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-8">Returns<a href="#returns-8" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<p>the decoded value</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="distinctfrom">distinctFrom()<a href="#distinctfrom" class="hash-link" aria-label="Direct link to distinctFrom()" title="Direct link to distinctFrom()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>distinctFrom</strong>(<code>left</code>, <code>right</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:106</p>
+<p>Null-safe <code>!=</code>: <code>IS DISTINCT FROM</code> / <code>IS NOT</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-9">Parameters<a href="#parameters-9" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="left">left<a href="#left" class="hash-link" aria-label="Direct link to left" title="Direct link to left" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>left operand</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="right">right<a href="#right" class="hash-link" aria-label="Direct link to right" title="Direct link to right" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>right operand</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-9">Returns<a href="#returns-9" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the condition</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="hasstoredtype">hasStoredType()<a href="#hasstoredtype" class="hash-link" aria-label="Direct link to hasStoredType()" title="Direct link to hasStoredType()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>hasStoredType</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:137</p>
+<p>Condition: the row has a <code>__type</code> key</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-10">Returns<a href="#returns-10" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the condition</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="increment">increment()<a href="#increment" class="hash-link" aria-label="Direct link to increment()" title="Direct link to increment()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>increment</strong>(<code>entries</code>, <code>updateDate</code>, <code>args</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:173</p>
+<p><code>data</code> with the counters incremented and <code>_lastUpdate</code> set to the ISO date; binds the increments</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-10">Parameters<a href="#parameters-10" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="entries">entries<a href="#entries" class="hash-link" aria-label="Direct link to entries" title="Direct link to entries" translate="no">​</a></h5>
+<p><code>object</code>[]</p>
+<p>the counters</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="updatedate">updateDate<a href="#updatedate" class="hash-link" aria-label="Direct link to updateDate" title="Direct link to updateDate" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>ISO date</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="args-1">args<a href="#args-1" class="hash-link" aria-label="Direct link to args" title="Direct link to args" translate="no">​</a></h5>
+<p><code>any</code>[]</p>
+<p>the statement parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-11">Returns<a href="#returns-11" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="isobjectrow">isObjectRow()<a href="#isobjectrow" class="hash-link" aria-label="Direct link to isObjectRow()" title="Direct link to isObjectRow()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>isObjectRow</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:231</p>
+<p>Condition: the <code>data</code> column is a JSON object</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-12">Returns<a href="#returns-12" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the condition</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="istype">isType()<a href="#istype" class="hash-link" aria-label="Direct link to isType()" title="Direct link to isType()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>isType</strong>(<code>json</code>, <code>type</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:79</p>
+<p>Condition: the JSON value has the type</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-11">Parameters<a href="#parameters-11" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="json-3">json<a href="#json-3" class="hash-link" aria-label="Direct link to json" title="Direct link to json" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>a JSON value expression</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="type">type<a href="#type" class="hash-link" aria-label="Direct link to type" title="Direct link to type" translate="no">​</a></h5>
+<p><code>JSONType</code></p>
+<p>the type</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-13">Returns<a href="#returns-13" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the condition</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="isuniqueviolation">isUniqueViolation()<a href="#isuniqueviolation" class="hash-link" aria-label="Direct link to isUniqueViolation()" title="Direct link to isUniqueViolation()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>isUniqueViolation</strong>(<code>err</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:132</p>
+<p>Whether the error is a primary key / unique violation on insert</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-12">Parameters<a href="#parameters-12" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="err">err<a href="#err" class="hash-link" aria-label="Direct link to err" title="Direct link to err" translate="no">​</a></h5>
+<p><code>unknown</code></p>
+<p>the error</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-14">Returns<a href="#returns-14" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>boolean</code></p>
+<p>true for a unique violation</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="jsonparam">jsonParam()<a href="#jsonparam" class="hash-link" aria-label="Direct link to jsonParam()" title="Direct link to jsonParam()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>jsonParam</strong>(<code>i</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:48</p>
+<p>The i-th parameter, a JSON text, as a JSON value: <code>$1::jsonb</code> / <code>json(?1)</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-13">Parameters<a href="#parameters-13" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="i">i<a href="#i" class="hash-link" aria-label="Direct link to i" title="Direct link to i" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>the parameter position</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-15">Returns<a href="#returns-15" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="jsontext">jsonText()<a href="#jsontext" class="hash-link" aria-label="Direct link to jsonText()" title="Direct link to jsonText()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>jsonText</strong>(<code>path</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:54</p>
+<p>SQL text of the value at a path, NULL for a missing field and a JSON null</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-14">Parameters<a href="#parameters-14" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="path">path<a href="#path" class="hash-link" aria-label="Direct link to path" title="Direct link to path" translate="no">​</a></h5>
+<p><code>string</code>[]</p>
+<p>validated segments</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-16">Returns<a href="#returns-16" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="jsonvalue">jsonValue()<a href="#jsonvalue" class="hash-link" aria-label="Direct link to jsonValue()" title="Direct link to jsonValue()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>jsonValue</strong>(<code>path</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:60</p>
+<p>JSON value at a path</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-15">Parameters<a href="#parameters-15" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="path-1">path<a href="#path-1" class="hash-link" aria-label="Direct link to path" title="Direct link to path" translate="no">​</a></h5>
+<p><code>string</code>[]</p>
+<p>validated segments</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-17">Returns<a href="#returns-17" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="jsonvalueornull">jsonValueOrNull()<a href="#jsonvalueornull" class="hash-link" aria-label="Direct link to jsonValueOrNull()" title="Direct link to jsonValueOrNull()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>jsonValueOrNull</strong>(<code>path</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:66</p>
+<p>JSON value at a path, a JSON null folded into SQL NULL (aggregations)</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-16">Parameters<a href="#parameters-16" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="path-2">path<a href="#path-2" class="hash-link" aria-label="Direct link to path" title="Direct link to path" translate="no">​</a></h5>
+<p><code>string</code>[]</p>
+<p>validated segments</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-18">Returns<a href="#returns-18" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="kepttype">keptType()<a href="#kepttype" class="hash-link" aria-label="Direct link to keptType()" title="Direct link to keptType()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>keptType</strong>(<code>mapParam</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:143</p>
+<p>The stored type of the row, rewritten through the legacy type map bound at <code>mapParam</code> (JSON text)</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-17">Parameters<a href="#parameters-17" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="mapparam">mapParam<a href="#mapparam" class="hash-link" aria-label="Direct link to mapParam" title="Direct link to mapParam" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>position of the bound map parameter</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-19">Returns<a href="#returns-19" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="keytext">keyText()<a href="#keytext" class="hash-link" aria-label="Direct link to keyText()" title="Direct link to keyText()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>keyText</strong>(<code>key</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:72</p>
+<p>SQL text of a top-level key: <code>data-&gt;&gt;&#x27;k&#x27;</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-18">Parameters<a href="#parameters-18" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="key">key<a href="#key" class="hash-link" aria-label="Direct link to key" title="Direct link to key" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the key</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-20">Returns<a href="#returns-20" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="like">like()<a href="#like" class="hash-link" aria-label="Direct link to like()" title="Direct link to like()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>like</strong>(<code>text</code>, <code>pattern</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:120</p>
+<p>Case-sensitive LIKE condition on the text (<code>%</code> / <code>_</code>, <code>\%</code> / <code>\_</code> literal)</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-19">Parameters<a href="#parameters-19" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="text">text<a href="#text" class="hash-link" aria-label="Direct link to text" title="Direct link to text" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the text expression</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="pattern">pattern<a href="#pattern" class="hash-link" aria-label="Direct link to pattern" title="Direct link to pattern" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the LIKE pattern</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-21">Returns<a href="#returns-21" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the condition</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="placeholder">placeholder()<a href="#placeholder" class="hash-link" aria-label="Direct link to placeholder()" title="Direct link to placeholder()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>placeholder</strong>(<code>i</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:42</p>
+<p>Positional placeholder of the i-th (1-based) parameter: <code>$1</code> / <code>?1</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-20">Parameters<a href="#parameters-20" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="i-1">i<a href="#i-1" class="hash-link" aria-label="Direct link to i" title="Direct link to i" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>the parameter position</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-22">Returns<a href="#returns-22" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the placeholder</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="removecollectionitem">removeCollectionItem()<a href="#removecollectionitem" class="hash-link" aria-label="Direct link to removeCollectionItem()" title="Direct link to removeCollectionItem()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>removeCollectionItem</strong>(<code>attr</code>, <code>index</code>, <code>updateDate</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:194</p>
+<p><code>data</code> with the item at <code>index</code> removed from the top-level array, <code>_lastUpdate</code> set</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-21">Parameters<a href="#parameters-21" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="attr-1">attr<a href="#attr-1" class="hash-link" aria-label="Direct link to attr" title="Direct link to attr" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the array attribute</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="index-1">index<a href="#index-1" class="hash-link" aria-label="Direct link to index" title="Direct link to index" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>the index</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="updatedate-1">updateDate<a href="#updatedate-1" class="hash-link" aria-label="Direct link to updateDate" title="Direct link to updateDate" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>ISO date</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-23">Returns<a href="#returns-23" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="removekey">removeKey()<a href="#removekey" class="hash-link" aria-label="Direct link to removeKey()" title="Direct link to removeKey()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>removeKey</strong>(<code>attribute</code>, <code>args</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:165</p>
+<p><code>data</code> without the top-level attribute; binds what it needs</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-22">Parameters<a href="#parameters-22" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="attribute">attribute<a href="#attribute" class="hash-link" aria-label="Direct link to attribute" title="Direct link to attribute" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the attribute</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="args-2">args<a href="#args-2" class="hash-link" aria-label="Direct link to args" title="Direct link to args" translate="no">​</a></h5>
+<p><code>any</code>[]</p>
+<p>the statement parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-24">Returns<a href="#returns-24" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="setcollectionitem">setCollectionItem()<a href="#setcollectionitem" class="hash-link" aria-label="Direct link to setCollectionItem()" title="Direct link to setCollectionItem()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>setCollectionItem</strong>(<code>attr</code>, <code>itemParam</code>, <code>index</code>, <code>updateDate</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:186</p>
+<p><code>data</code> with the item bound at <code>itemParam</code> appended to (index undefined) or set at <code>index</code> of the top-level array,
+<code>_lastUpdate</code> set</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-23">Parameters<a href="#parameters-23" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="attr-2">attr<a href="#attr-2" class="hash-link" aria-label="Direct link to attr" title="Direct link to attr" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the array attribute</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="itemparam">itemParam<a href="#itemparam" class="hash-link" aria-label="Direct link to itemParam" title="Direct link to itemParam" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>position of the bound item (JSON text)</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="index-2">index<a href="#index-2" class="hash-link" aria-label="Direct link to index" title="Direct link to index" translate="no">​</a></h5>
+<p><code>number</code> | <code>undefined</code></p>
+<p>the index, undefined to append</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="updatedate-2">updateDate<a href="#updatedate-2" class="hash-link" aria-label="Direct link to updateDate" title="Direct link to updateDate" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>ISO date</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-25">Returns<a href="#returns-25" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="shallowmerge">shallowMerge()<a href="#shallowmerge" class="hash-link" aria-label="Direct link to shallowMerge()" title="Direct link to shallowMerge()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>shallowMerge</strong>(<code>json</code>, <code>patch</code>, <code>args</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:158</p>
+<p>The JSON value shallow-merged with the patch (top-level keys replaced); binds what it needs</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-24">Parameters<a href="#parameters-24" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="json-4">json<a href="#json-4" class="hash-link" aria-label="Direct link to json" title="Direct link to json" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>a JSON value expression</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="patch">patch<a href="#patch" class="hash-link" aria-label="Direct link to patch" title="Direct link to patch" translate="no">​</a></h5>
+<p><code>Record</code>&lt;<code>string</code>, <code>any</code>&gt;</p>
+<p>the patch</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="args-3">args<a href="#args-3" class="hash-link" aria-label="Direct link to args" title="Direct link to args" translate="no">​</a></h5>
+<p><code>any</code>[]</p>
+<p>the statement parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-26">Returns<a href="#returns-26" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="typedattribute">typedAttribute()<a href="#typedattribute" class="hash-link" aria-label="Direct link to typedAttribute()" title="Direct link to typedAttribute()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>typedAttribute</strong>(<code>text</code>, <code>json</code>, <code>type</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:99</p>
+<p>Attribute of a typed comparison: the number or boolean, NULL when the field has another type</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-25">Parameters<a href="#parameters-25" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="text-1">text<a href="#text-1" class="hash-link" aria-label="Direct link to text" title="Direct link to text" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the text expression of the attribute</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="json-5">json<a href="#json-5" class="hash-link" aria-label="Direct link to json" title="Direct link to json" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the JSON value expression of the attribute</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="type-1">type<a href="#type-1" class="hash-link" aria-label="Direct link to type" title="Direct link to type" translate="no">​</a></h5>
+<p><code>&quot;number&quot;</code> | <code>&quot;boolean&quot;</code></p>
+<p>the type of the compared value</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-27">Returns<a href="#returns-27" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_K0WN" id="withstoredtype">withStoredType()<a href="#withstoredtype" class="hash-link" aria-label="Direct link to withStoredType()" title="Direct link to withStoredType()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>withStoredType</strong>(<code>json</code>, <code>type</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: sql/lib/dialect.d.ts:150</p>
+<p>The JSON value with <code>__type</code> set to the type expression</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="parameters-26">Parameters<a href="#parameters-26" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="json-6">json<a href="#json-6" class="hash-link" aria-label="Direct link to json" title="Direct link to json" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>a JSON value expression</p>
+<h5 class="anchor anchorTargetStickyNavbar_K0WN" id="type-2">type<a href="#type-2" class="hash-link" aria-label="Direct link to type" title="Direct link to type" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the type expression</p>
+<h4 class="anchor anchorTargetStickyNavbar_K0WN" id="returns-28">Returns<a href="#returns-28" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the expression</p></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/v4/typedoc/postgres/interfaces/SQLDatabase"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">SQLDatabase</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/v4/typedoc/postgres/interfaces/SQLResult"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">SQLResult</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_S27E thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#properties" class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href="#binarycollation" class="table-of-contents__link toc-highlight">binaryCollation</a></li></ul></li><li><a href="#methods" class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href="#asnumber" class="table-of-contents__link toc-highlight">asNumber()</a></li><li><a href="#asstring" class="table-of-contents__link toc-highlight">asString()</a></li><li><a href="#backfilltypes" class="table-of-contents__link toc-highlight">backfillTypes()</a></li><li><a href="#bulkassign" class="table-of-contents__link toc-highlight">bulkAssign()</a></li><li><a href="#collectionitemcondition" class="table-of-contents__link toc-highlight">collectionItemCondition()</a></li><li><a href="#contains" class="table-of-contents__link toc-highlight">contains()</a></li><li><a href="#countstoredtypes" class="table-of-contents__link toc-highlight">countStoredTypes()</a></li><li><a href="#createtable" class="table-of-contents__link toc-highlight">createTable()</a></li><li><a href="#decode" class="table-of-contents__link toc-highlight">decode()</a></li><li><a href="#distinctfrom" class="table-of-contents__link toc-highlight">distinctFrom()</a></li><li><a href="#hasstoredtype" class="table-of-contents__link toc-highlight">hasStoredType()</a></li><li><a href="#increment" class="table-of-contents__link toc-highlight">increment()</a></li><li><a href="#isobjectrow" class="table-of-contents__link toc-highlight">isObjectRow()</a></li><li><a href="#istype" class="table-of-contents__link toc-highlight">isType()</a></li><li><a href="#isuniqueviolation" class="table-of-contents__link toc-highlight">isUniqueViolation()</a></li><li><a href="#jsonparam" class="table-of-contents__link toc-highlight">jsonParam()</a></li><li><a href="#jsontext" class="table-of-contents__link toc-highlight">jsonText()</a></li><li><a href="#jsonvalue" class="table-of-contents__link toc-highlight">jsonValue()</a></li><li><a href="#jsonvalueornull" class="table-of-contents__link toc-highlight">jsonValueOrNull()</a></li><li><a href="#kepttype" class="table-of-contents__link toc-highlight">keptType()</a></li><li><a href="#keytext" class="table-of-contents__link toc-highlight">keyText()</a></li><li><a href="#like" class="table-of-contents__link toc-highlight">like()</a></li><li><a href="#placeholder" class="table-of-contents__link toc-highlight">placeholder()</a></li><li><a href="#removecollectionitem" class="table-of-contents__link toc-highlight">removeCollectionItem()</a></li><li><a href="#removekey" class="table-of-contents__link toc-highlight">removeKey()</a></li><li><a href="#setcollectionitem" class="table-of-contents__link toc-highlight">setCollectionItem()</a></li><li><a href="#shallowmerge" class="table-of-contents__link toc-highlight">shallowMerge()</a></li><li><a href="#typedattribute" class="table-of-contents__link toc-highlight">typedAttribute()</a></li><li><a href="#withstoredtype" class="table-of-contents__link toc-highlight">withStoredType()</a></li></ul></li></ul></div></div></div></div></div></main></div></div></div></div>
+</body>
+</html>

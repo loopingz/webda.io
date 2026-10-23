@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.12...debug-v4.0.0-beta.13) (2026-10-23)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.13
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.13
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.11...debug-v4.0.0-beta.12) (2026-10-22)
 
 

@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.12...core-v4.0.0-beta.13) (2026-10-23)
+
+
+### Bug Fixes
+
+* **core:** answer operation results with their toDTO, as the caller ([#990](https://github.com/loopingz/webda.io/issues/990)) ([4b944b6](https://github.com/loopingz/webda.io/commit/4b944b688ab98f333eb14e802929882576fd3142))
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.11...core-v4.0.0-beta.12) (2026-10-22)
 
 

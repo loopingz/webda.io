@@ -380,7 +380,7 @@ Without `getProtectedAttributes`, anyone allowed `"update"` could rewrite the AC
 
 ## Exposing fields conditionally — DTO pattern
 
-Permissions decide whether an object is returned, not which of its fields: `__`-prefixed fields are never sent (REST output, GraphQL types), and `toDTO()` can be overridden for other field-level rules.
+Permissions decide whether an object is returned, not which of its fields: `__`-prefixed fields are never sent (REST output, GraphQL types), and `toDTO()` can be overridden for other field-level rules. Every operation transport (REST, GraphQL, gRPC, MCP) answers a model returned by an operation, alone, in an array or in a plain object such as a query page, with its `toDTO()`, called as the caller (`useContext()` is the request context), so a DTO can depend on who asks.
 
 ## Verify
 

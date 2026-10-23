@@ -17,6 +17,7 @@ import {
   registerOperationAuthorizer,
   unregisterOperationAuthorizer,
   listOperationAuthorizers,
+  toOperationOutput,
   useCoreEvents
 } from "../index.js";
 import type { OperationDefinition } from "../index.js";
@@ -32,6 +33,7 @@ import { Session } from "../session/session.js";
 import { registerSchema } from "../schemas/hooks.js";
 import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
 import { scopeAuthorizer } from "../services/scopeauthorizer.js";
+import { useContext } from "../contexts/execution.js";
 
 /**
  * Fake operation context that allows setting custom input
@@ -770,6 +772,25 @@ class OperationMetadataTest extends WebdaApplicationTest {
 }
 
 /**
+ * A model whose public form depends on the caller: only its owner sees the secret
+ */
+class CallerDTO {
+  constructor(
+    public owner: string,
+    public secret: string
+  ) {}
+
+  /**
+   * @returns the fields the current caller may see
+   */
+  toDTO() {
+    return useContext().getCurrentUserId() === this.owner
+      ? { owner: this.owner, secret: this.secret }
+      : { owner: this.owner };
+  }
+}
+
+/**
  * Service with typed methods (not taking context) for testing the new callOperation behavior
  */
 class ReturnValueService extends Service {
@@ -802,6 +823,28 @@ class ReturnValueService extends Service {
    */
   async echoArgs(...args: any[]): Promise<any[]> {
     return args;
+  }
+
+  /**
+   * Return a model
+   */
+  async getModel(): Promise<CallerDTO> {
+    return new CallerDTO("alice", "s1");
+  }
+
+  /**
+   * Return a query page of models
+   */
+  async getPage(): Promise<{ results: CallerDTO[]; continuationToken: string }> {
+    return { results: [new CallerDTO("alice", "s1"), new CallerDTO("bob", "s2")], continuationToken: "next" };
+  }
+
+  /**
+   * Stream models
+   */
+  async *streamModels(): AsyncGenerator<CallerDTO> {
+    yield new CallerDTO("alice", "s1");
+    yield new CallerDTO("bob", "s2");
   }
 
   /**
@@ -1165,6 +1208,68 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     const parsed = JSON.parse(output);
     assert.strictEqual(parsed.name, "test");
     assert.strictEqual(parsed.count, 42);
+  }
+
+  /**
+   * Context of a signed-in user
+   * @param userId - the caller
+   * @returns the context
+   */
+  async userContext(userId: string): Promise<FakeOpContext> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const session = new Session();
+    session.login(userId, userId);
+    ctx.setSession(session);
+    return ctx;
+  }
+
+  @test
+  async callOperationWritesTheDTOForTheCaller() {
+    for (const method of ["getModel", "getPage", "streamModels"]) {
+      registerOperation(`ReturnSvc.${method[0].toUpperCase()}${method.slice(1)}`, {
+        service: "ReturnSvc",
+        method,
+        input: "void",
+        output: "void"
+      });
+    }
+    const call = async (userId: string, id: string) => {
+      const ctx = await this.userContext(userId);
+      await callOperation(ctx, `ReturnSvc.${id}`);
+      return ctx;
+    };
+    assert.deepStrictEqual(JSON.parse((await call("alice", "GetModel")).getOutput()), { owner: "alice", secret: "s1" });
+    assert.deepStrictEqual(JSON.parse((await call("bob", "GetModel")).getOutput()), { owner: "alice" });
+    // A query page: the models inside the wrapper too
+    assert.deepStrictEqual(JSON.parse((await call("bob", "GetPage")).getOutput()), {
+      results: [{ owner: "alice" }, { owner: "bob", secret: "s2" }],
+      continuationToken: "next"
+    });
+    // Streamed chunks
+    const chunks: any[] = [];
+    const streamed = await this.userContext("alice");
+    streamed.write = (chunk: any) => {
+      chunks.push(chunk);
+      return true;
+    };
+    await callOperation(streamed, "ReturnSvc.StreamModels");
+    assert.deepStrictEqual(chunks, [{ owner: "alice", secret: "s1" }, { owner: "bob" }]);
+  }
+
+  @test
+  toOperationOutputKeepsWhatIsNotAModel() {
+    const buffer = Buffer.from("raw");
+    assert.strictEqual(toOperationOutput(buffer), buffer);
+    const date = new Date();
+    assert.strictEqual(toOperationOutput(date), date);
+    for (const value of ["text", 3, null, undefined]) {
+      assert.strictEqual(toOperationOutput(value), value);
+    }
+    // A circular structure is left to the serializer
+    const circular: any = { name: "loop" };
+    circular.self = circular;
+    assert.strictEqual(toOperationOutput(circular).self, circular);
   }
 
   @test

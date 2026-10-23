@@ -714,7 +714,39 @@ export async function resolveArguments(context: OperationContext, operation: Ope
 }
 
 /**
+ * Public form of an operation result, the one every transport serializes: a value with `toDTO()` (a model) is replaced
+ * by its DTO, arrays and plain objects (a query page, a wrapper) are walked, anything else is kept as is
+ *
+ * Call it within the operation context: a DTO may depend on the caller.
+ * @param value - the operation result or a streamed chunk
+ * @param seen - objects already walked, a circular reference is left to the serializer
+ * @returns the value to write
+ */
+export function toOperationOutput(value: any, seen: WeakSet<object> = new WeakSet()): any {
+  if (!value || typeof value !== "object" || Buffer.isBuffer(value)) {
+    return value;
+  }
+  if (typeof value.toDTO === "function") {
+    return value.toDTO();
+  }
+  if (seen.has(value)) {
+    return value;
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    return value.map(item => toOperationOutput(item, seen));
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return value;
+  }
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toOperationOutput(item, seen)]));
+}
+
+/**
  * Call an operation within the framework
+ *
+ * The result is written in its public form ({@link toOperationOutput}), built as the caller.
  * @param context - the execution context
  * @param operationId - the operation identifier
  */
@@ -784,12 +816,12 @@ export async function callOperation(context: OperationContext, operationId: stri
         context.setExtension("operationStreaming", true);
         await runWithContext(context, async () => {
           for await (const chunk of result) {
-            if (context.write(chunk) === false) await context.drained();
+            if (context.write(toOperationOutput(chunk)) === false) await context.drained();
           }
         });
       } else if (context.getOutput() === undefined) {
-        // Normal return — write to context only if nothing written yet
-        context.write(result);
+        // Normal return — write to context only if nothing written yet, built as the caller (a DTO may depend on it)
+        context.write(await runWithContext(context, () => toOperationOutput(result)));
       }
     }
 

@@ -303,7 +303,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   /**
    * Write data to the client
    *
-   * @param output If it is an object it will be serialized with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
+   * @param output If it is an object it will be serialized as JSON without its `__` keys (callOperation writes models as their DTO), if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
    * @param _encoding - the encoding to use
    * @param _cb - the callback function

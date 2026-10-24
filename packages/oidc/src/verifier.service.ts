@@ -6,6 +6,8 @@ import {
   ServiceParameters,
   Session,
   registerBearerResolver,
+  registerOperationAuthorizer,
+  scopeAuthorizer,
   unregisterBearerResolver,
   useDynamicService,
   useMetric
@@ -65,12 +67,26 @@ export interface TrustedIssuer {
    * @default OIDCVerifier.maxTokenAge
    */
   maxTokenAge?: number;
+  /**
+   * Session given by a valid token
+   *
+   * - `application`: a workload token, the caller is the application `app:<principal>`
+   * - `user`: an access token (`typ: at+jwt`, RFC 9068) of a Webda `OAuthServer` bound to this application, the
+   *   caller is its user, restricted to the token scope. The issuer revocations are only seen when the token expires
+   *
+   * @default "application"
+   */
+  session?: "application" | "user";
 }
 
 /**
- * Identity of a verified application
+ * Identity of a verified caller: an application, or a user for the `user` trusted issuers
  */
 export interface AppIdentity {
+  /**
+   * Session the identity gives, see {@link TrustedIssuer.session}
+   */
+  session: "application" | "user";
   /**
    * Token issuer
    */
@@ -80,7 +96,7 @@ export interface AppIdentity {
    */
   subject: string;
   /**
-   * Application principal name, IAM sees it as `app:<principal>`
+   * Application principal name, IAM sees it as `app:<principal>`; the user id for a user
    */
   principal: string;
   /**
@@ -191,6 +207,24 @@ const FORBIDDEN_ALGORITHMS = /^(none|HS\d*)$/i;
 const DISCOVERY_RETRY = 30_000;
 
 /**
+ * JWT `typ` of the OAuth access tokens (RFC 9068)
+ */
+const ACCESS_TOKEN_TYPE = "at+jwt";
+
+/**
+ * Claims every user access token of a Webda OAuthServer carries
+ */
+const USER_CLAIMS = ["sub", "ident", "fam"];
+
+/**
+ * @param typ - a JWT `typ` header
+ * @returns true for an OAuth access token type, in its short or media type form
+ */
+function isAccessTokenType(typ: unknown): boolean {
+  return typeof typ === "string" && typ.toLowerCase().replace(/^application\//, "") === ACCESS_TOKEN_TYPE;
+}
+
+/**
  * Check a key set url: absolute, https (http only for a loopback host)
  * @param url - the url
  * @returns true when acceptable
@@ -280,6 +314,10 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
       if (!audiences.length) {
         throw new OIDCConfigurationError(`${name} has no audience`);
       }
+      const session = trusted.session ?? "application";
+      if (!["application", "user"].includes(session)) {
+        throw new OIDCConfigurationError(`${name} session must be "application" or "user"`);
+      }
       const algorithms = trusted.algorithms ?? ["RS256", "ES256"];
       if (!algorithms.length || algorithms.some(alg => FORBIDDEN_ALGORITHMS.test(alg))) {
         throw new OIDCConfigurationError(`${name} algorithms must be asymmetric`);
@@ -293,12 +331,17 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
           claims: trusted.claims ?? {},
           principal: trusted.principal ?? "${sub}",
           groups: trusted.groups ?? [],
-          maxTokenAge: trusted.maxTokenAge ?? maxTokenAge
+          maxTokenAge: trusted.maxTokenAge ?? maxTokenAge,
+          session
         },
         discoveredAt: 0
       });
     }
     this.issuers = issuers;
+    // Fail closed: the scope of a user token is enforced even without a TokenService
+    if ([...issuers.values()].some(state => state.config.session === "user")) {
+      registerOperationAuthorizer(scopeAuthorizer);
+    }
     this.verifyCounter = useMetric(Counter, {
       name: "oidc_verify_total",
       help: "OIDC token verifications",
@@ -336,6 +379,9 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
       return undefined;
     }
     const session = new Session();
+    if (identity.session === "user") {
+      return this.userSession(session, identity.claims);
+    }
     session.loginApplication({
       principal: identity.principal,
       issuer: identity.issuer,
@@ -343,6 +389,32 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
       groups: identity.groups,
       claims: identity.claims
     });
+    return session;
+  }
+
+  /**
+   * Log a session in as the user of a verified access token, like a local access token. The refresh family is not
+   * kept: it belongs to the issuer
+   * @param session - the session
+   * @param claims - the verified claims
+   * @returns the session
+   */
+  protected userSession(session: Session, claims: Record<string, any>): Session {
+    session.login(claims.sub, claims.ident, {
+      provider: claims.provider,
+      amr: claims.amr,
+      mfa: claims.mfa,
+      mfaAt: claims.mfaAt,
+      mfaVerifications: claims.mfaVerifications
+    });
+    session.roles = claims.roles;
+    session.authAt = claims.authAt;
+    if (typeof claims.scope === "string") {
+      session.scopes = claims.scope.split(" ").filter(Boolean);
+    }
+    if (typeof claims.client_id === "string") {
+      session.clientId = claims.client_id;
+    }
     return session;
   }
 
@@ -367,7 +439,7 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
     }
     const { config } = state;
     try {
-      const { payload } = await jose.jwtVerify(token, await this.getKeySet(state), {
+      const { payload, protectedHeader } = await jose.jwtVerify(token, await this.getKeySet(state), {
         issuer: config.issuer,
         audience: config.audiences,
         algorithms: config.algorithms,
@@ -381,15 +453,33 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
       if (exp - iat > config.maxTokenAge) {
         throw new Error("token lifetime exceeds maxTokenAge");
       }
+      // A user access token never authenticates an application, nor a workload token a user
+      const user = config.session === "user";
+      const missing = USER_CLAIMS.find(claim => typeof payload[claim] !== "string" || !payload[claim]);
+      if (user) {
+        if (!isAccessTokenType(protectedHeader.typ)) {
+          throw new Error("not an access token (typ)");
+        }
+        if (missing) {
+          throw new Error(`access token claim ${missing} is missing`);
+        }
+        if (payload.webda_app !== undefined) {
+          throw new Error("workload token");
+        }
+      } else if (!missing) {
+        // Client credentials access tokens of other issuers are `at+jwt` too: only Webda user tokens are refused
+        throw new Error("user access tokens are not workload tokens");
+      }
       for (const [claim, patterns] of Object.entries(config.claims)) {
         if (!claimMatches(payload[claim], patterns)) {
           throw new Error(`claim ${claim} does not match`);
         }
       }
       const identity: AppIdentity = {
+        session: config.session,
         issuer: config.issuer,
         subject: payload.sub ?? "",
-        principal: this.buildPrincipal(config.principal, payload),
+        principal: user ? (payload.sub as string) : this.buildPrincipal(config.principal, payload),
         groups: [...config.groups],
         claims: payload,
         expiresAt: exp * 1000
@@ -476,11 +566,15 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
   protected async discover(state: IssuerState): Promise<jose.JWTVerifyGetKey> {
     const { issuer } = state.config;
     try {
-      const res = await fetch(`${issuer.replace(/\/+$/, "")}/.well-known/openid-configuration`, {
-        headers: { accept: "application/json" },
-        redirect: "error",
-        signal: AbortSignal.timeout(this.parameters.requestTimeout)
-      });
+      const base = issuer.replace(/\/+$/, "");
+      let res = await this.fetchMetadata(`${base}/.well-known/openid-configuration`);
+      if (res.status === 404) {
+        // An OAuth authorization server publishes RFC 8414 metadata, inserted before the issuer path
+        const url = new URL(base);
+        res = await this.fetchMetadata(
+          `${url.origin}/.well-known/oauth-authorization-server${url.pathname.replace(/\/+$/, "")}`
+        );
+      }
       if (!res.ok) {
         throw new Error(`discovery returned HTTP ${res.status}`);
       }
@@ -507,6 +601,18 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
       state.discoveredAt = Date.now() - this.parameters.jwksCacheTtl * 1000 + DISCOVERY_RETRY;
       return state.keys;
     }
+  }
+
+  /**
+   * @param url - a discovery url
+   * @returns the response, redirects refused
+   */
+  protected fetchMetadata(url: string): Promise<Response> {
+    return fetch(url, {
+      headers: { accept: "application/json" },
+      redirect: "error",
+      signal: AbortSignal.timeout(this.parameters.requestTimeout)
+    });
   }
 
   /**

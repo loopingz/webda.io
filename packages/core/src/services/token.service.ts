@@ -14,6 +14,9 @@ import { MfaState, type MfaVerification, Session } from "../session/session.js";
 /** Audience of the access tokens that are not bound to a resource */
 export const ACCESS_AUDIENCE = "webda-access";
 
+/** JWT `typ` of the access tokens issued for an issuer (RFC 9068) */
+export const ACCESS_TOKEN_TYPE = "at+jwt";
+
 /** Raised for unknown, expired, revoked or reused tokens (403 TOKEN_INVALID) */
 export class TokenInvalid extends WebdaError.HttpError {
   /** @param message - error message */
@@ -43,6 +46,11 @@ export interface IssueOptions {
   scope?: Scope;
   /** Resource (RFC 8707) the access tokens are bound to: becomes their audience; kept by the family on refresh */
   resource?: string;
+  /**
+   * Authorization server issuing the tokens: becomes their `iss`, with the RFC 9068 `at+jwt` type, so another
+   * application can verify them from the issuer keys. Not stored: give it again on refresh
+   */
+  issuer?: string;
   /** Display name of the refresh family */
   name?: string;
   /** Access token lifetime (s), defaults to the `accessTtl` parameter; kept by the family on refresh */
@@ -260,7 +268,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     };
     const accessToken = await useCrypto().jwtSign(claims, {
       audience: options.resource ?? ACCESS_AUDIENCE,
-      expiresIn: accessTtl
+      expiresIn: accessTtl,
+      ...(options.issuer ? { issuer: options.issuer, header: { typ: ACCESS_TOKEN_TYPE } } : {})
     });
     return { accessToken, refreshToken, expiresIn: accessTtl, family };
   }
@@ -391,11 +400,12 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * @param options.scope - narrower scope to grant
    * @param options.clientId - client the token must belong to
    * @param options.resource - resource the token must be bound to: the new tokens keep the stored one
+   * @param options.issuer - issuer of the new access tokens, see {@link IssueOptions.issuer}
    * @returns new tokens, the rebuilt session and the granted scope
    */
   async refresh(
     refreshToken: string,
-    options: { scope?: Scope; clientId?: string; resource?: string } = {}
+    options: { scope?: Scope; clientId?: string; resource?: string; issuer?: string } = {}
   ): Promise<IssuedTokens & { session: Session; scope?: Scope }> {
     if (typeof refreshToken !== "string" || !refreshToken) {
       throw new TokenInvalid();
@@ -477,6 +487,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       clientId: stored.clientId,
       scope,
       resource: stored.resource,
+      issuer: options.issuer,
       name: stored.name,
       accessTtl: stored.accessTtl,
       refreshTtl: stored.refreshTtl,

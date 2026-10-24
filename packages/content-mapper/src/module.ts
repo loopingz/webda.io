@@ -34,7 +34,6 @@ import {
   outputTarget,
   packageOf,
   reflectAttributes,
-  relationTypeOf,
   type DiscoveredObject,
   type DiscoveryOptions,
   type ReflectedAttribute,
@@ -42,6 +41,13 @@ import {
 } from "./module-discovery.ts";
 import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order, ts6PropertyOrder } from "./property-order.ts";
+import {
+  backfillRelations,
+  relationPolicyOf,
+  resolveRelationType,
+  type DeletePolicy,
+  type RelationDependent
+} from "./relations.ts";
 import { generateModelSchemas } from "./schema/model.ts";
 import { generateTopLevelSchemas } from "./schema/project.ts";
 import { findParametersNode, findStaticParametersDeclaration, generateServiceSchema } from "./schema/service.ts";
@@ -80,8 +86,10 @@ export interface ServiceEntry {
 
 /** Relations recorded for a model, in TypeScript 6 insertion order. */
 export interface ModuleRelations {
-  parent?: { attribute: string; model?: string };
-  links?: { attribute: string; model?: string; type: string }[];
+  /** `onDelete`: policy applied to this model when the parent is deleted, `CASCADE` by default. */
+  parent?: { attribute: string; model?: string; onDelete?: DeletePolicy };
+  /** `onDelete` is omitted for the default `NONE`; `ownership` marks a `Contains`. */
+  links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: "CONTAINS" }[];
   queries?: { attribute: string; model?: string; targetAttribute?: string }[];
   maps?: {
     attribute: string;
@@ -91,6 +99,10 @@ export interface ModuleRelations {
     targetAttributes: string[];
   }[];
   behaviors?: { attribute: string; behavior: string }[];
+  /** Models declaring this model as their parent. */
+  children?: string[];
+  /** Relations of other models targeting this model, with a policy other than `NONE`. */
+  dependents?: RelationDependent[];
 }
 
 /** A model entry. */
@@ -1291,13 +1303,21 @@ function processModels(
 
       const attribute = property.name;
       const typeArguments: any[] = (typeNode as any).typeArguments ?? [];
-      const typeName = relationTypeOf(text(ctx, (typeNode as any).typeName));
+      const { type: typeName, contains } = resolveRelationType(ctx, typeNode, text(ctx, (typeNode as any).typeName));
+      const policyOf = (kind: "PARENT" | "CONTAINS" | "LINK"): DeletePolicy | undefined => {
+        const { onDelete, error } = relationPolicyOf(member, kind, `${name}.${attribute}`);
+        if (error) errors.push(error);
+        return onDelete;
+      };
       const addLink = (type: string) => {
         relations.links ??= [];
+        const onDelete = policyOf(contains ? "CONTAINS" : "LINK");
         relations.links.push({
           attribute,
           model: modelOf(typeArguments[0]) ?? instantiatedModelOf(property, declaration),
-          type
+          type,
+          ...(onDelete ? { onDelete } : {}),
+          ...(contains ? { ownership: "CONTAINS" as const } : {})
         });
       };
       switch (typeName) {
@@ -1310,7 +1330,7 @@ function processModels(
                 `(BelongTo) at most, use ModelLink (ManyToOne) for the other`
             );
           }
-          relations.parent = { attribute, model };
+          relations.parent = { attribute, model, onDelete: policyOf("PARENT") };
           break;
         }
         case "ModelRelated": {
@@ -1329,9 +1349,16 @@ function processModels(
           relations.maps ??= [];
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find map model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          // @CascadeDelete, or its synonym @OnDelete CASCADE: deleting this model deletes the mapped models
+          const mapPolicy = policyOf("LINK");
+          if (mapPolicy && mapPolicy !== "CASCADE") {
+            errors.push(
+              `${name}.${attribute}: @OnDelete ${mapPolicy} is not allowed on a ModelsMapped, use CASCADE or NONE`
+            );
+          }
           const map = {
             attribute,
-            cascadeDelete: findTag(member, "CascadeDelete") !== undefined,
+            cascadeDelete: mapPolicy === "CASCADE",
             model,
             targetLink: text(ctx, typeArguments[1]).replace(/"/g, ""),
             targetAttributes: text(ctx, typeArguments[2])
@@ -1399,6 +1426,8 @@ function processModels(
     const ancestors = entries[name].Ancestors;
     if (ancestors.length) entries[ancestors[0]]?.Subclasses.push(name);
   }
+  // Reverse index on the targets: children and dependents
+  backfillRelations(Object.fromEntries(Object.entries(entries).map(([name, entry]) => [name, entry.Relations])));
   return entries;
 }
 

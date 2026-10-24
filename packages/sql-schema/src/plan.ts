@@ -59,9 +59,11 @@ export interface ColumnPlan {
 }
 
 /**
- * `ON DELETE` behavior of a foreign key
+ * `ON DELETE` clause of a foreign key, in SQL
+ *
+ * Derived from the `DeletePolicy` of the relation (`@webda/models`), see {@link foreignKeyAction}
  */
-export type DeletePolicy = "CASCADE" | "RESTRICT" | "SET NULL" | "NO ACTION";
+export type ForeignKeyAction = "CASCADE" | "RESTRICT" | "SET NULL" | "NO ACTION";
 
 /**
  * A foreign key constraint
@@ -76,7 +78,7 @@ export interface ForeignKeyPlan {
     table: string;
     columns: string[];
   };
-  onDelete: DeletePolicy;
+  onDelete: ForeignKeyAction;
 }
 
 /**
@@ -133,7 +135,7 @@ export interface RelationPlan {
   /**
    * `ON DELETE` of the constraint, when one is created
    */
-  onDelete?: DeletePolicy;
+  onDelete?: ForeignKeyAction;
   /**
    * Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled
    */

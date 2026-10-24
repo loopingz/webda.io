@@ -704,6 +704,32 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async issuerSetsIssAndAccessTokenType() {
+    const decode = (token: string) =>
+      token
+        .split(".")
+        .slice(0, 2)
+        .map(part => JSON.parse(Buffer.from(part, "base64url").toString()));
+    const res = "https://api.example";
+    const iss = "https://auth.example";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", resource: res, issuer: iss });
+    let [header, payload] = decode(t.accessToken);
+    assert.strictEqual(header.typ, "at+jwt");
+    assert.strictEqual(payload.iss, iss);
+    // Still verified locally
+    assert.ok(await this.service.verifyAccess(t.accessToken, { audience: res }));
+    // Kept on refresh when given again
+    const second = await this.service.refresh(t.refreshToken, { clientId: "c", issuer: iss });
+    [header, payload] = decode(second.accessToken);
+    assert.strictEqual(header.typ, "at+jwt");
+    assert.strictEqual(payload.iss, iss);
+    // First-party tokens are unchanged
+    [header, payload] = decode((await this.service.issue(this.session())).accessToken);
+    assert.strictEqual(header.typ, "JWT");
+    assert.strictEqual(payload.iss, undefined);
+  }
+
+  @test
   async emptyAudienceFailsClosed() {
     const manager = useService("SessionManager") as any;
     const t = await this.service.issue(this.session(), undefined, {

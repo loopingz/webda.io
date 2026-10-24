@@ -21,7 +21,8 @@ This module is part of Webda Application Framework that allows you to quickly de
 - A Kubernetes workload, a GitHub Actions workflow or a GCP service account must call your application.
 - You want the callers to be IAM principals (`app:orders`) that policies can allow or deny.
 
-User login stays with `@webda/auth`; this package is about applications.
+User login stays with `@webda/auth`. A trusted issuer with `session: "user"` accepts the access tokens of a Webda
+`OAuthServer` bound to this application (its `resources`), so several applications share one login.
 
 ## Install
 
@@ -51,7 +52,7 @@ pnpm add @webda/oidc
 | Service | Main parameters |
 |---|---|
 | `Webda/OIDCIssuer` | `issuer` (required), `name`, `tokenTtl` (300), `algorithm` (`RS256`), `audiences` (`["*"]`) |
-| `Webda/OIDCVerifier` | `audience`, `trustedIssuers` (`issuer`, `claims`, `principal`, `groups`, `audiences`, `algorithms`, `jwksUri`, `maxTokenAge`), `clockTolerance` (30), `maxTokenAge` (3600), `jwksCacheTtl` (600) |
+| `Webda/OIDCVerifier` | `audience`, `trustedIssuers` (`issuer`, `session`, `claims`, `principal`, `groups`, `audiences`, `algorithms`, `jwksUri`, `maxTokenAge`), `clockTolerance` (30), `maxTokenAge` (3600), `jwksCacheTtl` (600) |
 | `Webda/OIDCClient` | `source` (`self`, `file`, `gcp-metadata`, `github-actions`), `tokenFile`, `refreshMargin` (60) |
 
 ## Usage

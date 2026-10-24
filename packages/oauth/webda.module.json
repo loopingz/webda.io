@@ -132,7 +132,7 @@
             "type": "string"
           },
           "issuer": {
-            "description": "Issuer; defaults to the request origin",
+            "description": "Issuer; defaults to the request origin. When set, the access tokens carry it as `iss` with the RFC 9068\n`at+jwt` type, so another application can verify them (see `resources`)",
             "type": "string"
           },
           "loginUrl": {
@@ -185,6 +185,14 @@
           "rememberConsentTtl": {
             "default": 7776000,
             "type": "number"
+          },
+          "resources": {
+            "default": [],
+            "description": "Protected resources served by other applications (absolute URIs, RFC 8707): accepted as a `resource` or a client\n`defaultResource`, never chosen by default. Their tokens are verified from the issuer keys, so they require\n`issuer`, an asymmetric `CryptoService` algorithm and its published JWKS (`url`)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "resultUrl": {
             "description": "Result UI; defaults to the built-in page",

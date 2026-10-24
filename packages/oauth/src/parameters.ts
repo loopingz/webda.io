@@ -76,8 +76,18 @@ function isHttpUrl(value: unknown): boolean {
 export class OAuthServerParameters extends ServiceParameters {
   /** @default "/oauth" */
   url: string;
-  /** Issuer; defaults to the request origin */
+  /**
+   * Issuer; defaults to the request origin. When set, the access tokens carry it as `iss` with the RFC 9068
+   * `at+jwt` type, so another application can verify them (see `resources`)
+   */
   issuer?: string;
+  /**
+   * Protected resources served by other applications (absolute URIs, RFC 8707): accepted as a `resource` or a client
+   * `defaultResource`, never chosen by default. Their tokens are verified from the issuer keys, so they require
+   * `issuer`, an asymmetric `CryptoService` algorithm and its published JWKS (`url`)
+   * @default []
+   */
+  resources: string[];
   /** Static clients by id; `null` removes a built-in client */
   clients: Record<string, Omit<OAuthClient, "id"> | null>;
   /** @default true */
@@ -145,6 +155,7 @@ export class OAuthServerParameters extends ServiceParameters {
     for (const [id, client] of Object.entries(this.clients)) {
       if (client !== null) validateClient(id, client);
     }
+    this.resources ??= [];
     this.clientMetadataDocuments ??= true;
     this.clientMetadataHosts ??= [];
     this.clientMetadataTimeout ??= 5;

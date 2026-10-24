@@ -10,6 +10,8 @@ operations, and the issued access token can only call those.
 - Client ID Metadata Documents (clients identified by an `https://` URL) and static clients.
 - Remembered consent, connected-apps operations, token revocation (RFC 7009), authorization server metadata (RFC 8414).
 - Built-in consent, device and result pages, replaceable by your own UI.
+- One login for several applications: tokens bound to the `resources` of other applications, verified there by
+  `@webda/oidc`.
 
 See the full documentation in [docs/pages/Modules/oauth/README.md](../../docs/pages/Modules/oauth/README.md).
 

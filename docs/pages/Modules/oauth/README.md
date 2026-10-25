@@ -46,6 +46,32 @@ operation call, whatever the transport (REST, `/operations`, MCP).
 - Use a shared store for `Webda/RevokedAccess` and `Webda/RefreshToken` in multi-instance deployments, see
   [Revocation](#revocation).
 
+### CLI version requirements
+
+Configure `cli` on `Webda/OperationsTransport` to advertise a required CLI version:
+
+```json
+{
+  "services": {
+    "Operations": {
+      "type": "Webda/OperationsTransport",
+      "cli": {
+        "version_range": ">=1.4.0"
+      }
+    }
+  }
+}
+```
+
+`GET /operations` includes `"cli": { "version_range": ">=1.4.0" }`. The Webda CLI
+compares its installed version with that semver range and follows its own configured
+update mode (`warn`, `prompt`, or `silent`). This metadata does not reject requests
+from older clients. Omit `cli` to leave the requirement unspecified.
+
+An optional `cli.download_url` sets the release download base URL; when omitted,
+the CLI uses the official Webda CLI GitHub releases. CLI metadata does not change
+the operations listing's `version` hash.
+
 ## Parameters
 
 | Parameter                            | Default        | Description                                                            |

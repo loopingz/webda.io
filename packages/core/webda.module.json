@@ -1603,8 +1603,29 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "definitions": {
+          "cli": {
+            "additionalProperties": false,
+            "description": "CLI requirements advertised in the operations listing; update behavior remains a client setting",
+            "properties": {
+              "download_url": {
+                "description": "Release download base URL; the CLI defaults to the official GitHub releases when omitted",
+                "type": "string"
+              },
+              "version_range": {
+                "description": "Semver constraint the Webda CLI must satisfy, for example \">=1.4.0\"",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
         "description": "Parameters of the operation-id transport",
         "properties": {
+          "cli": {
+            "$ref": "#/definitions/cli",
+            "description": "CLI requirements advertised in the operations listing; update behavior remains a client setting"
+          },
           "operations": {
             "default": [
               "*"

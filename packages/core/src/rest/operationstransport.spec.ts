@@ -8,6 +8,7 @@ import { useService } from "../core/hooks.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { registerOperation } from "../core/operations.js";
 import { HttpServer } from "../services/httpserver.service.js";
+import { OperationIdTransport } from "./operationstransport.service.js";
 
 class ScopedService extends Service {
   last: any;
@@ -31,7 +32,7 @@ class OperationsTransportTest extends WebdaApplicationTest {
       services: {
         Scoped: { type: "ScopedService" },
         HttpServer: { type: "Webda/HttpServer" },
-        Operations: { type: "Webda/OperationsTransport" },
+        Operations: { type: "Webda/OperationsTransport", cli: { version_range: ">=1.4.0" } },
         AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/RevokedAccess"] }
       }
     };
@@ -102,6 +103,29 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const wider = await this.http("GET", "/operations", undefined, { bearerScopes: ["*"] });
     assert.notStrictEqual(wider.body.version, res.body.version);
     assert.strictEqual(res.body.operations["Scoped.Read"].id, "Scoped.Read");
+    assert.deepStrictEqual(res.body.cli, { version_range: ">=1.4.0" });
+  }
+
+  @test
+  async advertisesCliRequirements() {
+    const params = useService<OperationIdTransport>("Operations").getParameters();
+    const previous = params.cli;
+    const original = await this.http("GET", "/operations", undefined, { bearerScopes: ["Scoped.Read"] });
+    try {
+      delete params.cli;
+      const unspecified = await this.http("GET", "/operations", undefined, { bearerScopes: ["Scoped.Read"] });
+      assert.strictEqual(unspecified.status, 200);
+      assert.strictEqual(Object.hasOwn(unspecified.body, "cli"), false);
+      assert.deepStrictEqual(unspecified.body.operations, original.body.operations);
+      assert.strictEqual(unspecified.body.version, original.body.version);
+
+      params.cli = { version_range: ">=1.5.0", download_url: "https://example.com/cli/releases" };
+      const custom = await this.http("GET", "/operations", undefined, { bearerScopes: ["Scoped.Read"] });
+      assert.deepStrictEqual(custom.body.cli, params.cli);
+      assert.strictEqual(custom.body.version, original.body.version);
+    } finally {
+      params.cli = previous;
+    }
   }
 
   @test

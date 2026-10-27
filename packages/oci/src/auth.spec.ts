@@ -41,6 +41,18 @@ class AuthTest {
   }
 
   @test
+  malformedChallengeParametersDoNotTriggerRepeatedSuffixSearches() {
+    assert.deepStrictEqual(parseAuthChallenge("Bearer " + "-".repeat(100_000)), {
+      scheme: "bearer",
+      parameters: {}
+    });
+    assert.deepStrictEqual(parseAuthChallenge('Bearer malformed, realm="https://registry/token"'), {
+      scheme: "bearer",
+      parameters: { realm: "https://registry/token" }
+    });
+  }
+
+  @test
   credentials() {
     const config = {
       auths: {

@@ -8,6 +8,36 @@ import { FireStoreRepository } from "./firestore.service.js";
 @suite
 class FireStoreErrorsTest extends WebdaApplicationTest {
   @test
+  async rejectsPrototypeCollectionIndexes() {
+    const transaction = vi.fn();
+    const repository = new FireStoreRepository(User, ["uuid"], { runTransaction: transaction } as any, "unit");
+    const ref = vi.spyOn(repository as any, "getDocumentRef").mockReturnValue({ id: "unit" });
+    try {
+      for (const index of ["__proto__", "constructor", -1, 0.5, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+        await assert.rejects(
+          () => repository.upsertItemToCollection("unit", "items", {}, index as any),
+          /non-negative safe integer/
+        );
+      }
+      assert.strictEqual(transaction.mock.calls.length, 0);
+      const update = vi.fn();
+      transaction.mockImplementation(async callback =>
+        callback({
+          get: async () => ({ exists: true, data: () => ({}) }),
+          update
+        })
+      );
+      await repository.upsertItemToCollection("unit", "__proto__", "safe", 0);
+      const fields = update.mock.calls[0][1];
+      assert.ok(Object.hasOwn(fields, "__proto__"));
+      assert.deepStrictEqual(fields.__proto__, ["safe"]);
+      assert.strictEqual(Object.getPrototypeOf(fields), Object.prototype);
+    } finally {
+      ref.mockRestore();
+    }
+  }
+
+  @test
   async preservesUnexpectedCreateFailuresAndTranslatesDuplicates() {
     const repository = new FireStoreRepository(User, ["uuid"], {} as any, "unit");
     const ref = vi.spyOn(repository as any, "getDocumentRef");

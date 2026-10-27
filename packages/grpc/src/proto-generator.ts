@@ -18,7 +18,6 @@ export function generateProto(
 ): string {
   const lines: string[] = [];
   const messages = new Map<string, string>(); // messageName → proto definition
-  const fieldCounter = 0;
 
   lines.push('syntax = "proto3";');
   lines.push("");
@@ -81,7 +80,7 @@ export function generateProto(
   }
 
   // Generate messages for all referenced schemas
-  for (const [opId, op] of Object.entries(operations)) {
+  for (const op of Object.values(operations)) {
     if (op.hidden) continue;
     const inputRef = resolveSchemaRef(op.input);
     if (inputRef) {
@@ -108,7 +107,7 @@ export function generateProto(
   // Write services
   for (const [prefix, ops] of serviceGroups) {
     lines.push(`service ${prefix}Service {`);
-    for (const { opId, op, rpcName } of ops) {
+    for (const { op, rpcName } of ops) {
       const inputType = getInputType(op, schemas, messages);
       const outputType = getOutputType(op, schemas, messages);
       const streaming = op.streaming || (typeof op.grpc === "object" && op.grpc?.streaming) || "none";
@@ -326,10 +325,5 @@ function jsonTypeToProto(
       return jsonTypeToProto(fieldName, (schema.items as JSONSchema7) || {}, parentName, allSchemas, messages);
     default:
       return "google.protobuf.Struct";
-  }
-
-  // Enum support
-  if (schema.enum) {
-    return "string"; // Map enums to strings for simplicity
   }
 }

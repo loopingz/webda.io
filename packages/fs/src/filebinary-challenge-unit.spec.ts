@@ -1,3 +1,5 @@
+import fsMutable from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
@@ -286,6 +288,48 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual((await this.images(user.getUUID())).length, 1);
     // A second challenge with the proof is done at once
     assert.strictEqual(await this.binary.putRedirectUrl(user, "images", info, ctx), undefined);
+  }
+
+  @test
+  async uploadDoesNotOverwriteASymlinkCreatedByARace() {
+    if (process.platform === "win32") return;
+    const user = await ImageUser.create({ displayName: "uploader" } as any);
+    const content = "symlink upload content";
+    const { hash, challenge } = await this.hashes(content);
+    const res = await this.binary.putRedirectUrl(
+      user,
+      "images",
+      {
+        hash,
+        challenge,
+        size: content.length,
+        name: "content.txt"
+      } as any,
+      await this.newContext()
+    );
+    const target = path.join(FOLDER, "target");
+    fs.writeFileSync(target, "keep");
+    const dataPath = this.binary._getPath(hash, "data");
+    const write = fs.writeFileSync;
+    let raced = false;
+    const stub = vi.spyOn(fsMutable, "writeFileSync").mockImplementation((file, data, options) => {
+      if (file === dataPath && !raced) {
+        raced = true;
+        fs.symlinkSync(target, dataPath);
+      }
+      return write(file, data, options);
+    });
+    syncBuiltinESMExports();
+    const upload = await this.newContext(content);
+    upload.setParameters({ hash, token: res!.url.split("token=")[1] });
+    try {
+      await this.binary.storeBinary(upload);
+    } finally {
+      stub.mockRestore();
+      syncBuiltinESMExports();
+    }
+    assert.ok(raced);
+    assert.strictEqual(fs.readFileSync(target, "utf8"), "keep");
   }
 
   /**

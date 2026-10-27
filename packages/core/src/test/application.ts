@@ -317,7 +317,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @returns the result
    */
   async addService<P extends Service>(
-    service: new (string, any) => P,
+    service: new (name: string, params: any) => P,
     params?: DeepPartial<ReturnType<P["getParameters"]>>,
     name?: string
   ): Promise<P> {

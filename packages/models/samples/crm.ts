@@ -64,7 +64,7 @@ ref.incrementAttributes({
 });
 ref.setAttribute("amount", 12);
 
-const testJsoned: JSONed<Invoice> = {
+export const testJsoned: JSONed<Invoice> = {
   uuid: "1234",
   amount: 10,
   customer: {
@@ -222,10 +222,10 @@ userRepo.incrementAttribute("myUser", "loginCount");
 userRepo.on("Updated", model => {});
 userRepo.on("Login", model => {});
 
-const user = await userRepo.get("myUser");
+await userRepo.get("myUser");
 
 const invoice = new Invoice();
-const customerId = invoice.customer.getPrimaryKey();
+invoice.customer.getPrimaryKey();
 const customer = await invoice.customer.get();
 customer.invoices.query("");
 Invoice.ref("1234");
@@ -266,8 +266,8 @@ class GithubIssue extends Model {
     */
 }
 
-const jsoned: JSONed<GithubIssue> = {
+export const jsoned: JSONed<GithubIssue> = {
   id: 1
 };
 
-const test2 = new GithubIssue().getPrimaryKey();
+new GithubIssue().getPrimaryKey();

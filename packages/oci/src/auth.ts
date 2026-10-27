@@ -85,9 +85,19 @@ export function parseAuthChallenge(header: string | null | undefined): AuthChall
   }
   const scheme = match[1].toLowerCase();
   const parameters: Record<string, string> = {};
-  const pattern = /([a-zA-Z0-9_.-]+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^,\s]*))\s*,?/g;
+  const pattern = /\s*([a-zA-Z0-9_.-]+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^,\s]*))\s*,?/y;
   let parameter: RegExpExecArray | null;
-  while ((parameter = pattern.exec(match[2])) !== null) {
+  let cursor = 0;
+  while (cursor < match[2].length) {
+    pattern.lastIndex = cursor;
+    parameter = pattern.exec(match[2]);
+    if (!parameter) {
+      const comma = match[2].indexOf(",", cursor);
+      if (comma === -1) break;
+      cursor = comma + 1;
+      continue;
+    }
+    cursor = pattern.lastIndex;
     parameters[parameter[1].toLowerCase()] =
       parameter[2] !== undefined ? parameter[2].replace(/\\(.)/g, "$1") : parameter[3];
   }

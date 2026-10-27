@@ -6,6 +6,7 @@ import {
   Store,
   StoreNotFoundError,
   StoreParameters,
+  WebdaError,
   UpdateConditionFailError,
   useModel,
   useModelMetadata
@@ -371,19 +372,23 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     const docRef = this.getDocumentRef(primaryKey);
     const prop = String(collection);
     if (index !== undefined) {
+      if (!Number.isSafeInteger(index) || index < 0) {
+        throw new WebdaError.BadRequest("Collection index must be a non-negative safe integer");
+      }
       await this.firestore.runTransaction(async t => {
         const doc = await t.get(docRef);
         if (!doc.exists) {
           throw new StoreNotFoundError(docRef.id as any, this.collection);
         }
         const data = doc.data()!;
-        data[prop] ??= [];
+        const items = Object.prototype.hasOwnProperty.call(data, prop) ? data[prop] : [];
+        if (!Array.isArray(items)) throw new WebdaError.BadRequest("Collection must be an array");
         if (itemWriteCondition !== undefined) {
-          this.checkFirestoreCondition(docRef.id, data[prop][index], itemWriteConditionField, itemWriteCondition);
+          this.checkFirestoreCondition(docRef.id, items[index], itemWriteConditionField, itemWriteCondition);
         }
-        data[prop][index] = toFirestore(item);
+        items[index] = toFirestore(item);
         t.update(docRef, {
-          [prop]: data[prop],
+          [prop]: items,
           _lastUpdate: new Date()
         });
       });

@@ -105,17 +105,16 @@ function paramDefOf(
 /**
  * Convert a JSON Schema's properties into yargs option definitions.
  *
+ * Options stay optional here because input can also come from --json/--file; the assembled input is validated later.
  * @param schema - JSON Schema describing an object with properties
- * @param skipRequired - When true, all options are marked optional (useful when input can also come from --json/--file)
  * @returns Map of property names to yargs {@link Options} definitions
  */
-function schemaToOptions(schema: JSONSchema7, skipRequired?: boolean): Record<string, Options> {
+function schemaToOptions(schema: JSONSchema7): Record<string, Options> {
   if (schema.type !== "object" || !schema.properties) return {};
   const opts: Record<string, Options> = {};
-  const required = new Set(schema.required || []);
   for (const [name, prop] of Object.entries(schema.properties)) {
     if (typeof prop === "boolean") continue;
-    const o: Options = { describe: prop.description || name, demandOption: skipRequired ? false : required.has(name) };
+    const o: Options = { describe: prop.description || name, demandOption: false };
     if (prop.type === "number" || prop.type === "integer") o.type = "number";
     else if (prop.type === "boolean") o.type = "boolean";
     else if (prop.type === "array") o.type = "array";
@@ -180,7 +179,7 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
     // Offer both raw JSON/file and per-property CLI options
     y.option("json", { type: "string", describe: "JSON input (inline)" });
     y.option("file", { type: "string", alias: "f", describe: "JSON input from file" });
-    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input], true))) {
+    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input]))) {
       // The positional is not an option
       if (name === paramDef?.positional) continue;
       y.option(name, opt);
@@ -523,14 +522,6 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
       }
     }
   }
-}
-
-/**
- * Default handler: prints the operation call as JSON
- * @param call - the function to call
- */
-async function defaultHandler(call: OperationCall): Promise<void> {
-  useOutput(JSON.stringify(call, undefined, 2));
 }
 
 /** Values accepted by the `--log-stream` option */

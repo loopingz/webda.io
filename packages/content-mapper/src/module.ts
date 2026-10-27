@@ -353,7 +353,7 @@ function webdaTags(node: Node): Record<string, string> {
     const name: string = tag.tagName.text;
     if (name.startsWith("Webda")) {
       tags[name] =
-        (getTextOfJSDocComment(tag.comment) ?? "").trim().replace("\n", " ").split(" ").shift() ||
+        (getTextOfJSDocComment(tag.comment) ?? "").trim().replace(/\s+/g, " ").split(" ").shift() ||
         (node as any).name?.text;
     } else if (name.startsWith("Schema")) {
       tags[name] = (getTextOfJSDocComment(tag.comment) ?? "").trim();

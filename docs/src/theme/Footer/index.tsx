@@ -1,4 +1,3 @@
-import React from "react";
 import type FooterType from "@theme/Footer";
 import type { WrapperProps } from "@docusaurus/types";
 

@@ -63,6 +63,12 @@ describe("WebdaQL validation", () => {
 });
 
 describe("WebdaQL referenced attributes", () => {
+  it("scans long non-comparisons once and still finds subsequent attributes", () => {
+    const name = "$".repeat(100_000);
+    expect(referencedAttributes(name)).toEqual([]);
+    expect(referencedAttributes(name + " AND title = 'x'")).toEqual(["title"]);
+    expect(referencedAttributes(name + " = 'x'")).toEqual([name]);
+  });
   it("includes attributes checked with IS NULL / IS NOT NULL", () => {
     expect(referencedAttributes("title IS NULL AND author.name IS NOT NULL AND status = 'x'").sort()).toEqual([
       "author",

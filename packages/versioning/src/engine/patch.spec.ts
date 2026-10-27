@@ -1,13 +1,29 @@
 import { expect } from "vitest";
 import { suite, test } from "@webda/test";
 import { diff } from "./diff.js";
-import { patch } from "./patch.js";
+import { getAtPointer, setAtPointer, patch } from "./patch.js";
 import { lineDiff } from "../strings/line-diff.js";
 import { VersioningError } from "../errors.js";
 import type { Delta } from "../types.js";
 
 @suite("patch")
 class PatchTest {
+  @test
+  pointerWritesDoNotPollutePrototypes() {
+    for (const path of ["/__proto__/webdaCodeqlProbe", "/constructor/prototype/webdaCodeqlProbe"]) {
+      expect(() => setAtPointer({}, path, "polluted")).toThrow(VersioningError);
+    }
+    expect(({} as any).webdaCodeqlProbe).toBeUndefined();
+    const result = setAtPointer({}, "/__proto__", { safe: true }) as any;
+    expect(Object.hasOwn(result, "__proto__")).toBe(true);
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+    expect(result.__proto__).toEqual({ safe: true });
+    expect(getAtPointer({}, "/constructor/prototype")).toBeUndefined();
+    const own = JSON.parse('{"__proto__":{"body":"old"}}');
+    expect(getAtPointer(setAtPointer(own, "/__proto__/body", "new"), "/__proto__/body")).toBe("new");
+    expect(setAtPointer({ "a/b": { "~key": "old" } }, "/a~1b/~0key", "new")).toEqual({ "a/b": { "~key": "new" } });
+  }
+
   @test({ name: "applies a structural delta" })
   appliesAStructuralDelta() {
     const a = { a: 1, b: 2 };

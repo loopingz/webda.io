@@ -746,12 +746,18 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
     files = files.filter(info => {
       if (typeof info.src === "string") {
         const s3obj = currentFiles[info.key];
-        const stat = fs.statSync(info.src);
-        if (s3obj && stat.size === s3obj.Size) {
-          const md5 = `"${this.hash(fs.readFileSync(info.src), "md5", "hex")}"`;
-          if (md5 === s3obj.ETag) {
-            this.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
-            return false;
+        if (s3obj) {
+          const fd = fs.openSync(info.src, "r");
+          try {
+            if (fs.fstatSync(fd).size === s3obj.Size) {
+              const md5 = `"${this.hash(fs.readFileSync(fd), "md5", "hex")}"`;
+              if (md5 === s3obj.ETag) {
+                this.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
+                return false;
+              }
+            }
+          } finally {
+            fs.closeSync(fd);
           }
         }
       }

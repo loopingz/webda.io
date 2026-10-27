@@ -15,7 +15,7 @@ import { isAbsolute, join } from "node:path";
 import type { RegistryCredentials } from "./auth.js";
 import { buildImage, type BuiltImage, isPinnedBaseImage, pushImage, writeLayoutArchive } from "./image.js";
 import { formatImageReference, parseImageReference, toTag } from "./reference.js";
-import type { TarEntry } from "./tar.js";
+import { trimSlashes, type TarEntry } from "./tar.js";
 
 /**
  * Parameters of the {@link ContainerDeployer}
@@ -213,7 +213,7 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
    */
   async getLayerEntries(parameters: ContainerDeployerParameters): Promise<TarEntry[]> {
     const { files } = await packageApplication(useApplication(), parameters.package);
-    const prefix = parameters.workdir.replace(/^\/+/, "").replace(/\/+$/, "");
+    const prefix = trimSlashes(parameters.workdir);
     return files.map(file => ({
       path: prefix ? `${prefix}/${file.target}` : file.target,
       type: "file",

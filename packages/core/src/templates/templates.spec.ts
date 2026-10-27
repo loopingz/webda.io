@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { templateVariables } from "./templates.js";
+import { replaceVariables, templateVariables } from "./templates.js";
 import * as assert from "assert";
 import { WebdaAsyncStorageTest } from "../test/asyncstorage.js";
 import { setApplication } from "../application/hooks.js";
@@ -54,6 +54,34 @@ class Templates extends WebdaAsyncStorageTest {
         }
       }
     );
+  }
+
+  @test
+  rejectsExecutableExpressionsAndInheritedProperties() {
+    for (const expression of [
+      'constructor.constructor("return 7")()',
+      "value.constructor",
+      "value.__proto__",
+      "value.prototype",
+      "run()",
+      "value[0]"
+    ]) {
+      assert.throws(
+        () => replaceVariables("${" + expression + "}", { value: "test", run: () => 7 }),
+        /Variable cannot use every javascript features/
+      );
+    }
+    assert.strictEqual(replaceVariables("${inherited}", Object.create({ inherited: "secret" })), "undefined");
+    assert.throws(() => replaceVariables("${unfinished", {}), /Unterminated template variable/);
+  }
+
+  @test
+  treatsTemplateTextAsData() {
+    const value = "literal ` text \\n ${value}";
+    assert.strictEqual(replaceVariables(value, { value: "ok" }), "literal ` text \\n ok");
+    assert.strictEqual(replaceVariables("${value.trim()}", { value: " test " }), "test");
+    assert.strictEqual(replaceVariables("${value.toLowerCase()}", { value: "TEST" }), "test");
+    assert.throws(() => replaceVariables("${value.toUpperCase()}", { value: 1 }), /requires a string/);
   }
 
   @test

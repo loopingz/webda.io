@@ -72,4 +72,4 @@ export class Vulnerability implements Storable<Vulnerability, "id">, Actionable 
   }
 }
 
-const t = new Vulnerability().getPrimaryKey();
+new Vulnerability().getPrimaryKey();

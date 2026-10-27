@@ -263,7 +263,7 @@ export function normalizeDefinitions<T>(schema: T): T {
   const resolvable = (ref: string): boolean => {
     if (!ref.startsWith("#/definitions/")) return true;
     const raw = ref.slice("#/definitions/".length);
-    let decoded = raw;
+    let decoded: string;
     try {
       decoded = decodeURIComponent(raw);
     } catch {

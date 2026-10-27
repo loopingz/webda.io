@@ -93,7 +93,7 @@ export class WebdaTest {
 
     const file = `.webda/tests/${sanitizeFilename(suiteName)}/${testName}.log`;
     mkdirSync(dirname(file), { recursive: true });
-    if (existsSync(file)) unlinkSync(file);
+    rmSync(file, { force: true });
     writeFileSync(
       file,
       [
@@ -102,7 +102,8 @@ export class WebdaTest {
           .getLogs()
           .filter(l => l.type === "log")
           .map(msg => ConsoleLogger.format(msg, ConsoleLogger.defaultFormat))
-      ].join("\n")
+      ].join("\n"),
+      { flag: "wx" }
     );
     return file;
   }

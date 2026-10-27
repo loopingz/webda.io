@@ -230,7 +230,7 @@ export function createPropertyDecorator<TArgs extends any[], C extends ClassFiel
     // Direct use: @deco
     // In field decorators, the second arg is a context with kind === "field"
     if (all[1] && typeof all[1] === "object" && (all[1] as C).kind === "field") {
-      const [initialValue, context] = all as [undefined, C];
+      const [, context] = all as [undefined, C];
       // No extra args were provided in direct mode
       return impl(context, ...([] as unknown as TArgs));
     }

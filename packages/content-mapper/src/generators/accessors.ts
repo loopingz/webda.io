@@ -187,32 +187,6 @@ function autoSetterParamType(ctx: AnalysisContext, typeNode: any): string | unde
 }
 
 /**
- * Whether a name reaches this file only through a type-only import.
- *
- * `import type { Team }` is erased at emit, so referencing `Team` as a value
- * produces TS1361. `Checker.resolveName` still resolves it — it answers about
- * the symbol, not about what survives emit — so the import form has to be
- * inspected directly.
- * @param sf - the file that will contain the generated reference
- * @param name - identifier to be used as a value
- * @returns true when the name is imported for types only
- */
-function isTypeOnlyImport(sf: SourceFile, name: string): boolean {
-  for (const statement of sf.statements) {
-    if (!is.isImportDeclaration(statement)) continue;
-    const clause: any = (statement as any).importClause;
-    if (!clause) continue;
-    const bindings = clause.namedBindings;
-    if (!bindings?.elements) continue;
-    for (const element of bindings.elements) {
-      if (element.name?.text !== name) continue;
-      if (clause.isTypeOnly || element.isTypeOnly) return true;
-    }
-  }
-  return false;
-}
-
-/**
  * Whether every identifier a generated snippet references is usable here.
  *
  * The emit-time transformer erased types, so a printed type could name classes

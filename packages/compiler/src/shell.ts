@@ -148,7 +148,6 @@ const argv: Arguments = yargs(process.argv.slice(2))
 
 const { appPath } = argv;
 const targetDir = resolve(appPath || ".");
-const command = argv._[0];
 
 new InteractiveConsoleLogger(useWorkerOutput());
 Fork(

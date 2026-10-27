@@ -1,3 +1,6 @@
+import fsMutable from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+import { vi } from "vitest";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { execFileSync } from "node:child_process";
@@ -35,6 +38,28 @@ function repository(): string {
 
 @suite
 class GitInformationTest {
+  @test
+  inaccessibleUntrackedFileDoesNotBreakVersionLookup() {
+    const dir = repository();
+    const readlink = fsMutable.readlinkSync;
+    const failure = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    writeFileSync(join(dir, "blocked.txt"), "content");
+    const stub = vi.spyOn(fsMutable, "readlinkSync").mockImplementation((path, options: any) => {
+      if (path === join(dir, "blocked.txt")) throw failure;
+      return readlink(path, options);
+    });
+    syncBuiltinESMExports();
+    try {
+      const info = getGitInformation(dir, "mypackage", "1.0.0");
+      assert.strictEqual(info.commit, "unknown");
+      assert.strictEqual(info.version, "1.0.0");
+    } finally {
+      stub.mockRestore();
+      syncBuiltinESMExports();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
   @test
   snapshotVersion() {
     const date = new Date(Date.UTC(2026, 9, 4, 13, 5, 7, 9));

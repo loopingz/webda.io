@@ -59,6 +59,8 @@ class LayoutTest {
         assert.ok(raced);
         assert.strictEqual(readFileSync(target, "utf8"), "keep");
       }
+      rmSync(join(folder, "blobs", "sha256"), { recursive: true });
+      assert.throws(() => layout.writeBlob(data, MediaTypes.OCI_CONFIG), { code: "ENOENT" });
     } finally {
       rmSync(folder, { recursive: true, force: true });
     }

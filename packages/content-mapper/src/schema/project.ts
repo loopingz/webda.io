@@ -237,7 +237,7 @@ function webdaTag(node: Node, tagName: string): string | undefined {
   for (const tag of getJSDocTags(node)) {
     if (tag.tagName.text !== tagName) continue;
     const text = getTextOfJSDocComment(tag.comment)?.trim() ?? "";
-    return text.replace(/\s+/g, " ").split(" ")[0] ?? "";
+    return text.replace(/\s+/g, " ").split(" ")[0];
   }
   return undefined;
 }

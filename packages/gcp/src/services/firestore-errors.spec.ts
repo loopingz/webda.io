@@ -21,9 +21,10 @@ class FireStoreErrorsTest extends WebdaApplicationTest {
       }
       assert.strictEqual(transaction.mock.calls.length, 0);
       const update = vi.fn();
+      const data: any = {};
       transaction.mockImplementation(async callback =>
         callback({
-          get: async () => ({ exists: true, data: () => ({}) }),
+          get: async () => ({ exists: true, data: () => data }),
           update
         })
       );
@@ -32,6 +33,11 @@ class FireStoreErrorsTest extends WebdaApplicationTest {
       assert.ok(Object.hasOwn(fields, "__proto__"));
       assert.deepStrictEqual(fields.__proto__, ["safe"]);
       assert.strictEqual(Object.getPrototypeOf(fields), Object.prototype);
+      data.items = [{ name: "old" }];
+      await repository.upsertItemToCollection("unit", "items", { name: "new" }, 0, "name", "old");
+      assert.deepStrictEqual(update.mock.calls.at(-1)![1].items, [{ name: "new" }]);
+      data.items = {};
+      await assert.rejects(() => repository.upsertItemToCollection("unit", "items", "value", 0), /must be an array/);
     } finally {
       ref.mockRestore();
     }

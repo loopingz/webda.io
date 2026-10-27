@@ -332,6 +332,44 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(fs.readFileSync(target, "utf8"), "keep");
   }
 
+  @test
+  async uploadPropagatesUnexpectedWriteFailures() {
+    const user = await ImageUser.create({ displayName: "uploader" } as any);
+    const content = "write failure content";
+    const { hash, challenge } = await this.hashes(content);
+    const res = await this.binary.putRedirectUrl(
+      user,
+      "images",
+      {
+        hash,
+        challenge,
+        size: content.length,
+        name: "content.txt"
+      } as any,
+      await this.newContext()
+    );
+    const dataPath = this.binary._getPath(hash, "data");
+    const write = fsMutable.writeFileSync;
+    const failure = Object.assign(new Error("read-only filesystem"), { code: "EROFS" });
+    const stub = vi.spyOn(fsMutable, "writeFileSync").mockImplementation((file, data, options) => {
+      if (file === dataPath) throw failure;
+      return write(file, data, options);
+    });
+    syncBuiltinESMExports();
+    try {
+      const upload = await this.newContext(content);
+      upload.setParameters({ hash, token: res!.url.split("token=")[1] });
+      await assert.rejects(
+        () => this.binary.storeBinary(upload),
+        err => err === failure
+      );
+      assert.deepStrictEqual(await this.images(user.getUUID()), []);
+    } finally {
+      stub.mockRestore();
+      syncBuiltinESMExports();
+    }
+  }
+
   /**
    * The upload itself attaches (storeBinary): completing resolves once the hash is linked, 412 before
    */

@@ -14,6 +14,12 @@ class PatchTest {
       expect(() => setAtPointer({}, path, "polluted")).toThrow(VersioningError);
     }
     expect(({} as any).webdaCodeqlProbe).toBeUndefined();
+    for (const root of [null, 1, "value"]) {
+      expect(getAtPointer(root, "/child")).toBeUndefined();
+      expect(() => setAtPointer(root, "/child", "value")).toThrow(VersioningError);
+      expect(() => setAtPointer({ parent: root }, "/parent/child", "value")).toThrow(VersioningError);
+      expect(() => setAtPointer({ parent: root }, "/parent/child/value", "value")).toThrow(VersioningError);
+    }
     const result = setAtPointer({}, "/__proto__", { safe: true }) as any;
     expect(Object.hasOwn(result, "__proto__")).toBe(true);
     expect(Object.getPrototypeOf(result)).toBe(Object.prototype);

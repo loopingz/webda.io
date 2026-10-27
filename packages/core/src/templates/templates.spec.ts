@@ -81,6 +81,10 @@ class Templates extends WebdaAsyncStorageTest {
     assert.strictEqual(replaceVariables(value, { value: "ok" }), "literal ` text \\n ok");
     assert.strictEqual(replaceVariables("${value.trim()}", { value: " test " }), "test");
     assert.strictEqual(replaceVariables("${value.toLowerCase()}", { value: "TEST" }), "test");
+    assert.strictEqual(replaceVariables("${value.trimStart()}", { value: " test " }), "test ");
+    assert.strictEqual(replaceVariables("${value.trimEnd()}", { value: " test " }), " test");
+    assert.strictEqual(replaceVariables("${missing.child}", {}), "undefined");
+    assert.strictEqual(replaceVariables("${missing}", undefined as any), "undefined");
     assert.throws(() => replaceVariables("${value.toUpperCase()}", { value: 1 }), /requires a string/);
   }
 

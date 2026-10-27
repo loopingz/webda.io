@@ -661,6 +661,8 @@ export interface ModelRelations {
    * base class — the link is still real and is recorded without it.
    */
   links?: { attribute: string; model?: string; type: string }[];
+  /** Polymorphic references, optionally constrained to exact model identifiers. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   /** Reverse lookups, from `ModelRelated<T, U, "attr">`. */
   queries?: { attribute: string; model: string; targetAttribute: string }[];
   /** Behaviour-typed attributes. */
@@ -737,6 +739,17 @@ export function buildRelations(
 
     const typeName = relationTypeOf(ctx.textOf(owner, (typeNode as any).typeName));
     const typeArguments = (typeNode as any).typeArguments ?? [];
+    if (typeName === "ModelLinksAny") {
+      const targets = polymorphicTargetTypes(ctx, property, cls);
+      const models = targets?.map(target => resolveModelId(target.getSymbol?.()?.name)).filter(Boolean) as
+        string[] | undefined;
+      relations.polymorphicLinks ??= [];
+      relations.polymorphicLinks.push({
+        attribute,
+        ...(models?.length ? { models: [...new Set(models)].sort() } : {})
+      });
+      continue;
+    }
     if (!typeArguments.length) continue;
 
     const targetName = symbolNameOfTypeNode(ctx, typeArguments[0]);
@@ -809,4 +822,20 @@ function symbolNameOfTypeNode(ctx: AnalysisContext, typeNode: any): string | und
   const declaration = symbol.valueDeclaration ?? symbol.declarations?.[0];
   const node = declaration?.resolve(ctx.project);
   return (node as any)?.name?.text ?? name;
+}
+
+/**
+ * Concrete second generic argument of a polymorphic relation in its owning class.
+ * @param ctx - analysis context
+ * @param property - relation property
+ * @param cls - owning class, including inherited substitutions
+ * @returns target types, or undefined for the unconstrained/default Storable target
+ */
+export function polymorphicTargetTypes(ctx: AnalysisContext, property: any, cls: any): any[] | undefined {
+  const type = ctx.checker.getTypeOfSymbolAtLocation(property, cls);
+  const reference = (type.isUnionType() ? type.getTypes() : [type]).find((member: any) => member.isTypeReference());
+  if (!reference) return undefined;
+  const target = ctx.checker.getTypeArguments(reference as any)[1];
+  if (!target || target.isTypeParameter() || target.getSymbol?.()?.name === "Storable") return undefined;
+  return target.isUnionType() ? [...target.getTypes()] : [target];
 }

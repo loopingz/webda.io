@@ -378,6 +378,21 @@ describe("module relations", () => {
   }, 120_000);
   afterAll(() => session?.dispose());
 
+  it("records polymorphic target constraints and reference schemas", () => {
+    const report = result.module.models["Rel/Report"];
+    expect(report.Relations.polymorphicLinks).toEqual([
+      { attribute: "links" },
+      { attribute: "restricted", models: ["Rel/Author", "Rel/Post"] }
+    ]);
+    for (const schema of Object.values(report.Schemas)) {
+      const restricted: any = schema.properties!.restricted;
+      expect(restricted.items.properties.model.enum).toEqual(["Rel/Author", "Rel/Post"]);
+      expect(restricted.items.properties.rel).toEqual({ type: "string" });
+      expect(restricted.items.required).toEqual(expect.arrayContaining(["model", "key", "rel"]));
+      expect(JSON.stringify(restricted)).not.toContain("posts");
+    }
+  });
+
   it("records the relation aliases as the relation type they resolve to", () => {
     expect(result.module.models["Rel/Post"].Relations).toEqual({
       parent: { attribute: "author", model: "Rel/Author" },

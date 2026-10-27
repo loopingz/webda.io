@@ -80,6 +80,8 @@ export type ModelGraph = {
    * current model.
    */
   links?: ModelRelation[];
+  /** Polymorphic references; absent models means any registered target. No cascade is implied. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   /**
    * Target other models with a new query
    * This is usually our foreign keys

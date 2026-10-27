@@ -333,6 +333,22 @@ function constructorArguments(
   if (constructorParameterCount(ctx, typeNode) === 0) return { text: "", values: [] };
   const type = ctx.checker.getTypeFromTypeNode(typeNode);
   const args = type?.isTypeReference?.() ? ctx.checker.getTypeArguments(type as any) : [];
+  if (resolveRuntimeClass(ctx, typeNode) === "ModelLinksAny") {
+    const target = args[1];
+    if (!target || target.getSymbol?.()?.name === "Storable") return { text: "", values: [] };
+    const types = target.isUnionType() ? target.getTypes() : [target];
+    const written = typeNode?.typeArguments?.[1];
+    const nodes = written && is.isUnionTypeNode(written) ? written.types : [written];
+    const values = types.map((type: any) => {
+      const node = nodes.find(
+        (node: any) => node && ctx.checker.getTypeFromTypeNode(node).getSymbol?.() === type.getSymbol?.()
+      );
+      const name = node && is.isTypeReferenceNode(node) ? (node.typeName as any)?.text : undefined;
+      return name ?? runtimeClassOf(ctx, type);
+    });
+    if (values.some((name: string) => !name || name === "default")) return undefined;
+    return { text: `[${values.join(", ")}]`, values };
+  }
   // The name as written, when it is a plain identifier naming a class: a
   // default export's symbol is called `default`, which is not what the file
   // binds it to. The symbol is only consulted for a type parameter, whose
@@ -385,7 +401,15 @@ function render(r: Resolved): string {
 
   const lines: string[] = [];
   lines.push(`get ${r.name}(): ${r.typeText} {`);
-  lines.push(r.defaultExpr === undefined ? `${i}  return ${slot};` : `${i}  return ${slot} ?? ${r.defaultExpr};`);
+  if (r.runtimeClass === "ModelLinksAny") {
+    if (r.defaultExpr === undefined) {
+      lines.push(`${i}  return ${slot} ??= new ${r.runtimeClass}(${r.ctorArg ?? ""}) as ${r.typeText};`);
+    } else {
+      lines.push(`${i}  if (${slot} === undefined) this.${r.name} = ${r.defaultExpr};`);
+      lines.push(`${i}  return ${slot};`);
+    }
+  } else
+    lines.push(r.defaultExpr === undefined ? `${i}  return ${slot};` : `${i}  return ${slot} ?? ${r.defaultExpr};`);
   lines.push(`${i}}`);
   lines.push(`${i}set ${r.name}(value: ${r.setterType}) {`);
 
@@ -395,15 +419,21 @@ function render(r: Resolved): string {
     // The TypeScript 6 transformer's exact structure, so the emit-parity
     // oracle proves equivalence instead of it being argued. `null` /
     // `undefined` clear the relation rather than being wrapped in a new one.
-    lines.push(`${i}  if (value instanceof ${r.runtimeClass}) {`);
-    lines.push(`${i}    ${slot} = value;`);
-    lines.push(`${i}  } else if (value != null) {`);
-    lines.push(`${i}    const inst: ${r.typeText} = ${slot} || new ${r.runtimeClass}(${r.ctorArg ?? ""});`);
-    lines.push(`${i}    inst.set(value as any);`);
-    lines.push(`${i}    ${slot} = inst;`);
-    lines.push(`${i}  } else {`);
-    lines.push(`${i}    ${slot} = value;`);
-    lines.push(`${i}  }`);
+    if (r.runtimeClass === "ModelLinksAny") {
+      lines.push(`${i}  const inst: ${r.typeText} = new ${r.runtimeClass}(${r.ctorArg ?? ""});`);
+      lines.push(`${i}  inst.set(value instanceof ${r.runtimeClass} ? value.toJSON() : value as any);`);
+      lines.push(`${i}  ${slot} = inst;`);
+    } else {
+      lines.push(`${i}  if (value instanceof ${r.runtimeClass}) {`);
+      lines.push(`${i}    ${slot} = value;`);
+      lines.push(`${i}  } else if (value != null) {`);
+      lines.push(`${i}    const inst: ${r.typeText} = ${slot} || new ${r.runtimeClass}(${r.ctorArg ?? ""});`);
+      lines.push(`${i}    inst.set(value as any);`);
+      lines.push(`${i}    ${slot} = inst;`);
+      lines.push(`${i}  } else {`);
+      lines.push(`${i}    ${slot} = value;`);
+      lines.push(`${i}  }`);
+    }
   }
 
   lines.push(`${i}}`);

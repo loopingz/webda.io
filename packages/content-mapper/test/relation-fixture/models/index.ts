@@ -30,3 +30,12 @@ export type OneToOne<T> = ModelLink<T>;
 export type OneToMany<T, L, K extends string> = ModelRelated<T, L, K>;
 export type ManyToMany<T, K extends object = object> = ModelLinksArray<T, K>;
 export type Contains<T> = ManyToMany<T>;
+
+export interface Storable {}
+export type ModelLinkData<K extends object = object> = { model: string; key: string | number | Record<string, string | number> } & K;
+export class ModelLinksAny<K extends object = object, T extends Storable = Storable> {
+  constructor(targets: readonly (new () => T)[] = []) {}
+  /** @WebdaAutoSetter */
+  set(values: readonly ModelLinkData<K>[] = []): void {}
+  toJSON(): ModelLinkData<K>[] { return []; }
+}

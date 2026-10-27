@@ -50,6 +50,7 @@ import {
   GraphQLSchema,
   GraphQLString,
   GraphQLType,
+  GraphQLUnionType,
   ThunkObjMap,
   printSchema
 } from "graphql";
@@ -631,6 +632,69 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           };
         }
       });
+      for (const link of webdaGraph.polymorphicLinks ?? []) {
+        if (link.attribute.startsWith("__")) continue;
+        const targets = (link.models ?? Object.keys(this.modelsMap)).filter(id => this.modelsMap[id]).sort();
+        const name = `${defaultName}_${link.attribute}`;
+        const union = targets.length
+          ? this.namedType(
+              `${name}_Target`,
+              `polymorphic targets ${targets.join(",")}`,
+              () =>
+                new GraphQLUnionType({
+                  name: `${name}_Target`,
+                  types: () => targets.map(id => this.modelsMap[id]),
+                  resolveType: object => {
+                    const id = this.app.getModelId(object);
+                    if (id && targets.includes(id)) return this.modelsMap[id].name;
+                    // A repository may return a subclass of the stored reference's declared target.
+                    const base = targets.find(id => object instanceof this.app.getModel(id));
+                    return base ? this.modelsMap[base].name : undefined;
+                  }
+                })
+            )
+          : undefined;
+        const array = this.getJsonSchemaDefinition(
+          schema.properties?.[link.attribute] as JSONSchema7,
+          schema.definitions
+        );
+        const item = this.getJsonSchemaDefinition(array?.items as JSONSchema7, schema.definitions);
+        const wrapper = this.namedType(
+          `${name}_Reference`,
+          `polymorphic reference ${defaultName}.${link.attribute}`,
+          () =>
+            new GraphQLObjectType({
+              name: `${name}_Reference`,
+              fields: () => ({
+                ...(item
+                  ? this.getGraphQLFieldsFromSchema({ ...item, definitions: schema.definitions }, `${name}_Data`)
+                  : {}),
+                model: { type: new GraphQLNonNull(GraphQLString) },
+                key: { type: new GraphQLNonNull(AnyScalarType) },
+                ...(union
+                  ? {
+                      target: {
+                        type: union,
+                        resolve: async (reference, _args, context) => {
+                          this.countOperation(context);
+                          if (!targets.includes(reference.model))
+                            throw operationError(new WebdaError.NotFound("Object not found"));
+                          return loadForAction(this.app.getModel(reference.model), reference.key, context, "get");
+                        }
+                      }
+                    }
+                  : {})
+              })
+            })
+        );
+        fields[link.attribute] = {
+          type: new GraphQLList(wrapper),
+          resolve: source => {
+            const value = source[link.attribute];
+            return typeof value?.toJSON === "function" ? value.toJSON() : (value ?? []);
+          }
+        };
+      }
       (webdaGraph.maps || []).filter(attributeFilter()).forEach(map => {
         fields[map.attribute] = {
           type: new GraphQLList(this.modelsMap[map.model]),

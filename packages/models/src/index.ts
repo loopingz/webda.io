@@ -1,5 +1,6 @@
 export * from "./model.model.js";
 export * from "./relations.js";
+export * from "./polymorphic.js";
 export * from "./types.js";
 export * from "./repositories/hooks.js";
 export * from "./repositories/repository.js";

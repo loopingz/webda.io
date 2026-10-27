@@ -72,9 +72,9 @@ describe("polymorphic accessor generation", () => {
       } finally {
         session.dispose();
       }
-      expect(result.injected.get(join(dir, "report.model.ts"))).toMatch(
-        /new ModelLinksAny\(\[(Task, PullRequest|PullRequest, Task)\]\)/
-      );
+      expect(
+        [...result.injected.entries()].find(([path]) => path.replaceAll("\\", "/").endsWith("/report.model.ts"))?.[1]
+      ).toMatch(/new ModelLinksAny\(\[(Task, PullRequest|PullRequest, Task)\]\)/);
       for (const [path, content] of result.emitted) {
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, content);

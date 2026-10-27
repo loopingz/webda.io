@@ -32,13 +32,17 @@ const referenceSchema: any = {
   }
 };
 
-function schemaFor(links: ModelLinksAny, relations = graph, exposed = ["App/Task", "App/PullRequest"]) {
+function schemaFor(
+  links: ModelLinksAny | any[] | undefined | null,
+  relations = graph,
+  exposed = ["App/Task", "App/PullRequest"]
+) {
   const service: GraphQLService = Object.create(GraphQLService.prototype);
   (service as any).countOperation = () => {};
   const models = { "App/Task": Task, "App/PullRequest": PullRequest };
   service.app = {
     getModel: id => models[id],
-    getModelId: object => (object.constructor as any).Metadata.Identifier
+    getModelId: object => (object.constructor as any).Metadata?.Identifier
   } as any;
   service.modelsMap = Object.fromEntries(
     Object.keys(models)
@@ -110,6 +114,27 @@ describe("polymorphic GraphQL relations", () => {
     expect(printSchema(schema)).not.toContain("_Target");
     const result = await graphql({ schema, source: `{ report { links { model key } } }` });
     expect(result.errors).toBeUndefined();
+  });
+
+  it("identifies subclasses by an exposed ancestor and leaves unrelated objects unresolved", () => {
+    class HiddenTask extends Task {}
+    (HiddenTask as any).Metadata = { Identifier: "App/HiddenTask" };
+    const union: any = schemaFor([]).getType("Report_links_Target");
+    expect(union.resolveType(new HiddenTask())).toBe("Task");
+    expect(union.resolveType({})).toBeUndefined();
+  });
+
+  it("reads raw references, defaults absent collections, and hides private relation attributes", async () => {
+    const relations = {
+      polymorphicLinks: [...graph.polymorphicLinks, { attribute: "__private", models: ["App/Task"] }]
+    };
+    for (const value of [undefined, null, [], [{ model: "App/Task", key: "t", rel: "opaque" }]]) {
+      const schema = schemaFor(value, relations);
+      expect(printSchema(schema)).not.toContain("__private");
+      const result = await graphql({ schema, source: `{ report { links { model key rel } } }` });
+      expect(result.errors).toBeUndefined();
+      expect(JSON.parse(JSON.stringify((result.data as any).report.links))).toEqual(value ?? []);
+    }
   });
 
   it("handles unknown and dangling targets with the same missing-object error", async () => {

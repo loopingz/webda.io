@@ -91,6 +91,60 @@ describe("permission-aware polymorphic links", () => {
     });
   });
 
+  it("uses the active context, skips private/missing fields and constrained targets, and deduplicates aliases", async () => {
+    const original = Source["Metadata"].Relations;
+    Source["Metadata"].Relations = {
+      polymorphicLinks: [
+        { attribute: "links", models: ["Poly/Target"] },
+        { attribute: "excluded", models: ["Poly/OtherTarget"] },
+        { attribute: "__private" },
+        { attribute: "absent" }
+      ]
+    } as any;
+    try {
+      await runWithInstanceStorage(
+        { application: { ...app, getModels: () => ({ ...models, "Poly/SourceAlias": Source }) } as any },
+        async () => {
+          await seed();
+          await Source.create({ uuid: "private-only", owner: "alice", __private: [ref], links: [null] } as any);
+          const found = await runWithContext(alice, () => collect());
+          expect(found.map(entry => entry.key)).toEqual(["yes"]);
+          expect(await collect(ref, { context: alice, limit: 1 })).toHaveLength(1);
+          for (const options of [{ limit: 0 }, { limit: 1.5 }, { scanLimit: 1.5 }]) {
+            await expect(collect(ref, { context: alice, ...options })).rejects.toThrow(/positive safe integers/);
+          }
+        }
+      );
+    } finally {
+      Source["Metadata"].Relations = original;
+    }
+  });
+
+  it("finds sources with composite primary keys", async () => {
+    const { WEBDA_PRIMARY_KEY } = await import("@webda/models");
+    class CompositeSource extends Source {
+      [WEBDA_PRIMARY_KEY] = ["tenant", "id"] as const;
+      tenant: string;
+      id: number;
+    }
+    CompositeSource["Metadata"] = {
+      ...Source["Metadata"],
+      Identifier: "Poly/CompositeSource",
+      PrimaryKey: ["tenant", "id"]
+    } as any;
+    CompositeSource.registerSerializer();
+    await seed();
+    registerRepository(CompositeSource, new MemoryRepository(CompositeSource, ["tenant", "id"]));
+    await CompositeSource.create({ tenant: "acme", id: 42, owner: "alice", links: [ref] } as any);
+    await runWithInstanceStorage(
+      { application: { ...app, getModels: () => ({ ...models, "Poly/CompositeSource": CompositeSource }) } as any },
+      async () => {
+        const found = await collect(ref, { context: alice, models: ["Poly/CompositeSource"] });
+        expect(found[0].key).toEqual({ tenant: "acme", id: 42 });
+      }
+    );
+  });
+
   it("paginates sources, supports link containers, and never removes dangling references", async () => {
     const values = new ModelLinksAny();
     values.set([ref]);

@@ -18,7 +18,7 @@ import {
   getPlural,
   sortObject
 } from "./module.ts";
-import { buildRelations } from "./module-discovery.ts";
+import { buildRelations, polymorphicTargetTypes } from "./module-discovery.ts";
 import { actionNameOption, namespaceOf } from "./schema/project.ts";
 import { handle } from "./schema/worker.ts";
 
@@ -382,8 +382,22 @@ describe("module relations", () => {
     const report = result.module.models["Rel/Report"];
     expect(report.Relations.polymorphicLinks).toEqual([
       { attribute: "links" },
+      { attribute: "bare" },
+      { attribute: "optional", models: ["Rel/Author"] },
       { attribute: "restricted", models: ["Rel/Author", "Rel/Post"] }
     ]);
+    expect(
+      buildRelations(session.ctx, undefined, classOf(session, "report.model.ts", "Report"), name => `Rel/${name}`)
+        .polymorphicLinks
+    ).toEqual(report.Relations.polymorphicLinks);
+    expect(result.module.models["Rel/GenericReport"].Relations.polymorphicLinks).toEqual([{ attribute: "links" }]);
+    const cls = classOf(session, "report.model.ts", "Report");
+    const type = session.ctx.checker.getDeclaredTypeOfSymbol(session.ctx.checker.getSymbolAtLocation(cls.name)!);
+    for (const name of ["uuid", "unrelated"]) {
+      expect(
+        polymorphicTargetTypes(session.ctx, session.ctx.checker.getPropertyOfType(type, name), cls)
+      ).toBeUndefined();
+    }
     for (const schema of Object.values(report.Schemas)) {
       const restricted: any = schema.properties!.restricted;
       expect(restricted.items.properties.model.enum).toEqual(["Rel/Author", "Rel/Post"]);

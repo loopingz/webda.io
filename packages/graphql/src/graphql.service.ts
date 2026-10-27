@@ -666,9 +666,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             new GraphQLObjectType({
               name: `${name}_Reference`,
               fields: () => ({
-                ...(item
-                  ? this.getGraphQLFieldsFromSchema({ ...item, definitions: schema.definitions }, `${name}_Data`)
-                  : {}),
+                ...this.getGraphQLFieldsFromSchema({ ...item, definitions: schema.definitions }, `${name}_Data`),
                 model: { type: new GraphQLNonNull(GraphQLString) },
                 key: { type: new GraphQLNonNull(AnyScalarType) },
                 ...(union

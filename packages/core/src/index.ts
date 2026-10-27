@@ -95,7 +95,7 @@ export * from "./services/imailer.js";
 export * from "./services/ismssender.js";
 export * from "./services/debugsmssender.service.js";
 export * from "./services/notificationservice.service.js";
-export { InsufficientScope } from "./services/scopeauthorizer.js";
+export { InsufficientScope, scopeAuthorizer } from "./services/scopeauthorizer.js";
 export * from "./services/protectedresources.js";
 export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";

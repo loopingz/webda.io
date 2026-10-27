@@ -1,4 +1,12 @@
-import { useService, WebContext } from "@webda/core";
+import {
+  callOperation,
+  registerOperation,
+  Session,
+  useCrypto,
+  useInstanceStorage,
+  useService,
+  WebContext
+} from "@webda/core";
 import { suite, test } from "@webda/test";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import * as assert from "assert";
@@ -70,6 +78,154 @@ class OIDCVerifierTest extends OIDCTest {
     const loaded = await this.load(access);
     assert.strictEqual(loaded.userId, "u1");
     assert.ok(!loaded.isApplication());
+  }
+
+  /**
+   * Sign a user access token like an OAuthServer of the issuer
+   * @param claims - claims overriding the defaults
+   * @param header - header overriding the defaults
+   * @returns the JWT
+   */
+  userToken(claims: Record<string, unknown> = {}, header: Record<string, unknown> = {}) {
+    return this.idp.sign(
+      {
+        sub: "u1",
+        ident: "u1@example.com:email",
+        provider: "email",
+        amr: ["pwd"],
+        fam: "family",
+        mfa: "verified",
+        mfaAt: 1000,
+        authAt: 2000,
+        roles: ["editor"],
+        scope: "Task.* offline_access",
+        client_id: "my",
+        ...claims
+      },
+      { typ: "at+jwt", ...header }
+    );
+  }
+
+  @test
+  async userSessionFromAccessToken() {
+    await this.verifier.stop();
+    this.verifier = await this.addVerifier({ trustedIssuers: [{ issuer: ISSUER, session: "user" }] });
+    const session = await this.load(await this.userToken());
+    assert.ok(session.isLogged());
+    assert.ok(!session.isApplication());
+    assert.ok(session.stateless);
+    assert.strictEqual(session.userId, "u1");
+    assert.strictEqual(session.identUsed, "u1@example.com:email");
+    assert.strictEqual(session.provider, "email");
+    assert.deepStrictEqual(session.amr, ["pwd"]);
+    assert.strictEqual(session.mfa, "verified");
+    assert.strictEqual(session.mfaAt, 1000);
+    assert.strictEqual(session.authAt, 2000);
+    assert.deepStrictEqual(session.roles, ["editor"]);
+    assert.deepStrictEqual(session.scopes, ["Task.*", "offline_access"]);
+    assert.strictEqual(session.clientId, "my");
+    // The family belongs to the issuer: never revoked here
+    assert.strictEqual(session.refreshFamily, undefined);
+  }
+
+  @test
+  async acceptsTokenServiceAccessTokens() {
+    // The tokens an OAuthServer of the issuer mints: TokenService, RS256, published JWKS
+    const crypto = useCrypto();
+    const jwt = crypto.getParameters().jwt;
+    crypto.getParameters().jwt = { ...jwt, algorithm: "RS256" };
+    this.fetch.callsFake(async (input: any) =>
+      String(input) === `${ISSUER}/jwks` ? Response.json(crypto.getJWKS()) : this.idp.fetch(input)
+    );
+    const verifier = await this.addVerifier({ trustedIssuers: [{ issuer: ISSUER, session: "user" }] });
+    try {
+      const user = new Session();
+      user.login("u1", "u1@example.com:email", { provider: "email", amr: ["pwd"] });
+      const tokens = useService("TokenService");
+      const issued = await tokens.issue(user, undefined, {
+        clientId: "my",
+        scope: ["Task.*"],
+        resource: AUDIENCE,
+        issuer: ISSUER
+      });
+      const session = await verifier.resolveBearer(issued.accessToken, undefined);
+      assert.strictEqual(session?.userId, "u1");
+      assert.deepStrictEqual(session.scopes, ["Task.*"]);
+      assert.strictEqual(session.clientId, "my");
+      // Bound to another resource, or to none
+      const other = await tokens.issue(user, undefined, { resource: "https://other.example.com", issuer: ISSUER });
+      assert.strictEqual(await verifier.verify(other.accessToken), undefined);
+      assert.strictEqual(await verifier.verify((await tokens.issue(user)).accessToken), undefined);
+    } finally {
+      crypto.getParameters().jwt = jwt;
+      await verifier.stop();
+    }
+  }
+
+  @test
+  async userTokenScopeIsEnforced() {
+    await this.verifier.stop();
+    this.verifier = await this.addVerifier({ trustedIssuers: [{ issuer: ISSUER, session: "user" }] });
+    const ids = ["Task.Get", "Admin.Purge"];
+    for (const id of ids) registerOperation(id, { service: "OIDCVerifier", method: "verify" } as any);
+    try {
+      const ctx = await this.newContext<WebContext>();
+      ctx.getHttpContext().headers["authorization"] = `Bearer ${await this.userToken({ scope: "Task.*" })}`;
+      ctx.setSession(await useService("SessionManager").load(ctx));
+      await assert.rejects(() => callOperation(ctx, "Admin.Purge"), /scope/);
+    } finally {
+      for (const id of ids) delete useInstanceStorage().operations?.[id];
+    }
+  }
+
+  @test
+  async userAndApplicationTokensNeverMix() {
+    const user = await this.addVerifier({ trustedIssuers: [{ issuer: ISSUER, session: "user" }] });
+    try {
+      // A workload token is not a user token
+      assert.strictEqual(await user.verify(await this.idp.sign()), undefined, "workload token");
+      // Nor an access token missing its type or its user claims
+      assert.strictEqual(await user.verify(await this.userToken({}, { typ: "JWT" })), undefined, "typ");
+      for (const claim of ["sub", "ident", "fam"]) {
+        assert.strictEqual(await user.verify(await this.userToken({ [claim]: undefined })), undefined, claim);
+      }
+      assert.strictEqual(await user.verify(await this.userToken({ webda_app: "orders" })), undefined, "webda_app");
+      assert.strictEqual(
+        await user.verify(await this.userToken({ aud: "https://other.example.com" })),
+        undefined,
+        "audience"
+      );
+      assert.strictEqual((await user.verify(await this.userToken()))?.session, "user");
+      // An application issuer never accepts a user access token
+      assert.strictEqual(await this.verifier.verify(await this.userToken({ sub: "app:orders" })), undefined);
+      assert.strictEqual(
+        await this.verifier.verify(await this.userToken({ sub: "app:orders" }, { typ: "JWT" })),
+        undefined,
+        "whatever its type"
+      );
+      // An access token of another issuer (client credentials) is still a workload token
+      assert.ok(await this.verifier.verify(await this.idp.sign({}, { typ: "application/at+jwt" })));
+      assert.ok(await user.verify(await this.userToken({}, { typ: "application/at+jwt" })), "media type form");
+      assert.strictEqual((await this.verifier.verify(await this.idp.sign()))?.session, "application");
+      // Invalid mode
+      await assert.rejects(
+        () => this.addVerifier({ trustedIssuers: [{ issuer: ISSUER, session: "admin" as any }] }),
+        OIDCConfigurationError
+      );
+    } finally {
+      await user.stop();
+    }
+  }
+
+  @test
+  async discoveryFallsBackToAuthorizationServerMetadata() {
+    this.idp.oauthMetadataOnly = true;
+    assert.ok(await this.verifier.verify(await this.idp.sign()));
+    assert.deepStrictEqual(this.idp.calls, [
+      `${ISSUER}/.well-known/openid-configuration`,
+      `${ISSUER}/.well-known/oauth-authorization-server`,
+      `${ISSUER}/jwks`
+    ]);
   }
 
   @test

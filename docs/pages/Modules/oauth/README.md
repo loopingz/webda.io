@@ -77,7 +77,8 @@ the operations listing's `version` hash.
 | Parameter                            | Default        | Description                                                            |
 | ------------------------------------ | -------------- | ---------------------------------------------------------------------- |
 | `url`                                | `/oauth`       | Base path of the endpoints                                             |
-| `issuer`                             | request host   | Issuer advertised in the metadata                                      |
+| `issuer`                             | request host   | Issuer advertised in the metadata, `iss` of the access tokens          |
+| `resources`                          | `[]`           | Resources of other applications, see [below](#other-applications)      |
 | `loginUrl`                           |                | Application login page (required)                                      |
 | `clients`                            | CLI client     | Static clients by id, `null` removes a built-in one                    |
 | `clientMetadataDocuments`            | `true`         | Accept `https://` client ids resolved as metadata documents            |
@@ -303,6 +304,45 @@ override). Tools outside the token scope are hidden from `tools/list`; calling o
 `insufficient_scope` challenge the client can use to ask for a wider grant. See the
 [@webda/mcp README](https://github.com/loopingz/webda.io/blob/main/packages/mcp/README.md) and
 [Connecting agents](../mcp/ConnectingAgents.md).
+
+## Other applications
+
+One `OAuthServer` can sign users in for several applications, deployed separately or on other domains. An SPA on
+`my.example.com` logs in at `auth.example.com` and calls `api.example.com` and `admin.other.com` with Bearer tokens:
+cookies do not cross registrable domains, Bearer tokens do.
+
+```jsonc
+// auth.example.com
+"CryptoService": { "url": "/jwks", "jwt": { "algorithm": "RS256" } },
+"OAuthServer": {
+  "type": "Webda/OAuthServer",
+  "issuer": "https://auth.example.com",
+  "loginUrl": "/login",
+  "resources": ["https://api.example.com", "https://admin.other.com"],
+  "clients": { "my": { "name": "My", "redirect_uris": ["https://my.example.com/callback"], "allowedScopes": "Tasks.* offline_access" } }
+}
+
+// api.example.com: see @webda/oidc
+"OIDCVerifier": {
+  "type": "Webda/OIDCVerifier",
+  "audience": "https://api.example.com",
+  "trustedIssuers": [{ "issuer": "https://auth.example.com", "session": "user" }]
+}
+```
+
+- The client requests one token per API with `resource=https://api.example.com` (RFC 8707): the token audience is
+  that API, the scope lists its operations. A remote resource is only used when the client names it, or as its
+  `defaultResource`; it is never chosen by default and does not open dynamic registration.
+- With `issuer` set, every access token carries `iss` and the JWT type `at+jwt` (RFC 9068). The metadata advertises
+  `jwks_uri`, the `CryptoService` JWKS.
+- `resources` requires `issuer`, an asymmetric `CryptoService` `jwt.algorithm` and its JWKS `url`: the startup fails
+  otherwise, since a remote application could not verify the tokens.
+- The consent page lists the requested scope as it is: this server knows neither the operations of the remote
+  application nor the permissions of the user there, the remote application enforces them. A remembered consent is
+  per client, not per resource: it is never used, nor recorded, for a remote resource.
+- The remote application only checks the token: it cannot see the revocations of the issuer nor a password change.
+  A revoked token stays valid there until it expires, so keep `accessTtl` short (900 s by default).
+- Each API allows the SPA origin in its CORS configuration; no credentials are needed with Bearer tokens.
 
 ## OpenAPI
 

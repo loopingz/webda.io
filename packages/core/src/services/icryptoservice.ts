@@ -176,4 +176,9 @@ export interface JWTOptions {
    */
   subject?: string;
   keyid?: any;
+  /**
+   * Extra protected header parameters (`typ`, ...), set by the code: not a configuration
+   * @SchemaIgnore
+   */
+  header?: { typ?: string };
 }

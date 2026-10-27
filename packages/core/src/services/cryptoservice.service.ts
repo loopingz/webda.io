@@ -863,7 +863,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     const encrypted = Buffer.concat([new Uint8Array(iv), new Uint8Array(updated), new Uint8Array(final)]).toString(
       "base64"
     );
+    // Signed with the symmetric key: never the default algorithm, which may be asymmetric (published JWKS)
     return this.jwtSign(encrypted, {
+      algorithm: "HS256",
       keyid: `S${key.id}`,
       secretOrPublicKey: key.keys.symetric
     });

@@ -30,6 +30,7 @@ import {
   type TokenService,
   union,
   useContext,
+  useCrypto,
   useCore,
   useService,
   type WebContext,
@@ -186,6 +187,20 @@ function sameSecret(a: string, b: string): boolean {
 }
 
 /**
+ * @param value - configured resource
+ * @returns true when it is an absolute http(s) URI without fragment (RFC 8707 §2)
+ */
+function isResourceUri(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && !url.hash && !value.includes("#");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * @param url - base URL, possibly with a query
  * @param params - parameters to append, undefined values are skipped
  * @returns the URL with the parameters
@@ -253,6 +268,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     if (!this.parameters.loginUrl) {
       throw new WebdaError.CodeError("OAUTH_LOGIN_URL", "OAuthServer requires the 'loginUrl' parameter");
     }
+    this.checkRemoteResources();
     this.clients = new ClientRegistry(this.parameters);
     const url = this.parameters.url;
     this.addRoute("/.well-known/oauth-authorization-server", ["GET"], this.metadata, { hidden: true });
@@ -283,6 +299,33 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     this.sweepTimer = setInterval(sweep, this.parameters.codeTtl * 10 * 1000);
     this.sweepTimer.unref();
     return this;
+  }
+
+  /**
+   * Remote resources verify the tokens from the issuer keys: they need a fixed issuer, an asymmetric signature and
+   * the published JWKS
+   * @throws CodeError OAUTH_REMOTE_RESOURCES when the configuration cannot serve them
+   */
+  protected checkRemoteResources(): void {
+    const { resources, issuer } = this.parameters;
+    const fail = (reason: string) => {
+      throw new WebdaError.CodeError("OAUTH_REMOTE_RESOURCES", `OAuthServer resources: ${reason}`);
+    };
+    if (!Array.isArray(resources)) fail("must be an array of absolute URIs");
+    for (const resource of resources) {
+      if (!isResourceUri(resource)) fail(`${JSON.stringify(resource)} is not an absolute http(s) URI without fragment`);
+    }
+    if (!resources.length) return;
+    if (!issuer) fail("the 'issuer' parameter is required");
+    const crypto = useCrypto();
+    const algorithm = crypto.getParameters().jwt?.algorithm ?? "HS256";
+    if (algorithm.startsWith("HS")) fail(`the CryptoService must sign with an asymmetric algorithm, not ${algorithm}`);
+    if (!crypto.getJWKSUrl()) fail("the CryptoService must publish its JWKS (set its 'url')");
+  }
+
+  /** @returns the issuer of the access tokens, undefined when the issuer is not configured */
+  protected tokenIssuer(): string | undefined {
+    return this.parameters.issuer?.replace(/\/$/, "");
   }
 
   /** @override */
@@ -453,6 +496,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const issuer = this.issuer(ctx);
     const base = `${issuer}${this.parameters.url}`;
     const operations = this.findOperationsTransport();
+    const jwks = useCrypto().getJWKSUrl();
     // The issuer may come from the request Host: never let a shared cache keep it
     ctx.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store", Vary: "Host" });
     ctx.write(
@@ -461,6 +505,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         authorization_endpoint: `${base}/authorize`,
         token_endpoint: `${base}/token`,
         revocation_endpoint: `${base}/revoke`,
+        jwks_uri: jwks ? `${issuer}${jwks}` : undefined,
         device_authorization_endpoint: `${base}/device_authorization`,
         registration_endpoint: this.registrationOpen() ? `${base}/register` : undefined,
         response_types_supported: ["code"],
@@ -655,7 +700,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       );
     }
     if (prompt !== "consent") {
-      const remembered = await this.rememberedScope(session.userId!, client.id);
+      // A remembered grant is per client, not per resource: it never answers for another application
+      const remembered = this.isRemoteResource(ctx, resource)
+        ? undefined
+        : await this.rememberedScope(session.userId!, client.id);
       if (remembered && (await this.rememberedCovers(ctx, remembered, scope))) {
         await this.touchGrant(session.userId!, client.id);
         return this.approveCode(ctx, pending, intersect(scope, remembered));
@@ -691,7 +739,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   /**
    * Resource the tokens of an authorization request are bound to (RFC 8707): only a registered protected resource.
    * Without `resource`, the client default resource; else, for registered and metadata document clients, the only
-   * registered resource; static clients without a default resource get tokens bound to no resource
+   * registered resource; static clients without a default resource get tokens bound to no resource. The `resources`
+   * of other applications are accepted when named, never chosen by default
    * @param ctx - web context
    * @param client - requesting client
    * @param requested - `resource` parameter
@@ -702,12 +751,38 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const known = resolveProtectedResources(this.issuer(ctx));
     const target = requested ?? client.defaultResource;
     if (target !== undefined) {
-      if (!known.includes(target)) throw new OAuthError("invalid_target", "Unknown resource");
+      if (!known.includes(target) && !this.parameters.resources.includes(target)) {
+        throw new OAuthError("invalid_target", "Unknown resource");
+      }
       return target;
     }
     if (!client.id.startsWith("dcr_") && !client.metadataDocument) return undefined;
     if (known.length > 1) throw new OAuthError("invalid_target", "A resource parameter is required");
     return known[0];
+  }
+
+  /**
+   * @param ctx - web context
+   * @param resource - resource of a request
+   * @returns true for a resource of another application (`resources`): its operations and their permissions are not
+   * known here
+   */
+  protected isRemoteResource(ctx: WebContext, resource: string | undefined): boolean {
+    return (
+      resource !== undefined &&
+      this.parameters.resources.includes(resource) &&
+      !resolveProtectedResources(this.issuer(ctx)).includes(resource)
+    );
+  }
+
+  /**
+   * Scope entries offered for a resource of another application: the requested globs as they are, the remote
+   * application enforcing its own permissions
+   * @param requested - requested scope
+   * @returns the requested entries but `offline_access`
+   */
+  protected remoteEntries(requested: Scope): string[] {
+    return requested.filter(s => s !== OFFLINE_ACCESS);
   }
 
   /**
@@ -774,10 +849,12 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     if (!client) throw new WebdaError.BadRequest("Unknown client");
     const requested = parseScope(pending.scope);
     const ops = listOperations();
-    const callable = await this.callableOperations(ctx, requested);
+    const remote = this.isRemoteResource(ctx, pending.resource);
+    const callable = remote ? this.remoteEntries(requested) : await this.callableOperations(ctx, requested);
     const userId = ctx.getSession().userId!;
-    // Consent is never skipped for the device flow, the remembered scope only pre-selects in the code flow
-    const remembered = pending.flow === "code" ? await this.rememberedScope(userId, client.id) : undefined;
+    // Consent is never skipped for the device flow, the remembered scope only pre-selects in the code flow; it is
+    // never used for a remote resource
+    const remembered = pending.flow === "code" && !remote ? await this.rememberedScope(userId, client.id) : undefined;
     // The decision adds to the remembered grant (step-up): its operations outside the request are carried into the
     // token too, so they are listed as well, bounded by what the client may still be granted
     let carried: string[] = [];
@@ -812,7 +889,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       hostname: pending.hostname,
       operations: [...groups.values()],
       offlineAccess: requested.includes(OFFLINE_ACCESS),
-      rememberable: pending.flow === "code" && this.parameters.rememberConsent,
+      rememberable: pending.flow === "code" && !remote && this.parameters.rememberConsent,
       csrf: pending.csrf
     };
   }
@@ -873,21 +950,23 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       return { redirect: withQuery(pending.redirectUri!, { error: "access_denied", state: pending.state }) };
     }
     const requested = parseScope(pending.scope);
-    const callable = await this.callableOperations(ctx, requested);
+    const remote = this.isRemoteResource(ctx, pending.resource);
+    const callable = remote ? this.remoteEntries(requested) : await this.callableOperations(ctx, requested);
     // Only operation ids both requested and callable by the user: never a glob; the grant is these plus the
-    // still-valid remembered grant (code flow), narrowed to what the client may still be granted
+    // still-valid remembered grant (code flow), narrowed to what the client may still be granted. For a remote
+    // resource, only requested entries
     const selected = (Array.isArray(operations) ? operations : []).filter(
       (id): id is string => typeof id === "string" && callable.includes(id)
     );
     // A requested glob is kept only when every delegable operation it matches is selected, callable or not: a glob
     // covering operations the user never saw (a later role) would silently widen the grant
-    let granted = collapse(selected, requested, this.delegableOperations());
+    let granted = remote ? [...new Set(selected)] : collapse(selected, requested, this.delegableOperations());
     const client = await this.clients.get(pending.clientId);
     if (!client) throw new WebdaError.BadRequest("Unknown client");
     const identity = identityOf(ctx.getSession());
     // Step-up: the still-valid remembered grant is kept, whether or not the new decision is remembered.
     // offline_access is never carried over: a refresh token is issued only when this request asked for it
-    if (pending.flow === "code") {
+    if (pending.flow === "code" && !remote) {
       const earlier = await this.rememberedScope(identity.userId, pending.clientId);
       if (earlier) {
         granted = union(
@@ -905,7 +984,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       await this.approveDevice(pending, identity, granted);
       return { redirect: withQuery(this.pageUrl(ctx, "result"), { status: "success", client: pending.clientId }) };
     }
-    if (remember === true && this.parameters.rememberConsent) {
+    if (remember === true && !remote && this.parameters.rememberConsent) {
       await this.remember(identity.userId, pending.clientId, granted);
     }
     return { redirect: await this.codeRedirect(pending, identity, granted) };
@@ -1348,7 +1427,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     const tokens = await this.tokenService().refresh(refreshToken, {
       clientId,
       scope: requested,
-      resource: body.resource
+      resource: body.resource,
+      issuer: this.tokenIssuer()
     });
     if (clientId.startsWith(REGISTERED_PREFIX)) await this.touchRegisteredClient(clientId);
     return this.tokenResponse(tokens, tokens.scope ?? []);
@@ -1448,6 +1528,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       scope,
       name,
       resource,
+      issuer: this.tokenIssuer(),
       accessTtl: this.parameters.accessTtl,
       refreshTtl: this.parameters.refreshTtl
     });

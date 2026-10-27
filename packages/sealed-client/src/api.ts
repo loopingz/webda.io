@@ -117,7 +117,7 @@ export class KeysApiError extends Error {
 
 /**
  * {@link KeysApi} over the Webda REST transport: behavior actions are routed as `<user>/keys.<action>` with their
- * parameters in a JSON body, the public keys are read from the user (`GET <user>`, attribute `keys`)
+ * parameters in a JSON body (DELETE uses query parameters), the public keys are read from the user (`GET <user>`, attribute `keys`)
  * @param fetchLike - fetch, carrying the session (cookies or authorization header)
  * @param userId - user uuid
  * @param options - route prefix
@@ -126,6 +126,10 @@ export class KeysApiError extends Error {
 export function restKeysApi(fetchLike: FetchLike, userId: string, options: RestKeysApiOptions = {}): KeysApi {
   const user = `${options.baseUrl ?? ""}${options.userPath ?? `/users/${encodeURIComponent(userId)}`}`;
   const call = async (method: string, url: string, body?: object): Promise<any> => {
+    if (method === "DELETE" && body !== undefined) {
+      url += "?" + new URLSearchParams(Object.entries(body).map(([key, value]) => [key, String(value)])).toString();
+      body = undefined;
+    }
     const res = await fetchLike(
       url,
       body === undefined

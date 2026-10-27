@@ -6,6 +6,64 @@ import { WebdaModule } from "./definition.js";
 @suite
 class OperationsTest {
   @test
+  async exportsCompositeActionsBehaviorRequestsAndRestBindings() {
+    const mod = {
+      models: {
+        "MyApp/Task": {
+          PrimaryKey: ["tenant", "slug"],
+          Relations: { behaviors: [{ attribute: "approval", behavior: "MyApp/Approval" }] },
+          Actions: { rename: { rest: { method: "post", path: "rename{?force?}" } } }
+        }
+      },
+      behaviors: {
+        "MyApp/Approval": { Actions: { verify: { rest: { method: "post", path: "verify{?remember?}" } } } }
+      },
+      schemas: {
+        "MyApp/Task.rename.input": {
+          type: "object",
+          properties: { name: { type: "string" }, force: { type: "boolean" } },
+          required: ["name"]
+        },
+        "MyApp/Approval.verify.input": {
+          type: "object",
+          properties: { code: { type: "string" }, remember: { type: "boolean" } },
+          required: ["code"]
+        },
+        "TaskService.list.input": {
+          type: "object",
+          properties: { projectId: { type: "string" }, status: { type: "string" }, limit: { type: "number" } },
+          "x-webda-rest": {
+            method: "get",
+            template: "projects/{projectId}/tasks{?status}",
+            path: ["projectId"],
+            query: [
+              { name: "status", required: true },
+              { name: "limit", required: false }
+            ],
+            body: []
+          }
+        }
+      },
+      beans: { "MyApp/TaskService": {} }
+    } as any as WebdaModule;
+    const result = generateOperations(mod);
+    assert.deepStrictEqual(result.operations["Task.Rename"].rest, {
+      method: "post",
+      path: "{tenant}/{slug}/rename{?force?}"
+    });
+    const rename: any = result.schemas[result.operations["Task.Rename"].input];
+    assert.deepStrictEqual(rename.required, ["tenant", "slug", "name"]);
+    assert.deepStrictEqual(rename["x-webda-arguments"], ["tenant", "slug", "name", "force"]);
+    const verify = result.operations["Task.Approval.Verify"];
+    assert.deepStrictEqual(verify.rest, { method: "post", path: "{tenant}/{slug}/approval/verify{?remember?}" });
+    assert.deepStrictEqual(result.schemas[verify.input].required, ["tenant", "slug", "code"]);
+    assert.deepStrictEqual(result.operations["TaskService.List"].rest, {
+      method: "get",
+      path: "projects/{projectId}/tasks{?status,limit?}"
+    });
+  }
+
+  @test
   async rejectsAnActionParameterNamedLikeThePrimaryKey() {
     const mod: WebdaModule = {
       beans: {},
@@ -110,7 +168,7 @@ class OperationsTest {
       "x-webda-arguments": ["uuid", "reason"]
     });
     // Instance action without input schema: only the uuid
-    assert.strictEqual(result.operations["Task.Reopen"].input, "uuidRequest");
+    assert.strictEqual(result.operations["Task.Reopen"].input, "MyApp/Task.primaryKey");
     assert.strictEqual(result.operations["Task.Archive"].output, "MyApp/Task.archive.output");
 
     // Custom action (global/static)

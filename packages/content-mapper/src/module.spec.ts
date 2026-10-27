@@ -73,6 +73,19 @@ describe("module metadata on a fixture", () => {
   });
   afterAll(() => session?.dispose());
 
+  it("keeps model REST paths, methods and OpenAPI overrides alongside renamed handlers", () => {
+    const actions = buildModelActions(session.ctx, classOf(session, "actions.ts", "RestActions"));
+    expect(actions.assign).toEqual({
+      rest: { method: "post", path: "{uuid}/assign{?notify?}", body: "assignment" },
+      methods: ["POST"],
+      openapi: { post: { summary: "Assign" } },
+      handler: "assignAction"
+    });
+    expect(
+      buildBehaviorActions(session.ctx, classOf(session, "actions.ts", "RestActions"), "Fixture/Rest").assignAction
+    ).toMatchObject({ methods: ["POST"], openapi: { post: { summary: "Assign" } } });
+  });
+
   it("extracts @Command and @BuildCommand definitions", () => {
     const commands = buildCommands(session.ctx, classOf(session, "commands.service.ts", "Tooling"));
     expect(Object.keys(commands)).toEqual(["greet", "build", "nameless-phase"]);
@@ -514,9 +527,10 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     expect(result!.module.capabilities).toEqual(committed.capabilities);
   });
 
-  it("is byte-identical to the committed module", () => {
+  it("matches the committed module apart from newly recorded REST bindings", () => {
     if (!committed) return;
-    expect(JSON.stringify(result!.module, undefined, 2)).toBe(JSON.stringify(committed, undefined, 2));
+    const legacy = (key: string, value: unknown) => (key === "x-webda-rest" ? undefined : value);
+    expect(JSON.stringify(result!.module, legacy, 2)).toBe(JSON.stringify(committed, legacy, 2));
     expect(result!.errors).toEqual([]);
     expect(result!.namingViolations).toEqual([]);
   });
@@ -585,7 +599,9 @@ describe("model action exposed under another name", () => {
 
   it("records the action under its name, with the method as handler", () => {
     if (!available) return;
-    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({ status: { handler: "statusAction" } });
+    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({
+      status: { openapi: { hidden: true }, handler: "statusAction" }
+    });
     expect(result!.errors).toEqual([]);
   });
 

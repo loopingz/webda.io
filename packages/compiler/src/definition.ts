@@ -261,8 +261,8 @@ export interface ModelMetadata {
        */
       global?: boolean;
       /**
-       * Behavior-only: per-action REST hint that overrides the default
-       * `{prefix}/{uuid}/{attribute}.{actionName}` PUT mapping.
+       * REST hint relative to the model collection (or behavior attribute).
+       * Instance primary key placeholders are added automatically; `method` defaults to `PUT`.
        *
        * - `route === "."` → URL is the bare attribute path
        *   `{prefix}/{uuid}/{attribute}`.
@@ -272,12 +272,16 @@ export interface ModelMetadata {
        *   the router treats them as path variables.
        * - `route === undefined` → URL falls back to the dot-notation default.
        *
-       * `method` defaults to `"PUT"`.
+       * `path` is the URI template; `body` names a parameter receiving the whole JSON body.
        */
       rest?: {
+        path?: string;
+        body?: string;
         route?: string;
         method?: string;
       };
+      methods?: string[];
+      openapi?: any;
     };
   };
   /**

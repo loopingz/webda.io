@@ -172,6 +172,62 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
   }
 
   @test
+  async typedBehaviorInputIncludesCompositeParentKeyAndContextPosition() {
+    const restore = this.patchUserWithMfaBehavior();
+    const app = useApplication<Application>();
+    const User: any = useModel("User");
+    const metadata = User.Metadata;
+    const schemas = app.getSchemas();
+    const inputName = "Test/MFA.verify.input";
+    const previous = schemas[inputName];
+    schemas[inputName] = {
+      type: "object",
+      properties: { code: { type: "string" }, force: { type: "boolean" } },
+      required: ["code"],
+      "x-webda-arguments": ["code", "context", "force"],
+      "x-webda-context": ["context"]
+    } as any;
+    User.Metadata = { ...metadata, PrimaryKey: ["tenant", "userId"] };
+    const calls: any[] = [];
+    const ref = this.stubModelRef(User, {
+      isDeleted: () => false,
+      canAct: async () => true,
+      mfa: {
+        verify: (...args: any[]) => {
+          calls.push(args);
+          return true;
+        }
+      }
+    });
+    try {
+      this.setupBehaviorDispatcher();
+      const op = listFullOperations()["User.Mfa.Verify"];
+      const schema: any = app.getSchema(op.input);
+      assert.deepStrictEqual(schema.required, ["tenant", "userId", "code"]);
+      assert.strictEqual(op.rest && op.rest.path, "{tenant}/{userId}/mfa.verify");
+      const ctx = new SimpleOperationContext().setInput(
+        Buffer.from(JSON.stringify({ tenant: "org", userId: "u1", code: "123" }))
+      );
+      await ctx.init();
+      await callOperation(ctx, op.id);
+      assert.deepStrictEqual(ref.firstCall.args, [{ tenant: "org", userId: "u1" }]);
+      assert.deepStrictEqual(calls, [["123", ctx, undefined]]);
+      const invalid = new SimpleOperationContext().setInput(
+        Buffer.from(JSON.stringify({ tenant: "org", userId: "u1" }))
+      );
+      await invalid.init();
+      await assert.rejects(() => callOperation(invalid, op.id), /InvalidInput.*code/);
+      assert.strictEqual(calls.length, 1);
+    } finally {
+      ref.restore();
+      User.Metadata = metadata;
+      if (previous === undefined) delete schemas[inputName];
+      else schemas[inputName] = previous;
+      restore();
+    }
+  }
+
+  @test
   async forwardsMaxMfaAgeOfActions() {
     const app = useApplication<Application>() as any;
     const previousBehavior = app.behaviors["Test/MFA"];

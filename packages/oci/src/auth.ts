@@ -85,21 +85,41 @@ export function parseAuthChallenge(header: string | null | undefined): AuthChall
   }
   const scheme = match[1].toLowerCase();
   const parameters: Record<string, string> = {};
-  const pattern = /\s*([a-zA-Z0-9_.-]+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^,\s]*))\s*,?/y;
-  let parameter: RegExpExecArray | null;
+  const input = match[2];
   let cursor = 0;
-  while (cursor < match[2].length) {
-    pattern.lastIndex = cursor;
-    parameter = pattern.exec(match[2]);
-    if (!parameter) {
-      const comma = match[2].indexOf(",", cursor);
+  while (cursor < input.length) {
+    while (cursor < input.length && (input[cursor] === "," || /\s/.test(input[cursor]))) cursor++;
+    const start = cursor;
+    while (cursor < input.length && /[a-zA-Z0-9_.-]/.test(input[cursor])) cursor++;
+    const key = input.slice(start, cursor).toLowerCase();
+    while (cursor < input.length && /\s/.test(input[cursor])) cursor++;
+    if (!key || input[cursor] !== "=") {
+      const comma = input.indexOf(",", cursor);
       if (comma === -1) break;
       cursor = comma + 1;
       continue;
     }
-    cursor = pattern.lastIndex;
-    parameters[parameter[1].toLowerCase()] =
-      parameter[2] !== undefined ? parameter[2].replace(/\\(.)/g, "$1") : parameter[3];
+    cursor++;
+    while (cursor < input.length && /\s/.test(input[cursor])) cursor++;
+    let value = "";
+    if (input[cursor] === '"') {
+      cursor++;
+      let closed = false;
+      while (cursor < input.length) {
+        const char = input[cursor++];
+        if (char === '"') {
+          closed = true;
+          break;
+        }
+        value += char === "\\" && cursor < input.length ? input[cursor++] : char;
+      }
+      if (!closed) break;
+    } else {
+      const valueStart = cursor;
+      while (cursor < input.length && input[cursor] !== "," && !/\s/.test(input[cursor])) cursor++;
+      value = input.slice(valueStart, cursor);
+    }
+    parameters[key] = value;
   }
   return { scheme, parameters };
 }

@@ -68,6 +68,8 @@ describe("WebdaQL referenced attributes", () => {
     expect(referencedAttributes(name)).toEqual([]);
     expect(referencedAttributes(name + " AND title = 'x'")).toEqual(["title"]);
     expect(referencedAttributes(name + " = 'x'")).toEqual([name]);
+    expect(referencedAttributes("title" + " ".repeat(100_000))).toEqual([]);
+    expect(referencedAttributes("title" + " ".repeat(100_000) + "IS NOT NULL")).toEqual(["title"]);
   });
   it("includes attributes checked with IS NULL / IS NOT NULL", () => {
     expect(referencedAttributes("title IS NULL AND author.name IS NOT NULL AND status = 'x'").sort()).toEqual([

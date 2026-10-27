@@ -53,6 +53,18 @@ class AuthTest {
   }
 
   @test
+  rejectsUnterminatedQuotedChallengeValues() {
+    assert.deepStrictEqual(parseAuthChallenge('Bearer realm="unterminated'), {
+      scheme: "bearer",
+      parameters: {}
+    });
+    assert.deepStrictEqual(parseAuthChallenge('Bearer , , realm = "x", scope = a , error=denied'), {
+      scheme: "bearer",
+      parameters: { realm: "x", scope: "a", error: "denied" }
+    });
+  }
+
+  @test
   credentials() {
     const config = {
       auths: {

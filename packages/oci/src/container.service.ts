@@ -166,7 +166,7 @@ export class ContainerDeployerParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export class ContainerDeployer<T extends ContainerDeployerParameters = ContainerDeployerParameters>
+export class ContainerDeployer<T extends ContainerDeployerParameters = ContainerDeployerParameters, TResult = never>
   extends Service<T>
   implements Deployer
 {
@@ -175,9 +175,9 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
    *
    * @returns the resolved parameters
    */
-  getResolvedParameters(): ContainerDeployerParameters {
+  getResolvedParameters(): T {
     const variables = getDeploymentVariables(this);
-    const resolved: ContainerDeployerParameters = resolveDeploymentVariables({ ...this.parameters }, variables);
+    const resolved: T = resolveDeploymentVariables({ ...this.parameters }, variables);
     // Template resolution serializes the parameters: put back the encrypted secrets it masked
     for (const [host, credentials] of Object.entries(this.parameters.credentials ?? {})) {
       for (const [key, value] of Object.entries(credentials ?? {})) {
@@ -327,7 +327,7 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
    * @returns the pushed digest
    */
   @Command("deploy", { description: "Build and push the OCI image of the application" })
-  async deploy(): Promise<string> {
+  async deploy(): Promise<string | TResult> {
     return this.push();
   }
 }

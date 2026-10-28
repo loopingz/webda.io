@@ -5,7 +5,6 @@ export interface AzureDeployerInfo {
     resourceGroup: string;
     location: string;
     subscriptionId: string;
-    [key: string]: unknown;
   };
   /**
    * Merge deployment tags and resource-specific tags.

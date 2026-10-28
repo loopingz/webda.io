@@ -1,6 +1,6 @@
 import { ClientSecretCredential, DefaultAzureCredential } from "@azure/identity";
 import type { TokenCredential } from "@azure/core-auth";
-import { SecretString } from "@webda/core";
+import { SecretString, ServiceParameters } from "@webda/core";
 
 /** Authentication and endpoint parameters shared by Azure services and deployers. */
 export interface AzureServiceParameters {
@@ -16,11 +16,28 @@ export interface AzureServiceParameters {
   endpoint?: string;
 }
 
+/** Common parameters for services using Microsoft Entra authentication. */
+export class AzureParameters extends ServiceParameters implements AzureServiceParameters {
+  tenantId?: string;
+  clientId?: string;
+  clientSecret?: string | SecretString;
+  subscriptionId?: string;
+  endpoint?: string;
+
+  /**
+   * Apply the standard Azure environment defaults.
+   * @override
+   */
+  load(params: Partial<AzureParameters> = {}): this {
+    super.load(params);
+    return loadAzureParameters(this);
+  }
+}
+
 /**
- * Fill absent Azure parameters from the standard Azure environment variables. Explicit values always win.
- * Service parameter classes can call this from load(); it preserves SecretString instances.
- * @param params - parameters to complete
- * @returns the same parameter object
+ * Fill absent Azure parameters from the standard Azure environment variables. Explicit values always win. Service parameter classes can call this from load(); it preserves SecretString instances.
+ * @param params - Raw configuration parameters
+ * @returns The load azure parameters result
  */
 export function loadAzureParameters<T extends AzureServiceParameters>(params: T): T {
   params.tenantId ??= process.env.AZURE_TENANT_ID || undefined;
@@ -31,11 +48,9 @@ export function loadAzureParameters<T extends AzureServiceParameters>(params: T)
 }
 
 /**
- * Select a service principal when all three credential fields are nonempty, otherwise use Azure's default chain.
- * Constructing the credential performs no network I/O. Secrets are unwrapped only for the SDK constructor and
- * clear-text values produce SecretString's value-free warning. The input and process environment are unchanged.
- * @param params - service parameters, completed from the Azure environment in a copy
- * @returns credential accepted by Azure SDK clients
+ * Select a service principal when all three credential fields are nonempty, otherwise use Azure's default chain. Constructing the credential performs no network I/O. Secrets are unwrapped only for the SDK constructor and clear-text values produce SecretString's value-free warning. The input and process environment are unchanged.
+ * @param params - Raw configuration parameters
+ * @returns The azure credential result
  */
 export function getAzureCredential(params: AzureServiceParameters = {}): TokenCredential {
   const resolved = loadAzureParameters({ ...params });

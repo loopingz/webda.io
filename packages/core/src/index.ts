@@ -84,6 +84,7 @@ export * from "./application/model-types.js";
 export * from "./deployers/deployer.js";
 export * from "./deployers/git.js";
 export * from "./deployers/packager.js";
+export * from "./deployers/zip.js";
 export * from "./deployers/packager.service.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";

@@ -126,6 +126,11 @@ class OIDCVerifierTest extends OIDCTest {
     assert.strictEqual(session.clientId, "my");
     // The family belongs to the issuer: never revoked here
     assert.strictEqual(session.refreshFamily, undefined);
+    // Issuers may omit optional OAuth claims; an authenticated user must not inherit prior scopes/client id.
+    const minimal = await this.load(await this.userToken({ scope: undefined, client_id: undefined }));
+    assert.strictEqual(minimal.userId, "u1");
+    assert.strictEqual(minimal.scopes, undefined);
+    assert.strictEqual(minimal.clientId, undefined);
   }
 
   @test

@@ -248,4 +248,55 @@ class CosmosTest extends AzureTest {
       "Unsupported Cosmos query operator"
     );
   }
+
+  @test async rejectsCorruptDocumentIdentitiesAndSupportsEtagConditions() {
+    const store = useDynamicService<CosmosStore>("Cosmos");
+    const repository = store.getRepository(useModel("WebdaTest/Task"));
+    const raw = (repository as any).repository as CosmosRepository<any>;
+    const model = await repository.create({ uuid: "etag", count: 1 } as any);
+    const document = sdk.documents.get(Buffer.from("etag").toString("base64url"));
+    await raw.update(model, "_etag", document._etag);
+    await raw.incrementAttributes("etag", [{ property: "count" }] as any);
+    expect((await raw.get("etag")).count).toBe(2);
+    const stored = sdk.documents.get(Buffer.from("etag").toString("base64url"));
+    const id = stored.id;
+    stored.id = "corrupt";
+    try {
+      await expect(raw.patch("etag", { count: 3 })).rejects.toThrow("Cannot change a Cosmos primary key");
+      await expect(raw.update({ uuid: "etag", count: 4 })).rejects.toThrow("Cannot change a Cosmos primary key");
+    } finally {
+      stored.id = id;
+    }
+    const types = vi.spyOn(raw, "acceptedTypes").mockReturnValueOnce([]);
+    await raw.query(QL.parse("count > 0"));
+    expect(sdk.query.mock.calls.at(-1)![0].query).not.toContain("__type");
+    await raw.query("count > 0");
+    await raw.query("count > :count", { count: 0 });
+    types.mockRestore();
+    const items = [];
+    for await (const item of raw.iterate("count >= :count", { count: 0 })) items.push(item);
+    expect(items.length).toBeGreaterThan(0);
+    store.parameters.throughput = 400;
+    try {
+      expect(
+        store.getAzureResources({
+          resources: { subscriptionId: "s", resourceGroup: "g", location: "westeurope" },
+          getAppPrincipalId: () => "[reference('app').identity.principalId]"
+        } as any).resources![1].properties.options
+      ).toEqual({ throughput: 400 });
+    } finally {
+      store.parameters.throughput = undefined;
+    }
+  }
+
+  @test emptyBooleanQueriesPreserveTheirMeaning() {
+    for (const [filter, expected] of [
+      [new QL.BooleanExpression(true), "true"],
+      [new QL.BooleanExpression(false), "false"],
+      [new QL.AndExpression([]), "true"],
+      [new QL.OrExpression([]), "false"]
+    ] as const) {
+      expect(cosmosQuery({ filter } as any).query).toBe(`SELECT * FROM c WHERE ${expected}`);
+    }
+  }
 }

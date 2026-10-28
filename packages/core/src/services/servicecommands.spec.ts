@@ -1039,6 +1039,11 @@ class CliConfigurationTest {
     const all = collectServiceCommands(cliApp());
     await executeServiceCommand("serve", all.serve, { port: 3000 }, services);
     assert.strictEqual(calls.length, 1);
+
+    // Selecting only the parent provider still runs the subclass instance once.
+    calls.length = 0;
+    await executeServiceCommand("serve", all.serve, { port: 3000 }, services, ["Webda/HttpServer"]);
+    assert.strictEqual(calls.length, 1);
     calls.length = 0;
     all.serve.services.reverse();
     await executeServiceCommand("serve", all.serve, { port: 3000 }, services);

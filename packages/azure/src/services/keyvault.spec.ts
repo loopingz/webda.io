@@ -90,6 +90,9 @@ class KeyVaultTest extends AzureTest {
     const decrypted = await CryptoService.decryptConfiguration(configuration);
     expect(decrypted.secret.getValue()).toBe("cli-secret");
     azureEncrypter.configure({});
+    vi.stubEnv("WEBDA_AZURE_KEY_ID", undefined);
+    await expect(azureEncrypter.encrypt("secret")).rejects.toThrow("full Azure");
+    vi.unstubAllEnvs();
     expect(
       await azureEncrypter.decrypt(await azureEncrypter.encrypt("", "https://test.vault.azure.net/keys/test"))
     ).toBe("");

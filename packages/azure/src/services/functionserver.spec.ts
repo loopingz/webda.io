@@ -164,4 +164,39 @@ class FunctionServerTest extends AzureTest {
     expect(runtime.blob).toHaveBeenCalledTimes(1);
     expect(runtime.queue).toHaveBeenCalledTimes(1);
   }
+
+  @test async mapsHttpPortsOptionalCookiesAndRawHeaderValues() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    const request = { url: "http://example.test:8080/", method: "GET", headers: new Headers() } as any;
+    const original = service.parameters.requestIdHeader;
+    service.parameters.requestIdHeader = "";
+    try {
+      runtime.execute.mockImplementationOnce(async context => {
+        expect(context.write(undefined)).toBe(false);
+        context.setHeader("x-list", ["first", "second"]);
+        context.setHeader("x-absent", undefined);
+        context.cookie("plain", "value");
+        context.cookie("strict", "value", { sameSite: true });
+        context.cookie("unspecified", "value", { sameSite: false });
+        context.write({ ok: true });
+      });
+      const response = await service.handleRequest(request, {} as any);
+      expect(response.headers).toMatchObject({ "x-list": "first, second" });
+      expect(response.headers!["x-absent"]).toBeUndefined();
+      expect(response.headers!["x-request-id"]).toBeUndefined();
+      expect(response.headers!["Strict-Transport-Security"]).toBeUndefined();
+      expect(response.cookies).toContainEqual(expect.objectContaining({ name: "plain", sameSite: undefined }));
+      expect(response.cookies).toContainEqual(expect.objectContaining({ name: "strict", sameSite: "Strict" }));
+      expect(response.cookies).toContainEqual(expect.objectContaining({ name: "unspecified", sameSite: undefined }));
+      expect(JSON.parse(Buffer.from(response.body as any).toString())).toEqual({ ok: true });
+      runtime.execute.mockImplementationOnce(async context => {
+        context.setHeader("Set-Cookie", "external=value; Path=/");
+        context.getSession().stateless = true;
+      });
+      const raw = await service.handleRequest({ ...request, url: "http://example.test/" }, {} as any);
+      expect(raw.headers!["Set-Cookie"]).toBe("external=value; Path=/");
+    } finally {
+      service.parameters.requestIdHeader = original;
+    }
+  }
 }

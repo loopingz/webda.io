@@ -295,4 +295,56 @@ class BlobTest extends AzureTest {
       client.mockRestore();
     }
   }
+
+  @test async supportsDefaultContainersAndValidatesCredentialConfiguration() {
+    const service = useDynamicService<AzureBlobBinary>("Blob"),
+      shared = useDynamicService<AzureBlobBinary>("Shared");
+    await service.putContent("bare-key", "abcdef");
+    expect((await buffer(await service.getContent("bare-key", { range: { end: 2 } }))).toString()).toBe("abc");
+    const account = service.parameters.account,
+      endpoint = shared.parameters.endpoint;
+    try {
+      service.parameters.account = undefined;
+      await expect(service.init()).rejects.toThrow("requires account or connectionString");
+      shared.parameters.endpoint = undefined;
+      await shared.init();
+      expect(await shared.getSignedUrl("key")).toContain("sig=test");
+    } finally {
+      service.parameters.account = account;
+      shared.parameters.endpoint = endpoint;
+      await service.init();
+    }
+  }
+
+  @test async handlesStagedUploadsWithoutSizeOrPrefixAndDoesNotAttachAfterWriteFailures() {
+    const service = useDynamicService<AzureBlobBinary>("Blob");
+    const owner = new (useModel("WebdaTest/Task"))({ uuid: "optional-upload" }) as any;
+    const prefix = service.parameters.prefix;
+    const uploaded = vi.spyOn(service, "uploadSuccess").mockResolvedValue(undefined);
+    try {
+      service.parameters.prefix = undefined;
+      const info = { ...hashes("optional upload"), name: "file", mimetype: "text/plain", metadata: {} };
+      const upload = await service.putRedirectUrl(owner, "images", info);
+      const staging = new URL(upload!.url).pathname.slice(1);
+      expect(staging).toContain("files/_staging/");
+      sdk.blobs.set(staging, { body: Buffer.from("optional upload"), metadata: {}, etag: "stage" });
+      service.parameters.maxUploadSize = 1;
+      await expect(service.completeUpload(owner, "images", info.hash)).rejects.toThrow("Uploaded size does not match");
+      service.parameters.maxUploadSize = 100;
+      const failure = new Error("canonical write failed");
+      const put = vi.spyOn(service, "putContent").mockRejectedValueOnce(failure);
+      await expect(service.completeUpload(owner, "images", info.hash)).rejects.toBe(failure);
+      expect(uploaded).not.toHaveBeenCalled();
+      put.mockRestore();
+      await service.completeUpload(owner, "images", info.hash);
+      expect(uploaded).toHaveBeenCalled();
+      const linked = vi.spyOn(service as any, "isLinked").mockReturnValueOnce(true);
+      await service.completeUpload(owner, "images", info.hash);
+      linked.mockRestore();
+    } finally {
+      uploaded.mockRestore();
+      service.parameters.prefix = prefix;
+      service.parameters.maxUploadSize = undefined;
+    }
+  }
 }

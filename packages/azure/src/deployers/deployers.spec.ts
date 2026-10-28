@@ -1,5 +1,5 @@
 import { suite, test, timeout } from "@webda/test";
-import { CronService, SecretString, Service, ServiceParameters, useDynamicService } from "@webda/core";
+import { CronService, SecretString, Service, ServiceParameters, useApplication, useDynamicService } from "@webda/core";
 import { expect, vi } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,6 +18,14 @@ const sdk = vi.hoisted(() => ({
     properties: { outputs: { fqdn: { value: "app.azure.test" }, latestRevisionName: { value: "revision1" } } }
   })),
   deployment: vi.fn(),
+  diagnostics: vi.fn(async function* deploymentDiagnostics() {
+    yield {
+      properties: {
+        provisioningState: "Failed",
+        statusMessage: { error: { code: "InvalidTemplate", message: "private-secret" } }
+      }
+    };
+  }),
   contribution: vi.fn(() => ({
     resources: [],
     env: { CONTRIBUTED: "yes" },
@@ -47,12 +55,7 @@ vi.mock("@azure/arm-resourcesdeployments", () => ({
     };
     deploymentOperations = {
       async *list() {
-        yield {
-          properties: {
-            provisioningState: "Failed",
-            statusMessage: { error: { code: "InvalidTemplate", message: "private-secret" } }
-          }
-        };
+        yield* await sdk.diagnostics();
       }
     };
   }
@@ -273,6 +276,7 @@ class AzureDeployersTest extends AzureTest {
     try {
       fetch
         .mockResolvedValueOnce(new Response(null, { status: 202, headers: { location: "/api/deployments/1" } }))
+        .mockResolvedValueOnce(new Response(null, { status: 202 }))
         .mockResolvedValueOnce(new Response(JSON.stringify({ status: 4 })));
       await functions.publish(path, "test-function.scm.azurewebsites.net");
       expect(String(fetch.mock.calls[1][0])).toBe("https://test-function.scm.azurewebsites.net/api/deployments/1");
@@ -284,6 +288,10 @@ class AzureDeployersTest extends AzureTest {
       fetch
         .mockResolvedValueOnce(new Response(null, { status: 202, headers: { location: "/status" } }))
         .mockResolvedValueOnce(new Response(JSON.stringify({})));
+      await expect(functions.publish(path, "test-function.scm.azurewebsites.net")).rejects.toThrow("OneDeploy failed");
+      fetch
+        .mockResolvedValueOnce(new Response(null, { status: 202, headers: { location: "/status" } }))
+        .mockResolvedValueOnce(new Response(null, { status: 503 }));
       await expect(functions.publish(path, "test-function.scm.azurewebsites.net")).rejects.toThrow("OneDeploy failed");
       fetch.mockResolvedValueOnce(
         new Response(null, { status: 202, headers: { location: "https://attacker.example/status" } })
@@ -407,6 +415,123 @@ class AzureDeployersTest extends AzureTest {
         rmSync(dir, { recursive: true, force: true });
       }
     } finally {
+      Object.assign(p, saved);
+    }
+  }
+
+  @test async armHandlesAbsentOutputsAndUnavailableOrUnsafeDiagnostics() {
+    const functions = useDynamicService<AzureFunctionsDeployer>("Functions");
+    functions.generateTemplate();
+    sdk.group.mockClear();
+    sdk.deploy.mockResolvedValueOnce({} as any);
+    expect(await functions.sendTemplate()).toEqual({});
+    sdk.deploy.mockResolvedValueOnce({ properties: {} } as any);
+    expect(await functions.sendTemplate()).toEqual({});
+    expect(sdk.group).not.toHaveBeenCalled();
+    sdk.diagnostics.mockImplementationOnce(async function* unavailableErrorCodes() {
+      yield {} as any;
+      yield { properties: { provisioningState: "Succeeded" } } as any;
+      yield { properties: { provisioningState: "Failed" } } as any;
+      yield { properties: { provisioningState: "Failed", statusMessage: {} } } as any;
+      for (const code of [undefined, 42, "unsafe private-secret"])
+        yield { properties: { provisioningState: "Failed", statusMessage: { error: { code } } } } as any;
+    });
+    sdk.deploy.mockRejectedValueOnce(new Error("private-secret"));
+    await expect(functions.sendTemplate()).rejects.toThrow(
+      "Azure deployment failed; inspect deployment operations in the Azure portal"
+    );
+    sdk.diagnostics.mockRejectedValueOnce(new Error("permission denied"));
+    sdk.deploy.mockRejectedValueOnce(new Error("private-secret"));
+    await expect(functions.sendTemplate()).rejects.toThrow("Azure deployment failed; inspect deployment operations");
+  }
+
+  @test async optionalContainerAppSettingsAndContributorDependencies() {
+    const apps = useDynamicService<AzureContainerAppsDeployer>("Apps");
+    apps.generateTemplate();
+    const p = apps.parameters;
+    const saved = {
+      image: p.image,
+      registry: p.registry,
+      registryAuth: p.registryAuth,
+      environment: p.environment,
+      logAnalytics: p.logAnalytics,
+      crons: p.crons,
+      secrets: p.secrets,
+      customDomains: p.customDomains,
+      customResources: p.customResources,
+      containerApp: p.containerApp
+    };
+    const packageDescription = vi.spyOn(useApplication(), "getProjectInfo");
+    try {
+      packageDescription.mockReturnValue({ package: {} } as any);
+      p.image = undefined;
+      p.registry = "test";
+      expect(apps.getResolvedParameters().image).toBe("test.azurecr.io/apps");
+      packageDescription.mockRestore();
+      p.image = "test.azurecr.io/webda:v1";
+      p.registryAuth = "identity";
+      p.environment = {};
+      p.logAnalytics = false;
+      p.crons = false;
+      p.secrets = { vault: { keyVaultUrl: "https://test.vault.azure.net/secrets/password", identity: "system" } };
+      p.containerApp = { ingress: false };
+      p.customResources = {
+        first: { type: "Custom/Resource", name: "first", properties: { principalId: apps.getAppPrincipalId() } },
+        second: {
+          type: "Custom/Resource",
+          name: "second",
+          dependsOn: ["existing"],
+          properties: { principalId: apps.getAppPrincipalId() }
+        }
+      };
+      let template = apps.generateTemplate();
+      apps.LogAnalytics();
+      const environment = template.resources.find(resource => resource.type === "Microsoft.App/managedEnvironments")!;
+      expect(environment.dependsOn).toEqual([]);
+      expect(environment.properties).toEqual({});
+      expect(template.resources.some(resource => resource.type === "Microsoft.OperationalInsights/workspaces")).toBe(
+        false
+      );
+      expect(template.resources.find(resource => resource.name === "second")!.dependsOn).toContain("existing");
+      let app = template.resources.find(resource => resource.type === "Microsoft.App/containerApps")!;
+      expect(app.properties.configuration.ingress).toBeUndefined();
+      expect(app.properties.configuration.secrets[0]).toEqual({ name: "vault", ...p.secrets.vault });
+      p.containerApp = {};
+      p.customDomains = [
+        { name: "app.example.test", certificateId: "/certificate" },
+        { name: "other.example.test", certificateId: "/other", bindingType: "SniEnabled" }
+      ];
+      template = apps.generateTemplate();
+      app = template.resources.find(resource => resource.type === "Microsoft.App/containerApps")!;
+      expect(
+        app.properties.configuration.ingress.customDomains.every(domain => domain.bindingType === "SniEnabled")
+      ).toBe(true);
+      p.customDomains = [{ name: "invalid/domain" }];
+      expect(() => apps.generateTemplate()).toThrow("Invalid custom domain name");
+      p.customDomains = [];
+      p.logAnalytics = { name: "custom-logs", retentionInDays: 60 };
+      template = apps.generateTemplate();
+      expect(
+        template.resources.find(resource => resource.type === "Microsoft.OperationalInsights/workspaces")!.properties
+          .retentionInDays
+      ).toBe(60);
+      p.registryAuth = "none";
+      p.image = `test.azurecr.io/webda@sha256:${"a".repeat(64)}`;
+      const pinned = apps.generateTemplate();
+      expect(
+        pinned.resources.find(resource => resource.type === "Microsoft.App/containerApps")!.properties.template
+          .containers[0].image
+      ).toBe(p.image);
+      const push = vi.spyOn(ContainerDeployer.prototype, "push").mockResolvedValue("sha256:noauth");
+      sdk.acr.mockClear();
+      try {
+        await apps.deploy();
+        expect(sdk.acr).not.toHaveBeenCalled();
+      } finally {
+        push.mockRestore();
+      }
+    } finally {
+      packageDescription.mockRestore();
       Object.assign(p, saved);
     }
   }

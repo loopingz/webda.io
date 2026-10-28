@@ -164,7 +164,7 @@ export class AzureContainerAppsDeployer
   generateTemplate(image?: string): AzureTemplate {
     this.prepare();
     const target = parseImageReference(this.resources.image!);
-    this.image = image ?? formatImageReference({ ...target, tag: target.tag ?? this.resources.tags[0] });
+    this.image = image ?? formatImageReference({ ...target, tag: target.digest ? undefined : target.tag });
     this.addResource({
       type: "Microsoft.ManagedIdentity/userAssignedIdentities",
       apiVersion: "2023-01-31",
@@ -204,7 +204,8 @@ export class AzureContainerAppsDeployer
    */
   LogAnalytics(): void {
     const p = this.resources,
-      log = p.logAnalytics || {};
+      log = p.logAnalytics;
+    if (log === false) return;
     this.addResource({
       type: "Microsoft.OperationalInsights/workspaces",
       apiVersion: "2023-09-01",

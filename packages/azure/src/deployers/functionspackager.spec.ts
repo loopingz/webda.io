@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readZip } from "../../../core/test/unzip.js";
@@ -40,6 +40,8 @@ vi.mock("@webda/core", async original => ({
 describe("Functions packaging", () => {
   it("preserves a configured adapter and cached module while normalizing custom timers", async () => {
     const dir = mkdtempSync(join(tmpdir(), "webda-custom-functions-"));
+    const descriptor = join(dir, "package.json");
+    writeFileSync(descriptor, '{"type":"module"}');
     const definition = { Import: "custom/adapter:Server", Configuration: "custom/adapter.schema.json" };
     packager.package.mockResolvedValueOnce({
       configuration: {
@@ -47,7 +49,7 @@ describe("Functions packaging", () => {
         cachedModules: { moddas: { "Webda/AzureFunctionServer": definition } }
       },
       files: [
-        { target: "package.json", content: '{"type":"module"}' },
+        { target: "package.json", source: descriptor },
         { target: "webda.config.json", content: "{}" }
       ]
     } as any);

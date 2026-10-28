@@ -186,4 +186,33 @@ class ServiceBusTest extends AzureTest {
       queue.parameters.maxMessages = original;
     }
   }
+
+  @test async reusesExistingEntitiesAndConsumesObjectPayloads() {
+    sdk.queueExists.mockResolvedValueOnce(true);
+    sdk.topicExists.mockResolvedValueOnce(true);
+    sdk.subscriptionExists.mockResolvedValueOnce(true);
+    const queue = useDynamicService<ServiceBusQueue>("Queue");
+    const topic = useDynamicService<ServiceBusPubSub>("Topic");
+    const configured = useDynamicService<ServiceBusPubSub>("Subscription");
+    sdk.createQueue.mockClear();
+    sdk.createTopic.mockClear();
+    await queue.init();
+    await topic.init();
+    expect(sdk.createQueue).not.toHaveBeenCalled();
+    expect(sdk.createTopic).not.toHaveBeenCalled();
+    const callback = vi.fn(async () => {}),
+      bound = vi.fn();
+    sdk.createSubscription.mockClear();
+    const consumer = configured.consume(callback, undefined, bound);
+    await vi.waitFor(() => expect(bound).toHaveBeenCalled());
+    expect(sdk.createSubscription).not.toHaveBeenCalled();
+    const handlers = sdk.subscribe.mock.calls.at(-1)![0];
+    await handlers.processMessage({ body: { hello: "object" } });
+    expect(callback).toHaveBeenCalledWith({ hello: "object" });
+    await consumer.cancel();
+    configured.parameters.createIfNotExists = false;
+    const unmanaged = configured.consume(callback);
+    await unmanaged.cancel();
+    await configured.stop();
+  }
 }

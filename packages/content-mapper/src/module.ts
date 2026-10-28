@@ -31,6 +31,7 @@ import {
   discoverWebdaObjects,
   exportedName,
   instantiatedLinkTarget,
+  polymorphicTargetTypes,
   outputTarget,
   packageOf,
   reflectAttributes,
@@ -82,6 +83,8 @@ export interface ServiceEntry {
 export interface ModuleRelations {
   parent?: { attribute: string; model?: string };
   links?: { attribute: string; model?: string; type: string }[];
+  /** Polymorphic references, optionally constrained to exact model identifiers. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   queries?: { attribute: string; model?: string; targetAttribute?: string }[];
   maps?: {
     attribute: string;
@@ -1343,6 +1346,20 @@ function processModels(
           relations.maps.push(map);
           break;
         }
+        case "ModelLinksAny": {
+          const targets = polymorphicTargetTypes(ctx, property, declaration);
+          const resolved = targets?.map(
+            target => byTypeId.get(declaredId(ctx, target)) ?? dependencyModelOf(ctx, target, appPath)
+          );
+          if (resolved?.some(model => !model))
+            errors.push(`Cannot resolve polymorphic targets for ${name}.${attribute}`);
+          relations.polymorphicLinks ??= [];
+          relations.polymorphicLinks.push({
+            attribute,
+            ...(resolved?.length ? { models: [...new Set(resolved.filter(Boolean) as string[])].sort() } : {})
+          });
+          break;
+        }
         case "ModelLink":
           addLink("LINK");
           break;
@@ -1678,6 +1695,27 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
       if (!entry) continue;
       try {
         entry.Schemas = generateModelSchemas(declaration, { project: ctx.project, checker: ctx.checker }) as any;
+        // Specialize each property rather than mutating shared generic schema definitions.
+        for (const link of entry.Relations.polymorphicLinks ?? []) {
+          for (const schema of Object.values(entry.Schemas)) {
+            const field: any = schema.properties?.[link.attribute];
+            if (!field) continue;
+            const dereference = (value: any): any =>
+              value?.$ref?.startsWith("#/definitions/")
+                ? (schema.definitions?.[decodeURIComponent(value.$ref.slice("#/definitions/".length))] ??
+                  schema.definitions?.[value.$ref.slice("#/definitions/".length)] ??
+                  value)
+                : value;
+            const array = dereference(field);
+            const item = dereference(array.items);
+            if (item?.properties?.model && link.models) {
+              schema.properties![link.attribute] = {
+                ...array,
+                items: { ...item, properties: { ...item.properties, model: { type: "string", enum: link.models } } }
+              };
+            }
+          }
+        }
         Object.assign(entry, runtimeConfigurationOf(ctx, declaration, discovery));
       } catch (error) {
         errors.push(`${object.name}: ${error instanceof Error ? error.message : String(error)}`);

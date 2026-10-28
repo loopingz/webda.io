@@ -52,6 +52,16 @@ export async function createAzureFunctionsPackage(
     }
   });
   const configuration = packaged.configuration;
+  // Packaging can be called for an app that has not loaded this module. Install the generated server
+  // definition in its cached modules so the default adapter resolves during packaged boot.
+  const manifest = JSON.parse(readFileSync(new URL("../../webda.module.json", import.meta.url), "utf8"));
+  const modules = (configuration.cachedModules ??= {} as NonNullable<typeof configuration.cachedModules>);
+  modules.moddas ??= {};
+  if (!modules.moddas["Webda/AzureFunctionServer"]) {
+    const definition = { ...manifest.moddas["Webda/AzureFunctionServer"] };
+    for (const key of ["Import", "Configuration"]) definition[key] = `node_modules/@webda/azure/${definition[key]}`;
+    modules.moddas["Webda/AzureFunctionServer"] = definition;
+  }
   configuration.services ??= {};
   if (
     !Object.values<any>(configuration.services).some(service =>
@@ -93,7 +103,7 @@ export async function createAzureFunctionsPackage(
   });
   entries.push({
     target: "webda-functions.mjs",
-    content: `import { registerAzureFunctions } from "@webda/azure/lib/deployers/functions-entrypoint.js";\nregisterAzureFunctions(${JSON.stringify(crons)}, ${JSON.stringify(triggers)});\n`
+    content: `import "@webda/azure";\nimport { registerAzureFunctions } from "@webda/azure/lib/deployers/functions-entrypoint.js";\nregisterAzureFunctions(${JSON.stringify(crons)}, ${JSON.stringify(triggers)});\n`
   });
   writeZip(zipPath, entries);
   return { zipPath, files: entries.length, size: statSync(zipPath).size };

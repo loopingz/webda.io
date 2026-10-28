@@ -51,6 +51,9 @@ describe("Functions packaging", () => {
       expect(JSON.parse(content("webda.config.json")).services.AzureFunctionServer.type).toBe(
         "Webda/AzureFunctionServer"
       );
+      expect(JSON.parse(content("webda.config.json")).cachedModules.moddas["Webda/AzureFunctionServer"].Import).toBe(
+        "node_modules/@webda/azure/lib/services/functionserver.service:AzureFunctionServer"
+      );
       expect(content("webda-functions.mjs")).toContain('"schedule":"0 * * * * *"');
       expect(entries.some(entry => entry.name === "local.settings.json")).toBe(false);
       await createAzureFunctionsPackage(app, options);

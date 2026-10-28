@@ -160,6 +160,7 @@ class CosmosTest extends AzureTest {
     } as any);
     expect(resources.resources).toHaveLength(3);
     expect(resources.resources![2].type).toBe("Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments");
+    expect((resources.resources![2].properties as any).scope).toMatch(/\/dbs\/webda\/colls\/items$/);
   }
 
   @test queryTranslation() {

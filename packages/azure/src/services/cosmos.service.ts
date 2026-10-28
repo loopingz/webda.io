@@ -16,6 +16,7 @@ import {
 import * as QL from "@webda/ql";
 import { AzureServiceParameters, getAzureCredential, loadAzureParameters } from "./azure-parameters.js";
 import { AzureContributor, AzureDeployerInfo, AzureResourceContribution } from "./contributors.js";
+import { armLiteral, armValue } from "../template.js";
 
 /** Cosmos DB NoSQL settings. All models in the store share a typed container. */
 export class CosmosStoreParameters extends StoreParameters implements AzureServiceParameters {
@@ -584,11 +585,11 @@ export class CosmosStore extends Store<CosmosStoreParameters> implements AzureCo
         {
           type: "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
           apiVersion: "2024-11-15",
-          name: `[concat('${account}/', guid('${accountId}', '${p.database}/${p.container}', ${deployer.getAppPrincipalId().slice(1, -1)}))]`,
-          dependsOn: [databaseId],
+          name: `[concat(${armLiteral(`${account}/`)}, guid(${armLiteral(accountId)}, ${armLiteral(`${p.database}/${p.container}`)}, ${armValue(deployer.getAppPrincipalId())}))]`,
+          dependsOn: [`${databaseId}/containers/${p.container}`],
           properties: {
             roleDefinitionId: `${accountId}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002`,
-            scope: `${databaseId}/containers/${p.container}`,
+            scope: `${accountId}/dbs/${p.database}/colls/${p.container}`,
             principalId: deployer.getAppPrincipalId()
           }
         }

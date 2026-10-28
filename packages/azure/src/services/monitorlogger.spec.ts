@@ -81,4 +81,33 @@ class MonitorTest extends AzureTest {
     await logger.sendLogs();
     expect(sdk.upload).not.toHaveBeenCalled();
   }
+
+  @test async validatesSettingsAndFlushesOnTheTimer() {
+    const logger = useDynamicService<AzureMonitorLogger>("Monitor");
+    await logger.stop();
+    const original = logger.parameters.batchSize;
+    logger.parameters.batchSize = 0;
+    await expect(logger.init()).rejects.toThrow("positive buffer settings");
+    logger.parameters.batchSize = original;
+    let tick!: () => void;
+    const interval = vi.spyOn(global, "setInterval").mockImplementation((callback => {
+      tick = callback;
+      return { unref() {} };
+    }) as any);
+    try {
+      await logger.init();
+      sdk.upload.mockClear();
+      logger._log("INFO", "timer record");
+      tick();
+      await logger.sendLogs();
+      expect(sdk.upload).toHaveBeenCalled();
+      logger._log("INFO", "cannot flush");
+      sdk.upload.mockRejectedValueOnce(new Error("offline"));
+      await expect(logger.stop()).rejects.toThrow("Unable to flush remaining");
+      await logger.sendLogs();
+    } finally {
+      interval.mockRestore();
+      await logger.stop();
+    }
+  }
 }

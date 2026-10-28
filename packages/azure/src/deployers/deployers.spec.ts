@@ -1,4 +1,4 @@
-import { suite, test } from "@webda/test";
+import { suite, test, timeout } from "@webda/test";
 import { CronService, SecretString, Service, ServiceParameters, useDynamicService } from "@webda/core";
 import { expect, vi } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -7,7 +7,8 @@ import { join } from "node:path";
 import { addAzureModda, AzureTest } from "../../test/fixture.js";
 import { AzureContainerAppsDeployer, AzureContainerAppsDeployerParameters } from "./containerapps.service.js";
 import { AzureFunctionsDeployer, AzureFunctionsDeployerParameters } from "./functions.service.js";
-import { containerAppsSchedule, functionsSchedule, armLiteral } from "../template.js";
+import { containerAppsSchedule, functionsSchedule, armLiteral, resourceId, armValue } from "../template.js";
+import { AzureArmDeployer, AzureArmDeployerParameters } from "./arm.service.js";
 import { executeServiceCommand } from "../../../core/src/services/servicecommands.js";
 import { ContainerDeployer } from "@webda/oci";
 
@@ -68,6 +69,25 @@ vi.mock("../auth.js", () => ({
 class Contributor extends Service {
   getAzureResources = sdk.contribution;
 }
+class AdditionalContributor extends Service {
+  getAzureResources(): any {
+    return {};
+  }
+}
+class SystemIdentityDeployer extends AzureArmDeployer {
+  getAppResourceId() {
+    return resourceId("Microsoft.Web/sites", "system-app");
+  }
+  getAppPrincipalId() {
+    return `[reference(${armValue(this.getAppResourceId())}, '2024-04-01', 'Full').identity.principalId]`;
+  }
+  generateTemplate() {
+    this.prepare();
+    this.Resources();
+    this.grantRoles();
+    return this.template;
+  }
+}
 
 @suite
 class AzureDeployersTest extends AzureTest {
@@ -76,6 +96,8 @@ class AzureDeployersTest extends AzureTest {
     addAzureModda(app, "Test/Apps", AzureContainerAppsDeployer, AzureContainerAppsDeployerParameters);
     addAzureModda(app, "Test/Functions", AzureFunctionsDeployer, AzureFunctionsDeployerParameters);
     addAzureModda(app, "Test/Contributor", Contributor, ServiceParameters);
+    addAzureModda(app, "Test/Additional", AdditionalContributor, ServiceParameters);
+    addAzureModda(app, "Test/SystemIdentity", SystemIdentityDeployer, AzureArmDeployerParameters);
     Object.assign(app.getCurrentConfiguration().services, {
       Apps: {
         type: "Test/Apps",
@@ -94,7 +116,9 @@ class AzureDeployersTest extends AzureTest {
         storageAccount: "teststorage",
         appSettings: { PASSWORD: new SecretString("private-secret", "test") }
       },
-      Contributor: { type: "Test/Contributor" }
+      Contributor: { type: "Test/Contributor" },
+      Additional: { type: "Test/Additional" },
+      SystemIdentity: { type: "Test/SystemIdentity", resourceGroup: "group", subscriptionId: "subscription" }
     });
   }
 
@@ -236,7 +260,9 @@ class AzureDeployersTest extends AzureTest {
     }
   }
 
-  @test async waitsForOneDeployStatusAndRejectsUntrustedPollingLocations() {
+  @test
+  @timeout(10000)
+  async waitsForOneDeployStatusAndRejectsUntrustedPollingLocations() {
     const functions = useDynamicService<AzureFunctionsDeployer>("Functions");
     functions.generateTemplate();
     const dir = mkdtempSync(join(tmpdir(), "azure-poll-")),
@@ -250,6 +276,15 @@ class AzureDeployersTest extends AzureTest {
         .mockResolvedValueOnce(new Response(JSON.stringify({ status: 4 })));
       await functions.publish(path, "test-function.scm.azurewebsites.net");
       expect(String(fetch.mock.calls[1][0])).toBe("https://test-function.scm.azurewebsites.net/api/deployments/1");
+      fetch
+        .mockResolvedValueOnce(new Response(null, { status: 202, headers: { location: "/status" } }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ status: 1 })))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ complete: true })));
+      await functions.publish(path, "test-function.scm.azurewebsites.net");
+      fetch
+        .mockResolvedValueOnce(new Response(null, { status: 202, headers: { location: "/status" } }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({})));
+      await expect(functions.publish(path, "test-function.scm.azurewebsites.net")).rejects.toThrow("OneDeploy failed");
       fetch.mockResolvedValueOnce(
         new Response(null, { status: 202, headers: { location: "https://attacker.example/status" } })
       );
@@ -283,6 +318,96 @@ class AzureDeployersTest extends AzureTest {
       packageApp.mockRestore();
       send.mockRestore();
       publish.mockRestore();
+    }
+  }
+
+  @test templateValidationAndContributorConflicts() {
+    const apps = useDynamicService<AzureContainerAppsDeployer>("Apps");
+    const extra = useDynamicService<AdditionalContributor>("Additional");
+    const p = apps.parameters;
+    const saved = {
+      image: p.image,
+      registry: p.registry,
+      subscriptionId: p.subscriptionId,
+      name: p.containerApp.name,
+      customResources: p.customResources
+    };
+    try {
+      p.image = undefined;
+      p.registry = "registry";
+      expect(apps.getResolvedParameters().image).toContain("registry.azurecr.io/");
+      p.registry = undefined;
+      expect(() => apps.generateTemplate()).toThrow("image or registry");
+      p.image = saved.image;
+      p.containerApp.name = "INVALID";
+      expect(() => apps.generateTemplate()).toThrow("Invalid Container App name");
+      p.containerApp.name = saved.name;
+      p.subscriptionId = "";
+      expect(() => apps.generateTemplate()).toThrow("requires resourceGroup and subscriptionId");
+      p.subscriptionId = saved.subscriptionId;
+      const contribute = vi.spyOn(extra, "getAzureResources");
+      contribute.mockReturnValueOnce({ env: { CONTRIBUTED: "conflict" } });
+      expect(() => apps.generateTemplate()).toThrow("Conflicting Azure environment");
+      sdk.contribution.mockReturnValueOnce({ outputs: { conflict: { type: "string", value: "first" } } } as any);
+      contribute.mockReturnValueOnce({ outputs: { conflict: { type: "string", value: "second" } } });
+      expect(() => apps.generateTemplate()).toThrow("Conflicting Azure output");
+      contribute.mockRestore();
+      p.customResources = [
+        { type: "Custom/Resource", name: "same", properties: { a: 1 } },
+        { type: "Custom/Resource", name: "same", properties: { a: 2 } }
+      ];
+      expect(() => apps.generateTemplate()).toThrow("Conflicting Azure resource");
+      p.customResources = [
+        { type: "Custom/Resource", name: "same", properties: { a: 1 } },
+        { type: "Custom/Resource", name: "same", properties: { a: 1 } }
+      ];
+      expect(apps.generateTemplate().resources.filter(resource => resource.type === "Custom/Resource")).toHaveLength(1);
+      const system = useDynamicService<SystemIdentityDeployer>("SystemIdentity");
+      expect(
+        system
+          .generateTemplate()
+          .resources.find(resource => resource.type === "Microsoft.Authorization/roleAssignments")!.dependsOn
+      ).toContain(system.getAppResourceId());
+    } finally {
+      Object.assign(p, {
+        image: saved.image,
+        registry: saved.registry,
+        subscriptionId: saved.subscriptionId,
+        customResources: saved.customResources
+      });
+      p.containerApp.name = saved.name;
+    }
+  }
+
+  @test async functionsRejectInvalidResourceSettings() {
+    const functions = useDynamicService<AzureFunctionsDeployer>("Functions");
+    const p = functions.parameters;
+    const saved = { storageAccount: p.storageAccount, memory: p.memory, appSettings: p.appSettings };
+    try {
+      p.storageAccount = "INVALID";
+      expect(() => functions.generateTemplate()).toThrow("valid functionApp and storageAccount");
+      p.storageAccount = saved.storageAccount;
+      p.memory = 1;
+      expect(() => functions.generateTemplate()).toThrow("Invalid Functions Flex");
+      p.memory = saved.memory;
+      const extra = useDynamicService<AdditionalContributor>("Additional");
+      const contribute = vi
+        .spyOn(extra, "getAzureResources")
+        .mockReturnValueOnce({ env: { PASSWORD: { secretRef: "secret" } } });
+      const original = p.appSettings;
+      p.appSettings = {};
+      expect(() => functions.generateTemplate()).toThrow("Functions contributor settings");
+      p.appSettings = original;
+      contribute.mockRestore();
+      const dir = mkdtempSync(join(tmpdir(), "azure-functions-template-"));
+      try {
+        await functions.generate(join(dir, "arm.json"));
+        expect(readFileSync(join(dir, "arm.json"), "utf8")).toContain("functionAppConfig");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    } finally {
+      Object.assign(p, saved);
     }
   }
 }

@@ -349,11 +349,8 @@ export class ServiceBusPubSub<T = any>
       }
     );
     this.consumers.add(consumer);
-    // Attach both settlement handlers so shutdown never creates an unhandled rejection.
-    void consumer.then(
-      () => this.consumers.delete(consumer),
-      () => this.consumers.delete(consumer)
-    );
+    // The consumer remains pending until cancellation or failure; observe its rejection during shutdown.
+    void consumer.catch(() => this.consumers.delete(consumer));
     return consumer;
   }
 

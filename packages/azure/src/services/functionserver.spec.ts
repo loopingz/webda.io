@@ -1,14 +1,24 @@
 import { suite, test } from "@webda/test";
-import { Service, ServiceParameters, useDynamicService, useInstanceStorage, WebdaError } from "@webda/core";
+import {
+  CronService,
+  Service,
+  ServiceParameters,
+  useDynamicService,
+  useInstanceStorage,
+  WebdaError
+} from "@webda/core";
 import { expect, vi } from "vitest";
 import { addAzureModda, AzureTest } from "../../test/fixture.js";
 import { AzureFunctionServer, AzureFunctionServerParameters } from "./functionserver.service.js";
 import { createAzureHandlers, registerAzureFunctions } from "../deployers/functions-entrypoint.js";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 const runtime = vi.hoisted(() => ({
   execute: vi.fn(),
   cors: vi.fn(async () => true),
   event: vi.fn(async () => true),
+  cron: vi.fn(async () => {}),
   http: vi.fn(),
   timer: vi.fn(),
   blob: vi.fn(),
@@ -24,6 +34,7 @@ vi.mock("@azure/functions", () => ({
 
 class EventHandler extends Service {
   handleAzureEvent = runtime.event;
+  doCron = runtime.cron;
 }
 
 @suite
@@ -86,6 +97,36 @@ class FunctionServerTest extends AzureTest {
     runtime.event.mockResolvedValueOnce(false);
     await expect(service.handleEvent("blob", {}, {} as any)).rejects.toThrow("No Azure blob event handler");
     await expect(service.handleCron("unknown")).rejects.toThrow("does not match");
+    const cron = {
+      cron: "* * * * *",
+      serviceName: "Event",
+      method: "doCron",
+      args: ["payload"],
+      description: "test"
+    } as any;
+    const annotations = vi.spyOn(CronService, "loadAnnotations").mockReturnValue([cron]);
+    try {
+      await service.handleCron(CronService.getExportId(cron));
+      expect(runtime.cron).toHaveBeenCalledWith("payload");
+    } finally {
+      annotations.mockRestore();
+    }
+    runtime.execute.mockImplementationOnce(async context => {
+      context.write(Buffer.from("old"));
+      context.resetResponse();
+      context.write(Buffer.from("new"));
+    });
+    expect(
+      (await service.handleRequest({ ...request, method: "GET", headers: new Headers() }, {} as any)).body
+    ).toEqual(Buffer.from("new"));
+    runtime.execute.mockImplementationOnce(async context => {
+      context.setHeader("x-stream", "preserved");
+      await pipeline(Readable.from([input]), await context.getOutputStream());
+    });
+    const streamed = await service.handleRequest({ ...request, method: "GET" }, { invocationId: "stream" } as any);
+    expect(streamed.body).toEqual(input);
+    expect(streamed.headers).toMatchObject({ "x-stream": "preserved", "x-request-id": "stream" });
+    expect(streamed.headers!["Set-Cookie"]).toBeUndefined();
   }
 
   @test async bootsOnceAndRegistersBindings() {

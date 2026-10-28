@@ -349,6 +349,10 @@ export class CosmosRepository<T extends ModelClass> extends MemoryRepository<T> 
    * @override
    */
   async patch(primaryKey: any, data: any, field?: any, expected?: any): Promise<void> {
+    const key = this.getPrimaryKey(primaryKey, true) as Record<string, unknown>;
+    if (this.pks.some(name => Object.prototype.hasOwnProperty.call(data, name) && data[name] !== key[name])) {
+      throw new WebdaError.BadRequest("Cannot change a Cosmos primary key");
+    }
     await this.mutate(primaryKey, repo => repo.patch(primaryKey, data), field, expected);
   }
   /**

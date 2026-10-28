@@ -1,10 +1,10 @@
 import { suite, test } from "@webda/test";
-import { useDynamicService, useModel, UpdateConditionFailError, StoreNotFoundError } from "@webda/core";
+import { SecretString, useDynamicService, useModel, UpdateConditionFailError, StoreNotFoundError } from "@webda/core";
 import { checkCreateWithoutPrimaryKey } from "@webda/core/lib/test/index.js";
 import * as QL from "@webda/ql";
 import { expect, vi } from "vitest";
 import { addAzureModda, AzureTest } from "../../test/fixture.js";
-import { CosmosStore, CosmosStoreParameters, cosmosQuery } from "./cosmos.service.js";
+import { CosmosRepository, CosmosStore, CosmosStoreParameters, cosmosQuery } from "./cosmos.service.js";
 
 const sdk = vi.hoisted(() => ({
   documents: new Map<string, any>(),
@@ -178,5 +178,74 @@ class CosmosTest extends AzureTest {
       expect(sql.query).not.toContain("'a'");
     }
     expect(cosmosQuery(QL.parse("name = 'a' ORDER BY name DESC")).query).toContain('ORDER BY c["value"]["name"] DESC');
+  }
+
+  @test async rejectsUnsafeMutationsAndPreservesAtomicConditions() {
+    const store = useDynamicService<CosmosStore>("Cosmos"),
+      Model = useModel("WebdaTest/Task");
+    const repository = store.getRepository(Model),
+      raw = (repository as any).repository as CosmosRepository<any>;
+    const at = new Date("2026-01-01");
+    await repository.create({ uuid: "advanced", count: 1, at } as any);
+    sdk.patches.mockClear();
+    await raw.patch("advanced", { count: 1 });
+    expect(sdk.patches).not.toHaveBeenCalled();
+    await raw.patch("advanced", { reviewedAt: at });
+    expect((await raw.get("advanced")).reviewedAt).toEqual(at);
+    expect(sdk.patches.mock.calls.at(-1)![0]).toContainEqual({
+      op: "set",
+      path: "/$serializer",
+      value: expect.any(Object)
+    });
+    await repository.patch("advanced", { count: 2 }, "at", at);
+    await expect(raw.patch("advanced", { uuid: "changed" })).rejects.toThrow("Cannot change a Cosmos primary key");
+    expect((await repository.get("advanced")).uuid).toBe("advanced");
+    await repository.incrementAttributes("advanced", ["count", { property: "other", value: 3 }] as any);
+    expect((await repository.get("advanced")).other).toBe(3);
+    await expect(repository.incrementAttributes("advanced", { "__proto__.polluted": 1 } as any)).rejects.toThrow(
+      "Invalid Cosmos increment"
+    );
+    sdk.failWrite = true;
+    await expect(repository.update({ uuid: "advanced", count: 4 } as any)).rejects.toBeInstanceOf(
+      UpdateConditionFailError
+    );
+    sdk.failWrite = true;
+    await expect(repository.delete("advanced")).rejects.toBeInstanceOf(UpdateConditionFailError);
+    await expect(raw.deleteMany()).rejects.toThrow("bulk delete");
+    await expect(raw.updateMany()).rejects.toThrow("bulk update");
+    const results: any[] = [];
+    for await (const item of raw.iterate("LIMIT 100")) results.push(item);
+    expect(results.some(item => item.uuid === "advanced")).toBe(true);
+    const item = vi.spyOn(raw as any, "item");
+    item.mockReturnValueOnce({ read: async () => ({ resource: undefined }) });
+    await expect(raw.get("missing-resource")).rejects.toBeInstanceOf(StoreNotFoundError);
+    item.mockReturnValueOnce({
+      read: async () => {
+        throw new Error("network failure");
+      }
+    });
+    await expect(raw.exists("advanced")).rejects.toThrow("network failure");
+    item.mockRestore();
+    await store.stop();
+    store.parameters.key = new SecretString("emulator-key", "test");
+    store.parameters.createIfNotExists = false;
+    await store.init();
+  }
+
+  @test async supportsPrimaryKeyPartitionsAndRejectsUnsupportedQueries() {
+    const store = useDynamicService<CosmosStore>("Cosmos"),
+      Model = useModel("WebdaTest/Task");
+    const getContainer = () =>
+      store["client"].database(store.parameters.database).container(store.parameters.container);
+    const repository = new CosmosRepository(Model, ["uuid"], getContainer, "/uuid");
+    await repository.create({ uuid: "partitioned", count: 1 } as any);
+    expect((await repository.get("partitioned")).uuid).toBe("partitioned");
+    expect(sdk.documents.get(Buffer.from("partitioned").toString("base64url")).uuid).toBe("partitioned");
+    await expect(repository.get({ uuid: {} })).rejects.toThrow("scalar value");
+    expect(() => new CosmosRepository(Model, ["uuid"], getContainer, "/other")).toThrow("primary key field");
+    expect(() => cosmosQuery({ filter: { eval: () => true } } as any)).toThrow("Unsupported Cosmos query expression");
+    expect(() => cosmosQuery({ filter: new QL.ComparisonExpression("GLOB" as any, "name", "a") } as any)).toThrow(
+      "Unsupported Cosmos query operator"
+    );
   }
 }

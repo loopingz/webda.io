@@ -119,6 +119,15 @@ class ServiceBusTest extends AzureTest {
     sdk.receive.mockResolvedValueOnce([{ body: "invalid json" }] as any);
     expect(await queue.receiveMessage()).toEqual([]);
     expect(sdk.abandon).toHaveBeenCalled();
+    sdk.receive.mockResolvedValueOnce([
+      { body: '{"hello":"consumer"}', lockedUntilUtc: new Date(Date.now() + 60000) }
+    ] as any);
+    const callback = vi.fn(async () => {});
+    const consumer = queue.consume(callback);
+    const cancelled = consumer.catch(error => error);
+    await vi.waitFor(() => expect(callback).toHaveBeenCalledWith({ hello: "consumer" }));
+    await consumer.cancel();
+    await cancelled;
     await queue.stop();
   }
 
@@ -160,5 +169,21 @@ class ServiceBusTest extends AzureTest {
     expect(useDynamicService<ServiceBusQueue>("Queue").getAzureResources(info).resources![0].name).toBe("test/work");
     await pubsub.stop();
     await configured.stop();
+  }
+
+  @test async cleansUpWhenReceiverBindingFails() {
+    const pubsub = useDynamicService<ServiceBusPubSub>("Topic");
+    sdk.createSubscription.mockRejectedValueOnce(new Error("creation failed"));
+    const consumer = pubsub.consume(async () => {});
+    await expect(consumer).rejects.toThrow("creation failed");
+    await consumer.cancel();
+    const queue = useDynamicService<ServiceBusQueue>("Queue");
+    const original = queue.parameters.maxMessages;
+    queue.parameters.maxMessages = 0;
+    try {
+      await expect(queue.init()).rejects.toThrow("positive message limits");
+    } finally {
+      queue.parameters.maxMessages = original;
+    }
   }
 }

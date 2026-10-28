@@ -32,6 +32,7 @@ export class AzureFunctionServerParameters extends ServiceParameters {
 /** Collect bytes directly, preserving binary responses from write() and streaming routes. */
 class AzureFunctionContext extends WebContext {
   readonly chunks: Buffer[];
+  private savedHeaders: ReturnType<WebContext["getResponseHeaders"]> = {};
   /**
    * Initialize the Azure integration.
    * @param http - HTTP request context
@@ -76,6 +77,14 @@ class AzureFunctionContext extends WebContext {
   resetResponse(): void {
     super.resetResponse();
     this.chunks.length = 0;
+    this.savedHeaders = {};
+  }
+
+  /** Retain headers flushed by streaming routes until the Functions response is returned.
+   * @override
+   */
+  getResponseHeaders(): ReturnType<WebContext["getResponseHeaders"]> {
+    return (this.savedHeaders = { ...this.savedHeaders, ...super.getResponseHeaders() });
   }
 }
 
@@ -137,7 +146,11 @@ export class AzureFunctionServer extends Service<AzureFunctionServerParameters> 
       const merged = { ...responseHeaders, ...context.getResponseHeaders() };
       const resultHeaders = Object.fromEntries(
         Object.entries(merged)
-          .filter(([, value]) => value !== undefined)
+          .filter(
+            ([name, value]) =>
+              value !== undefined &&
+              (name.toLowerCase() !== "set-cookie" || !Object.keys(context.getResponseCookies() ?? {}).length)
+          )
           .map(([key, value]) => [key, Array.isArray(value) ? value.join(", ") : String(value)])
       );
       const cookies = Object.values(context.getResponseCookies() ?? {}).map(cookie => {

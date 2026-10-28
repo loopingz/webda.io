@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { SecretString, useDynamicService, useModel } from "@webda/core";
+import { MemoryBinaryFile, SecretString, useDynamicService, useModel } from "@webda/core";
 import { ContentExistsError, ContentNotFoundError } from "@webda/utils";
 import { Readable } from "node:stream";
 import { createHash } from "node:crypto";
@@ -13,6 +13,7 @@ const sdk = vi.hoisted(() => ({
   delegation: vi.fn(async () => ({})),
   create: vi.fn(async () => {}),
   downloads: vi.fn(),
+  pipelines: [] as any[],
   version: 0
 }));
 vi.mock("@azure/storage-blob", () => {
@@ -25,7 +26,9 @@ vi.mock("@azure/storage-blob", () => {
       for await (const chunk of stream) chunks.push(Buffer.from(chunk));
       const value = {
         body: Buffer.concat(chunks),
-        metadata: options.metadata ?? {},
+        metadata: Object.fromEntries(
+          Object.entries(options.metadata ?? {}).map(([name, value]) => [name.toLowerCase(), value])
+        ) as Record<string, string>,
         contentType: options.blobHTTPHeaders.blobContentType,
         etag: String(++sdk.version)
       };
@@ -67,11 +70,18 @@ vi.mock("@azure/storage-blob", () => {
     StorageSharedKeyCredential: SharedKey,
     BlobSASPermissions: { parse: value => value },
     generateBlobSASQueryParameters: sdk.sas,
+    newPipeline: credential => {
+      const pipeline = { credential, factories: [] };
+      sdk.pipelines.push(pipeline);
+      return pipeline;
+    },
     BlobServiceClient: class {
       credential: any;
       accountName = "test";
-      constructor(_endpoint, credential) {
-        this.credential = credential;
+      url: string;
+      constructor(endpoint, credential) {
+        this.url = endpoint;
+        this.credential = credential?.credential ?? credential;
       }
       static fromConnectionString() {
         return new this("", new SharedKey());
@@ -191,5 +201,98 @@ class BlobTest extends AzureTest {
     await service._cleanUsage(info.hash, owner.getUUID(), "other", "WebdaTest/Task");
     expect(await service.headContent(`azure://files/tests/${info.hash}/data`)).toBeUndefined();
     uploaded.mockRestore();
+  }
+
+  @test async verifiesServerSideFilesAndHandlesProofConflicts() {
+    const service = useDynamicService<AzureBlobBinary>("Blob");
+    const owner = new (useModel("WebdaTest/Task"))({ uuid: "store-owner" }) as any;
+    const uploaded = vi.spyOn(service, "uploadSuccess").mockResolvedValue(undefined);
+    const file = new MemoryBinaryFile("server-side bytes", { name: "file", mimetype: "text/plain" });
+    try {
+      await service.store(owner, "images", file);
+      await service.store(owner, "images", file);
+      expect(uploaded).toHaveBeenCalledTimes(2);
+      expect((await buffer(await service._get({ hash: file.hash } as any))).toString()).toBe("server-side bytes");
+      sdk.blobs.get(`files/tests/${file.hash}/data`)!.metadata.webdaproof = "wrong";
+      await expect(service.store(owner, "images", file)).rejects.toThrow("proof does not match");
+      const fail = vi.spyOn(service, "putContent").mockRejectedValueOnce(new Error("offline"));
+      await expect(service.store(owner, "images", file)).rejects.toThrow("offline");
+      fail.mockRestore();
+      const info = { ...hashes("server-side bytes"), size: 17, name: "file", mimetype: "text/plain", metadata: {} };
+      await expect(service.putRedirectUrl(owner, "images", { ...info, challenge: "invalid" })).rejects.toThrow(
+        "challenge is required"
+      );
+      sdk.blobs.get(`files/tests/${file.hash}/data`)!.metadata.webdaproof = info.challenge;
+      service.parameters.maxUploadSize = 1;
+      await expect(service.putRedirectUrl(owner, "images", info)).rejects.toThrow("File too big");
+      service.parameters.maxUploadSize = undefined;
+      const deployer = { resources: { subscriptionId: "s", resourceGroup: "g", location: "westeurope" } } as any;
+      expect(service.getAzureResources(deployer).roleAssignments).toHaveLength(2);
+      expect(useDynamicService<AzureBlobBinary>("Shared").getAzureResources(deployer)).toEqual({});
+    } finally {
+      service.parameters.maxUploadSize = undefined;
+      uploaded.mockRestore();
+    }
+  }
+
+  @test async validatesStagedUploadSizeExpiryAndOwnership() {
+    const service = useDynamicService<AzureBlobBinary>("Blob");
+    const owner = new (useModel("WebdaTest/Task"))({ uuid: "pending-owner" }) as any;
+    const info = { ...hashes("pending"), size: 7, name: "file", mimetype: "text/plain", metadata: {} };
+    await expect(service.completeUpload(owner, "images", info.hash)).rejects.toThrow("No pending upload");
+    const upload = await service.putRedirectUrl(owner, "images", undefined, { getInput: async () => info } as any);
+    const staging = new URL(upload!.url).pathname.slice(1);
+    sdk.blobs.set(staging, { body: Buffer.from("short"), metadata: {}, etag: "stage" });
+    await expect(service.completeUpload(owner, "images", info.hash)).rejects.toThrow("size does not match");
+    service.parameters.pendingTimeout = -1;
+    await expect(service.completeUpload(owner, "images", info.hash)).rejects.toThrow("Pending upload expired");
+    service.parameters.pendingTimeout = 3600;
+    sdk.blobs.set(staging, { body: Buffer.from("pending"), metadata: {}, etag: "stage" });
+    const canonical = `files/tests/${info.hash}/data`;
+    sdk.blobs.set(canonical, { body: Buffer.from("pending"), metadata: { webdaproof: "wrong" }, etag: "canonical" });
+    await expect(service.completeUpload(owner, "images", info.hash)).rejects.toThrow("proof does not match");
+    const success = vi.spyOn(service, "uploadSuccess").mockResolvedValue(undefined);
+    sdk.blobs.get(canonical)!.metadata.webdaproof = info.challenge;
+    try {
+      await service.completeUpload(owner, "images", info.hash);
+      expect(success).toHaveBeenCalled();
+    } finally {
+      success.mockRestore();
+    }
+  }
+
+  @test async supportsExplicitEmulatorApiVersions() {
+    const service = useDynamicService<AzureBlobBinary>("Shared");
+    service.parameters.serviceVersion = "2023-11-03";
+    try {
+      await service.init();
+      const next = { sendRequest: vi.fn(async () => ({})) },
+        headers = { set: vi.fn() };
+      await sdk.pipelines.at(-1).factories[0].create(next).sendRequest({ headers });
+      expect(headers.set).toHaveBeenCalledWith("x-ms-version", "2023-11-03");
+      service.parameters.serviceVersion = "invalid";
+      await expect(service.init()).rejects.toThrow("Invalid Azure Blob serviceVersion");
+    } finally {
+      service.parameters.serviceVersion = undefined;
+    }
+  }
+
+  @test async propagatesStorageFailuresWithoutReportingMissingContent() {
+    const service = useDynamicService<AzureBlobBinary>("Blob");
+    const failure = new Error("storage unavailable");
+    const client = vi.spyOn(service as any, "blob").mockReturnValue({
+      uploadStream: vi.fn().mockRejectedValue(failure),
+      getProperties: vi.fn().mockRejectedValue(failure),
+      download: vi.fn().mockRejectedValue(failure)
+    });
+    try {
+      await expect(service.putContent("azure://files/failure", "content")).rejects.toBe(failure);
+      await expect(service.headContent("azure://files/failure")).rejects.toBe(failure);
+      await expect(service.getContent("azure://files/failure")).rejects.toBe(failure);
+      const owner = new (useModel("WebdaTest/Task"))({ uuid: "failure-owner" }) as any;
+      await expect(service.completeUpload(owner, "images", hashes("failure").hash)).rejects.toBe(failure);
+    } finally {
+      client.mockRestore();
+    }
   }
 }

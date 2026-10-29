@@ -97,8 +97,14 @@ class PackagesTest {
         // Vite may uppercase the Windows drive letter when resolving a module URL.
         const normalize = (value: string) =>
           process.platform === "win32" ? value.replace(/\\/g, "/").toLowerCase() : value;
-        assert.ok(normalize(err.message).includes(normalize(`${fileURLToPath(first)} (1.2.3)`)), err.message);
-        assert.ok(normalize(err.message).includes(normalize(`${fileURLToPath(second)} (1.2.3)`)), err.message);
+        assert.ok(
+          normalize(err.message).includes(normalize(`${join(this.tmp, "a", "fixture", "index.js")} (1.2.3)`)),
+          err.message
+        );
+        assert.ok(
+          normalize(err.message).includes(normalize(`${join(this.tmp, "b", "fixture", "index.js")} (1.2.3)`)),
+          err.message
+        );
         return true;
       }
     );

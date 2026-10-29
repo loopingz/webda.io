@@ -1,5 +1,6 @@
 import {
   callOperation,
+  canCallOperation,
   CronService,
   hasSchema,
   Operation,
@@ -118,6 +119,10 @@ interface RegisteredStoredFlow {
    * JSON of its crons, to notice a change
    */
   crons: string;
+  /**
+   * Export ids of the crons registered for it: only those are removed
+   */
+  cronIds: string[];
 }
 
 /**
@@ -205,6 +210,16 @@ export class WorkflowServiceParameters extends ServiceParameters {
    */
   flows?: FlowDefinitionData[];
   /**
+   * Maximum size of a signal payload (bytes of JSON)
+   * @default 65536
+   */
+  maxSignalPayload: number;
+  /**
+   * Maximum number of unexpired buffered signals per `(event, key)`: a new one past it is refused
+   * @default 100
+   */
+  maxBufferedSignals: number;
+  /**
    * Role needed to create, update or delete a stored workflow
    * @default "workflow-admin"
    */
@@ -236,6 +251,8 @@ export class WorkflowServiceParameters extends ServiceParameters {
     this.stopTimeout ??= 30000;
     this.signalTtl ??= "1d";
     this.storedWorkflowRole ??= "workflow-admin";
+    this.maxSignalPayload ??= 65536;
+    this.maxBufferedSignals ??= 100;
     this.syncInterval ??= 60000;
     return this;
   }
@@ -505,7 +522,11 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       const current = await runAsSystem(() => StoredWorkflow.ref(uuidOf(object_id)).get());
       await this.prepareStored({ ...current, ...object, uuid: uuidOf(object_id) }, object);
     });
-    for (const event of ["Created", "Updated", "Patched", "Deleted"]) {
+    // Partial updates (increments, collections, attribute removal) would skip the validation
+    repo.on("PartialUpdate", () => {
+      throw new WebdaError.BadRequest("A stored workflow is changed with update or patch, not partial updates");
+    });
+    for (const event of ["Created", "Updated", "Patched", "Deleted", "PartialUpdated"]) {
       repo.on(event, ({ object_id }: any) => this.storedChanged(uuidOf(object_id)));
     }
   }
@@ -538,15 +559,14 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     if (typeof name !== "string" || !OPERATION_ID.test(name)) {
       fail(`name ${name} must be an operation id (Group.Name)`);
     }
-    const existing = this.resolveFlow(name);
-    if (existing && existing.source !== "stored") {
-      fail(`${name} is already a code flow`);
+    // The registered operation decides: a module enabled later wins over a stored flow
+    if (listFullOperations()[name]) {
+      const flow = this.operationFlow(name);
+      if (!flow) fail(`${name} is already an operation`);
+      if (flow!.source !== "stored") fail(`${name} is already a code flow`);
     }
     if ([...this.storedFlows].some(([uuid, f]) => f.flowId === name && uuid !== workflow.uuid)) {
       fail(`${name} is already a stored workflow`);
-    }
-    if (!existing && listFullOperations()[name]) {
-      fail(`${name} is already an operation`);
     }
     if (!Array.isArray(workflow.params) || workflow.params.some((p: any) => typeof p !== "string")) {
       fail("params must be an array of names");
@@ -597,6 +617,75 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
+   * The flow served by an operation, if it is a flow
+   * @param flowId - the operation id
+   * @returns the flow of the WorkflowService serving the operation
+   */
+  protected operationFlow(flowId: string): FlowDefinition | undefined {
+    const operation: any = listFullOperations()[flowId];
+    if (operation?.context?.flowId !== flowId || !operation.service) return undefined;
+    const service: any = operation.service === this.getName() ? this : useDynamicService(operation.service);
+    return typeof service?.getFlow === "function" ? service.getFlow(flowId) : undefined;
+  }
+
+  /**
+   * User a stored flow runs as when the system launches it: its last saver
+   * @param flowId - the flow id
+   * @returns the user id, undefined when unknown
+   */
+  storedRunAs(flowId: string): string | undefined {
+    const local = [...this.storedFlows.values()].find(f => f.flowId === flowId);
+    if (local) return local.updatedBy;
+    const operation: any = listFullOperations()[flowId];
+    const service: any = operation?.service ? useDynamicService(operation.service) : undefined;
+    return service && service !== this && typeof service.storedRunAs === "function"
+      ? service.storedRunAs(flowId)
+      : undefined;
+  }
+
+  /**
+   * Identity of a new instance: a stored flow never runs as the system, it runs as its last saver
+   * @param def - the flow
+   * @param launcher - the identity of the caller (launch) or of the parent instance (child flows)
+   * @returns the launcher of the instance
+   * @throws Forbidden when a stored flow launched by the system has no user to run as
+   */
+  protected instanceLauncher(def: FlowDefinition, launcher: WorkflowLauncher): WorkflowLauncher {
+    if (!launcher?.system || def.source !== "stored") return launcher;
+    const updatedBy = this.storedRunAs(def.id);
+    if (!updatedBy) {
+      throw new WebdaError.Forbidden(`${def.id} has no user to run as`);
+    }
+    return { userId: updatedBy };
+  }
+
+  /**
+   * Identity of a child flow, which must be allowed to call the flow operation like a launch
+   * @param def - the child flow
+   * @param launcher - the launcher of the parent
+   * @param input - the child input
+   * @returns the launcher of the child
+   * @throws TaskError Forbidden when the child may not be started
+   */
+  protected async childLauncher(
+    def: FlowDefinition,
+    launcher: WorkflowLauncher,
+    input: any
+  ): Promise<WorkflowLauncher> {
+    let child: WorkflowLauncher;
+    try {
+      child = this.instanceLauncher(def, launcher);
+    } catch (err) {
+      throw new TaskError("Forbidden", (err as Error).message, false);
+    }
+    const ctx = child.system ? useSystem(input) : this.launcherContext(child, input);
+    if (!(await canCallOperation(ctx, def.id, { input }))) {
+      throw new TaskError("Forbidden", `${def.id} PermissionDenied`, false);
+    }
+    return child;
+  }
+
+  /**
    * A stored workflow changed on this replica: register it here and tell the others
    * @param uuid - the workflow uuid
    */
@@ -623,10 +712,28 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
+   * Validate then register a stored workflow; an invalid one is removed and logged
+   * @param workflow - the stored workflow
+   * @returns true when registered
+   */
+  protected registerStored(workflow: StoredWorkflow): boolean {
+    try {
+      // Every registration path: the store may hold a workflow written behind the validation
+      this.validateStored(workflow);
+      this.applyStored(workflow);
+      return true;
+    } catch (err) {
+      this.log("ERROR", `Stored workflow ${workflow?.name} (${workflow?.uuid}) is not registered`, err);
+      this.unregisterStored(workflow.uuid);
+      return false;
+    }
+  }
+
+  /**
    * Register a stored workflow as a flow, with its crons
    * @param workflow - the stored workflow
    */
-  protected registerStored(workflow: StoredWorkflow): void {
+  protected applyStored(workflow: StoredWorkflow): void {
     const known = this.storedFlows.get(workflow.uuid);
     const crons = JSON.stringify(workflow.crons ?? []);
     const version = workflow.version || flowVersion(workflow);
@@ -646,15 +753,22 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       options: workflow.options,
       source: "stored"
     });
-    this.storedFlows.set(workflow.uuid, { flowId: workflow.name, version, updatedBy: workflow.updatedBy, crons });
-    CronService.unregister(workflow.name);
+    for (const id of known?.cronIds ?? []) CronService.unregister(id);
+    const cronIds: string[] = [];
     for (const cron of workflow.crons ?? []) {
       try {
-        CronService.register(workflow.name, cron);
+        cronIds.push(CronService.getExportId(CronService.register(workflow.name, cron)));
       } catch (err) {
         this.log("ERROR", `Cannot register the cron ${cron.cron} of ${workflow.name}`, err);
       }
     }
+    this.storedFlows.set(workflow.uuid, {
+      flowId: workflow.name,
+      version,
+      updatedBy: workflow.updatedBy,
+      crons,
+      cronIds
+    });
   }
 
   /**
@@ -665,12 +779,14 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     const known = this.storedFlows.get(uuid);
     if (!known) return;
     this.storedFlows.delete(uuid);
+    for (const id of known.cronIds) CronService.unregister(id);
+    // Only what this stored flow registered: a code flow or another operation of the same name stays
+    if (this.flows.get(known.flowId)?.source !== "stored") return;
     this.flows.delete(known.flowId);
-    const operations = useInstanceStorage().operations;
-    if (operations?.[known.flowId]?.service === this.getName()) {
-      delete operations[known.flowId];
+    const operation: any = useInstanceStorage().operations?.[known.flowId];
+    if (operation?.service === this.getName() && operation.context?.flowId === known.flowId) {
+      delete useInstanceStorage().operations![known.flowId];
     }
-    CronService.unregister(known.flowId);
   }
 
   /**
@@ -685,11 +801,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     const seen = new Set<string>();
     for (const workflow of workflows) {
       seen.add(workflow.uuid);
-      try {
-        this.registerStored(workflow);
-      } catch (err) {
-        this.log("ERROR", `Cannot register the stored workflow ${workflow.name}`, err);
-      }
+      this.registerStored(workflow);
     }
     for (const uuid of [...this.storedFlows.keys()]) {
       if (!seen.has(uuid)) this.unregisterStored(uuid);
@@ -730,19 +842,13 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     def.params.forEach((name, i) => {
       if (args[i] !== undefined) input[name] = args[i];
     });
-    let launcher: WorkflowLauncher;
-    if (context.isGlobalContext() && def.source === "stored") {
-      // A stored workflow never runs as the system: a cron tick runs it as the user who saved it last
-      const updatedBy = [...this.storedFlows.values()].find(f => f.flowId === def.id)?.updatedBy;
-      if (!updatedBy) {
-        throw new WebdaError.Forbidden(`${def.id} has no user to run as`);
-      }
-      launcher = { userId: updatedBy };
-    } else if (context.isGlobalContext()) {
-      launcher = { system: true };
-    } else {
-      launcher = { userId: context.getCurrentUserId() || undefined, identId: context.getSession()?.identUsed };
-    }
+    // A stored workflow never runs as the system: a cron tick runs it as the user who saved it last
+    const launcher = this.instanceLauncher(
+      def,
+      context.isGlobalContext()
+        ? { system: true }
+        : { userId: context.getCurrentUserId() || undefined, identId: context.getSession()?.identUsed }
+    );
     const instance = await runAsSystem(() => this.createInstance(def, input, launcher));
     return { uuid: instance.uuid };
   }
@@ -853,6 +959,13 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           await this.advance(instance.uuid);
           count++;
         }
+      }
+      // Buffered signals nobody consumed in time
+      const expired = (await WorkflowSignal.query(`expiresAt <= ? LIMIT 100`, [Date.now()])).results;
+      for (const signal of expired) {
+        await WorkflowSignal.ref(signal.uuid)
+          .delete()
+          .catch(() => {});
       }
       return count;
     });
@@ -1099,9 +1212,11 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         if (!def) {
           throw new TaskError("NotFound", `Unknown flow ${task.input?.flow}`, false);
         }
+        const input = task.input?.input ?? {};
+        const launcher = await this.childLauncher(def, instance.launcher, input);
         // The same uuid for every attempt: a child started twice is created once
         const uuid = taskUuid(task.uuid, "start", 1);
-        await runAsSystem(() => this.createInstance(def, task.input?.input ?? {}, instance.launcher, { uuid }));
+        await runAsSystem(() => this.createInstance(def, input, launcher, { uuid }));
         return { uuid };
       }
     }
@@ -1333,7 +1448,18 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       child
     });
     if (!task) return false;
-    await this.createInstance(def, scheduled.input ?? {}, instance.launcher, {
+    let launcher: WorkflowLauncher;
+    try {
+      launcher = await this.childLauncher(def, instance.launcher, scheduled.input ?? {});
+    } catch (err) {
+      // Refused: the task fails like any task, the flow can catch it
+      if (await this.claim(task, { signaled: true, error: this.toFlowError(err, scheduled.operation) })) {
+        await this.execute(task, false);
+        return true;
+      }
+      return false;
+    }
+    await this.createInstance(def, scheduled.input ?? {}, launcher, {
       parent: { instance: instance.uuid, key: scheduled.key },
       uuid: child
     });
@@ -1510,6 +1636,12 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   })
   async signal(event: string, key: string, payload?: any): Promise<{ delivered: number }> {
     const context = useContext<OperationContext>();
+    if (!context.isGlobalContext() && !context.getCurrentUserId()) {
+      throw new WebdaError.Unauthorized("Workflow.Signal needs an authenticated caller");
+    }
+    if (Buffer.byteLength(JSON.stringify(payload ?? null)) > this.parameters.maxSignalPayload) {
+      throw new WebdaError.BadRequest(`Workflow.Signal payload is over ${this.parameters.maxSignalPayload} bytes`);
+    }
     const waits = await runAsSystem(() => this.waitsFor(event, key));
     if (waits.length === 0) {
       const buffered = await this.bufferSignal(context, event, key, payload);
@@ -1527,10 +1659,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         delivered++;
       }
     }
-    if (refused === waits.length) {
-      throw new WebdaError.Forbidden("Workflow.Signal PermissionDenied");
-    }
-    // Waits resolved by a concurrent signal: this one is not delivered, nor buffered
+    // Refused by every wait, or waits resolved by a concurrent signal: not delivered, not buffered. A refused sender
+    // gets the answer of "nothing waits", so the pending waits cannot be probed
     return { delivered };
   }
 
@@ -1584,6 +1714,19 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   ): Promise<WorkflowSignal> {
     const now = Date.now();
     const system = context.isGlobalContext();
+    const pending = await runAsSystem(
+      async () =>
+        (
+          await WorkflowSignal.query(
+            `event = ? AND key = ? AND expiresAt > ? LIMIT ${this.parameters.maxBufferedSignals}`,
+            [event, key, now]
+          )
+        ).results.length
+    );
+    if (pending >= this.parameters.maxBufferedSignals) {
+      // Refused rather than dropping an older one: an accepted signal is never lost
+      throw new WebdaError.TooManyRequests(`Too many buffered signals for ${event}/${key}`);
+    }
     return runAsSystem(
       () =>
         WorkflowSignal.create({
@@ -1656,7 +1799,21 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     } catch {
       return false;
     }
-    return this.resolveWait(task, signal.payload, advance);
+    if (await this.resolveWait(task, signal.payload, advance)) return true;
+    // The wait timed out or another signal resolved it first: the signal stays buffered
+    const { uuid, event, key, payload, senderId, senderIdent, system, createdAt, expiresAt } = signal;
+    await WorkflowSignal.create({
+      uuid,
+      event,
+      key,
+      payload,
+      senderId,
+      senderIdent,
+      system,
+      createdAt,
+      expiresAt
+    } as any);
+    return false;
   }
 
   /**

@@ -198,6 +198,8 @@ export class WorkflowTestBase extends WebdaApplicationTest {
     delete guarded.permissionQuery;
     this.service.getParameters().maxContextSize = 262144;
     this.service.getParameters().signalTtl = "1d";
+    this.service.getParameters().maxSignalPayload = 65536;
+    this.service.getParameters().maxBufferedSignals = 100;
   }
 
   /**

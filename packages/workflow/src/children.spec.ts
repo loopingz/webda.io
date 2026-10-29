@@ -1,5 +1,6 @@
 // organize-imports-ignore
 import { suite, test } from "@webda/test";
+import { useInstanceStorage } from "@webda/core";
 import * as assert from "assert";
 import { task, WorkflowTestBase } from "../test/fixture.js";
 
@@ -107,5 +108,45 @@ class ChildrenTest extends WorkflowTestBase {
     const failed = await this.launch(unknown, {}, "alice");
     await this.drain();
     assert.strictEqual((await this.instance(failed)).error.code, "NotFound");
+  }
+
+  @test
+  async childStartChecksFlowPermission() {
+    const child = this.child();
+    const op: any = useInstanceStorage().operations[child.id];
+    op.permission = "userId = 'bob'";
+    delete op.permissionQuery;
+    try {
+      const catching = (id: string, operation: string, input: any) => ({
+        kind: "try" as const,
+        id: `p/${id}`,
+        body: [
+          task(`p/${id}/t`, operation, input, "r"),
+          { kind: "return" as const, id: `p/${id}/r`, value: { var: "r" } }
+        ],
+        catchVar: "e",
+        catch: [{ kind: "return" as const, id: `p/${id}/ret`, value: { var: "e" } }]
+      });
+      // Awaited child
+      const awaited = this.flow([catching("await", child.id, { lit: { x: 1 } })]);
+      const uuid = await this.launch(awaited, {}, "alice");
+      await this.drain();
+      const instance = await this.instance(uuid);
+      assert.strictEqual(instance.status, "SUCCESS");
+      assert.strictEqual(instance.output.code, "Forbidden");
+      // Fire and forget
+      const started = this.flow([catching("start", "Workflow.Start", { lit: { flow: child.id, input: { x: 1 } } })]);
+      const startedUuid = await this.launch(started, {}, "alice");
+      await this.drain();
+      assert.strictEqual((await this.instance(startedUuid)).output.code, "Forbidden");
+      assert.strictEqual(this.ops.calls.add, undefined);
+      // Bob may
+      const bobs = await this.launch(awaited, {}, "bob");
+      await this.drain();
+      assert.strictEqual((await this.instance(bobs)).output, 2);
+    } finally {
+      delete op.permission;
+      delete op.permissionQuery;
+    }
   }
 }

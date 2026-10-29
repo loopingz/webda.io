@@ -161,10 +161,13 @@ flow, which a `try`/`catch` handles.
 `Workflow.Signal` (`POST /workflows/signal`, `{ event, key, payload }`) resolves every wait on `(event, key)` whose
 instance accepts the sender, and returns `{ delivered }`:
 
-- the launcher, the system and the users listed in the wait `allow` may signal it; a sender refused by every waiting
-  instance gets `Forbidden`;
-- a signal sent before any wait is buffered as a `WorkflowSignal` for `signalTtl` (default `1d`). The first wait on
-  the same `(event, key)` consumes it, if its instance accepts the sender at that moment;
+- the caller must be authenticated (or the system); the payload is at most `maxSignalPayload` bytes of JSON;
+- the launcher, the system and the users listed in the wait `allow` may signal it. A sender no wait accepts gets
+  `{ delivered: 0 }`, the same answer as when nothing waits, so pending waits cannot be probed;
+- a signal sent before any wait is buffered as a `WorkflowSignal` for `signalTtl` (default `1d`), at most
+  `maxBufferedSignals` per `(event, key)` (a new one past it is refused with `TooManyRequests`). The first wait on
+  the same `(event, key)` consumes it if its instance accepts the sender at that moment; a signal that loses the
+  race for a wait stays buffered. The recovery sweep purges the expired ones;
 - a wait resolves once: two signals at the same time deliver one.
 
 ## Child flows
@@ -173,6 +176,8 @@ instance accepts the sender, and returns `{ delivered }`:
   **child instance** and waits for it: the child runs as the same launcher and pins the current definition of its
   flow. Its output is the task result; its error (or `Cancelled`) throws in the parent.
 - `Workflow.Start` with input `{ flow, input }` starts a child without waiting: its result is `{ uuid }` at once.
+- Starting a child checks the flow operation permission and authorizers for the child's launcher, like a launch: a
+  refusal fails the task with `Forbidden`. A stored flow started by a system instance runs as its last saver.
 
 ## Controls
 
@@ -201,6 +206,10 @@ it exactly like a code flow, through `/operations/{name}`.
 - **Crons** run as the user who saved the workflow last, never as the system. A code flow launched by a cron runs as
   the system.
 - Editing a workflow does not change the running instances: they keep their pinned definition.
+- Partial updates (increments, collection items, attribute removal) are refused: a stored workflow changes through
+  update or patch, which validate it. Every registration (boot, sync, pubsub) validates it again: an invalid one, or
+  one whose name became another operation (a module enabled later), is skipped with an ERROR log and never replaces
+  that operation or its crons.
 - **Replicas**: with `syncPubSub` (a PubSub service), a save is announced to every replica; otherwise every replica
   reloads the stored workflows every `syncInterval` (default `60000` ms).
 

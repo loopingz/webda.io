@@ -123,9 +123,19 @@
             "description": "Lease of a claimed task (ms), renewed while it runs",
             "type": "number"
           },
+          "maxBufferedSignals": {
+            "default": 100,
+            "description": "Maximum number of unexpired buffered signals per `(event, key)`: a new one past it is refused",
+            "type": "number"
+          },
           "maxContextSize": {
             "default": 262144,
             "description": "Maximum size of the journal and input of an instance (bytes of JSON)",
+            "type": "number"
+          },
+          "maxSignalPayload": {
+            "default": 65536,
+            "description": "Maximum size of a signal payload (bytes of JSON)",
             "type": "number"
           },
           "pollInterval": {

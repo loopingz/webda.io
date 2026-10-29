@@ -1,6 +1,14 @@
 // organize-imports-ignore
 import { suite, test } from "@webda/test";
-import { CronService, listOperations, runWithContext, useCore, useInstanceStorage } from "@webda/core";
+import {
+  CronService,
+  listOperations,
+  registerOperation,
+  runWithContext,
+  useCore,
+  useInstanceStorage
+} from "@webda/core";
+import { useRepository } from "@webda/models";
 import * as assert from "assert";
 import { vi } from "vitest";
 import { Workflow } from "./models/workflow.model.js";
@@ -255,5 +263,77 @@ class StoredTest extends WorkflowTestBase {
       delete useCore().getServices()["Workflow2"];
       delete useCore().getServices()["WorkflowSync"];
     }
+  }
+
+  @test
+  async storedChildRunsAsLastSaver() {
+    const stored = await this.save({
+      params: [],
+      input: { type: "object" },
+      body: [task("s/who", "FlowTest.WhoAmI", { lit: {} }, "me"), { kind: "return", id: "s/ret", value: { var: "me" } }]
+    });
+    // A code flow run by the system starts the stored flow: awaited, and by a computed name
+    const parent = this.flow([
+      task("p/child", stored.name, { lit: {} }, "awaited"),
+      { kind: "assign", id: "p/name", name: "name", value: { tpl: [stored.name] } },
+      task("p/start", "Workflow.Start", { obj: { flow: { var: "name" }, input: { lit: {} } } }, "started"),
+      { kind: "return", id: "p/ret", value: { obj: { awaited: { var: "awaited" }, started: { var: "started" } } } }
+    ]);
+    const uuid = await this.launch(parent, {});
+    await this.drain();
+    const instance = await this.instance(uuid);
+    assert.strictEqual(instance.output.awaited, "admin");
+    const started = await this.instance(instance.output.started.uuid);
+    assert.deepStrictEqual({ ...started.launcher }, { userId: "admin" });
+    assert.strictEqual(started.output, "admin");
+  }
+
+  @test
+  async storedRevalidatedAtRegistration() {
+    const wf = await this.save();
+    // Written behind the validation (another replica, a direct store write)
+    await (useRepository(Workflow as any) as any).repository.patch(wf.uuid, {
+      body: [{ kind: "goto", id: "s/goto" }],
+      version: "tampered"
+    });
+    await this.service["reloadStored"]();
+    assert.strictEqual(this.service.getFlow(wf.name), undefined);
+    assert.strictEqual(listOperations()[wf.name], undefined);
+  }
+
+  @test
+  async storedNeverReplacesAnOperation() {
+    const wf = await this.save({ crons: [{ cron: "0 3 * * *", input: { x: 1 } }] });
+    // A module registers a real operation with the same name later, with its own cron
+    registerOperation(wf.name, { service: "FlowTest", method: "add", input: "FlowTest.Add.input" });
+    const moduleCron = CronService.register(wf.name, { cron: "0 5 * * *", input: { a: 1, b: 1 } });
+    try {
+      await this.edit(wf.uuid, { body: [{ kind: "return", id: "s/ret", value: { lit: 1 } }] }).catch(() => {});
+      await this.service["reloadStored"]();
+      assert.strictEqual(useInstanceStorage().operations[wf.name].service, "FlowTest");
+      assert.strictEqual(this.service.getFlow(wf.name), undefined);
+      const crons = useInstanceStorage()
+        .crons.filter(c => c.operationId === wf.name)
+        .map(c => c.cron);
+      assert.deepStrictEqual(crons, ["0 5 * * *"]);
+    } finally {
+      CronService.unregister(CronService.getExportId(moduleCron));
+      delete useInstanceStorage().operations[wf.name];
+    }
+  }
+
+  @test
+  async storedPartialUpdatesRefused() {
+    const wf = await this.save();
+    const repo: any = useRepository(Workflow as any);
+    await assert.rejects(() => repo.removeAttribute(wf.uuid, "params"), /partial/i);
+    await assert.rejects(
+      () => repo.upsertItemToCollection(wf.uuid, "body", { kind: "goto", id: "s/goto" }),
+      /partial/i
+    );
+    const current = (await Workflow.ref(wf.uuid).get()) as Workflow;
+    assert.deepStrictEqual(current.params, ["x"]);
+    assert.strictEqual(current.body.length, 2);
+    assert.strictEqual(this.service.getFlow(wf.name).version, wf.version);
   }
 }

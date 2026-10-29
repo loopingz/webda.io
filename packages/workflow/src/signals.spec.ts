@@ -3,7 +3,10 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { vi } from "vitest";
 import type { Stmt } from "./graph.js";
+import { callOperation, Session, SimpleOperationContext } from "@webda/core";
+import { WorkflowInstance } from "./models/workflowinstance.model.js";
 import { WorkflowSignal } from "./models/workflowsignal.model.js";
+import { WorkflowTask } from "./models/workflowtask.model.js";
 import { task, WorkflowTestBase } from "../test/fixture.js";
 
 /**
@@ -127,7 +130,8 @@ class SignalsTest extends WorkflowTestBase {
   async signalForbidden() {
     const def = this.flow(approvalFlow(), ["order"]);
     const uuid = await this.launch(def, { order: "o1" }, "alice");
-    await assert.rejects(() => this.signal("bob", "approval", "o1", { n: 1 }), /Forbidden|PermissionDenied/i);
+    // Answered like "nothing waits", and not buffered: a caller cannot probe the pending waits
+    assert.deepStrictEqual(await this.signal("bob", "approval", "o1", { n: 1 }), { delivered: 0 });
     assert.strictEqual((await this.instance(uuid)).status, "WAITING");
     assert.strictEqual((await this.buffered()).length, 0);
     // The system may signal
@@ -139,7 +143,7 @@ class SignalsTest extends WorkflowTestBase {
     const def = this.flow(approvalFlow({ allow: { lit: ["carol"] } }), ["order"]);
     const uuid = await this.launch(def, { order: "o1" }, "alice");
     assert.deepStrictEqual((await this.tasks(uuid))[0].allow, ["carol"]);
-    await assert.rejects(() => this.signal("bob", "approval", "o1", { n: 1 }), /Forbidden|PermissionDenied/i);
+    assert.deepStrictEqual(await this.signal("bob", "approval", "o1", { n: 1 }), { delivered: 0 });
     assert.deepStrictEqual(await this.signal("carol", "approval", "o1", { n: 1 }), { delivered: 1 });
     await this.drain();
     assert.strictEqual((await this.instance(uuid)).output, 2);
@@ -187,5 +191,92 @@ class SignalsTest extends WorkflowTestBase {
     vi.setSystemTime(1_000_000 + 2 * 3600_000);
     await this.drain();
     assert.strictEqual((await this.instance(uuid)).status, "WAITING");
+  }
+
+  @test
+  async anonymousSignalRefused() {
+    const ctx = new SimpleOperationContext();
+    ctx.setSession(new Session());
+    ctx.setInput(Buffer.from(JSON.stringify({ event: "approval", key: "o1", payload: {} })));
+    await ctx.init();
+    await assert.rejects(() => callOperation(ctx, "Workflow.Signal"), /Unauthorized|authenticated/i);
+    assert.strictEqual((await this.buffered()).length, 0);
+  }
+
+  @test
+  async signalLimits() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    this.service.getParameters().maxSignalPayload = 100;
+    await assert.rejects(() => this.signal("alice", "approval", "o1", { text: "x".repeat(200) }), /payload/i);
+    this.service.getParameters().maxBufferedSignals = 2;
+    this.service.getParameters().signalTtl = "1h";
+    await this.signal("alice", "approval", "o1", { n: 1 });
+    await this.signal("bob", "approval", "o1", { n: 2 });
+    // The new signal is refused, the buffered ones are kept
+    await assert.rejects(() => this.signal("alice", "approval", "o1", { n: 3 }), /Too many|TooManyRequests/i);
+    assert.strictEqual((await this.buffered()).length, 2);
+    // Another key has its own budget
+    await this.signal("alice", "approval", "o2", { n: 1 });
+    // Expired signals do not count, and the sweep purges them
+    vi.setSystemTime(1_000_000 + 2 * 3600_000);
+    await this.signal("alice", "approval", "o1", { n: 4 });
+    await this.service["sweep"]();
+    assert.deepStrictEqual(
+      (await this.buffered()).map(s => s.payload.n),
+      [4]
+    );
+  }
+
+  /**
+   * A wait on ("approval", "o1") with a 1h timeout, its task row as first read, and a buffered signal for it
+   * @returns the instance uuid, the stale wait row and the signal
+   */
+  async staleWait(): Promise<{ uuid: string; wait: WorkflowTask }> {
+    const def = this.flow(approvalFlow({ timeout: { lit: "1h" } }), ["order"]);
+    const uuid = await this.launch(def, { order: "o1" }, "alice");
+    const [wait] = await this.tasks(uuid);
+    return { uuid, wait };
+  }
+
+  /**
+   * Buffer a signal from alice directly
+   * @returns the signal
+   */
+  async bufferedFromAlice(): Promise<WorkflowSignal> {
+    return (await WorkflowSignal.create({
+      event: "approval",
+      key: "o1",
+      payload: { n: 7 },
+      senderId: "alice",
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 86400_000
+    } as any)) as WorkflowSignal;
+  }
+
+  @test
+  async bufferedSignalKeptWhenTimeoutWins() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const { uuid, wait } = await this.staleWait();
+    // The timeout claims the wait first
+    vi.setSystemTime(1_000_000 + 3600_000);
+    await this.drain();
+    assert.strictEqual((await this.instance(uuid)).status, "ERROR");
+    const signal = await this.bufferedFromAlice();
+    const instance = (await WorkflowInstance.ref(uuid).get()) as WorkflowInstance;
+    assert.strictEqual(await this.service["consumeSignal"](signal, instance, wait, true), false);
+    assert.strictEqual((await this.buffered()).length, 1);
+  }
+
+  @test
+  async bufferedSignalKeptWhenAnotherSignalWins() {
+    const { uuid, wait } = await this.staleWait();
+    const instance = (await WorkflowInstance.ref(uuid).get()) as WorkflowInstance;
+    assert.deepStrictEqual(await this.signal("alice", "approval", "o1", { n: 1 }), { delivered: 1 });
+    const signal = await this.bufferedFromAlice();
+    assert.strictEqual(await this.service["consumeSignal"](signal, instance, wait, true), false);
+    assert.deepStrictEqual(
+      (await this.buffered()).map(s => s.payload),
+      [{ n: 7 }]
+    );
   }
 }

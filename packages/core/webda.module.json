@@ -2020,6 +2020,49 @@
         }
       }
     },
+    "Webda/StoreClusterService": {
+      "Import": "lib/services/storecluster.service:StoreClusterService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "StoreClusterService parameters",
+        "properties": {
+          "instanceId": {
+            "description": "Identity of this instance, defaults to `process.env.HOSTNAME` or a random UUID",
+            "type": "string"
+          },
+          "leaseDuration": {
+            "default": 15000,
+            "description": "Milliseconds a lease is valid without renewal",
+            "type": "number"
+          },
+          "leaseName": {
+            "default": "leader",
+            "description": "Name of the lease",
+            "type": "string"
+          },
+          "renewInterval": {
+            "default": 5000,
+            "description": "Milliseconds between two attempts to acquire or renew the lease, lower than `leaseDuration`",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "StoreClusterService"
+      },
+      "Configuration": "lib/services/storecluster.service:StoreClusterServiceParameters"
+    },
     "Webda/TokenService": {
       "Import": "lib/services/token.service:TokenService",
       "Schema": {

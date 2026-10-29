@@ -45,10 +45,9 @@ export class ClusterServiceParameters extends ServiceParameters {
    */
   renewInterval: number;
   /**
-   * Identity of this instance
-   * @default process.env.HOSTNAME or a random UUID
+   * Identity of this instance, defaults to `process.env.HOSTNAME` or a random UUID
    */
-  instanceId: string;
+  instanceId?: string;
   /**
    * Name of the lease
    * @default "leader"

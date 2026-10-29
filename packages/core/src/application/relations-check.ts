@@ -293,12 +293,7 @@ export function checkRelations(models: Record<string, any>, options: RelationsCh
         continue;
       }
 
-      // M is a strict ancestor of A: check if A is the final model
-      if (!isFinalModel(idA)) {
-        continue;
-      }
-
-      // A is the final model and M is a strict ancestor
+      // Store mismatches matter for every model, including non-final ancestors.
       if (options.deferStoreCheck) {
         // Deferred until computeStores()
         continue;
@@ -311,6 +306,7 @@ export function checkRelations(models: Record<string, any>, options: RelationsCh
         const nameM = getStoreName(storeM);
 
         if (storeA === storeM) {
+          if (!isFinalModel(idA)) continue;
           // R4: same store
           diagnostics.push({
             level: "INFO",
@@ -333,7 +329,7 @@ export function checkRelations(models: Record<string, any>, options: RelationsCh
             message: `${idA}.${attr} expects ${B}.${K} to reference ${idA}, but it references ${M} (stores: ${nameA} vs ${nameM}). Override \`${K}: ModelLink<${idA}>\` in ${B} or add "${M}" to the ${nameA} store models.`
           });
         }
-      } else if (options.staticOnly) {
+      } else if (options.staticOnly && isFinalModel(idA)) {
         // R4 static mode (without stores)
         diagnostics.push({
           level: "WARN",

@@ -88,6 +88,9 @@ class RelationsCheckPureTest {
       B: { Relations: { links: [{ attribute: "owner", model: "Base" }] } }
     };
     assert.deepStrictEqual(checkRelations(models), []);
+    const differentStores = checkRelations(models, { isFinalModel: () => false, getStore: id => id });
+    assert.strictEqual(differentStores[0].code, "R5");
+    assert.deepStrictEqual(checkRelations(models, { isFinalModel: () => false, getStore: () => "shared" }), []);
     assert.deepStrictEqual(checkRelations(models, { deferStoreCheck: true }), []);
     assert.deepStrictEqual(checkRelations(models, { isFinalModel: () => false, staticOnly: true }), []);
     assert.deepStrictEqual(

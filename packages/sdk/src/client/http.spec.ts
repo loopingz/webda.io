@@ -4,6 +4,55 @@ import { chunked, FakeServer, OPERATIONS } from "./fixture.js";
 import { HttpTransport, parseNdjson, parseSse } from "./http.js";
 
 describe("HttpTransport", () => {
+  it("uses explicit query fields, repeated scalar arrays, catch-all objects and whole JSON bodies", () => {
+    const transport = new HttpTransport({ baseUrl: "https://api.test" });
+    const operation = {
+      ...OPERATIONS["Task.Archive"],
+      rest: {
+        method: "post" as const,
+        path: "/tasks/{uuid}/assign",
+        pathParams: ["uuid"],
+        query: ["notify", "tags"],
+        queryCatchAll: "filters",
+        body: "payload"
+      }
+    };
+    expect(
+      transport.prepare(
+        operation,
+        {
+          uuid: "t1",
+          notify: true,
+          tags: [1, 2],
+          filters: { limit: 5, active: false, notify: false },
+          payload: { name: "new" }
+        },
+        {}
+      )
+    ).toEqual({
+      url: "https://api.test/tasks/t1/assign?notify=true&tags=1&tags=2&limit=5&active=false",
+      method: "POST",
+      body: { name: "new" }
+    });
+    expect(
+      transport.prepare(
+        { ...operation, rest: { method: "get", path: "/tasks", pathParams: [], query: ["tags"] } },
+        { tags: ["a", "b"] },
+        {}
+      )
+    ).toEqual({
+      url: "https://api.test/tasks?tags=a&tags=b",
+      method: "GET"
+    });
+    expect(
+      transport.prepare(
+        { ...operation, rest: { method: "get", path: "/tasks", pathParams: [], query: ["tags"] } },
+        { tags: [] },
+        {}
+      ).url
+    ).toBe("https://api.test/tasks?tags=");
+  });
+
   it("fills path parameters from the input and the parents, the rest is the body or the query string", () => {
     const transport = new HttpTransport({ baseUrl: "https://api.test/api/" });
     expect(transport.prepare(OPERATIONS["Task.Get"], { uuid: "t1" }, {})).toEqual({
@@ -340,6 +389,13 @@ describe("HttpTransport", () => {
     expect(
       transport.prepare(OPERATIONS["Tasks.Query"], { q: "a = 1", limit: 5, skip: null, none: undefined }, {}).url
     ).toBe("https://api.test/tasks?q=a+%3D+1&limit=5");
+    const operation = {
+      ...OPERATIONS["Task.Get"],
+      rest: { method: "get" as const, path: "/tasks/{uuid}", pathParams: ["uuid"], queryCatchAll: "filters" }
+    };
+    for (const filters of [null, "invalid", ["invalid"], undefined]) {
+      expect(transport.prepare(operation, { uuid: "t1", filters }, {}).url).toBe("https://api.test/tasks/t1");
+    }
   });
 
   describe("with the global fetch", () => {

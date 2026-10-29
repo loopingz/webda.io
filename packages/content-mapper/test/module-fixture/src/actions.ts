@@ -78,3 +78,8 @@ export class ActionNames {
 
   async modifierOnly() {}
 }
+
+export class RestActions {
+  @Action({ name: "assign", rest: { method: "post", path: "{uuid}/assign{?notify?}", body: "assignment" }, methods: ["POST"], openapi: { post: { summary: "Assign" } } })
+  assignAction(assignment: { userId: string }, notify?: boolean) {}
+}

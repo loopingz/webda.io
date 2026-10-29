@@ -47,6 +47,7 @@ import { generateModelSchemas } from "./schema/model.ts";
 import { generateTopLevelSchemas } from "./schema/project.ts";
 import { findParametersNode, findStaticParametersDeclaration, generateServiceSchema } from "./schema/service.ts";
 import type { JSONSchema7 } from "./schema/types.ts";
+import { literalOption } from "./schema/rest.ts";
 
 /** Value of `$schema` in every generated module. */
 export const WEBDA_MODULE_SCHEMA = "https://webda.io/schemas/webda.module.v4.json";
@@ -575,6 +576,10 @@ export function buildModelActions(
         meta[key] = initializer.text;
       }
       readMaxMfaAge(key, initializer, meta);
+      if (["rest", "methods", "openapi"].includes(key)) {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
+      }
       // `@Action({ name })` exposes the action under another name than the method
       if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
         name = initializer.text;
@@ -1160,6 +1165,10 @@ export function buildBehaviorActions(
       if (key === "global") {
         throw new Error(`Behavior ${identifier}: @Action({ global: true }) is not allowed (method "${methodName}").`);
       }
+      if (key === "methods" || key === "openapi") {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
+      }
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
@@ -1173,7 +1182,8 @@ export function buildBehaviorActions(
             is.isStringLiteral((restProperty as any).initializer)
           ) {
             const restKey = (restProperty as any).name.text;
-            if (restKey === "route" || restKey === "method") rest[restKey] = (restProperty as any).initializer.text;
+            if (["route", "method", "path", "body"].includes(restKey))
+              rest[restKey] = (restProperty as any).initializer.text;
           }
         }
         if (Object.keys(rest).length > 0) meta.rest = rest;
@@ -1744,7 +1754,10 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     }
   }
   try {
-    Object.assign(module.schemas, generateTopLevelSchemas(ctx, discovery));
+    const primaryKeys = Object.fromEntries(
+      models.map(({ object, declaration }) => [object.name, buildModelPrimaryKey(ctx, declaration) ?? ["uuid"]])
+    );
+    Object.assign(module.schemas, generateTopLevelSchemas(ctx, { ...discovery, primaryKeys }));
   } catch (error) {
     errors.push(`schemas: ${error instanceof Error ? error.message : String(error)}`);
   }

@@ -143,10 +143,24 @@
             "description": "Grace period of stop() for the running attempts (ms), then they are aborted and their outcome dropped",
             "type": "number"
           },
+          "storedWorkflowRole": {
+            "default": "workflow-admin",
+            "description": "Role needed to create, update or delete a stored workflow",
+            "type": "string"
+          },
           "sweepInterval": {
             "default": 60000,
             "description": "Interval of the recovery sweep (ms): an active instance not updated for this long and without a live task is\nreplayed",
             "type": "number"
+          },
+          "syncInterval": {
+            "default": 60000,
+            "description": "Without `syncPubSub`, interval between two reloads of the stored workflows (ms)",
+            "type": "number"
+          },
+          "syncPubSub": {
+            "description": "PubSub service announcing the stored workflow changes to the other replicas",
+            "type": "string"
           },
           "type": {
             "description": "Type of the service",
@@ -172,6 +186,455 @@
     }
   },
   "models": {
+    "Webda/Workflow": {
+      "Plural": "Workflows",
+      "Import": "lib/models/workflow.model:default",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "name": {
+          "type": "string"
+        },
+        "params": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "input": {
+          "type": "object"
+        },
+        "body": {
+          "type": "Array",
+          "typeParameters": [
+            "any"
+          ]
+        },
+        "options": {
+          "type": "TaskOptions"
+        },
+        "crons": {
+          "type": "Array",
+          "typeParameters": [
+            "StoredWorkflowCron"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "updatedBy": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "Workflows",
+          "additionalProperties": false,
+          "definitions": {
+            "Record<string, any>": {
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "StoredWorkflowCron": {
+              "additionalProperties": false,
+              "description": "A cron launching a stored workflow",
+              "properties": {
+                "cron": {
+                  "description": "Cron expression",
+                  "type": "string"
+                },
+                "description": {
+                  "description": "Description",
+                  "type": "string"
+                },
+                "input": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+                  "description": "Flow input, by parameter name"
+                }
+              },
+              "required": [
+                "cron"
+              ],
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "A workflow defined at runtime: the same graph as a `.flow.ts` flow, stored as data\n\nSaving validates the graph (expressions, statement kinds, operations, `useSystem`); the WorkflowService registers\nit as the operation `name` and its crons, which run as the user who saved it last.",
+          "properties": {
+            "body": {
+              "description": "The statements ({@link Stmt }[])",
+              "items": {},
+              "type": "array"
+            },
+            "crons": {
+              "description": "Crons launching the flow",
+              "items": {
+                "$ref": "#/definitions/StoredWorkflowCron"
+              },
+              "type": "array"
+            },
+            "input": {
+              "description": "JSON schema of the input",
+              "type": "object"
+            },
+            "name": {
+              "description": "Flow id: the operation launching it",
+              "type": "string"
+            },
+            "options": {
+              "$ref": "#/definitions/TaskOptions",
+              "description": "Default options of every task"
+            },
+            "params": {
+              "description": "Names of the flow parameters, in order",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "updatedBy": {
+              "description": "User id of the last save: the identity of its crons",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "version": {
+              "description": "{@link flowVersion } of the graph, computed on save",
+              "type": "string"
+            }
+          },
+          "required": [
+            "body",
+            "input",
+            "name",
+            "params",
+            "uuid",
+            "version"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "Workflows",
+          "additionalProperties": false,
+          "definitions": {
+            "Record<string, any>": {
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "StoredWorkflowCron": {
+              "additionalProperties": false,
+              "description": "A cron launching a stored workflow",
+              "properties": {
+                "cron": {
+                  "description": "Cron expression",
+                  "type": "string"
+                },
+                "description": {
+                  "description": "Description",
+                  "type": "string"
+                },
+                "input": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+                  "description": "Flow input, by parameter name"
+                }
+              },
+              "required": [
+                "cron"
+              ],
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "A workflow defined at runtime: the same graph as a `.flow.ts` flow, stored as data\n\nSaving validates the graph (expressions, statement kinds, operations, `useSystem`); the WorkflowService registers\nit as the operation `name` and its crons, which run as the user who saved it last.",
+          "properties": {
+            "body": {
+              "description": "The statements ({@link Stmt }[])",
+              "items": {},
+              "type": "array"
+            },
+            "crons": {
+              "description": "Crons launching the flow",
+              "items": {
+                "$ref": "#/definitions/StoredWorkflowCron"
+              },
+              "type": "array"
+            },
+            "input": {
+              "description": "JSON schema of the input",
+              "type": "object"
+            },
+            "name": {
+              "description": "Flow id: the operation launching it",
+              "type": "string"
+            },
+            "options": {
+              "$ref": "#/definitions/TaskOptions",
+              "description": "Default options of every task"
+            },
+            "params": {
+              "description": "Names of the flow parameters, in order",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "updatedBy": {
+              "description": "User id of the last save: the identity of its crons",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "version": {
+              "description": "{@link flowVersion } of the graph, computed on save",
+              "type": "string"
+            }
+          },
+          "required": [
+            "body",
+            "input",
+            "name",
+            "params",
+            "uuid",
+            "version"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "Workflows",
+          "additionalProperties": false,
+          "definitions": {
+            "Record<string, any>": {
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "StoredWorkflowCron": {
+              "additionalProperties": false,
+              "description": "A cron launching a stored workflow",
+              "properties": {
+                "cron": {
+                  "description": "Cron expression",
+                  "type": "string"
+                },
+                "description": {
+                  "description": "Description",
+                  "type": "string"
+                },
+                "input": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+                  "description": "Flow input, by parameter name"
+                }
+              },
+              "required": [
+                "cron"
+              ],
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "A workflow defined at runtime: the same graph as a `.flow.ts` flow, stored as data\n\nSaving validates the graph (expressions, statement kinds, operations, `useSystem`); the WorkflowService registers\nit as the operation `name` and its crons, which run as the user who saved it last.",
+          "properties": {
+            "body": {
+              "description": "The statements ({@link Stmt }[])",
+              "items": {},
+              "type": "array"
+            },
+            "crons": {
+              "description": "Crons launching the flow",
+              "items": {
+                "$ref": "#/definitions/StoredWorkflowCron"
+              },
+              "type": "array"
+            },
+            "input": {
+              "description": "JSON schema of the input",
+              "type": "object"
+            },
+            "name": {
+              "description": "Flow id: the operation launching it",
+              "type": "string"
+            },
+            "options": {
+              "$ref": "#/definitions/TaskOptions",
+              "description": "Default options of every task"
+            },
+            "params": {
+              "description": "Names of the flow parameters, in order",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "updatedBy": {
+              "description": "User id of the last save: the identity of its crons",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "version": {
+              "description": "{@link flowVersion } of the graph, computed on save",
+              "type": "string"
+            }
+          },
+          "required": [
+            "body",
+            "input",
+            "name",
+            "params",
+            "uuid",
+            "version"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/Workflow"
+    },
     "Webda/WorkflowInstance": {
       "Plural": "WorkflowInstances",
       "Import": "lib/models/workflowinstance.model:default",

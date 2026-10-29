@@ -22,6 +22,7 @@ import type { FlowDefinition, Stmt, TaskOptions } from "../src/graph.js";
 import { WorkflowInstance } from "../src/models/workflowinstance.model.js";
 import { WorkflowTask } from "../src/models/workflowtask.model.js";
 import { WorkflowSignal } from "../src/models/workflowsignal.model.js";
+import { Workflow } from "../src/models/workflow.model.js";
 
 /**
  * Models of the package, by identifier
@@ -29,7 +30,8 @@ import { WorkflowSignal } from "../src/models/workflowsignal.model.js";
 export const WORKFLOW_MODELS: [string, any][] = [
   ["Webda/WorkflowInstance", WorkflowInstance],
   ["Webda/WorkflowTask", WorkflowTask],
-  ["Webda/WorkflowSignal", WorkflowSignal]
+  ["Webda/WorkflowSignal", WorkflowSignal],
+  ["Webda/Workflow", Workflow]
 ];
 import { useAbortSignal, WorkflowService, WorkflowServiceParameters } from "../src/workflow.service.js";
 

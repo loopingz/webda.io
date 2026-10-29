@@ -152,8 +152,65 @@ expires and another worker runs them again.
 `WorkflowInstance` and `WorkflowTask` are readable by their launcher and the system; every other action is refused:
 they are written by the service only.
 
+## Signals
+
+`Wait.ForEvent` with input `{ name, key, timeout?, allow? }` parks the instance (`WAITING`) until a signal on
+`(name, key)` arrives; the signal payload is the result of the task. Its `timeout` (Duration) throws `Timeout` in the
+flow, which a `try`/`catch` handles.
+
+`Workflow.Signal` (`POST /workflows/signal`, `{ event, key, payload }`) resolves every wait on `(event, key)` whose
+instance accepts the sender, and returns `{ delivered }`:
+
+- the launcher, the system and the users listed in the wait `allow` may signal it; a sender refused by every waiting
+  instance gets `Forbidden`;
+- a signal sent before any wait is buffered as a `WorkflowSignal` for `signalTtl` (default `1d`). The first wait on
+  the same `(event, key)` consumes it, if its instance accepts the sender at that moment;
+- a wait resolves once: two signals at the same time deliver one.
+
+## Child flows
+
+- A task whose operation is a flow (`{ "kind": "task", "operation": "Orders.Archive", "input": { ... } }`) starts a
+  **child instance** and waits for it: the child runs as the same launcher and pins the current definition of its
+  flow. Its output is the task result; its error (or `Cancelled`) throws in the parent.
+- `Workflow.Start` with input `{ flow, input }` starts a child without waiting: its result is `{ uuid }` at once.
+
+## Controls
+
+`WorkflowInstance` actions, allowed to the launcher and the system:
+
+- `cancel()`: the instance, its live tasks and the children it waits on become `CANCELLED`. A running attempt is
+  aborted (`useAbortSignal()`), and a late outcome is dropped.
+- `retry()`, from `ERROR`: drops the outcome that failed the flow and every outcome journaled after it, then replays.
+  The steps before it are not run again.
+- `migrate(version?)`, while running: moves the instance to another version of its flow (the latest when omitted). It
+  is refused with `BadRequest` when a journaled or pending task of the instance has no statement in the target graph.
+
+## Stored workflows
+
+A `Workflow` model (exported as `StoredWorkflow`) holds a flow defined at runtime: `name` (its operation id),
+`params`, `input` (JSON schema), `body`, `options` and `crons` (`[{ cron, description?, input? }]`). The engine runs
+it exactly like a code flow, through `/operations/{name}`.
+
+- **Validated on save**: the name is an operation id that is neither a code flow nor another operation, every
+  statement kind is known, every expression passes `validateExpr`, every task operation exists. `version` and
+  `updatedBy` (the user saving) are set on save.
+- **`useSystem` is refused** in a stored workflow, for every user, unless `allowStoredSystem` is set: otherwise anyone
+  allowed to save a workflow would run operations as the system.
+- **Permissions**: any authenticated user reads; create, update and delete need the role `storedWorkflowRole`
+  (default `workflow-admin`); the system may do anything.
+- **Crons** run as the user who saved the workflow last, never as the system. A code flow launched by a cron runs as
+  the system.
+- Editing a workflow does not change the running instances: they keep their pinned definition.
+- **Replicas**: with `syncPubSub` (a PubSub service), a save is announced to every replica; otherwise every replica
+  reloads the stored workflows every `syncInterval` (default `60000` ms).
+
+| Parameter            | Default            | Description                                                          |
+| -------------------- | ------------------ | -------------------------------------------------------------------- |
+| `signalTtl`          | `"1d"`             | how long an early signal is kept                                     |
+| `storedWorkflowRole` | `"workflow-admin"` | role writing stored workflows                                        |
+| `syncPubSub`         |                    | PubSub service announcing stored workflow changes                    |
+| `syncInterval`       | `60000`            | ms between two reloads of the stored workflows, without `syncPubSub` |
+
 ## Coming next
 
-- **Part B:** `Wait.ForEvent` and `Workflow.Signal`, child flows and `Workflow.Start`, `cancel` / `retry` /
-  `migrate`, stored `Workflow` models and flow crons. Until then these built-ins fail with `NotImplemented`.
-- **Part C:** authoring flows as `.flow.ts` classes compiled to this graph.
+- **Part C:** authoring flows as `.flow.ts` classes compiled to this graph, with `@Cron` on flow methods.

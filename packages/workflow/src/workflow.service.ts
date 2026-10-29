@@ -1,5 +1,6 @@
 import {
   callOperation,
+  CronService,
   hasSchema,
   Operation,
   listFullOperations,
@@ -13,6 +14,7 @@ import {
   useApplication,
   useContext,
   useDynamicService,
+  useInstanceStorage,
   useSystem,
   WebdaError,
   type OperationContext
@@ -32,6 +34,9 @@ import { setWorkflowControls, type WorkflowControls } from "./hooks.js";
 import { WorkflowInstance, type WorkflowLauncher } from "./models/workflowinstance.model.js";
 import { WorkflowTask, type WorkflowTaskStatus } from "./models/workflowtask.model.js";
 import { WorkflowSignal } from "./models/workflowsignal.model.js";
+import { Workflow as StoredWorkflow } from "./models/workflow.model.js";
+import { validateExpr } from "./expression.js";
+import { useRepository } from "@webda/models";
 
 /**
  * Output schema of every flow launch operation
@@ -80,6 +85,40 @@ export const NO_TIMEOUT = Number.MAX_SAFE_INTEGER;
  * Built-ins an instance waits on: when all its pending tasks are of these, it is WAITING
  */
 const WAITING_OPERATIONS: string[] = [BUILTINS.Sleep, BUILTINS.WaitForEvent];
+
+/**
+ * Statement kinds of a flow graph, with their expression fields
+ */
+const STATEMENT_EXPRESSIONS: Record<string, string[]> = {
+  task: ["input"],
+  assign: ["value"],
+  if: ["cond"],
+  forOf: ["items"],
+  while: ["cond"],
+  try: [],
+  parallel: [],
+  map: ["items"],
+  return: ["value"],
+  throw: ["value"]
+};
+
+/**
+ * Operation id syntax
+ */
+const OPERATION_ID = /^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/;
+
+/**
+ * A stored workflow registered on this replica
+ */
+interface RegisteredStoredFlow {
+  flowId: string;
+  version: string;
+  updatedBy?: string;
+  /**
+   * JSON of its crons, to notice a change
+   */
+  crons: string;
+}
 
 /**
  * Abort reason of an attempt whose outcome must not be written: its lease was lost, or the service stopped
@@ -165,6 +204,20 @@ export class WorkflowServiceParameters extends ServiceParameters {
    * Flows to register
    */
   flows?: FlowDefinitionData[];
+  /**
+   * Role needed to create, update or delete a stored workflow
+   * @default "workflow-admin"
+   */
+  storedWorkflowRole: string;
+  /**
+   * PubSub service announcing the stored workflow changes to the other replicas
+   */
+  syncPubSub?: string;
+  /**
+   * Without `syncPubSub`, interval between two reloads of the stored workflows (ms)
+   * @default 60000
+   */
+  syncInterval: number;
 
   /**
    * @override
@@ -182,6 +235,8 @@ export class WorkflowServiceParameters extends ServiceParameters {
     this.sweepInterval ??= 60000;
     this.stopTimeout ??= 30000;
     this.signalTtl ??= "1d";
+    this.storedWorkflowRole ??= "workflow-admin";
+    this.syncInterval ??= 60000;
     return this;
   }
 }
@@ -270,6 +325,18 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    * Worker loop timer
    */
   protected timer?: NodeJS.Timeout;
+  /**
+   * Stored workflows registered here, by workflow uuid
+   */
+  protected storedFlows = new Map<string, RegisteredStoredFlow>();
+  /**
+   * Stored workflows reload timer
+   */
+  protected syncTimer?: NodeJS.Timeout;
+  /**
+   * Subscription to the stored workflow changes
+   */
+  protected syncConsumer?: { cancel: () => any };
 
   /**
    * @override
@@ -290,6 +357,9 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   async init(): Promise<this> {
     await super.init();
+    this.listenStored();
+    await this.reloadStored();
+    this.startSync();
     if (this.parameters.worker) {
       this.startWorker();
     }
@@ -309,6 +379,12 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       clearInterval(this.timer);
       this.timer = undefined;
     }
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = undefined;
+    }
+    await this.syncConsumer?.cancel();
+    this.syncConsumer = undefined;
     // A poll in flight may still start executions
     await this.pollPromise;
     let timer: NodeJS.Timeout | undefined;
@@ -344,7 +420,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     this.flows.set(flow.id, flow);
     if (!this.versions.has(flow.id)) this.versions.set(flow.id, new Map());
     this.versions.get(flow.id)!.set(flow.version, flow);
-    const input = `${flow.id}.input`;
+    // Core cannot remove a schema: a stored flow, which changes at runtime, has one per version
+    const input = flow.source === "stored" ? `${flow.id}.input.${flow.version}` : `${flow.id}.input`;
     // The parameters are given to launch in this order
     this.registerSchema(input, {
       type: "object",
@@ -409,6 +486,235 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
+   * Role needed to write a stored workflow
+   * @returns the role
+   */
+  getStoredWorkflowRole(): string {
+    return this.parameters.storedWorkflowRole;
+  }
+
+  /**
+   * Validate and stamp stored workflows on save, and register them once saved
+   */
+  protected listenStored(): void {
+    const repo: any = useRepository(StoredWorkflow as any);
+    const uuidOf = (id: any): string => (typeof id === "object" && id !== null ? (id.uuid ?? String(id)) : String(id));
+    repo.on("Create", ({ object }: any) => this.prepareStored(object, object));
+    repo.on("Update", ({ object }: any) => this.prepareStored(object, object));
+    repo.on("Patch", async ({ object_id, object }: any) => {
+      const current = await runAsSystem(() => StoredWorkflow.ref(uuidOf(object_id)).get());
+      await this.prepareStored({ ...current, ...object, uuid: uuidOf(object_id) }, object);
+    });
+    for (const event of ["Created", "Updated", "Patched", "Deleted"]) {
+      repo.on(event, ({ object_id }: any) => this.storedChanged(uuidOf(object_id)));
+    }
+  }
+
+  /**
+   * Validate a stored workflow about to be saved and stamp its version and last saver
+   * @param workflow - the workflow as it will be saved
+   * @param target - the data written: receives `version` and `updatedBy`
+   */
+  protected prepareStored(workflow: any, target: any): void {
+    this.validateStored(workflow);
+    target.version = flowVersion(workflow);
+    const context = useContext();
+    // A save by the system keeps the last saver: its crons never run as the system
+    if (context && !context.isGlobalContext() && context.getCurrentUserId()) {
+      target.updatedBy = context.getCurrentUserId();
+    }
+  }
+
+  /**
+   * Validate a stored workflow
+   * @param workflow - the workflow
+   * @throws BadRequest when its name, graph or options are refused
+   */
+  validateStored(workflow: any): void {
+    const fail = (message: string): never => {
+      throw new WebdaError.BadRequest(`Invalid workflow: ${message}`);
+    };
+    const name = workflow?.name;
+    if (typeof name !== "string" || !OPERATION_ID.test(name)) {
+      fail(`name ${name} must be an operation id (Group.Name)`);
+    }
+    const existing = this.resolveFlow(name);
+    if (existing && existing.source !== "stored") {
+      fail(`${name} is already a code flow`);
+    }
+    if ([...this.storedFlows].some(([uuid, f]) => f.flowId === name && uuid !== workflow.uuid)) {
+      fail(`${name} is already a stored workflow`);
+    }
+    if (!existing && listFullOperations()[name]) {
+      fail(`${name} is already an operation`);
+    }
+    if (!Array.isArray(workflow.params) || workflow.params.some((p: any) => typeof p !== "string")) {
+      fail("params must be an array of names");
+    }
+    if (workflow.input === null || typeof workflow.input !== "object") {
+      fail("input must be a JSON schema");
+    }
+    if (!Array.isArray(workflow.body)) {
+      fail("body must be an array of statements");
+    }
+    if (workflow.options?.useSystem && !this.parameters.allowStoredSystem) {
+      fail("useSystem is not allowed in a stored workflow");
+    }
+    for (const cron of workflow.crons ?? []) {
+      if (typeof cron?.cron !== "string" || (cron.input !== undefined && typeof cron.input !== "object")) {
+        fail("a cron needs a cron expression and an object input");
+      }
+    }
+    const walk = (stmts: any[], path: string) => {
+      if (!Array.isArray(stmts)) fail(`${path} must be an array of statements`);
+      stmts.forEach((stmt, i) => {
+        const where = typeof stmt?.id === "string" ? stmt.id : `${path}[${i}]`;
+        if (typeof stmt?.id !== "string") fail(`${where} has no id`);
+        const fields = STATEMENT_EXPRESSIONS[stmt.kind];
+        if (!fields) fail(`${where}: unknown statement kind ${stmt.kind}`);
+        for (const field of fields) {
+          if (stmt[field] === undefined && field === "value" && stmt.kind === "return") continue;
+          const invalid = validateExpr(stmt[field], `$.${field}`);
+          if (invalid.length) fail(`${where}: invalid expression at ${invalid.join(", ")}`);
+        }
+        if (stmt.kind === "task") {
+          const known =
+            Object.values(BUILTINS).includes(stmt.operation) ||
+            stmt.operation === name ||
+            !!listFullOperations()[stmt.operation];
+          if (!known) fail(`${where}: unknown operation ${stmt.operation}`);
+          if (stmt.options?.useSystem && !this.parameters.allowStoredSystem) {
+            fail(`${where}: useSystem is not allowed in a stored workflow`);
+          }
+        }
+        for (const key of ["then", "else", "body", "catch", "finally"]) {
+          if (stmt[key] !== undefined) walk(stmt[key], `${where}.${key}`);
+        }
+        (stmt.branches ?? []).forEach((branch: any[], b: number) => walk(branch, `${where}.branches[${b}]`));
+      });
+    };
+    walk(workflow.body, "body");
+  }
+
+  /**
+   * A stored workflow changed on this replica: register it here and tell the others
+   * @param uuid - the workflow uuid
+   */
+  protected async storedChanged(uuid: string): Promise<void> {
+    await this.syncStored(uuid);
+    if (this.parameters.syncPubSub) {
+      await useDynamicService<any>(this.parameters.syncPubSub).sendMessage({ workflow: uuid });
+    }
+  }
+
+  /**
+   * Register, re-register or remove a stored workflow from the store
+   * @param uuid - the workflow uuid
+   */
+  protected async syncStored(uuid: string): Promise<void> {
+    const workflow = await runAsSystem(async () =>
+      (await StoredWorkflow.ref(uuid).exists()) ? ((await StoredWorkflow.ref(uuid).get()) as StoredWorkflow) : undefined
+    );
+    if (workflow) {
+      this.registerStored(workflow);
+    } else {
+      this.unregisterStored(uuid);
+    }
+  }
+
+  /**
+   * Register a stored workflow as a flow, with its crons
+   * @param workflow - the stored workflow
+   */
+  protected registerStored(workflow: StoredWorkflow): void {
+    const known = this.storedFlows.get(workflow.uuid);
+    const crons = JSON.stringify(workflow.crons ?? []);
+    const version = workflow.version || flowVersion(workflow);
+    if (known && known.flowId === workflow.name && known.version === version && known.crons === crons) {
+      known.updatedBy = workflow.updatedBy;
+      return;
+    }
+    if (known && known.flowId !== workflow.name) {
+      this.unregisterStored(workflow.uuid);
+    }
+    this.registerFlow({
+      id: workflow.name,
+      version,
+      params: workflow.params ?? [],
+      input: workflow.input ?? { type: "object" },
+      body: workflow.body ?? [],
+      options: workflow.options,
+      source: "stored"
+    });
+    this.storedFlows.set(workflow.uuid, { flowId: workflow.name, version, updatedBy: workflow.updatedBy, crons });
+    CronService.unregister(workflow.name);
+    for (const cron of workflow.crons ?? []) {
+      try {
+        CronService.register(workflow.name, cron);
+      } catch (err) {
+        this.log("ERROR", `Cannot register the cron ${cron.cron} of ${workflow.name}`, err);
+      }
+    }
+  }
+
+  /**
+   * Remove a stored workflow: its operation and its crons (running instances keep their pinned definition)
+   * @param uuid - the workflow uuid
+   */
+  protected unregisterStored(uuid: string): void {
+    const known = this.storedFlows.get(uuid);
+    if (!known) return;
+    this.storedFlows.delete(uuid);
+    this.flows.delete(known.flowId);
+    const operations = useInstanceStorage().operations;
+    if (operations?.[known.flowId]?.service === this.getName()) {
+      delete operations[known.flowId];
+    }
+    CronService.unregister(known.flowId);
+  }
+
+  /**
+   * Load every stored workflow: register the new and changed ones, remove the deleted ones
+   */
+  protected async reloadStored(): Promise<void> {
+    const workflows = await runAsSystem(async () => {
+      const all: StoredWorkflow[] = [];
+      for await (const workflow of StoredWorkflow.iterate("")) all.push(workflow as StoredWorkflow);
+      return all;
+    });
+    const seen = new Set<string>();
+    for (const workflow of workflows) {
+      seen.add(workflow.uuid);
+      try {
+        this.registerStored(workflow);
+      } catch (err) {
+        this.log("ERROR", `Cannot register the stored workflow ${workflow.name}`, err);
+      }
+    }
+    for (const uuid of [...this.storedFlows.keys()]) {
+      if (!seen.has(uuid)) this.unregisterStored(uuid);
+    }
+  }
+
+  /**
+   * Follow the stored workflow changes of the other replicas: through `syncPubSub`, or a reload every
+   * `syncInterval`
+   */
+  protected startSync(): void {
+    if (this.parameters.syncPubSub) {
+      this.syncConsumer ??= useDynamicService<any>(this.parameters.syncPubSub).consume(async (event: any) => {
+        if (event?.workflow) await this.syncStored(String(event.workflow));
+      });
+      return;
+    }
+    if (this.syncTimer) return;
+    this.syncTimer = setInterval(() => {
+      this.reloadStored().catch(err => this.log("ERROR", "Cannot reload the stored workflows", err));
+    }, this.parameters.syncInterval);
+    this.syncTimer.unref?.();
+  }
+
+  /**
    * Launch the flow of the current operation, as the caller
    * @param args - the flow parameters, in order
    * @returns the instance uuid
@@ -425,7 +731,14 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       if (args[i] !== undefined) input[name] = args[i];
     });
     let launcher: WorkflowLauncher;
-    if (context.isGlobalContext()) {
+    if (context.isGlobalContext() && def.source === "stored") {
+      // A stored workflow never runs as the system: a cron tick runs it as the user who saved it last
+      const updatedBy = [...this.storedFlows.values()].find(f => f.flowId === def.id)?.updatedBy;
+      if (!updatedBy) {
+        throw new WebdaError.Forbidden(`${def.id} has no user to run as`);
+      }
+      launcher = { userId: updatedBy };
+    } else if (context.isGlobalContext()) {
       launcher = { system: true };
     } else {
       launcher = { userId: context.getCurrentUserId() || undefined, identId: context.getSession()?.identUsed };

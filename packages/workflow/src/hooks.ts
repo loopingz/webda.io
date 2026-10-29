@@ -18,6 +18,11 @@ export interface WorkflowControls {
    * @param version - the target version, the latest registered when undefined
    */
   migrateInstance(uuid: string, version?: string): Promise<void>;
+  /**
+   * Role needed to write a stored workflow
+   * @returns the role
+   */
+  getStoredWorkflowRole(): string;
 }
 
 /**

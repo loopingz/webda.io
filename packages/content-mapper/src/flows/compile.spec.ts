@@ -648,3 +648,180 @@ describe("compileFlows: module and editor", () => {
     }
   });
 });
+
+describe("compileFlows: semantics match TypeScript", () => {
+  /** `undefined`: a member read on an empty object, as the graph has no undefined literal */
+  const UNDEFINED = { get: [{ obj: {} }, { lit: "undefined" }] };
+
+  it.each([
+    [
+      "a const shadowing a parameter",
+      `    if (uuid) {\n      const uuid = await Random.Uuid();\n    }\n    return uuid;`,
+      "uuid"
+    ],
+    ["a catch binding shadowing a parameter", `    try {\n      await Sleep("1s");\n    } catch (uuid) {}`, "uuid"],
+    ["a for...of binding shadowing a variable", `    const o = 1;\n    for (const items of [o]) {}`, "items"],
+    [
+      "a Workflow.Parallel parameter shadowing a variable",
+      `    await Workflow.Parallel(items, uuid => NotifyService.Send({ to: uuid }));`,
+      "uuid"
+    ],
+    [
+      "a nested declaration shadowing an outer one",
+      `    const n = 1;\n    for (const item of items) {\n      if (item) {\n        let n = 2;\n      }\n    }`,
+      "n"
+    ]
+  ])("C1: refuses %s", (_name, statements, name) => {
+    const { errors } = errorsOf(statements);
+    expect(errors.map(e => e.message)).toEqual([expect.stringMatching(new RegExp(`\\b${name}\\b.*rename`))]);
+  });
+
+  it("C1: accepts a name re-declared in a sibling block, as every declaration assigns it", () => {
+    const { errors } = errorsOf(
+      `    for (const item of items) {}\n    for (const item of items) {}\n    if (uuid) {\n      const x = 1;\n    } else {\n      const x = 2;\n    }`
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it("C2: refuses an assignment to an outer variable inside a Workflow.Parallel body", () => {
+    const { errors, text } = errorsOf(
+      `    let total = 0;\n    await Workflow.Parallel(items, async item => {\n      total = total + 1;\n      const u = await Random.Uuid();\n      return u;\n    });\n    return total;`
+    );
+    expect(errors).toEqual([
+      expect.objectContaining({ start: text.indexOf("total = total + 1"), message: expect.stringContaining("return") })
+    ]);
+    // A variable of the branch itself can be assigned
+    expect(
+      errorsOf(
+        `    await Workflow.Parallel(items, async item => {\n      let u = await Random.Uuid();\n      u = item;\n      return u;\n    });`
+      ).errors
+    ).toEqual([]);
+  });
+
+  it("I1: let without an initializer assigns undefined, each time it runs", () => {
+    expect(
+      body(`
+  async run(items: number[]) {
+    for (const i of items) {
+      let y;
+      if (i > 1) {
+        y = i;
+      }
+    }
+  }`)[0].body[0]
+    ).toEqual({ kind: "assign", id: "run/for[0]/assign[0]", name: "y", value: UNDEFINED });
+  });
+
+  it("I2: a default parameter value is applied when the input omits it", () => {
+    const { flows, errors } = compile(`
+  async run(uuid: string, retries: number = 5) {
+    return retries;
+  }`);
+    expect(errors).toEqual([]);
+    const flow = flows["ScratchFlows.Run"];
+    expect(flow.body).toEqual([
+      {
+        kind: "if",
+        id: "run/default[1]",
+        cond: { op: "===", args: [{ var: "retries" }, UNDEFINED] },
+        then: [{ kind: "assign", id: "run/default[1]/then/assign[0]", name: "retries", value: { lit: 5 } }]
+      },
+      { kind: "return", id: "run/return[0]", value: { var: "retries" } }
+    ]);
+    expect((flow.input as any).required).toEqual(["uuid"]);
+    // A default can only use the flow expressions
+    expect(compile(`  async run(at: number = Date.now()) {\n    return at;\n  }`).errors.map(e => e.message)).toEqual([
+      expect.stringContaining("use Date.Now()")
+    ]);
+  });
+
+  it("I3: throw takes { code, message } with string values, or rethrows the catch variable", () => {
+    expect(
+      body(`
+  async run(uuid: string) {
+    try {
+      throw { code: "Refused", message: \`\${uuid} refused\` };
+    } catch (e) {
+      throw e;
+    }
+  }`)[0].body[0]
+    ).toEqual({
+      kind: "throw",
+      id: "run/try[0]/body/throw[0]",
+      value: { obj: { code: { lit: "Refused" }, message: { tpl: [{ var: "uuid" }, " refused"] } } }
+    });
+    for (const statement of [
+      `throw 42;`,
+      `throw "refused";`,
+      `throw { code: "A", message: "b", detail: 1 };`,
+      `throw { code: "A" };`,
+      `throw { code: uuid, message: "b" };`,
+      `throw uuid;`
+    ]) {
+      const { errors } = errorsOf(`    ${statement}`);
+      expect(
+        errors.map(e => e.message),
+        statement
+      ).toEqual([expect.stringContaining("throw")]);
+    }
+  });
+
+  it("I4: refuses two methods with the same flow id, at both places", () => {
+    const { errors, flows, text } = compile(`
+  async run() {
+    return 1;
+  }
+  async Run() {
+    return 2;
+  }`);
+    expect(errors.map(e => [e.start, e.message])).toEqual([
+      [text.indexOf("run()"), expect.stringContaining("ScratchFlows.Run")],
+      [text.indexOf("Run()"), expect.stringContaining("ScratchFlows.Run")]
+    ]);
+    expect(flows["ScratchFlows.Run"].body).toEqual([{ kind: "return", id: "run/return[0]", value: { lit: 1 } }]);
+  });
+
+  it("I4: refuses two flow classes with the same name in different files", () => {
+    const text = [
+      `import { Workflow } from "./workflow.js";`,
+      `export class OrderFlows extends Workflow {`,
+      `  async noop() {`,
+      `    return 1;`,
+      `  }`,
+      `}`,
+      ``
+    ].join("\n");
+    const session = openFixture({ [scratch]: text });
+    try {
+      const { errors } = compileFlows(session.ctx);
+      expect(errors.map(e => [e.file.split("/").pop(), e.message])).toEqual([
+        ["order.flow.ts", expect.stringContaining("OrderFlows is declared in")],
+        ["scratch.flow.ts", expect.stringContaining("OrderFlows is declared in")]
+      ]);
+    } finally {
+      session.dispose();
+    }
+  });
+
+  it("I4: refuses a call to a service operation whose name two methods share", () => {
+    const { errors } = errorsOf(`    await PaymentService.Settle({});`);
+    expect(errors.map(e => e.message)).toEqual([expect.stringContaining("settle, Settle")]);
+  });
+
+  it.each([
+    ["a structural id", "if[1]"],
+    ["a path", "a/b"],
+    ["a task key separator", "a@b"],
+    ["nothing", ""]
+  ])("M1: refuses a @label that is %s", (_name, label) => {
+    const { errors } = errorsOf(`    // @label ${label}\n    await Sleep("1s");\n    if (uuid) {}`);
+    expect(errors.map(e => e.message)).toEqual([expect.stringContaining("@label")]);
+  });
+
+  it("M1: refuses a @label used twice in nested blocks", () => {
+    const { errors } = errorsOf(
+      `    if (uuid) {\n      // @label a\n      await Sleep("1s");\n    }\n    // @label a\n    await Sleep("2s");`
+    );
+    expect(errors.map(e => e.message)).toEqual([expect.stringContaining("@label a")]);
+  });
+});

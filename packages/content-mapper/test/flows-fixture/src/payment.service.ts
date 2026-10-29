@@ -31,6 +31,20 @@ export class PaymentService extends Service {
   }
 
   /**
+   * Settle a payment
+   * @returns nothing
+   */
+  @Operation()
+  async settle(): Promise<void> {}
+
+  /**
+   * Settle a payment, the same operation id as settle
+   * @returns nothing
+   */
+  @Operation()
+  async Settle(): Promise<void> {}
+
+  /**
    * Not an operation
    * @returns nothing
    */

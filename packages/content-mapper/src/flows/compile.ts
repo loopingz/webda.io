@@ -62,6 +62,14 @@ export interface FlowCompileResult {
 /** Variable receiving a branch or item result before it is returned. */
 const RESULT = "$result";
 
+/**
+ * `undefined`: JSON has no undefined, so it is read as a member an empty object does not have
+ */
+export const UNDEFINED: Expr = { get: [{ obj: {} }, { lit: "undefined" }] };
+
+/** What a `@label` name may be: it never contains the `/`, `[` or `@` of structural ids and task keys. */
+const LABEL = /^[A-Za-z][A-Za-z0-9_-]*$/;
+
 /** Operators of a flow expression, by token kind. */
 const BINARY: Record<number, BinaryOp> = {
   [SyntaxKind.EqualsEqualsToken]: "==",
@@ -106,6 +114,14 @@ const STATEMENT_NAMES: Partial<Record<SyntaxKind, string>> = {
   [SyntaxKind.DebuggerStatement]: "debugger statement"
 };
 
+/** Where a flow class or flow id is declared, to report a duplicate. */
+interface Declared {
+  file: string;
+  node: Node;
+  /** Whether the duplicate error was already reported at this place. */
+  reported?: boolean;
+}
+
 /** Thrown to abandon a construct: the error is already recorded. */
 class Reported extends Error {}
 
@@ -117,6 +133,10 @@ class MethodCompiler {
   protected scopes: Set<string>[] = [];
   /** Labels used, to refuse duplicates. */
   protected labels = new Set<string>();
+  /** Index of the first scope of each enclosing Workflow.Parallel body, innermost last. */
+  protected boundaries: number[] = [];
+  /** Catch variables: they hold the caught error, and only rethrowing them is allowed. */
+  protected catchVars = new Set<string>();
 
   /**
    * @param ctx - analysis context
@@ -194,8 +214,52 @@ class MethodCompiler {
       return undefined;
     }
     this.scopes = [new Set(params)];
-    const body = this.block(this.method.body.statements as unknown as Node[], this.name);
+    const body = [...this.defaults(), ...this.block(this.method.body.statements as unknown as Node[], this.name)];
     return this.errors.length === before ? { params, body } : undefined;
+  }
+
+  /**
+   * Default parameter values: \`if (x === undefined) x = <default>\`, as JavaScript applies them
+   * @returns the statements, before the body
+   */
+  defaults(): Stmt[] {
+    const out: Stmt[] = [];
+    (this.method.parameters as unknown as any[]).forEach((parameter, index) => {
+      if (!parameter.initializer || !is.isIdentifier(parameter.name)) return;
+      const name = parameter.name.text;
+      const self = `${this.name}/default[${index}]`;
+      try {
+        out.push({
+          kind: "if",
+          id: self,
+          cond: { op: "===", args: [{ var: name }, UNDEFINED] },
+          then: [{ kind: "assign", id: `${self}/then/assign[0]`, name, value: this.expr(parameter.initializer) }]
+        });
+      } catch (err) {
+        if (!(err instanceof Reported)) throw err;
+      }
+    });
+    return out;
+  }
+
+  /**
+   * Declare a variable in the current scope
+   *
+   * The engine keeps one set of variables per flow (per branch copy): a declaration shadowing an enclosing one would
+   * overwrite it, so it is refused. A name declared again in a sibling block is fine: every declaration assigns it.
+   * @param node - the declaring node, for the error
+   * @param name - the name
+   */
+  declare(node: Node, name: string): void {
+    if (this.declared(name)) {
+      this.fail(
+        node,
+        `${name} is already declared in an enclosing scope: flow variables share one scope, so declaring it again ` +
+          `would overwrite it; rename it`
+      );
+    }
+    if (name.startsWith("$")) this.fail(node, `${name}: flow variable names cannot start with $; rename it`);
+    this.scopes[this.scopes.length - 1].add(name);
   }
 
   /**
@@ -261,13 +325,20 @@ class MethodCompiler {
    */
   label(node: Node): string | undefined {
     const trivia = this.ctx.triviaOf(this.sf, node);
-    const match = /\/\/[ \t]*@label[ \t]+([^\s]+)[ \t]*\r?\n[ \t]*$/.exec(trivia);
+    const match = /\/\/[ \t]*@label\b([^\n]*)\n[ \t]*$/.exec(trivia);
     if (!match) return undefined;
-    if (this.labels.has(match[1])) {
-      this.fail(node, `Duplicate @label ${match[1]} in flow method ${this.name}`);
+    const label = match[1].trim();
+    if (!LABEL.test(label)) {
+      this.fail(
+        node,
+        `Invalid @label "${label}": a label is a letter followed by letters, digits, _ or -, unique in the flow`
+      );
     }
-    this.labels.add(match[1]);
-    return match[1];
+    if (this.labels.has(label)) {
+      this.fail(node, `Duplicate @label ${label} in flow method ${this.name}`);
+    }
+    this.labels.add(label);
+    return label;
   }
 
   /**
@@ -300,8 +371,9 @@ class MethodCompiler {
         this.fail(declaration.name, "Destructuring: declare one name per const or let");
       }
       const name = declaration.name.text;
-      this.scopes[this.scopes.length - 1].add(name);
-      if (!declaration.initializer) return undefined;
+      this.declare(declaration.name, name);
+      // A let without initializer is undefined each time it runs, in a loop too
+      if (!declaration.initializer) return { kind: "assign", id: id("assign"), name, value: UNDEFINED };
       return this.assignment(name, declaration.initializer, id);
     }
     if (is.isExpressionStatement(node)) {
@@ -318,6 +390,17 @@ class MethodCompiler {
           }
           const name = (target as any).text;
           if (!this.declared(name)) this.fail(target, `Assignment to ${name}, which is not a variable of the flow`);
+          if (this.catchVars.has(name)) {
+            this.fail(expression, `${name} holds the caught error: declare another variable instead of assigning it`);
+          }
+          const boundary = this.boundaries[this.boundaries.length - 1];
+          if (boundary !== undefined && this.scopeOf(name) < boundary) {
+            this.fail(
+              expression,
+              `${name} is declared outside this Workflow.Parallel body: each item runs on a copy of the variables, ` +
+                `so the assignment would be lost; return the value from the body instead`
+            );
+          }
           return this.assignment(name, (expression as any).right, id);
         }
         if (operator >= SyntaxKind.FirstCompoundAssignment && operator <= SyntaxKind.LastCompoundAssignment) {
@@ -351,6 +434,8 @@ class MethodCompiler {
         this.fail(initializer, "for...of declares one const name: for (const item of items)");
       }
       const item = declaration.name.text;
+      this.declare(declaration.name, item);
+      this.scopes[this.scopes.length - 1].delete(item);
       const items = this.expr(node.expression);
       const body = this.block(
         is.isBlock(node.statement) ? (node.statement.statements as unknown as Node[]) : [node.statement],
@@ -372,7 +457,12 @@ class MethodCompiler {
           this.fail(binding, "catch takes one name: catch (e)");
         }
         const names = binding ? [binding.name.text] : [];
-        if (binding) stmt.catchVar = binding.name.text;
+        if (binding) {
+          this.declare(binding.name, binding.name.text);
+          this.scopes[this.scopes.length - 1].delete(binding.name.text);
+          stmt.catchVar = binding.name.text;
+          this.catchVars.add(binding.name.text);
+        }
         stmt.catch = this.block(node.catchClause.block.statements as unknown as Node[], `${self}/catch`, names);
       }
       if (node.finallyBlock) stmt.finally = this.branch(node.finallyBlock, `${self}/finally`);
@@ -384,12 +474,60 @@ class MethodCompiler {
       return stmt;
     }
     if (is.isThrowStatement(node)) {
-      return { kind: "throw", id: id("throw"), value: this.expr(node.expression) };
+      return { kind: "throw", id: id("throw"), value: this.thrown(node.expression) };
     }
     return this.fail(
       node,
       `${STATEMENT_NAMES[node.kind as SyntaxKind] ?? SyntaxKind[node.kind]} is not allowed in a flow`
     );
+  }
+
+  /**
+   * The value of a throw: the catch variable, rethrown, or \`{ code, message }\` with string values
+   *
+   * The engine turns anything else into a FlowError, so the catch would not see what TypeScript says it throws.
+   * @param node - the thrown expression
+   * @returns the expression
+   */
+  thrown(node: any): Expr {
+    const value = this.unwrap(node);
+    const message =
+      "throw takes { code, message } with string literal or template values, or rethrows the catch variable";
+    if (is.isIdentifier(value)) {
+      if (!this.catchVars.has(value.text)) this.fail(node, `${message}: ${value.text} is not a catch variable`);
+      return this.expr(value);
+    }
+    if (!is.isObjectLiteralExpression(value)) this.fail(node, message);
+    const keys: string[] = [];
+    for (const property of (value as any).properties) {
+      const key = is.isPropertyAssignment(property) ? this.propertyName(property.name) : undefined;
+      const initializer = key && this.unwrap(property.initializer);
+      if (
+        (key !== "code" && key !== "message") ||
+        !(
+          is.isStringLiteral(initializer) ||
+          is.isNoSubstitutionTemplateLiteral(initializer) ||
+          is.isTemplateExpression(initializer)
+        )
+      ) {
+        this.fail(property, message);
+      }
+      keys.push(key);
+    }
+    if (keys.length !== 2 || !keys.includes("code") || !keys.includes("message")) this.fail(node, message);
+    return this.expr(value);
+  }
+
+  /**
+   * Index of the scope declaring a name
+   * @param name - the name
+   * @returns the innermost scope index, -1 when undeclared
+   */
+  scopeOf(name: string): number {
+    for (let i = this.scopes.length - 1; i >= 0; i--) {
+      if (this.scopes[i].has(name)) return i;
+    }
+    return -1;
   }
 
   /**
@@ -584,6 +722,14 @@ class MethodCompiler {
           target: { class: service.className, method: operation.method }
         } as Partial<Stmt>);
       }
+      const conflict = service?.conflicts.get(name);
+      if (conflict) {
+        this.fail(
+          callee,
+          `${object}.${name} is ambiguous: ${service!.className} has methods ${conflict.join(", ")} for the same ` +
+            `operation id; rename one`
+        );
+      }
       if (service) this.fail(callee, `${object}.${name} is not an operation of ${service.className}`);
     }
     return this.forbiddenCall(call);
@@ -719,15 +865,24 @@ class MethodCompiler {
       this.fail(call, "Workflow.Parallel takes the items, an arrow function and options");
     }
     const parameters: any[] = (fn as any).parameters;
-    if (parameters.length !== 1 || !is.isIdentifier(parameters[0].name)) {
-      this.fail(fn, "The Workflow.Parallel function takes one parameter: the item");
+    if (parameters.length !== 1 || !is.isIdentifier(parameters[0].name) || parameters[0].initializer) {
+      this.fail(fn, "The Workflow.Parallel function takes one parameter, without default: the item");
     }
     const item = parameters[0].name.text;
+    this.declare(parameters[0].name, item);
+    this.scopes[this.scopes.length - 1].delete(item);
     const self = id("map");
     const items = this.expr(args[0]);
-    const body = is.isBlock((fn as any).body)
-      ? this.block((fn as any).body.statements, self, [item])
-      : this.scoped([item], () => this.callBody((fn as any).body, self));
+    // Each item runs on a copy of the variables: assignments to outer ones are refused
+    this.boundaries.push(this.scopes.length);
+    let body: Stmt[];
+    try {
+      body = is.isBlock((fn as any).body)
+        ? this.block((fn as any).body.statements, self, [item])
+        : this.scoped([item], () => this.callBody((fn as any).body, self));
+    } finally {
+      this.boundaries.pop();
+    }
     const stmt: Stmt = { kind: "map", id: self, items, item, body };
     if (args[2]) {
       const options = this.literal(args[2]);
@@ -925,9 +1080,35 @@ export function compileFlows(ctx: AnalysisContext): FlowCompileResult {
   const files = ctx.sourceFiles.filter(sf => sf.fileName.endsWith(FLOW_SUFFIX));
   if (!files.length) return result;
   const services = operationServices(ctx);
+  /**
+   * Report a name declared twice, at both places: the first one keeps it, the second is left out
+   * @param first - the first declaration
+   * @param second - the duplicate
+   * @param message - what is duplicated
+   */
+  const duplicate = (first: Declared, second: Declared, message: string) => {
+    for (const place of first.reported ? [second] : [first, second]) {
+      const start = (place.node as any).getStart();
+      result.errors.push({ file: place.file, start, length: place.node.end - start, code: FLOW_ERROR, message });
+    }
+    first.reported = true;
+  };
+  const classes = new Map<string, Declared>();
+  const ids = new Map<string, Declared>();
   for (const sf of files) {
     for (const cls of flowClassesOf(ctx, sf)) {
       const className = cls.name!.text;
+      const declared: Declared = { file: sf.fileName, node: cls.name! };
+      const previous = classes.get(className);
+      if (previous) {
+        duplicate(
+          previous,
+          declared,
+          `Flow class ${className} is declared in ${previous.file} and ${sf.fileName}: flow ids would collide, rename one`
+        );
+        continue;
+      }
+      classes.set(className, declared);
       for (const member of cls.members as unknown as any[]) {
         const isMethod = is.isMethodDeclaration(member) && is.isIdentifier(member.name);
         if (
@@ -946,11 +1127,18 @@ export function compileFlows(ctx: AnalysisContext): FlowCompileResult {
           });
           continue;
         }
+        const id = `${className}.${capitalize(member.name.text)}`;
+        const first = ids.get(id);
+        const place: Declared = { file: sf.fileName, node: member.name };
+        if (first) {
+          duplicate(first, place, `Flow id ${id} is declared twice in ${className}: rename one of the methods`);
+          continue;
+        }
+        ids.set(id, place);
         const before = result.errors.length;
         const compiled = new MethodCompiler(ctx, sf, member, services, result.errors).compile();
         const crons = cronsOf(ctx, sf, member, result.errors);
         if (!compiled || result.errors.length !== before) continue;
-        const id = `${className}.${capitalize(member.name.text)}`;
         const flow: CompiledFlow = {
           id,
           version: flowVersion(compiled),

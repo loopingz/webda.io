@@ -85,7 +85,11 @@ class CompiledContractTest {
   @test
   compiledGraphIsValid() {
     const flows = this.compile();
-    assert.deepStrictEqual(Object.keys(flows).sort(), ["OrderFlows.Archive", "OrderFlows.Reconcile"]);
+    assert.deepStrictEqual(Object.keys(flows).sort(), [
+      "OrderFlows.Archive",
+      "OrderFlows.Defaults",
+      "OrderFlows.Reconcile"
+    ]);
     for (const flow of Object.values(flows)) {
       const body = flow.body as Stmt[];
       for (const [path, expr] of expressions(body)) {
@@ -189,5 +193,14 @@ class CompiledContractTest {
       flow: "OrderFlows.Archive",
       input: { since: 1000 }
     });
+  }
+
+  @test
+  compiledSemanticsMatchTypeScript() {
+    const flow = this.compile()["OrderFlows.Defaults"];
+    const def: FlowDefinition = { ...flow, body: flow.body as Stmt[] };
+    // The defaults apply to a missing input, and `let y;` is undefined again on each iteration
+    assert.deepStrictEqual(run(def, {}, {}), { status: "done", output: 3 + 5 + 0 + 5 });
+    assert.deepStrictEqual(run(def, { n: 1, items: [2] }, {}), { status: "done", output: 3 });
   }
 }

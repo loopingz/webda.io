@@ -16,7 +16,7 @@ export class OrderFlows extends Workflow {
       try {
         const receipt = await PaymentService.Capture({ uuid: o.uuid, amount: o.amount }, { retries: 3 });
         if (!receipt.ok) {
-          throw `Capture of ${o.uuid} refused`;
+          throw { code: "Refused", message: `Capture of ${o.uuid} refused` };
         }
       } catch (e) {
         refused = refused + 1;
@@ -38,5 +38,23 @@ export class OrderFlows extends Workflow {
    */
   async archive(since: number) {
     return since;
+  }
+
+  /**
+   * Defaults and a let without initializer, as TypeScript runs them
+   * @param n - added per item
+   * @param items - the items
+   * @returns the total
+   */
+  async defaults(n: number = 5, items: number[] = [3, 1]) {
+    let total = 0;
+    for (const i of items) {
+      let y;
+      if (i > 1) {
+        y = i;
+      }
+      total = total + (y ?? 0) + n;
+    }
+    return total;
   }
 }

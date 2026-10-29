@@ -38,6 +38,10 @@ export interface OperationService {
   fileName: string;
   /** Operations by capitalized method name. */
   operations: Map<string, ServiceOperation>;
+  /**
+   * Capitalized names that several methods share (`capture` and `Capture`): the same operation id, so no typed call
+   */
+  conflicts: Map<string, string[]>;
 }
 
 /**
@@ -172,6 +176,7 @@ export function operationServices(ctx: AnalysisContext): Map<string, OperationSe
         continue;
       }
       const operations = new Map<string, ServiceOperation>();
+      const conflicts = new Map<string, string[]>();
       for (const method of methods) {
         const parameters: OperationParameter[] = [];
         method.parameters.forEach((parameter: any, index: number) => {
@@ -181,9 +186,16 @@ export function operationServices(ctx: AnalysisContext): Map<string, OperationSe
           parameters.push({ name: parameter.name.text, index, optional: isOptional(parameter) });
         });
         const name = (method.name as any).text as string;
-        operations.set(capitalize(name), { method: name, parameters });
+        const key = capitalize(name);
+        const conflict = conflicts.get(key) ?? (operations.has(key) ? [operations.get(key)!.method] : undefined);
+        if (conflict) {
+          conflicts.set(key, [...conflict, name]);
+          operations.delete(key);
+          continue;
+        }
+        operations.set(key, { method: name, parameters });
       }
-      services.set(className, { className, fileName, operations });
+      services.set(className, { className, fileName, operations, conflicts });
     }
   }
   return services;

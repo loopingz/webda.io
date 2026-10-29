@@ -2,8 +2,1664 @@
   "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
-  "moddas": {},
-  "models": {},
-  "schemas": {},
+  "moddas": {
+    "Webda/WorkflowService": {
+      "Import": "lib/workflow.service:WorkflowService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "FlowDefinitionData": {
+            "additionalProperties": false,
+            "description": "A {@link FlowDefinition} as models and configuration hold it\n\nThe statements are recursive: describing them in a JSON schema makes the schema generator explode, so they are\nplain JSON there. {@link validateExpr } checks untrusted expressions.",
+            "properties": {
+              "body": {
+                "description": "The statements ({@link Stmt}[])",
+                "items": {},
+                "type": "array"
+              },
+              "id": {
+                "description": "Operation id `<Class>.<Method>`",
+                "type": "string"
+              },
+              "input": {
+                "description": "JSON schema of the input",
+                "type": "object"
+              },
+              "options": {
+                "$ref": "#/definitions/TaskOptions",
+                "description": "Default options of every task"
+              },
+              "output": {
+                "description": "JSON schema of the output",
+                "type": "object"
+              },
+              "params": {
+                "description": "Names of the flow parameters, in order",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "source": {
+                "default": "code",
+                "description": "Where the flow comes from",
+                "enum": [
+                  "code",
+                  "stored"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "{@link flowVersion} of the definition, computed when missing",
+                "type": "string"
+              }
+            },
+            "required": [
+              "body",
+              "id",
+              "input",
+              "params"
+            ],
+            "type": "object"
+          },
+          "TaskOptions": {
+            "additionalProperties": false,
+            "description": "Options of a task, and defaults of a flow",
+            "properties": {
+              "backoff": {
+                "default": "exponential",
+                "description": "Delay growth between attempts",
+                "enum": [
+                  "fixed",
+                  "exponential"
+                ],
+                "type": "string"
+              },
+              "delay": {
+                "default": "1s",
+                "description": "Delay before the first retry (Duration syntax)",
+                "type": "string"
+              },
+              "retries": {
+                "default": 0,
+                "description": "Retries after the first attempt",
+                "type": "number"
+              },
+              "timeout": {
+                "description": "Maximum duration of one attempt (Duration syntax)",
+                "type": "string"
+              },
+              "useSystem": {
+                "default": false,
+                "description": "Run the task as the system instead of the launcher",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the {@link WorkflowService}",
+        "properties": {
+          "allowStoredSystem": {
+            "default": false,
+            "description": "Allow `useSystem` tasks in stored workflows",
+            "type": "boolean"
+          },
+          "concurrency": {
+            "default": 10,
+            "description": "Maximum number of tasks running at once on this replica",
+            "type": "number"
+          },
+          "flows": {
+            "description": "Flows to register",
+            "items": {
+              "$ref": "#/definitions/FlowDefinitionData"
+            },
+            "type": "array"
+          },
+          "leaseDuration": {
+            "default": 60000,
+            "description": "Lease of a claimed task (ms), renewed while it runs",
+            "type": "number"
+          },
+          "maxContextSize": {
+            "default": 262144,
+            "description": "Maximum size of the journal and input of an instance (bytes of JSON)",
+            "type": "number"
+          },
+          "pollInterval": {
+            "default": 1000,
+            "description": "Interval between two polls of the worker (ms)",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "worker": {
+            "default": true,
+            "description": "Run the worker loop on this replica",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "WorkflowService"
+      },
+      "Configuration": "lib/workflow.service:WorkflowServiceParameters"
+    }
+  },
+  "models": {
+    "Webda/WorkflowInstance": {
+      "Plural": "WorkflowInstances",
+      "Import": "lib/models/workflowinstance.model:default",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "flowId": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "definition": {
+          "type": "FlowDefinitionData"
+        },
+        "input": {
+          "type": "Record",
+          "typeParameters": [
+            "string",
+            "any"
+          ]
+        },
+        "journal": {
+          "type": "Journal"
+        },
+        "status": {
+          "type": "WorkflowInstanceStatus"
+        },
+        "launcher": {
+          "type": "WorkflowLauncher"
+        },
+        "output": {
+          "type": "any"
+        },
+        "error": {
+          "type": "FlowError"
+        },
+        "revision": {
+          "type": "number"
+        },
+        "parent": {
+          "type": "{ instance: string; key: string }"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "number"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowInstances",
+          "additionalProperties": false,
+          "definitions": {
+            "FlowDefinitionData": {
+              "additionalProperties": false,
+              "description": "A {@link FlowDefinition} as models and configuration hold it\n\nThe statements are recursive: describing them in a JSON schema makes the schema generator explode, so they are\nplain JSON there. {@link validateExpr } checks untrusted expressions.",
+              "properties": {
+                "body": {
+                  "description": "The statements ({@link Stmt}[])",
+                  "items": {},
+                  "type": "array"
+                },
+                "id": {
+                  "description": "Operation id `<Class>.<Method>`",
+                  "type": "string"
+                },
+                "input": {
+                  "description": "JSON schema of the input",
+                  "type": "object"
+                },
+                "options": {
+                  "$ref": "#/definitions/TaskOptions",
+                  "description": "Default options of every task"
+                },
+                "output": {
+                  "description": "JSON schema of the output",
+                  "type": "object"
+                },
+                "params": {
+                  "description": "Names of the flow parameters, in order",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source": {
+                  "default": "code",
+                  "description": "Where the flow comes from",
+                  "enum": [
+                    "code",
+                    "stored"
+                  ],
+                  "type": "string"
+                },
+                "version": {
+                  "description": "{@link flowVersion} of the definition, computed when missing",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "body",
+                "id",
+                "input",
+                "params"
+              ],
+              "type": "object"
+            },
+            "FlowError": {
+              "additionalProperties": false,
+              "description": "An error, as seen by the flow: plain data",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "operation"
+              ],
+              "type": "object"
+            },
+            "Journal": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%231"
+                  },
+                  {
+                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%232"
+                  }
+                ],
+                "description": "Outcome of a task"
+              },
+              "description": "Outcome of each finished task, keyed by task key (`<statement id>@<iteration path>`)",
+              "type": "object"
+            },
+            "Record<string, any>": {
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "WorkflowLauncher": {
+              "additionalProperties": false,
+              "description": "Who launched a workflow: the steps run as this identity",
+              "properties": {
+                "identId": {
+                  "description": "Ident used by the launcher to log in",
+                  "type": "string"
+                },
+                "system": {
+                  "default": false,
+                  "description": "Launched by the system",
+                  "type": "boolean"
+                },
+                "userId": {
+                  "description": "User id of the launcher",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "journal$[key: string]#1": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "type": "number"
+                },
+                "result": {}
+              },
+              "required": [
+                "result"
+              ],
+              "type": "object"
+            },
+            "journal$[key: string]#2": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "type": "number"
+                },
+                "error": {
+                  "$ref": "#/definitions/FlowError"
+                }
+              },
+              "required": [
+                "error"
+              ],
+              "type": "object"
+            },
+            "parent#2": {
+              "additionalProperties": false,
+              "description": "Parent instance and task key of a child flow",
+              "properties": {
+                "instance": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "instance",
+                "key"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "A running (or finished) flow: its pinned definition, input and journal of task outcomes",
+          "properties": {
+            "createdAt": {
+              "description": "Creation time (ms)",
+              "type": "number"
+            },
+            "definition": {
+              "$ref": "#/definitions/FlowDefinitionData",
+              "description": "The definition the instance runs, pinned at launch"
+            },
+            "error": {
+              "$ref": "#/definitions/FlowError",
+              "description": "Uncaught error, once ERROR"
+            },
+            "flowId": {
+              "description": "Flow id: the operation id launching the flow",
+              "type": "string"
+            },
+            "input": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Flow input, by parameter name"
+            },
+            "journal": {
+              "$ref": "#/definitions/Journal",
+              "description": "Outcomes of the finished tasks, by task key"
+            },
+            "launcher": {
+              "$ref": "#/definitions/WorkflowLauncher",
+              "description": "Identity the steps run as"
+            },
+            "output": {
+              "description": "Flow output, once SUCCESS"
+            },
+            "parent": {
+              "$ref": "#/definitions/parent%232",
+              "description": "Parent instance and task key of a child flow"
+            },
+            "revision": {
+              "description": "Revision of the instance, incremented by every write (compare-and-set)",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "WAITING",
+                "SUCCESS",
+                "ERROR",
+                "CANCELLED"
+              ],
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update time (ms)",
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "version": {
+              "description": "Version of the pinned definition",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "definition",
+            "flowId",
+            "input",
+            "journal",
+            "launcher",
+            "revision",
+            "status",
+            "updatedAt",
+            "uuid",
+            "version"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowInstances",
+          "additionalProperties": false,
+          "definitions": {
+            "FlowDefinitionData": {
+              "additionalProperties": false,
+              "description": "A {@link FlowDefinition} as models and configuration hold it\n\nThe statements are recursive: describing them in a JSON schema makes the schema generator explode, so they are\nplain JSON there. {@link validateExpr } checks untrusted expressions.",
+              "properties": {
+                "body": {
+                  "description": "The statements ({@link Stmt}[])",
+                  "items": {},
+                  "type": "array"
+                },
+                "id": {
+                  "description": "Operation id `<Class>.<Method>`",
+                  "type": "string"
+                },
+                "input": {
+                  "description": "JSON schema of the input",
+                  "type": "object"
+                },
+                "options": {
+                  "$ref": "#/definitions/TaskOptions",
+                  "description": "Default options of every task"
+                },
+                "output": {
+                  "description": "JSON schema of the output",
+                  "type": "object"
+                },
+                "params": {
+                  "description": "Names of the flow parameters, in order",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source": {
+                  "default": "code",
+                  "description": "Where the flow comes from",
+                  "enum": [
+                    "code",
+                    "stored"
+                  ],
+                  "type": "string"
+                },
+                "version": {
+                  "description": "{@link flowVersion} of the definition, computed when missing",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "body",
+                "id",
+                "input",
+                "params"
+              ],
+              "type": "object"
+            },
+            "FlowError": {
+              "additionalProperties": false,
+              "description": "An error, as seen by the flow: plain data",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "operation"
+              ],
+              "type": "object"
+            },
+            "Journal": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%231"
+                  },
+                  {
+                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%232"
+                  }
+                ],
+                "description": "Outcome of a task"
+              },
+              "description": "Outcome of each finished task, keyed by task key (`<statement id>@<iteration path>`)",
+              "type": "object"
+            },
+            "Record<string, any>": {
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "WorkflowLauncher": {
+              "additionalProperties": false,
+              "description": "Who launched a workflow: the steps run as this identity",
+              "properties": {
+                "identId": {
+                  "description": "Ident used by the launcher to log in",
+                  "type": "string"
+                },
+                "system": {
+                  "default": false,
+                  "description": "Launched by the system",
+                  "type": "boolean"
+                },
+                "userId": {
+                  "description": "User id of the launcher",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "journal$[key: string]#1": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "type": "number"
+                },
+                "result": {}
+              },
+              "required": [
+                "result"
+              ],
+              "type": "object"
+            },
+            "journal$[key: string]#2": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "type": "number"
+                },
+                "error": {
+                  "$ref": "#/definitions/FlowError"
+                }
+              },
+              "required": [
+                "error"
+              ],
+              "type": "object"
+            },
+            "parent#2": {
+              "additionalProperties": false,
+              "description": "Parent instance and task key of a child flow",
+              "properties": {
+                "instance": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "instance",
+                "key"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "A running (or finished) flow: its pinned definition, input and journal of task outcomes",
+          "properties": {
+            "createdAt": {
+              "description": "Creation time (ms)",
+              "type": "number"
+            },
+            "definition": {
+              "$ref": "#/definitions/FlowDefinitionData",
+              "description": "The definition the instance runs, pinned at launch"
+            },
+            "error": {
+              "$ref": "#/definitions/FlowError",
+              "description": "Uncaught error, once ERROR"
+            },
+            "flowId": {
+              "description": "Flow id: the operation id launching the flow",
+              "type": "string"
+            },
+            "input": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Flow input, by parameter name"
+            },
+            "journal": {
+              "$ref": "#/definitions/Journal",
+              "description": "Outcomes of the finished tasks, by task key"
+            },
+            "launcher": {
+              "$ref": "#/definitions/WorkflowLauncher",
+              "description": "Identity the steps run as"
+            },
+            "output": {
+              "description": "Flow output, once SUCCESS"
+            },
+            "parent": {
+              "$ref": "#/definitions/parent%232",
+              "description": "Parent instance and task key of a child flow"
+            },
+            "revision": {
+              "description": "Revision of the instance, incremented by every write (compare-and-set)",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "WAITING",
+                "SUCCESS",
+                "ERROR",
+                "CANCELLED"
+              ],
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update time (ms)",
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "version": {
+              "description": "Version of the pinned definition",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "definition",
+            "flowId",
+            "input",
+            "journal",
+            "launcher",
+            "revision",
+            "status",
+            "updatedAt",
+            "uuid",
+            "version"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowInstances",
+          "additionalProperties": false,
+          "definitions": {
+            "FlowDefinitionData": {
+              "additionalProperties": false,
+              "description": "A {@link FlowDefinition} as models and configuration hold it\n\nThe statements are recursive: describing them in a JSON schema makes the schema generator explode, so they are\nplain JSON there. {@link validateExpr } checks untrusted expressions.",
+              "properties": {
+                "body": {
+                  "description": "The statements ({@link Stmt}[])",
+                  "items": {},
+                  "type": "array"
+                },
+                "id": {
+                  "description": "Operation id `<Class>.<Method>`",
+                  "type": "string"
+                },
+                "input": {
+                  "description": "JSON schema of the input",
+                  "type": "object"
+                },
+                "options": {
+                  "$ref": "#/definitions/TaskOptions",
+                  "description": "Default options of every task"
+                },
+                "output": {
+                  "description": "JSON schema of the output",
+                  "type": "object"
+                },
+                "params": {
+                  "description": "Names of the flow parameters, in order",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source": {
+                  "default": "code",
+                  "description": "Where the flow comes from",
+                  "enum": [
+                    "code",
+                    "stored"
+                  ],
+                  "type": "string"
+                },
+                "version": {
+                  "description": "{@link flowVersion} of the definition, computed when missing",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "body",
+                "id",
+                "input",
+                "params"
+              ],
+              "type": "object"
+            },
+            "FlowError": {
+              "additionalProperties": false,
+              "description": "An error, as seen by the flow: plain data",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "operation"
+              ],
+              "type": "object"
+            },
+            "Journal": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%231"
+                  },
+                  {
+                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%232"
+                  }
+                ],
+                "description": "Outcome of a task"
+              },
+              "description": "Outcome of each finished task, keyed by task key (`<statement id>@<iteration path>`)",
+              "type": "object"
+            },
+            "Record<string, any>": {
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "WorkflowLauncher": {
+              "additionalProperties": false,
+              "description": "Who launched a workflow: the steps run as this identity",
+              "properties": {
+                "identId": {
+                  "description": "Ident used by the launcher to log in",
+                  "type": "string"
+                },
+                "system": {
+                  "default": false,
+                  "description": "Launched by the system",
+                  "type": "boolean"
+                },
+                "userId": {
+                  "description": "User id of the launcher",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "journal$[key: string]#1": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "type": "number"
+                },
+                "result": {}
+              },
+              "required": [
+                "result"
+              ],
+              "type": "object"
+            },
+            "journal$[key: string]#2": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "type": "number"
+                },
+                "error": {
+                  "$ref": "#/definitions/FlowError"
+                }
+              },
+              "required": [
+                "error"
+              ],
+              "type": "object"
+            },
+            "parent#2": {
+              "additionalProperties": false,
+              "description": "Parent instance and task key of a child flow",
+              "properties": {
+                "instance": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "instance",
+                "key"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "A running (or finished) flow: its pinned definition, input and journal of task outcomes",
+          "properties": {
+            "createdAt": {
+              "description": "Creation time (ms)",
+              "type": "number"
+            },
+            "definition": {
+              "$ref": "#/definitions/FlowDefinitionData",
+              "description": "The definition the instance runs, pinned at launch"
+            },
+            "error": {
+              "$ref": "#/definitions/FlowError",
+              "description": "Uncaught error, once ERROR"
+            },
+            "flowId": {
+              "description": "Flow id: the operation id launching the flow",
+              "type": "string"
+            },
+            "input": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Flow input, by parameter name"
+            },
+            "journal": {
+              "$ref": "#/definitions/Journal",
+              "description": "Outcomes of the finished tasks, by task key"
+            },
+            "launcher": {
+              "$ref": "#/definitions/WorkflowLauncher",
+              "description": "Identity the steps run as"
+            },
+            "output": {
+              "description": "Flow output, once SUCCESS"
+            },
+            "parent": {
+              "$ref": "#/definitions/parent%232",
+              "description": "Parent instance and task key of a child flow"
+            },
+            "revision": {
+              "description": "Revision of the instance, incremented by every write (compare-and-set)",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "WAITING",
+                "SUCCESS",
+                "ERROR",
+                "CANCELLED"
+              ],
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update time (ms)",
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "version": {
+              "description": "Version of the pinned definition",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "definition",
+            "flowId",
+            "input",
+            "journal",
+            "launcher",
+            "revision",
+            "status",
+            "updatedAt",
+            "uuid",
+            "version"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/WorkflowInstance"
+    },
+    "Webda/WorkflowTask": {
+      "Plural": "WorkflowTasks",
+      "Import": "lib/models/workflowtask.model:default",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "instance": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "input": {
+          "type": "any"
+        },
+        "options": {
+          "type": "TaskOptions"
+        },
+        "attempt": {
+          "type": "number"
+        },
+        "status": {
+          "type": "WorkflowTaskStatus"
+        },
+        "runAt": {
+          "type": "number"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "leaseUntil": {
+          "type": "number"
+        },
+        "output": {
+          "type": "any"
+        },
+        "error": {
+          "type": "FlowError"
+        },
+        "startedAt": {
+          "type": "number"
+        },
+        "endedAt": {
+          "type": "number"
+        },
+        "launcherId": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowTasks",
+          "additionalProperties": false,
+          "definitions": {
+            "FlowError": {
+              "additionalProperties": false,
+              "description": "An error, as seen by the flow: plain data",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "operation"
+              ],
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "One attempt of a task of a workflow instance",
+          "properties": {
+            "attempt": {
+              "description": "Attempt number, starting at 1",
+              "type": "number"
+            },
+            "endedAt": {
+              "description": "End of the attempt (ms)",
+              "type": "number"
+            },
+            "error": {
+              "$ref": "#/definitions/FlowError",
+              "description": "Error of the attempt"
+            },
+            "input": {
+              "description": "Operation input"
+            },
+            "instance": {
+              "description": "Uuid of the workflow instance",
+              "type": "string"
+            },
+            "key": {
+              "description": "Task key in the instance journal",
+              "type": "string"
+            },
+            "launcherId": {
+              "description": "User id of the instance launcher, for canAct",
+              "type": "string"
+            },
+            "leaseUntil": {
+              "description": "End of the lease (ms), 0 when free",
+              "type": "number"
+            },
+            "operation": {
+              "description": "Operation id or built-in",
+              "type": "string"
+            },
+            "options": {
+              "$ref": "#/definitions/TaskOptions",
+              "description": "Task options, flow defaults included"
+            },
+            "output": {
+              "description": "Result of the attempt"
+            },
+            "owner": {
+              "description": "Worker holding the lease",
+              "type": "string"
+            },
+            "runAt": {
+              "description": "When the task becomes runnable (ms)",
+              "type": "number"
+            },
+            "startedAt": {
+              "description": "Start of the attempt (ms)",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "PENDING",
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "CANCELLED"
+              ],
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempt",
+            "input",
+            "instance",
+            "key",
+            "leaseUntil",
+            "operation",
+            "options",
+            "runAt",
+            "status",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowTasks",
+          "additionalProperties": false,
+          "definitions": {
+            "FlowError": {
+              "additionalProperties": false,
+              "description": "An error, as seen by the flow: plain data",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "operation"
+              ],
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "One attempt of a task of a workflow instance",
+          "properties": {
+            "attempt": {
+              "description": "Attempt number, starting at 1",
+              "type": "number"
+            },
+            "endedAt": {
+              "description": "End of the attempt (ms)",
+              "type": "number"
+            },
+            "error": {
+              "$ref": "#/definitions/FlowError",
+              "description": "Error of the attempt"
+            },
+            "input": {
+              "description": "Operation input"
+            },
+            "instance": {
+              "description": "Uuid of the workflow instance",
+              "type": "string"
+            },
+            "key": {
+              "description": "Task key in the instance journal",
+              "type": "string"
+            },
+            "launcherId": {
+              "description": "User id of the instance launcher, for canAct",
+              "type": "string"
+            },
+            "leaseUntil": {
+              "description": "End of the lease (ms), 0 when free",
+              "type": "number"
+            },
+            "operation": {
+              "description": "Operation id or built-in",
+              "type": "string"
+            },
+            "options": {
+              "$ref": "#/definitions/TaskOptions",
+              "description": "Task options, flow defaults included"
+            },
+            "output": {
+              "description": "Result of the attempt"
+            },
+            "owner": {
+              "description": "Worker holding the lease",
+              "type": "string"
+            },
+            "runAt": {
+              "description": "When the task becomes runnable (ms)",
+              "type": "number"
+            },
+            "startedAt": {
+              "description": "Start of the attempt (ms)",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "PENDING",
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "CANCELLED"
+              ],
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempt",
+            "input",
+            "instance",
+            "key",
+            "leaseUntil",
+            "operation",
+            "options",
+            "runAt",
+            "status",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowTasks",
+          "additionalProperties": false,
+          "definitions": {
+            "FlowError": {
+              "additionalProperties": false,
+              "description": "An error, as seen by the flow: plain data",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "operation"
+              ],
+              "type": "object"
+            },
+            "TaskOptions": {
+              "additionalProperties": false,
+              "description": "Options of a task, and defaults of a flow",
+              "properties": {
+                "backoff": {
+                  "default": "exponential",
+                  "description": "Delay growth between attempts",
+                  "enum": [
+                    "fixed",
+                    "exponential"
+                  ],
+                  "type": "string"
+                },
+                "delay": {
+                  "default": "1s",
+                  "description": "Delay before the first retry (Duration syntax)",
+                  "type": "string"
+                },
+                "retries": {
+                  "default": 0,
+                  "description": "Retries after the first attempt",
+                  "type": "number"
+                },
+                "timeout": {
+                  "description": "Maximum duration of one attempt (Duration syntax)",
+                  "type": "string"
+                },
+                "useSystem": {
+                  "default": false,
+                  "description": "Run the task as the system instead of the launcher",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "description": "One attempt of a task of a workflow instance",
+          "properties": {
+            "attempt": {
+              "description": "Attempt number, starting at 1",
+              "type": "number"
+            },
+            "endedAt": {
+              "description": "End of the attempt (ms)",
+              "type": "number"
+            },
+            "error": {
+              "$ref": "#/definitions/FlowError",
+              "description": "Error of the attempt"
+            },
+            "input": {
+              "description": "Operation input"
+            },
+            "instance": {
+              "description": "Uuid of the workflow instance",
+              "type": "string"
+            },
+            "key": {
+              "description": "Task key in the instance journal",
+              "type": "string"
+            },
+            "launcherId": {
+              "description": "User id of the instance launcher, for canAct",
+              "type": "string"
+            },
+            "leaseUntil": {
+              "description": "End of the lease (ms), 0 when free",
+              "type": "number"
+            },
+            "operation": {
+              "description": "Operation id or built-in",
+              "type": "string"
+            },
+            "options": {
+              "$ref": "#/definitions/TaskOptions",
+              "description": "Task options, flow defaults included"
+            },
+            "output": {
+              "description": "Result of the attempt"
+            },
+            "owner": {
+              "description": "Worker holding the lease",
+              "type": "string"
+            },
+            "runAt": {
+              "description": "When the task becomes runnable (ms)",
+              "type": "number"
+            },
+            "startedAt": {
+              "description": "Start of the attempt (ms)",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "PENDING",
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "CANCELLED"
+              ],
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempt",
+            "input",
+            "instance",
+            "key",
+            "leaseUntil",
+            "operation",
+            "options",
+            "runAt",
+            "status",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/WorkflowTask"
+    }
+  },
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
   "behaviors": {}
 }

@@ -13,3 +13,40 @@ This module is part of Webda Application Framework that allows you to quickly de
 ```bash
 pnpm add @webda/workflow
 ```
+
+## Usage
+
+```json
+{
+  "services": {
+    "WorkflowService": {
+      "type": "Webda/WorkflowService"
+    }
+  }
+}
+```
+
+```ts
+useService<WorkflowService>("WorkflowService").registerFlow({
+  id: "Orders.Process",
+  version: "",
+  params: ["uuid"],
+  input: { type: "object", properties: { uuid: { type: "string" } } },
+  body: [
+    {
+      kind: "task",
+      id: "process/Orders.Capture",
+      operation: "Orders.Capture",
+      input: { obj: { uuid: { var: "uuid" } } },
+      options: { retries: 3 }
+    },
+    { kind: "task", id: "process/Workflow.Sleep", operation: "Workflow.Sleep", input: { lit: { duration: "1d" } } },
+    { kind: "task", id: "process/Orders.Remind", operation: "Orders.Remind", input: { obj: { uuid: { var: "uuid" } } } }
+  ],
+  source: "code"
+});
+// The operation Orders.Process launches it and returns { uuid } of the WorkflowInstance
+```
+
+See the [documentation](https://docs.webda.io/pages/Modules/workflow/README) for the graph format, the built-in
+operations, the task options and the engine parameters.

@@ -243,6 +243,28 @@ export interface FlowDefinition {
 }
 
 /**
+ * A {@link FlowDefinition} as models and configuration hold it
+ *
+ * The statements are recursive: describing them in a JSON schema makes the schema generator explode, so they are
+ * plain JSON there. {@link validateExpr} checks untrusted expressions.
+ */
+export interface FlowDefinitionData extends Omit<FlowDefinition, "body" | "version" | "source"> {
+  /**
+   * The statements ({@link Stmt}[])
+   */
+  body: any[];
+  /**
+   * {@link flowVersion} of the definition, computed when missing
+   */
+  version?: string;
+  /**
+   * Where the flow comes from
+   * @default "code"
+   */
+  source?: "code" | "stored";
+}
+
+/**
  * An error, as seen by the flow: plain data
  */
 export interface FlowError {

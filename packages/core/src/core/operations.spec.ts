@@ -1,4 +1,5 @@
 import { suite, test } from "@webda/test";
+import { getMetadata } from "@webda/decorators";
 import * as assert from "assert";
 import { vi } from "vitest";
 import {
@@ -2403,5 +2404,30 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
     } finally {
       delete getStorage().operations["Brand.StrictInput"];
     }
+  }
+}
+
+/** Parent service declaring one operation */
+class InheritParentService extends Service {
+  /** Parent operation */
+  @Operation()
+  async parentOp(): Promise<void> {}
+}
+
+/** Subclass adding its own operation */
+class InheritChildService extends InheritParentService {
+  /** Child operation */
+  @Operation()
+  async childOp(): Promise<void> {}
+}
+
+@suite
+class OperationMetadataInheritanceTest {
+  @test
+  subclassOperationsDoNotLeakIntoParent() {
+    const names = (target: any) =>
+      ((getMetadata(target)?.["webda.operations"] as any[]) ?? []).map(op => op._methodName).sort();
+    assert.deepStrictEqual(names(InheritParentService), ["parentOp"]);
+    assert.deepStrictEqual(names(InheritChildService), ["childOp", "parentOp"]);
   }
 }

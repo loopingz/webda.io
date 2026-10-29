@@ -274,12 +274,16 @@ class CronService extends Service {
   /**
    * Call the operation of a cron as the system, logging a failure: a failed tick never stops the next ones
    * @param cron - the cron
+   * @param rethrow - reject on failure too, for a one-shot run (an exported job must exit non-zero)
    */
-  static async execute(cron: CronDefinition): Promise<void> {
+  static async execute(cron: CronDefinition, rethrow: boolean = false): Promise<void> {
     try {
       await callOperation(useSystem(cron.input), cron.operationId);
     } catch (err) {
       useLog("ERROR", `Cron ${cron.cron} of operation ${cron.operationId} failed`, err);
+      if (rethrow) {
+        throw err;
+      }
     }
   }
 
@@ -346,7 +350,7 @@ class CronService extends Service {
     }
     for (const cron of crons) {
       this.log("INFO", `Running cron ${cron.toString()}`);
-      await callOperation(useSystem(cron.input), cron.operationId);
+      await CronService.execute(cron, true);
     }
   }
 

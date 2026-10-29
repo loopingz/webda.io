@@ -13,7 +13,9 @@ import {
   ServiceParameters,
   StoreClusterService,
   StoreClusterServiceParameters,
+  registerOperationAuthorizer,
   registerSchema,
+  unregisterOperationAuthorizer,
   useApplication,
   useContext,
   useCoreEvents,
@@ -508,6 +510,36 @@ class CronRunTest extends WebdaApplicationTest {
       await assert.rejects(() => service.runCron(undefined), /A cron id is required/);
     } finally {
       delete this.webda.getServices()["myService"];
+    }
+  }
+}
+
+@suite
+class CronCommandTest extends WebdaApplicationTest {
+  @test
+  async runCronCommandUsesOperation() {
+    const tick = addService(this, TickService, "tick");
+    const authorized: { operationId: string; user: string; input: any }[] = [];
+    const authorizer = async (context, operationId, _operation, { input }) => {
+      authorized.push({ operationId, user: context.getCurrentUserId(), input });
+      return true;
+    };
+    registerOperationAuthorizer(authorizer);
+    try {
+      const service = new CronService("cron", {});
+      const crons = CronService.resolveCrons({ tick });
+      await service.runCron(CronService.getExportId(crons.find(c => c.method === "reconcile")));
+      assert.deepStrictEqual(authorized, [{ operationId: "Tick.Reconcile", user: "system", input: { full: true } }]);
+      assert.deepStrictEqual(tick.calls, [{ full: true, user: "system" }]);
+      // A failed run fails the command, so the job exits non-zero
+      await assert.rejects(
+        () => service.runCron(CronService.getExportId(crons.find(c => c.method === "fail"))),
+        /intentional failure/
+      );
+      assert.strictEqual(tick.failures, 1);
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+      delete this.webda.getServices()["tick"];
     }
   }
 }

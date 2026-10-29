@@ -1,4 +1,4 @@
-import { Command, CronService, Deployer, SecretString, useApplication, useCore, WebdaError } from "@webda/core";
+import { Command, CronService, Deployer, SecretString, useApplication, WebdaError } from "@webda/core";
 import { readFileSync } from "node:fs";
 import { AzureAuth } from "../auth.js";
 import { armValue, AzureTemplate, resourceId, roleAssignmentId } from "../template.js";
@@ -45,7 +45,7 @@ export class AzureFunctionsDeployer extends AzureArmDeployer<AzureFunctionsDeplo
   @Command("azure package", { description: "Package the application for Azure Functions" })
   async packageApplication() {
     const p = this.getResolvedParameters();
-    const crons = CronService.loadAnnotations(useCore().getServices()).map(cron => ({
+    const crons = CronService.resolveCrons().map(cron => ({
       id: CronService.getExportId(cron),
       schedule: cron.cron
     }));

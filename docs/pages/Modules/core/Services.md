@@ -30,10 +30,10 @@ export class MyService extends Service<MyServiceParameters> {
 
 `ServiceParameters` base fields:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `string` | Service type (set by the framework) |
-| `openapi` | `object` | OpenAPI metadata override |
+| Field     | Type     | Description                         |
+| --------- | -------- | ----------------------------------- |
+| `type`    | `string` | Service type (set by the framework) |
+| `openapi` | `object` | OpenAPI metadata override           |
 
 ## The `@Bean` decorator
 
@@ -78,11 +78,11 @@ export class OrderService extends Service {
 
 `@Inject` signature: `@Inject(name, defaultName?, optional?)`
 
-| Argument | Description |
-|----------|-------------|
-| `name` | Service name OR `"params:key"` to read from `this.parameters[key]` |
-| `defaultName` | Fallback service name if `name` resolves to undefined |
-| `optional` | If `true`, silently set to `undefined` when not found |
+| Argument      | Description                                                        |
+| ------------- | ------------------------------------------------------------------ |
+| `name`        | Service name OR `"params:key"` to read from `this.parameters[key]` |
+| `defaultName` | Fallback service name if `name` resolves to undefined              |
+| `optional`    | If `true`, silently set to `undefined` when not found              |
 
 ## The `@Route` decorator
 
@@ -108,6 +108,38 @@ export class StatusService extends Service {
 ```
 
 `@Route` signature: `@Route(url, methods, openapi?)`
+
+## The `@Cron` decorator
+
+`@Cron` schedules an operation. It only decorates an `@Operation` method, above or below it:
+
+```typescript
+import { Cron, Operation, Service } from "@webda/core";
+
+export class ReportService extends Service {
+  @Operation()
+  @Cron("0 3 * * *", "Nightly reconciliation", { full: true })
+  async reconcile(full: boolean): Promise<void> {
+    // ...
+  }
+}
+```
+
+`@Cron` signature: `@Cron(cron, description?, input?)`
+
+- `input` is the operation input, a plain object validated against the operation input schema
+  (`ReportService.reconcile.input` here) at startup: an invalid input fails the start, not the first tick.
+- A `@Cron` on a method without `@Operation` is a startup error. A cron whose operation is disabled by configuration
+  is skipped with a warning.
+- Each tick calls `callOperation(useSystem(input), operationId)`: the call runs as the system and gets input
+  validation, the operation authorizers and the `Webda.Operation*` events. A failed tick is logged, the next ones
+  still run.
+- `CronService.run()` (`webda cron`) schedules the ticks on the [cluster leader](./Cluster.md) only: with several
+  replicas, a tick runs once.
+- An operation can have several crons. Crons from other sources (a stored workflow for example) are added with
+  `CronService.register(operationId, { cron, description, input })`, with the same validation.
+- `webda cron run <id>` runs once the cron of an exported id (`CronService.getExportId`, used by the Kubernetes and
+  Azure exports), through the same operation call.
 
 ## `ServiceParameters` typing
 

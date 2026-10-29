@@ -1,6 +1,9 @@
 import {
   Cron,
+  CronDefinition,
+  CronService,
   HttpContext,
+  Operation,
   OperationContext,
   Queue,
   runWithContext,
@@ -32,11 +35,13 @@ import { Runner } from "./runner.service.js";
  * Service with crons
  */
 class FakeService extends Service {
+  @Operation()
   @Cron("0 4 * * *")
-  cron1() {}
+  async cron1() {}
 
-  @Cron("0 8 * * *")
-  cron2() {}
+  @Operation()
+  @Cron("0 8 * * *", "", { full: true })
+  async cron2() {}
 
   scheduled() {}
 }
@@ -666,7 +671,7 @@ class AsyncJobServiceTest extends AsyncTest {
   @test
   async scheduledAction() {
     const fakeService = new FakeService("fake", new ServiceParameters());
-    this.registerService(fakeService);
+    this.registerService(fakeService).resolve();
     const service = this.getValidService();
     const action = new AsyncWebdaAction("fake", "schedule");
     const time = Date.now() + 1;
@@ -682,24 +687,13 @@ class AsyncJobServiceTest extends AsyncTest {
     // Scheduled action should have been launched
     assert.strictEqual((await AsyncWebdaAction.ref(action.uuid).get()).status, "QUEUED");
     const stubLaunch = stub(service, "launchAction").callsFake(async () => new AsyncAction());
-    await service.getCronExecutor({
-      cron: "* * * * *",
-      args: [],
-      method: "cron1",
-      serviceName: "fake",
-      description: ""
-    })();
+    const cron = new CronDefinition("* * * * *", {}, "fake", "cron1", "", "Fake.Cron1");
+    await service.getCronExecutor(cron)();
     stubLaunch.callsFake(() => {
       throw new Error("");
     });
     // Should not fail if it cannot launch but log ERROR
-    await service.getCronExecutor({
-      cron: "* * * * *",
-      args: [],
-      method: "cron1",
-      serviceName: "fake",
-      description: ""
-    })();
+    await service.getCronExecutor(cron)();
     assert.strictEqual(stubLaunch.getCalls().length, 2);
 
     const stubExec = stub(service, "getCronExecutor").callsFake(() => {
@@ -713,6 +707,32 @@ class AsyncJobServiceTest extends AsyncTest {
     stubExec.restore();
     stubLaunch.restore();
     delete useCore().getServices()["fake"];
+  }
+
+  @test
+  async asyncCronExecutorUsesOperation() {
+    const fakeService = new FakeService("fake", new ServiceParameters());
+    this.registerService(fakeService).resolve();
+    const service = this.getValidService();
+    const launched: AsyncAction[] = [];
+    const stubLaunch = stub(service, "launchAction").callsFake(async action => {
+      launched.push(action);
+      return action;
+    });
+    try {
+      const cron = CronService.resolveCrons({ fake: fakeService }).find(c => c.method === "cron2");
+      await service.getCronExecutor(cron)();
+      assert.strictEqual(launched.length, 1);
+      const action = <AsyncOperationAction>launched[0];
+      assert.ok(action instanceof AsyncOperationAction);
+      assert.strictEqual(action.operationId, "Fake.Cron2");
+      // The operation runs as the system with the cron input
+      assert.strictEqual(action.context.getCurrentUserId(), "system");
+      assert.deepStrictEqual(await action.context.getInput(), { full: true });
+    } finally {
+      stubLaunch.restore();
+      delete useCore().getServices()["fake"];
+    }
   }
 
   @test

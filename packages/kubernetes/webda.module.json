@@ -360,7 +360,7 @@
             },
             "filenameTemplate": {
               "type": "string",
-              "default": "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}"
+              "default": "${operationId.toLowerCase()}-${cronId}.${ext}"
             },
             "image": {
               "type": "string"

@@ -95,7 +95,8 @@ class PackagesTest {
       (err: Error) => {
         // Versions are read from the package.json of each copy
         // Vite may uppercase the Windows drive letter when resolving a module URL.
-        const normalize = (value: string) => (process.platform === "win32" ? value.replace(/\\/g, "/").toLowerCase() : value);
+        const normalize = (value: string) =>
+          process.platform === "win32" ? value.replace(/\\/g, "/").toLowerCase() : value;
         assert.ok(normalize(err.message).includes(normalize(`${fileURLToPath(first)} (1.2.3)`)), err.message);
         assert.ok(normalize(err.message).includes(normalize(`${fileURLToPath(second)} (1.2.3)`)), err.message);
         return true;
@@ -110,6 +111,27 @@ class PackagesTest {
     writeFileSync(copy, readFileSync(new URL("./packages.ts", import.meta.url)));
     await assert.rejects(() => import(pathToFileURL(copy).href), /@webda\/utils loaded twice/);
     assert.strictEqual(getWebdaPackages().get("@webda/utils"), original);
+  }
+
+  @test
+  unavailablePackageVersions() {
+    // Browser URLs and malformed file URLs must still produce useful duplicate errors.
+    for (const urls of [
+      ["https://example.com/a.js", "https://example.com/b.js"],
+      ["file://%invalid/a.js", "file://%invalid/b.js"]
+    ]) {
+      globalThis[Symbol.for("webda.packages")].delete("@webda/dummy");
+      registerWebdaPackage("@webda/dummy", urls[0]);
+      assert.throws(() => registerWebdaPackage("@webda/dummy", urls[1]), /\(unknown\)/);
+    }
+    for (const contents of ["{", JSON.stringify({ name: "other" }), JSON.stringify({ name: "@webda/dummy" })]) {
+      globalThis[Symbol.for("webda.packages")].delete("@webda/dummy");
+      writeFileSync(join(this.tmp, "package.json"), contents);
+      const first = pathToFileURL(join(this.tmp, "a.js")).href;
+      const second = pathToFileURL(join(this.tmp, "b.js")).href;
+      registerWebdaPackage("@webda/dummy", first);
+      assert.throws(() => registerWebdaPackage("@webda/dummy", second), /\(unknown\)/);
+    }
   }
 
   @test

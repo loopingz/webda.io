@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ${{ fromJSON(github.event_name == 'schedule' && '["22"]' || '["22","24","current"]') }}
+        node: ${{ fromJSON(github.event_name == 'schedule' && '["22"]' || '["22","24","26"]') }}
     name: Build with NodeJS v${{ matrix.node }}
     env:
       FORCE_COLOR: 1

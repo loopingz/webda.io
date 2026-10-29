@@ -172,6 +172,49 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
   }
 
   @test
+  registersWholeBodyBindingsAndLegacySchemasWithoutProperties() {
+    const restore = this.patchUserWithMfaBehavior();
+    const app: any = useApplication();
+    const User: any = useModel("User");
+    const metadata = User.Metadata;
+    const inputName = "Test/MFA.verify.input";
+    const actionName = `${metadata.Identifier}.apply.input`;
+    const schemas = app.getSchemas();
+    const previous = schemas[inputName];
+    const previousAction = schemas[actionName];
+    try {
+      const payload = { type: "object", properties: { payload: { type: "object" } } };
+      schemas[inputName] = payload;
+      registerSchema(inputName, payload, true);
+      schemas[actionName] = payload;
+      registerSchema(actionName, payload, true);
+      app.behaviors["Test/MFA"].metadata.Actions.verify.rest = { method: "post", body: "payload" };
+      User.Metadata = {
+        ...metadata,
+        Actions: { ...metadata.Actions, apply: { rest: { method: "post", path: "{uuid}/apply", body: "payload" } } }
+      };
+      this.setupBehaviorDispatcher();
+      const operations = listFullOperations();
+      assert.deepStrictEqual(operations["User.Apply"].rest, { method: "post", path: "{uuid}/apply", body: "payload" });
+      assert.strictEqual((operations["User.Mfa.Verify"].rest as any).body, "payload");
+      // Hand-written schemas may omit properties altogether.
+      schemas[inputName] = {};
+      registerSchema(inputName, {}, true);
+      delete app.behaviors["Test/MFA"].metadata.Actions.verify.rest;
+      this.setupBehaviorDispatcher();
+      const request: any = app.getSchema(listFullOperations()["User.Mfa.Verify"].input);
+      assert.deepStrictEqual(request["x-webda-arguments"], ["uuid"]);
+    } finally {
+      User.Metadata = metadata;
+      if (previous === undefined) delete schemas[inputName];
+      else schemas[inputName] = previous;
+      if (previousAction === undefined) delete schemas[actionName];
+      else schemas[actionName] = previousAction;
+      restore();
+    }
+  }
+
+  @test
   async registersBehaviorOperations() {
     const restore = this.patchUserWithMfaBehavior();
     try {

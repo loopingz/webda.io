@@ -1056,7 +1056,7 @@ export class DomainService<
     const passArgs = hasKeyArguments ? args.slice(pkFields.length) : args;
 
     // Every transport carries the key in the registered request; legacy direct calls may put it in parameters.
-    let uuid: any = pkFields.length === 1 ? (context.getParameters() || {})[pkFields[0]] : undefined;
+    let uuid: any = pkFields.length === 1 ? context.getParameters()[pkFields[0]] : undefined;
     if (uuid === undefined) {
       uuid = hasKeyArguments
         ? pkFields.length === 1

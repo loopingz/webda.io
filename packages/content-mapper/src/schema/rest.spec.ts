@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { bindActionRest } from "./rest.ts";
 import type { JSONSchema7 } from "./types.ts";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
@@ -7,10 +7,90 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { openSession } from "../context.ts";
 import { generateTopLevelSchemas } from "./project.ts";
-import { literalOption } from "./rest.ts";
+import { actionRestOption, literalOption } from "./rest.ts";
+import * as restBindings from "./rest.ts";
+import * as is from "typescript/unstable/ast/is";
 import { SyntaxKind, type Node } from "typescript/unstable/ast";
+import { buildBehaviorActions, buildModelActions } from "../module.ts";
 
 describe("REST binding validation", () => {
+  it("reads literal options without evaluating spreads, computed keys or dynamic values", () => {
+    const dir = mkdtempSync(join(tmpdir(), "webda-rest-literals-"));
+    try {
+      writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({ include: ["options.ts"] }));
+      writeFileSync(
+        join(dir, "options.ts"),
+        `
+        const dynamic: any = {};
+        export const options = { count: 2, enabled: true, disabled: false, values: ["GET"], ...dynamic,
+          [dynamic]: 1, skipped: dynamic };
+        class Endpoints {
+          @Action({rest: false}) disabled() {}
+          @Action({methods: []}) empty() {}
+          @Action({methods: ["GET"]}) legacy() {}
+          @Action({rest: {path: "list"}}) defaultVerb() {}
+          @Action({rest: {path: "list"}, methods: ["DELETE"]}) inheritedVerb() {}
+          @Other() @Bare plain() {}
+          @Action unknownArgument() {}
+          @Action({methods: dynamic, rest: dynamic, openapi: dynamic}) ignoredOptions() {}
+        }
+      `
+      );
+      const session = openSession(join(dir, "tsconfig.json"), dir);
+      try {
+        const source = session.ctx.sourceFiles.find(file => file.fileName.endsWith("options.ts"))!;
+        const declaration: any = source.statements
+          .filter(is.isVariableStatement)
+          .flatMap(statement => statement.declarationList.declarations)
+          .find(declaration => (declaration.name as any).text === "options");
+        expect(literalOption(declaration.initializer)).toEqual({
+          count: 2,
+          enabled: true,
+          disabled: false,
+          values: ["GET"]
+        });
+        const cls = source.statements.find(is.isClassDeclaration)!;
+        const options = Object.fromEntries(
+          cls.members
+            .filter(is.isMethodDeclaration)
+            .map(method => [(method.name as any).text, actionRestOption(method)])
+        );
+        expect(options).toEqual({
+          disabled: undefined,
+          empty: undefined,
+          legacy: { method: "GET", methods: ["GET"] },
+          defaultVerb: { path: "list", method: "put", methods: undefined },
+          inheritedVerb: { path: "list", method: "DELETE", methods: ["DELETE"] },
+          plain: undefined,
+          unknownArgument: undefined,
+          ignoredOptions: undefined
+        });
+        expect(buildModelActions(session.ctx, cls).ignoredOptions).toEqual({});
+        expect(buildBehaviorActions(session.ctx, cls, "Test/Endpoints").ignoredOptions).toEqual({});
+        expect(actionRestOption({} as any)).toBeUndefined();
+      } finally {
+        session.dispose();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects malformed templates, duplicate catch-alls and unresolved scalar references", () => {
+    expect(() => bindActionRest({}, { path: "broken/{" })).toThrow(/Malformed/);
+    expect(() => bindActionRest({ properties: { a: {}, b: {} } }, { path: "{?a*,b*}" })).toThrow(/only one/);
+    for (const definitions of [undefined, {}]) {
+      expect(() =>
+        bindActionRest(
+          { properties: { value: { $ref: "#/definitions/Unknown" } }, definitions },
+          {
+            path: "{value}"
+          }
+        )
+      ).toThrow(/must be scalar/);
+    }
+    expect(bindActionRest({}, { route: "." })["x-webda-rest"]).toMatchObject({ template: ".", body: [] });
+  });
   it("ignores dynamic options and validates every declared HTTP method", () => {
     expect(literalOption({ kind: SyntaxKind.Identifier, text: "dynamic" } as Node)).toBeUndefined();
     const schema: JSONSchema7 = { properties: { value: { type: "number" } } };
@@ -32,8 +112,9 @@ describe("REST binding validation", () => {
     [
       '@Action({ rest: { method: "get", path: "{missing}" } }) run(value: string) {}',
       /Test\/Task.run: REST template parameter "missing" does not match/
-    ]
-  ])("reports the model and method on invalid bindings: %s", (method, message) => {
+    ],
+    ['@Action({rest: {path: "{value}"}}) run(value: string) {}', /Test\/Task.run: external failure/, true]
+  ])("reports the model and method on invalid bindings: %s", (method, message, externalFailure) => {
     const dir = mkdtempSync(join(tmpdir(), "webda-rest-validation-"));
     const modelSource = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "models", "src", "index.ts");
     try {
@@ -54,6 +135,10 @@ describe("REST binding validation", () => {
       );
       const session = openSession(join(dir, "tsconfig.json"), dir);
       try {
+        if (externalFailure)
+          vi.spyOn(restBindings, "bindActionRest").mockImplementationOnce(() => {
+            throw "external failure";
+          });
         expect(() =>
           generateTopLevelSchemas(session.ctx, {
             appPath: dir,
@@ -63,6 +148,7 @@ describe("REST binding validation", () => {
           })
         ).toThrow(message);
       } finally {
+        vi.restoreAllMocks();
         session.dispose();
       }
     } finally {

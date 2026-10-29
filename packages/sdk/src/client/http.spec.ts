@@ -389,6 +389,13 @@ describe("HttpTransport", () => {
     expect(
       transport.prepare(OPERATIONS["Tasks.Query"], { q: "a = 1", limit: 5, skip: null, none: undefined }, {}).url
     ).toBe("https://api.test/tasks?q=a+%3D+1&limit=5");
+    const operation = {
+      ...OPERATIONS["Task.Get"],
+      rest: { method: "get" as const, path: "/tasks/{uuid}", pathParams: ["uuid"], queryCatchAll: "filters" }
+    };
+    for (const filters of [null, "invalid", ["invalid"], undefined]) {
+      expect(transport.prepare(operation, { uuid: "t1", filters }, {}).url).toBe("https://api.test/tasks/t1");
+    }
   });
 
   describe("with the global fetch", () => {

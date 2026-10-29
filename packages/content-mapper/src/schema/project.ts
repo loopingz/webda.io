@@ -72,7 +72,7 @@ export function generateTopLevelSchemas(
     const rest = actionRestOption(method);
     const isStatic = method.modifiers?.some(m => m.kind === SyntaxKind.StaticKeyword);
     const keys = honorName && !isStatic ? (options.primaryKeys?.[root] ?? ["uuid"]) : [];
-    const conflict = keys.find(key => Object.hasOwn(input.properties ?? {}, key));
+    const conflict = keys.find(key => Object.hasOwn(input.properties!, key));
     if (conflict)
       throw new Error(
         `${root}.${name}: parameter "${conflict}" conflicts with the object primary key, rename the action parameter`

@@ -20,8 +20,12 @@ import { useDynamicService } from "../core/hooks.js";
 import * as sinon from "sinon";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import { inputSchemaToOpenAPI } from "./binding.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 
 class RestBindingService extends Service {
+  @Operation({ rest: false, input: "void" })
+  internal() {}
+
   @Operation({
     input: "RestBinding.Mixed",
     rest: { method: "post", path: "binding/{id}{?count?,active?,tags?,filters*}" }
@@ -31,8 +35,8 @@ class RestBindingService extends Service {
   }
 
   @Operation({ input: "RestBinding.List", rest: { method: "get", path: "binding/list/{id}" } })
-  list(id: string, limit: number = 20, active?: boolean) {
-    return { id, limit, active };
+  list(id: string, limit: number = 20, active?: boolean, mode?: string) {
+    return { id, limit, active, mode };
   }
 
   @Operation({ input: "RestBinding.Whole", rest: { method: "post", path: "binding/body/{id}", body: "payload" } })
@@ -87,7 +91,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
           "Binding/Filters<Number>": {
             type: "object",
             properties: { limit: { type: "integer" }, enabled: { type: "boolean" } },
-            additionalProperties: false
+            additionalProperties: { type: "number" }
           }
         }
       },
@@ -96,7 +100,8 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
         properties: {
           id: { type: "string" },
           limit: { anyOf: [{ type: "null" }, { type: "number" }] },
-          active: { oneOf: [{ type: "null" }, { type: "boolean" }] }
+          active: { oneOf: [{ type: "null" }, { type: "boolean" }] },
+          mode: { anyOf: [{ enum: ["yes", "no"] }] }
         },
         required: ["id"]
       },
@@ -146,6 +151,63 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async legacyRouteMetadataKeepsFallbackMethodsPathsAndResponseOverrides() {
+    const transport: any = await this.bindingTransport();
+    const storage = useInstanceStorage();
+    const app: any = useApplication();
+    const operations = storage.operations!;
+    const operation = (id: string, extra: any = {}) => ({ id, input: "void", output: "void", ...extra });
+    operations["Legacy.Global"] = operation("Legacy.Global");
+    operations["Legacy.Instance"] = operation("Legacy.Instance");
+    operations["Legacy.Explicit"] = operation("Legacy.Explicit", { rest: { path: "custom", method: "get" } });
+    transport.exposeActionRoute("/legacy", "Legacy", "", "global", { global: true }, 0);
+    transport.exposeActionRoute("/legacy", "Legacy", "", "instance", {}, 0);
+    transport.exposeActionRoute("/legacy", "Legacy", "", "explicit", { rest: { method: "GET" } }, 0);
+    const behavior = "Test/LegacyRoutes";
+    const previous = app.behaviors[behavior];
+    app.behaviors[behavior] = { metadata: { Actions: { multi: { methods: ["POST", "PATCH"] }, fallback: {} } } };
+    operations["Legacy.Payload.Multi"] = operation("Legacy.Payload.Multi");
+    operations["Legacy.Payload.Fallback"] = operation("Legacy.Payload.Fallback");
+    try {
+      transport.exposeBehaviorRoutes("/legacy", "Legacy", "", "", { behavior, attribute: "payload" });
+      const doc: any = useRouter().exportOpenAPI();
+      assert.strictEqual(doc.paths["/legacy/global"].put.operationId, "Legacy.Global");
+      assert.strictEqual(doc.paths["/legacy/{uuid}/instance"].put.operationId, "Legacy.Instance");
+      assert.strictEqual(doc.paths["/legacy/custom"].get.operationId, "Legacy.Explicit");
+      assert.strictEqual(doc.paths["/legacy/{uuid}/payload.multi"].post.operationId, "Legacy.Payload.Multi");
+      assert.strictEqual(doc.paths["/legacy/{uuid}/payload.multi"].patch.operationId, undefined);
+      assert.ok(doc.paths["/legacy/{uuid}/payload.fallback"].put);
+      const schemaName = "Legacy.OptionalBody";
+      app.getSchemas()[schemaName] = { type: "object", properties: { optional: { type: "string" } } };
+      registerSchema(schemaName, app.getSchemas()[schemaName], true);
+      const optional = transport.operationOpenAPI(
+        operation("Legacy.Optional", { input: schemaName }),
+        "/optional",
+        "POST"
+      );
+      assert.strictEqual(optional.requestBody.required, false);
+      const response = { description: "Override" };
+      const legacy = transport.operationOpenAPI(
+        operation("Legacy.Query", {
+          rest: { method: "get", path: "query{?unknown?}", responses: { "418": response } }
+        }),
+        "/query{?unknown?}",
+        "GET"
+      );
+      assert.deepStrictEqual(legacy.parameters[0].schema, { type: "string" });
+      assert.deepStrictEqual(legacy.responses["418"], response);
+      assert.ok(transport.operationOpenAPI(operation("Legacy.Disabled", { rest: false }), "/disabled", "POST"));
+      // Export also works before any operations have been registered.
+      storage.operations = undefined;
+      assert.ok(useRouter().exportOpenAPI().components);
+    } finally {
+      storage.operations = operations;
+      if (previous === undefined) delete app.behaviors[behavior];
+      else app.behaviors[behavior] = previous;
+    }
+  }
+
+  @test
   async restBindingsConvertOnlyUrlValuesAndKeepPositionalOrder() {
     await this.bindingTransport();
     assert.deepStrictEqual(
@@ -167,7 +229,15 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       (await this.routerHttp<any>({ method: "POST", url: "/v2/binding/key?tags=3,4", body: { title: "hello" } })).tags,
       [3, 4]
     );
-    for (const query of ["count=NaN", "count=Infinity", "count=abc", "active=yes", "tags=1,nope", "limit=abc"]) {
+    for (const query of [
+      "count=NaN",
+      "count=Infinity",
+      "count=abc",
+      "active=yes",
+      "tags=1,nope",
+      "limit=abc",
+      "limit=1&limit=2"
+    ]) {
       await assert.rejects(
         () => this.routerHttp({ method: "POST", url: `/v2/binding/key?${query}`, body: { title: "hello" } }),
         WebdaError.BadRequest
@@ -176,6 +246,10 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     await assert.rejects(
       () => this.routerHttp({ method: "POST", url: "/v2/binding/key", body: { title: "hello", count: "2" } }),
       /InvalidInput.*count/
+    );
+    assert.deepStrictEqual(
+      await this.routerHttp<any>({ method: "POST", url: "/v2/binding/key?tags=&custom=2", body: { title: "hello" } }),
+      { id: "key", tags: [], filters: { custom: 2 }, title: "hello" }
     );
     await assert.rejects(
       () => this.routerHttp({ method: "POST", url: "/v2/binding/key", body: { title: "hello", id: "other" } }),
@@ -197,8 +271,13 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     });
     assert.strictEqual(
       (listOperations()["RestBindingService.List"] as any).rest.path,
-      "binding/list/{id}{?limit?,active?}"
+      "binding/list/{id}{?limit?,active?,mode?}"
     );
+    assert.deepStrictEqual(await this.routerHttp({ method: "GET", url: "/v2/binding/list/key?mode=yes" }), {
+      id: "key",
+      limit: 20,
+      mode: "yes"
+    });
   }
 
   @test
@@ -218,6 +297,10 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     await rpc.init();
     await callOperation(rpc, "RestBindingService.Whole");
     assert.deepStrictEqual(JSON.parse(rpc.getOutput()), { id: "key", payload: { count: 2 } });
+    const empty = await this.newWebContext(new HttpContext("test.webda.io", "POST", "/", "http", 80));
+    empty.setParameters({ id: "key" });
+    sinon.stub(empty, "getInput").resolves(undefined);
+    await assert.rejects(() => callOperation(empty, "RestBindingService.Whole"), /InvalidInput.*payload/);
   }
 
   @test
@@ -255,7 +338,8 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       [
         ["id", "path"],
         ["limit", "query"],
-        ["active", "query"]
+        ["active", "query"],
+        ["mode", "query"]
       ]
     );
     assert.deepStrictEqual(doc.paths["/v2/binding/body/{id}"].post.requestBody.content["application/json"].schema, {

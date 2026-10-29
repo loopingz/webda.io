@@ -223,4 +223,20 @@ describe("REST binding validation", () => {
     bindActionRest(input, { method: "post", path: "{other}", body: "payload" });
     expect((input["x-webda-rest"] as any).bodyParameter).toBe("payload");
   });
+
+  it("validates catch-all records without named properties", () => {
+    const input: JSONSchema7 = {
+      properties: { filters: { type: "object", additionalProperties: { type: "number" } } }
+    };
+    bindActionRest(input, { method: "get", path: "{?filters*}" });
+    expect((input["x-webda-rest"] as any).query).toEqual([{ name: "filters", required: false, catchAll: true }]);
+    for (const value of [{ type: "string" }, { type: "object", additionalProperties: { type: "object" } }]) {
+      expect(() =>
+        bindActionRest({ properties: { filters: value } } as JSONSchema7, {
+          method: "get",
+          path: "{?filters*}"
+        })
+      ).toThrow(/object of scalar/);
+    }
+  });
 });

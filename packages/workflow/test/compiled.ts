@@ -12,26 +12,34 @@ import { PaymentService } from "./app/src/payment.service.js";
 export const COMPILED_APP = join(dirname(fileURLToPath(import.meta.url)), "app");
 
 /**
- * Flows of the test application, compiled once
+ * Module of the test application, generated once
  */
-let compiled: Record<string, any> | undefined;
+let compiled: { flows: Record<string, any>; schemas: Record<string, any> } | undefined;
 
 /**
- * Compile the `.flow.ts` files of the test application, as `webdac build` does
- * @returns the `flows` section of its module
+ * Generate the module of the test application, as `webdac build` does
+ * @returns its `flows` and `schemas` sections
  */
-export function compiledFlows(): Record<string, any> {
+export function compiledModule(): { flows: Record<string, any>; schemas: Record<string, any> } {
   if (!compiled) {
     const session = openSession(join(COMPILED_APP, "tsconfig.json"), join(COMPILED_APP, "src"));
     try {
       const { module, errors } = generateWebdaModule(session.ctx, { appPath: COMPILED_APP });
       assert.deepStrictEqual(errors, []);
-      compiled = (module as any).flows ?? {};
+      compiled = { flows: (module as any).flows ?? {}, schemas: module.schemas };
     } finally {
       session.dispose();
     }
   }
   return structuredClone(compiled!);
+}
+
+/**
+ * Compiled flows of the test application
+ * @returns the `flows` section of its module
+ */
+export function compiledFlows(): Record<string, any> {
+  return compiledModule().flows;
 }
 
 /**
@@ -66,19 +74,9 @@ export class CompiledAppTestBase extends WorkflowTestBase {
   async tweakApp(app: TestApplication) {
     await super.tweakApp(app);
     app.addModda("FlowApp/PaymentService", PaymentService);
-    app.getModules().flows = compiledFlows();
-    // Core looks up `<service name>.<method>.input`: the services are configured under other names than their class
-    for (const name of this.paymentServices) {
-      app.getSchemas()[`${name}.capture.input`] = {
-        type: "object",
-        properties: { uuid: { type: "string" } },
-        required: ["uuid"]
-      };
-      app.getSchemas()[`${name}.notify.input`] = {
-        type: "object",
-        properties: { to: { type: "string" } },
-        required: ["to"]
-      };
-    }
+    // As the merged modules hold them
+    const { flows, schemas } = compiledModule();
+    app.getModules().flows = flows;
+    Object.assign(app.getSchemas(), schemas);
   }
 }

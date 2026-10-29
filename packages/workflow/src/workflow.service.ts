@@ -325,7 +325,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   protected versions = new Map<string, Map<string, FlowDefinition>>();
   /**
-   * Flows of the modules (compiled \`.flow.ts\`) registered by this service
+   * Flows of the modules (compiled `.flow.ts`) registered by this service
    */
   protected moduleFlows = new Set<string>();
   /**
@@ -389,7 +389,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
-   * Register the flows compiled from the \`.flow.ts\` files (\`flows\` of the modules), with their crons
+   * Register the flows compiled from the `.flow.ts` files (`flows` of the modules), with their crons
    *
    * The first WorkflowService to resolve registers them; the typed calls are resolved in {@link init}, once every
    * service registered its operations.
@@ -399,6 +399,11 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     for (const [id, entry] of Object.entries(flows)) {
       const operation: any = listFullOperations()[id];
       if (operation?.context?.flowId === id && operation.service !== this.getName()) continue;
+      if (operation && !operation.context?.flowId) {
+        throw new WebdaError.FatalInitError(
+          `Flow ${id}: its operation id is used by the operation of service ${operation.service}`
+        );
+      }
       const { crons, ...def } = structuredClone(entry) as any;
       // The compiled version is kept: the build hashed the graph before its targets are resolved
       this.registerFlow({ ...def, source: "code" });
@@ -410,44 +415,94 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
-   * Point every typed call of the compiled flows (\`target: { class, method }\`) at the operation of the configured
-   * service of that class
-   * @throws FatalInitError when no or several configured services match, or when a flow operation was taken over
+   * The operation a typed call (`target: { class, method }`) runs: the operation of the configured service whose
+   * instance is of that class (matched by constructor name, the class or an ancestor)
+   * @param target - the target of the task
+   * @param target.class - the service class name
+   * @param target.method - the method name
+   * @returns the operation id, or why there is none: no service (missing) or several (ambiguous)
+   */
+  resolveTarget(target: { class: string; method: string }): {
+    operation?: string;
+    missing?: string;
+    ambiguous?: string;
+  } {
+    const { class: className, method } = target ?? ({} as any);
+    const operations = Object.entries(listFullOperations());
+    const matches = Object.entries(useCore().getServices())
+      .filter(([, service]) => isInstanceOfClass(service, className))
+      .flatMap(([name]) =>
+        operations.filter(([, op]) => op.service === name && op.method === method).map(([opId]) => ({ name, opId }))
+      );
+    if (matches.length === 1) return { operation: matches[0].opId };
+    return matches.length
+      ? {
+          ambiguous: `several configured services expose ${className}.${method}: ${matches.map(m => m.name).join(", ")}`
+        }
+      : { missing: `no configured service of class ${className} exposes ${method} as an operation` };
+  }
+
+  /**
+   * Resolve the typed calls of a flow body in place
+   * @param body - the statements
+   * @returns the problems, by statement id
+   */
+  protected resolveTargets(body: any[]): { missing: string[]; ambiguous: string[] } {
+    const problems = { missing: [] as string[], ambiguous: [] as string[] };
+    const walk = (stmts: any[]) => {
+      for (const stmt of stmts ?? []) {
+        for (const key of ["then", "else", "body", "catch", "finally"]) walk(stmt[key]);
+        (stmt.branches ?? []).forEach(walk);
+        if (stmt.kind !== "task" || !stmt.target) continue;
+        const res = this.resolveTarget(stmt.target);
+        if (res.operation) stmt.operation = res.operation;
+        else if (res.ambiguous) problems.ambiguous.push(`${stmt.id}: ${res.ambiguous}`);
+        else problems.missing.push(`${stmt.id}: ${res.missing}`);
+      }
+    };
+    walk(body);
+    return problems;
+  }
+
+  /**
+   * Point every typed call of the compiled flows at the operation of the configured service of its class
+   *
+   * A flow whose service is not configured (a packaged unit without it) is removed with its crons; a call that several
+   * services serve, or a flow whose operation was taken over, stops the startup.
+   * @throws FatalInitError on an ambiguous call, or a flow id taken by another operation
    */
   protected resolveModuleTargets(): void {
-    const services = useCore().getServices();
-    const operations = Object.entries(listFullOperations());
-    for (const id of this.moduleFlows) {
+    for (const id of [...this.moduleFlows]) {
       const operation: any = listFullOperations()[id];
       if (operation?.context?.flowId !== id || operation.service !== this.getName()) {
-        throw new WebdaError.FatalInitError(`Flow ${id}: its operation id is used by another operation`);
+        throw new WebdaError.FatalInitError(
+          `Flow ${id}: its operation id is used by the operation of service ${operation?.service}`
+        );
       }
       const flow = this.flows.get(id)!;
-      const walk = (body: any[]) => {
-        for (const stmt of body ?? []) {
-          for (const key of ["then", "else", "body", "catch", "finally"]) walk(stmt[key]);
-          (stmt.branches ?? []).forEach(walk);
-          if (stmt.kind !== "task" || !stmt.target) continue;
-          const { class: className, method } = stmt.target;
-          const matches = Object.entries(services)
-            .filter(([, service]) => isInstanceOfClass(service, className))
-            .flatMap(([name]) =>
-              operations
-                .filter(([, op]) => op.service === name && op.method === method)
-                .map(([opId]) => ({ name, opId }))
-            );
-          if (matches.length !== 1) {
-            throw new WebdaError.FatalInitError(
-              `Flow ${id} calls ${className}.${method} (${stmt.id}): ` +
-                (matches.length
-                  ? `several configured services expose it: ${matches.map(m => m.name).join(", ")}`
-                  : `no configured service of class ${className} exposes it as an operation`)
-            );
-          }
-          stmt.operation = matches[0].opId;
-        }
-      };
-      walk(flow.body);
+      const { missing, ambiguous } = this.resolveTargets(flow.body);
+      if (ambiguous.length) {
+        throw new WebdaError.FatalInitError(`Flow ${id} calls an ambiguous operation: ${ambiguous.join("; ")}`);
+      }
+      if (missing.length) {
+        this.log("ERROR", `Flow ${id} is not registered: ${missing.join("; ")}`);
+        this.unregisterModuleFlow(id);
+      }
+    }
+  }
+
+  /**
+   * Remove a module flow: its operation and its crons
+   * @param id - the flow id
+   */
+  protected unregisterModuleFlow(id: string): void {
+    this.moduleFlows.delete(id);
+    this.flows.delete(id);
+    this.versions.delete(id);
+    CronService.unregister(id);
+    const operation: any = useInstanceStorage().operations?.[id];
+    if (operation?.service === this.getName() && operation.context?.flowId === id) {
+      delete useInstanceStorage().operations![id];
     }
   }
 
@@ -681,11 +736,17 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           if (invalid.length) fail(`${where}: invalid expression at ${invalid.join(", ")}`);
         }
         if (stmt.kind === "task") {
-          const known =
-            Object.values(BUILTINS).includes(stmt.operation) ||
-            stmt.operation === name ||
-            !!listFullOperations()[stmt.operation];
-          if (!known) fail(`${where}: unknown operation ${stmt.operation}`);
+          if (stmt.target !== undefined) {
+            // A typed call compiled from a .flow.ts: it runs the operation of the configured service of its class
+            const res = this.resolveTarget(stmt.target);
+            if (!res.operation) fail(`${where}: ${res.missing ?? res.ambiguous}`);
+          } else {
+            const known =
+              Object.values(BUILTINS).includes(stmt.operation) ||
+              stmt.operation === name ||
+              !!listFullOperations()[stmt.operation];
+            if (!known) fail(`${where}: unknown operation ${stmt.operation}`);
+          }
           if (stmt.options?.useSystem && !this.parameters.allowStoredSystem) {
             fail(`${where}: useSystem is not allowed in a stored workflow`);
           }
@@ -827,12 +888,15 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     if (known && known.flowId !== workflow.name) {
       this.unregisterStored(workflow.uuid);
     }
+    // The typed calls of a graph compiled from a .flow.ts run the configured operation, as for the code flow
+    const body = structuredClone(workflow.body ?? []);
+    this.resolveTargets(body);
     this.registerFlow({
       id: workflow.name,
       version,
       params: workflow.params ?? [],
       input: workflow.input ?? { type: "object" },
-      body: workflow.body ?? [],
+      body,
       options: workflow.options,
       source: "stored"
     });

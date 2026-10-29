@@ -1,9 +1,10 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { CronService, registerOperation, useApplication, useDynamicService } from "@webda/core";
+import { CronService, registerOperation, runWithContext, useApplication, useDynamicService } from "@webda/core";
 import { join } from "node:path";
 import { flowsGenerator, runTwoPass } from "@webda/content-mapper";
-import { COMPILED_APP, CompiledAppTestBase } from "../test/compiled.js";
+import { COMPILED_APP, CompiledAppTestBase, compiledFlows } from "../test/compiled.js";
+import { Workflow as StoredWorkflow } from "./models/workflow.model.js";
 import type { PaymentService } from "../test/app/src/payment.service.js";
 import { WorkflowInstance } from "./models/workflowinstance.model.js";
 
@@ -114,5 +115,42 @@ class CompiledFlowsTest extends CompiledAppTestBase {
         ["0 4 * * 0", "Weekly full reconciliation", { full: true }]
       ]
     );
+  }
+
+  /**
+   * Save a stored workflow as alice, a workflow admin
+   * @param data - the workflow
+   * @returns the saved workflow
+   */
+  async store(data: any): Promise<StoredWorkflow> {
+    const ctx = await this.userContext("alice");
+    ctx.getSession().roles = ["workflow-admin"];
+    return runWithContext(ctx, () => StoredWorkflow.create(data)) as Promise<StoredWorkflow>;
+  }
+
+  @test
+  async storedCopyBehavesIdentically() {
+    // The compiled graph, as the build wrote it: its typed calls are not resolved yet
+    const { crons, id, version, source, ...def } = compiledFlows()["OrderFlows.Reconcile"];
+    void [crons, id, version, source];
+    const wf = await this.store({ name: "Stored.Reconcile", ...def });
+    assert.strictEqual(wf.updatedBy, "alice");
+    const operations = statements(this.service.getFlow("Stored.Reconcile")!.body)
+      .filter(s => s.kind === "task" && s.target)
+      .map(s => s.operation);
+    assert.deepStrictEqual(operations, ["Billing.Capture", "Billing.Notify"]);
+    const uuid = await this.launch({ id: "Stored.Reconcile" } as any, { full: true }, "alice");
+    await this.drain();
+    assert.strictEqual((await this.instance(uuid)).status, "WAITING");
+    assert.deepStrictEqual(useDynamicService<PaymentService>("Billing").captured, ["a"]);
+    assert.deepStrictEqual(await this.signal("alice", "manual-review", "b", { approved: true }), { delivered: 1 });
+    await this.drain();
+    const instance = await this.instance(uuid);
+    assert.strictEqual(instance.status, "SUCCESS", JSON.stringify(instance.error));
+    assert.deepStrictEqual(instance.output, { count: 2, archived: true });
+    // A target no configured service serves is refused
+    const unknown = structuredClone(def);
+    (statements(unknown.body).find(s => s.target) as any).target = { class: "NoSuchService", method: "capture" };
+    await assert.rejects(() => this.store({ name: "Stored.Unknown", ...unknown }), /NoSuchService/);
   }
 }

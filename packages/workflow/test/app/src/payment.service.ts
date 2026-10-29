@@ -2,6 +2,8 @@ import { Operation, Service, WebdaError } from "@webda/core";
 
 /**
  * Payments, configured as `Billing`: flows call `PaymentService.Capture`, the engine resolves it to `Billing.Capture`
+ *
+ * @WebdaModda
  */
 export class PaymentService extends Service {
   /**

@@ -63,7 +63,10 @@ fails. Operations of other packages and model operations go through `Workflow.Ca
 
 At startup, the engine resolves each typed call to the operation of the **configured** service whose instance is of
 that class, whatever its name: `PaymentService.Capture` runs `Billing.Capture` when the service is configured as
-`Billing`. No match, or several, stops the startup with an error naming the flow and the services.
+`Billing`. The class is matched by constructor name (its own or an ancestor's), so do not minify class names. When no
+configured service serves a call (a packaged unit without that service), the flow is left out with its crons and an
+error is logged; when several do, the startup stops with an error naming the flow and the services. A stored
+`Workflow` holding the same graph resolves its typed calls the same way when it is saved and registered.
 
 **Task options** are an object literal of literals: `retries`, `backoff` (`"fixed"` / `"exponential"`), `delay` and
 `timeout` (Duration syntax), `useSystem`.

@@ -168,7 +168,7 @@ await callOperation(ctx, "Reports.Generate");
 const result = JSON.parse(ctx.getOutput());
 ```
 
-The system context has an empty session and `getCurrentUserId()` returns `"system"`. It passes the operation `permission` queries, but `OperationAuthorizer`s still run. A `canAct` or an authorizer detects it with `context.isGlobalContext()`.
+The system context has an empty session and `getCurrentUserId()` returns `"system"`. It passes the operation `permission` queries, the `maxMfaAge` check and the IAM policies; other `OperationAuthorizer`s still run. A `canAct` or an authorizer detects it with `context.isGlobalContext()`.
 
 ## Accessing context from model methods
 

@@ -68,7 +68,8 @@ export function checkOperationMfa(
   if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
   }
-  if (operation.maxMfaAge === undefined) {
+  // The system has no session to verify
+  if (operation.maxMfaAge === undefined || context.isGlobalContext()) {
     return;
   }
   operation.maxMfaAgeSeconds ??= new Duration(operation.maxMfaAge).toSeconds();

@@ -21,6 +21,12 @@ class GlobalOperationContextTest extends WebdaAsyncStorageTest {
   }
 
   @test
+  smallOutputBuffer() {
+    // runAsSystem is on hot paths (user resolution, login throttling): no 100 KB buffer per call
+    assert.ok((useSystem()._stream as any).maxSize() <= 1024);
+  }
+
+  @test
   freshEachCall() {
     assert.notStrictEqual(useSystem(), useSystem());
   }

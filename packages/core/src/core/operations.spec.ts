@@ -1124,6 +1124,25 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
   }
 
   @test
+  async systemPassesMfaGate() {
+    registerOperation("ReturnSvc.MfaGuarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      maxMfaAge: "5m"
+    } as any);
+    assert.strictEqual(await canCallOperation(useSystem(), "ReturnSvc.MfaGuarded"), true);
+    const ctx = useSystem();
+    await callOperation(ctx, "ReturnSvc.MfaGuarded");
+    assert.strictEqual(ctx.getOutput(), "hello world");
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    anonymous.setSession(new Session());
+    assert.strictEqual(await canCallOperation(anonymous, "ReturnSvc.MfaGuarded"), false);
+  }
+
+  @test
   async authorizerCanRefuseSystem() {
     registerOperation("ReturnSvc.NoSystem", {
       service: "ReturnSvc",

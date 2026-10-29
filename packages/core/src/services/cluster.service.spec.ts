@@ -2,6 +2,9 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { vi } from "vitest";
 import { WebdaApplicationTest } from "../test/application.js";
+import { TestApplication } from "../test/objects.js";
+import { Service } from "./service.js";
+import { ServiceParameters } from "./serviceparameters.js";
 import { useCore } from "../core/hooks.js";
 import { ClusterService, ClusterServiceParameters, useCluster, whenLeader } from "./cluster.service.js";
 import { StoreClusterService, StoreClusterServiceParameters } from "./storecluster.service.js";
@@ -11,8 +14,8 @@ import { useRegistry } from "../models/registry.model.js";
  * Cluster whose lease is driven by the test
  */
 class FakeCluster extends ClusterService {
-  /** Result of the next attempts, an Error is thrown */
-  result: boolean | Error = false;
+  /** Result of the next attempts, an Error is thrown, a function is called for the attempt result */
+  result: boolean | Error | (() => Promise<boolean>) = false;
   /** Number of attempts */
   attempts = 0;
   /** Number of releases */
@@ -22,6 +25,7 @@ class FakeCluster extends ClusterService {
   protected async acquireOrRenew(): Promise<boolean> {
     this.attempts++;
     if (this.result instanceof Error) throw this.result;
+    if (typeof this.result === "function") return this.result();
     return this.result;
   }
 
@@ -292,6 +296,77 @@ class ClusterServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async hangingRenewStepsDownBeforeExpiry() {
+    await this.withFakeTimers(async () => {
+      // Deadline: attempt start + (leaseDuration + renewInterval) / 2 = 1750, attempt timeout 2500
+      const cluster = fakeCluster({ renewInterval: 500 });
+      cluster.result = true;
+      const rec = recorder();
+      cluster.whenLeader(rec.fn, rec.deregistered);
+      await cluster.init();
+      await vi.advanceTimersByTimeAsync(0);
+      assert.deepStrictEqual(rec.calls, ["fn"]);
+      // The renew started at 500 never answers
+      cluster.result = () => new Promise<boolean>(() => {});
+      await vi.advanceTimersByTimeAsync(1749);
+      assert.strictEqual(cluster.isLeader(), true);
+      await vi.advanceTimersByTimeAsync(1);
+      // Stepped down 1750ms after the start of the last successful attempt, before its lease expires (3000)
+      assert.strictEqual(cluster.isLeader(), false);
+      assert.deepStrictEqual(rec.calls, ["fn", "deregistered"]);
+      // The hanging attempt times out at 3000 and the election goes on
+      cluster.result = true;
+      await vi.advanceTimersByTimeAsync(1750);
+      assert.strictEqual(cluster.isLeader(), true);
+      assert.deepStrictEqual(rec.calls, ["fn", "deregistered", "fn"]);
+      await cluster.stop();
+    });
+  }
+
+  @test
+  async slowAcquireAfterDeadlineIsNotLeading() {
+    await this.withFakeTimers(async () => {
+      const cluster = fakeCluster({ renewInterval: 500 });
+      // Answers within the attempt timeout (2500) but after the deadline (1750)
+      cluster.result = () => new Promise<boolean>(resolve => setTimeout(() => resolve(true), 2000));
+      const rec = recorder();
+      cluster.whenLeader(rec.fn, rec.deregistered);
+      const init = cluster.init();
+      await vi.advanceTimersByTimeAsync(2000);
+      await init;
+      assert.strictEqual(cluster.isLeader(), false);
+      assert.deepStrictEqual(rec.calls, []);
+      await cluster.stop();
+    });
+  }
+
+  @test
+  async slowRenewAfterDeadlineStepsDown() {
+    await this.withFakeTimers(async () => {
+      const cluster = fakeCluster({ renewInterval: 500 });
+      cluster.result = true;
+      const rec = recorder();
+      cluster.whenLeader(rec.fn, rec.deregistered);
+      await cluster.init();
+      await vi.advanceTimersByTimeAsync(0);
+      // The renew started at 500 answers at 2500: after its own deadline (2250)
+      cluster.result = () => new Promise<boolean>(resolve => setTimeout(() => resolve(true), 2000));
+      await vi.advanceTimersByTimeAsync(2500);
+      assert.strictEqual(cluster.isLeader(), false);
+      assert.deepStrictEqual(rec.calls, ["fn", "deregistered"]);
+      await cluster.stop();
+    });
+  }
+
+  @test
+  defaultInstanceIdsDiffer() {
+    const a = new ClusterServiceParameters().load({}).instanceId;
+    const b = new ClusterServiceParameters().load({}).instanceId;
+    assert.notStrictEqual(a, b);
+    assert.ok(a.includes(`-${process.pid}-`), a);
+  }
+
+  @test
   invalidIntervals() {
     assert.throws(
       () => new ClusterServiceParameters().load({ leaseDuration: 1000, renewInterval: 1000 }),
@@ -458,5 +533,72 @@ class StoreClusterServiceTest extends WebdaApplicationTest {
       const entry: any = await useRegistry().get("cluster:lostLease");
       assert.strictEqual(entry.owner, "intruder");
     });
+  }
+}
+
+/**
+ * Service registering with the free whenLeader() in resolve(), before the cluster service is created
+ */
+class EarlyService extends Service {
+  static createConfiguration = (params: any) => new ServiceParameters().load(params);
+  calls: string[] = [];
+
+  /** @override */
+  resolve(): this {
+    super.resolve();
+    whenLeader(
+      () => void this.calls.push("fn"),
+      () => void this.calls.push("deregistered")
+    );
+    return this;
+  }
+}
+
+/**
+ * Fake cluster usable as a configured service
+ */
+class ConfiguredFakeCluster extends FakeCluster {
+  static createConfiguration = (params: any) => new ClusterServiceParameters().load(params);
+}
+
+@suite
+class EarlyWhenLeaderTest extends WebdaApplicationTest {
+  /** @override */
+  getTestConfiguration(): any {
+    return {
+      parameters: { ignoreBeans: true },
+      services: {
+        Early: { type: "WebdaTest/EarlyService" },
+        Cluster: {
+          type: "WebdaTest/FakeCluster",
+          leaseDuration: 3000,
+          renewInterval: 1000,
+          instanceId: "me"
+        }
+      }
+    };
+  }
+
+  /** @override */
+  async tweakApp(app: TestApplication): Promise<void> {
+    await super.tweakApp(app);
+    app.addModda("WebdaTest/EarlyService", EarlyService);
+    app.addModda("WebdaTest/FakeCluster", ConfiguredFakeCluster);
+  }
+
+  @test
+  async registeredBeforeTheClusterExists() {
+    const early = useCore().getService<EarlyService>("Early");
+    const cluster = useCore().getService<ConfiguredFakeCluster>("Cluster");
+    // Not the leader: the local cluster must not have run fn
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(cluster.isLeader(), false);
+    assert.deepStrictEqual(early.calls, []);
+    cluster.result = true;
+    await (cluster as any).attempt();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepStrictEqual(early.calls, ["fn"]);
+    await cluster.stop();
+    assert.deepStrictEqual(early.calls, ["fn", "deregistered"]);
   }
 }

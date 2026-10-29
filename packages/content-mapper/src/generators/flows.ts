@@ -25,8 +25,9 @@ import {
   operationServices,
   type OperationService
 } from "../flows/discovery.ts";
+import { compileFlows } from "../flows/compile.ts";
 import { capitalize, TASK_OPTIONS_TYPE } from "../flows/types.ts";
-import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";
+import type { AnalysisContext, Edit, FileEdits, GeneratedDiagnostic, Generator } from "../plan.ts";
 
 /** Name of the injected task options type. */
 const OPTIONS = "__WebdaFlowTaskOptions";
@@ -153,11 +154,15 @@ export function flowsGenerator(): Generator {
       const files = ctx.sourceFiles.filter(sf => sf.fileName.endsWith(FLOW_SUFFIX));
       if (!files.length) return [];
       const services = operationServices(ctx);
+      const { errors } = compileFlows(ctx);
       const out: FileEdits[] = [];
       for (const sf of files) {
         const text = flowDeclarations(ctx, sf, services);
         const edits: Edit[] = text ? [{ start: sf.text.length, end: sf.text.length, text, source: "flows" }] : [];
-        if (edits.length) out.push({ fileName: sf.fileName, edits });
+        const diagnostics: GeneratedDiagnostic[] = errors
+          .filter(error => error.file === sf.fileName)
+          .map(({ start, length, code, message }) => ({ start, length, code, messageText: message }));
+        if (edits.length || diagnostics.length) out.push({ fileName: sf.fileName, edits, diagnostics });
       }
       return out;
     }

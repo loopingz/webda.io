@@ -41,6 +41,8 @@ import {
   type ReflectedAttribute,
   type Section
 } from "./module-discovery.ts";
+import { compileFlows, formatFlowError } from "./flows/compile.ts";
+import type { CompiledFlow } from "./flows/types.ts";
 import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order, ts6PropertyOrder } from "./property-order.ts";
 import { generateModelSchemas } from "./schema/model.ts";
@@ -145,6 +147,10 @@ export interface WebdaModuleJson {
   schemas: Record<string, JSONSchema7>;
   behaviors: Record<string, BehaviorEntry>;
   capabilities?: Record<string, string>;
+  /**
+   * Flows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`): present only when there is one
+   */
+  flows?: Record<string, CompiledFlow>;
 }
 
 /** A Webda class declared in a file that does not follow the naming convention. */
@@ -1799,6 +1805,11 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     const aliases = buildModelAliases(declaration, namespace).filter(alias => alias !== object.name);
     if (aliases.length) entry.Aliases = aliases;
   }
+
+  // Flows: a forbidden construct fails the build, as it is a diagnostic in the editor
+  const flows = compileFlows(ctx);
+  if (Object.keys(flows.flows).length) module.flows = flows.flows;
+  errors.push(...flows.errors.map(error => formatFlowError(ctx, error)));
 
   // An alias naming another model would make its rows ambiguous: the build fails instead
   for (const [name, entry] of Object.entries(module.models)) {

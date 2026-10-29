@@ -119,6 +119,7 @@ export * from "./configurations/fileconfiguration.service.js";
 export * from "./services/audit.model.js";
 export * from "./services/service.js";
 export * from "./services/clientcertificatefilter.service.js";
+export * from "./services/cluster.service.js";
 export * from "./services/binary.service.js";
 export * from "./configurations/configuration.service.js";
 export * from "./rest/irest.js";

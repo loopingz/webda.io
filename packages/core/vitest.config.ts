@@ -70,6 +70,7 @@ export default defineConfig({
       "src/services/operationstransport.spec.ts",
       "src/services/httpserver.spec.ts",
       "src/services/clientcertificatefilter.spec.ts",
+      "src/services/cluster.service.spec.ts",
       "src/services/notificationservice.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",

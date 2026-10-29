@@ -158,6 +158,18 @@ await runAsSystem(async () => {
 });
 ```
 
+Inside `runAsSystem()`, `useContext()` returns a new `GlobalOperationContext`. To call an operation as the system, outside a request (a cron, a worker), use `useSystem(input?)`: it returns a new `GlobalOperationContext` that `callOperation` accepts, so the call still gets input validation, the authorizers and the `Webda.BeforeOperation` / `Webda.OperationSuccess` / `Webda.OperationFailure` events:
+
+```typescript
+import { callOperation, useSystem } from "@webda/core";
+
+const ctx = useSystem({ full: true });
+await callOperation(ctx, "Reports.Generate");
+const result = JSON.parse(ctx.getOutput());
+```
+
+The system context has an empty session and `getCurrentUserId()` returns `"system"`. It passes the operation `permission` queries, but `OperationAuthorizer`s still run. A `canAct` or an authorizer detects it with `context.isGlobalContext()`.
+
 ## Accessing context from model methods
 
 Model methods (like `canAct`) receive the context as a parameter. Inside `@Operation` methods, use `useContext()`:

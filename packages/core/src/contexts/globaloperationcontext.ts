@@ -12,6 +12,9 @@ import { SimpleOperationContext } from "./simplecontext.js";
  * Each call to {@link useSystem} or `runAsSystem` creates a new one: `callOperation` writes per-call state on it.
  */
 export class GlobalOperationContext extends SimpleOperationContext {
+  /**
+   * Create a system context with an empty session and an empty input
+   */
   constructor() {
     super();
     this.session = new Session();

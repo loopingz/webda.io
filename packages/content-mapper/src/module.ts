@@ -196,7 +196,7 @@ export interface ModuleResult {
 }
 
 /** Suffixes the content mapper is registered for. */
-const MAPPED_SUFFIXES = [".model.ts", ".service.ts"];
+const MAPPED_SUFFIXES = [".model.ts", ".service.ts", ".flow.ts"];
 
 /** Suffix suggested for a section when a file has none of {@link MAPPED_SUFFIXES}. */
 const SECTION_SUFFIX: Record<string, string> = {

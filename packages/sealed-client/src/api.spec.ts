@@ -59,7 +59,7 @@ describe("restKeysApi", () => {
       ],
       ["POST", `${base}/keys.getEscrow`, { kind: "password" }],
       ["PUT", `${base}/keys.setEscrow`, { kind: "recovery", escrow: { e: 1 } }],
-      ["DELETE", `${base}/keys.removeEscrow`, { kind: "recovery" }],
+      ["DELETE", `${base}/keys.removeEscrow?kind=recovery`, undefined],
       ["GET", `${base}/keys.getKeyring`, undefined],
       ["POST", `${base}/keys.rotate`, { publicKey: { kid: "k2", jwk: {} }, keyring: { k: 2 } }],
       [
@@ -68,7 +68,7 @@ describe("restKeysApi", () => {
         { publicKey: { kid: "k3", jwk: {} }, keyring: { k: 3 }, escrows: { recovery: { r: 1 } } }
       ],
       ["POST", `${base}/keys.registerDevice`, { name: "laptop" }],
-      ["DELETE", `${base}/keys.revokeDevice`, { id: "dev" }]
+      ["DELETE", `${base}/keys.revokeDevice?id=dev`, undefined]
     ]);
     expect(calls[1].headers).toEqual({ "content-type": "application/json" });
   });

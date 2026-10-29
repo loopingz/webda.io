@@ -5,7 +5,7 @@ sidebar_label: Actions
 
 # Model Actions
 
-Actions are model methods decorated with `@Operation()` that are automatically exposed as HTTP endpoints. They are the primary way to add domain-specific behavior to a model beyond standard CRUD.
+Actions are model methods decorated with `@Action()` (or `@Operation()`) that are automatically exposed as HTTP endpoints. They are the primary way to add domain-specific behavior to a model beyond standard CRUD.
 
 ## `@Operation` decorator
 
@@ -35,7 +35,7 @@ export class Post extends Model {
    * Publish the post to a social platform.
    * Accessible as: POST /posts/:slug/publish
    */
-  @Operation()
+  @Operation({ rest: { method: "post", path: "publish" } })
   async publish(destination: "linkedin" | "twitter"): Promise<string> {
     return `${destination}_${this.slug}_${Date.now()}`;
   }
@@ -61,7 +61,7 @@ export class User extends UuidModel {
    * Log in with email and password.
    * Accessible as: POST /users/login
    */
-  @Operation()
+  @Operation({ rest: { method: "post", path: "login" } })
   static async login(email: string, password: string): Promise<boolean> {
     const user = (await User.getRepository().query(`email = '${email}' LIMIT 1`)).results.pop();
     if (!user || !user.password.verify(password)) {
@@ -74,7 +74,7 @@ export class User extends UuidModel {
    * Log out the current user.
    * Accessible as: POST /users/logout
    */
-  @Operation()
+  @Operation({ rest: { method: "post", path: "logout" } })
   static async logout(): Promise<void> {
     const context = useContext();
     if (!context.getCurrentUserId()) {
@@ -87,7 +87,7 @@ export class User extends UuidModel {
    * Follow another user.
    * Accessible as: POST /users/:uuid/follow
    */
-  @Operation()
+  @Operation({ rest: { method: "post", path: "follow" } })
   async follow(target: User): Promise<true> {
     if (target.getPrimaryKey() === this.getPrimaryKey()) {
       throw new WebdaError.BadRequest("Cannot follow yourself");
@@ -106,16 +106,34 @@ export class User extends UuidModel {
 
 | Method type | Operation | HTTP endpoint |
 |-------------|-----------|---------------|
-| Instance | `async myAction(args)` | `POST /models/:pk/myAction` |
-| Static | `static async myAction(args)` | `POST /models/myAction` |
+| Instance | `async myAction(args)` | `PUT /models/:pk/myAction` |
+| Static | `static async myAction(args)` | `PUT /models/myAction` |
 
-The endpoint method is always `POST`. The primary key segment matches the model's `[WEBDA_PRIMARY_KEY]` fields.
+The default HTTP method is `PUT`. Set `rest.method` to change it; `@Action({ methods: ["POST"] })` is also supported.
+The primary key segments match all of the model's `[WEBDA_PRIMARY_KEY]` fields in declaration order. Static actions
+have no implicit primary key.
+
+`rest.path` is relative to the model collection. For an instance action, missing primary key placeholders are
+prepended automatically:
+
+```ts
+@Action({ rest: { method: "post", path: "{uuid}/assign{?notify?}" } })
+async assign(userId: string, role: string, notify?: boolean): Promise<void> {
+  // POST /models/id/assign?notify=true with { "userId": "u1", "role": "editor" }
+  // calls instance.assign("u1", "editor", true)
+}
+```
+
+Behavior actions use the same binding relative to the behavior attribute. The existing `rest.route` option remains
+supported (`"."` is the bare attribute route). Model and behavior operations validate the parent primary key and
+action parameters before loading the instance. See [REST input binding](../../Concepts/Operations.md#rest-input-binding)
+for query templates, URL conversion, GET/DELETE defaults and `rest.body`.
 
 ## Input / output schemas
 
 The `@Operation` decorator's arguments are also analyzed by `@webda/compiler`. For each operation, `webdac build` generates:
 
-- `ModelName.actionName.input` schema — validates the request body
+- `ModelName.actionName.input` schema — describes the method parameters; an instance operation adds the primary key fields in `ModelName.actionName.request` for validation
 - `ModelName.actionName.output` schema — describes the response
 
 These schemas appear in `webda.module.json` under `schemas`:
@@ -134,10 +152,8 @@ Pass OpenAPI metadata to `@Operation()` to enrich the generated OpenAPI spec:
 ```typescript
 @Operation({
   description: "Publish the post to a social media platform",
-  tags: ["posts", "publishing"],
-  responses: {
-    "200": { description: "Publication token" }
-  }
+  rest: { method: "post", path: "publish" },
+  openapi: { post: { responses: { "200": { description: "Publication token" } } } }
 })
 async publish(destination: "linkedin" | "twitter"): Promise<string> {
   // ...
@@ -159,6 +175,14 @@ mutation {
 ```
 
 Instance operations take the primary key field(s) as GraphQL arguments. Static operations take only the method's own parameters.
+
+## Migrating context-style actions
+
+Actions with typed parameters now receive those values, just like service operations. An instance action no longer
+receives the operation context in place of its first ordinary parameter. Read the caller with `useContext()`, or
+retain an explicitly typed `OperationContext` / `IOperationContext` parameter; the compiler records its position and
+the runtime injects it without including it in the input schema. Actions with no input schema keep the legacy
+context fallback. Rebuild older modules to regenerate their parameter schemas.
 
 ## Verify
 

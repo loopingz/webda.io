@@ -24,6 +24,50 @@ OperationCall is
 
 A `@Route` can be seen as an Operation
 
+## REST input binding
+
+Method parameters define the input schema; the return type defines the output (`Promise<T>` is described as `T`).
+An operation receives its arguments in declaration order, including `undefined` for omitted optional parameters so
+JavaScript defaults apply. Use `useContext()` or a parameter typed as `OperationContext` to access the caller.
+
+```ts
+@Operation({ rest: { method: "get", path: "projects/{projectId}/tasks{?status,limit?,offset?}" } })
+async listTasks(projectId: string, status: string, limit = 20, offset?: number): Promise<Task[]> {
+  // ...
+}
+```
+
+The URI template determines where each parameter comes from:
+
+- `{name}` binds a required path parameter.
+- `{?a,b}` binds required query parameters; `{?a?,b?}` makes them optional.
+- `{?filters*}` collects the remaining query keys into an object parameter. Its values must be scalars.
+- POST, PUT and PATCH read the other parameters from a JSON object body.
+- GET and DELETE automatically add the other scalar parameters to the query template, preserving their required
+  or optional status. Objects and arrays need a body; scalar arrays can be explicitly bound in the query template.
+
+Only URL values are converted before validation: numbers must be finite, booleans accept `true`, `false`, `1` and
+`0`, and scalar arrays accept repeated keys (`?tag=a&tag=b`) or comma-separated values. Catch-all values are converted
+according to their property schemas. JSON body values remain strict: `"20"` is invalid for a number. A body cannot
+replace a conflicting URL parameter.
+
+For a single object or array that should occupy the whole JSON body, name its parameter explicitly:
+
+```ts
+@Operation({ rest: { method: "post", path: "projects/{projectId}/tasks", body: "task" } })
+async createTask(projectId: string, task: TaskInput): Promise<Task> {
+  // POST /projects/p1/tasks with { "title": "Review" } passes that object as task
+}
+```
+
+Without `rest.body`, that example requires `{ "task": { "title": "Review" } }`. The whole-body parameter must be the
+only parameter left after path and query binding.
+
+`webdac build` rejects template names that do not match method parameters and unsupported object/array URL bindings.
+The input schema records the binding as `x-webda-rest` in `webda.module.json`. OpenAPI uses the same mapping for typed
+`parameters` and `requestBody`; GET/DELETE have no request body. Other transports continue passing named input fields.
+When migrating a hand-written REST client, move GET/DELETE arguments from JSON bodies into the query string.
+
 ## Streaming operations
 
 An operation streams when its signature says so: an `async *` method (or one returning `AsyncGenerator<T>` /

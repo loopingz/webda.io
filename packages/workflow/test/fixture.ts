@@ -1,6 +1,8 @@
 // organize-imports-ignore
 import {
   callOperation,
+  loadModelForAction,
+  runWithContext,
   registerOperation,
   registerSchema,
   Service,
@@ -300,5 +302,19 @@ export class WorkflowTestBase extends WebdaApplicationTest {
     const ctx = userId ? await this.userContext(userId, input) : useSystem(input);
     await callOperation(ctx, "Workflow.Signal");
     return JSON.parse(ctx.getOutput());
+  }
+
+  /**
+   * Call an action of an instance as a user, through its canAct like the model operation
+   * @param userId - the caller, the system when undefined
+   * @param uuid - the instance uuid
+   * @param action - the action
+   * @param args - the action arguments
+   * @returns the action result
+   */
+  async act(userId: string | undefined, uuid: string, action: string, ...args: any[]): Promise<any> {
+    const ctx = userId ? await this.userContext(userId) : useSystem();
+    const instance: any = await loadModelForAction(WorkflowInstance, uuid, ctx, action);
+    return runWithContext(ctx, () => instance[action](...args));
   }
 }

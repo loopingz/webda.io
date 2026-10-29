@@ -286,7 +286,7 @@ class WorkflowServiceTest extends WorkflowTestBase {
     await this.drain();
     const waiting = await this.instance(uuid);
     assert.strictEqual(waiting.status, "WAITING");
-    assert.deepStrictEqual(waiting.journal["f/now@"], { result: 5_000_000, at: 5_000_000 });
+    assert.deepStrictEqual(waiting.journal["f/now@"], { result: 5_000_000, at: 5_000_000, seq: 1 });
     const sleepTask = (await this.tasks(uuid)).find(t => t.operation === "Workflow.Sleep");
     assert.strictEqual(sleepTask.runAt, 5_001_000);
     // Forcing replays later does not change the recorded values
@@ -318,13 +318,7 @@ class WorkflowServiceTest extends WorkflowTestBase {
   }
 
   @test
-  async notImplementedBuiltins() {
-    const def = this.flow([task("f/start", "Workflow.Start", { lit: { flow: "X", input: {} } })]);
-    const uuid = await this.launch(def, {}, "alice");
-    await this.drain();
-    const instance = await this.instance(uuid);
-    assert.strictEqual(instance.status, "ERROR");
-    assert.strictEqual(instance.error.code, "NotImplemented");
+  async storedSystemNotAllowed() {
     // A stored flow cannot use useSystem without the opt-in
     const stored = this.flow([task("f/sys", "FlowTest.WhoAmI", { lit: {} }, undefined, { useSystem: true })], [], {
       source: "stored"

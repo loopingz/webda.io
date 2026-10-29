@@ -2,7 +2,7 @@ import {
   callOperation,
   hasSchema,
   Operation,
-  listOperations,
+  listFullOperations,
   registerOperation,
   registerSchema,
   runAsSystem,
@@ -12,6 +12,7 @@ import {
   SimpleOperationContext,
   useApplication,
   useContext,
+  useDynamicService,
   useSystem,
   WebdaError,
   type OperationContext
@@ -26,7 +27,8 @@ import {
   type FlowError,
   type JournalEntry
 } from "./graph.js";
-import { run, type ScheduledTask } from "./interpreter.js";
+import { keysOf, run, statementIdOf, type ScheduledTask } from "./interpreter.js";
+import { setWorkflowControls, type WorkflowControls } from "./hooks.js";
 import { WorkflowInstance, type WorkflowLauncher } from "./models/workflowinstance.model.js";
 import { WorkflowTask, type WorkflowTaskStatus } from "./models/workflowtask.model.js";
 import { WorkflowSignal } from "./models/workflowsignal.model.js";
@@ -194,6 +196,16 @@ function isActive(instance?: WorkflowInstance): boolean {
 }
 
 /**
+ * Whether two flow errors are the same
+ * @param a - an error
+ * @param b - another error
+ * @returns true when code, message and operation match
+ */
+function sameError(a?: FlowError, b?: FlowError): boolean {
+  return !!a && !!b && a.code === b.code && a.message === b.message && a.operation === b.operation;
+}
+
+/**
  * Uuid of the n-th row of a task key: the same for every worker, so two advances cannot create it twice
  * @param instance - instance uuid
  * @param key - task key
@@ -214,11 +226,18 @@ function taskUuid(instance: string, key: string, index: number): string {
  *
  * @WebdaModda WorkflowService
  */
-export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServiceParameters> extends Service<T> {
+export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServiceParameters>
+  extends Service<T>
+  implements WorkflowControls
+{
   /**
    * Flows registered on this service, by flow id
    */
   protected flows = new Map<string, FlowDefinition>();
+  /**
+   * Every version registered of each flow, for migrate
+   */
+  protected versions = new Map<string, Map<string, FlowDefinition>>();
   /**
    * Worker id, the lease owner of the tasks it claims
    */
@@ -257,6 +276,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   resolve(): this {
     super.resolve();
+    // The configured service serves the WorkflowInstance actions
+    setWorkflowControls(this);
     // Before the transports init: they snapshot the operations
     for (const def of this.parameters.flows ?? []) {
       this.registerFlow({ ...def, version: def.version ?? "", source: def.source ?? "code" });
@@ -321,6 +342,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   registerFlow(def: FlowDefinition): void {
     const flow: FlowDefinition = { ...def, version: def.version || flowVersion(def) };
     this.flows.set(flow.id, flow);
+    if (!this.versions.has(flow.id)) this.versions.set(flow.id, new Map());
+    this.versions.get(flow.id)!.set(flow.version, flow);
     const input = `${flow.id}.input`;
     // The parameters are given to launch in this order
     this.registerSchema(input, {
@@ -355,6 +378,37 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
+   * Find a flow registered on any WorkflowService, by its operation
+   * @param flowId - the flow id
+   * @returns the current definition, undefined when the operation is not a flow
+   */
+  resolveFlow(flowId: string | undefined): FlowDefinition | undefined {
+    if (!flowId) return undefined;
+    const local = this.flows.get(flowId);
+    if (local) return local;
+    const operation: any = listFullOperations()[flowId];
+    if (operation?.context?.flowId !== flowId || !operation.service) return undefined;
+    const service: any = useDynamicService(operation.service);
+    return typeof service?.getFlow === "function" ? service.getFlow(flowId) : undefined;
+  }
+
+  /**
+   * Find a version of a flow
+   * @param flowId - the flow id
+   * @param version - the version
+   * @returns the definition
+   */
+  getFlowVersion(flowId: string, version: string): FlowDefinition | undefined {
+    const local = this.versions.get(flowId)?.get(version);
+    if (local) return local;
+    const operation: any = listFullOperations()[flowId];
+    const service: any = operation?.service ? useDynamicService(operation.service) : undefined;
+    return service !== this && typeof service?.getFlowVersion === "function"
+      ? service.getFlowVersion(flowId, version)
+      : undefined;
+  }
+
+  /**
    * Launch the flow of the current operation, as the caller
    * @param args - the flow parameters, in order
    * @returns the instance uuid
@@ -385,15 +439,26 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    * @param def - the flow definition, pinned in the instance
    * @param input - the flow input
    * @param launcher - the identity of the steps
+   * @param options - the parent of an awaited child, a fixed uuid (created once)
+   * @param options.parent - parent instance and task key
+   * @param options.parent.instance - parent instance uuid
+   * @param options.parent.key - task key in the parent
+   * @param options.uuid - uuid of the instance: an existing one is not created again
    * @returns the instance
    */
   protected async createInstance(
     def: FlowDefinition,
     input: Record<string, any>,
-    launcher: WorkflowLauncher
+    launcher: WorkflowLauncher,
+    options: { parent?: { instance: string; key: string }; uuid?: string } = {}
   ): Promise<WorkflowInstance> {
     const now = Date.now();
+    if (options.uuid && (await WorkflowInstance.ref(options.uuid).exists())) {
+      return (await WorkflowInstance.ref(options.uuid).get()) as WorkflowInstance;
+    }
     const instance = await WorkflowInstance.create({
+      ...(options.uuid ? { uuid: options.uuid } : {}),
+      ...(options.parent ? { parent: options.parent } : {}),
       flowId: def.id,
       version: def.version,
       definition: def,
@@ -585,7 +650,12 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           false
         );
       }
-      entry = { result: await this.runTask(task, instance, controller) };
+      if (task.signaled) {
+        // Resolved by a signal or a child: the outcome is on the row
+        entry = task.error ? { error: task.error } : { result: task.output };
+      } else {
+        entry = { result: await this.runTask(task, instance, controller) };
+      }
     } catch (err) {
       const error = this.toFlowError(err, task.operation);
       retryable =
@@ -710,13 +780,20 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         // The timer is the runAt of the task
         return null;
       case BUILTINS.WaitForEvent:
-        if (task.signaled) return task.output;
         throw new TaskError("Timeout", `No ${task.event} event for ${task.eventKey} before the timeout`, false);
-      case BUILTINS.Start:
-        throw new TaskError("NotImplemented", `${task.operation} is not implemented yet`, false);
+      case BUILTINS.Start: {
+        const def = this.resolveFlow(task.input?.flow);
+        if (!def) {
+          throw new TaskError("NotFound", `Unknown flow ${task.input?.flow}`, false);
+        }
+        // The same uuid for every attempt: a child started twice is created once
+        const uuid = taskUuid(task.uuid, "start", 1);
+        await runAsSystem(() => this.createInstance(def, task.input?.input ?? {}, instance.launcher, { uuid }));
+        return { uuid };
+      }
     }
-    if ((listOperations()[task.operation] as any)?.context?.flowId) {
-      throw new TaskError("NotImplemented", `Child flow ${task.operation} is not implemented yet`, false);
+    if (this.resolveFlow(task.operation)) {
+      throw new TaskError("InvalidTask", `Child flow ${task.operation} runs as a WAITING_CHILD task`, false);
     }
     const options = task.options ?? {};
     if (options.useSystem && instance.definition?.source === "stored" && !this.parameters.allowStoredSystem) {
@@ -811,7 +888,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         const instance = (await WorkflowInstance.ref(instanceId).get()) as WorkflowInstance;
         if (!isActive(instance)) return false;
         if (instance.journal?.[key]) return true;
-        const journal = { ...instance.journal, [key]: { ...entry, at: Date.now() } };
+        const journal = { ...instance.journal, [key]: { ...entry, at: Date.now(), seq: instance.revision + 1 } };
         const size =
           Buffer.byteLength(JSON.stringify(journal)) + Buffer.byteLength(JSON.stringify(instance.input ?? {}));
         if (size > this.parameters.maxContextSize) {
@@ -820,7 +897,10 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
             message: `The context of the workflow is ${size} bytes, over ${this.parameters.maxContextSize}`,
             operation: instance.flowId
           };
-          if (await this.patchInstance(instance, { status: "ERROR", error })) return false;
+          if (await this.patchInstance(instance, { status: "ERROR", error })) {
+            await this.deliverToParent(instance.uuid);
+            return false;
+          }
           continue;
         }
         if (await this.patchInstance(instance, { journal })) return true;
@@ -859,12 +939,13 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         const instance = (await WorkflowInstance.ref(instanceId).get()) as WorkflowInstance;
         if (!isActive(instance)) return;
         const res = run(instance.definition as FlowDefinition, instance.input, instance.journal ?? {});
-        if (res.status === "done") {
-          if (await this.patchInstance(instance, { status: "SUCCESS", output: res.output })) return;
-          continue;
-        }
-        if (res.status === "error") {
-          if (await this.patchInstance(instance, { status: "ERROR", error: res.error })) return;
+        if (res.status === "done" || res.status === "error") {
+          const end: Partial<WorkflowInstance> =
+            res.status === "done" ? { status: "SUCCESS", output: res.output } : { status: "ERROR", error: res.error };
+          if (await this.patchInstance(instance, end)) {
+            await this.deliverToParent(instanceId);
+            return;
+          }
           continue;
         }
         let resolved = false;
@@ -873,7 +954,11 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         }
         // A buffered signal resolved a new wait: replay again
         if (resolved) continue;
-        const status = res.schedule.every(t => WAITING_OPERATIONS.includes(t.operation)) ? "WAITING" : "RUNNING";
+        const status = res.schedule.every(
+          t => WAITING_OPERATIONS.includes(t.operation) || this.resolveFlow(t.operation)
+        )
+          ? "WAITING"
+          : "RUNNING";
         if (status === instance.status || (await this.patchInstance(instance, { status }))) return;
       }
     });
@@ -895,6 +980,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     let extra: Partial<WorkflowTask> = {};
     if (scheduled.operation === BUILTINS.Sleep) {
       runAt = this.sleepUntil(scheduled.input, runAt);
+    } else if (this.resolveFlow(scheduled.operation)) {
+      return this.scheduleChild(instance, scheduled, existing.length + 1);
     } else if (scheduled.operation === BUILTINS.WaitForEvent) {
       const input = scheduled.input ?? {};
       extra = {
@@ -915,6 +1002,183 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       extra
     );
     return task?.status === "WAITING_EVENT" ? this.consumeBuffered(instance, task) : false;
+  }
+
+  /**
+   * Start an awaited child flow: the task waits for the child instance, which runs as the same launcher
+   * @param instance - the parent instance
+   * @param scheduled - the task, its operation is a flow id
+   * @param index - row index of the key
+   * @returns true when the child finished at once: the parent journal changed
+   */
+  protected async scheduleChild(instance: WorkflowInstance, scheduled: ScheduledTask, index: number): Promise<boolean> {
+    const def = this.resolveFlow(scheduled.operation)!;
+    // Created with the row: a worker resuming after a crash finds the same child
+    const child = taskUuid(instance.uuid, `${scheduled.key}#child`, index);
+    const task = await this.createTask(instance.uuid, scheduled, instance.launcher?.userId, NO_TIMEOUT, 1, index, {
+      status: "WAITING_CHILD",
+      child
+    });
+    if (!task) return false;
+    await this.createInstance(def, scheduled.input ?? {}, instance.launcher, {
+      parent: { instance: instance.uuid, key: scheduled.key },
+      uuid: child
+    });
+    return ((await WorkflowTask.ref(task.uuid).get()) as WorkflowTask).status !== "WAITING_CHILD";
+  }
+
+  /**
+   * Journal the end of a child into its parent: its output, its error, or `Cancelled`
+   * @param childId - the child instance uuid
+   */
+  protected async deliverToParent(childId: string): Promise<void> {
+    await runAsSystem(async () => {
+      const child = (await WorkflowInstance.ref(childId).get()) as WorkflowInstance;
+      if (!child?.parent || isActive(child)) return;
+      const rows = (
+        await WorkflowTask.query(`instance = ? AND key = ? AND status = 'WAITING_CHILD'`, [
+          child.parent.instance,
+          child.parent.key
+        ])
+      ).results as WorkflowTask[];
+      const row = rows.find(r => r.child === child.uuid);
+      if (!row) return;
+      const outcome: Partial<WorkflowTask> =
+        child.status === "SUCCESS"
+          ? { signaled: true, output: child.output }
+          : {
+              signaled: true,
+              error: child.error ?? {
+                code: "Cancelled",
+                message: "The child flow was cancelled",
+                operation: child.flowId
+              }
+            };
+      if (await this.claim(row, outcome)) {
+        await this.execute(row);
+      }
+    });
+  }
+
+  /**
+   * Cancel an instance, its live tasks and the children it waits on
+   * @param uuid - the instance uuid
+   */
+  async cancelInstance(uuid: string): Promise<void> {
+    await runAsSystem(async () => {
+      if (!(await this.cancelTree(uuid))) {
+        throw new WebdaError.BadRequest("cancel: the instance is not running");
+      }
+    });
+  }
+
+  /**
+   * Cancel an instance and, recursively, the children it waits on
+   * @param uuid - the instance uuid
+   * @returns false when the instance was not running
+   */
+  protected async cancelTree(uuid: string): Promise<boolean> {
+    for (;;) {
+      const instance = (await WorkflowInstance.ref(uuid).get()) as WorkflowInstance;
+      if (!isActive(instance)) return false;
+      if (await this.patchInstance(instance, { status: "CANCELLED" })) break;
+    }
+    for (const row of (await WorkflowTask.query(`instance = ?`, [uuid])).results as WorkflowTask[]) {
+      if (!LIVE_TASK.includes(row.status)) continue;
+      // A local attempt stops now, a remote one loses its lease and drops its outcome
+      this.running.get(row.uuid)?.controller.abort(DROPPED);
+      await this.supersede(row);
+      if (row.status === "WAITING_CHILD" && row.child) {
+        await this.cancelTree(row.child);
+      }
+    }
+    // A child cancelled on its own throws Cancelled in its parent
+    await this.deliverToParent(uuid);
+    return true;
+  }
+
+  /**
+   * Mark a task row CANCELLED, conditionally on its lease: whoever holds it can no longer write its outcome
+   * @param row - the task row, as read
+   */
+  protected async supersede(row: WorkflowTask): Promise<void> {
+    const status = row.status;
+    for (let current: WorkflowTask | undefined = row; current && current.status !== "CANCELLED";) {
+      const now = Date.now();
+      if (await this.patchLeased(current, { status: "CANCELLED", endedAt: now, leaseUntil: now })) break;
+      current = (await WorkflowTask.ref(row.uuid).get()) as WorkflowTask;
+    }
+    // Keep the status seen by the caller
+    row.status = status;
+  }
+
+  /**
+   * Restart a failed instance: drop the outcome that failed it and every outcome journaled after it, then replay
+   * @param uuid - the instance uuid
+   */
+  async retryInstance(uuid: string): Promise<void> {
+    await runAsSystem(async () => {
+      let kept: Record<string, JournalEntry>;
+      for (;;) {
+        const instance = (await WorkflowInstance.ref(uuid).get()) as WorkflowInstance;
+        if (instance?.status !== "ERROR") {
+          throw new WebdaError.BadRequest("retry: only a failed instance can be retried");
+        }
+        const order = (entry: JournalEntry) => entry.seq ?? entry.at ?? 0;
+        const entries = Object.entries(instance.journal ?? {});
+        const failing = entries
+          .filter(([, entry]) => "error" in entry && sameError(entry.error, instance.error))
+          .sort(([, a], [, b]) => order(b) - order(a))[0];
+        if (!failing) {
+          throw new WebdaError.BadRequest("retry: the error does not come from a task");
+        }
+        kept = Object.fromEntries(
+          entries.filter(([key, entry]) => key !== failing[0] && order(entry) < order(failing[1]))
+        );
+        if (await this.patchInstance(instance, { status: "RUNNING", journal: kept, error: null as any })) break;
+      }
+      // Finished rows of the dropped keys would stop them from being scheduled again
+      for (const row of (await WorkflowTask.query(`instance = ?`, [uuid])).results as WorkflowTask[]) {
+        if ((row.status === "SUCCESS" || row.status === "ERROR") && !kept[row.key]) {
+          await this.supersede(row);
+        }
+      }
+      await this.advance(uuid);
+    });
+  }
+
+  /**
+   * Move a running instance to another version of its flow
+   *
+   * Refused when a journaled or live task key has no statement in the target graph.
+   * @param uuid - the instance uuid
+   * @param version - the target version, the latest registered when undefined
+   */
+  async migrateInstance(uuid: string, version?: string): Promise<void> {
+    await runAsSystem(async () => {
+      for (;;) {
+        const instance = (await WorkflowInstance.ref(uuid).get()) as WorkflowInstance;
+        if (!isActive(instance)) {
+          throw new WebdaError.BadRequest("migrate: the instance is not running");
+        }
+        const target = version ? this.getFlowVersion(instance.flowId, version) : this.resolveFlow(instance.flowId);
+        if (!target) {
+          throw new WebdaError.BadRequest(`migrate: unknown version ${version ?? "(latest)"} of ${instance.flowId}`);
+        }
+        const ids = keysOf(target);
+        const live = ((await WorkflowTask.query(`instance = ?`, [uuid])).results as WorkflowTask[])
+          .filter(row => LIVE_TASK.includes(row.status))
+          .map(row => row.key);
+        const missing = [...new Set([...Object.keys(instance.journal ?? {}), ...live])].filter(
+          key => !ids.has(statementIdOf(key))
+        );
+        if (missing.length) {
+          throw new WebdaError.BadRequest(`migrate: ${missing.join(", ")} not in version ${target.version}`);
+        }
+        if (await this.patchInstance(instance, { definition: target, version: target.version })) break;
+      }
+      await this.advance(uuid);
+    });
   }
 
   /**

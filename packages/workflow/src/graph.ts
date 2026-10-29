@@ -276,7 +276,16 @@ export interface FlowError {
 /**
  * Outcome of a task
  */
-export type JournalEntry = { result: any; at?: number } | { error: FlowError; at?: number };
+export type JournalEntry = ({ result: any } | { error: FlowError }) & {
+  /**
+   * When the outcome was journaled (ms)
+   */
+  at?: number;
+  /**
+   * Instance revision that journaled it: the order of the outcomes
+   */
+  seq?: number;
+};
 
 /**
  * Outcome of each finished task, keyed by task key (`<statement id>@<iteration path>`)

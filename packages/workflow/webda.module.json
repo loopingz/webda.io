@@ -312,10 +312,42 @@
               "additionalProperties": {
                 "anyOf": [
                   {
-                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%231"
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "description": "When the outcome was journaled (ms)",
+                        "type": "number"
+                      },
+                      "result": {},
+                      "seq": {
+                        "description": "Instance revision that journaled it: the order of the outcomes",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "result"
+                    ],
+                    "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%232"
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "description": "When the outcome was journaled (ms)",
+                        "type": "number"
+                      },
+                      "error": {
+                        "$ref": "#/definitions/FlowError"
+                      },
+                      "seq": {
+                        "description": "Instance revision that journaled it: the order of the outcomes",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "error"
+                    ],
+                    "type": "object"
                   }
                 ],
                 "description": "Outcome of a task"
@@ -381,34 +413,6 @@
                   "type": "string"
                 }
               },
-              "type": "object"
-            },
-            "journal$[key: string]#1": {
-              "additionalProperties": false,
-              "properties": {
-                "at": {
-                  "type": "number"
-                },
-                "result": {}
-              },
-              "required": [
-                "result"
-              ],
-              "type": "object"
-            },
-            "journal$[key: string]#2": {
-              "additionalProperties": false,
-              "properties": {
-                "at": {
-                  "type": "number"
-                },
-                "error": {
-                  "$ref": "#/definitions/FlowError"
-                }
-              },
-              "required": [
-                "error"
-              ],
               "type": "object"
             },
             "parent#2": {
@@ -596,10 +600,42 @@
               "additionalProperties": {
                 "anyOf": [
                   {
-                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%231"
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "description": "When the outcome was journaled (ms)",
+                        "type": "number"
+                      },
+                      "result": {},
+                      "seq": {
+                        "description": "Instance revision that journaled it: the order of the outcomes",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "result"
+                    ],
+                    "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%232"
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "description": "When the outcome was journaled (ms)",
+                        "type": "number"
+                      },
+                      "error": {
+                        "$ref": "#/definitions/FlowError"
+                      },
+                      "seq": {
+                        "description": "Instance revision that journaled it: the order of the outcomes",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "error"
+                    ],
+                    "type": "object"
                   }
                 ],
                 "description": "Outcome of a task"
@@ -665,34 +701,6 @@
                   "type": "string"
                 }
               },
-              "type": "object"
-            },
-            "journal$[key: string]#1": {
-              "additionalProperties": false,
-              "properties": {
-                "at": {
-                  "type": "number"
-                },
-                "result": {}
-              },
-              "required": [
-                "result"
-              ],
-              "type": "object"
-            },
-            "journal$[key: string]#2": {
-              "additionalProperties": false,
-              "properties": {
-                "at": {
-                  "type": "number"
-                },
-                "error": {
-                  "$ref": "#/definitions/FlowError"
-                }
-              },
-              "required": [
-                "error"
-              ],
               "type": "object"
             },
             "parent#2": {
@@ -880,10 +888,42 @@
               "additionalProperties": {
                 "anyOf": [
                   {
-                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%231"
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "description": "When the outcome was journaled (ms)",
+                        "type": "number"
+                      },
+                      "result": {},
+                      "seq": {
+                        "description": "Instance revision that journaled it: the order of the outcomes",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "result"
+                    ],
+                    "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/journal%24%5Bkey%3A%20string%5D%232"
+                    "additionalProperties": false,
+                    "properties": {
+                      "at": {
+                        "description": "When the outcome was journaled (ms)",
+                        "type": "number"
+                      },
+                      "error": {
+                        "$ref": "#/definitions/FlowError"
+                      },
+                      "seq": {
+                        "description": "Instance revision that journaled it: the order of the outcomes",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "error"
+                    ],
+                    "type": "object"
                   }
                 ],
                 "description": "Outcome of a task"
@@ -949,34 +989,6 @@
                   "type": "string"
                 }
               },
-              "type": "object"
-            },
-            "journal$[key: string]#1": {
-              "additionalProperties": false,
-              "properties": {
-                "at": {
-                  "type": "number"
-                },
-                "result": {}
-              },
-              "required": [
-                "result"
-              ],
-              "type": "object"
-            },
-            "journal$[key: string]#2": {
-              "additionalProperties": false,
-              "properties": {
-                "at": {
-                  "type": "number"
-                },
-                "error": {
-                  "$ref": "#/definitions/FlowError"
-                }
-              },
-              "required": [
-                "error"
-              ],
               "type": "object"
             },
             "parent#2": {
@@ -1080,7 +1092,11 @@
           "$webda": "toJSON$return"
         }
       },
-      "Actions": {},
+      "Actions": {
+        "cancel": {},
+        "retry": {},
+        "migrate": {}
+      },
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1994,6 +2010,34 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Webda/WorkflowInstance.cancel.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Webda/WorkflowInstance.cancel.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/WorkflowInstance.retry.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Webda/WorkflowInstance.retry.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/WorkflowInstance.migrate.input": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "Webda/WorkflowInstance.migrate.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     },
     "WorkflowService.signal.input": {
       "type": "object",

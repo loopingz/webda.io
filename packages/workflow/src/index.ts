@@ -5,3 +5,4 @@ export * from "./models/workflowinstance.model.js";
 export * from "./models/workflowtask.model.js";
 export * from "./models/workflowsignal.model.js";
 export * from "./workflow.service.js";
+export * from "./hooks.js";

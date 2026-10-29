@@ -103,6 +103,9 @@ export default class WorkflowTask extends CoreModel {
    * @returns true when allowed, the reason otherwise
    */
   canAct(context: IOperationContext, action: string): string | boolean {
+    if (!context.isGlobalContext() && action !== "get" && action !== "query") {
+      return "Workflow tasks are written through the WorkflowService only";
+    }
     return canReadWorkflow(context, action, this.launcherId);
   }
 }

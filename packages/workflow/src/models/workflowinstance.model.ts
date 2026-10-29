@@ -1,4 +1,5 @@
-import { CoreModel, type IOperationContext } from "@webda/core";
+import { Action, CoreModel, type IOperationContext } from "@webda/core";
+import { useWorkflowControls } from "../hooks.js";
 import type { FlowDefinitionData, FlowError, Journal } from "../graph.js";
 
 /**
@@ -25,7 +26,12 @@ export interface WorkflowLauncher {
 }
 
 /**
- * Whether a caller may read an object launched by `launcherId`
+ * Actions allowed to the launcher of a workflow: reads, signals and the controls
+ */
+const LAUNCHER_ACTIONS = ["get", "query", "signal", "cancel", "retry", "migrate"];
+
+/**
+ * Whether a caller may read or control an object launched by `launcherId`
  * @param context - the caller
  * @param action - the action
  * @param launcherId - user id of the launcher
@@ -35,7 +41,7 @@ export function canReadWorkflow(context: IOperationContext, action: string, laun
   if (context.isGlobalContext()) {
     return true;
   }
-  if (action !== "get" && action !== "query" && action !== "signal") {
+  if (!LAUNCHER_ACTIONS.includes(action)) {
     return "Workflows are written through the WorkflowService only";
   }
   const userId = context.getCurrentUserId();
@@ -113,6 +119,31 @@ export default class WorkflowInstance extends CoreModel {
    */
   canAct(context: IOperationContext, action: string): string | boolean {
     return canReadWorkflow(context, action, this.launcher?.userId);
+  }
+
+  /**
+   * Cancel the instance, its live tasks and the children it waits on
+   */
+  @Action({ rest: { method: "POST" } })
+  async cancel(): Promise<void> {
+    await useWorkflowControls().cancelInstance(this.uuid);
+  }
+
+  /**
+   * Restart a failed instance from its failed task, keeping the outcomes before it
+   */
+  @Action({ rest: { method: "POST" } })
+  async retry(): Promise<void> {
+    await useWorkflowControls().retryInstance(this.uuid);
+  }
+
+  /**
+   * Move a running instance to another version of its flow
+   * @param version - the target version, the latest registered when omitted
+   */
+  @Action({ rest: { method: "POST" } })
+  async migrate(version?: string): Promise<void> {
+    await useWorkflowControls().migrateInstance(this.uuid, version);
   }
 }
 

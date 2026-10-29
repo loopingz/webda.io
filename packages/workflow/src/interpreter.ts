@@ -347,3 +347,26 @@ export function run(def: FlowDefinition, input: Record<string, any>, journal: Jo
     throw err;
   }
 }
+
+/**
+ * Statement ids of a definition, nested ones included
+ * @param def - the flow definition
+ * @returns the ids
+ */
+export function keysOf(def: Pick<FlowDefinition, "body">): Set<string> {
+  const ids = new Set<string>();
+  const walk = (stmts: any[] | undefined) => {
+    for (const stmt of stmts ?? []) {
+      if (!stmt || typeof stmt !== "object") continue;
+      ids.add(stmt.id);
+      walk(stmt.then);
+      walk(stmt.else);
+      walk(stmt.body);
+      walk(stmt.catch);
+      walk(stmt.finally);
+      for (const branch of stmt.branches ?? []) walk(branch);
+    }
+  };
+  walk(def.body);
+  return ids;
+}

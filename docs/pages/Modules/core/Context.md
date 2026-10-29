@@ -86,13 +86,11 @@ interface CreatePostOutput {
 @Bean
 export class PostService extends Service {
   @Route("/posts", ["POST"])
-  async createPost(
-    ctx: OperationContext<CreatePostInput, {}, CreatePostOutput>
-  ): Promise<void> {
-    const body = ctx.getBody();        // typed as CreatePostInput
+  async createPost(ctx: OperationContext<CreatePostInput, {}, CreatePostOutput>): Promise<void> {
+    const body = ctx.getBody(); // typed as CreatePostInput
     const post = await this.create(body);
     ctx.statusCode(201);
-    ctx.write(post);                   // typed as CreatePostOutput
+    ctx.write(post); // typed as CreatePostOutput
   }
 }
 ```
@@ -106,7 +104,7 @@ Sessions are managed by `SessionManager`. By default, Webda uses JWT tokens stor
 ```typescript
 const session = context.getSession();
 const customData = session["myCustomKey"];
-const userId = session["userId"];  // set by AuthenticationService
+const userId = session["userId"]; // set by AuthenticationService
 ```
 
 ### Writing session data

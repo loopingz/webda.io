@@ -6,15 +6,18 @@ import {
   Operation,
   OperationContext,
   Queue,
+  registerOperation,
   runWithContext,
   Service,
   registerOperationAuthorizer,
   ServiceParameters,
   unregisterOperationAuthorizer,
   useApplication,
+  useContext,
   useCore,
   useDynamicService,
   useParameters,
+  useSystem,
   useRouter,
   WebContext,
   WebdaError
@@ -41,7 +44,11 @@ class FakeService extends Service {
 
   @Operation()
   @Cron("0 8 * * *", "", { full: true })
-  async cron2() {}
+  async cron2() {
+    this.callers.push(useContext().getCurrentUserId());
+  }
+
+  callers: string[] = [];
 
   scheduled() {}
 }
@@ -665,6 +672,56 @@ class AsyncJobServiceTest extends AsyncTest {
       sinon.restore();
       delete useCore().getServices()["mine"];
       delete useCore().getServices()["async"];
+    }
+  }
+
+  @test
+  async asyncRunOperationAction() {
+    const fakeService = new FakeService("fake", new ServiceParameters());
+    this.registerService(fakeService).resolve();
+    registerOperation("Fake.Guarded", { service: "fake", method: "cron2", permission: "userId = 'admin'" });
+    const service = this.getValidService();
+    const reports: any[] = [];
+    // The hook answers the stored action as JSON, as the HTTP status hook does
+    const stored = JSON.parse(
+      JSON.stringify({
+        ...new AsyncOperationAction("Fake.Guarded", useSystem({ full: true })),
+        context: { input: Buffer.from(JSON.stringify({ full: true })) }
+      })
+    );
+    const hook = stub(service, "postHook").callsFake(async (_info, message) => {
+      reports.push(message);
+      return stored;
+    });
+    try {
+      await service.runAsyncOperationAction({
+        JOB_ORCHESTRATOR: "async",
+        JOB_ID: "job",
+        JOB_SECRET_KEY: "secret",
+        JOB_HOOK: "store"
+      });
+      assert.deepStrictEqual(
+        reports.map(r => r.status),
+        ["RUNNING", "SUCCESS"]
+      );
+      assert.deepStrictEqual(fakeService.callers, ["system"]);
+      // Without the system marker the guarded operation is refused
+      stored.system = false;
+      reports.length = 0;
+      await service.runAsyncOperationAction({
+        JOB_ORCHESTRATOR: "async",
+        JOB_ID: "job",
+        JOB_SECRET_KEY: "secret",
+        JOB_HOOK: "store"
+      });
+      assert.deepStrictEqual(
+        reports.map(r => r.status),
+        ["RUNNING", "ERROR"]
+      );
+      assert.match(reports[1].errorMessage, /PermissionDenied/);
+    } finally {
+      hook.restore();
+      delete useCore().getServices()["fake"];
     }
   }
 

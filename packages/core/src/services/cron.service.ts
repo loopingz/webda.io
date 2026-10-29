@@ -4,6 +4,7 @@ import { Service } from "./service.js";
 import { CancelablePromise } from "@webda/utils";
 import { useCore } from "../core/hooks.js";
 import { Command } from "./command.js";
+import { FatalInitError } from "../errors/errors.js";
 import { getMetadata } from "@webda/decorators";
 import { useLog } from "@webda/workout";
 import { useInstanceStorage } from "../core/instancestorage.js";
@@ -116,12 +117,14 @@ class CronService extends Service {
   private _scanned: boolean = false;
   /** Crons scheduled by {@link run}, started on the cluster leader only */
   protected scheduled: CrontabEntry[] = [];
-  /** node-cron tasks running while this instance leads */
-  protected tasks: { stop: () => any }[] = [];
+  /** node-cron tasks running while this instance leads, by cron */
+  protected tasks = new Map<CrontabEntry, { stop: () => any }>();
   /** Whether this instance leads and runs the tasks */
   protected leading = false;
   /** Remove the `whenLeader` registration of {@link run} */
   protected unregisterLeader?: () => void;
+  /** Services running the annotations and the registered crons: {@link register} adds to their live schedule */
+  protected static running = new Set<CronService>();
 
   /**
    * Legacy decorator factory for annotating a method with a cron schedule
@@ -267,8 +270,34 @@ class CronService extends Service {
       def.description ?? "",
       operationId
     );
-    (useInstanceStorage().crons ??= []).push(cron);
+    const crons = (useInstanceStorage().crons ??= []);
+    // Registering the same cron again keeps the first one
+    const id = CronService.getExportId(cron);
+    const existing = crons.find(c => CronService.getExportId(c) === id);
+    if (existing) {
+      return existing;
+    }
+    crons.push(cron);
+    CronService.running.forEach(service => service.addScheduled(cron));
     return cron;
+  }
+
+  /**
+   * Remove registered crons, stopping their running tasks
+   *
+   * The `@Cron` annotations cannot be removed.
+   * @param idOrOperationId - the export id of a cron ({@link CronService.getExportId}), or an operation id to remove
+   *   all its registered crons
+   * @returns the removed crons
+   */
+  static unregister(idOrOperationId: string): CronDefinition[] {
+    const crons = useInstanceStorage().crons ?? [];
+    const removed = crons.filter(
+      c => c.operationId === idOrOperationId || CronService.getExportId(c) === idOrOperationId
+    );
+    useInstanceStorage().crons = crons.filter(c => !removed.includes(c));
+    CronService.running.forEach(service => removed.forEach(cron => service.removeScheduled(cron)));
+    return removed;
   }
 
   /**
@@ -296,12 +325,16 @@ class CronService extends Service {
   }
 
   /**
-   * Resolve the crons at startup: an invalid cron fails now rather than at its first tick
+   * Resolve the crons at startup: an invalid cron stops the application start rather than failing at its first tick
    * @returns this
    */
   async init(): Promise<this> {
     await super.init();
-    CronService.resolveCrons();
+    try {
+      CronService.resolveCrons();
+    } catch (err) {
+      throw new FatalInitError(err.message, { cause: err });
+    }
     return this;
   }
 
@@ -366,11 +399,7 @@ class CronService extends Service {
       this.addAnnotations();
     }
     this.enable = true;
-    const added = [...this.crons];
-    this.scheduled.push(...added);
-    if (this.leading) {
-      added.forEach(entry => this.startTask(entry));
-    }
+    this.crons.forEach(entry => this.addScheduled(entry));
 
     const msgs = [];
     // Display before
@@ -391,6 +420,11 @@ class CronService extends Service {
     });
     // Remove from memory
     this.crons = [];
+    if (annotations) {
+      // Crons registered after the scan join the live schedule
+      CronService.running.add(this);
+      (useInstanceStorage().crons ?? []).forEach(cron => this.addScheduled(cron));
+    }
     // Only the cluster leader runs the crons: each tick fires once across the replicas
     this.unregisterLeader ??= this.getCluster().whenLeader(
       () => this.startTasks(),
@@ -404,7 +438,37 @@ class CronService extends Service {
    * @param entry - the cron
    */
   protected startTask(entry: CrontabEntry) {
-    this.tasks.push(this.crontabSchedule(entry.cron, entry.cb ?? (() => CronService.execute(<CronDefinition>entry))));
+    if (this.tasks.has(entry)) {
+      return;
+    }
+    this.tasks.set(
+      entry,
+      this.crontabSchedule(entry.cron, entry.cb ?? (() => CronService.execute(<CronDefinition>entry)))
+    );
+  }
+
+  /**
+   * Add a cron to the schedule, started at once when leading
+   * @param entry - the cron
+   */
+  protected addScheduled(entry: CrontabEntry) {
+    if (this.scheduled.includes(entry)) {
+      return;
+    }
+    this.scheduled.push(entry);
+    if (this.leading) {
+      this.startTask(entry);
+    }
+  }
+
+  /**
+   * Remove a cron from the schedule, stopping its task
+   * @param entry - the cron
+   */
+  protected removeScheduled(entry: CrontabEntry) {
+    this.scheduled = this.scheduled.filter(e => e !== entry);
+    this.tasks.get(entry)?.stop();
+    this.tasks.delete(entry);
   }
 
   /**
@@ -421,16 +485,18 @@ class CronService extends Service {
    */
   protected stopTasks() {
     this.leading = false;
-    if (this.tasks.length) {
-      this.log("INFO", `Not leading the cluster: stopping ${this.tasks.length} cron(s)`);
+    if (this.tasks.size) {
+      this.log("INFO", `Not leading the cluster: stopping ${this.tasks.size} cron(s)`);
     }
-    this.tasks.splice(0).forEach(task => task.stop());
+    this.tasks.forEach(task => task.stop());
+    this.tasks.clear();
   }
 
   /**
    * Stop running the crons
    */
   async stop(): Promise<void> {
+    CronService.running.delete(this);
     this.unregisterLeader?.();
     this.unregisterLeader = undefined;
     // The deregistration is queued: stop the tasks now
@@ -446,11 +512,7 @@ class CronService extends Service {
    */
   schedule(cron: string, cb: () => any, description: string = "") {
     if (this.enable) {
-      const entry = { cron, cb, description };
-      this.scheduled.push(entry);
-      if (this.leading) {
-        this.startTask(entry);
-      }
+      this.addScheduled({ cron, cb, description });
     } else {
       let context;
       try {

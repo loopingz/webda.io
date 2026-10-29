@@ -1,4 +1,5 @@
 import {
+  callOperation,
   canCallOperation,
   Command,
   CronDefinition,
@@ -32,7 +33,13 @@ import axios, { AxiosResponse } from "axios";
 import * as crypto from "node:crypto";
 import { JSONSchema7 } from "json-schema";
 import { schedule as crontabSchedule } from "node-cron";
-import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction, AsyncWebdaAction } from "../asyncaction.model.js";
+import {
+  AsyncAction,
+  AsyncActionQueueItem,
+  AsyncOperationAction,
+  AsyncWebdaAction,
+  getActionOperationContext
+} from "../asyncaction.model.js";
 import { Runner } from "./runner.service.js";
 import { ServiceRunner, ServiceRunnerParameters } from "./servicerunner.service.js";
 
@@ -654,10 +661,18 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         nodeVersion: process.version
       },
       status: "RUNNING"
-    })) as AsyncWebdaAction;
-    this.log("DEBUG", "Action received", action.serviceName, action.method, action.arguments);
+    })) as AsyncWebdaAction & Pick<AsyncOperationAction, "operationId" | "context" | "system">;
+    this.log("DEBUG", "Action received", action.operationId ?? action.serviceName, action.method, action.arguments);
     let results;
     try {
+      if (action.operationId) {
+        // AsyncOperationAction: call the operation, as the system when a cron launched it
+        const context = getActionOperationContext(action.context, action.system);
+        await callOperation(context, action.operationId);
+        results = context.getOutput();
+        await this.postHook(jobInfo, { results, status: "SUCCESS" });
+        return;
+      }
       // Check it contains the right info
       if (!action.method || !action.serviceName) {
         throw new Error("WebdaAsyncAction must have method and serviceName defined at least");

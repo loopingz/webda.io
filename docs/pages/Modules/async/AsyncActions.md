@@ -12,7 +12,8 @@ The AsyncJobService will store the information in a Store, launch the AsyncActio
 The AsyncJobService also allow you to schedule the AsyncAction.
 
 With `includeCron` (the default), `webda async scheduler` launches each `@Cron` operation as an AsyncOperationAction
-of its operation id, called as the system with the cron input. The crons are scheduled on the
+of its operation id, called as the system with the cron input. The action stores a `system` marker, so the runner
+(or `webda async run`) calls the operation as the system again after a queue or a store. The crons are scheduled on the
 [cluster leader](../core/Cluster.md) only, so each tick launches one action across the replicas, and the action keeps
 a trace of the run. To run something else than an operation at a tick, make an operation that launches it.
 

@@ -19,7 +19,8 @@ import {
   useApplication,
   useContext,
   useCoreEvents,
-  useInstanceStorage
+  useInstanceStorage,
+  WebdaError
 } from "../index.js";
 import { WebdaApplicationTest } from "../test";
 
@@ -187,6 +188,29 @@ class CronServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async invalidCronFailsStartup() {
+    const invalid = addService(this, InvalidInputService, "invalidInput");
+    try {
+      const cron = new CronService("cron", {});
+      await assert.rejects(
+        () => cron.init(),
+        (err: Error) => err instanceof WebdaError.FatalInitError && /Invalid cron input for/.test(err.message)
+      );
+    } finally {
+      delete this.webda.getServices()["invalidInput"];
+    }
+    const plain = addService(this, PlainCronService, "plainCron");
+    try {
+      await assert.rejects(
+        () => new CronService("cron", {}).init(),
+        (err: Error) => err instanceof WebdaError.FatalInitError && /requires @Operation/.test(err.message)
+      );
+    } finally {
+      delete this.webda.getServices()["plainCron"];
+    }
+  }
+
+  @test
   cronNotPlainInput() {
     assert.throws(() => Cron("* * * * *", "", <any>"myArg"), /@Cron input must be a plain object/);
     assert.throws(() => Cron("* * * * *", "", <any>[1]), /@Cron input must be a plain object/);
@@ -325,7 +349,68 @@ class CronExecutionTest extends WebdaApplicationTest {
       await service.stop();
     }
     delete this.webda.getServices()["tick"];
+    useInstanceStorage().crons = [];
     await super.afterEach();
+  }
+
+  @test
+  async registerAfterRun() {
+    const service = this.run();
+    await vi.waitFor(() => assert.strictEqual(service.tasksOf("1 * * * *").length, 1));
+    const cron = CronService.register("Tick.Reconcile", { cron: "7 * * * *", input: { full: false } });
+    // Leading: started at once
+    assert.strictEqual(service.tasksOf("7 * * * *").length, 1);
+    await service.tasksOf("7 * * * *")[0].cb();
+    assert.deepStrictEqual(
+      this.tick.calls.map(c => c.full),
+      [false]
+    );
+    // Registering the same cron again keeps one
+    assert.strictEqual(CronService.register("Tick.Reconcile", { cron: "7 * * * *", input: { full: false } }), cron);
+    assert.strictEqual(service.tasksOf("7 * * * *").length, 1);
+    assert.strictEqual(CronService.resolveCrons({}).length, 1);
+    // Unregister by export id stops its task
+    assert.deepStrictEqual(CronService.unregister(CronService.getExportId(cron)), [cron]);
+    assert.strictEqual(service.tasksOf("7 * * * *")[0].stop.mock.calls.length, 1);
+    assert.deepStrictEqual(CronService.resolveCrons({}), []);
+    // The annotations keep running
+    assert.strictEqual(service.tasksOf("1 * * * *")[0].stop.mock.calls.length, 0);
+  }
+
+  @test
+  async registeredCronsFollowLeadership() {
+    vi.useFakeTimers();
+    const cluster = new FakeCluster(
+      "fakeCluster",
+      new ClusterServiceParameters().load({ leaseDuration: 3000, renewInterval: 1000, instanceId: "me" })
+    );
+    cluster.result = false;
+    try {
+      await cluster.init();
+      const service = this.run(cluster);
+      CronService.register("Tick.Reconcile", { cron: "8 * * * *", input: { full: true } });
+      CronService.register("Tick.Fail", { cron: "9 * * * *" });
+      await vi.advanceTimersByTimeAsync(0);
+      assert.deepStrictEqual(service.recorded, []);
+      // Becoming the leader starts the crons registered meanwhile
+      cluster.result = true;
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.waitFor(() => assert.strictEqual(service.tasksOf("8 * * * *").length, 1));
+      assert.strictEqual(service.tasksOf("9 * * * *").length, 1);
+      // Unregister by operation id
+      assert.strictEqual(CronService.unregister("Tick.Fail").length, 1);
+      assert.strictEqual(service.tasksOf("9 * * * *")[0].stop.mock.calls.length, 1);
+      // Losing then regaining the leadership does not start it again
+      cluster.result = false;
+      await vi.advanceTimersByTimeAsync(1000);
+      cluster.result = true;
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.waitFor(() => assert.strictEqual(service.tasksOf("8 * * * *").length, 2));
+      assert.strictEqual(service.tasksOf("9 * * * *").length, 1);
+    } finally {
+      await cluster.stop();
+      vi.useRealTimers();
+    }
   }
 
   /**

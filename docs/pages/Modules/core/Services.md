@@ -128,18 +128,22 @@ export class ReportService extends Service {
 `@Cron` signature: `@Cron(cron, description?, input?)`
 
 - `input` is the operation input, a plain object validated against the operation input schema
-  (`ReportService.reconcile.input` here) at startup: an invalid input fails the start, not the first tick.
-- A `@Cron` on a method without `@Operation` is a startup error. A cron whose operation is disabled by configuration
-  is skipped with a warning.
+  (`ReportService.reconcile.input` here).
+- An invalid input, or a `@Cron` on a method without `@Operation`, stops the application start: `CronService.init()`
+  throws a `WebdaError.FatalInitError`, so `Core.init()` rejects and the command (`webda serve`, `webda cron`) exits
+  non-zero. Commands that do not init the services (`kubernetes cronExport`) fail the same way when they read the
+  crons. A cron whose operation is disabled by configuration is skipped with a warning.
 - Each tick calls `callOperation(useSystem(input), operationId)`: the call runs as the system and gets input
   validation, the operation authorizers and the `Webda.Operation*` events. A failed tick is logged, the next ones
   still run.
 - `CronService.run()` (`webda cron`) schedules the ticks on the [cluster leader](./Cluster.md) only: with several
   replicas, a tick runs once.
 - An operation can have several crons. Crons from other sources (a stored workflow for example) are added with
-  `CronService.register(operationId, { cron, description, input })`, with the same validation.
-- `webda cron run <id>` runs once the cron of an exported id (`CronService.getExportId`, used by the Kubernetes and
-  Azure exports), through the same operation call.
+  `CronService.register(operationId, { cron, description, input })`, with the same validation, at any time: a running
+  `CronService` schedules them at once. Registering the same cron again keeps one. `CronService.unregister(id)`
+  removes the registered crons of an export id or of an operation id, and stops their ticks.
+- `webda cron run --id <id>` runs once the cron of an exported id (`CronService.getExportId`, used by the Kubernetes
+  and Azure exports), through the same operation call. A failed run exits non-zero.
 
 ## `ServiceParameters` typing
 

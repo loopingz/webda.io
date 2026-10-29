@@ -6,14 +6,15 @@ complete reference.
 
 ## Make the method an operation
 
-`@Cron` on a method without `@Operation` is a startup error (`@Cron on <Service>.<method> requires @Operation`).
+`@Cron` on a method without `@Operation` stops the application start (`@Cron on <Service>.<method> requires
+@Operation`, raised as a `WebdaError.FatalInitError`).
 Add `@Operation()`, above or below `@Cron`. Set `graphql: false, grpc: false, mcp: false` or `hidden: true` if the
 operation should not be exposed on a transport.
 
 ## Pass a named input
 
 The positional arguments after the description become one input object, validated against the operation input
-schema at startup:
+schema at startup (an invalid input stops the start):
 
 ```typescript
 // Webda 3

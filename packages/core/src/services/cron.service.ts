@@ -10,6 +10,7 @@ import { useInstanceStorage } from "../core/instancestorage.js";
 import { callOperation } from "../core/operations.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useSystem } from "../contexts/globaloperationcontext.js";
+import { Cluster, useCluster } from "./cluster.service.js";
 
 export const CronSymbol = Symbol("WebdaCron");
 
@@ -111,8 +112,16 @@ type CrontabEntry = Partial<CronDefinition> & {
 class CronService extends Service {
   enable: boolean;
   crons: CrontabEntry[] = [];
-  crontabSchedule = schedule;
+  crontabSchedule: (cron: string, cb: () => any) => { stop: () => any } = schedule;
   private _scanned: boolean = false;
+  /** Crons scheduled by {@link run}, started on the cluster leader only */
+  protected scheduled: CrontabEntry[] = [];
+  /** node-cron tasks running while this instance leads */
+  protected tasks: { stop: () => any }[] = [];
+  /** Whether this instance leads and runs the tasks */
+  protected leading = false;
+  /** Remove the `whenLeader` registration of {@link run} */
+  protected unregisterLeader?: () => void;
 
   /**
    * Legacy decorator factory for annotating a method with a cron schedule
@@ -263,6 +272,26 @@ class CronService extends Service {
   }
 
   /**
+   * Call the operation of a cron as the system, logging a failure: a failed tick never stops the next ones
+   * @param cron - the cron
+   */
+  static async execute(cron: CronDefinition): Promise<void> {
+    try {
+      await callOperation(useSystem(cron.input), cron.operationId);
+    } catch (err) {
+      useLog("ERROR", `Cron ${cron.cron} of operation ${cron.operationId} failed`, err);
+    }
+  }
+
+  /**
+   * Cluster electing the instance running the crons
+   * @returns the application cluster
+   */
+  protected getCluster(): Cluster {
+    return useCluster();
+  }
+
+  /**
    * Resolve the crons at startup: an invalid cron fails now rather than at its first tick
    * @returns this
    */
@@ -333,18 +362,11 @@ class CronService extends Service {
       this.addAnnotations();
     }
     this.enable = true;
-    // Run schedule
-    this.crons.forEach(i => {
-      if (i.cb) {
-        this.schedule(i.cron, i.cb);
-      } else {
-        this.schedule(i.cron, () =>
-          callOperation(useSystem(i.input), i.operationId).catch(err =>
-            this.log("ERROR", `Cron ${i.operationId} failed`, err)
-          )
-        );
-      }
-    });
+    const added = [...this.crons];
+    this.scheduled.push(...added);
+    if (this.leading) {
+      added.forEach(entry => this.startTask(entry));
+    }
 
     const msgs = [];
     // Display before
@@ -365,7 +387,51 @@ class CronService extends Service {
     });
     // Remove from memory
     this.crons = [];
-    return new CancelablePromise();
+    // Only the cluster leader runs the crons: each tick fires once across the replicas
+    this.unregisterLeader ??= this.getCluster().whenLeader(
+      () => this.startTasks(),
+      () => this.stopTasks()
+    );
+    return new CancelablePromise(undefined, () => this.stop());
+  }
+
+  /**
+   * Start a node-cron task for a cron
+   * @param entry - the cron
+   */
+  protected startTask(entry: CrontabEntry) {
+    this.tasks.push(this.crontabSchedule(entry.cron, entry.cb ?? (() => CronService.execute(<CronDefinition>entry))));
+  }
+
+  /**
+   * Start the tasks: this instance became the leader
+   */
+  protected startTasks() {
+    this.leading = true;
+    this.log("INFO", `Leading the cluster: starting ${this.scheduled.length} cron(s)`);
+    this.scheduled.forEach(entry => this.startTask(entry));
+  }
+
+  /**
+   * Stop the tasks: this instance is not the leader anymore
+   */
+  protected stopTasks() {
+    this.leading = false;
+    if (this.tasks.length) {
+      this.log("INFO", `Not leading the cluster: stopping ${this.tasks.length} cron(s)`);
+    }
+    this.tasks.splice(0).forEach(task => task.stop());
+  }
+
+  /**
+   * Stop running the crons
+   */
+  async stop(): Promise<void> {
+    this.unregisterLeader?.();
+    this.unregisterLeader = undefined;
+    // The deregistration is queued: stop the tasks now
+    this.stopTasks();
+    await super.stop();
   }
 
   /**
@@ -376,7 +442,11 @@ class CronService extends Service {
    */
   schedule(cron: string, cb: () => any, description: string = "") {
     if (this.enable) {
-      this.crontabSchedule(cron, cb);
+      const entry = { cron, cb, description };
+      this.scheduled.push(entry);
+      if (this.leading) {
+        this.startTask(entry);
+      }
     } else {
       let context;
       try {

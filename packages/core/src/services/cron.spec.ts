@@ -1,14 +1,22 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import {
+  Cluster,
+  ClusterService,
+  ClusterServiceParameters,
   Cron,
   CronDefinition,
   CronService,
   Operation,
   Service,
   ServiceParameters,
+  StoreClusterService,
+  StoreClusterServiceParameters,
   registerSchema,
   useApplication,
+  useContext,
+  useCoreEvents,
   useInstanceStorage
 } from "../index.js";
 import { WebdaApplicationTest } from "../test";
@@ -221,6 +229,262 @@ class CronServiceTest extends WebdaApplicationTest {
       assert.deepStrictEqual(CronService.loadAnnotations({ reconcile }), CronService.resolveCrons({ reconcile }));
     } finally {
       delete this.webda.getServices()["reconcile"];
+    }
+  }
+}
+
+/** Operations recording their calls, one of them failing */
+class TickService extends Service {
+  calls: { full: boolean; user: string }[] = [];
+  failures = 0;
+
+  @Operation()
+  @Cron("1 * * * *", "tick", { full: true })
+  async reconcile(full: boolean) {
+    this.calls.push({ full, user: useContext().getCurrentUserId() });
+  }
+
+  @Operation()
+  @Cron("2 * * * *", "failing")
+  async fail() {
+    this.failures++;
+    throw new Error("intentional failure");
+  }
+}
+
+/**
+ * Cluster whose leadership is driven by the test
+ */
+class FakeCluster extends ClusterService {
+  /** Result of the next attempts */
+  result = true;
+
+  /** @override */
+  protected async acquireOrRenew(): Promise<boolean> {
+    return this.result;
+  }
+
+  /** @override */
+  protected async release(): Promise<void> {
+    // Nothing to release
+  }
+}
+
+/** A node-cron task recorded by {@link LeaderCronService} */
+interface RecordedTask {
+  expr: string;
+  cb: () => any;
+  stop: ReturnType<typeof vi.fn>;
+}
+
+/**
+ * CronService of a replica: its own cluster, node-cron replaced by a recorder
+ */
+class LeaderCronService extends CronService {
+  recorded: RecordedTask[] = [];
+  cluster?: Cluster;
+
+  constructor(name: string, cluster?: Cluster) {
+    super(name, {});
+    this.cluster = cluster;
+    this.crontabSchedule = <any>((expr: string, cb: () => any) => {
+      const task = { expr, cb, stop: vi.fn() };
+      this.recorded.push(task);
+      return task;
+    });
+  }
+
+  /** @override */
+  protected getCluster(): Cluster {
+    return this.cluster ?? super.getCluster();
+  }
+
+  /**
+   * @param expr - the cron expression
+   * @returns the tasks scheduled for it
+   */
+  tasksOf(expr: string): RecordedTask[] {
+    return this.recorded.filter(t => t.expr === expr);
+  }
+}
+
+@suite
+class CronExecutionTest extends WebdaApplicationTest {
+  tick: TickService;
+  services: LeaderCronService[] = [];
+
+  async beforeEach() {
+    await super.beforeEach();
+    this.tick = addService(this, TickService, "tick");
+  }
+
+  async afterEach() {
+    for (const service of this.services.splice(0)) {
+      await service.stop();
+    }
+    delete this.webda.getServices()["tick"];
+    await super.afterEach();
+  }
+
+  /**
+   * Run a CronService
+   * @param cluster - its cluster, the application one by default
+   * @returns the running service
+   */
+  run(cluster?: Cluster): LeaderCronService {
+    const service = new LeaderCronService(`cron${this.services.length}`, cluster);
+    this.services.push(service);
+    service.run().catch(err => {
+      if (err !== "Cancelled") throw err;
+    });
+    return service;
+  }
+
+  @test
+  async tickCallsOperation() {
+    const operations: string[] = [];
+    const off = useCoreEvents("Webda.BeforeOperation", ({ operationId }) => {
+      operations.push(operationId);
+    });
+    try {
+      const service = this.run();
+      await vi.waitFor(() => assert.strictEqual(service.tasksOf("1 * * * *").length, 1));
+      await service.tasksOf("1 * * * *")[0].cb();
+      assert.deepStrictEqual(operations, ["Tick.Reconcile"]);
+      assert.deepStrictEqual(
+        this.tick.calls.map(c => c.full),
+        [true]
+      );
+    } finally {
+      off();
+    }
+  }
+
+  @test
+  async tickRunsAsSystem() {
+    const service = this.run();
+    await vi.waitFor(() => assert.strictEqual(service.tasksOf("1 * * * *").length, 1));
+    await service.tasksOf("1 * * * *")[0].cb();
+    assert.strictEqual(this.tick.calls[0].user, "system");
+  }
+
+  @test
+  async tickErrorLogged() {
+    const service = this.run();
+    await vi.waitFor(() => assert.strictEqual(service.tasksOf("2 * * * *").length, 1));
+    const [task] = service.tasksOf("2 * * * *");
+    await task.cb();
+    await task.cb();
+    assert.strictEqual(this.tick.failures, 2);
+    // execute never rejects
+    const cron = CronService.resolveCrons({ tick: this.tick }).find(c => c.method === "fail");
+    await CronService.execute(cron);
+    assert.strictEqual(this.tick.failures, 3);
+  }
+
+  @test
+  async nativeCallbacksOnLeaderOnly() {
+    const cluster = new FakeCluster(
+      "fakeCluster",
+      new ClusterServiceParameters().load({ leaseDuration: 3000, renewInterval: 1000, instanceId: "me" })
+    );
+    cluster.result = false;
+    await cluster.init();
+    try {
+      const service = new LeaderCronService("native", cluster);
+      this.services.push(service);
+      service.schedule("3 * * * *", () => {}, "before run");
+      service.run(false).catch(() => {});
+      service.schedule("4 * * * *", () => {}, "after run");
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepStrictEqual(service.recorded, []);
+      cluster.result = true;
+      await (<any>cluster).attempt();
+      await vi.waitFor(() =>
+        assert.deepStrictEqual(
+          service.recorded.map(t => t.expr),
+          ["3 * * * *", "4 * * * *"]
+        )
+      );
+      // Scheduled while leading: started at once
+      service.schedule("5 * * * *", () => {});
+      assert.strictEqual(service.tasksOf("5 * * * *").length, 1);
+    } finally {
+      await cluster.stop();
+    }
+  }
+
+  @test
+  async onlyLeaderSchedules() {
+    vi.useFakeTimers();
+    const clusters = [0, 1].map(
+      i =>
+        new StoreClusterService(
+          `cluster${i}`,
+          new StoreClusterServiceParameters().load({
+            leaseDuration: 3000,
+            renewInterval: 1000,
+            instanceId: `replica${i}`,
+            leaseName: "cron-test"
+          })
+        )
+    );
+    try {
+      await clusters[0].init();
+      await clusters[1].init();
+      assert.strictEqual(clusters[0].isLeader(), true);
+      assert.strictEqual(clusters[1].isLeader(), false);
+      const replicas = clusters.map(c => this.run(c));
+      await vi.waitFor(() => assert.strictEqual(replicas[0].tasksOf("1 * * * *").length, 1));
+      assert.deepStrictEqual(replicas[1].recorded, []);
+      // A tick runs the operation once across the replicas
+      await Promise.all(replicas.flatMap(r => r.tasksOf("1 * * * *")).map(t => t.cb()));
+      assert.strictEqual(this.tick.calls.length, 1);
+      // The leader stops: its tasks stop, the other replica takes over
+      await clusters[0].stop();
+      assert.ok(replicas[0].recorded.every(t => t.stop.mock.calls.length === 1));
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.waitFor(() => assert.strictEqual(replicas[1].tasksOf("1 * * * *").length, 1));
+    } finally {
+      for (const cluster of clusters) {
+        await cluster.stop();
+      }
+      vi.useRealTimers();
+    }
+  }
+
+  @test
+  async leadershipLossStopsTasks() {
+    vi.useFakeTimers();
+    const cluster = new FakeCluster(
+      "fakeCluster",
+      new ClusterServiceParameters().load({ leaseDuration: 3000, renewInterval: 1000, instanceId: "me" })
+    );
+    try {
+      await cluster.init();
+      const service = this.run(cluster);
+      await vi.waitFor(() => assert.strictEqual(service.tasksOf("1 * * * *").length, 1));
+      const tasks = [...service.recorded];
+      cluster.result = false;
+      await vi.advanceTimersByTimeAsync(1000);
+      assert.strictEqual(cluster.isLeader(), false);
+      assert.ok(tasks.length > 0);
+      assert.ok(tasks.every(t => t.stop.mock.calls.length === 1));
+      // Leading again schedules new tasks
+      cluster.result = true;
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.waitFor(() => assert.strictEqual(service.tasksOf("1 * * * *").length, 2));
+      // Stopping the service stops them and unregisters
+      await service.stop();
+      assert.ok(service.recorded.every(t => t.stop.mock.calls.length === 1));
+      cluster.result = false;
+      await vi.advanceTimersByTimeAsync(1000);
+      cluster.result = true;
+      await vi.advanceTimersByTimeAsync(1000);
+      assert.strictEqual(service.tasksOf("1 * * * *").length, 2);
+    } finally {
+      await cluster.stop();
+      vi.useRealTimers();
     }
   }
 }

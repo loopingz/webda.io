@@ -445,6 +445,35 @@ class AzureDeployersTest extends AzureTest {
     await expect(functions.sendTemplate()).rejects.toThrow("Azure deployment failed; inspect deployment operations");
   }
 
+  @test restoresSecretsOnlyOnOwnDestinationProperties() {
+    const functions = useDynamicService<AzureFunctionsDeployer>("Functions");
+    const secret = new SecretString("restoration-regression", "test");
+    const source = JSON.parse('{"nested":{},"__proto__":{},"constructor":{"prototype":{}},"own":{}}');
+    source.nested.token = source.__proto__.token = source.constructor.prototype.token = source.own.token = secret;
+    const shared = JSON.parse(
+      '{"nested":{"token":"masked"},"__proto__":{"token":"masked"},"constructor":{"prototype":{"token":"masked"}}}'
+    );
+    const destination = Object.assign(Object.create(shared), { own: { token: "masked" } });
+    const peer = Object.create(shared);
+    const previous = functions.parameters.customResources;
+    functions.parameters.customResources = source;
+    const resolve = vi
+      .spyOn(ContainerDeployer.prototype, "getResolvedParameters")
+      .mockReturnValue({ ...functions.parameters, customResources: destination });
+    try {
+      const restored = functions.getResolvedParameters().customResources;
+      expect(restored.own.token).toBe(secret);
+      expect(peer.nested.token).toBe("masked");
+      expect(peer.__proto__.token).toBe("masked");
+      expect(peer.constructor.prototype.token).toBe("masked");
+      expect(Object.keys(restored)).toEqual(["own"]);
+      expect(Object.getPrototypeOf(restored)).toBe(shared);
+    } finally {
+      resolve.mockRestore();
+      functions.parameters.customResources = previous;
+    }
+  }
+
   @test async optionalContainerAppSettingsAndContributorDependencies() {
     const apps = useDynamicService<AzureContainerAppsDeployer>("Apps");
     apps.generateTemplate();

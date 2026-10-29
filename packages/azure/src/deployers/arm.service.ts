@@ -53,7 +53,8 @@ function restoreSecrets(original: any, resolved: any): any {
   if (original instanceof SecretString) return original;
   if (original && typeof original === "object" && resolved && typeof resolved === "object") {
     for (const key of Object.keys(original))
-      if (key in resolved) resolved[key] = restoreSecrets(original[key], resolved[key]);
+      if (Object.prototype.hasOwnProperty.call(resolved, key))
+        resolved[key] = restoreSecrets(original[key], resolved[key]);
   }
   return resolved;
 }

@@ -332,7 +332,8 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
     operationId: string,
     options: { input?: any; probe: boolean }
   ): Promise<true | string> {
-    if (!this.isInScope(operationId)) {
+    // The system (useSystem(), runAsSystem) has no user to load: allowed, as for the operation permission query
+    if (!this.isInScope(operationId) || context.isGlobalContext()) {
       return true;
     }
     if (!this.engine) {

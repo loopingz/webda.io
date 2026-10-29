@@ -124,6 +124,139 @@
       },
       "Configuration": "lib/services/kuberunner.service:KubeRunnerParameters"
     },
+    "Webda/KubernetesClusterService": {
+      "Import": "lib/services/cluster.service:KubernetesClusterService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Cluster": {
+            "additionalProperties": false,
+            "properties": {
+              "caFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Context": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "K8sConfiguration": {
+            "additionalProperties": false,
+            "description": "Kubernetes configuration as found in a kubeconfig file",
+            "properties": {
+              "clusters": {
+                "items": {
+                  "$ref": "#/definitions/Cluster"
+                },
+                "type": "array"
+              },
+              "contexts": {
+                "items": {
+                  "$ref": "#/definitions/Context"
+                },
+                "type": "array"
+              },
+              "currentContext": {
+                "type": "string"
+              },
+              "users": {
+                "items": {
+                  "$ref": "#/definitions/User"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "clusters",
+              "contexts",
+              "currentContext",
+              "users"
+            ],
+            "type": "object"
+          },
+          "User": {
+            "additionalProperties": false,
+            "properties": {
+              "certFile": {
+                "type": "string"
+              },
+              "keyFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "KubernetesClusterService parameters",
+        "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/K8sConfiguration"
+              }
+            ],
+            "description": "Kubernetes configuration, the pod's service account or the local kubeconfig when unset\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "users.token",
+              "users.password",
+              "users.keyData",
+              "users.authProvider"
+            ]
+          },
+          "context": {
+            "description": "Kubernetes context to use",
+            "type": "string"
+          },
+          "instanceId": {
+            "description": "Identity of this instance, defaults to `process.env.HOSTNAME` or a random UUID",
+            "type": "string"
+          },
+          "leaseDuration": {
+            "default": 15000,
+            "description": "Milliseconds a lease is valid without renewal",
+            "type": "number"
+          },
+          "leaseName": {
+            "default": "leader",
+            "description": "Name of the lease",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the Lease, defaults to `POD_NAMESPACE`, else the namespace of the pod's service account, else\n`default`",
+            "type": "string"
+          },
+          "renewInterval": {
+            "default": 5000,
+            "description": "Milliseconds between two attempts to acquire or renew the lease, lower than `leaseDuration`",
+            "type": "number"
+          },
+          "timeout": {
+            "description": "Milliseconds before a request to the Kubernetes API is aborted, no timeout when unset",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "KubernetesClusterService"
+      },
+      "Configuration": "lib/services/cluster.service:KubernetesClusterServiceParameters"
+    },
     "Webda/KubernetesCrdExporter": {
       "Import": "lib/services/crdexporter.service:default",
       "Schema": {

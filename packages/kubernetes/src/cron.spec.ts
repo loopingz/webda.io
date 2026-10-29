@@ -23,5 +23,8 @@ class CronTest extends WebdaApplicationTest {
     assert.deepStrictEqual(CronReplace({ value: ["a", "${cron.operationId}"] }, CRON), {
       value: ["a", "Service.Method"]
     });
+    // A cron without input exposes an empty one
+    const noInput = new CronDefinition("* * * * *", null, "service", "method", "", "Service.Method");
+    assert.strictEqual(CronReplace("${cron.inputJson}", noInput), "{}");
   }
 }

@@ -242,10 +242,79 @@ class CronServiceTest extends WebdaApplicationTest {
         () => CronService.register("Reconcile.Reconcile", { cron: "* * * * *", input: { full: "x" } }),
         /Invalid cron input for Reconcile.Reconcile/
       );
+      assert.throws(
+        () => CronService.register("Reconcile.Reconcile", { cron: "* * * * *", input: {} }),
+        /Invalid cron input for Reconcile.Reconcile: full must have required property 'full'/
+      );
     } finally {
       useInstanceStorage().crons = [];
       delete this.webda.getServices()["reconcile"];
     }
+  }
+
+  @test
+  registerOnBareOperations() {
+    const operations = useInstanceStorage().operations;
+    schema("Strict.Op.input", { type: "object", additionalProperties: false });
+    operations["Bare.Op"] = <any>{ id: "Bare.Op" };
+    operations["Missing.Op"] = <any>{ id: "Missing.Op", input: "Missing.Op.unknownSchema" };
+    operations["Strict.Op"] = <any>{ id: "Strict.Op", input: "Strict.Op.input" };
+    try {
+      // An operation without service, method nor input schema
+      const bare = CronService.register("Bare.Op", { cron: "* * * * *" });
+      assert.strictEqual(bare.serviceName, "");
+      assert.strictEqual(bare.method, "");
+      // A null-prototype object is a plain object, an array is not
+      CronService.register("Bare.Op", { cron: "0 * * * *", input: Object.create(null) });
+      assert.throws(
+        () => CronService.register("Bare.Op", { cron: "* * * * *", input: <any>[1] }),
+        /Cron input of Bare.Op must be a plain object/
+      );
+      // A schema failure other than a validation error is not reworded
+      assert.throws(() => CronService.register("Missing.Op", { cron: "* * * * *" }), /Schema not found/);
+      // A validation error on the input itself
+      assert.throws(
+        () => CronService.register("Strict.Op", { cron: "* * * * *", input: { extra: 1 } }),
+        /Invalid cron input for Strict.Op: \/ must NOT have additional properties/
+      );
+    } finally {
+      delete operations["Bare.Op"];
+      delete operations["Missing.Op"];
+      delete operations["Strict.Op"];
+      useInstanceStorage().crons = [];
+    }
+  }
+
+  @test
+  emptyInstanceStorage() {
+    const storage = useInstanceStorage();
+    const { operations, crons } = storage;
+    try {
+      storage.operations = undefined;
+      storage.crons = undefined;
+      assert.deepStrictEqual(CronService.resolveCrons({}), []);
+      assert.deepStrictEqual(CronService.unregister("Unknown.Op"), []);
+    } finally {
+      storage.operations = operations;
+      storage.crons = crons;
+    }
+  }
+
+  @test
+  async initResolvesCrons() {
+    const cron = new CronService("cron", {});
+    assert.strictEqual(await cron.init(), cron);
+  }
+
+  @test
+  legacyAnnotation() {
+    const descriptor: PropertyDescriptor = { value: function legacy() {} };
+    CronService.Annotation("* * * * *", "legacy", { full: true })({}, "legacy", descriptor);
+    CronService.Annotation("0 * * * *")({}, "legacy", descriptor);
+    assert.deepStrictEqual(descriptor.value.cron, [
+      new CronDefinition("* * * * *", { full: true }, "", "legacy", "legacy"),
+      new CronDefinition("0 * * * *", {}, "", "legacy", "")
+    ]);
   }
 
   @test
@@ -375,6 +444,18 @@ class CronExecutionTest extends WebdaApplicationTest {
     assert.deepStrictEqual(CronService.resolveCrons({}), []);
     // The annotations keep running
     assert.strictEqual(service.tasksOf("1 * * * *")[0].stop.mock.calls.length, 0);
+  }
+
+  @test
+  async runTwiceSchedulesOnce() {
+    CronService.register("Tick.Reconcile", { cron: "7 * * * *", input: { full: false } });
+    const service = this.run();
+    await vi.waitFor(() => assert.strictEqual(service.tasksOf("7 * * * *").length, 1));
+    // Neither a second run nor a second leadership start schedules a cron twice
+    service.run().catch(() => {});
+    (<any>service).startTasks();
+    assert.strictEqual(service.tasksOf("7 * * * *").length, 1);
+    assert.strictEqual(service.tasksOf("1 * * * *").length, 1);
   }
 
   @test

@@ -767,6 +767,34 @@ class AsyncJobServiceTest extends AsyncTest {
   }
 
   @test
+  async schedulerLateTick() {
+    const fakeService = new FakeService("fake", new ServiceParameters());
+    this.registerService(fakeService).resolve();
+    const service = this.getValidService();
+    const action = new AsyncWebdaAction("fake", "schedule");
+    await service.scheduleAction(action, Date.now() - 60000);
+    // Launching takes longer than the resolution: the next tick starts at once
+    const stubLaunch = stub(service, "launchAction").callsFake(async () => {
+      await this.sleep(30);
+      return new AsyncAction();
+    });
+    const { includeCron, schedulerResolution } = service.getParameters();
+    service.getParameters().includeCron = false;
+    service.getParameters().schedulerResolution = 10;
+    try {
+      const p = service.scheduler();
+      await this.sleep(100);
+      await p.cancel();
+      assert.ok(stubLaunch.getCalls().length >= 2);
+    } finally {
+      service.getParameters().includeCron = includeCron;
+      service.getParameters().schedulerResolution = schedulerResolution;
+      stubLaunch.restore();
+      delete useCore().getServices()["fake"];
+    }
+  }
+
+  @test
   async asyncCronExecutorUsesOperation() {
     const fakeService = new FakeService("fake", new ServiceParameters());
     this.registerService(fakeService).resolve();

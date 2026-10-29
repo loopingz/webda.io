@@ -534,6 +534,57 @@ class StoreClusterServiceTest extends WebdaApplicationTest {
       assert.strictEqual(entry.owner, "intruder");
     });
   }
+
+  @test
+  async leaseWithoutUntil() {
+    const [cluster] = this.instances("noUntil", 1);
+    await useRegistry().put("cluster:noUntil", { owner: "previous" });
+    assert.strictEqual(await (cluster as any).acquireOrRenew(), true);
+    const entry: any = await useRegistry().get("cluster:noUntil");
+    assert.strictEqual(entry.owner, "instance0");
+  }
+
+  @test
+  async releaseEdgeCases() {
+    const [cluster] = this.instances("release", 1);
+    const registry = useRegistry();
+    const patch = vi.spyOn(registry, "patch");
+    try {
+      // Never acquired: nothing to release
+      await (cluster as any).release();
+      assert.strictEqual(patch.mock.calls.length, 0);
+      // Lost meanwhile, the condition fails: not ours to clear
+      assert.strictEqual(await (cluster as any).acquireOrRenew(), true);
+      await registry.put("cluster:release", { owner: "intruder", leaseUntil: Date.now() + 60000 });
+      await (cluster as any).release();
+      assert.strictEqual(((await registry.get("cluster:release")) as any).owner, "intruder");
+      // Lost meanwhile, on a store not raising UpdateConditionFailError
+      await registry.put("cluster:release", { owner: "instance0", leaseUntil: 0 });
+      assert.strictEqual(await (cluster as any).acquireOrRenew(), true);
+      await registry.put("cluster:release", { owner: "intruder", leaseUntil: Date.now() + 60000 });
+      patch.mockRejectedValueOnce(new Error("Condition failed"));
+      await (cluster as any).release();
+      // Still held: any other failure is raised
+      await registry.put("cluster:release", { owner: "instance0", leaseUntil: 0 });
+      assert.strictEqual(await (cluster as any).acquireOrRenew(), true);
+      patch.mockRejectedValueOnce(new Error("Registry unavailable"));
+      await assert.rejects(() => (cluster as any).release(), /Registry unavailable/);
+      assert.strictEqual((cluster as any).leaseUntil, undefined);
+    } finally {
+      patch.mockRestore();
+    }
+  }
+
+  @test
+  async leaseChangedOnRegistryError() {
+    const [cluster] = this.instances("changedError", 1);
+    const spy = vi.spyOn(useRegistry(), "get").mockRejectedValue(new Error("Registry unavailable"));
+    try {
+      assert.strictEqual(await (cluster as any).leaseChanged({ owner: "instance0", leaseUntil: 1 }), false);
+    } finally {
+      spy.mockRestore();
+    }
+  }
 }
 
 /**

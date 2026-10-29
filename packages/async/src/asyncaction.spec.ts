@@ -86,7 +86,9 @@ class AsyncActionTest extends AsyncTest {
   statusActionName() {
     // Exposed as {uuid}/status, dispatched to the statusAction method
     for (const model of [AsyncAction, AsyncWebdaAction, AsyncOperationAction]) {
-      assert.deepStrictEqual(useModelMetadata(model).Actions, { status: { handler: "statusAction" } });
+      assert.deepStrictEqual(useModelMetadata(model).Actions, {
+        status: { handler: "statusAction", openapi: { hidden: true } }
+      });
     }
   }
 

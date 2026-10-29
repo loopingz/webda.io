@@ -1158,7 +1158,7 @@ export class RESTOperationsTransport<
         async (context: WebContext) => {
           if (injectAttribute) {
             context.getParameters()[injectAttribute] = context.parameter(`pid.${depth - 1}`);
-            context.getParameters()[`pid.${depth - 1}`] = undefined;
+            this.clearParentParameters(context);
           }
           await this.runOperation(context, operationId);
         },

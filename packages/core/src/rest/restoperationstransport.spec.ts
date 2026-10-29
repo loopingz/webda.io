@@ -73,6 +73,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     const schemas: Record<string, any> = {
       "RestBinding.Mixed": {
         type: "object",
+        additionalProperties: false,
         properties: {
           id: { type: "string" },
           count: { type: "number" },
@@ -92,7 +93,11 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       },
       "RestBinding.List": {
         type: "object",
-        properties: { id: { type: "string" }, limit: { type: "number" }, active: { type: "boolean" } },
+        properties: {
+          id: { type: "string" },
+          limit: { anyOf: [{ type: "null" }, { type: "number" }] },
+          active: { oneOf: [{ type: "null" }, { type: "boolean" }] }
+        },
         required: ["id"]
       },
       "RestBinding.Whole": {
@@ -119,6 +124,25 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     transport.resolve();
     await transport.init();
     return transport;
+  }
+
+  @test
+  async nestedActionInjectsItsParentBeforeValidatingTypedInput() {
+    const transport = await this.bindingTransport();
+    (transport as any).exposeActionRoute(
+      "/nested/{pid.0}",
+      "RestBindingService",
+      "",
+      "mixed",
+      { global: true },
+      1,
+      "title"
+    );
+    assert.deepStrictEqual(await this.routerHttp({ method: "POST", url: "/nested/parent/binding/key", body: {} }), {
+      id: "key",
+      title: "parent",
+      filters: {}
+    });
   }
 
   @test

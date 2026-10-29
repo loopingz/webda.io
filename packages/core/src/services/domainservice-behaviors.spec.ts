@@ -11,6 +11,7 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import { runWithContext } from "../contexts/execution.js";
 
 /**
  * Task 8: addBehaviorOperations registers one operation per Behavior action
@@ -128,6 +129,46 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
         return instance;
       }
     }));
+  }
+
+  @test
+  async directBehaviorCallsReadTheParentKeyFromTheInput() {
+    const restore = this.patchUserWithMfaBehavior();
+    let ref: sinon.SinonStub | undefined;
+    try {
+      const { service, User } = this.setupBehaviorDispatcher();
+      const verify = sinon.stub().resolves(true);
+      ref = this.stubModelRef(User, {
+        isDeleted: () => false,
+        canAct: async () => true,
+        mfa: { verify }
+      });
+      const context = new SimpleOperationContext().setInput(Buffer.from(JSON.stringify({ uuid: "legacy-parent" })));
+      await context.init();
+      context.setExtension("operationContext", {
+        model: User,
+        attribute: "mfa",
+        action: "verify",
+        behavior: "Test/MFA"
+      });
+      assert.strictEqual(await runWithContext(context, () => service.modelBehaviorAction("123456")), true);
+      assert.deepStrictEqual(ref.firstCall.args, ["legacy-parent"]);
+      assert.deepStrictEqual(verify.firstCall.args, ["123456"]);
+      sinon.stub(context, "getInput").rejects(new Error("missing legacy input"));
+      ref.withArgs(undefined).returns({
+        async get() {
+          throw new Error("missing parent");
+        }
+      });
+      await assert.rejects(
+        () => runWithContext(context, () => service.modelBehaviorAction("123456")),
+        WebdaError.NotFound
+      );
+      assert.strictEqual(verify.callCount, 1);
+    } finally {
+      ref?.restore();
+      restore();
+    }
   }
 
   @test
@@ -320,7 +361,8 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
         uuid: { type: "string" },
         totp: { type: "string" }
       },
-      required: ["uuid", "totp"]
+      required: ["uuid", "totp"],
+      "x-webda-arguments": ["uuid", "totp"]
     };
     const wasRegistered = hasSchema(schemaName);
     if (!wasRegistered) registerSchema(schemaName, schema);

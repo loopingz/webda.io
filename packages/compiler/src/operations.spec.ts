@@ -6,6 +6,60 @@ import { WebdaModule } from "./definition.js";
 @suite
 class OperationsTest {
   @test
+  exportsDefaultQueriesAndBehaviorRouteVariants() {
+    const mod = {
+      models: {
+        "App/Task": {
+          Relations: { behaviors: [{ attribute: "approval", behavior: "App/Approval" }] },
+          Actions: { list: { global: true, methods: ["GET"], rest: { path: "{category}/list" } } }
+        }
+      },
+      behaviors: {
+        "App/Approval": {
+          Actions: {
+            read: { rest: { route: ".", method: "get" } },
+            clear: {},
+            set: { rest: { method: "post", body: "payload" } }
+          }
+        }
+      },
+      schemas: {
+        "App/Task.list.input": {
+          properties: { category: { type: "string" }, limit: { type: "number" }, offset: { type: "number" } },
+          required: ["limit"]
+        },
+        "App/Approval.read.output": { type: "boolean" },
+        "App/Approval.set.input": {
+          properties: { payload: { type: "object" } },
+          "x-webda-arguments": ["context", "payload"],
+          "x-webda-context": ["context"]
+        }
+      }
+    } as any as WebdaModule;
+    const result = generateOperations(mod);
+    assert.deepStrictEqual(result.operations["Task.List"].rest, {
+      method: "get",
+      path: "{category}/list{?limit,offset?}"
+    });
+    assert.deepStrictEqual(result.operations["Task.Approval.Read"].rest, {
+      method: "get",
+      path: "{uuid}/approval"
+    });
+    assert.strictEqual(result.operations["Task.Approval.Read"].output, "App/Approval.read.output");
+    assert.strictEqual(result.operations["Task.Approval.Clear"].rest.path, "{uuid}/approval.clear");
+    assert.deepStrictEqual(result.operations["Task.Approval.Set"].rest, {
+      method: "post",
+      path: "{uuid}/approval.set",
+      body: "payload"
+    });
+    assert.deepStrictEqual((result.schemas["App/Task.approval.set.request"] as any)["x-webda-arguments"], [
+      "uuid",
+      "context",
+      "payload"
+    ]);
+  }
+
+  @test
   async exportsCompositeActionsBehaviorRequestsAndRestBindings() {
     const mod = {
       models: {

@@ -2,7 +2,8 @@ import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
-import { useLoginMfa } from "../models/mfa.model.js";
+import { MFA, useLoginMfa } from "../models/mfa.model.js";
+import { useBehaviorParameters } from "../application/modelconfiguration.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
@@ -665,10 +666,17 @@ export class DomainService<
    * @param name - action name
    * @param input - the action `.input` schema (its parameters)
    * @param pkFields - implicit primary key fields
+   * @param requireKey - whether the caller must supply the parent key (login MFA uses the session)
    * @returns the registered schema name, `<modelKey>.<name>.request`
    * @throws Error when an action parameter conflicts with a primary key field
    */
-  protected actionRequestSchema(modelKey: string, name: string, input: any, pkFields: string[] = ["uuid"]): string {
+  protected actionRequestSchema(
+    modelKey: string,
+    name: string,
+    input: any,
+    pkFields: string[] = ["uuid"],
+    requireKey = true
+  ): string {
     const conflict = pkFields.find(field => input.properties?.[field] !== undefined);
     if (conflict) {
       // The uuid identifies the object: a parameter with the same name would receive it, or break the schema
@@ -681,7 +689,7 @@ export class DomainService<
       ...input,
       type: "object",
       properties: { ...Object.fromEntries(pkFields.map(field => [field, { type: "string" }])), ...input.properties },
-      required: [...pkFields, ...(input.required ?? [])],
+      required: [...(requireKey ? pkFields : []), ...(input.required ?? [])],
       [ARGUMENTS_KEYWORD]: [...pkFields, ...(input[ARGUMENTS_KEYWORD] ?? Object.keys(input.properties ?? {}))]
     };
     registerSchema(schemaName, request, true);
@@ -986,7 +994,9 @@ export class DomainService<
           `${Metadata.Identifier}.${behaviorRel.attribute}`,
           actionName,
           input ?? { type: "object", properties: {} },
-          pkFields
+          pkFields,
+          behaviorRel.behavior !== "Webda/MFA" ||
+            useBehaviorParameters(model, behaviorRel.attribute, MFA).purpose !== "login"
         );
         registerOperation(id, {
           service: this.getName(),

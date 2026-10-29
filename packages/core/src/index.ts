@@ -18,6 +18,7 @@ export * from "./contexts/clientcertificate.js";
 export * from "./contexts/streamingcontext.js";
 export * from "./contexts/websocketcontext.js";
 export * from "./contexts/globalcontext.js";
+export * from "./contexts/globaloperationcontext.js";
 export * from "./core/icore.js";
 export * from "./core/instancestorage.js";
 export * from "./core/operations.js";

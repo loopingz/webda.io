@@ -24,6 +24,8 @@ import { useLog } from "@webda/workout";
 /**
  * Check if an operation can be executed with the current context
  * Not checking the input use `checkOperation` instead to check everything
+ *
+ * The system (`useSystem()`, `runAsSystem`) passes the operation `permission` query; the authorizers still apply
  * @param context - the execution context
  * @param operationId - the operation identifier
  * @throws OperationError if operation is unknown
@@ -37,6 +39,9 @@ export function checkOperationPermission(
 ): boolean {
   if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
+  }
+  if (context.isGlobalContext()) {
+    return true;
   }
   if (operation.permission) {
     operation.permissionQuery ??= new QueryValidator(operation.permission);
@@ -65,7 +70,8 @@ export function checkOperationMfa(
   if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
   }
-  if (operation.maxMfaAge === undefined) {
+  // The system has no session to verify
+  if (operation.maxMfaAge === undefined || context.isGlobalContext()) {
     return;
   }
   operation.maxMfaAgeSeconds ??= new Duration(operation.maxMfaAge).toSeconds();

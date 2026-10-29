@@ -2814,6 +2814,17 @@ class OperationTransactionTest extends WebdaApplicationTest {
   }
 
   @test
+  async committedParticipantIsNotCommittedTwice() {
+    this.register(new FakeParticipant("p"));
+    await runWithTransaction(async () => {
+      const transaction = useOperationTransaction()!;
+      await transaction.commit();
+      await transaction.commit();
+    });
+    assert.deepStrictEqual(txLog, ["p.begin:undefined:undefined", "p.commit"]);
+  }
+
+  @test
   async transactionSlots() {
     this.register(new FakeParticipant("p"));
     await runWithTransaction(async () => {

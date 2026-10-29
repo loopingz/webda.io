@@ -11,6 +11,7 @@ export * from "./stores/kubernetesrepository.js";
 export * from "./stores/kubernetesstore.service.js";
 export * from "./operator/workqueue.js";
 export * from "./operator/leader.js";
+export * from "./services/cluster.service.js";
 export * from "./operator/controller.js";
 export * from "./operator/operator.service.js";
 export * from "./crd/rbac.js";

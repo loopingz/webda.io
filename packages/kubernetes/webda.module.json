@@ -214,7 +214,7 @@
             "type": "string"
           },
           "instanceId": {
-            "description": "Identity of this instance, defaults to `process.env.HOSTNAME` or a random UUID",
+            "description": "Identity of this instance, unique per process: defaults to `<HOSTNAME or hostname()>-<pid>-<random>`",
             "type": "string"
           },
           "leaseDuration": {
@@ -360,7 +360,7 @@
             },
             "filenameTemplate": {
               "type": "string",
-              "default": "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}"
+              "default": "${operationId.toLowerCase()}-${cronId}.${ext}"
             },
             "image": {
               "type": "string"

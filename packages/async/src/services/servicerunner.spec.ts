@@ -1,4 +1,12 @@
-import { CoreModel, Operation, OperationContext, registerOperation, SimpleOperationContext } from "@webda/core";
+import {
+  CoreModel,
+  Operation,
+  OperationContext,
+  registerOperation,
+  SimpleOperationContext,
+  useContext,
+  useSystem
+} from "@webda/core";
 import { suite, test } from "@webda/test";
 import assert from "assert";
 import { AsyncTest } from "../../test/fixture.js";
@@ -28,6 +36,17 @@ class FakeRunner extends Runner {
     }
   }
 
+  /** Callers of {@link guarded} */
+  guardedCalls: { user: string; full: boolean }[] = [];
+
+  /**
+   * Operation restricted by a permission query
+   * @param full - the input
+   */
+  guarded(full: boolean) {
+    this.guardedCalls.push({ user: useContext().getCurrentUserId(), full });
+  }
+
   /**
    * Operation logging
    */
@@ -48,6 +67,11 @@ class ServiceRunnerTest extends AsyncTest {
     await super.beforeEach();
     this.registerService(new FakeRunner("calledRunner", new RunnerParameters().load({})));
     registerOperation("CalledRunner.Operation", { service: "calledRunner", method: "operation" });
+    registerOperation("CalledRunner.Guarded", {
+      service: "calledRunner",
+      method: "guarded",
+      permission: "userId = 'admin'"
+    });
     this.runner = new ServiceRunner("runner", new ServiceRunnerParameters().load({ actions: ["plop"] }));
   }
 
@@ -72,6 +96,46 @@ class ServiceRunnerTest extends AsyncTest {
       assert.strictEqual(action.status, "ERROR");
       assert.strictEqual(action.errorMessage, message);
     }
+  }
+
+  @test
+  async queuedSystemAction() {
+    // A cron launches its operation as the system: the action goes through the store (and a queue) before running
+    const created = new AsyncOperationAction("CalledRunner.Guarded", useSystem({ full: true }));
+    assert.strictEqual(created.system, true);
+    await created.save();
+    const action = await AsyncOperationAction.ref(created.uuid).get();
+    assert.ok(!(action.context instanceof OperationContext));
+    const launched = await this.runner.launchAction(action, {
+      JOB_HOOK: "",
+      JOB_ID: action.uuid,
+      JOB_ORCHESTRATOR: "test",
+      JOB_SECRET_KEY: ""
+    });
+    await launched.promise;
+    await action.refresh();
+    assert.strictEqual(action.status, "SUCCESS", action.errorMessage);
+    const called = <FakeRunner>this.webda.getServices()["calledRunner"];
+    // No input schema registered: the operation receives the raw input
+    assert.deepStrictEqual(
+      called.guardedCalls.map(c => c.user),
+      ["system"]
+    );
+    // An anonymous action of the same operation is refused
+    const anonymous = new AsyncOperationAction("CalledRunner.Guarded", new SimpleOperationContext());
+    assert.strictEqual(anonymous.system, false);
+    await anonymous.save();
+    const reloaded = await AsyncOperationAction.ref(anonymous.uuid).get();
+    await (
+      await this.runner.launchAction(reloaded, {
+        JOB_HOOK: "",
+        JOB_ID: reloaded.uuid,
+        JOB_ORCHESTRATOR: "test",
+        JOB_SECRET_KEY: ""
+      })
+    ).promise;
+    await reloaded.refresh();
+    assert.strictEqual(reloaded.status, "ERROR");
   }
 
   @test

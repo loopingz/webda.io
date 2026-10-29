@@ -39,7 +39,7 @@ export class MyService extends Service {
 - `whenLeader` returns a function removing the registration. It calls `deregisteredFn` if `fn` had run.
 - `useCluster().isLeader()` tells whether this instance leads, and `useCluster().getInstanceId()` gives its identity.
 
-Without a cluster service, the application is a single instance: `useCluster()` returns a local cluster that is always the leader, so `fn` runs at once. Single-instance applications need no configuration.
+Called while the application starts, before the cluster service is created (from a service configured before it), the registration waits for that service. Without a cluster service, the application is a single instance: `useCluster()` returns a local cluster that is always the leader, so `fn` runs at once. Single-instance applications need no configuration.
 
 ## Backends
 
@@ -64,18 +64,19 @@ Configure one cluster service. `useCluster()` returns the first `ClusterService`
 
 ## Parameters
 
-| Parameter       | Default                                 | Description                                                   |
-| --------------- | --------------------------------------- | ------------------------------------------------------------- |
-| `leaseDuration` | `15000`                                 | Milliseconds a lease is valid without renewal                 |
-| `renewInterval` | `5000`                                  | Milliseconds between two attempts, lower than `leaseDuration` |
-| `instanceId`    | `process.env.HOSTNAME` or a random UUID | Identity of this instance                                     |
-| `leaseName`     | `leader`                                | Name of the lease: one election per name                      |
+| Parameter       | Default                                   | Description                                                   |
+| --------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| `leaseDuration` | `15000`                                   | Milliseconds a lease is valid without renewal                 |
+| `renewInterval` | `5000`                                    | Milliseconds between two attempts, lower than `leaseDuration` |
+| `instanceId`    | `<HOSTNAME or hostname()>-<pid>-<random>` | Identity of this instance, unique per process                 |
+| `leaseName`     | `leader`                                  | Name of the lease: one election per name                      |
 
 `KubernetesClusterService` also takes `namespace` (default: `POD_NAMESPACE`, else the namespace of the pod's service account, else `default`) and the client parameters `config`, `context` and `timeout`. Its service account needs `get`, `create` and `update` on `leases`.
 
 ## Failover
 
 - Every `renewInterval`, each instance tries to acquire the lease, or to renew it when it holds it. Two instances never both win.
-- A leader that cannot renew (store or API error, lease taken over) stops leading at once and calls its `deregisteredFn`s, before its lease can expire for the others.
+- A leader that cannot renew (store or API error, lease taken over, no answer within `leaseDuration - renewInterval`) stops leading at once and calls its `deregisteredFn`s.
+- A leader also stops leading when no attempt succeeded within `(leaseDuration + renewInterval) / 2` of the start of its last successful one, even while an attempt is still pending: it never leads on a lease that may have expired for the others.
 - A leader that stops cleanly releases its lease: another instance takes over at its next attempt.
 - A leader that crashes keeps its lease until it expires: another instance takes over within `leaseDuration` plus `renewInterval`.

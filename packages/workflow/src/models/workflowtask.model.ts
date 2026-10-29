@@ -5,7 +5,8 @@ import { canReadWorkflow } from "./workflowinstance.model.js";
 /**
  * Status of a task attempt
  */
-export type WorkflowTaskStatus = "PENDING" | "RUNNING" | "SUCCESS" | "ERROR" | "CANCELLED";
+export type WorkflowTaskStatus =
+  "PENDING" | "RUNNING" | "WAITING_EVENT" | "WAITING_CHILD" | "SUCCESS" | "ERROR" | "CANCELLED";
 
 /**
  * One attempt of a task of a workflow instance
@@ -74,6 +75,26 @@ export default class WorkflowTask extends CoreModel {
    * User id of the instance launcher, for canAct
    */
   launcherId?: string;
+  /**
+   * Event a `Wait.ForEvent` waits for
+   */
+  event?: string;
+  /**
+   * Business key a `Wait.ForEvent` waits for
+   */
+  eventKey?: string;
+  /**
+   * Users allowed to signal the wait, besides the launcher and the system
+   */
+  allow?: string[];
+  /**
+   * The wait was resolved by a signal: `output` holds its payload
+   */
+  signaled?: boolean;
+  /**
+   * Child instance of a `WAITING_CHILD` task
+   */
+  child?: string;
 
   /**
    * Launcher and system may read, writes go through the service only

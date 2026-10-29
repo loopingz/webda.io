@@ -1,6 +1,7 @@
 import {
   callOperation,
   hasSchema,
+  Operation,
   listOperations,
   registerOperation,
   registerSchema,
@@ -27,7 +28,8 @@ import {
 } from "./graph.js";
 import { run, type ScheduledTask } from "./interpreter.js";
 import { WorkflowInstance, type WorkflowLauncher } from "./models/workflowinstance.model.js";
-import { WorkflowTask } from "./models/workflowtask.model.js";
+import { WorkflowTask, type WorkflowTaskStatus } from "./models/workflowtask.model.js";
+import { WorkflowSignal } from "./models/workflowsignal.model.js";
 
 /**
  * Output schema of every flow launch operation
@@ -61,6 +63,21 @@ class TaskError extends Error {
     super(message);
   }
 }
+
+/**
+ * Statuses of a task row that will still produce an outcome
+ */
+const LIVE_TASK: WorkflowTaskStatus[] = ["PENDING", "RUNNING", "WAITING_EVENT", "WAITING_CHILD"];
+
+/**
+ * `runAt` of a wait without timeout (JSON has no Infinity)
+ */
+export const NO_TIMEOUT = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Built-ins an instance waits on: when all its pending tasks are of these, it is WAITING
+ */
+const WAITING_OPERATIONS: string[] = [BUILTINS.Sleep, BUILTINS.WaitForEvent];
 
 /**
  * Abort reason of an attempt whose outcome must not be written: its lease was lost, or the service stopped
@@ -127,6 +144,11 @@ export class WorkflowServiceParameters extends ServiceParameters {
    */
   allowStoredSystem: boolean;
   /**
+   * How long a signal sent before any wait is kept (Duration syntax)
+   * @default "1d"
+   */
+  signalTtl: string;
+  /**
    * Interval of the recovery sweep (ms): an active instance not updated for this long and without a live task is
    * replayed
    * @default 60000
@@ -157,6 +179,7 @@ export class WorkflowServiceParameters extends ServiceParameters {
     this.allowStoredSystem ??= false;
     this.sweepInterval ??= 60000;
     this.stopTimeout ??= 30000;
+    this.signalTtl ??= "1d";
     return this;
   }
 }
@@ -443,9 +466,10 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         const { results } = await WorkflowInstance.query(`status = ? AND updatedAt < ? LIMIT 100`, [status, before]);
         for (const instance of results as WorkflowInstance[]) {
           const live = (
-            await WorkflowTask.query(`instance = ? AND (status = 'PENDING' OR status = 'RUNNING') LIMIT 1`, [
-              instance.uuid
-            ])
+            await WorkflowTask.query(
+              `instance = ? AND (status = 'PENDING' OR status = 'RUNNING' OR status = 'WAITING_EVENT' OR status = 'WAITING_CHILD') LIMIT 1`,
+              [instance.uuid]
+            )
           ).results;
           if (live.length) continue;
           await this.advance(instance.uuid);
@@ -479,7 +503,9 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       const now = Date.now();
       const candidates = [
         ...(await WorkflowTask.query(`status = 'PENDING' AND runAt <= ${now} LIMIT ${slots}`)).results,
-        ...(await WorkflowTask.query(`status = 'RUNNING' AND leaseUntil < ${now} LIMIT ${slots}`)).results
+        ...(await WorkflowTask.query(`status = 'RUNNING' AND leaseUntil < ${now} LIMIT ${slots}`)).results,
+        // Waits whose timeout passed
+        ...(await WorkflowTask.query(`status = 'WAITING_EVENT' AND runAt <= ${now} LIMIT ${slots}`)).results
       ] as WorkflowTask[];
       const claimed: WorkflowTask[] = [];
       for (const task of candidates) {
@@ -497,11 +523,13 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    *
    * Reclaiming an expired lease counts as a new attempt.
    * @param task - the task, as queried
+   * @param extra - other fields to set with the claim
    * @returns true when this worker holds the task
    */
-  protected async claim(task: WorkflowTask): Promise<boolean> {
+  protected async claim(task: WorkflowTask, extra: Partial<WorkflowTask> = {}): Promise<boolean> {
     const now = Date.now();
     const patch: Partial<WorkflowTask> = {
+      ...extra,
       status: "RUNNING",
       owner: this.workerId,
       leaseUntil: now + this.parameters.leaseDuration,
@@ -534,8 +562,9 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    * Every write of the attempt is conditional on the lease this worker holds: an attempt whose lease was lost (its
    * worker was too slow and another one reclaimed it) drops its outcome.
    * @param task - the task
+   * @param advance - advance the instance after the outcome is journaled
    */
-  protected async execute(task: WorkflowTask): Promise<void> {
+  protected async execute(task: WorkflowTask, advance: boolean = true): Promise<void> {
     const instance = await runAsSystem(() => WorkflowInstance.ref(task.instance).get() as Promise<WorkflowInstance>);
     if (!isActive(instance) || instance.journal?.[task.key]) {
       // Cancelled, or its outcome is already journaled (a crash before the row was finished): never run it again
@@ -583,7 +612,9 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       task,
       "error" in entry ? { status: "ERROR", error: entry.error } : { status: "SUCCESS", output: entry.result }
     );
-    await this.advance(task.instance);
+    if (advance) {
+      await this.advance(task.instance);
+    }
   }
 
   /**
@@ -679,6 +710,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         // The timer is the runAt of the task
         return null;
       case BUILTINS.WaitForEvent:
+        if (task.signaled) return task.output;
+        throw new TaskError("Timeout", `No ${task.event} event for ${task.eventKey} before the timeout`, false);
       case BUILTINS.Start:
         throw new TaskError("NotImplemented", `${task.operation} is not implemented yet`, false);
     }
@@ -834,10 +867,13 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           if (await this.patchInstance(instance, { status: "ERROR", error: res.error })) return;
           continue;
         }
+        let resolved = false;
         for (const scheduled of res.schedule) {
-          await this.scheduleTask(instance, scheduled);
+          resolved = (await this.scheduleTask(instance, scheduled)) || resolved;
         }
-        const status = res.schedule.every(t => t.operation === BUILTINS.Sleep) ? "WAITING" : "RUNNING";
+        // A buffered signal resolved a new wait: replay again
+        if (resolved) continue;
+        const status = res.schedule.every(t => WAITING_OPERATIONS.includes(t.operation)) ? "WAITING" : "RUNNING";
         if (status === instance.status || (await this.patchInstance(instance, { status }))) return;
       }
     });
@@ -847,17 +883,216 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    * Create the task of a scheduled key, unless a PENDING or RUNNING one exists
    * @param instance - the instance
    * @param scheduled - the task to run
+   * @returns true when the task was resolved at once (a buffered signal): the journal changed
    */
-  protected async scheduleTask(instance: WorkflowInstance, scheduled: ScheduledTask): Promise<void> {
+  protected async scheduleTask(instance: WorkflowInstance, scheduled: ScheduledTask): Promise<boolean> {
     const existing = (await WorkflowTask.query(`instance = ? AND key = ?`, [instance.uuid, scheduled.key]))
       .results as WorkflowTask[];
     // A SUCCESS row is journaled before it is finished: the replay read the instance before it
-    if (existing.some(t => t.status === "PENDING" || t.status === "RUNNING" || t.status === "SUCCESS")) return;
-    let runAt = Date.now();
+    if (existing.some(t => LIVE_TASK.includes(t.status) || t.status === "SUCCESS")) return false;
+    const now = Date.now();
+    let runAt = now;
+    let extra: Partial<WorkflowTask> = {};
     if (scheduled.operation === BUILTINS.Sleep) {
       runAt = this.sleepUntil(scheduled.input, runAt);
+    } else if (scheduled.operation === BUILTINS.WaitForEvent) {
+      const input = scheduled.input ?? {};
+      extra = {
+        status: "WAITING_EVENT",
+        event: String(input.name),
+        eventKey: String(input.key),
+        allow: Array.isArray(input.allow) ? input.allow.map(String) : undefined
+      };
+      runAt = input.timeout ? this.sleepUntil({ duration: input.timeout }, now) : NO_TIMEOUT;
     }
-    await this.createTask(instance.uuid, scheduled, instance.launcher?.userId, runAt, 1, existing.length + 1);
+    const task = await this.createTask(
+      instance.uuid,
+      scheduled,
+      instance.launcher?.userId,
+      runAt,
+      1,
+      existing.length + 1,
+      extra
+    );
+    return task?.status === "WAITING_EVENT" ? this.consumeBuffered(instance, task) : false;
+  }
+
+  /**
+   * Deliver a signal: resolve the waits on `(event, key)` whose instance accepts the caller, or buffer it when
+   * nothing waits
+   * @param event - event name
+   * @param key - business key
+   * @param payload - the result of the waits
+   * @returns the number of waits resolved
+   */
+  @Operation({
+    id: "Workflow.Signal",
+    rest: { method: "post", path: "workflows/signal" },
+    graphql: false,
+    grpc: false
+  })
+  async signal(event: string, key: string, payload?: any): Promise<{ delivered: number }> {
+    const context = useContext<OperationContext>();
+    const waits = await runAsSystem(() => this.waitsFor(event, key));
+    if (waits.length === 0) {
+      const buffered = await this.bufferSignal(context, event, key, payload);
+      // A wait created meanwhile looked for buffered signals before this one was saved
+      return { delivered: (await this.deliverBuffered(buffered)) ? 1 : 0 };
+    }
+    let delivered = 0;
+    let refused = 0;
+    for (const { instance, task } of waits) {
+      if (!(await this.canSignal(context, instance, task))) {
+        refused++;
+        continue;
+      }
+      if (await runAsSystem(() => this.resolveWait(task, payload))) {
+        delivered++;
+      }
+    }
+    if (refused === waits.length) {
+      throw new WebdaError.Forbidden("Workflow.Signal PermissionDenied");
+    }
+    // Waits resolved by a concurrent signal: this one is not delivered, nor buffered
+    return { delivered };
+  }
+
+  /**
+   * The waits on `(event, key)` of active instances
+   * @param event - event name
+   * @param key - business key
+   * @returns the waits and their instance
+   */
+  protected async waitsFor(event: string, key: string): Promise<{ instance: WorkflowInstance; task: WorkflowTask }[]> {
+    const tasks = (await WorkflowTask.query(`status = 'WAITING_EVENT' AND event = ? AND eventKey = ?`, [event, key]))
+      .results as WorkflowTask[];
+    const waits: { instance: WorkflowInstance; task: WorkflowTask }[] = [];
+    for (const task of tasks) {
+      const instance = (await WorkflowInstance.ref(task.instance).get()) as WorkflowInstance;
+      if (isActive(instance)) waits.push({ instance, task });
+    }
+    return waits;
+  }
+
+  /**
+   * Whether a sender may signal a wait: the launcher, the system, and the users in the `allow` of the wait
+   * @param context - the sender
+   * @param instance - the instance waiting
+   * @param task - the wait
+   * @returns true when allowed
+   */
+  protected async canSignal(
+    context: OperationContext,
+    instance: WorkflowInstance,
+    task: WorkflowTask
+  ): Promise<boolean> {
+    if ((await instance.canAct(context, "signal")) === true) return true;
+    const userId = context.getCurrentUserId();
+    return !!userId && (task.allow ?? []).includes(userId);
+  }
+
+  /**
+   * Save a signal nothing waits for yet
+   * @param context - the sender
+   * @param event - event name
+   * @param key - business key
+   * @param payload - the payload
+   * @returns the buffered signal
+   */
+  protected async bufferSignal(
+    context: OperationContext,
+    event: string,
+    key: string,
+    payload: any
+  ): Promise<WorkflowSignal> {
+    const now = Date.now();
+    const system = context.isGlobalContext();
+    return runAsSystem(
+      () =>
+        WorkflowSignal.create({
+          event,
+          key,
+          payload,
+          senderId: system ? undefined : context.getCurrentUserId() || undefined,
+          senderIdent: system ? undefined : context.getSession()?.identUsed,
+          system: system || undefined,
+          createdAt: now,
+          expiresAt: now + new Duration(this.parameters.signalTtl).toMs()
+        } as any) as Promise<WorkflowSignal>
+    );
+  }
+
+  /**
+   * Deliver a just buffered signal to a wait created while it was being saved
+   * @param signal - the buffered signal
+   * @returns true when a wait consumed it
+   */
+  protected async deliverBuffered(signal: WorkflowSignal): Promise<boolean> {
+    return runAsSystem(async () => {
+      for (const { instance, task } of await this.waitsFor(signal.event, signal.key)) {
+        if (await this.consumeSignal(signal, instance, task, true)) return true;
+      }
+      return false;
+    });
+  }
+
+  /**
+   * Resolve a new wait with the oldest unexpired buffered signal its instance accepts
+   * @param instance - the instance
+   * @param task - the wait
+   * @returns true when a signal was consumed
+   */
+  protected async consumeBuffered(instance: WorkflowInstance, task: WorkflowTask): Promise<boolean> {
+    const signals = (
+      (await WorkflowSignal.query(`event = ? AND key = ? AND expiresAt > ?`, [task.event, task.eventKey, Date.now()]))
+        .results as WorkflowSignal[]
+    ).sort((a, b) => a.createdAt - b.createdAt);
+    for (const signal of signals) {
+      // Advanced by the caller (advance)
+      if (await this.consumeSignal(signal, instance, task, false)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Consume a buffered signal for a wait: its sender is checked now, against this instance
+   * @param signal - the buffered signal
+   * @param instance - the instance waiting
+   * @param task - the wait
+   * @param advance - advance the instance once the payload is journaled
+   * @returns true when consumed and delivered
+   */
+  protected async consumeSignal(
+    signal: WorkflowSignal,
+    instance: WorkflowInstance,
+    task: WorkflowTask,
+    advance: boolean
+  ): Promise<boolean> {
+    if (signal.expiresAt <= Date.now()) return false;
+    const sender = signal.system
+      ? useSystem()
+      : this.launcherContext({ userId: signal.senderId, identId: signal.senderIdent }, null);
+    if (!(await this.canSignal(sender, instance, task))) return false;
+    try {
+      // Consumed once: a concurrent consumer fails the condition
+      await WorkflowSignal.ref(signal.uuid).delete("expiresAt" as any, signal.expiresAt as any);
+    } catch {
+      return false;
+    }
+    return this.resolveWait(task, signal.payload, advance);
+  }
+
+  /**
+   * Resolve a wait with a payload: claimed like a task, so it resolves once
+   * @param task - the wait
+   * @param payload - its result
+   * @param advance - advance the instance once the payload is journaled
+   * @returns false when the wait was already resolved or timed out
+   */
+  protected async resolveWait(task: WorkflowTask, payload: any, advance: boolean = true): Promise<boolean> {
+    if (!(await this.claim(task, { signaled: true, output: payload }))) return false;
+    await this.execute(task, advance);
+    return true;
   }
 
   /**
@@ -886,6 +1121,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    * @param runAt - when it becomes runnable
    * @param attempt - attempt number
    * @param index - row index of the key, when known
+   * @param extra - other fields of the row
+   * @returns the task created, undefined when another worker created it
    */
   protected async createTask(
     instance: string,
@@ -893,13 +1130,14 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     launcherId: string | undefined,
     runAt: number,
     attempt: number,
-    index?: number
-  ): Promise<void> {
-    await runAsSystem(async () => {
+    index?: number,
+    extra: Partial<WorkflowTask> = {}
+  ): Promise<WorkflowTask | undefined> {
+    return runAsSystem(async () => {
       index ??= (await WorkflowTask.query(`instance = ? AND key = ?`, [instance, scheduled.key])).results.length + 1;
       const uuid = taskUuid(instance, scheduled.key, index);
       try {
-        await WorkflowTask.create({
+        return (await WorkflowTask.create({
           uuid,
           instance,
           key: scheduled.key,
@@ -910,11 +1148,13 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           status: "PENDING",
           runAt,
           leaseUntil: 0,
-          launcherId
-        } as any);
+          launcherId,
+          ...extra
+        } as any)) as WorkflowTask;
       } catch (err) {
         if (!(await WorkflowTask.ref(uuid).exists())) throw err;
         // Created by another worker
+        return undefined;
       }
     });
   }

@@ -133,6 +133,11 @@
             "description": "Interval between two polls of the worker (ms)",
             "type": "number"
           },
+          "signalTtl": {
+            "default": "1d",
+            "description": "How long a signal sent before any wait is kept (Duration syntax)",
+            "type": "string"
+          },
           "stopTimeout": {
             "default": 30000,
             "description": "Grace period of stop() for the running attempts (ms), then they are aborted and their outcome dropped",
@@ -1097,6 +1102,230 @@
       ],
       "Identifier": "Webda/WorkflowInstance"
     },
+    "Webda/WorkflowSignal": {
+      "Plural": "WorkflowSignals",
+      "Import": "lib/models/workflowsignal.model:default",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "event": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "any"
+        },
+        "senderId": {
+          "type": "string"
+        },
+        "senderIdent": {
+          "type": "string"
+        },
+        "system": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowSignals",
+          "additionalProperties": false,
+          "description": "A signal sent before any instance waited for it, kept until `expiresAt`\n\nThe first wait on the same `(event, key)` whose instance accepts the sender consumes it.",
+          "properties": {
+            "createdAt": {
+              "description": "When it was sent (ms)",
+              "type": "number"
+            },
+            "event": {
+              "description": "Event name",
+              "type": "string"
+            },
+            "expiresAt": {
+              "description": "When it can no longer be consumed (ms)",
+              "type": "number"
+            },
+            "key": {
+              "description": "Business key",
+              "type": "string"
+            },
+            "payload": {
+              "description": "Payload, the result of the wait"
+            },
+            "senderId": {
+              "description": "User id of the sender",
+              "type": "string"
+            },
+            "senderIdent": {
+              "description": "Ident used by the sender",
+              "type": "string"
+            },
+            "system": {
+              "default": false,
+              "description": "Sent by the system",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "event",
+            "expiresAt",
+            "key",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowSignals",
+          "additionalProperties": false,
+          "description": "A signal sent before any instance waited for it, kept until `expiresAt`\n\nThe first wait on the same `(event, key)` whose instance accepts the sender consumes it.",
+          "properties": {
+            "createdAt": {
+              "description": "When it was sent (ms)",
+              "type": "number"
+            },
+            "event": {
+              "description": "Event name",
+              "type": "string"
+            },
+            "expiresAt": {
+              "description": "When it can no longer be consumed (ms)",
+              "type": "number"
+            },
+            "key": {
+              "description": "Business key",
+              "type": "string"
+            },
+            "payload": {
+              "description": "Payload, the result of the wait"
+            },
+            "senderId": {
+              "description": "User id of the sender",
+              "type": "string"
+            },
+            "senderIdent": {
+              "description": "Ident used by the sender",
+              "type": "string"
+            },
+            "system": {
+              "default": false,
+              "description": "Sent by the system",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "event",
+            "expiresAt",
+            "key",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "WorkflowSignals",
+          "additionalProperties": false,
+          "description": "A signal sent before any instance waited for it, kept until `expiresAt`\n\nThe first wait on the same `(event, key)` whose instance accepts the sender consumes it.",
+          "properties": {
+            "createdAt": {
+              "description": "When it was sent (ms)",
+              "type": "number"
+            },
+            "event": {
+              "description": "Event name",
+              "type": "string"
+            },
+            "expiresAt": {
+              "description": "When it can no longer be consumed (ms)",
+              "type": "number"
+            },
+            "key": {
+              "description": "Business key",
+              "type": "string"
+            },
+            "payload": {
+              "description": "Payload, the result of the wait"
+            },
+            "senderId": {
+              "description": "User id of the sender",
+              "type": "string"
+            },
+            "senderIdent": {
+              "description": "Ident used by the sender",
+              "type": "string"
+            },
+            "system": {
+              "default": false,
+              "description": "Sent by the system",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "event",
+            "expiresAt",
+            "key",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/WorkflowSignal"
+    },
     "Webda/WorkflowTask": {
       "Plural": "WorkflowTasks",
       "Import": "lib/models/workflowtask.model:default",
@@ -1147,6 +1376,24 @@
           "type": "number"
         },
         "launcherId": {
+          "type": "string"
+        },
+        "event": {
+          "type": "string"
+        },
+        "eventKey": {
+          "type": "string"
+        },
+        "allow": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "signaled": {
+          "type": "boolean"
+        },
+        "child": {
           "type": "string"
         },
         "uuid": {
@@ -1219,9 +1466,20 @@
           },
           "description": "One attempt of a task of a workflow instance",
           "properties": {
+            "allow": {
+              "description": "Users allowed to signal the wait, besides the launcher and the system",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "attempt": {
               "description": "Attempt number, starting at 1",
               "type": "number"
+            },
+            "child": {
+              "description": "Child instance of a `WAITING_CHILD` task",
+              "type": "string"
             },
             "endedAt": {
               "description": "End of the attempt (ms)",
@@ -1230,6 +1488,14 @@
             "error": {
               "$ref": "#/definitions/FlowError",
               "description": "Error of the attempt"
+            },
+            "event": {
+              "description": "Event a `Wait.ForEvent` waits for",
+              "type": "string"
+            },
+            "eventKey": {
+              "description": "Business key a `Wait.ForEvent` waits for",
+              "type": "string"
             },
             "input": {
               "description": "Operation input"
@@ -1269,6 +1535,11 @@
               "description": "When the task becomes runnable (ms)",
               "type": "number"
             },
+            "signaled": {
+              "default": false,
+              "description": "The wait was resolved by a signal: `output` holds its payload",
+              "type": "boolean"
+            },
             "startedAt": {
               "description": "Start of the attempt (ms)",
               "type": "number"
@@ -1278,6 +1549,8 @@
               "enum": [
                 "PENDING",
                 "RUNNING",
+                "WAITING_EVENT",
+                "WAITING_CHILD",
                 "SUCCESS",
                 "ERROR",
                 "CANCELLED"
@@ -1370,9 +1643,20 @@
           },
           "description": "One attempt of a task of a workflow instance",
           "properties": {
+            "allow": {
+              "description": "Users allowed to signal the wait, besides the launcher and the system",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "attempt": {
               "description": "Attempt number, starting at 1",
               "type": "number"
+            },
+            "child": {
+              "description": "Child instance of a `WAITING_CHILD` task",
+              "type": "string"
             },
             "endedAt": {
               "description": "End of the attempt (ms)",
@@ -1381,6 +1665,14 @@
             "error": {
               "$ref": "#/definitions/FlowError",
               "description": "Error of the attempt"
+            },
+            "event": {
+              "description": "Event a `Wait.ForEvent` waits for",
+              "type": "string"
+            },
+            "eventKey": {
+              "description": "Business key a `Wait.ForEvent` waits for",
+              "type": "string"
             },
             "input": {
               "description": "Operation input"
@@ -1420,6 +1712,11 @@
               "description": "When the task becomes runnable (ms)",
               "type": "number"
             },
+            "signaled": {
+              "default": false,
+              "description": "The wait was resolved by a signal: `output` holds its payload",
+              "type": "boolean"
+            },
             "startedAt": {
               "description": "Start of the attempt (ms)",
               "type": "number"
@@ -1429,6 +1726,8 @@
               "enum": [
                 "PENDING",
                 "RUNNING",
+                "WAITING_EVENT",
+                "WAITING_CHILD",
                 "SUCCESS",
                 "ERROR",
                 "CANCELLED"
@@ -1521,9 +1820,20 @@
           },
           "description": "One attempt of a task of a workflow instance",
           "properties": {
+            "allow": {
+              "description": "Users allowed to signal the wait, besides the launcher and the system",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "attempt": {
               "description": "Attempt number, starting at 1",
               "type": "number"
+            },
+            "child": {
+              "description": "Child instance of a `WAITING_CHILD` task",
+              "type": "string"
             },
             "endedAt": {
               "description": "End of the attempt (ms)",
@@ -1532,6 +1842,14 @@
             "error": {
               "$ref": "#/definitions/FlowError",
               "description": "Error of the attempt"
+            },
+            "event": {
+              "description": "Event a `Wait.ForEvent` waits for",
+              "type": "string"
+            },
+            "eventKey": {
+              "description": "Business key a `Wait.ForEvent` waits for",
+              "type": "string"
             },
             "input": {
               "description": "Operation input"
@@ -1571,6 +1889,11 @@
               "description": "When the task becomes runnable (ms)",
               "type": "number"
             },
+            "signaled": {
+              "default": false,
+              "description": "The wait was resolved by a signal: `output` holds its payload",
+              "type": "boolean"
+            },
             "startedAt": {
               "description": "Start of the attempt (ms)",
               "type": "number"
@@ -1580,6 +1903,8 @@
               "enum": [
                 "PENDING",
                 "RUNNING",
+                "WAITING_EVENT",
+                "WAITING_CHILD",
                 "SUCCESS",
                 "ERROR",
                 "CANCELLED"
@@ -1669,6 +1994,35 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "WorkflowService.signal.input": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "payload": {}
+      },
+      "required": [
+        "event",
+        "key"
+      ]
+    },
+    "WorkflowService.signal.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "delivered": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "delivered"
+      ],
+      "type": "object"
     }
   },
   "behaviors": {}

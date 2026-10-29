@@ -35,7 +35,7 @@ export function canReadWorkflow(context: IOperationContext, action: string, laun
   if (context.isGlobalContext()) {
     return true;
   }
-  if (action !== "get" && action !== "query") {
+  if (action !== "get" && action !== "query" && action !== "signal") {
     return "Workflows are written through the WorkflowService only";
   }
   const userId = context.getCurrentUserId();

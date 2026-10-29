@@ -7,6 +7,7 @@ export class BeanService extends Service {
   test() {}
 
   /** Cron job that runs every minute. */
+  @Operation()
   @Cron("* * * * *")
   async cron() {}
 }

@@ -9,7 +9,6 @@ import {
   Service,
   ServiceParameters,
   useCore,
-  useDynamicService,
   useRouter,
   WebContext,
   WebdaError
@@ -203,17 +202,12 @@ export class AzureFunctionServer extends Service<AzureFunctionServerParameters> 
   }
 
   /**
-   * Execute only the declared cron matching the exported identifier.
+   * Execute only the declared cron matching the exported identifier, through its operation
    * @param id - Secret name or exported cron identifier
    */
   async handleCron(id: string): Promise<void> {
-    const crons = CronService.loadAnnotations(useCore().getServices()).filter(
-      cron => CronService.getExportId(cron) === id
-    );
+    const crons = CronService.resolveCrons().filter(cron => CronService.getExportId(cron) === id);
     if (!crons.length) throw new WebdaError.NotFound("Azure timer does not match a declared Webda cron");
-    for (const cron of crons)
-      await useDynamicService<Record<string, (...args: any[]) => Promise<void>>>(cron.serviceName)[cron.method](
-        ...cron.args
-      );
+    for (const cron of crons) await CronService.execute(cron, true);
   }
 }

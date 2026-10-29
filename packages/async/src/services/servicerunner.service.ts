@@ -1,10 +1,4 @@
-import {
-  callOperation,
-  OperationContext,
-  SimpleOperationContext,
-  useApplication,
-  useDynamicService
-} from "@webda/core";
+import { callOperation, OperationContext, useApplication, useDynamicService } from "@webda/core";
 import {
   ConsoleLogger,
   MemoryLogger,
@@ -13,7 +7,12 @@ import {
   WorkerMessage,
   WorkerOutput
 } from "@webda/workout";
-import { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../asyncaction.model.js";
+import {
+  AsyncAction,
+  AsyncOperationAction,
+  AsyncWebdaAction,
+  getActionOperationContext
+} from "../asyncaction.model.js";
 import type { AsyncJobService, JobInfo } from "./asyncjobservice.service.js";
 import { AgentInfo, Runner, RunnerParameters } from "./runner.service.js";
 
@@ -133,16 +132,11 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
   /**
    * Rebuild an operation context if the action was loaded from a store
    * @param context - the stored context
+   * @param system - the action runs as the system
    * @returns an operation context
    */
-  protected getOperationContext(context: any): OperationContext {
-    if (context instanceof OperationContext) {
-      return context;
-    }
-    const input = context?.input;
-    return new SimpleOperationContext().setInput(
-      Buffer.isBuffer(input) ? input : input?.type === "Buffer" ? Buffer.from(input.data) : Buffer.from("{}")
-    );
+  protected getOperationContext(context: any, system: boolean = false): OperationContext {
+    return getActionOperationContext(context, system);
   }
 
   /**
@@ -179,7 +173,7 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
           await (service as any)[action.method](...(action.arguments || []));
         } else {
           if (!action.operationId) throw new Error("Operation id is required");
-          await callOperation(this.getOperationContext(action.context), action.operationId);
+          await callOperation(this.getOperationContext(action.context, action.system), action.operationId);
         }
         await logger.saveAndClose();
 

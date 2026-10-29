@@ -1,4 +1,5 @@
 import {
+  callOperation,
   canCallOperation,
   Command,
   CronDefinition,
@@ -17,10 +18,12 @@ import {
   useDynamicService,
   useModel,
   useParameters,
+  useSystem,
   validateSchema,
   ValidationError,
   WebContext,
-  WebdaError
+  WebdaError,
+  whenLeader
 } from "@webda/core";
 import type { ModelClass } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
@@ -30,7 +33,13 @@ import axios, { AxiosResponse } from "axios";
 import * as crypto from "node:crypto";
 import { JSONSchema7 } from "json-schema";
 import { schedule as crontabSchedule } from "node-cron";
-import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction, AsyncWebdaAction } from "../asyncaction.model.js";
+import {
+  AsyncAction,
+  AsyncActionQueueItem,
+  AsyncOperationAction,
+  AsyncWebdaAction,
+  getActionOperationContext
+} from "../asyncaction.model.js";
 import { Runner } from "./runner.service.js";
 import { ServiceRunner, ServiceRunnerParameters } from "./servicerunner.service.js";
 
@@ -652,10 +661,18 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         nodeVersion: process.version
       },
       status: "RUNNING"
-    })) as AsyncWebdaAction;
-    this.log("DEBUG", "Action received", action.serviceName, action.method, action.arguments);
+    })) as AsyncWebdaAction & Pick<AsyncOperationAction, "operationId" | "context" | "system">;
+    this.log("DEBUG", "Action received", action.operationId ?? action.serviceName, action.method, action.arguments);
     let results;
     try {
+      if (action.operationId) {
+        // AsyncOperationAction: call the operation, as the system when a cron launched it
+        const context = getActionOperationContext(action.context, action.system);
+        await callOperation(context, action.operationId);
+        results = context.getOutput();
+        await this.postHook(jobInfo, { results, status: "SUCCESS" });
+        return;
+      }
       // Check it contains the right info
       if (!action.method || !action.serviceName) {
         throw new Error("WebdaAsyncAction must have method and serviceName defined at least");
@@ -690,57 +707,69 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Get the cron callback function
+   *
+   * Each tick launches the cron operation as an AsyncOperationAction, called as the system with the cron input
    * @param cron - the cron definition
    * @returns the cron callback
    */
   getCronExecutor(cron: CronDefinition) {
     return async () => {
       try {
-        this.log(
-          "INFO",
-          `Execute cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} as an AsyncOperationAction`
-        );
-        await this.launchAction(new this.model(cron.serviceName, cron.method, cron.args));
+        this.log("INFO", `Execute cron ${cron.toString()} as an AsyncOperationAction`);
+        const model = this.operationModel ?? <any>useModel(this.parameters.asyncOperationModel);
+        await this.launchAction(new model(cron.operationId, useSystem(cron.input)));
       } catch (err) {
-        this.log(
-          "ERROR",
-          `Execution error cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} - ${err}`
-        );
+        this.log("ERROR", `Execution error cron ${cron.toString()} - ${err}`);
       }
     };
   }
 
   /**
    * Manage scheduled actions and crontab actions
+   *
+   * The crons are scheduled on the cluster leader only: each tick launches one action across the replicas
    * @returns a cancelable loop promise
    */
   @Command("async scheduler", { description: "Launch the async actions scheduler" })
   scheduler(): CancelableLoopPromise {
     // Map cron to an AsyncOperationAction
     // It allows you to keep a trace of the cron execution in the AsyncAction
+    let unregister: (() => void) | undefined;
     if (this.parameters.includeCron) {
-      CronService.loadAnnotations(useCore().getServices()).forEach(cron => {
-        this.log("INFO", `Schedule cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
-        crontabSchedule(cron.cron, this.getCronExecutor(cron));
-      });
+      const crons = CronService.resolveCrons();
+      const tasks: { stop: () => any }[] = [];
+      unregister = whenLeader(
+        () => {
+          crons.forEach(cron => {
+            this.log("INFO", `Schedule cron ${cron.toString()}`);
+            tasks.push(crontabSchedule(cron.cron, this.getCronExecutor(cron)));
+          });
+        },
+        () => {
+          tasks.splice(0).forEach(task => task.stop());
+        }
+      );
     }
     // Every schedulerResolution will check for scheduled task
-    return new CancelableLoopPromise(async () => {
-      let time = Date.now();
-      time -= time % this.parameters.schedulerResolution;
-      // Queue all actions
-      await Promise.all(
-        (await this.model.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)).results.map(a =>
-          this.launchAction(a)
-        )
-      );
-      time += this.parameters.schedulerResolution;
-      // Wait for next scheduler resolution
-      if (time > Date.now()) {
-        await sleep(time - Date.now());
-        /* c8 ignore next */
-      }
-    });
+    return new CancelableLoopPromise(
+      async () => {
+        let time = Date.now();
+        time -= time % this.parameters.schedulerResolution;
+        // Queue all actions
+        await Promise.all(
+          (await this.model.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)).results.map(a =>
+            this.launchAction(a)
+          )
+        );
+        time += this.parameters.schedulerResolution;
+        // Wait for next scheduler resolution
+        if (time > Date.now()) {
+          await sleep(time - Date.now());
+          /* c8 ignore next */
+        }
+      },
+      async () => unregister?.()
+    );
   }
 }
 

@@ -1044,7 +1044,10 @@ function Operation(target: (this: OperationTarget, ...args: any) => any, context
  */
 function Operation(...args: any[]) {
   const annotate = (target: AnyMethod, context: ClassMethodDecoratorContext, options: any = {}) => {
-    context.metadata!["webda.operations"] ??= [];
+    // A subclass sees its parent's metadata through the prototype: copy it before adding, never push into the parent's
+    if (!Object.hasOwn(context.metadata!, "webda.operations")) {
+      context.metadata!["webda.operations"] = [...((context.metadata!["webda.operations"] as any[]) ?? [])];
+    }
     (context.metadata!["webda.operations"] as any[]).push({
       id: context.name,
       ...options,

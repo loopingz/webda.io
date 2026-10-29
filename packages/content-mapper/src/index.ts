@@ -50,6 +50,8 @@ export type {
   Section
 } from "./module-discovery.ts";
 
+export { generateWebdaModule } from "./module.ts";
+export type { ModuleOptions, ModuleResult, WebdaModuleJson } from "./module.ts";
 export { WarmSession } from "./session.ts";
 export type { TransformOutcome, TransformTiming, WarmSessionOptions } from "./session.ts";
 

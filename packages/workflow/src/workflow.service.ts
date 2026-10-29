@@ -14,6 +14,7 @@ import {
   SimpleOperationContext,
   useApplication,
   useContext,
+  useCore,
   useDynamicService,
   useInstanceStorage,
   useSystem,
@@ -123,6 +124,19 @@ interface RegisteredStoredFlow {
    * Export ids of the crons registered for it: only those are removed
    */
   cronIds: string[];
+}
+
+/**
+ * Whether an object is an instance of a class with this name, its own or an ancestor
+ * @param object - the object
+ * @param className - the class name
+ * @returns true when a constructor of its prototype chain has this name
+ */
+function isInstanceOfClass(object: any, className: string): boolean {
+  for (let proto = object ? Object.getPrototypeOf(object) : null; proto; proto = Object.getPrototypeOf(proto)) {
+    if (proto.constructor?.name === className) return true;
+  }
+  return false;
 }
 
 /**
@@ -311,6 +325,10 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   protected versions = new Map<string, Map<string, FlowDefinition>>();
   /**
+   * Flows of the modules (compiled \`.flow.ts\`) registered by this service
+   */
+  protected moduleFlows = new Set<string>();
+  /**
    * Worker id, the lease owner of the tasks it claims
    */
   protected workerId = randomUUID();
@@ -366,7 +384,71 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     for (const def of this.parameters.flows ?? []) {
       this.registerFlow({ ...def, version: def.version ?? "", source: def.source ?? "code" });
     }
+    this.registerModuleFlows();
     return this;
+  }
+
+  /**
+   * Register the flows compiled from the \`.flow.ts\` files (\`flows\` of the modules), with their crons
+   *
+   * The first WorkflowService to resolve registers them; the typed calls are resolved in {@link init}, once every
+   * service registered its operations.
+   */
+  protected registerModuleFlows(): void {
+    const flows = useApplication().getModules()?.flows ?? {};
+    for (const [id, entry] of Object.entries(flows)) {
+      const operation: any = listFullOperations()[id];
+      if (operation?.context?.flowId === id && operation.service !== this.getName()) continue;
+      const { crons, ...def } = structuredClone(entry) as any;
+      // The compiled version is kept: the build hashed the graph before its targets are resolved
+      this.registerFlow({ ...def, source: "code" });
+      this.moduleFlows.add(id);
+      for (const cron of crons ?? []) {
+        CronService.register(id, cron);
+      }
+    }
+  }
+
+  /**
+   * Point every typed call of the compiled flows (\`target: { class, method }\`) at the operation of the configured
+   * service of that class
+   * @throws FatalInitError when no or several configured services match, or when a flow operation was taken over
+   */
+  protected resolveModuleTargets(): void {
+    const services = useCore().getServices();
+    const operations = Object.entries(listFullOperations());
+    for (const id of this.moduleFlows) {
+      const operation: any = listFullOperations()[id];
+      if (operation?.context?.flowId !== id || operation.service !== this.getName()) {
+        throw new WebdaError.FatalInitError(`Flow ${id}: its operation id is used by another operation`);
+      }
+      const flow = this.flows.get(id)!;
+      const walk = (body: any[]) => {
+        for (const stmt of body ?? []) {
+          for (const key of ["then", "else", "body", "catch", "finally"]) walk(stmt[key]);
+          (stmt.branches ?? []).forEach(walk);
+          if (stmt.kind !== "task" || !stmt.target) continue;
+          const { class: className, method } = stmt.target;
+          const matches = Object.entries(services)
+            .filter(([, service]) => isInstanceOfClass(service, className))
+            .flatMap(([name]) =>
+              operations
+                .filter(([, op]) => op.service === name && op.method === method)
+                .map(([opId]) => ({ name, opId }))
+            );
+          if (matches.length !== 1) {
+            throw new WebdaError.FatalInitError(
+              `Flow ${id} calls ${className}.${method} (${stmt.id}): ` +
+                (matches.length
+                  ? `several configured services expose it: ${matches.map(m => m.name).join(", ")}`
+                  : `no configured service of class ${className} exposes it as an operation`)
+            );
+          }
+          stmt.operation = matches[0].opId;
+        }
+      };
+      walk(flow.body);
+    }
   }
 
   /**
@@ -374,6 +456,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   async init(): Promise<this> {
     await super.init();
+    this.resolveModuleTargets();
     this.listenStored();
     await this.reloadStored();
     this.startSync();

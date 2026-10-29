@@ -220,6 +220,7 @@ it exactly like a code flow, through `/operations/{name}`.
 | `syncPubSub`         |                    | PubSub service announcing stored workflow changes                    |
 | `syncInterval`       | `60000`            | ms between two reloads of the stored workflows, without `syncPubSub` |
 
-## Coming next
+## Authoring flows
 
-- **Part C:** authoring flows as `.flow.ts` classes compiled to this graph, with `@Cron` on flow methods.
+Flows are usually written as `async` methods of a class in a `.flow.ts` file, compiled to this graph by the build:
+see [Authoring flows](./Authoring%20flows.md).

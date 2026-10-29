@@ -8,3 +8,4 @@ export * from "./models/workflowsignal.model.js";
 export { Workflow as StoredWorkflow, type StoredWorkflowCron } from "./models/workflow.model.js";
 export * from "./workflow.service.js";
 export * from "./hooks.js";
+export * from "./authoring.js";

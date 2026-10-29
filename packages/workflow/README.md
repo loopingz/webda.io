@@ -50,3 +50,6 @@ useService<WorkflowService>("WorkflowService").registerFlow({
 
 See the [documentation](https://docs.webda.io/pages/Modules/workflow/README) for the graph format, the built-in
 operations, the task options and the engine parameters.
+
+Operations run by a workflow should observe `useAbortSignal()` (aborted on timeout, lost lease and stop) to stop
+early. An attempt that keeps running is ignored and the task may run again: operations are assumed to be idempotent.

@@ -23,13 +23,21 @@ import { vi } from "vitest";
 import type { FlowDefinition, Stmt, TaskOptions } from "./graph.js";
 import { WorkflowInstance } from "./models/workflowinstance.model.js";
 import { WorkflowTask } from "./models/workflowtask.model.js";
-import { WorkflowService, WorkflowServiceParameters } from "./workflow.service.js";
+import { useAbortSignal, WorkflowService, WorkflowServiceParameters } from "./workflow.service.js";
 
 /**
  * Operations the test flows call
  */
 class FlowTestService extends Service {
   calls: Record<string, number> = {};
+  /**
+   * Abort signals seen by slow()
+   */
+  signals: AbortSignal[] = [];
+  /**
+   * Resolve the pending slow() calls
+   */
+  releases: ((value: any) => void)[] = [];
 
   /**
    * Count a call
@@ -71,8 +79,12 @@ class FlowTestService extends Service {
    */
   async slow() {
     this.count("slow");
-    const signal = useContext().getExtension<AbortSignal>("abortSignal");
-    return new Promise(resolve => signal?.addEventListener("abort", () => resolve("aborted")));
+    const signal = useAbortSignal();
+    this.signals.push(signal);
+    return new Promise(resolve => {
+      this.releases.push(resolve);
+      signal?.addEventListener("abort", () => resolve("aborted"));
+    });
   }
 
   /**
@@ -164,6 +176,8 @@ class WorkflowServiceTest extends WebdaApplicationTest {
       }
     }
     this.ops.calls = {};
+    this.ops.signals = [];
+    this.ops.releases = [];
     const guarded: any = useInstanceStorage().operations["FlowTest.Guarded"];
     guarded.permission = "userId = 'alice'";
     delete guarded.permissionQuery;
@@ -429,6 +443,10 @@ class WorkflowServiceTest extends WebdaApplicationTest {
     assert.strictEqual(instance.status, "ERROR");
     assert.strictEqual(instance.error.code, "Timeout");
     assert.strictEqual(this.ops.calls.slow, 1);
+    // The operation sees the abort through useAbortSignal()
+    assert.strictEqual(this.ops.signals.length, 1);
+    assert.strictEqual(this.ops.signals[0].aborted, true);
+    assert.strictEqual(useAbortSignal(), undefined);
   }
 
   @test
@@ -618,5 +636,235 @@ class WorkflowServiceTest extends WebdaApplicationTest {
       await worker.stop();
     }
     assert.strictEqual((await this.instance(uuid)).status, "SUCCESS");
+  }
+
+  @test
+  async parallelRaceRunsEachStepOnce() {
+    const def = this.flow([
+      {
+        kind: "parallel",
+        id: "f/par",
+        branches: [
+          [task("f/par/0/A", "FlowTest.Add", { lit: { a: 1, b: 1 } })],
+          [task("f/par/1/B", "FlowTest.Add", { lit: { a: 2, b: 2 } })]
+        ]
+      },
+      task("f/C", "FlowTest.Add", { lit: { a: 3, b: 3 } }, "c"),
+      { kind: "return", id: "f/ret", value: { var: "c" } }
+    ]);
+    const uuid = await this.launch(def, {}, "alice");
+    const [a, b] = (await this.tasks(uuid)).sort((x, y) => x.key.localeCompare(y.key));
+    // A's advance read the instance before B journaled, B finishes completely before A schedules
+    const original = this.service["scheduleTask"].bind(this.service);
+    let injected = false;
+    this.service["scheduleTask"] = async (instance, scheduled) => {
+      if (scheduled.key === b.key && !injected) {
+        injected = true;
+        await this.service["execute"](b);
+      }
+      return original(instance, scheduled);
+    };
+    try {
+      await this.service["execute"](a);
+    } finally {
+      delete this.service["scheduleTask"];
+    }
+    assert.ok(injected);
+    await this.drain();
+    const instance = await this.instance(uuid);
+    assert.strictEqual(instance.status, "SUCCESS");
+    assert.strictEqual(instance.output, 6);
+    // a, b and c once each
+    assert.strictEqual(this.ops.calls.add, 3);
+    assert.strictEqual((await this.tasks(uuid)).filter(t => t.key === b.key).length, 1);
+  }
+
+  @test
+  async journaledKeyNotRunAgain() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const def = this.flow([
+      task("f/A", "FlowTest.Add", { lit: { a: 1, b: 1 } }, "a"),
+      { kind: "return", id: "f/ret", value: { var: "a" } }
+    ]);
+    const uuid = await this.launch(def, {}, "alice");
+    const [row] = await this.tasks(uuid);
+    // A worker journaled the outcome then crashed before finishing the row
+    const instance = await this.instance(uuid);
+    await WorkflowInstance.ref(uuid).patch({
+      journal: { [row.key]: { result: 2, at: 1_000_000 } },
+      revision: instance.revision + 1
+    } as any);
+    await WorkflowTask.ref(row.uuid).patch({ status: "RUNNING", owner: "crashed", leaseUntil: 1_000_100 } as any);
+    vi.setSystemTime(1_000_200);
+    assert.strictEqual(await this.service["tick"](), 1);
+    assert.strictEqual(this.ops.calls.add, undefined);
+    assert.strictEqual((await WorkflowTask.ref(row.uuid).get()).status, "CANCELLED");
+    // The sweep then resumes the instance
+    vi.setSystemTime(1_000_200 + 120_000);
+    await this.service["sweep"]();
+    assert.strictEqual((await this.instance(uuid)).output, 2);
+  }
+
+  /**
+   * Let the pending promises run until a condition holds
+   * @param condition - the condition
+   */
+  async until(condition: () => boolean) {
+    for (let i = 0; i < 100 && !condition(); i++) await new Promise(resolve => setImmediate(resolve));
+    assert.ok(condition());
+  }
+
+  @test
+  async lostLeaseDropsLateOutcome() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const def = this.flow([
+      task("f/slow", "FlowTest.Slow", { lit: {} }, "s"),
+      { kind: "return", id: "f/ret", value: { var: "s" } }
+    ]);
+    const original = new WorkflowService("Workflow2", new WorkflowServiceParameters().load({ worker: false }));
+    // 1. The original worker is slow, its lease expires and another worker reclaims and finishes the task
+    let uuid = await this.launch(def, {}, "alice");
+    let [row] = await this.tasks(uuid);
+    let running = original["tick"]();
+    await this.until(() => this.ops.calls.slow === 1);
+    vi.setSystemTime(1_000_000 + 60_001);
+    let reclaimer = this.service["tick"]();
+    await this.until(() => this.ops.calls.slow === 2);
+    this.ops.releases[1]("second");
+    await reclaimer;
+    // The late outcome of the original neither overwrites the row nor reaches the journal
+    this.ops.releases[0]("first");
+    await running;
+    let final = await WorkflowTask.ref(row.uuid).get();
+    assert.strictEqual(final.status, "SUCCESS");
+    assert.strictEqual(final.output, "second");
+    assert.strictEqual(final.owner, this.service["workerId"]);
+    assert.strictEqual((await this.instance(uuid)).output, "second");
+    // 2. The original learns it lost the lease when it renews it: its attempt is aborted
+    uuid = await this.launch(def, {}, "alice");
+    [row] = await this.tasks(uuid);
+    running = original["tick"]();
+    await this.until(() => this.ops.calls.slow === 3);
+    vi.setSystemTime(Date.now() + 60_001);
+    reclaimer = this.service["tick"]();
+    await this.until(() => this.ops.calls.slow === 4);
+    await original["renewLease"](original["running"].get(row.uuid).task);
+    assert.strictEqual(this.ops.signals[2].aborted, true);
+    await running;
+    this.ops.releases[3]("fourth");
+    await reclaimer;
+    final = await WorkflowTask.ref(row.uuid).get();
+    assert.strictEqual(final.output, "fourth");
+    assert.strictEqual((await this.instance(uuid)).output, "fourth");
+  }
+
+  @test
+  async crashLoopFails() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const def = this.flow([
+      {
+        kind: "try",
+        id: "f/try",
+        body: [task("f/try/A", "FlowTest.Add", { lit: { a: 1, b: 1 } }, undefined, { retries: 1 })],
+        catchVar: "e",
+        catch: [{ kind: "return", id: "f/try/ret", value: { var: "e" } }]
+      }
+    ]);
+    const uuid = await this.launch(def, {}, "alice");
+    const [row] = await this.tasks(uuid);
+    // Attempt 3 crashed: retries + 1 attempts are used, one more crash recovery was granted already
+    await WorkflowTask.ref(row.uuid).patch({
+      status: "RUNNING",
+      owner: "crashed",
+      attempt: 3,
+      leaseUntil: 1_000_100
+    } as any);
+    vi.setSystemTime(1_000_200);
+    assert.strictEqual(await this.service["tick"](), 1);
+    assert.strictEqual(this.ops.calls.add, undefined);
+    const instance = await this.instance(uuid);
+    assert.strictEqual(instance.status, "SUCCESS");
+    assert.strictEqual(instance.output.code, "Crashed");
+    assert.strictEqual((await WorkflowTask.ref(row.uuid).get()).status, "ERROR");
+  }
+
+  @test
+  async sweepResumesStrandedInstance() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const def = this.flow([
+      task("f/A", "FlowTest.Add", { lit: { a: 1, b: 1 } }, "a"),
+      task("f/B", "FlowTest.Add", { obj: { a: { var: "a" }, b: { lit: 1 } } }, "b"),
+      { kind: "return", id: "f/ret", value: { var: "b" } }
+    ]);
+    const uuid = await this.launch(def, {}, "alice");
+    // advance() fails after the task row is finished: nothing schedules B
+    this.service["advance"] = async () => {
+      throw new Error("crash");
+    };
+    try {
+      await assert.rejects(() => this.service["tick"](), /crash/);
+    } finally {
+      delete this.service["advance"];
+    }
+    assert.strictEqual(await this.service["tick"](), 0);
+    assert.strictEqual((await this.instance(uuid)).status, "RUNNING");
+    // Too recent for the sweep
+    assert.strictEqual(await this.service["sweep"](), 0);
+    vi.setSystemTime(1_000_000 + 60_001);
+    assert.strictEqual(await this.service["sweep"](), 1);
+    await this.drain();
+    const instance = await this.instance(uuid);
+    assert.strictEqual(instance.status, "SUCCESS");
+    assert.strictEqual(instance.output, 3);
+    // An instance with a live task is left alone
+    const waiting = await this.launch(
+      this.flow([task("f/s", "Workflow.Sleep", { lit: { duration: "1d" } })]),
+      {},
+      "alice"
+    );
+    vi.setSystemTime(Date.now() + 120_000);
+    assert.strictEqual(await this.service["sweep"](), 0);
+    assert.strictEqual((await this.instance(waiting)).status, "WAITING");
+  }
+
+  @test
+  async stopWaitsForInFlightPoll() {
+    const def = this.flow([task("f/A", "FlowTest.Add", { lit: { a: 1, b: 1 } })]);
+    const uuid = await this.launch(def, {}, "alice");
+    const worker = new WorkflowService("Workflow3", new WorkflowServiceParameters().load({ pollInterval: 100000 }));
+    const settle = async () => {
+      for (let i = 0; i < 50; i++) await new Promise(resolve => setImmediate(resolve));
+    };
+    worker["poll"]();
+    await worker.stop();
+    const atStop = (await this.tasks(uuid))[0].status;
+    // The in-flight poll finished within stop: nothing runs or changes after it
+    assert.notStrictEqual(atStop, "RUNNING");
+    await settle();
+    assert.strictEqual((await this.tasks(uuid))[0].status, atStop);
+    // No claim after stop
+    const second = await this.launch(def, {}, "alice");
+    worker["poll"]();
+    await settle();
+    assert.strictEqual((await this.tasks(second))[0].status, "PENDING");
+  }
+
+  @test
+  async stopAbortsLongTasks() {
+    const def = this.flow([task("f/slow", "FlowTest.Slow", { lit: {} })]);
+    const uuid = await this.launch(def, {}, "alice");
+    const worker = new WorkflowService(
+      "Workflow3",
+      new WorkflowServiceParameters().load({ pollInterval: 100000, stopTimeout: 10 })
+    );
+    await worker["poll"]();
+    assert.strictEqual(this.ops.calls.slow, 1);
+    await worker.stop();
+    assert.strictEqual(this.ops.signals[0].aborted, true);
+    await new Promise(resolve => setImmediate(resolve));
+    // The outcome is dropped: the lease expiry lets another worker retry
+    const [row] = await this.tasks(uuid);
+    assert.strictEqual(row.status, "RUNNING");
+    assert.deepStrictEqual((await this.instance(uuid)).journal, {});
   }
 }

@@ -69,7 +69,7 @@ A failed task throws in the flow as plain data, `{ code, message, operation }`, 
 - `retries` (default `0`) more attempts, `delay` (default `"1s"`) before the first one, doubled at each attempt
   with `backoff: "exponential"` (the default) or constant with `"fixed"`. HTTP 400, 401, 403 and 404 are never
   retried.
-- `timeout` aborts the `abortSignal` extension of the operation context and fails the attempt with `Timeout`.
+- `timeout` aborts the attempt's abort signal and fails the attempt with `Timeout`.
 - `useSystem` runs the task as the system (`useSystem()`) instead of the launcher.
 
 ### Built-in operations
@@ -89,13 +89,38 @@ Each task runs through `callOperation` as the launcher: the session is rebuilt w
 at every step, so a permission revoked while the flow sleeps makes the next task fail with `Forbidden`. A flow
 launched by the system runs every task as the system.
 
+### Stopping an attempt
+
+An operation run by a workflow reads the abort signal of its attempt with `useAbortSignal()`:
+
+```ts
+import { useAbortSignal } from "@webda/workflow";
+
+@Operation()
+async capture(uuid: string) {
+  const signal = useAbortSignal(); // undefined outside a workflow task
+  return fetch(`https://payments/${uuid}/capture`, { method: "POST", signal });
+}
+```
+
+The signal is aborted on `timeout`, when the worker loses the task lease, and when the service stops. Operations
+should observe it to stop early. An attempt that ignores it keeps running, its outcome is ignored, and the task may
+run again: operations are assumed to be idempotent.
+
 ## Engine
 
 Every replica runs a worker loop. A due task is claimed with a lease (a conditional patch on `leaseUntil`), so it
 runs once even when several workers poll it. A task whose lease expired (its worker crashed) is claimed again as a
-new attempt. Outcomes are written to the instance journal with a conditional patch on `revision`, retried on
+new attempt; a task abandoned by its worker more than `retries + 1` times fails with `Crashed`. Every write of an
+attempt is conditional on the lease its worker holds: a worker that lost the lease (too slow, reclaimed by another)
+aborts the attempt and drops its outcome. A step whose outcome is already journaled never runs again. Outcomes are written to the instance journal with a conditional patch on `revision`, retried on
 conflict, so parallel branches never lose an outcome. Operations are expected to be idempotent: a task runs at least
 once per attempt.
+
+A recovery sweep, every `sweepInterval`, replays the active instances not updated for `sweepInterval` that have no
+pending or running task (a crash between two steps). `stop()` waits for the poll in flight and claims nothing more,
+gives the running attempts `stopTimeout` to finish, then aborts them without writing their outcome: their lease
+expires and another worker runs them again.
 
 ```json
 {
@@ -119,6 +144,8 @@ once per attempt.
 | `leaseDuration`     | `60000`  | ms of a task lease, renewed while it runs                                     |
 | `maxContextSize`    | `262144` | bytes of journal and input; over it the instance fails with `ContextTooLarge` |
 | `worker`            | `true`   | run the worker loop on this replica                                           |
+| `sweepInterval`     | `60000`  | ms between two recovery sweeps, and age of the instances they replay          |
+| `stopTimeout`       | `30000`  | ms `stop()` waits for the running attempts before aborting them               |
 | `allowStoredSystem` | `false`  | allow `useSystem` tasks in stored workflows                                   |
 | `flows`             |          | flow definitions to register                                                  |
 

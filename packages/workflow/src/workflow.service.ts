@@ -63,6 +63,36 @@ class TaskError extends Error {
 }
 
 /**
+ * Abort reason of an attempt whose outcome must not be written: its lease was lost, or the service stopped
+ */
+const DROPPED = "WorkflowAttemptDropped";
+
+/**
+ * Abort signal of the current workflow task attempt
+ *
+ * It is aborted on timeout, when the worker loses the task lease, and when the service stops. An operation run by a
+ * workflow should observe it to stop early: an attempt that keeps running is ignored, and the task may run again
+ * (operations are assumed idempotent).
+ * @returns the signal, undefined outside a workflow task
+ */
+export function useAbortSignal(): AbortSignal | undefined {
+  try {
+    return useContext()?.getExtension?.<AbortSignal>("abortSignal");
+  } catch {
+    // A context without extensions (the global context)
+    return undefined;
+  }
+}
+
+/**
+ * An attempt running on this replica
+ */
+interface RunningAttempt {
+  task: WorkflowTask;
+  controller: AbortController;
+}
+
+/**
  * Parameters of the {@link WorkflowService}
  */
 export class WorkflowServiceParameters extends ServiceParameters {
@@ -97,6 +127,17 @@ export class WorkflowServiceParameters extends ServiceParameters {
    */
   allowStoredSystem: boolean;
   /**
+   * Interval of the recovery sweep (ms): an active instance not updated for this long and without a live task is
+   * replayed
+   * @default 60000
+   */
+  sweepInterval: number;
+  /**
+   * Grace period of stop() for the running attempts (ms), then they are aborted and their outcome dropped
+   * @default 30000
+   */
+  stopTimeout: number;
+  /**
    * Flows to register
    */
   flows?: FlowDefinitionData[];
@@ -114,6 +155,8 @@ export class WorkflowServiceParameters extends ServiceParameters {
     this.maxContextSize ??= 262144;
     this.worker ??= true;
     this.allowStoredSystem ??= false;
+    this.sweepInterval ??= 60000;
+    this.stopTimeout ??= 30000;
     return this;
   }
 }
@@ -158,9 +201,25 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   protected workerId = randomUUID();
   /**
-   * Abort controllers of the attempts running on this replica, by task uuid
+   * Attempts running on this replica, by task uuid
    */
-  protected running = new Map<string, AbortController>();
+  protected running = new Map<string, RunningAttempt>();
+  /**
+   * Tasks reclaimed after too many crashes: they fail without running
+   */
+  protected crashed = new WeakSet<WorkflowTask>();
+  /**
+   * The service is stopping: nothing more is claimed
+   */
+  protected stopping = false;
+  /**
+   * Poll in progress
+   */
+  protected pollPromise?: Promise<void>;
+  /**
+   * Last recovery sweep (ms)
+   */
+  protected lastSweep = 0;
   /**
    * Executions started by the worker loop
    */
@@ -169,10 +228,6 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    * Worker loop timer
    */
   protected timer?: NodeJS.Timeout;
-  /**
-   * A poll is claiming tasks
-   */
-  protected polling = false;
 
   /**
    * @override
@@ -198,15 +253,29 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
-   * Stop the worker loop, running tasks finish their current attempt
+   * Stop the worker loop
+   *
+   * Running attempts get `stopTimeout` to finish, then they are aborted and their outcome dropped: their lease
+   * expires and another worker runs them again.
    * @override
    */
   async stop(): Promise<void> {
+    this.stopping = true;
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = undefined;
     }
-    await Promise.allSettled([...this.executions]);
+    // A poll in flight may still start executions
+    await this.pollPromise;
+    let timer: NodeJS.Timeout | undefined;
+    const grace = new Promise<void>(resolve => {
+      timer = setTimeout(resolve, this.parameters.stopTimeout);
+    });
+    await Promise.race([Promise.allSettled([...this.executions]), grace]);
+    clearTimeout(timer);
+    for (const attempt of this.running.values()) {
+      attempt.controller.abort(DROPPED);
+    }
     await super.stop();
   }
 
@@ -328,11 +397,12 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
 
   /**
    * One iteration of the worker loop: claim due tasks and run them in the background
+   * @returns the poll in progress, it ends when the tasks are claimed and started
    */
-  protected poll(): void {
-    if (this.polling) return;
-    this.polling = true;
-    this.claimDue()
+  protected poll(): Promise<void> {
+    if (this.pollPromise) return this.pollPromise;
+    if (this.stopping) return Promise.resolve();
+    this.pollPromise = this.claimDue()
       .then(tasks => {
         for (const task of tasks) {
           const execution = this.execute(task)
@@ -341,10 +411,49 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           this.executions.add(execution);
         }
       })
+      .then(() => this.maybeSweep())
       .catch(err => this.log("ERROR", "Workflow poll failed", err))
       .finally(() => {
-        this.polling = false;
+        this.pollPromise = undefined;
       });
+    return this.pollPromise;
+  }
+
+  /**
+   * Run the recovery sweep when `sweepInterval` passed since the last one
+   */
+  protected async maybeSweep(): Promise<void> {
+    if (this.stopping || Date.now() - this.lastSweep < this.parameters.sweepInterval) return;
+    this.lastSweep = Date.now();
+    await this.sweep();
+  }
+
+  /**
+   * Replay the stranded instances: active, not updated for `sweepInterval`, without a PENDING or RUNNING task
+   *
+   * A crash between two steps leaves such an instance: replay is idempotent, and the revision CAS of
+   * {@link advance} guards against a concurrent writer.
+   * @returns the number of instances replayed
+   */
+  protected async sweep(): Promise<number> {
+    return runAsSystem(async () => {
+      const before = Date.now() - this.parameters.sweepInterval;
+      let count = 0;
+      for (const status of ["RUNNING", "WAITING"]) {
+        const { results } = await WorkflowInstance.query(`status = ? AND updatedAt < ? LIMIT 100`, [status, before]);
+        for (const instance of results as WorkflowInstance[]) {
+          const live = (
+            await WorkflowTask.query(`instance = ? AND (status = 'PENDING' OR status = 'RUNNING') LIMIT 1`, [
+              instance.uuid
+            ])
+          ).results;
+          if (live.length) continue;
+          await this.advance(instance.uuid);
+          count++;
+        }
+      }
+      return count;
+    });
   }
 
   /**
@@ -374,7 +483,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       ] as WorkflowTask[];
       const claimed: WorkflowTask[] = [];
       for (const task of candidates) {
-        if (claimed.length >= slots) break;
+        if (claimed.length >= slots || this.stopping) break;
         if (await this.claim(task)) {
           claimed.push(task);
         }
@@ -398,7 +507,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       leaseUntil: now + this.parameters.leaseDuration,
       startedAt: now
     };
-    if (task.status === "RUNNING") {
+    const reclaim = task.status === "RUNNING";
+    if (reclaim) {
       patch.attempt = task.attempt + 1;
     }
     const previous = task.leaseUntil;
@@ -411,26 +521,41 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       return false;
     }
     Object.assign(task, patch);
+    // A crash recovery gets one more attempt than the retries: past it the task keeps killing its workers
+    if (reclaim && task.attempt - 1 > (task.options?.retries ?? 0) + 1) {
+      this.crashed.add(task);
+    }
     return true;
   }
 
   /**
    * Run a claimed task, write its outcome and advance its instance
+   *
+   * Every write of the attempt is conditional on the lease this worker holds: an attempt whose lease was lost (its
+   * worker was too slow and another one reclaimed it) drops its outcome.
    * @param task - the task
    */
   protected async execute(task: WorkflowTask): Promise<void> {
     const instance = await runAsSystem(() => WorkflowInstance.ref(task.instance).get() as Promise<WorkflowInstance>);
-    if (!isActive(instance)) {
+    if (!isActive(instance) || instance.journal?.[task.key]) {
+      // Cancelled, or its outcome is already journaled (a crash before the row was finished): never run it again
       await this.finishTask(task, { status: "CANCELLED" });
       return;
     }
     const controller = new AbortController();
-    this.running.set(task.uuid, controller);
+    this.running.set(task.uuid, { task, controller });
     const renew = setInterval(() => this.renewLease(task), Math.max(this.parameters.leaseDuration / 2, 1));
     renew.unref?.();
     let entry: JournalEntry;
     let retryable = false;
     try {
+      if (this.crashed.has(task)) {
+        throw new TaskError(
+          "Crashed",
+          `${task.operation} was abandoned by its worker ${task.attempt - 1} times`,
+          false
+        );
+      }
       entry = { result: await this.runTask(task, instance, controller) };
     } catch (err) {
       const error = this.toFlowError(err, task.operation);
@@ -440,6 +565,10 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     } finally {
       clearInterval(renew);
       this.running.delete(task.uuid);
+    }
+    if (controller.signal.reason === DROPPED || !(await this.holdsLease(task))) {
+      this.log("DEBUG", "Workflow task attempt dropped", task.uuid);
+      return;
     }
     if ("error" in entry) {
       const retries = task.options?.retries ?? 0;
@@ -458,31 +587,61 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   }
 
   /**
-   * Extend the lease of a running task
+   * Conditional patch of a task row on the lease this worker holds
+   * @param task - the task, with the lease this worker holds
+   * @param data - the changes
+   * @returns false when another worker holds the lease now
+   */
+  protected async patchLeased(task: WorkflowTask, data: Partial<WorkflowTask>): Promise<boolean> {
+    return runAsSystem(async () => {
+      try {
+        await WorkflowTask.ref(task.uuid).patch(data as any, "leaseUntil", task.leaseUntil);
+      } catch (err) {
+        const current = (await WorkflowTask.ref(task.uuid).get()) as WorkflowTask;
+        if (current && current.leaseUntil === task.leaseUntil) throw err;
+        return false;
+      }
+      Object.assign(task, data);
+      return true;
+    });
+  }
+
+  /**
+   * Check this worker still holds the lease of a task, and extend it
+   * @param task - the task
+   * @returns false when the lease was lost
+   */
+  protected holdsLease(task: WorkflowTask): Promise<boolean> {
+    return this.patchLeased(task, { leaseUntil: Date.now() + this.parameters.leaseDuration });
+  }
+
+  /**
+   * Extend the lease of a running task, abort the attempt when the lease was lost
    * @param task - the task
    */
   protected async renewLease(task: WorkflowTask): Promise<void> {
-    const leaseUntil = Date.now() + this.parameters.leaseDuration;
+    let held = false;
     try {
-      await runAsSystem(() => WorkflowTask.ref(task.uuid).patch({ leaseUntil } as any, "leaseUntil", task.leaseUntil));
-      task.leaseUntil = leaseUntil;
+      held = await this.holdsLease(task);
     } catch (err) {
       this.log("WARN", "Cannot renew the lease of workflow task", task.uuid, err);
+    }
+    if (!held) {
+      this.running.get(task.uuid)?.controller.abort(DROPPED);
     }
   }
 
   /**
-   * Record the end of an attempt
+   * Record the end of an attempt, if this worker still holds its lease
    *
    * `leaseUntil` becomes the end time, never 0: a worker that queried the task before cannot claim it again.
    * @param task - the task
    * @param data - status and outcome
+   * @returns false when the lease was lost
    */
-  protected async finishTask(task: WorkflowTask, data: Partial<WorkflowTask>): Promise<void> {
+  protected finishTask(task: WorkflowTask, data: Partial<WorkflowTask>): Promise<boolean> {
     const endedAt = Date.now();
-    const patch = { ...data, endedAt, leaseUntil: endedAt };
-    await runAsSystem(() => WorkflowTask.ref(task.uuid).patch(patch as any));
-    Object.assign(task, patch);
+    return this.patchLeased(task, { ...data, endedAt, leaseUntil: endedAt });
   }
 
   /**
@@ -692,7 +851,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
   protected async scheduleTask(instance: WorkflowInstance, scheduled: ScheduledTask): Promise<void> {
     const existing = (await WorkflowTask.query(`instance = ? AND key = ?`, [instance.uuid, scheduled.key]))
       .results as WorkflowTask[];
-    if (existing.some(t => t.status === "PENDING" || t.status === "RUNNING")) return;
+    // A SUCCESS row is journaled before it is finished: the replay read the instance before it
+    if (existing.some(t => t.status === "PENDING" || t.status === "RUNNING" || t.status === "SUCCESS")) return;
     let runAt = Date.now();
     if (scheduled.operation === BUILTINS.Sleep) {
       runAt = this.sleepUntil(scheduled.input, runAt);

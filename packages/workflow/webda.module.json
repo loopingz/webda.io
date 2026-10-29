@@ -133,6 +133,16 @@
             "description": "Interval between two polls of the worker (ms)",
             "type": "number"
           },
+          "stopTimeout": {
+            "default": 30000,
+            "description": "Grace period of stop() for the running attempts (ms), then they are aborted and their outcome dropped",
+            "type": "number"
+          },
+          "sweepInterval": {
+            "default": 60000,
+            "description": "Interval of the recovery sweep (ms): an active instance not updated for this long and without a live task is\nreplayed",
+            "type": "number"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"

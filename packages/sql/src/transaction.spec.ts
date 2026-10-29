@@ -144,3 +144,34 @@ describe("SQLTransactionState", () => {
     await other.state.rollback(refused);
   });
 });
+
+describe("transaction cleanup failures", () => {
+  it("runs rollback hooks once even without opening a connection", async () => {
+    const { state, opened } = create();
+    let calls = 0;
+    state.onRollback(() => calls++);
+    await state.rollback();
+    await state.rollback();
+    expect(calls).toBe(1);
+    expect(opened).toEqual([]);
+  });
+
+  it("preserves the commit error when rollback also fails", async () => {
+    const { state, connection } = create();
+    connection.fail.commit = new Error("commit failed");
+    connection.fail.rollback = new Error("rollback failed");
+    await state.query("A");
+    await expect(state.commit()).rejects.toBe(connection.fail.commit);
+    expect(connection.log).toEqual(["A", "COMMIT", "ROLLBACK", "release:commit failed"]);
+  });
+
+  it("rejects late statements when the store has no fallback client", async () => {
+    const state = new SQLTransactionState(
+      async () => new FakeConnection(),
+      () => undefined
+    );
+    await state.commit();
+    await expect(state.query("late")).rejects.toThrow("not initialized");
+    expect(new SQLTransactionAbortedError("failure").message).toContain("failure");
+  });
+});

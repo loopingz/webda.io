@@ -239,7 +239,15 @@ class RemoteResourceTest extends OAuthTest {
     const crypto = useService<any>("CryptoService").getParameters();
     const saved = { issuer: params.issuer, resources: params.resources, jwt: crypto.jwt, url: crypto.url };
     try {
-      for (const resources of [["not a url"], ["ftp://api.example.com"], ["https://api.example.com/#x"], [""]]) {
+      for (const resources of [
+        null,
+        "https://api.example.com",
+        [42],
+        ["not a url"],
+        ["ftp://api.example.com"],
+        ["https://api.example.com/#x"],
+        [""]
+      ]) {
         params.resources = resources;
         assert.throws(() => server.checkRemoteResources(), /OAuthServer resources/, JSON.stringify(resources));
       }
@@ -249,6 +257,10 @@ class RemoteResourceTest extends OAuthTest {
       params.issuer = ISSUER;
       crypto.jwt = { ...saved.jwt, algorithm: "HS256" };
       assert.throws(() => server.checkRemoteResources(), /asymmetric/);
+      for (const jwt of [undefined, {}]) {
+        crypto.jwt = jwt;
+        assert.throws(() => server.checkRemoteResources(), /asymmetric/);
+      }
       crypto.jwt = saved.jwt;
       crypto.url = undefined;
       assert.throws(() => server.checkRemoteResources(), /JWKS/);

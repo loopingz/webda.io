@@ -6,6 +6,8 @@ sidebar_position: 3
 
 Webda allow you to deploy your code in many differents way
 
+Deploy to [Azure Container Apps or Functions](./Azure.md), [AWS](./AWS.md), [Docker](./Docker.md), or [Kubernetes](./Kubernetes/Kubernetes.md).
+
 ## Deployment files
 
 A deployment is a `deployments/<name>.(json|jsonc|yaml|yml)` file. `webdac build` generates its JSON schema in

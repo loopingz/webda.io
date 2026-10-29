@@ -3,6 +3,7 @@
   "packages/async": "4.0.0-beta.12",
   "packages/auth": "4.0.0-beta.12",
   "packages/aws": "4.0.0-beta.12",
+  "packages/azure": "4.0.0-beta.12",
   "packages/bench": "4.0.0-beta.12",
   "packages/cache": "4.0.0-beta.12",
   "packages/cloudevents": "4.0.0-beta.12",

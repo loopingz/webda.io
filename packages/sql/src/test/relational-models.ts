@@ -7,13 +7,21 @@ import { Model, UuidModel, WEBDA_PRIMARY_KEY } from "@webda/models";
  * composite key and its reference, a self reference and a cycle.
  */
 
-/** A user: target of links, declares the reverse query */
+/**
+ * A user: target of links, declares the reverse query
+ *
+ * @WebdaIgnore
+ */
 export class RelUser extends UuidModel {
   name?: string;
   email?: string;
 }
 
-/** A post: scalars of every type, a JSON field, a link, a simple array, an array with attributes and a map */
+/**
+ * A post: scalars of every type, a JSON field, a link, a simple array, an array with attributes and a map
+ *
+ * @WebdaIgnore
+ */
 export class RelPost extends UuidModel {
   title?: string;
   published?: boolean;
@@ -32,29 +40,49 @@ export class RelPost extends UuidModel {
   reviewers?: Record<string, any>;
 }
 
-/** A comment: parent link to its post, link to a model of another store */
+/**
+ * A comment: parent link to its post, link to a model of another store
+ *
+ * @WebdaIgnore
+ */
 export class RelComment extends UuidModel {
   body?: string;
   post?: string;
   moderator?: string;
 }
 
-/** A tag */
+/**
+ * A tag
+ *
+ * @WebdaIgnore
+ */
 export class RelTag extends UuidModel {
   label?: string;
 }
 
-/** Root of the inheritance pair */
+/**
+ * Root of the inheritance pair
+ *
+ * @WebdaIgnore
+ */
 export class RelAnimal extends UuidModel {
   kind?: string;
 }
 
-/** Subclass sharing the table of {@link RelAnimal} */
+/**
+ * Subclass sharing the table of {@link RelAnimal}
+ *
+ * @WebdaIgnore
+ */
 export class RelDog extends RelAnimal {
   bark?: boolean;
 }
 
-/** A composite primary key */
+/**
+ * A composite primary key
+ *
+ * @WebdaIgnore
+ */
 export class RelPair extends Model {
   [WEBDA_PRIMARY_KEY] = ["a", "b"] as const;
   a?: string;
@@ -63,27 +91,47 @@ export class RelPair extends Model {
   tags?: string[];
 }
 
-/** A reference to a composite key */
+/**
+ * A reference to a composite key
+ *
+ * @WebdaIgnore
+ */
 export class RelPairRef extends UuidModel {
   pair?: string;
 }
 
-/** A self reference */
+/**
+ * A self reference
+ *
+ * @WebdaIgnore
+ */
 export class RelNode extends UuidModel {
   parentNode?: string;
 }
 
-/** Half of a cycle */
+/**
+ * Half of a cycle
+ *
+ * @WebdaIgnore
+ */
 export class RelCycleA extends UuidModel {
   other?: string;
 }
 
-/** Other half of the cycle */
+/**
+ * Other half of the cycle
+ *
+ * @WebdaIgnore
+ */
 export class RelCycleB extends UuidModel {
   other?: string;
 }
 
-/** The aggregation conformance dataset: typed scalars, JSON fields (`points` and `mixed` hold several types) */
+/**
+ * The aggregation conformance dataset: typed scalars, JSON fields (`points` and `mixed` hold several types)
+ *
+ * @WebdaIgnore
+ */
 export class RelAggRow extends UuidModel {
   kind?: string;
   team?: any;

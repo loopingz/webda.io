@@ -43,6 +43,10 @@ ones: `schemaSync` (`none` | `create` | `alter` | `validate`, default `create`),
   ever dropped or retyped.
 - **One writer.** There is no schema lock; every statement and every transaction of a database handle goes through one
   mutex, shared by all the stores on that handle, so a plain write never runs inside another caller's transaction.
+- With `"transaction": "operation"` (see the
+  [`@webda/sqlite` README](https://github.com/loopingz/webda.io/tree/main/packages/sqlite#transactions)), the
+  statements of an operation run in one transaction of the database handle: the owner row and its junctions join it
+  instead of opening their own, and the stores sharing the handle share the transaction.
 - **Foreign key violations carry no constraint name**: the `WebdaError.BadRequest` (insert, update) or
   `WebdaError.Conflict` (delete) says "a foreign key".
 - `webda sqlite schema [--sql | --diff | --json]` prints the plan, its DDL or the differences with the database file.

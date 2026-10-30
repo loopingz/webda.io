@@ -528,6 +528,15 @@
             "$ref": "#/definitions/tables%232",
             "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name."
           },
+          "transaction": {
+            "default": "none",
+            "description": "Wrap all statements of an operation in a single transaction\n\n- \"none\": autocommit per statement\n- \"operation\": BEGIN on the first statement of an operation, COMMIT when the operation succeeds, ROLLBACK when\n  it fails. Nested operations join the outermost one; `transaction: false` on an operation opts it out.",
+            "enum": [
+              "none",
+              "operation"
+            ],
+            "type": "string"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"

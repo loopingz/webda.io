@@ -1,6 +1,6 @@
 import { Command } from "@webda/core";
 import type { ModelClass, RawTable } from "@webda/core";
-import { RelationalStoreSupport, loadRelationalParameters, runTransaction, serializedClient } from "@webda/sql";
+import { RelationalStoreSupport, loadRelationalParameters, runTransaction } from "@webda/sql";
 import type { RelationalLayoutParameters, RelationalRepository, SQLClient, SchemaSyncMode } from "@webda/sql";
 import type { RelationalSchemaPlan } from "@webda/sql-schema";
 import { acquireDatabase, releaseDatabase } from "./dbregistry.js";
@@ -94,19 +94,17 @@ export class SQLiteRelationalStore<
   }
 
   /**
-   * Every statement of the single connection runs under the lock of the transactions
-   * @returns the client, undefined while the store is not connected
-   */
-  protected statementClient(): SQLClient | undefined {
-    return this.handle ? serializedClient(this.handle.client, this.handle.mutex) : undefined;
-  }
-
-  /**
-   * Run statements in one transaction, serialized on the database handle
+   * Run statements in one transaction: the transaction of the current async chain (an operation with
+   * `transaction: "operation"`, `withTransaction`) when there is one, else a transaction of its own, serialized on
+   * the database handle
    * @param fn - the statements
    * @returns the function result
    */
   transact<R>(fn: (tx: SQLClient) => Promise<R>): Promise<R> {
+    const current = this.getTransactionClient();
+    if (current) {
+      return fn(current);
+    }
     const handle = this.handle!;
     return handle.mutex.run(() => runTransaction(handle.client, fn));
   }
@@ -147,7 +145,8 @@ export class SQLiteRelationalStore<
     _tableModel: string | undefined
   ): RelationalRepository<T> {
     return this.relational.createRepository(model, {
-      client: () => this.statementClient(),
+      // The connection of the transaction of the current async chain, else the single connection under the lock
+      client: () => this.getClient(),
       transact: fn => this.transact(fn),
       prepare: () => this.ensureTable()
     });

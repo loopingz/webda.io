@@ -175,6 +175,8 @@ when the operation succeeds, rolled back when it throws. An operation writing se
   function resolves and rolls back when it throws, or joins the current transaction. It works whatever `transaction`
   is set to.
 - Table creation (`autoCreateTable`) and `createViews()` always run on the pool, never in a transaction.
+- `Webda/PostgresRelationalStore` takes part the same way: inside an operation, a row and its junction rows are
+  written on the connection of the operation transaction instead of a transaction of their own.
 - Concurrent statements of one operation (`Promise.all`) are safe: they are queued on its connection.
 - **Not atomic across stores**: each store commits on its own, in registration order; when the commit of a second
   store fails after the first one committed, the first one stays committed.

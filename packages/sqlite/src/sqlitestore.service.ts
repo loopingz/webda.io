@@ -68,9 +68,11 @@ export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters
    * @returns the client, undefined while the store is not initialized
    */
   getClient(): SQLClient | undefined {
-    // Every statement of the handle goes through its mutex: a relational store transaction on the same database never
-    // has another service's statement land inside it
-    return this.handle ? serializedClient(this.handle.client, this.handle.mutex) : undefined;
+    // In a transaction of the database: its connection. Otherwise every statement of the handle goes through its
+    // mutex: a relational store transaction on the same database never has another service's statement land inside it
+    return (
+      this.getTransactionClient() ?? (this.handle ? serializedClient(this.handle.client, this.handle.mutex) : undefined)
+    );
   }
 
   /**
@@ -102,13 +104,18 @@ export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters
       throw new WebdaError.CodeError("SQLITE_NOT_INITIALIZED", `SQLiteStore ${this.getName()} is not initialized`);
     }
     const key = this.transactionKey();
-    const release = await handle.client.acquireExclusive(() => useOperationTransaction()?.get(key) === state);
-    try {
-      handle.db.exec(handle.readOnly ? "BEGIN" : "BEGIN IMMEDIATE");
-    } catch (err) {
-      release();
-      throw err;
-    }
+    // Under the mutex of the handle: a relational store transaction (`transact`) holds it while open, so BEGIN never
+    // runs inside one. The chain of the transaction never takes the mutex again: its statements run on this connection
+    const release = await handle.mutex.run(async () => {
+      const free = await handle.client.acquireExclusive(() => useOperationTransaction()?.get(key) === state);
+      try {
+        handle.db.exec(handle.readOnly ? "BEGIN" : "BEGIN IMMEDIATE");
+      } catch (err) {
+        free();
+        throw err;
+      }
+      return free;
+    });
     return {
       client: handle.client,
       commit: async () => {

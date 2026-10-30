@@ -49,9 +49,10 @@ The services of a database share its single connection, so:
 
 - an open transaction holds the database until its operation ends: the statements of other requests and workers
   wait for it (transactions are serialized, fine for the single-node use cases of SQLite);
-- the services of the same database used by the operation (another `SQLiteStore`, a `SQLiteQueue`, a
-  `SQLitePubSub`) take part in its transaction: a message sent by a failing operation is rolled back with its rows,
-  and `SQLitePubSub` delivers the messages of a transaction once it committed;
+- the services of the same database used by the operation (another `SQLiteStore`, a `SQLiteRelationalStore`, a
+  `SQLiteQueue`, a `SQLitePubSub`) take part in its transaction: a message sent by a failing operation is rolled back
+  with its rows, a relational row and its junction rows are written in it instead of a transaction of their own, and
+  `SQLitePubSub` delivers the messages of a transaction once it committed;
 - a table created inside a transaction that rolls back is created again on the next statement;
 - an operation must not wait for work another async chain does on the same database (e.g. a queue consumer it
   waits for): that work waits for the end of the transaction.

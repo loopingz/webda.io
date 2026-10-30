@@ -1,49 +1,13 @@
-import { useApplication, useModel, useModelMetadata } from "@webda/core";
+import { useApplication } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { RelationalSchemaManager, SchemaDriftError } from "@webda/sql";
 import { SchemaBuildError } from "@webda/sql-schema";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { RELATIONAL_MODELS, RELATIONAL_TABLES, registerRelationalFixtures } from "../../test/relational-models.js";
+import { registerRelationalFixtures } from "../../test/relational-models.js";
+import { dropRelationalTables, fixtureMetadata, knownMetadata, params } from "../../test/relational-helpers.js";
 import { PostgresRelationalDialect } from "./dialect.js";
-
-export const params = {
-  postgresqlServer: {
-    host: "localhost",
-    user: "webda.io",
-    database: "webda.io",
-    password: "webda.io",
-    statement_timeout: 60000,
-    max: 2
-  }
-};
-
-/**
- * Drop the fixture tables
- * @param client - the client
- */
-export async function dropRelationalTables(client: pg.Client | pg.Pool): Promise<void> {
-  for (const table of RELATIONAL_TABLES) {
-    await client.query(`DROP TABLE IF EXISTS "${table}" CASCADE`);
-  }
-}
-
-/**
- * @returns the metadata of the fixture models the store lists, subclasses included
- */
-export function fixtureMetadata(): any[] {
-  return [...RELATIONAL_MODELS, "Rel/Dog"].map(id => useModelMetadata(useModel(id)));
-}
-
-/**
- * @returns the metadata of every application model
- */
-export function knownMetadata(): any[] {
-  return Object.values(useApplication().getModels())
-    .map((m: any) => m?.Metadata)
-    .filter(m => m?.Identifier);
-}
 
 @suite
 export class RelationalSchemaManagerTest extends WebdaApplicationTest {

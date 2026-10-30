@@ -136,7 +136,11 @@ export class PostgresRelationalDialectTest {
     const d = this.dialect;
     assert.strictEqual(d.schemaLock("my store"), "SELECT pg_advisory_xact_lock(hashtext('my store'))");
     assert.strictEqual(d.castText('"n"'), 'CAST("n" AS TEXT)');
-    assert.strictEqual(d.toJson('"n"'), 'to_jsonb("n")');
+    assert.strictEqual(d.toJson('"n"', { kind: "bigint" }), 'to_jsonb("n")');
+    assert.strictEqual(
+      d.toJson('"at"', { kind: "timestamptz" }),
+      `to_jsonb(to_char("at" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))`
+    );
     assert.strictEqual(d.columnJsonText("m", ["a", "b"]), `"m"#>>'{a,b}'`);
     assert.strictEqual(d.columnJsonText("m", []), `"m"#>>'{}'`);
     assert.strictEqual(d.columnJsonValue("m", ["a"]), `"m"#>'{a}'`);

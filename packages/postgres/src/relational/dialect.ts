@@ -176,7 +176,10 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /** @override */
-  toJson(expr: string): string {
+  toJson(expr: string, type: ColumnType): string {
+    if (type.kind === "timestamptz") {
+      return `to_jsonb(to_char(${expr} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))`;
+    }
     return `to_jsonb(${expr})`;
   }
 

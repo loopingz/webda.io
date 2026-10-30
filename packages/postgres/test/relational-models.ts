@@ -81,6 +81,18 @@ export class RelCycleB extends UuidModel {
   other?: string;
 }
 
+/** The aggregation conformance dataset: typed scalars, JSON fields (`points` and `mixed` hold several types) */
+export class RelAggRow extends UuidModel {
+  kind?: string;
+  team?: any;
+  points?: any;
+  score?: number;
+  label?: string;
+  done?: boolean;
+  mixed?: any;
+  at?: string;
+}
+
 /** Identifiers the store lists (subclasses are found through the hierarchy) */
 export const RELATIONAL_MODELS = [
   "Rel/User",
@@ -92,7 +104,8 @@ export const RELATIONAL_MODELS = [
   "Rel/PairRef",
   "Rel/Node",
   "Rel/CycleA",
-  "Rel/CycleB"
+  "Rel/CycleB",
+  "Rel/AggRow"
 ];
 
 /** Every table and junction of the fixtures, for cleanup */
@@ -109,7 +122,8 @@ export const RELATIONAL_TABLES = [
   "rel_pair",
   "rel_node",
   "rel_cyclea",
-  "rel_cycleb"
+  "rel_cycleb",
+  "rel_aggrow"
 ];
 
 const string = { type: "string" };
@@ -233,7 +247,18 @@ export function relationalMetadata(): Record<string, any> {
       "Rel/CycleB",
       { uuid: string, other: string },
       { relations: { links: [{ attribute: "other", model: "Rel/CycleA", type: "LINK" }] } }
-    )
+    ),
+    "Rel/AggRow": metadata("Rel/AggRow", {
+      uuid: string,
+      kind: string,
+      team: { type: "object" },
+      points: {},
+      score: { type: "number" },
+      label: string,
+      done: { type: "boolean" },
+      mixed: {},
+      at: { type: "string", format: "date-time" }
+    })
   };
 }
 
@@ -248,7 +273,8 @@ const CLASSES: Record<string, any> = {
   "Rel/PairRef": RelPairRef,
   "Rel/Node": RelNode,
   "Rel/CycleA": RelCycleA,
-  "Rel/CycleB": RelCycleB
+  "Rel/CycleB": RelCycleB,
+  "Rel/AggRow": RelAggRow
 };
 
 /**

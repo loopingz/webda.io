@@ -87,11 +87,12 @@ export interface RelationalDialect extends SQLDialect {
    */
   castText(expr: string): string;
   /**
-   * JSON value of a scalar column expression, for aggregations
+   * JSON value of a scalar column expression, for aggregations: a time column renders as its ISO 8601 UTC text
    * @param expr - a SQL expression
+   * @param type - the column type
    * @returns the JSON value
    */
-  toJson(expr: string): string;
+  toJson(expr: string, type: ColumnType): string;
   /**
    * SQL text of the value at a path of a JSON column, NULL for a missing key and a JSON null
    * @param column - the JSON column

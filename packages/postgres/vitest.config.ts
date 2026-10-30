@@ -13,6 +13,8 @@ export default defineConfig({
   },
   test: {
     allowOnly: true,
+    // Every suite shares one database: the relational suites drop and recreate the same tables
+    fileParallelism: false,
     coverage: {
       enabled: true,
       provider: "v8",

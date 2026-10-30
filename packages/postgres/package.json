@@ -54,6 +54,7 @@
     "@vitest/coverage-v8": "^4.1.2",
     "@webda/bench": "workspace:*",
     "@webda/compiler": "workspace:^",
+    "@webda/models": "workspace:*",
     "@webda/test": "workspace:*",
     "jscodeshift": "^17.3.0",
     "skott": "^0.35.8",

@@ -418,6 +418,29 @@ abstract class Service<
   }
 
   /**
+   * Schema of an operation side: \`<service name>.<method>.<side>\` when the application knows it, else the one the
+   * build writes, \`<class>.<method>.<side>\`, for the class or its nearest ancestor that has it (a service configured
+   * under another name than its class)
+   * @param method - the method name
+   * @param side - input or output
+   * @returns the schema name
+   */
+  protected operationSchemaName(method: string, side: "input" | "output"): string {
+    const named = `${this.getName()}.${method}.${side}`;
+    const app = useApplication();
+    if (!app || app.getSchema(named)) return named;
+    for (
+      let proto = Object.getPrototypeOf(this);
+      proto && proto !== Object.prototype;
+      proto = Object.getPrototypeOf(proto)
+    ) {
+      const name = `${proto.constructor?.name}.${method}.${side}`;
+      if (proto.constructor?.name && app.getSchema(name)) return name;
+    }
+    return named;
+  }
+
+  /**
    * Init the operations from @Operation decorators on this service
    */
   initOperations() {
@@ -437,7 +460,7 @@ abstract class Service<
         : `${serviceName}.${opName.substring(0, 1).toUpperCase() + opName.substring(1)}`;
       if (!this.getOperationId(opId)) continue;
       this.log("TRACE", "Adding operation", opId, "for service", this.getName());
-      const input = op.input || `${this.getName()}.${actualMethod}.input`;
+      const input = op.input || this.operationSchemaName(actualMethod, "input");
       const rest = op.rest
         ? {
             ...op.rest,
@@ -450,7 +473,7 @@ abstract class Service<
         service: this.getName(),
         method: actualMethod,
         input,
-        output: op.output || `${this.getName()}.${actualMethod}.output`,
+        output: op.output || this.operationSchemaName(actualMethod, "output"),
         id: opId
       });
     }

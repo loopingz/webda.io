@@ -54,6 +54,7 @@
     "packages/test": {},
     "packages/utils": {},
     "packages/versioning": {},
+    "packages/workflow": {},
     "packages/workout": {}
   }
 }

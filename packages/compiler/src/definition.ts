@@ -533,6 +533,46 @@ export interface WebdaModule {
    * Merged from dependencies at build/load time; project-level values override.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * Workflows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`)
+   *
+   * `@webda/workflow` registers each one at startup.
+   */
+  flows?: {
+    [id: string]: FlowMetadata;
+  };
+}
+
+/**
+ * A flow compiled from a `.flow.ts` method: a `@webda/workflow` `FlowDefinition` plus its `@Cron`s
+ */
+export interface FlowMetadata {
+  /**
+   * Flow id `<Class>.<Method>`
+   */
+  id: string;
+  /**
+   * Hash of the params and the body
+   */
+  version: string;
+  /**
+   * Names of the flow parameters, in order
+   */
+  params: string[];
+  /**
+   * JSON schema of the input
+   */
+  input: JSONSchema7;
+  /**
+   * The statements of the flow (`@webda/workflow` `Stmt[]`); a typed operation call holds
+   * `target: { class, method }`, resolved at startup to the configured service
+   */
+  body: any[];
+  source: "code";
+  /**
+   * Launch schedules, from `@Cron` on the method
+   */
+  crons?: { cron: string; description?: string; input?: Record<string, any> }[];
 }
 
 /**

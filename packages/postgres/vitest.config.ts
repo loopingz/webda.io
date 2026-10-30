@@ -16,8 +16,8 @@ export default defineConfig({
     coverage: {
       enabled: true,
       provider: "v8",
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/**/*.bench.ts", "src/index.ts"],
+      include: ["src/**/*.ts", "../sql/src/relational/**/*.ts"],
+      exclude: ["src/**/*.spec.ts", "src/**/*.bench.ts", "src/index.ts", "../sql/src/**/*.spec.ts"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

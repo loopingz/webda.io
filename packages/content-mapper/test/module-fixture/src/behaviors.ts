@@ -5,7 +5,7 @@ import { Action, Operation } from "./decorators.js";
  */
 export class Audited {
   @Action({ rest: { route: "{id}", method: "GET", other: "x" }, description: "Read", summary: "S" })
-  read() {}
+  read(id: string) {}
 
   @Operation()
   write() {}

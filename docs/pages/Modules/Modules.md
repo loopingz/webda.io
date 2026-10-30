@@ -66,6 +66,7 @@ Decouple background work and fan-out events with these messaging adapters.
 | [amqp](./amqp/README.md) | AMQP 0-9-1 queue adapter (RabbitMQ-compatible) for `QueueService`. |
 | [async](./async/README.md) | Async Action runner — executes model actions in background workers via any queue backend. |
 | [cloudevents](./cloudevents/README.md) | CloudEvents publisher/subscriber adapter for cross-service event delivery. |
+| [workflow](./workflow/README.md) | Durable workflows: operations chained with control flow, that survive restarts, retry, sleep and run as their launcher. |
 
 ---
 

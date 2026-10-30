@@ -263,8 +263,8 @@ export interface ModelMetadata {
        */
       global?: boolean;
       /**
-       * Behavior-only: per-action REST hint that overrides the default
-       * `{prefix}/{uuid}/{attribute}.{actionName}` PUT mapping.
+       * REST hint relative to the model collection (or behavior attribute).
+       * Instance primary key placeholders are added automatically; `method` defaults to `PUT`.
        *
        * - `route === "."` → URL is the bare attribute path
        *   `{prefix}/{uuid}/{attribute}`.
@@ -274,12 +274,16 @@ export interface ModelMetadata {
        *   the router treats them as path variables.
        * - `route === undefined` → URL falls back to the dot-notation default.
        *
-       * `method` defaults to `"PUT"`.
+       * `path` is the URI template; `body` names a parameter receiving the whole JSON body.
        */
       rest?: {
+        path?: string;
+        body?: string;
         route?: string;
         method?: string;
       };
+      methods?: string[];
+      openapi?: any;
     };
   };
   /**
@@ -529,6 +533,46 @@ export interface WebdaModule {
    * Merged from dependencies at build/load time; project-level values override.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * Workflows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`)
+   *
+   * `@webda/workflow` registers each one at startup.
+   */
+  flows?: {
+    [id: string]: FlowMetadata;
+  };
+}
+
+/**
+ * A flow compiled from a `.flow.ts` method: a `@webda/workflow` `FlowDefinition` plus its `@Cron`s
+ */
+export interface FlowMetadata {
+  /**
+   * Flow id `<Class>.<Method>`
+   */
+  id: string;
+  /**
+   * Hash of the params and the body
+   */
+  version: string;
+  /**
+   * Names of the flow parameters, in order
+   */
+  params: string[];
+  /**
+   * JSON schema of the input
+   */
+  input: JSONSchema7;
+  /**
+   * The statements of the flow (`@webda/workflow` `Stmt[]`); a typed operation call holds
+   * `target: { class, method }`, resolved at startup to the configured service
+   */
+  body: any[];
+  source: "code";
+  /**
+   * Launch schedules, from `@Cron` on the method
+   */
+  crons?: { cron: string; description?: string; input?: Record<string, any> }[];
 }
 
 /**

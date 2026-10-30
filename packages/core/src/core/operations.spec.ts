@@ -1,4 +1,5 @@
 import { suite, test } from "@webda/test";
+import { getMetadata } from "@webda/decorators";
 import * as assert from "assert";
 import { vi } from "vitest";
 import {
@@ -33,7 +34,8 @@ import { Session } from "../session/session.js";
 import { registerSchema } from "../schemas/hooks.js";
 import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
 import { scopeAuthorizer } from "../services/scopeauthorizer.js";
-import { useContext } from "../contexts/execution.js";
+import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
+import { useSystem } from "../contexts/globaloperationcontext.js";
 
 /**
  * Fake operation context that allows setting custom input
@@ -1053,6 +1055,145 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     } finally {
       unregisterOperationAuthorizer(scopeAuthorizer);
     }
+  }
+
+  @test
+  async systemCallRunsPipeline() {
+    registerOperation("ReturnSvc.SystemCall", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    const events: string[] = [];
+    const offBefore = useCoreEvents("Webda.BeforeOperation", evt => {
+      events.push(`before:${evt.operationId}`);
+    });
+    const offSuccess = useCoreEvents("Webda.OperationSuccess", evt => {
+      events.push(`success:${evt.operationId}`);
+    });
+    const calls: string[] = [];
+    const authorizer = async (_ctx, operationId) => {
+      calls.push(operationId);
+      return true as const;
+    };
+    registerOperationAuthorizer(authorizer);
+    try {
+      const ctx = useSystem();
+      await callOperation(ctx, "ReturnSvc.SystemCall");
+      assert.deepStrictEqual(events, ["before:ReturnSvc.SystemCall", "success:ReturnSvc.SystemCall"]);
+      assert.deepStrictEqual(calls, ["ReturnSvc.SystemCall"]);
+      assert.strictEqual(ctx.getOutput(), "hello world");
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+      offBefore();
+      offSuccess();
+    }
+  }
+
+  @test
+  async systemCallValidatesInput() {
+    const schema = { type: "object", properties: { amount: { type: "number" } }, required: ["amount"] };
+    useApplication<Application>().getSchemas()["system.input.schema"] = schema;
+    registerSchema("system.input.schema", schema);
+    registerOperation("ReturnSvc.SystemValidated", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "system.input.schema",
+      output: "void"
+    } as any);
+    await assert.rejects(
+      () => callOperation(useSystem({ amount: "x" }), "ReturnSvc.SystemValidated"),
+      (err: any) => err.message.includes("InvalidInput")
+    );
+  }
+
+  @test
+  async systemBypassesPermissionQuery() {
+    registerOperation("ReturnSvc.Guarded2", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      permission: "userId = 'alice'"
+    } as any);
+    assert.strictEqual(await canCallOperation(useSystem(), "ReturnSvc.Guarded2"), true);
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    anonymous.setSession(new Session());
+    assert.strictEqual(await canCallOperation(anonymous, "ReturnSvc.Guarded2"), false);
+  }
+
+  @test
+  async systemPassesMfaGate() {
+    registerOperation("ReturnSvc.MfaGuarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      maxMfaAge: "5m"
+    } as any);
+    assert.strictEqual(await canCallOperation(useSystem(), "ReturnSvc.MfaGuarded"), true);
+    const ctx = useSystem();
+    await callOperation(ctx, "ReturnSvc.MfaGuarded");
+    assert.strictEqual(ctx.getOutput(), "hello world");
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    anonymous.setSession(new Session());
+    assert.strictEqual(await canCallOperation(anonymous, "ReturnSvc.MfaGuarded"), false);
+  }
+
+  @test
+  async authorizerCanRefuseSystem() {
+    registerOperation("ReturnSvc.NoSystem", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    const authorizer = async ctx => (ctx.isGlobalContext() ? "no system" : (true as const));
+    registerOperationAuthorizer(authorizer);
+    try {
+      await assert.rejects(() => callOperation(useSystem(), "ReturnSvc.NoSystem"), WebdaError.Forbidden);
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+    }
+  }
+
+  @test
+  async concurrentSystemCalls() {
+    registerOperation("ReturnSvc.SysString", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    registerOperation("ReturnSvc.SysObject", {
+      service: "ReturnSvc",
+      method: "getObject",
+      input: "void",
+      output: "void"
+    } as any);
+    const call = (id: string) =>
+      runAsSystem(async () => {
+        const ctx = useContext<OperationContext>();
+        await callOperation(ctx, id);
+        return ctx.getOutput();
+      });
+    const [str, obj] = await Promise.all([call("ReturnSvc.SysString"), call("ReturnSvc.SysObject")]);
+    assert.strictEqual(str, "hello world");
+    assert.deepStrictEqual(JSON.parse(obj), { name: "test", count: 42 });
+  }
+
+  @test
+  async nestedRunAsSystemRestoresUser() {
+    const userCtx = new FakeOpContext();
+    await userCtx.init();
+    const result = await runWithContext(userCtx, async () => {
+      await runAsSystem(async () => {});
+      return useContext();
+    });
+    assert.strictEqual(result, userCtx);
   }
 
   @test
@@ -2263,5 +2404,30 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
     } finally {
       delete getStorage().operations["Brand.StrictInput"];
     }
+  }
+}
+
+/** Parent service declaring one operation */
+class InheritParentService extends Service {
+  /** Parent operation */
+  @Operation()
+  async parentOp(): Promise<void> {}
+}
+
+/** Subclass adding its own operation */
+class InheritChildService extends InheritParentService {
+  /** Child operation */
+  @Operation()
+  async childOp(): Promise<void> {}
+}
+
+@suite
+class OperationMetadataInheritanceTest {
+  @test
+  subclassOperationsDoNotLeakIntoParent() {
+    const names = (target: any) =>
+      ((getMetadata(target)?.["webda.operations"] as any[]) ?? []).map(op => op._methodName).sort();
+    assert.deepStrictEqual(names(InheritParentService), ["parentOp"]);
+    assert.deepStrictEqual(names(InheritChildService), ["childOp", "parentOp"]);
   }
 }

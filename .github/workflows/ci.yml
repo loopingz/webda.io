@@ -9,7 +9,9 @@ on:
     # The branches below must be a subset of the branches above
     branches: ["**"]
   schedule:
-    - cron: "17 6 * * 0" # Weekly full coverage on Sunday, UTC
+    - cron: "17 6 * * *" # Daily full run on the older Node versions, UTC
+  # On demand, e.g. before a release
+  workflow_dispatch:
 
 concurrency:
   group: "${{ github.workflow }} @ ${{ github.event_name }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
@@ -22,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ${{ fromJSON(github.event_name == 'schedule' && '["22"]' || '["22","24","current"]') }}
+        # Pull requests and pushes test the latest Node, the daily and on demand runs the older ones
+        node: ${{ fromJSON((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '["22","24"]' || '["26"]') }}
     name: Build with NodeJS v${{ matrix.node }}
     env:
       FORCE_COLOR: 1
@@ -141,10 +144,10 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        # The weekly full run is serial to avoid contention in event-loop latency tests.
+        # The daily and on demand full runs are serial to avoid contention in event-loop latency tests.
         # Pull requests and pushes use the affected-package selector.
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             pnpm --no-bail -r --workspace-concurrency=1 run test
           else
             node scripts/run-affected-tests.mjs test "$TEST_BASE_SHA"
@@ -184,7 +187,7 @@ jobs:
         run: node scripts/run-affected-tests.mjs test:bun "$TEST_BASE_SHA"
 
       - name: CodeCov
-        if: matrix.node == '22' && (github.event_name == 'pull_request' || github.event_name == 'schedule')
+        if: github.event_name == 'pull_request' || (github.event_name == 'schedule' && matrix.node == '22')
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

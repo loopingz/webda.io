@@ -1,8 +1,11 @@
 import { suite, test } from "@webda/test";
 import {
+  CronDefinition,
   CronService,
+  registerOperation,
   Service,
   ServiceParameters,
+  useContext,
   useDynamicService,
   useInstanceStorage,
   WebdaError
@@ -47,6 +50,31 @@ class FunctionServerTest extends AzureTest {
       Function: { type: "Test/Function" },
       Event: { type: "Test/Event" }
     });
+  }
+
+  @test async handleCronUsesOperation() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    await expect(service.handleCron("unknown")).rejects.toThrow("does not match");
+    registerOperation("Event.DoCron", { service: "Event", method: "doCron" });
+    const cron = new CronDefinition("* * * * *", { value: "payload" }, "Event", "doCron", "test", "Event.DoCron");
+    const crons = vi.spyOn(CronService, "resolveCrons").mockReturnValue([cron]);
+    try {
+      runtime.cron.mockClear();
+      let user: string | undefined;
+      runtime.cron.mockImplementationOnce(async () => {
+        user = useContext().getCurrentUserId();
+      });
+      await service.handleCron(CronService.getExportId(cron));
+      // Called through callOperation, as the system with the cron input
+      expect(runtime.cron).toHaveBeenCalledTimes(1);
+      expect(runtime.cron).toHaveBeenCalledWith({ value: "payload" });
+      expect(user).toBe("system");
+      // A failed run fails the timer
+      runtime.cron.mockRejectedValueOnce(new Error("cron failure"));
+      await expect(service.handleCron(CronService.getExportId(cron))).rejects.toThrow("cron failure");
+    } finally {
+      crons.mockRestore();
+    }
   }
 
   @test async mapsHttpAndBinaryResponses() {
@@ -97,20 +125,6 @@ class FunctionServerTest extends AzureTest {
     runtime.event.mockResolvedValueOnce(false);
     await expect(service.handleEvent("blob", {}, {} as any)).rejects.toThrow("No Azure blob event handler");
     await expect(service.handleCron("unknown")).rejects.toThrow("does not match");
-    const cron = {
-      cron: "* * * * *",
-      serviceName: "Event",
-      method: "doCron",
-      args: ["payload"],
-      description: "test"
-    } as any;
-    const annotations = vi.spyOn(CronService, "loadAnnotations").mockReturnValue([cron]);
-    try {
-      await service.handleCron(CronService.getExportId(cron));
-      expect(runtime.cron).toHaveBeenCalledWith("payload");
-    } finally {
-      annotations.mockRestore();
-    }
     runtime.execute.mockImplementationOnce(async context => {
       context.write(Buffer.from("old"));
       context.resetResponse();

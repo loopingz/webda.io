@@ -182,14 +182,38 @@ export class HttpTransport implements Transport {
     }
     const method = rest.method.toUpperCase();
     const url = new URL(path.replace(/^\//, ""), this.options.baseUrl.replace(/\/*$/, "/"));
+    const appendQuery = (key: string, value: unknown) => {
+      if (value === undefined || value === null) return;
+      const values = Array.isArray(value) ? value : [value];
+      if (!values.length) url.searchParams.append(key, "");
+      for (const item of values) {
+        url.searchParams.append(key, typeof item === "string" ? item : JSON.stringify(item));
+      }
+    };
+    for (const name of rest.query ?? []) {
+      appendQuery(name, data[name]);
+      delete data[name];
+    }
+    if (rest.queryCatchAll) {
+      const extra = data[rest.queryCatchAll];
+      delete data[rest.queryCatchAll];
+      if (extra && typeof extra === "object" && !Array.isArray(extra)) {
+        for (const [key, value] of Object.entries(extra)) {
+          if (!rest.query?.includes(key) && !rest.pathParams.includes(key)) appendQuery(key, value);
+        }
+      }
+    }
     if (method === "GET" || method === "DELETE") {
       for (const [key, value] of Object.entries(data)) {
-        if (value === undefined || value === null) continue;
-        url.searchParams.set(key, typeof value === "string" ? value : JSON.stringify(value));
+        appendQuery(key, value);
       }
       return { url: url.toString(), method };
     }
-    const scalar = input !== null && typeof input === "object" && !Array.isArray(input) ? data : input;
+    const scalar = rest.body
+      ? data[rest.body]
+      : input !== null && typeof input === "object" && !Array.isArray(input)
+        ? data
+        : input;
     return { url: url.toString(), method, body: scalar };
   }
 

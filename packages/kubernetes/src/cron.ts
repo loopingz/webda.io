@@ -3,10 +3,10 @@ import { CronDefinition, templateVariables } from "@webda/core";
 /**
  * Replaces placeholders in a given template string with values from a CronDefinition object and other replacements.
  *
- * Cron Arguments are rendered in 3 different ways:
- *  - argsLine: The arguments are rendered as a single string, with each argument wrapped in double quotes and separated by a space.
- *  - argsLineSingleQuote: The arguments are rendered as a single string, with each argument wrapped in single quotes and separated by a space.
- *  - argsArray: The arguments are rendered as a single string, with each argument wrapped in double quotes and separated by a comma.
+ * Besides the CronDefinition fields (`cron.operationId`, `cron.cron`, ...), the cron exposes:
+ *  - operationName: the operation id with its dots replaced by dashes, usable in a resource name
+ *  - inputJson: the operation input as JSON
+ *  - inputb64: the operation input as base64 encoded JSON
  *
  * @param template - The template string to replace placeholders in.
  * @param cron - The CronDefinition object containing values to replace placeholders with.
@@ -14,43 +14,15 @@ import { CronDefinition, templateVariables } from "@webda/core";
  * @returns The template string with all placeholders replaced with their corresponding values.
  */
 export function CronReplace(template: string | any, cron: CronDefinition, replacements: any = {}) {
-  const cleanVars = (value: string) => {
-    // @deprecated remove in > 4.x
-    value = value.replace(/"\${...cron\.args}"/g, "${cron.argsArray}");
-    // Handle special case for args
-    value = value.replace(/"\${cron\.argsArray}",?/g, "${cron.argsArray}");
-    value = value.replace(/"\${cron\.argsLine}"/g, "${cron.argsLine}");
-    value = value.replace(/'\${cron\.argsLine}'/g, "${cron.argsLineSingleQuote}");
-    return value;
-  };
-  if (typeof template === "string") {
-    template = cleanVars(template);
-  } else {
-    template = JSON.parse(
-      JSON.stringify(template, (_, value) => {
-        // Remove the last element of the array if it is "${...cron.args}"
-        if (Array.isArray(value) && value[value.length - 1] === "${...cron.args}") {
-          value.pop();
-          value.push(...cron.args);
-        } else if (typeof value === "string") {
-          return cleanVars(value);
-        }
-        return value;
-      })
-    );
-  }
-
+  const inputJson = JSON.stringify(cron.input ?? {});
   return templateVariables(template, {
     ...replacements,
     env: process.env,
     cron: {
       ...cron,
-      // For future usage
-      argsb64: Buffer.from(JSON.stringify(cron.args)).toString("base64"),
-      // Useful for passing the argument to the command line
-      argsLine: cron.args.map(p => `"${p}"`).join(" "),
-      argsLineSingleQuote: cron.args.map(p => `'${p}'`).join(" "),
-      argsArray: cron.args.map(p => `"${p}"`).join(", ")
+      operationName: cron.operationId.replace(/\./g, "-"),
+      inputJson,
+      inputb64: Buffer.from(inputJson).toString("base64")
     }
   });
 }

@@ -30,6 +30,11 @@ export { behaviorsGenerator, BEHAVIOR_PARENT_KEY } from "./generators/behaviors.
 export type { BehaviorOptions } from "./generators/behaviors.ts";
 export { loadParametersGenerator } from "./generators/loadparameters.ts";
 export { qlValidatorGenerator, WQL_CODES } from "./generators/qlvalidator.ts";
+export { flowsGenerator } from "./generators/flows.ts";
+export { compileFlows, formatFlowError } from "./flows/compile.ts";
+export type { FlowCompileError, FlowCompileResult } from "./flows/compile.ts";
+export { FLOW_ERROR } from "./flows/types.ts";
+export type { CompiledFlow, FlowCron, OperationTarget } from "./flows/types.ts";
 export type { QlValidatorOptions } from "./generators/qlvalidator.ts";
 
 export { buildMappedText, SpanMapKind } from "./spans.ts";
@@ -45,6 +50,8 @@ export type {
   Section
 } from "./module-discovery.ts";
 
+export { generateWebdaModule } from "./module.ts";
+export type { ModuleOptions, ModuleResult, WebdaModuleJson } from "./module.ts";
 export { WarmSession } from "./session.ts";
 export type { TransformOutcome, TransformTiming, WarmSessionOptions } from "./session.ts";
 

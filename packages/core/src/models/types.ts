@@ -1,7 +1,6 @@
 import type { ModelMetadata } from "@webda/compiler";
 import type { Model, ModelClass } from "@webda/models";
 import type { OmitByTypeRecursive } from "@webda/utils";
-import type { HttpMethodType } from "../contexts/httpcontext.js";
 import type { IContextAware } from "../contexts/icontext.js";
 
 /**
@@ -73,12 +72,13 @@ export interface IAttributeLevelPermissionModel extends IContextAware {
  * systems
  */
 export interface ModelAction {
+  rest?: { path?: string; route?: string; method?: string; body?: string };
   /**
    * Method for the route
    *
    * By default ["PUT"]
    */
-  methods?: HttpMethodType[];
+  methods?: string[];
   /**
    * Define if the action is global or per object
    *

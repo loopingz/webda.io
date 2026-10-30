@@ -21,6 +21,7 @@ export default defineConfig({
     setupFiles: ["./vitest.chdir.mts"],
     reporters: "verbose",
     include: [
+      "src/rest/binding.spec.ts",
       "src/bin/*.spec.ts",
       "src/application/*.spec.ts",
       "src/cache/*.spec.ts",
@@ -70,6 +71,7 @@ export default defineConfig({
       "src/services/operationstransport.spec.ts",
       "src/services/httpserver.spec.ts",
       "src/services/clientcertificatefilter.spec.ts",
+      "src/services/cluster.service.spec.ts",
       "src/services/notificationservice.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",

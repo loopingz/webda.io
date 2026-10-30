@@ -31,7 +31,10 @@ The package has no database driver.
 
 ## Relational layer (`src/relational`)
 
-The same package holds the engine-neutral part of the **typed table** stores (`PostgresRelationalStore` today):
+The same package holds the engine-neutral part of the **typed table** stores (`PostgresRelationalStore` and
+`SQLiteRelationalStore`; MySQL / MariaDB and SQL Server are tracked in
+[#1010](https://github.com/loopingz/webda.io/issues/1010) and [#1011](https://github.com/loopingz/webda.io/issues/1011),
+upvote and comment if you need them):
 
 - `RelationalDialect extends SQLDialect`: identifier quoting, the DDL type of each `@webda/sql-schema` column type,
   rendering of the additive schema steps (`createTable`, `addColumn`, `createIndex`, `addForeignKey`), introspection
@@ -51,4 +54,8 @@ The same package holds the engine-neutral part of the **typed table** stores (`P
 - `runTransaction` / `AsyncMutex`: `BEGIN` / `COMMIT` / `ROLLBACK` on one connection; on a connection that is not
   pooled, the store runs every statement and every transaction through the same mutex.
 
-See [`PostgresRelationalStore`](../postgres/PostgresRelationalStore.md) for the user-facing behavior.
+- `RelationalStoreSupport`: the store behavior each engine store composes (plan at init, `schemaSync`, table
+  resolution, repository factory, clean, the `schema` command) and `loadRelationalParameters`.
+
+See [`PostgresRelationalStore`](../postgres/PostgresRelationalStore.md) and
+[`SQLiteRelationalStore`](../sqlite/SQLiteRelationalStore.md) for the user-facing behavior.

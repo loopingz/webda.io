@@ -155,7 +155,8 @@ export class TableMapping {
       return JSON.stringify(value);
     }
     if (kind === "date") {
-      return value instanceof Date ? value.toISOString().slice(0, 10) : value;
+      // A Date (serialized to ISO before reaching the mapping) or an ISO date-time keeps its calendar day
+      return (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10);
     }
     if (kind === "timestamptz") {
       return value instanceof Date ? value.toISOString() : value;
@@ -181,7 +182,9 @@ export class TableMapping {
     }
     const kind = column.type.kind;
     if (kind === "json") {
-      return decodeJson(value);
+      // A JSON null reads as an absent field, like a SQL NULL (pg decodes both alike)
+      const decoded = decodeJson(value);
+      return decoded === null ? undefined : decoded;
     }
     if (value instanceof Date) {
       // pg parses a DATE as a local-midnight Date: its local calendar day is the stored day
@@ -189,6 +192,9 @@ export class TableMapping {
     }
     if (NUMBER_KINDS.has(kind) && typeof value === "string") {
       return Number(value);
+    }
+    if (kind === "boolean" && typeof value === "number") {
+      return value !== 0;
     }
     return value;
   }

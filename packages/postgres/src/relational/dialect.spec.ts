@@ -65,7 +65,8 @@ export class PostgresRelationalDialectTest {
 
   @test
   createTableRendersColumnsKeyAndChecks() {
-    const [sql] = this.dialect.renderStep({ kind: "createTable", table });
+    const [sql] = this.dialect.renderStep({ kind: "createTable", table, foreignKeys: [] });
+    assert.strictEqual(this.dialect.inlineForeignKeys, false);
     assert.strictEqual(
       sql,
       'CREATE TABLE IF NOT EXISTS "rel_post" ("uuid" TEXT, "title" VARCHAR(200), "views" BIGINT, "score" DOUBLE PRECISION, ' +
@@ -84,7 +85,8 @@ export class PostgresRelationalDialectTest {
         models: [],
         primaryKey: ["order", "user"],
         columns: [column("order", { kind: "text" }), column("user", { kind: "text" })]
-      }
+      },
+      foreignKeys: []
     });
     assert.strictEqual(
       sql,
@@ -147,7 +149,9 @@ export class PostgresRelationalDialectTest {
     assert.strictEqual(d.columnJsonText("m", []), `"m"#>>'{}'`);
     assert.strictEqual(d.columnJsonValue("m", ["a"]), `"m"#>'{a}'`);
     assert.strictEqual(d.columnJsonValueOrNull("m", ["a"]), `NULLIF("m"#>'{a}', 'null'::jsonb)`);
-    assert.strictEqual(d.columnJsonMerge("e", 3), `COALESCE("e", '{}'::jsonb) || $3::jsonb`);
+    const mergeArgs: unknown[] = ["x", "y"];
+    assert.strictEqual(d.columnJsonMerge("e", { k: 1 }, mergeArgs), `COALESCE("e", '{}'::jsonb) || $3::jsonb`);
+    assert.deepStrictEqual(mergeArgs, ["x", "y", JSON.stringify({ k: 1 })]);
     assert.strictEqual(d.columnJsonRemoveKey("e", 3), `"e" - $3`);
     assert.strictEqual(
       d.columnJsonSetPath("m", ["a"], 3),

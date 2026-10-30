@@ -5,7 +5,7 @@ import { SchemaBuildError } from "@webda/sql-schema";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { registerRelationalFixtures } from "../../test/relational-models.js";
+import { registerRelationalFixtures } from "@webda/sql/lib/test";
 import { dropRelationalTables, fixtureMetadata, knownMetadata, params } from "../../test/relational-helpers.js";
 import { PostgresRelationalDialect } from "./dialect.js";
 

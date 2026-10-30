@@ -47,6 +47,9 @@ const LIVE_TYPES: { [dataType: string]: ColumnType } = {
  * deferrable foreign keys, JSONB operations on a named column
  */
 export class PostgresRelationalDialect extends PostgresDialect implements RelationalDialect {
+  /** Foreign keys are added after the tables, deferrable */
+  readonly inlineForeignKeys = false;
+
   /** @override */
   quote(identifier: string): string {
     return `"${identifier.replace(/"/g, '""')}"`;
@@ -201,8 +204,9 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /** @override */
-  columnJsonMerge(column: string, param: number): string {
-    return `COALESCE(${this.quote(column)}, '{}'::jsonb) || $${param}::jsonb`;
+  columnJsonMerge(column: string, patch: Record<string, unknown>, args: unknown[]): string {
+    args.push(JSON.stringify(patch));
+    return `COALESCE(${this.quote(column)}, '{}'::jsonb) || $${args.length}::jsonb`;
   }
 
   /** @override */

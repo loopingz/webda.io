@@ -5,7 +5,7 @@ import type { SQLClient, SQLDialect } from "../dialect.js";
  * One additive change bringing a database closer to a {@link RelationalSchemaPlan}
  */
 export type SchemaStep =
-  | { kind: "createTable"; table: TablePlan }
+  | { kind: "createTable"; table: TablePlan; foreignKeys: ForeignKeyPlan[] }
   | { kind: "addColumn"; table: string; column: ColumnPlan }
   | { kind: "createIndex"; index: IndexPlan }
   | { kind: "addForeignKey"; foreignKey: ForeignKeyPlan };
@@ -53,6 +53,11 @@ export interface LiveSchema {
  * segments.
  */
 export interface RelationalDialect extends SQLDialect {
+  /**
+   * Foreign keys are declared inside `CREATE TABLE` and none can be added to an existing table (SQLite): the planner
+   * then emits no `addForeignKey` step and reports a missing one as drift
+   */
+  readonly inlineForeignKeys: boolean;
   /**
    * @param identifier - a table, column, index or constraint name
    * @returns the quoted identifier
@@ -115,12 +120,14 @@ export interface RelationalDialect extends SQLDialect {
    */
   columnJsonValueOrNull(column: string, path: string[]): string;
   /**
-   * The JSON column shallow-merged with the object bound at `param` (a NULL column counts as `{}`)
+   * The JSON column shallow-merged with the patch (top-level keys replaced, a NULL column counts as `{}`); binds
+   * what it needs
    * @param column - the JSON column
-   * @param param - position of the bound JSON text
+   * @param patch - the patch
+   * @param args - the statement parameters
    * @returns the expression
    */
-  columnJsonMerge(column: string, param: number): string;
+  columnJsonMerge(column: string, patch: Record<string, unknown>, args: unknown[]): string;
   /**
    * The JSON column without the top-level key bound at `param`
    * @param column - the JSON column

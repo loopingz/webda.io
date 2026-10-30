@@ -127,5 +127,11 @@ their tooling.
 
 Follow-ups tracked in [#838](https://github.com/loopingz/webda.io/issues/838): the multi-version registry
 (`Webda/SchemaVersion`, `webda postgres schema check | contract | retire`), `importFromJsonb` from a JSONB store,
-`foreignKeysToJsonb`, `@Index` / `@Unique` tags, operation-scoped transactions (#839) and the Sequelize store for the
-other engines (#841).
+`foreignKeysToJsonb`, `@Index` / `@Unique` tags and operation-scoped transactions (#839).
+
+## Other engines
+
+The same layer renders on SQLite with [`SQLiteRelationalStore`](../sqlite/SQLiteRelationalStore.md). MySQL / MariaDB
+([#1010](https://github.com/loopingz/webda.io/issues/1010)) and SQL Server
+([#1011](https://github.com/loopingz/webda.io/issues/1011)) are not implemented: each is one `RelationalDialect` and one
+store. Please upvote and comment on those issues if you need them.

@@ -10,5 +10,6 @@ see `@webda/postgres` (`PostgresDialect`, JSONB) and `@webda/sqlite` (`SQLiteDia
 
 It also holds the engine-neutral part of the **typed table** stores (`src/relational`): `RelationalDialect`,
 the additive schema sync planner and `RelationalSchemaManager`, `TableMapping` (objects to typed rows and junction
-rows), `SQLColumnComparisonExpression` and `RelationalRepository`, consumed by `PostgresRelationalStore` in
-`@webda/postgres` on top of the `RelationalSchemaPlan` of `@webda/sql-schema`.
+rows), `SQLColumnComparisonExpression`, `RelationalRepository` and `RelationalStoreSupport`, consumed by
+`PostgresRelationalStore` (`@webda/postgres`) and `SQLiteRelationalStore` (`@webda/sqlite`) on top of the
+`RelationalSchemaPlan` of `@webda/sql-schema`.

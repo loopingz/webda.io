@@ -14,7 +14,7 @@ import {
   RelTag,
   RelUser,
   registerRelationalFixtures
-} from "../test/relational-models.js";
+} from "@webda/sql/lib/test";
 import { PostgresRelationalParameters, PostgresRelationalStore } from "./postgresrelationalstore.service.js";
 
 @suite

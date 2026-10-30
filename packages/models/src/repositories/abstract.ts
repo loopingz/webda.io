@@ -174,12 +174,9 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
         rewrites[name.toLowerCase()] = rootIdentifier;
       }
     }
+    // An accepted type always resolves to a class of the resolver, which has an identifier
     for (const name of this.acceptedTypes()) {
-      const resolved: any = resolver.resolveStoredType(name);
-      const current = resolved ? (resolver.getIdentifier(resolved) ?? resolved.Metadata?.Identifier) : undefined;
-      if (current) {
-        rewrites[name.toLowerCase()] = current;
-      }
+      rewrites[name.toLowerCase()] = resolver.getIdentifier(resolver.resolveStoredType(name)!)!;
     }
     return rewrites;
   }

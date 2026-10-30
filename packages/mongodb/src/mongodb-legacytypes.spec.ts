@@ -125,4 +125,16 @@ class MongoStoreLegacyTypesTest extends WebdaApplicationTest {
     assert.deepStrictEqual(await collection.findOne({ _id: <any>"k4" }), { _id: "k4", uuid: "k4", name: "$name" });
     await assert.rejects(() => store.rawPages("other", 2), /Unknown table/);
   }
+
+  @test
+  async migrateCommand() {
+    const store = (await this.harness.createStore("LegacyTypesMigrate", ["Webda/V3Animal"])) as MongoStore;
+    const collection = await store._connect();
+    const typeOf = async () => (await collection.findOne({ _id: <any>"m1" }))!.__type;
+    await collection.insertOne({ _id: <any>"m1", uuid: "m1", __type: "V3Animal" });
+    assert.strictEqual(await store.migrate(true, 10, true), 0);
+    assert.strictEqual(await typeOf(), "V3Animal", "a dry run writes nothing");
+    assert.strictEqual(await store.migrate(), 0);
+    assert.strictEqual(await typeOf(), "Webda/V3Animal");
+  }
 }

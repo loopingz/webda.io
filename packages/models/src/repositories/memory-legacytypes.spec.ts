@@ -219,6 +219,27 @@ class MemoryRepositoryLegacyTypesTest {
       flora: "Zoo/Plant"
     });
     assert.deepStrictEqual(new MemoryRepository(Loose as any, ["uuid"], "_", new Map()).legacyTypeRewrites(), {});
+    // Without a table root, only the forms of the model family are rewritten
+    assert.deepStrictEqual(new MemoryRepository(Plant as any, ["uuid"], "_", new Map()).legacyTypeRewrites(), {
+      "zoo/plant": "Zoo/Plant",
+      plant: "Zoo/Plant",
+      "zoo/flora": "Zoo/Plant",
+      flora: "Zoo/Plant"
+    });
+  }
+
+  @test
+  storedTypeHelpersWithClassesUnknownToTheResolver() {
+    // The application resolver knows Dog only: Animal, an ancestor, and Puppy, the table root, fall back to their
+    // own identifier
+    setTypeResolver(new ModelTypeResolver({ "Zoo/Dog": Dog } as any, { namespace: "Zoo" }));
+    const dogs = new MemoryRepository(Dog as any, ["uuid"], "_", new Map()).setTableRoot(Puppy as any) as any;
+    assert.deepStrictEqual(dogs.tableRootAncestorTypes(), ["Zoo/Dog", "Dog", "zoo/dog", "dog", "Zoo/Animal"]);
+    assert.deepStrictEqual(dogs.legacyTypeRewrites(), {
+      "zoo/animal": "Zoo/Puppy",
+      "zoo/dog": "Zoo/Dog",
+      dog: "Zoo/Dog"
+    });
   }
 
   @test

@@ -1075,7 +1075,8 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
    * @returns the model, undefined when no configured model is stored in it
    */
   protected tableRootOf(table: string): ModelClass | undefined {
-    for (const identifier of this.parameters.models ?? []) {
+    // StoreParameters.load always sets models
+    for (const identifier of this.parameters.models) {
       let model: ModelClass | undefined;
       try {
         model = useModel(identifier);
@@ -1094,10 +1095,8 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
    * @override
    */
   getRawTables(): RawTable[] {
-    const names = new Set<string>();
-    if (this.parameters.table) {
-      names.add(this.parameters.table);
-    }
+    // DynamoStoreParameters.load refuses a store without table
+    const names = new Set<string>([this.parameters.table]);
     for (const repo of this.getRepositories()) {
       names.add(repo.getTable());
     }

@@ -62,13 +62,18 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
    * @returns the plan type, undefined for an unknown declaration
    */
   liveType(declared: string): ColumnType | undefined {
-    const match = /^\s*([A-Za-z ]+?)\s*(?:\((\d+)\))?\s*$/.exec(declared ?? "");
-    if (!match) {
+    // `NAME`, `NAME(n)` or `NAME(p,s)`: parsed by hand (a regular expression over spaces is polynomial)
+    const text = (declared ?? "").trim();
+    const open = text.indexOf("(");
+    const name = (open === -1 ? text : text.slice(0, open)).trim().toUpperCase();
+    const inside =
+      open === -1 ? "" : text.slice(open + 1, text.indexOf(")", open) === -1 ? undefined : text.indexOf(")", open));
+    const length = /^\d+$/.test(inside) ? Number(inside) : undefined;
+    if (!name) {
       return undefined;
     }
-    const name = match[1].toUpperCase();
     if (name === "VARCHAR" || name === "CHARACTER VARYING") {
-      return match[2] ? { kind: "varchar", length: Number(match[2]) } : { kind: "text" };
+      return length ? { kind: "varchar", length } : { kind: "text" };
     }
     if (name.startsWith("CHAR") || name === "CLOB") {
       return { kind: "text" };

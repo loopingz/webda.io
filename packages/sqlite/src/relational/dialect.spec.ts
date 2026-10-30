@@ -78,6 +78,9 @@ export class SQLiteRelationalDialectTest {
     assert.strictEqual(this.dialect.liveType(undefined as any), undefined);
     assert.deepStrictEqual(this.dialect.liveType("CHARACTER VARYING(5)"), { kind: "varchar", length: 5 });
     assert.deepStrictEqual(this.dialect.liveType("character varying"), { kind: "text" });
+    assert.deepStrictEqual(this.dialect.liveType("NUMERIC(10,2)"), { kind: "decimal" });
+    assert.deepStrictEqual(this.dialect.liveType("VARCHAR(abc"), { kind: "text" });
+    assert.deepStrictEqual(this.dialect.liveType("  BIGINT  "), { kind: "bigint" });
   }
 
   @test

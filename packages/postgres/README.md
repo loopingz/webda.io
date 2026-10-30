@@ -62,17 +62,48 @@ Or rely on libpq environment variables (`PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSE
 }
 ```
 
-| Parameter | Type | Default | Required | Description |
-|---|---|---|---|---|
-| `postgresqlServer` | `ClientConfig` \| `PoolConfig` | libpq env vars | No | PostgreSQL connection config (host, port, database, user, password) |
-| `usePool` | boolean | `false` | No | Use a connection pool (`pg.Pool`) instead of a single client, required by `transaction` |
-| `table` | string | — | No | Table of every model of the store (subclasses and fallback models included), as in Webda 3 |
-| `tables` | object | `{}` | No | Per-model table overrides: `{ "MyApp/Model": "my_table" }` |
-| `autoCreateTable` | boolean | `true` | No | Automatically create the JSONB table if it does not exist |
-| `viewPrefix` | string | `""` | No | Prefix for auto-generated SQL views |
-| `views` | string[] | `["regex:.*"]` | No | Regexp list of model names to generate views for |
-| `transaction` | `"none"` \| `"operation"` | `"none"` | No | One transaction per operation, see [Transactions](#transactions) |
-| `transactionIsolation` | string | `"READ COMMITTED"` | No | Isolation level of the transactions |
+| Parameter              | Type                           | Default            | Required | Description                                                                                |
+| ---------------------- | ------------------------------ | ------------------ | -------- | ------------------------------------------------------------------------------------------ |
+| `postgresqlServer`     | `ClientConfig` \| `PoolConfig` | libpq env vars     | No       | PostgreSQL connection config (host, port, database, user, password)                        |
+| `usePool`              | boolean                        | `false`            | No       | Use a connection pool (`pg.Pool`) instead of a single client, required by `transaction`    |
+| `table`                | string                         | —                  | No       | Table of every model of the store (subclasses and fallback models included), as in Webda 3 |
+| `tables`               | object                         | `{}`               | No       | Per-model table overrides: `{ "MyApp/Model": "my_table" }`                                 |
+| `autoCreateTable`      | boolean                        | `true`             | No       | Automatically create the JSONB table if it does not exist                                  |
+| `viewPrefix`           | string                         | `""`               | No       | Prefix for auto-generated SQL views                                                        |
+| `views`                | string[]                       | `["regex:.*"]`     | No       | Regexp list of model names to generate views for                                           |
+| `transaction`          | `"none"` \| `"operation"`      | `"none"`           | No       | One transaction per operation, see [Transactions](#transactions)                           |
+| `transactionIsolation` | string                         | `"READ COMMITTED"` | No       | Isolation level of the transactions                                                        |
+
+## Relational store
+
+`Webda/PostgresRelationalStore` stores the models you list in **typed tables** (one column per field, primary and
+foreign keys, junction tables, indexes) generated from the model metadata by `@webda/sql-schema`, with the same model
+API. It is never the `Registry` and only stores listed models.
+
+```json
+{
+  "services": {
+    "domain": {
+      "type": "Webda/PostgresRelationalStore",
+      "models": ["MyApp/User", "MyApp/Post", "MyApp/Comment"],
+      "postgresqlServer": { "host": "localhost", "database": "myapp" },
+      "schemaSync": "alter"
+    }
+  }
+}
+```
+
+| Parameter          | Type                                        | Default    | Description                                                                                                                                                                         |
+| ------------------ | ------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaSync`       | `none` \| `create` \| `alter` \| `validate` | `create`   | What `init()` does with the schema: nothing, create the missing tables, also add the missing columns / indexes / foreign keys of existing tables (never destructive), or only check |
+| `columnNaming`     | `preserve` \| `snake_case`                  | `preserve` | Column names from the field names                                                                                                                                                   |
+| `extraColumn`      | string \| `false`                           | `_extra`   | JSONB column of the properties the schema does not declare                                                                                                                          |
+| `foreignKeys`      | boolean                                     | `true`     | Create the foreign key constraints                                                                                                                                                  |
+| `numericAsDecimal` | boolean                                     | `false`    | `NUMERIC` instead of `DOUBLE PRECISION` for JSON `number`                                                                                                                           |
+
+`webda postgres schema [--sql | --diff | --json]` prints the plan, its DDL or the differences with the database. See
+[the documentation](https://webda.io/docs/Modules/postgres/PostgresRelationalStore) for the mapping, the schema
+lifecycle and the limitations.
 
 ## Usage
 
@@ -89,9 +120,9 @@ export class Post extends CoreModel {
 // With PostgresStore configured, the standard Webda model API is backed by Postgres:
 const post = new Post();
 post.title = "Hello Postgres";
-await post.save();                               // INSERT INTO posts ...
+await post.save(); // INSERT INTO posts ...
 
-const found = await Post.ref(post.uuid).get();  // SELECT ... WHERE uuid = ?
+const found = await Post.ref(post.uuid).get(); // SELECT ... WHERE uuid = ?
 const results = await Post.query("title CONTAINS 'Hello'"); // filtered query
 
 // The table schema uses JSONB:
@@ -120,10 +151,10 @@ when the operation succeeds, rolled back when it throws. An operation writing se
 }
 ```
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `transaction` | `"none"` \| `"operation"` | `"none"` | `"none"`: autocommit per statement (unchanged behavior). `"operation"`: one transaction per operation |
-| `transactionIsolation` | `"READ COMMITTED"` \| `"REPEATABLE READ"` \| `"SERIALIZABLE"` | `"READ COMMITTED"` | Isolation level of `BEGIN` |
+| Parameter              | Type                                                          | Default            | Description                                                                                           |
+| ---------------------- | ------------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `transaction`          | `"none"` \| `"operation"`                                     | `"none"`           | `"none"`: autocommit per statement (unchanged behavior). `"operation"`: one transaction per operation |
+| `transactionIsolation` | `"READ COMMITTED"` \| `"REPEATABLE READ"` \| `"SERIALIZABLE"` | `"READ COMMITTED"` | Isolation level of `BEGIN`                                                                            |
 
 - **A pool is required**: a transaction needs a connection of its own. `"transaction": "operation"` with
   `"usePool": false` fails at `init()` with the `POSTGRES_TRANSACTION_REQUIRES_POOL` error.

@@ -1474,6 +1474,966 @@
       },
       "Configuration": "lib/postgresqueue.service:PostgresQueueParameters"
     },
+    "Webda/PostgresRelationalStore": {
+      "Import": "lib/postgresrelationalstore.service:PostgresRelationalStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "ClientConfig": {
+            "additionalProperties": false,
+            "properties": {
+              "application_name": {
+                "type": "string"
+              },
+              "client_encoding": {
+                "type": "string"
+              },
+              "connectionString": {
+                "type": "string"
+              },
+              "connectionTimeoutMillis": {
+                "type": "number"
+              },
+              "database": {
+                "type": "string"
+              },
+              "enableChannelBinding": {
+                "default": false,
+                "type": "boolean"
+              },
+              "fallback_application_name": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string"
+              },
+              "idle_in_transaction_session_timeout": {
+                "type": "number"
+              },
+              "keepAlive": {
+                "default": false,
+                "type": "boolean"
+              },
+              "keepAliveInitialDelayMillis": {
+                "type": "number"
+              },
+              "lock_timeout": {
+                "type": "number"
+              },
+              "options": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
+              "pipeline": {
+                "default": false,
+                "type": "boolean"
+              },
+              "port": {
+                "type": "number"
+              },
+              "query_timeout": {
+                "type": "number"
+              },
+              "ssl": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/ConnectionOptions"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "sslnegotiation": {
+                "enum": [
+                  "postgres",
+                  "direct"
+                ],
+                "type": "string"
+              },
+              "statement_timeout": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "const": false,
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "stream": {},
+              "types": {
+                "$ref": "#/definitions/CustomTypesConfig"
+              },
+              "user": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "ConnectionOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "ALPNCallback": {
+                "description": "If set, this will be called when a client opens a connection using the ALPN extension.\nOne argument will be passed to the callback: an object containing `servername` and `protocols` fields,\nrespectively containing the server name from the SNI extension (if any) and an array of\nALPN protocol name strings. The callback must return either one of the strings listed in `protocols`,\nwhich will be returned to the client as the selected ALPN protocol, or `undefined`,\nto reject the connection with a fatal alert. If a string is returned that does not match one of\nthe client's ALPN protocols, an error will be thrown.\nThis option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
+              },
+              "ALPNProtocols": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "$ref": "#/definitions/DataView%3CArrayBufferLike%3E"
+                  },
+                  {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "A typed array of 8-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
+                    "type": "string"
+                  }
+                ],
+                "description": "An array of strings, or a single `Buffer`, `TypedArray`, or `DataView` containing the supported\nALPN protocols. Buffers should have the format `[len][name][len][name]...`\ne.g. `'\\x08http/1.1\\x08http/1.0'`, where the `len` byte is the length of the\nnext protocol name. Passing an array is usually much simpler, e.g.\n`['http/1.1', 'http/1.0']`. Protocols earlier in the list have higher\npreference than those later."
+              },
+              "SNICallback": {
+                "description": "SNICallback(servername, cb) <Function> A function that will be\ncalled if the client supports SNI TLS extension. Two arguments\nwill be passed when called: servername and cb. SNICallback should\ninvoke cb(null, ctx), where ctx is a SecureContext instance.\n(tls.createSecureContext(...) can be used to get a proper\nSecureContext.) If SNICallback wasn't provided the default callback\nwith high-level API will be used (see below)."
+              },
+              "allowPartialTrustChain": {
+                "default": false,
+                "description": "Treat intermediate (non-self-signed)\ncertificates in the trust CA certificate list as trusted.",
+                "since": "v22.9.0, v20.18.0",
+                "type": "boolean"
+              },
+              "ca": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "contentEncoding": "base64",
+                          "contentMediaType": "application/octet-stream",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Optionally override the trusted CA certificates. Default is to trust\nthe well-known CAs curated by Mozilla. Mozilla's CAs are completely\nreplaced when CAs are explicitly specified using this option."
+              },
+              "cert": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "contentEncoding": "base64",
+                          "contentMediaType": "application/octet-stream",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
+              },
+              "checkServerIdentity": {},
+              "ciphers": {
+                "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
+                "type": "string"
+              },
+              "clientCertEngine": {
+                "deprecated": true,
+                "description": "Name of an OpenSSL engine which can provide the client certificate.",
+                "type": "string"
+              },
+              "crl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "contentEncoding": "base64",
+                          "contentMediaType": "application/octet-stream",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "PEM formatted CRLs (Certificate Revocation Lists)."
+              },
+              "dhparam": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  }
+                ],
+                "description": "`'auto'` or custom Diffie-Hellman parameters, required for non-ECDHE perfect forward secrecy.\nIf omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available.\nECDHE-based perfect forward secrecy will still be available."
+              },
+              "ecdhCurve": {
+                "description": "A string describing a named curve or a colon separated list of curve\nNIDs or names, for example P-521:P-384:P-256, to use for ECDH key\nagreement. Set to auto to select the curve automatically. Use\ncrypto.getCurves() to obtain a list of available curve names. On\nrecent releases, openssl ecparam -list_curves will also display the\nname and description of each available elliptic curve. Default:\ntls.DEFAULT_ECDH_CURVE.",
+                "type": "string"
+              },
+              "enableTrace": {
+                "default": false,
+                "description": "When enabled, TLS packet trace information is written to `stderr`. This can be\nused to debug TLS connection problems.",
+                "type": "boolean"
+              },
+              "honorCipherOrder": {
+                "default": false,
+                "description": "Attempt to use the server's cipher suite preferences instead of the\nclient's. When true, causes SSL_OP_CIPHER_SERVER_PREFERENCE to be\nset in secureOptions",
+                "type": "boolean"
+              },
+              "host": {
+                "type": "string"
+              },
+              "key": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "contentEncoding": "base64",
+                          "contentMediaType": "application/octet-stream",
+                          "type": "string"
+                        },
+                        {
+                          "$ref": "#/definitions/KeyObject"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Private keys in PEM format. PEM allows the option of private keys\nbeing encrypted. Encrypted keys will be decrypted with\noptions.passphrase. Multiple keys using different algorithms can be\nprovided either as an array of unencrypted key strings or buffers,\nor an array of objects in the form {pem: <string|buffer>[,\npassphrase: <string>]}. The object form can only occur in an array.\nobject.passphrase is optional. Encrypted keys will be decrypted with\nobject.passphrase if provided, or options.passphrase if it is not."
+              },
+              "lookup": {},
+              "maxVersion": {
+                "description": "Optionally set the maximum TLS version to allow. One\nof `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the\n`secureProtocol` option, use one or the other.\n**Default:** `'TLSv1.3'`, unless changed using CLI options. Using\n`--tls-max-v1.2` sets the default to `'TLSv1.2'`. Using `--tls-max-v1.3` sets the default to\n`'TLSv1.3'`. If multiple of the options are provided, the highest maximum is used.",
+                "enum": [
+                  "TLSv1.3",
+                  "TLSv1.2",
+                  "TLSv1.1",
+                  "TLSv1"
+                ],
+                "type": "string"
+              },
+              "minDHSize": {
+                "type": "number"
+              },
+              "minVersion": {
+                "description": "Optionally set the minimum TLS version to allow. One\nof `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the\n`secureProtocol` option, use one or the other.  It is not recommended to use\nless than TLSv1.2, but it may be required for interoperability.\n**Default:** `'TLSv1.2'`, unless changed using CLI options. Using\n`--tls-v1.0` sets the default to `'TLSv1'`. Using `--tls-v1.1` sets the default to\n`'TLSv1.1'`. Using `--tls-min-v1.3` sets the default to\n'TLSv1.3'. If multiple of the options are provided, the lowest minimum is used.",
+                "enum": [
+                  "TLSv1.3",
+                  "TLSv1.2",
+                  "TLSv1.1",
+                  "TLSv1"
+                ],
+                "type": "string"
+              },
+              "passphrase": {
+                "description": "Shared passphrase used for a single private key and/or a PFX.",
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "pfx": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "contentEncoding": "base64",
+                          "contentMediaType": "application/octet-stream",
+                          "type": "string"
+                        },
+                        {
+                          "$ref": "#/definitions/PxfObject"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "PFX or PKCS12 encoded private key and certificate chain. pfx is an\nalternative to providing key and cert individually. PFX is usually\nencrypted, if it is, passphrase will be used to decrypt it. Multiple\nPFX can be provided either as an array of unencrypted PFX buffers,\nor an array of objects in the form {buf: <string|buffer>[,\npassphrase: <string>]}. The object form can only occur in an array.\nobject.passphrase is optional. Encrypted PFX will be decrypted with\nobject.passphrase if provided, or options.passphrase if it is not."
+              },
+              "port": {
+                "type": "number"
+              },
+              "privateKeyEngine": {
+                "deprecated": true,
+                "description": "Name of an OpenSSL engine to get private key from. Should be used\ntogether with privateKeyIdentifier.",
+                "type": "string"
+              },
+              "privateKeyIdentifier": {
+                "deprecated": true,
+                "description": "Identifier of a private key managed by an OpenSSL engine. Should be\nused together with privateKeyEngine. Should not be set together with\nkey, because both options define a private key in different ways.",
+                "type": "string"
+              },
+              "pskCallback": {
+                "description": "When negotiating TLS-PSK (pre-shared keys), this function is called\nwith optional identity `hint` provided by the server or `null`\nin case of TLS 1.3 where `hint` was removed.\nIt will be necessary to provide a custom `tls.checkServerIdentity()`\nfor the connection as the default one will try to check hostname/IP\nof the server against the certificate but that's not applicable for PSK\nbecause there won't be a certificate present.\nMore information can be found in the RFC 4279.",
+                "returns": "Return `null` to stop the negotiation process. `psk` must be\ncompatible with the selected cipher's digest.\n`identity` must use UTF-8 encoding."
+              },
+              "rejectUnauthorized": {
+                "default": true,
+                "description": "If true the server will reject any connection which is not\nauthorized with the list of supplied CAs. This option only has an\neffect if requestCert is true.",
+                "type": "boolean"
+              },
+              "requestCert": {
+                "default": false,
+                "description": "If true the server will request a certificate from clients that\nconnect and attempt to verify that certificate. Defaults to\nfalse.",
+                "type": "boolean"
+              },
+              "secureContext": {
+                "$ref": "#/definitions/SecureContext",
+                "description": "An optional TLS context object from tls.createSecureContext()"
+              },
+              "secureOptions": {
+                "description": "Optionally affect the OpenSSL protocol behavior, which is not\nusually necessary. This should be used carefully if at all! Value is\na numeric bitmask of the SSL_OP_* options from OpenSSL Options",
+                "type": "number"
+              },
+              "secureProtocol": {
+                "description": "Legacy mechanism to select the TLS protocol version to use, it does\nnot support independent control of the minimum and maximum version,\nand does not support limiting the protocol to TLSv1.3. Use\nminVersion and maxVersion instead. The possible values are listed as\nSSL_METHODS, use the function names as strings. For example, use\n'TLSv1_1_method' to force TLS version 1.1, or 'TLS_method' to allow\nany TLS protocol version up to TLSv1.3. It is not recommended to use\nTLS versions less than 1.2, but it may be required for\ninteroperability. Default: none, see minVersion.",
+                "type": "string"
+              },
+              "servername": {
+                "type": "string"
+              },
+              "session": {
+                "contentEncoding": "base64",
+                "contentMediaType": "application/octet-stream",
+                "type": "string"
+              },
+              "sessionIdContext": {
+                "description": "Opaque identifier used by servers to ensure session state is not\nshared between applications. Unused by clients.",
+                "type": "string"
+              },
+              "sessionTimeout": {
+                "description": "The number of seconds after which a TLS session created by the\nserver will no longer be resumable. See Session Resumption for more\ninformation. Default: 300.",
+                "type": "number"
+              },
+              "sigalgs": {
+                "description": "Colon-separated list of supported signature algorithms. The list\ncan contain digest algorithms (SHA256, MD5 etc.), public key\nalgorithms (RSA-PSS, ECDSA etc.), combination of both (e.g\n'RSA+SHA384') or TLS v1.3 scheme names (e.g. rsa_pss_pss_sha512).",
+                "type": "string"
+              },
+              "socket": {
+                "$ref": "#/definitions/Duplex"
+              },
+              "ticketKeys": {
+                "contentEncoding": "base64",
+                "contentMediaType": "application/octet-stream",
+                "description": "48-bytes of cryptographically strong pseudo-random data.\nSee Session Resumption for more information.",
+                "type": "string"
+              },
+              "timeout": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "CustomTypesConfig": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "DataView<ArrayBufferLike>": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "Duplex": {
+            "additionalProperties": false,
+            "description": "Duplex streams are streams that implement both the `Readable` and `Writable` interfaces.\n\nExamples of `Duplex` streams include:\n\n* `TCP sockets`\n* `zlib streams`\n* `crypto streams`",
+            "properties": {
+              "allowHalfOpen": {
+                "default": false,
+                "description": "If `false` then the stream will automatically end the writable side when the\nreadable side ends. Set initially by the `allowHalfOpen` constructor option,\nwhich defaults to `true`.\n\nThis can be changed manually to change the half-open behavior of an existing\n`Duplex` stream instance, but must be changed before the `'end'` event is emitted.",
+                "since": "v0.9.4",
+                "type": "boolean"
+              },
+              "destroyed": {
+                "default": false,
+                "description": "Is `true` after `readable.destroy()` has been called.",
+                "since": "v8.0.0",
+                "type": "boolean"
+              },
+              "readable": {
+                "default": false,
+                "description": "Is `true` if it is safe to call {@link read}, which means\nthe stream has not been destroyed or emitted `'error'` or `'end'`.",
+                "since": "v11.4.0",
+                "type": "boolean"
+              },
+              "readableFlowing": {
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "enum": [
+                  null,
+                  false,
+                  true
+                ],
+                "since": "v9.4.0",
+                "type": [
+                  "null",
+                  "boolean"
+                ]
+              },
+              "writable": {
+                "default": false,
+                "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+                "since": "v11.4.0",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "readableFlowing"
+            ],
+            "since": "v0.9.4",
+            "type": "object"
+          },
+          "Error": {
+            "additionalProperties": false,
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "stack": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message",
+              "name"
+            ],
+            "type": "object"
+          },
+          "KeyObject": {
+            "additionalProperties": false,
+            "properties": {
+              "passphrase": {
+                "description": "Optional passphrase.",
+                "type": "string"
+              },
+              "pem": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  }
+                ],
+                "description": "Private keys in PEM format."
+              }
+            },
+            "required": [
+              "pem"
+            ],
+            "type": "object"
+          },
+          "PoolConfig": {
+            "additionalProperties": false,
+            "properties": {
+              "Client": {
+                "$ref": "#/definitions/new%20()%20%3D%3E%20ClientBase"
+              },
+              "Promise": {
+                "$ref": "#/definitions/PromiseConstructorLike"
+              },
+              "allowExitOnIdle": {
+                "default": false,
+                "type": "boolean"
+              },
+              "application_name": {
+                "type": "string"
+              },
+              "client_encoding": {
+                "type": "string"
+              },
+              "connectionString": {
+                "type": "string"
+              },
+              "connectionTimeoutMillis": {
+                "type": "number"
+              },
+              "database": {
+                "type": "string"
+              },
+              "enableChannelBinding": {
+                "default": false,
+                "type": "boolean"
+              },
+              "fallback_application_name": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string"
+              },
+              "idleTimeoutMillis": {
+                "anyOf": [
+                  {
+                    "const": null,
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "idle_in_transaction_session_timeout": {
+                "type": "number"
+              },
+              "keepAlive": {
+                "default": false,
+                "type": "boolean"
+              },
+              "keepAliveInitialDelayMillis": {
+                "type": "number"
+              },
+              "lock_timeout": {
+                "type": "number"
+              },
+              "log": {},
+              "max": {
+                "type": "number"
+              },
+              "maxLifetimeSeconds": {
+                "type": "number"
+              },
+              "maxUses": {
+                "type": "number"
+              },
+              "min": {
+                "type": "number"
+              },
+              "onConnect": {},
+              "options": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
+              "pipeline": {
+                "default": false,
+                "type": "boolean"
+              },
+              "port": {
+                "type": "number"
+              },
+              "query_timeout": {
+                "type": "number"
+              },
+              "ssl": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/ConnectionOptions"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "sslnegotiation": {
+                "enum": [
+                  "postgres",
+                  "direct"
+                ],
+                "type": "string"
+              },
+              "statement_timeout": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "const": false,
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "stream": {},
+              "types": {
+                "$ref": "#/definitions/CustomTypesConfig"
+              },
+              "user": {
+                "type": "string"
+              },
+              "verify": {}
+            },
+            "type": "object"
+          },
+          "PromiseConstructorLike": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "PxfObject": {
+            "additionalProperties": false,
+            "properties": {
+              "buf": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  }
+                ],
+                "description": "PFX or PKCS12 encoded private key and certificate chain."
+              },
+              "passphrase": {
+                "description": "Optional passphrase.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "buf"
+            ],
+            "type": "object"
+          },
+          "SQLDatabase": {
+            "additionalProperties": false,
+            "description": "Database connection metadata",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "SecureContext": {
+            "additionalProperties": false,
+            "properties": {
+              "context": {}
+            },
+            "required": [
+              "context"
+            ],
+            "type": "object"
+          },
+          "SharedArrayBuffer": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "new () => ClientBase": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "tables#2": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.",
+            "type": "object"
+          },
+          "typeCheck#2": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the relational store: those of {@link PostgresStore} plus the schema layout and lifecycle",
+        "properties": {
+          "aggregationFallback": {
+            "default": "warn",
+            "description": "What to do when an aggregation on this store cannot run natively and must\nstream every matching object through memory",
+            "enum": [
+              "allow",
+              "warn",
+              "deny"
+            ],
+            "type": "string"
+          },
+          "autoCreateTable": {
+            "default": true,
+            "description": "Auto create tables if they do not exist",
+            "type": "boolean"
+          },
+          "columnNaming": {
+            "default": "preserve",
+            "description": "`preserve` keeps the field names as column names (quoted camelCase), `snake_case` converts them",
+            "enum": [
+              "preserve",
+              "snake_case"
+            ],
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/definitions/SQLDatabase"
+          },
+          "extraColumn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "const": false,
+                "type": "boolean"
+              }
+            ],
+            "default": "_extra",
+            "description": "JSON column keeping the properties the model schema does not declare, `false` to refuse them"
+          },
+          "foreignKeys": {
+            "default": true,
+            "description": "Create foreign key constraints between the tables of the store",
+            "type": "boolean"
+          },
+          "maxGroups": {
+            "default": 10000,
+            "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "minimum": 1,
+            "type": "number"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "numericAsDecimal": {
+            "default": false,
+            "description": "Store JSON `number` fields as `NUMERIC` instead of `DOUBLE PRECISION`",
+            "type": "boolean"
+          },
+          "postgresqlServer": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/ClientConfig"
+              },
+              {
+                "$ref": "#/definitions/PoolConfig"
+              }
+            ],
+            "description": "By default use environment variables\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "password",
+              "connectionString"
+            ]
+          },
+          "schemaSync": {
+            "default": "create",
+            "description": "What `init()` does with the database schema\n\n- `none`: nothing\n- `create`: create the missing tables, with their indexes and foreign keys\n- `alter`: `create`, plus add the missing columns, indexes and foreign keys of the existing tables (never drops,\n  narrows or sets `NOT NULL`)\n- `validate`: write nothing, fail when anything is missing or differs",
+            "enum": [
+              "none",
+              "create",
+              "alter",
+              "validate"
+            ],
+            "type": "string"
+          },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "table": {
+            "description": "The table of every model of the store, subclasses and models routed to this store as fallback included (the\nWebda 3 layout). Without it each model gets its own table (its identifier lowercased with \"/\" → \"_\").",
+            "type": "string"
+          },
+          "tables": {
+            "$ref": "#/definitions/tables%232",
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name."
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck%232",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
+          },
+          "usePool": {
+            "default": false,
+            "type": "boolean"
+          },
+          "viewPrefix": {
+            "default": "",
+            "description": "View name prefix",
+            "example": [
+              "app_",
+              "v_",
+              "view_"
+            ],
+            "pattern": "/^[a-zA-Z_][a-zA-Z0-9_]*$/",
+            "type": "string"
+          },
+          "views": {
+            "default": [
+              ".*"
+            ],
+            "description": "Regexp patterns of model identifiers to include when generating views",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "PostgresRelationalStore"
+      },
+      "Configuration": "lib/postgresrelationalstore.service:PostgresRelationalParameters",
+      "commands": {
+        "postgres schema": {
+          "description": "Print the relational schema plan, its DDL or the diff with the database",
+          "method": "schema",
+          "args": {
+            "sql": {
+              "type": "boolean",
+              "default": false,
+              "description": "Print the CREATE statements of the plan"
+            },
+            "diff": {
+              "type": "boolean",
+              "default": false,
+              "description": "Connect and print what schemaSync alter would run, and the drift it never resolves"
+            },
+            "json": {
+              "type": "boolean",
+              "default": false,
+              "description": "Print the plan as JSON"
+            }
+          },
+          "phase": "resolved"
+        }
+      }
+    },
     "Webda/PostgresStore": {
       "Import": "lib/postgresstore.service:PostgresStore",
       "Schema": {

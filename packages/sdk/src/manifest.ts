@@ -266,7 +266,7 @@ export class SdkManifestBuilder {
       const target = models[query.model]?.Metadata;
       if (!target) continue;
       const properties = Object.keys(target.Schemas?.Output?.properties ?? target.Schemas?.Input?.properties ?? {});
-      if (properties.includes(query.targetAttribute)) continue;
+      if (query.targetAttribute && properties.includes(query.targetAttribute)) continue;
       const parent = target.Relations?.parent;
       if (parent?.model === id) {
         query.targetAttribute = parent.attribute;

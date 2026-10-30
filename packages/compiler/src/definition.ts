@@ -101,7 +101,7 @@ export type ModelGraph = {
     /**
      * Targeted model attribute
      */
-    targetAttribute: string;
+    targetAttribute?: string;
   }[];
   /**
    * Maps are deduplication of data in your model

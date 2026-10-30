@@ -4,9 +4,11 @@ import {
   CronService,
   listOperations,
   registerOperation,
+  runAsSystem,
   runWithContext,
   useCore,
-  useInstanceStorage
+  useInstanceStorage,
+  useSystem
 } from "@webda/core";
 import { useRepository } from "@webda/models";
 import * as assert from "assert";
@@ -135,6 +137,7 @@ class StoredTest extends WorkflowTestBase {
     assert.strictEqual(await wf.canAct(user, "delete"), true);
     const anonymous = new (user.constructor as any)();
     assert.notStrictEqual(await wf.canAct(anonymous, "get"), true);
+    assert.strictEqual(await wf.canAct(useSystem(), "delete"), true);
   }
 
   @test
@@ -218,8 +221,15 @@ class StoredTest extends WorkflowTestBase {
       assert.strictEqual(other.getFlow(wf.name), undefined);
       await vi.advanceTimersByTimeAsync(60000);
       assert.strictEqual(other.getFlow(wf.name)?.version, wf.version);
+      // One timer only
+      const timer = other["syncTimer"];
+      other["startSync"]();
+      assert.strictEqual(other["syncTimer"], timer);
       // Deleted elsewhere: dropped at the next sync
       await useCore().getServices()["WorkflowService"]["unregisterStored"](wf.uuid);
+      // The other replica still serves its operation: it knows who it runs as
+      assert.strictEqual(useInstanceStorage().operations[wf.name].service, "Workflow2");
+      assert.strictEqual(this.service.storedRunAs(wf.name), "admin");
       await Workflow.ref(wf.uuid).delete();
       await vi.advanceTimersByTimeAsync(60000);
       assert.strictEqual(other.getFlow(wf.name), undefined);
@@ -256,6 +266,10 @@ class StoredTest extends WorkflowTestBase {
       other["startSync"]();
       const wf = await this.save();
       assert.deepStrictEqual(sent, [{ workflow: wf.uuid }]);
+      assert.strictEqual(other.getFlow(wf.name)?.version, wf.version);
+      // Other messages are ignored
+      await pubsub.sendMessage({});
+      await pubsub.sendMessage(null);
       assert.strictEqual(other.getFlow(wf.name)?.version, wf.version);
     } finally {
       delete this.service.getParameters().syncPubSub;
@@ -335,5 +349,112 @@ class StoredTest extends WorkflowTestBase {
     assert.deepStrictEqual(current.params, ["x"]);
     assert.strictEqual(current.body.length, 2);
     assert.strictEqual(this.service.getFlow(wf.name).version, wf.version);
+  }
+
+  @test
+  async storedShapeValidated() {
+    const first = await this.save();
+    await assert.rejects(() => this.save({ name: first.name }), /already a stored workflow/);
+    await assert.rejects(() => this.save({ params: "x" }), /params must be an array/);
+    await assert.rejects(() => this.save({ params: [1] }), /params must be an array/);
+    await assert.rejects(() => this.save({ input: null }), /input must be a JSON schema/);
+    await assert.rejects(() => this.save({ body: {} }), /body must be an array/);
+    await assert.rejects(() => this.save({ crons: [null] }), /a cron needs/);
+    await assert.rejects(() => this.save({ crons: [{ cron: "* * * * *", input: 3 }] }), /a cron needs/);
+    await assert.rejects(
+      () => this.save({ body: [{ kind: "if", id: "s/if", cond: { lit: true }, then: "nope" }] }),
+      /s\/if\.then must be an array/
+    );
+    await assert.rejects(() => this.save({ body: [{ kind: "return" }] }), /body\[0\] has no id/);
+    await assert.rejects(() => this.save({ body: [null] }), /body\[0\] has no id/);
+    await assert.rejects(
+      () => this.save({ body: [{ kind: "task", id: "s/t", input: { lit: {} }, target: null }] }),
+      /no configured service of class undefined/
+    );
+    // A return without value is fine
+    await this.save({ body: [{ kind: "return", id: "s/ret" }] });
+    // An operation of another service, flagged as a flow, is not a flow of a WorkflowService
+    registerOperation("Other.Flow", { service: "FlowTest", method: "add", context: { flowId: "Other.Flow" } } as any);
+    try {
+      await assert.rejects(() => this.save({ name: "Other.Flow" }), /already an operation/);
+    } finally {
+      delete useInstanceStorage().operations["Other.Flow"];
+    }
+  }
+
+  @test
+  async storedCronWithInvalidInputIsSkipped() {
+    const wf = await this.save({
+      input: { type: "object", properties: { x: { type: "number" } }, required: ["x"] },
+      crons: [{ cron: "0 3 * * *", input: {} }]
+    });
+    assert.ok(listOperations()[wf.name]);
+    assert.deepStrictEqual(
+      (useInstanceStorage().crons ?? []).filter(c => c.operationId === wf.name),
+      []
+    );
+  }
+
+  @test
+  async storedReloadAndRename() {
+    const wf = await this.save();
+    const before = this.service.getFlow(wf.name);
+    await this.service["reloadStored"]();
+    assert.strictEqual(this.service.getFlow(wf.name), before);
+    // Renamed: the old operation goes away
+    await this.edit(wf.uuid, { name: "Stored.Renamed" });
+    assert.strictEqual(listOperations()[wf.name], undefined);
+    assert.strictEqual(this.service.getFlow(wf.name), undefined);
+    assert.ok(listOperations()["Stored.Renamed"]);
+    // A row without version (written behind the validation) gets a computed one
+    await (useRepository(Workflow as any) as any).repository.patch(wf.uuid, { version: "" });
+    await this.service["reloadStored"]();
+    assert.match(this.service.getFlow("Stored.Renamed")!.version, /^[0-9a-f]{64}$/);
+  }
+
+  @test
+  async storedDeleteKeepsCodeFlowOfSameName() {
+    const wf = await this.save();
+    // A code flow registered later under the same id (a module enabled at runtime)
+    this.flow([{ kind: "return", id: "c/ret", value: { lit: "code" } }], [], { id: wf.name });
+    await Workflow.ref(wf.uuid).delete();
+    assert.strictEqual(this.service.getFlow(wf.name)!.source, "code");
+    assert.ok(listOperations()[wf.name]);
+  }
+
+  @test
+  async storedWithoutSaverNeverRunsAsSystem() {
+    const wf = (await runAsSystem(() =>
+      Workflow.create({
+        name: "Stored.NoSaver",
+        params: [],
+        input: { type: "object" },
+        body: [task("s/who", "FlowTest.WhoAmI", { lit: {} })]
+      } as any)
+    )) as Workflow;
+    assert.strictEqual(wf.updatedBy, undefined);
+    const def = this.service.getFlow(wf.name)!;
+    await assert.rejects(() => this.launch(def, {}), /no user to run as/);
+    const alice = await this.launch(def, {}, "alice");
+    await this.drain();
+    assert.strictEqual((await this.instance(alice)).status, "SUCCESS");
+    // As the child of a system flow, awaited or not: the task fails with Forbidden
+    const awaited = this.flow([
+      {
+        kind: "try",
+        id: "p/try",
+        body: [task("p/try/child", wf.name, { lit: {} })],
+        catchVar: "e",
+        catch: [{ kind: "return", id: "p/try/ret", value: { var: "e" } }]
+      }
+    ]);
+    const uuid = await this.launch(awaited, {});
+    await this.drain();
+    assert.strictEqual((await this.instance(uuid)).output.code, "Forbidden");
+    const started = this.flow([task("p/start", "Workflow.Start", { lit: { flow: wf.name, input: {} } })]);
+    const startedUuid = await this.launch(started, {});
+    await this.drain();
+    assert.strictEqual((await this.instance(startedUuid)).error.code, "Forbidden");
+    assert.strictEqual(this.ops.calls.whoAmI, 1);
   }
 }

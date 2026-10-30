@@ -653,19 +653,18 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   protected listenStored(): void {
     const repo: any = useRepository(StoredWorkflow as any);
-    const uuidOf = (id: any): string => (typeof id === "object" && id !== null ? (id.uuid ?? String(id)) : String(id));
     repo.on("Create", ({ object }: any) => this.prepareStored(object, object));
     repo.on("Update", ({ object }: any) => this.prepareStored(object, object));
     repo.on("Patch", async ({ object_id, object }: any) => {
-      const current = await runAsSystem(() => StoredWorkflow.ref(uuidOf(object_id)).get());
-      await this.prepareStored({ ...current, ...object, uuid: uuidOf(object_id) }, object);
+      const current = await runAsSystem(() => StoredWorkflow.ref(object_id).get());
+      await this.prepareStored({ ...current, ...object, uuid: object_id }, object);
     });
     // Partial updates (increments, collections, attribute removal) would skip the validation
     repo.on("PartialUpdate", () => {
       throw new WebdaError.BadRequest("A stored workflow is changed with update or patch, not partial updates");
     });
     for (const event of ["Created", "Updated", "Patched", "Deleted", "PartialUpdated"]) {
-      repo.on(event, ({ object_id }: any) => this.storedChanged(uuidOf(object_id)));
+      repo.on(event, ({ object_id }: any) => this.storedChanged(object_id));
     }
   }
 
@@ -889,13 +888,13 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       this.unregisterStored(workflow.uuid);
     }
     // The typed calls of a graph compiled from a .flow.ts run the configured operation, as for the code flow
-    const body = structuredClone(workflow.body ?? []);
+    const body = structuredClone(workflow.body);
     this.resolveTargets(body);
     this.registerFlow({
       id: workflow.name,
       version,
-      params: workflow.params ?? [],
-      input: workflow.input ?? { type: "object" },
+      params: workflow.params,
+      input: workflow.input,
       body,
       options: workflow.options,
       source: "stored"
@@ -1370,7 +1369,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     if (this.resolveFlow(task.operation)) {
       throw new TaskError("InvalidTask", `Child flow ${task.operation} runs as a WAITING_CHILD task`, false);
     }
-    const options = task.options ?? {};
+    const options = task.options;
     if (options.useSystem && instance.definition?.source === "stored" && !this.parameters.allowStoredSystem) {
       throw new TaskError("SystemNotAllowed", "A stored workflow cannot run a task as the system", false);
     }
@@ -1464,8 +1463,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         if (!isActive(instance)) return false;
         if (instance.journal?.[key]) return true;
         const journal = { ...instance.journal, [key]: { ...entry, at: Date.now(), seq: instance.revision + 1 } };
-        const size =
-          Buffer.byteLength(JSON.stringify(journal)) + Buffer.byteLength(JSON.stringify(instance.input ?? {}));
+        const size = Buffer.byteLength(JSON.stringify(journal)) + Buffer.byteLength(JSON.stringify(instance.input));
         if (size > this.parameters.maxContextSize) {
           const error: FlowError = {
             code: "ContextTooLarge",
@@ -1513,7 +1511,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       for (;;) {
         const instance = (await WorkflowInstance.ref(instanceId).get()) as WorkflowInstance;
         if (!isActive(instance)) return;
-        const res = run(instance.definition as FlowDefinition, instance.input, instance.journal ?? {});
+        const res = run(instance.definition as FlowDefinition, instance.input, instance.journal);
         if (res.status === "done" || res.status === "error") {
           const end: Partial<WorkflowInstance> =
             res.status === "done" ? { status: "SUCCESS", output: res.output } : { status: "ERROR", error: res.error };
@@ -1689,7 +1687,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
    */
   protected async supersede(row: WorkflowTask): Promise<void> {
     const status = row.status;
-    for (let current: WorkflowTask | undefined = row; current && current.status !== "CANCELLED";) {
+    for (let current: WorkflowTask = row; current.status !== "CANCELLED";) {
       const now = Date.now();
       if (await this.patchLeased(current, { status: "CANCELLED", endedAt: now, leaseUntil: now })) break;
       current = (await WorkflowTask.ref(row.uuid).get()) as WorkflowTask;
@@ -1711,7 +1709,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           throw new WebdaError.BadRequest("retry: only a failed instance can be retried");
         }
         const order = (entry: JournalEntry) => entry.seq ?? entry.at ?? 0;
-        const entries = Object.entries(instance.journal ?? {});
+        const entries = Object.entries(instance.journal);
         const failing = entries
           .filter(([, entry]) => "error" in entry && sameError(entry.error, instance.error))
           .sort(([, a], [, b]) => order(b) - order(a))[0];
@@ -1755,7 +1753,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
         const live = ((await WorkflowTask.query(`instance = ?`, [uuid])).results as WorkflowTask[])
           .filter(row => LIVE_TASK.includes(row.status))
           .map(row => row.key);
-        const missing = [...new Set([...Object.keys(instance.journal ?? {}), ...live])].filter(
+        const missing = [...new Set([...Object.keys(instance.journal), ...live])].filter(
           key => !ids.has(statementIdOf(key))
         );
         if (missing.length) {
@@ -1880,7 +1878,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           event,
           key,
           payload,
-          senderId: system ? undefined : context.getCurrentUserId() || undefined,
+          senderId: system ? undefined : context.getCurrentUserId(),
           senderIdent: system ? undefined : context.getSession()?.identUsed,
           system: system || undefined,
           createdAt: now,
@@ -2024,7 +2022,7 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
           key: scheduled.key,
           operation: scheduled.operation,
           input: scheduled.input,
-          options: scheduled.options ?? {},
+          options: scheduled.options,
           attempt,
           status: "PENDING",
           runAt,

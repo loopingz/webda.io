@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FLOWS_FIXTURE, fixtureFile, openFixture } from "../../test/flows.ts";
 import { flowsGenerator } from "../generators/flows.ts";
 import { generateWebdaModule } from "../module.ts";
-import { compileFlows, type FlowCompileError } from "./compile.ts";
+import { compileFlows, formatFlowError, type FlowCompileError, type FlowCompileResult } from "./compile.ts";
+import { operationServices } from "./discovery.ts";
 import { FLOW_ERROR, flowVersion, type CompiledFlow } from "./types.ts";
 
 const scratch = fixtureFile("scratch.flow.ts");
@@ -41,6 +43,22 @@ function compile(
     const result = compileFlows(session.ctx);
     const flows = Object.fromEntries(Object.entries(result.flows).filter(([id]) => id.startsWith("ScratchFlows.")));
     return { flows, errors: result.errors.filter(e => e.file === scratch), text };
+  } finally {
+    session.dispose();
+  }
+}
+
+/**
+ * Compile the fixture with files replaced, and the context possibly patched
+ * @param overrides - text per absolute file name
+ * @param patch - applied to the context before compiling
+ * @returns the result
+ */
+function compileFixture(overrides: Record<string, string>, patch?: (ctx: any) => void): FlowCompileResult {
+  const session = openFixture(overrides);
+  try {
+    patch?.(session.ctx);
+    return compileFlows(session.ctx);
   } finally {
     session.dispose();
   }
@@ -556,7 +574,96 @@ describe("compileFlows: forbidden constructs (9101)", () => {
     ["break", `    while (true) {\n      break;\n    }`, "break"],
     ["undefined", `    return undefined;`, "undefined"],
     ["this", `    return this;`, "this"],
-    ["a non-literal option", `    await NotifyService.Send({ to: uuid }, { retries: items.length });`, "literal"]
+    ["a non-literal option", `    await NotifyService.Send({ to: uuid }, { retries: items.length });`, "literal"],
+    ["a destructuring declaration", `    const { length } = items;`, "Destructuring"],
+    ["a $ variable", `    const $x = 1;`, "cannot start with $"],
+    [
+      "an assignment to the catch variable",
+      `    try {\n      await Sleep("1s");\n    } catch (e) {\n      e = uuid;\n    }`,
+      "caught error"
+    ],
+    ["a bare expression statement", `    uuid === "a";`, "Expression statement"],
+    ["an unawaited forbidden call statement", `    Date.now();`, "use Date.Now()"],
+    ["a call on a nested member", `    items.length.toFixed();`, "not allowed"],
+    ["for await", `    for await (const item of items) {}`, "for await"],
+    ["for...of without a declaration", `    let item;\n    for (item of items) {}`, "one const name"],
+    ["for...of with destructuring", `    for (const [a] of items) {}`, "one const name"],
+    ["a destructuring catch", `    try {\n      await Sleep("1s");\n    } catch ({ message }) {}`, "catch (e)"],
+    ["a type alias statement", `    type T = string;`, "TypeAliasDeclaration"],
+    ["an await of a non-call", `    await uuid;`, "only a call"],
+    ["a built-in with an argument", `    await Date.Now(1);`, "takes no argument"],
+    ["Sleep without argument", `    await Sleep();`, "Sleep takes one argument"],
+    ["Wait.ForEvent without options", `    await Wait.ForEvent("x");`, "Wait.ForEvent takes"],
+    ["Workflow.Call with a dynamic id", `    await Workflow.Call(uuid);`, "string literal"],
+    ["Workflow.Call with too many arguments", `    await Workflow.Call("A.B", {}, {}, 1);`, "Workflow.Call takes"],
+    ["Workflow.Start without a flow", `    await Workflow.Start();`, "Workflow.Start takes"],
+    ["Workflow.Start of a non-flow", `    await Workflow.Start(uuid, {});`, "Workflow.Start takes"],
+    [
+      "Workflow.Start with too many arguments",
+      `    await Workflow.Start(OrderFlows.Archive, {}, 1);`,
+      "Workflow.Start takes"
+    ],
+    ["a child flow with too many arguments", `    await OrderFlows.Archive({}, {}, 1);`, "takes an input and options"],
+    ["an operation with too many arguments", `    await NotifyService.Send({}, {}, 1);`, "takes an input and options"],
+    ["a missing flow method", `    await OrderFlows.Missing({});`, "OrderFlows.Missing"],
+    ["an unknown service", `    await Unknown.Thing({});`, "Unknown.Thing"],
+    ["Workflow.Foo", `    const a = Workflow.Foo();`, "not allowed"],
+    ["Promise.race", `    const a = Promise.race([]);`, "not allowed"],
+    ["Date.parse", `    const a = Date.parse(uuid);`, "not allowed"],
+    ["Random.Other", `    const a = Random.Other();`, "not allowed"],
+    ["Wait.Other", `    const a = Wait.Other();`, "not allowed"],
+    ["options that are not a literal", `    await NotifyService.Send({ to: uuid }, uuid);`, "object literal"],
+    ["an unknown task option", `    await NotifyService.Send({ to: uuid }, { foo: 1 });`, "Unknown task option"],
+    ["a spread task option", `    await NotifyService.Send({ to: uuid }, { ...items });`, "Unknown task option"],
+    ["Promise.all without an array", `    await Promise.all(items);`, "array literal"],
+    ["Workflow.Parallel without a function", `    await Workflow.Parallel(items);`, "arrow function"],
+    ["Workflow.Parallel with a helper", `    await Workflow.Parallel(items, helper);`, "arrow function"],
+    [
+      "Workflow.Parallel with four arguments",
+      `    await Workflow.Parallel(items, i => Date.Now(), {}, 1);`,
+      "arrow function"
+    ],
+    [
+      "a Workflow.Parallel function without parameter",
+      `    await Workflow.Parallel(items, () => Date.Now());`,
+      "one parameter"
+    ],
+    [
+      "a Workflow.Parallel function with a default",
+      `    await Workflow.Parallel(items, (i = "a") => Date.Now());`,
+      "one parameter"
+    ],
+    [
+      "a Workflow.Parallel function destructuring the item",
+      `    await Workflow.Parallel(items, ({ length }) => Date.Now());`,
+      "one parameter"
+    ],
+    [
+      "Workflow.Parallel options that are not concurrency",
+      `    await Workflow.Parallel(items, i => Date.Now(), { foo: 1 });`,
+      "concurrency"
+    ],
+    [
+      "a non-numeric concurrency",
+      `    await Workflow.Parallel(items, i => Date.Now(), { concurrency: "a" });`,
+      "concurrency"
+    ],
+    ["instanceof", `    return uuid instanceof Object;`, "instanceof"],
+    ["a unary plus", `    return +uuid;`, "Operator +"],
+    ["a bitwise not", `    return ~uuid;`, "Operator ~"],
+    ["a prefix increment", `    let i = 0;\n    return ++i;`, "++"],
+    ["a prefix decrement", `    let i = 0;\n    return --i;`, "--"],
+    ["a postfix decrement", `    let i = 0;\n    i--;`, "--"],
+    ["an object method", `    return { f() {} };`, "name: value"],
+    ["a computed key", `    return { [uuid]: 1 };`, "name: value"],
+    ["an array spread", `    return [...items];`, "Array spread"],
+    ["an array hole", `    return [1, , 2];`, "holes"],
+    ["an unawaited built-in in a value", `    const t = Date.Now();`, "must be awaited"],
+    ["new of another class", `    const m = new Map();`, "new Map()"],
+    ["a function expression", `    const f = function () {};`, "A function"],
+    ["typeof", `    return typeof uuid;`, "TypeOfExpression"],
+    ["an unawaited child flow", `    OrderFlows.Archive({ since: 1 });`, "must be awaited"],
+    ["a bigint key", `    return { 1n: 2 };`, "name: value"]
   ])("reports %s", (_name, statements, fragment) => {
     const { errors } = errorsOf(statements);
     expect(errors.length).toBeGreaterThan(0);
@@ -608,6 +715,7 @@ describe("compileFlows: module and editor", () => {
       expect(errors).toEqual([]);
       expect(module.flows?.["OrderFlows.Reconcile"]).toMatchObject({ id: "OrderFlows.Reconcile", params: ["full"] });
       expect(Object.keys(module.flows ?? {}).sort()).toEqual([
+        "AuditFlows.Notify",
         "OrderFlows.Archive",
         "OrderFlows.Reconcile",
         "ScratchFlows.Noop"
@@ -823,5 +931,378 @@ describe("compileFlows: semantics match TypeScript", () => {
       `    if (uuid) {\n      // @label a\n      await Sleep("1s");\n    }\n    // @label a\n    await Sleep("2s");`
     );
     expect(errors.map(e => e.message)).toEqual([expect.stringContaining("@label a")]);
+  });
+});
+
+describe("compileFlows: the rest of the accepted subset", () => {
+  it("compiles empty statements, bare returns, single-statement bodies, try/finally and catch without binding", () => {
+    expect(
+      body(`
+  async run(items: string[]) {
+    ;
+    for (const item of items) await Sleep("1s");
+    try {
+      await Sleep("1s");
+    } finally {
+      await Sleep("2s");
+    }
+    try {
+      await Sleep("3s");
+    } catch {
+      return;
+    }
+    return false;
+  }`)
+    ).toEqual([
+      {
+        kind: "forOf",
+        id: "run/for[1]",
+        item: "item",
+        items: { var: "items" },
+        body: [
+          {
+            kind: "task",
+            id: "run/for[1]/task[0]/Workflow.Sleep",
+            operation: "Workflow.Sleep",
+            input: { obj: { duration: { lit: "1s" } } }
+          }
+        ]
+      },
+      {
+        kind: "try",
+        id: "run/try[2]",
+        body: [
+          {
+            kind: "task",
+            id: "run/try[2]/body/task[0]/Workflow.Sleep",
+            operation: "Workflow.Sleep",
+            input: { obj: { duration: { lit: "1s" } } }
+          }
+        ],
+        finally: [
+          {
+            kind: "task",
+            id: "run/try[2]/finally/task[0]/Workflow.Sleep",
+            operation: "Workflow.Sleep",
+            input: { obj: { duration: { lit: "2s" } } }
+          }
+        ]
+      },
+      {
+        kind: "try",
+        id: "run/try[3]",
+        body: [
+          {
+            kind: "task",
+            id: "run/try[3]/body/task[0]/Workflow.Sleep",
+            operation: "Workflow.Sleep",
+            input: { obj: { duration: { lit: "3s" } } }
+          }
+        ],
+        catch: [{ kind: "return", id: "run/try[3]/catch/return[0]" }]
+      },
+      { kind: "return", id: "run/return[4]", value: { lit: false } }
+    ]);
+  });
+
+  it("compiles conditionals, literal keys of every kind, templates without text and null", () => {
+    expect(
+      body(`
+  async run(uuid: string, n: number) {
+    const x = uuid ? 1 : 2;
+    const o = { "a-b": x, 2: n, ["c"]: \`\${uuid}\` };
+    return [x, o, null];
+  }`)
+    ).toEqual([
+      { kind: "assign", id: "run/assign[0]", name: "x", value: { cond: [{ var: "uuid" }, { lit: 1 }, { lit: 2 }] } },
+      {
+        kind: "assign",
+        id: "run/assign[1]",
+        name: "o",
+        value: { obj: { "a-b": { var: "x" }, "2": { var: "n" }, c: { tpl: [{ var: "uuid" }] } } }
+      },
+      { kind: "return", id: "run/return[2]", value: { arr: [{ var: "x" }, { var: "o" }, { lit: null }] } }
+    ]);
+  });
+
+  it("accepts calls without input or options, and nested parallels", () => {
+    const sleepless = (id: string, extra: object = {}) => ({
+      kind: "task",
+      id,
+      operation: "Date.Now",
+      input: { obj: {} },
+      ...extra
+    });
+    expect(
+      body(`
+  async run(items: string[]) {
+    await Workflow.Call("Order.Query");
+    await Workflow.Start(OrderFlows.Archive);
+    await NotifyService.Send();
+    await NotifyService.Send({ to: "a" }, {});
+    await Workflow.Parallel(items, item => Date.Now(), {});
+    const rs = await Promise.all([await Date.Now(), Promise.all([Date.Now()])]);
+    return rs;
+  }`)
+    ).toEqual([
+      { kind: "task", id: "run/task[0]/Order.Query", operation: "Order.Query", input: { obj: {} } },
+      {
+        kind: "task",
+        id: "run/task[1]/Workflow.Start",
+        operation: "Workflow.Start",
+        input: { obj: { flow: { lit: "OrderFlows.Archive" }, input: { obj: {} } } }
+      },
+      {
+        kind: "task",
+        id: "run/task[2]/NotifyService.Send",
+        operation: "NotifyService.Send",
+        target: { class: "NotifyService", method: "send" },
+        input: { obj: {} }
+      },
+      {
+        kind: "task",
+        id: "run/task[3]/NotifyService.Send",
+        operation: "NotifyService.Send",
+        target: { class: "NotifyService", method: "send" },
+        input: { obj: { to: { lit: "a" } } }
+      },
+      {
+        kind: "map",
+        id: "run/map[4]",
+        items: { var: "items" },
+        item: "item",
+        body: [
+          sleepless("run/map[4]/task[0]/Date.Now", { assign: "$result" }),
+          { kind: "return", id: "run/map[4]/return[1]", value: { var: "$result" } }
+        ]
+      },
+      {
+        kind: "parallel",
+        id: "run/parallel[5]",
+        assign: "rs",
+        branches: [
+          [
+            sleepless("run/parallel[5]/branch[0]/task[0]/Date.Now", { assign: "$result" }),
+            { kind: "return", id: "run/parallel[5]/branch[0]/return[1]", value: { var: "$result" } }
+          ],
+          [
+            {
+              kind: "parallel",
+              id: "run/parallel[5]/branch[1]/parallel[0]",
+              assign: "$result",
+              branches: [
+                [
+                  sleepless("run/parallel[5]/branch[1]/parallel[0]/branch[0]/task[0]/Date.Now", { assign: "$result" }),
+                  {
+                    kind: "return",
+                    id: "run/parallel[5]/branch[1]/parallel[0]/branch[0]/return[1]",
+                    value: { var: "$result" }
+                  }
+                ]
+              ]
+            },
+            { kind: "return", id: "run/parallel[5]/branch[1]/return[1]", value: { var: "$result" } }
+          ]
+        ]
+      },
+      { kind: "return", id: "run/return[6]", value: { var: "rs" } }
+    ]);
+  });
+
+  it("reports destructured and rest parameters, and a method without body", () => {
+    expect(
+      compile(`  async run({ a }: { a: number }, ...rest: number[]) {\n    return 1;\n  }`).errors.map(e => e.message)
+    ).toEqual([expect.stringContaining("plain names"), expect.stringContaining("plain names")]);
+    expect(compile(`  async run(): Promise<number>;`).errors.map(e => e.message)).toEqual([
+      expect.stringContaining("no body")
+    ]);
+  });
+
+  it("I3: refuses a throw with a shorthand or spread property", () => {
+    for (const statement of [`throw { code, message: "b" };`, `throw { code: "A", message: "b", ...items };`]) {
+      expect(
+        errorsOf(`    ${statement}`).errors.map(e => e.message),
+        statement
+      ).toEqual([expect.stringContaining("throw")]);
+    }
+  });
+
+  it("reads @Cron without description and with literal inputs, ignores other decorators, refuses the rest", () => {
+    const extra = `const Other = (): any => (value: any) => value;`;
+    const ok = compile(
+      `
+  @Other()
+  @Cron("0 * * * *")
+  @Cron("1 * * * *", "d", { a: null, b: -1, c: [1, "x"], d: { e: true, "f-g": false, 1: 2, ["h"]: 3 } })
+  async run() {
+    return 1;
+  }`,
+      extra
+    );
+    expect(ok.errors).toEqual([]);
+    expect(ok.flows["ScratchFlows.Run"].crons).toEqual([
+      { cron: "0 * * * *" },
+      {
+        cron: "1 * * * *",
+        description: "d",
+        input: { a: null, b: -1, c: [1, "x"], d: { e: true, "f-g": false, "1": 2, h: 3 } }
+      }
+    ]);
+    for (const decorator of [
+      `@Cron`,
+      `@Cron("*", 1)`,
+      `@Cron("*", "d", 1)`,
+      `@Cron("*", "d", [1])`,
+      `@Cron("*", "d", null)`,
+      `@Cron("*", "d", { a: +1 })`,
+      `@Cron("*", "d", { a: -x })`,
+      `@Cron("*", "d", { ...x })`,
+      `@Cron("*", "d", { a })`,
+      `@Cron("*", "d", { [x]: 1 })`
+    ]) {
+      const { errors, flows } = compile(`  ${decorator}\n  async run() {\n    return 1;\n  }`);
+      expect(
+        errors.map(e => e.message),
+        decorator
+      ).toEqual([expect.stringContaining("literal")]);
+      expect(flows["ScratchFlows.Run"], decorator).toBeUndefined();
+    }
+  });
+
+  it("does not swallow an internal error", () => {
+    const boom = (ctx: any) => {
+      ctx.textOf = () => {
+        throw new Error("boom");
+      };
+    };
+    for (const methods of [
+      `  async run(at: number = Date.now()) {\n    return at;\n  }`,
+      `  async run() {\n    return Date.now();\n  }`,
+      `  @Cron("*", "d", { a: x })\n  async run() {\n    return 1;\n  }`
+    ]) {
+      expect(() => compileFixture({ [scratch]: scratchText(methods) }, boom), methods).toThrow("boom");
+    }
+  });
+
+  it("I4: reports a class declared three times once per place", () => {
+    const text = [
+      `import { Workflow } from "./workflow.js";`,
+      `export class OrderFlows extends Workflow {`,
+      `  async a() {`,
+      `    return 1;`,
+      `  }`,
+      `}`,
+      `export class OrderFlows extends Workflow {`,
+      `  async b() {`,
+      `    return 1;`,
+      `  }`,
+      `}`,
+      ``
+    ].join("\n");
+    const { errors } = compileFixture({ [scratch]: text });
+    expect(errors.map(e => e.file.split("/").pop())).toEqual(["order.flow.ts", "scratch.flow.ts", "scratch.flow.ts"]);
+  });
+
+  it("refuses class members that are not public async instance methods", () => {
+    const { errors, flows } = compile(
+      `
+  static helper() {}
+  private async hidden() {}
+  protected async guarded() {}
+  limit = 3;
+  get size() {
+    return 1;
+  }
+  async run() {
+    return 1;
+  }`,
+      `class Helper {}`
+    );
+    expect(errors.map(e => e.message)).toEqual(Array(5).fill(expect.stringContaining("public async instance methods")));
+    expect(Object.keys(flows)).toEqual(["ScratchFlows.Run"]);
+  });
+
+  it("formatFlowError: an error in a file the program does not have is at 1:1", () => {
+    const session = openFixture();
+    try {
+      expect(
+        formatFlowError(session.ctx, { file: "/nowhere.flow.ts", start: 10, length: 1, code: FLOW_ERROR, message: "m" })
+      ).toBe(`/nowhere.flow.ts:1:1 - error FLOW${FLOW_ERROR}: m`);
+    } finally {
+      session.dispose();
+    }
+  });
+
+  it("discovers only exported Service subclasses, once per name, with their plain parameters", () => {
+    const payment = fixtureFile("payment.service.ts");
+    const runtime = fixtureFile("runtime.ts");
+    const overrides = {
+      [runtime]:
+        readFileSync(runtime, "utf8") + `\nexport class Twice extends Service {\n  @Operation()\n  async a() {}\n}\n`,
+      [payment]: [
+        `import { Operation, Service } from "./runtime.js";`,
+        `const Deco = { Rated: (): any => (value: any) => value };`,
+        `export class PaymentService extends Service {`,
+        `  @Operation`,
+        `  async capture(uuid: string, amount: number) {`,
+        `    return { ok: !!uuid && amount > 0 };`,
+        `  }`,
+        `  @Deco.Rated()`,
+        `  async decorated() {}`,
+        `  @Operation()`,
+        `  async weird({ a }: { a: number }, ...rest: number[]) {`,
+        `    return a + rest.length;`,
+        `  }`,
+        `}`,
+        `export class NotifyService extends Service {`,
+        `  @Operation()`,
+        `  async send(to: string) {`,
+        `    void to;`,
+        `  }`,
+        `}`,
+        `class Hidden extends Service {`,
+        `  @Operation()`,
+        `  async h() {}`,
+        `}`,
+        `export default class Default extends Service {`,
+        `  @Operation()`,
+        `  async d() {}`,
+        `}`,
+        `export class NotAService {`,
+        `  @Operation()`,
+        `  async n() {}`,
+        `}`,
+        `export class Twice extends Service {`,
+        `  @Operation()`,
+        `  async b() {}`,
+        `}`,
+        ``
+      ].join("\n"),
+      [scratch]: scratchText(`  async run() {\n    await Twice.A({});\n  }`)
+    };
+    const session = openFixture(overrides);
+    try {
+      const services = operationServices(session.ctx);
+      expect([...services.keys()].sort()).toEqual(["NotifyService", "PaymentService", "Twice"]);
+      expect(services.get("Twice")).toBeUndefined();
+      expect([...services.get("PaymentService")!.operations.entries()]).toEqual([
+        [
+          "Capture",
+          {
+            method: "capture",
+            parameters: [
+              { name: "uuid", index: 0, optional: false },
+              { name: "amount", index: 1, optional: false }
+            ]
+          }
+        ],
+        ["Weird", { method: "weird", parameters: [] }]
+      ]);
+      // An ambiguous class name has no typed call
+      const { errors } = compileFlows(session.ctx);
+      expect(errors.map(e => e.message)).toEqual([expect.stringContaining("Twice.A() is not allowed")]);
+    } finally {
+      session.dispose();
+    }
   });
 });

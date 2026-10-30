@@ -2,6 +2,8 @@
 import { suite, test } from "@webda/test";
 import { useInstanceStorage } from "@webda/core";
 import * as assert from "assert";
+import { vi } from "vitest";
+import { WorkflowTask } from "./models/workflowtask.model.js";
 import { task, WorkflowTestBase } from "../test/fixture.js";
 
 @suite
@@ -148,5 +150,81 @@ class ChildrenTest extends WorkflowTestBase {
       delete op.permission;
       delete op.permissionQuery;
     }
+  }
+
+  @test
+  async startWithoutInput() {
+    const child = this.child();
+    const noInput = this.flow([
+      task("p/start", "Workflow.Start", { lit: { flow: child.id } }, "started"),
+      { kind: "return", id: "p/ret", value: { var: "started" } }
+    ]);
+    const uuid = await this.launch(noInput, {}, "alice");
+    await this.drain();
+    const started = await this.instance((await this.instance(uuid)).output.uuid);
+    assert.deepStrictEqual(started.input, {});
+    // A null input names no flow
+    const nothing = this.flow([task("p/start", "Workflow.Start", { lit: null })]);
+    const failed = await this.launch(nothing, {}, "alice");
+    await this.drain();
+    assert.strictEqual((await this.instance(failed)).error.code, "NotFound");
+  }
+
+  @test
+  async systemParentChildWithNullInput() {
+    const child = this.flow([{ kind: "return", id: "c/ret", value: { var: "x" } }], ["x"]);
+    const parent = this.flow([
+      task("p/child", child.id, { lit: null }, "r"),
+      { kind: "return", id: "p/ret", value: { lit: "done" } }
+    ]);
+    const uuid = await this.launch(parent, {});
+    await this.drain();
+    assert.strictEqual((await this.instance(uuid)).output, "done");
+    const [wait] = await this.tasks(uuid);
+    const childInstance = await this.instance(wait.child);
+    assert.deepStrictEqual(childInstance.input, {});
+    assert.deepStrictEqual({ ...childInstance.launcher }, { system: true });
+  }
+
+  @test
+  async refusedChildClaimedElsewhere() {
+    const child = this.child();
+    const op: any = useInstanceStorage().operations[child.id];
+    op.permission = "userId = 'bob'";
+    delete op.permissionQuery;
+    const claim = vi.spyOn(this.service as any, "claim").mockResolvedValueOnce(false);
+    try {
+      const parent = this.flow([task("p/child", child.id, { lit: { x: 1 } })]);
+      const uuid = await this.launch(parent, {}, "alice");
+      assert.strictEqual(claim.mock.calls.length, 1);
+      // Another worker holds the row: it writes the refusal
+      const [row] = await this.tasks(uuid);
+      assert.strictEqual(row.status, "WAITING_CHILD");
+      assert.strictEqual((await this.instance(uuid)).status, "WAITING");
+    } finally {
+      claim.mockRestore();
+      delete op.permission;
+      delete op.permissionQuery;
+    }
+  }
+
+  @test
+  async childFlowAsPlainTaskRefused() {
+    const child = this.child();
+    const parent = this.flow([task("p/sleep", "Workflow.Sleep", { lit: { duration: "1h" } })]);
+    const uuid = await this.launch(parent, {}, "alice");
+    // A row calling the flow like an operation
+    const row = await this.service["createTask"](
+      uuid,
+      { key: "p/x@", operation: child.id, input: {}, options: {} },
+      "alice",
+      Date.now(),
+      1
+    );
+    assert.strictEqual(await this.service["tick"](), 1);
+    const done = (await WorkflowTask.ref(row!.uuid).get()) as WorkflowTask;
+    assert.strictEqual(done.status, "ERROR");
+    assert.strictEqual(done.error!.code, "InvalidTask");
+    assert.strictEqual((await this.instance(uuid)).status, "WAITING");
   }
 }

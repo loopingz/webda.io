@@ -10,19 +10,33 @@ const scratch = fixtureFile("scratch.flow.ts");
 /**
  * A flow file whose single method body is `body`
  * @param body - statements of the method
+ * @param extra - module-level statements
+ * @param header - what precedes the class: `export ` or nothing
+ * @param parameters - the method parameters
  * @returns the file text
  */
-function flowText(body: string): string {
+function flowText(body: string, extra = "", header = "export ", parameters = "uuid: string"): string {
   return [
     `import { Workflow } from "./workflow.js";`,
     `import { OrderFlows } from "./order.flow.js";`,
-    `export class ScratchFlows extends Workflow {`,
-    `  async run(uuid: string) {`,
+    extra,
+    `${header}class ScratchFlows extends Workflow {`,
+    `  async run(${parameters}) {`,
     body,
     `  }`,
     `}`,
     ``
   ].join("\n");
+}
+
+/**
+ * The declarations the generator appends to the scratch flow
+ * @param text - the scratch flow text
+ * @returns the appended text, undefined when the file gets no edit
+ */
+function appended(text: string): string | undefined {
+  const { produced } = mapFixture([flowsGenerator()], { [scratch]: text });
+  return produced.find(f => f.fileName === scratch)?.edits[0]?.text;
 }
 
 /**
@@ -72,9 +86,32 @@ describe("flows generator: typed declarations", () => {
     expect(scratchErrors(`await ScratchFlows.Run({ id: uuid });`)).not.toEqual([]);
   });
 
-  it("type-checks the fixture flows", () => {
-    const { diagnostics } = mapFixture([flowsGenerator()]);
+  it("type-checks the fixture flows, the nested one importing the services through ../", () => {
+    const { diagnostics, mapped } = mapFixture([flowsGenerator()]);
     expect(diagnostics(fixtureFile("order.flow.ts"))).toEqual([]);
+    const nested = fixtureFile("nested/audit.flow.ts");
+    expect(diagnostics(nested)).toEqual([]);
+    expect(mapped[nested]).toContain(`import("../payment.service.js").NotifyService`);
+  });
+
+  it("skips the names the file declares, keeps a flow class unexported, and declares nothing without flows", () => {
+    const extra = [
+      `import def from "./runtime.js";`,
+      `import * as ns from "./runtime.js";`,
+      `import "./runtime.js";`,
+      `const PaymentService = 1;`,
+      `const [first] = [1];`,
+      `function helper() {}`,
+      `void 0;`
+    ].join("\n");
+    const text = appended(flowText(`return uuid;`, extra, "", "{ uuid }: { uuid: string }, since?: number"))!;
+    expect(text).not.toContain("declare const PaymentService");
+    expect(text).toContain("declare const NotifyService");
+    expect(text).toContain("\ndeclare namespace ScratchFlows {");
+    // A destructured parameter has no input key, an optional one is optional
+    expect(text).toContain(`function Run(input?: { since?: Parameters<ScratchFlows["run"]>[1] }`);
+    // Nothing to declare: no edit
+    expect(appended(`const PaymentService = 1;\nconst NotifyService = 2;\nexport {};\n`)).toBeUndefined();
   });
 
   it("injectionAtEnd: every edit is a pure insertion at the end of the authored file", () => {

@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import type { FlowDefinition, Journal, Stmt } from "./graph.js";
-import { run, type RunResult } from "./interpreter.js";
+import { keysOf, run, type RunResult } from "./interpreter.js";
 
 /**
  * Build a flow definition around a body
@@ -365,5 +365,96 @@ class InterpreterTest {
     assert.strictEqual(res.status === "error" && res.error.code, "ExpressionError");
     const unknown = run(flow([{ kind: "goto", id: "f/goto" } as any]), {}, {});
     assert.strictEqual(unknown.status === "error" && unknown.error.code, "InvalidStatement");
+  }
+
+  @test
+  mapItemsMustBeArray() {
+    const def = flow([
+      { kind: "map", id: "f/map", items: { lit: 3 }, item: "x", body: [] },
+      { kind: "return", id: "f/ret", value: { lit: 1 } }
+    ]);
+    const res = run(def, {}, {});
+    assert.strictEqual(res.status === "error" && res.error.code, "TypeError");
+    assert.match(res.status === "error" ? res.error.message : "", /f\/map: items is not an array/);
+  }
+
+  @test
+  returnWithoutValue() {
+    assert.deepStrictEqual(run(flow([{ kind: "return", id: "f/ret" }]), {}, {}), { status: "done", output: undefined });
+  }
+
+  @test
+  rethrowKeepsCodeAndOperation() {
+    // A caught error rethrown keeps its code; without operation the flow sets none
+    const def = flow([{ kind: "throw", id: "f/throw", value: { lit: { code: "Custom", message: "m" } } }]);
+    assert.deepStrictEqual(run(def, {}, {}), {
+      status: "error",
+      error: { code: "Custom", message: "m", operation: "" }
+    });
+    const caught = flow([
+      {
+        kind: "try",
+        id: "f/try",
+        body: [{ kind: "task", id: "f/try/A", operation: "Test.A", input: { lit: {} } }],
+        catchVar: "e",
+        catch: [{ kind: "throw", id: "f/try/rethrow", value: { var: "e" } }]
+      }
+    ]);
+    const error = { code: "Boom", message: "bad", operation: "Test.A" };
+    assert.deepStrictEqual(run(caught, {}, { "f/try/A@": { error } }), { status: "error", error });
+  }
+
+  @test
+  tryWithoutCatchVar() {
+    const def = flow([
+      {
+        kind: "try",
+        id: "f/try",
+        body: [{ kind: "throw", id: "f/try/throw", value: { lit: "bad" } }],
+        catch: [{ kind: "return", id: "f/try/ret", value: { var: "e" } }]
+      }
+    ]);
+    // The error is swallowed, nothing is bound
+    assert.deepStrictEqual(run(def, {}, {}), { status: "done", output: undefined });
+  }
+
+  @test
+  malformedGraphThrowsOutOfTheReplay() {
+    // A parallel without branches is not a flow error: the replay itself fails
+    const broken: Stmt = { kind: "parallel", id: "f/par" } as any;
+    assert.throws(() => run(flow([broken]), {}, {}), TypeError);
+    // Inside a try body, a catch block and a parallel branch alike
+    assert.throws(() => run(flow([{ kind: "try", id: "f/try", body: [broken], catch: [] }]), {}, {}), TypeError);
+    assert.throws(
+      () =>
+        run(
+          flow([
+            {
+              kind: "try",
+              id: "f/try",
+              body: [{ kind: "throw", id: "f/try/throw", value: { lit: "x" } }],
+              catch: [broken]
+            }
+          ]),
+          {},
+          {}
+        ),
+      TypeError
+    );
+    assert.throws(() => run(flow([{ kind: "parallel", id: "f/par", branches: [[broken]] }]), {}, {}), TypeError);
+  }
+
+  @test
+  inputDefaultsToEmpty() {
+    const def = flow([{ kind: "return", id: "f/ret", value: { var: "x" } }], ["x"]);
+    assert.deepStrictEqual(run(def, undefined as any, {}), { status: "done", output: undefined });
+  }
+
+  @test
+  keysOfSkipsMalformedStatements() {
+    assert.deepStrictEqual(
+      [...keysOf({ body: [null, "x", { id: "a", then: [{ id: "b" }], branches: [[{ id: "c" }]] }] as any })],
+      ["a", "b", "c"]
+    );
   }
 }

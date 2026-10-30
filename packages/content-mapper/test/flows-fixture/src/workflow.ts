@@ -66,12 +66,35 @@ export function Sleep(_duration: string | { until: number }): Promise<void> {
 }
 
 /** Wait for a signal. */
-export const Wait: {
-  ForEvent<T = any>(name: string, options: { key: string; timeout?: string; allow?: string[] }): Promise<T>;
-} = undefined as any;
+export const Wait = {
+  /**
+   * Wait for a signal
+   * @param _name - the event name
+   * @param _options - key, timeout and allowed senders
+   * @returns the signal payload
+   */
+  ForEvent<T = any>(_name: string, _options: { key: string; timeout?: string; allow?: string[] }): Promise<T> {
+    throw new Error("Flows run through WorkflowService");
+  }
+};
 
 /** Recorded random values. */
-export const Random: { Number(): Promise<number>; Uuid(): Promise<string> } = undefined as any;
+export const Random = {
+  /**
+   * A number in [0, 1)
+   * @returns the number
+   */
+  Number(): Promise<number> {
+    throw new Error("Flows run through WorkflowService");
+  },
+  /**
+   * A uuid
+   * @returns the uuid
+   */
+  Uuid(): Promise<string> {
+    throw new Error("Flows run through WorkflowService");
+  }
+};
 
 /**
  * Launch a flow on a schedule

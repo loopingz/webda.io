@@ -7,7 +7,6 @@
 import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/unstable/ast";
 import { SyntaxKind } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
-import type { Type } from "typescript/unstable/sync";
 import type { AnalysisContext } from "../plan.ts";
 import { derivesFrom } from "../schema/service.ts";
 import { isContextType } from "../schema/action.ts";
@@ -78,17 +77,6 @@ export function hasModifier(node: Node, kind: SyntaxKind): boolean {
 }
 
 /**
- * Instance type of a class declaration
- * @param ctx - analysis context
- * @param cls - the class
- * @returns the declared type
- */
-function declaredTypeOf(ctx: AnalysisContext, cls: ClassDeclaration): Type | undefined {
-  const symbol = cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
-  return symbol ? ctx.checker.getDeclaredTypeOfSymbol(symbol) : undefined;
-}
-
-/**
  * Whether a class extends `Workflow`
  * @param ctx - analysis context
  * @param cls - the class
@@ -96,8 +84,7 @@ function declaredTypeOf(ctx: AnalysisContext, cls: ClassDeclaration): Type | und
  */
 export function isFlowClass(ctx: AnalysisContext, cls: ClassDeclaration): boolean {
   if (!cls.heritageClauses?.length) return false;
-  const type = declaredTypeOf(ctx, cls);
-  return !!type && derivesFrom(type, "Workflow", ctx.checker);
+  return derivesFrom(ctx.checker.getTypeAtLocation(cls), "Workflow", ctx.checker);
 }
 
 /**
@@ -141,18 +128,17 @@ function isOptional(parameter: any): boolean {
 /**
  * The project's services with `@Operation` methods, by class name
  *
- * Only exported classes of the project's own sources (no declaration file, nothing under `node_modules`): the typed
- * call refers to the class through `import("<relative path>")`. A class name declared twice maps to `undefined`: no
- * typed call, as it would be ambiguous. Operations of other packages are called with `Workflow.Call`.
+ * Only exported classes of the project's own sources (`ctx.sourceFiles`: under the root directory, no declaration
+ * file): the typed call refers to the class through `import("<relative path>")`. A class name declared twice maps to
+ * `undefined`: no typed call, as it would be ambiguous. Operations of other packages are called with `Workflow.Call`.
  * @param ctx - analysis context
  * @returns the services
  */
 export function operationServices(ctx: AnalysisContext): Map<string, OperationService | undefined> {
   const services = new Map<string, OperationService | undefined>();
-  for (const fileName of ctx.program.getSourceFileNames()) {
-    if (fileName.endsWith(".d.ts") || fileName.includes("/node_modules/") || fileName.endsWith(FLOW_SUFFIX)) continue;
-    const sf = ctx.program.getSourceFile(fileName);
-    if (!sf) continue;
+  for (const sf of ctx.sourceFiles) {
+    if (sf.fileName.endsWith(FLOW_SUFFIX)) continue;
+    const { fileName } = sf;
     for (const statement of sf.statements) {
       if (!is.isClassDeclaration(statement) || !statement.name) continue;
       if (!hasModifier(statement, SyntaxKind.ExportKeyword) || hasModifier(statement, SyntaxKind.DefaultKeyword)) {
@@ -168,8 +154,7 @@ export function operationServices(ctx: AnalysisContext): Map<string, OperationSe
           decoratorsOf(member).some(decorator => decoratorName(decorator) === "Operation")
       );
       if (!methods.length) continue;
-      const type = declaredTypeOf(ctx, statement);
-      if (!type || !derivesFrom(type, "Service", ctx.checker)) continue;
+      if (!derivesFrom(ctx.checker.getTypeAtLocation(statement), "Service", ctx.checker)) continue;
       const className = statement.name.text;
       if (services.has(className)) {
         services.set(className, undefined);

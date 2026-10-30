@@ -121,4 +121,18 @@ class ExpressionTest {
     assert.deepStrictEqual(validateExpr({ var: 3 }), ["$"]);
     assert.deepStrictEqual(validateExpr({ obj: [] }), ["$"]);
   }
+
+  @test
+  invalidNodes() {
+    // An operator unknown to the evaluator (a stored graph bypassing validateExpr)
+    assert.throws(
+      () => evaluate({ op: "**" as any, args: [{ lit: 2 }, { lit: 3 }] }, {}),
+      /Invalid expression operator/
+    );
+    assert.throws(() => evaluate(null as any, {}), /Invalid expression null/);
+    assert.throws(() => evaluate(3 as any, {}), /Invalid expression 3/);
+    // arr and tpl must hold arrays
+    assert.deepStrictEqual(validateExpr({ arr: { lit: 1 } }), ["$"]);
+    assert.deepStrictEqual(validateExpr({ tpl: "a" }), ["$"]);
+  }
 }

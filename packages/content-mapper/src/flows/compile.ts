@@ -268,7 +268,7 @@ class MethodCompiler {
    * @returns true when in scope
    */
   declared(name: string): boolean {
-    return this.scopes.some(scope => scope.has(name));
+    return this.scopeOf(name) >= 0;
   }
 
   /**
@@ -549,16 +549,17 @@ class MethodCompiler {
 
   /**
    * Strip what only matters to the type checker: parentheses, `as`, `satisfies`, `!`
-   * @param node - the expression
+   * @param node - the expression, undefined for a missing argument
    * @returns the inner expression
    */
   unwrap(node: any): any {
     while (
-      is.isParenthesizedExpression(node) ||
-      is.isAsExpression(node) ||
-      is.isSatisfiesExpression(node) ||
-      is.isNonNullExpression(node) ||
-      is.isTypeAssertion(node)
+      node &&
+      (is.isParenthesizedExpression(node) ||
+        is.isAsExpression(node) ||
+        is.isSatisfiesExpression(node) ||
+        is.isNonNullExpression(node) ||
+        is.isTypeAssertion(node))
     ) {
       node = node.expression;
     }
@@ -611,20 +612,28 @@ class MethodCompiler {
   }
 
   /**
+   * The flow class an identifier refers to
+   * @param node - the identifier
+   * @returns the class declaration, undefined when it is not a flow class
+   */
+  flowClassOf(node: Node): ClassDeclaration | undefined {
+    for (const handle of this.symbolOf(node)?.declarations ?? []) {
+      const declaration: any = handle.resolve(this.ctx.project);
+      if (declaration && is.isClassDeclaration(declaration) && isFlowClass(this.ctx, declaration as ClassDeclaration)) {
+        return declaration as ClassDeclaration;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Name of the flow class an identifier refers to
    * @param node - the identifier
    * @returns the class name, undefined when it is not a flow class
    */
-  flowClass(node: any): string | undefined {
-    if (!is.isIdentifier(node)) return undefined;
-    const symbol = this.symbolOf(node);
-    for (const handle of symbol?.declarations ?? []) {
-      const declaration: any = handle.resolve(this.ctx.project);
-      if (declaration && is.isClassDeclaration(declaration) && isFlowClass(this.ctx, declaration as ClassDeclaration)) {
-        return (declaration as any).name.text;
-      }
-    }
-    return undefined;
+  flowClass(node: Node): string | undefined {
+    const cls = this.flowClassOf(node);
+    return cls && (cls.name as any).text;
   }
 
   /**
@@ -634,17 +643,12 @@ class MethodCompiler {
    */
   flowReference(callee: any): string | undefined {
     const member = this.member(callee);
-    const className = member && this.flowClass(callee.expression);
-    if (!member || !className) return undefined;
-    for (const handle of this.symbolOf(callee.expression)?.declarations ?? []) {
-      const declaration: any = handle.resolve(this.ctx.project);
-      if (!declaration || !is.isClassDeclaration(declaration)) continue;
-      const found = declaration.members.some(
-        (m: any) => is.isMethodDeclaration(m) && is.isIdentifier(m.name) && capitalize(m.name.text) === member.name
-      );
-      if (found) return `${className}.${member.name}`;
-    }
-    return undefined;
+    const cls = member && this.flowClassOf(callee.expression);
+    if (!member || !cls) return undefined;
+    const found = (cls.members as unknown as any[]).some(
+      (m: any) => is.isMethodDeclaration(m) && is.isIdentifier(m.name) && capitalize(m.name.text) === member.name
+    );
+    return found ? `${(cls.name as any).text}.${member.name}` : undefined;
   }
 
   /**
@@ -658,7 +662,7 @@ class MethodCompiler {
       this.fail(call, `await of ${this.text(call)}: only a call to an operation, a flow or a built-in can be awaited`);
     }
     const callee = this.unwrap(call.expression);
-    const args: any[] = [...(call.arguments ?? [])];
+    const args: any[] = [...call.arguments];
     const task = (operation: string, input: Expr, extra: Partial<Stmt> = {}): Stmt =>
       ({ kind: "task", id: id("task", operation), operation, input, ...extra }) as Stmt;
     const noArguments = (): Expr => {

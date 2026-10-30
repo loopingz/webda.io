@@ -16,7 +16,10 @@ export class OrderFlows extends Workflow {
     const started = await Date.Now();
     for (const o of orders) {
       try {
-        const receipt = await PaymentService.Capture({ uuid: o.uuid, amount: o.amount }, { retries: 3, timeout: "30s" });
+        const receipt = await PaymentService.Capture(
+          { uuid: o.uuid, amount: o.amount },
+          { retries: 3, timeout: "30s" }
+        );
         if (!receipt.ok) {
           throw { code: "Refused", message: `Capture of ${o.uuid} refused` };
         }

@@ -1,11 +1,21 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { CronService, registerOperation, runWithContext, useApplication, useDynamicService } from "@webda/core";
+import {
+  CronService,
+  registerOperation,
+  runWithContext,
+  ServiceParameters,
+  useApplication,
+  useCore,
+  useDynamicService,
+  useInstanceStorage
+} from "@webda/core";
 import { join } from "node:path";
 import { flowsGenerator, runTwoPass } from "@webda/content-mapper";
 import { COMPILED_APP, CompiledAppTestBase, compiledFlows } from "../test/compiled.js";
 import { Workflow as StoredWorkflow } from "./models/workflow.model.js";
-import type { PaymentService } from "../test/app/src/payment.service.js";
+import { PaymentService } from "../test/app/src/payment.service.js";
+import { WorkflowService, WorkflowServiceParameters } from "./workflow.service.js";
 import { WorkflowInstance } from "./models/workflowinstance.model.js";
 
 /**
@@ -152,5 +162,24 @@ class CompiledFlowsTest extends CompiledAppTestBase {
     const unknown = structuredClone(def);
     (statements(unknown.body).find(s => s.target) as any).target = { class: "NoSuchService", method: "capture" };
     await assert.rejects(() => this.store({ name: "Stored.Unknown", ...unknown }), /NoSuchService/);
+    // A target several configured services serve is refused too
+    const refunds = this.registerService(new PaymentService("Refunds", new ServiceParameters().load({})));
+    refunds.initOperations();
+    try {
+      await assert.rejects(() => this.store({ name: "Stored.Ambiguous", ...def }), /Billing, Refunds/);
+    } finally {
+      delete useCore().getServices()["Refunds"];
+      for (const id of Object.keys(useInstanceStorage().operations)) {
+        if (id.startsWith("Refunds.")) delete useInstanceStorage().operations[id];
+      }
+    }
+  }
+
+  @test
+  secondServiceLeavesModuleFlowsToTheFirst() {
+    const other = new WorkflowService("Workflow2", new WorkflowServiceParameters().load({ worker: false }));
+    other["registerModuleFlows"]();
+    assert.strictEqual(other.getFlow("OrderFlows.Reconcile"), undefined);
+    assert.strictEqual(useInstanceStorage().operations["OrderFlows.Reconcile"].service, "WorkflowService");
   }
 }

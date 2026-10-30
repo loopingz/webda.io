@@ -13,7 +13,8 @@ import {
   useContext,
   useDynamicService,
   useInstanceStorage,
-  useSystem
+  useSystem,
+  WebdaError
 } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
@@ -113,6 +114,14 @@ export class FlowTestService extends Service {
   async big() {
     return "x".repeat(500);
   }
+
+  /**
+   * Always throttled: a retryable HTTP error
+   */
+  async throttled() {
+    this.count("throttled");
+    throw new WebdaError.TooManyRequests("slow down");
+  }
 }
 
 /**
@@ -170,7 +179,7 @@ export class WorkflowTestBase extends WebdaApplicationTest {
     registerSchema("FlowTest.Add.input", schema);
     useApplication().getSchemas()["FlowTest.Add.input"] = schema;
     registerOperation("FlowTest.Add", { service: "FlowTest", method: "add", input: "FlowTest.Add.input" });
-    for (const method of ["fail", "whoAmI", "slow", "guarded", "big"]) {
+    for (const method of ["fail", "whoAmI", "slow", "guarded", "big", "throttled"]) {
       registerOperation(`FlowTest.${method[0].toUpperCase()}${method.substring(1)}`, {
         service: "FlowTest",
         method,

@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import type { Stmt } from "./graph.js";
 import { callOperation, Session, SimpleOperationContext } from "@webda/core";
 import { WorkflowInstance } from "./models/workflowinstance.model.js";
+import { NO_TIMEOUT } from "./workflow.service.js";
 import { WorkflowSignal } from "./models/workflowsignal.model.js";
 import { WorkflowTask } from "./models/workflowtask.model.js";
 import { task, WorkflowTestBase } from "../test/fixture.js";
@@ -278,5 +279,92 @@ class SignalsTest extends WorkflowTestBase {
       (await this.buffered()).map(s => s.payload),
       [{ n: 7 }]
     );
+  }
+
+  @test
+  async bufferedSignalsConsumedOldestFirst() {
+    const def = this.flow(approvalFlow(), ["order"]);
+    // From the system, then from alice, before any wait
+    assert.deepStrictEqual(await this.signal(undefined, "approval", "o1", { n: 10 }), { delivered: 0 });
+    assert.deepStrictEqual(await this.signal("alice", "approval", "o1", { n: 1 }), { delivered: 0 });
+    const [system] = await this.buffered();
+    assert.strictEqual(system.system, true);
+    assert.strictEqual(system.senderId, undefined);
+    // Without payload
+    assert.deepStrictEqual(await this.signal("alice", "approval", "o9"), { delivered: 0 });
+    const uuid = await this.launch(def, { order: "o1" }, "alice");
+    await this.drain();
+    const instance = await this.instance(uuid);
+    assert.strictEqual(instance.status, "SUCCESS");
+    assert.strictEqual(instance.output, 11);
+    assert.deepStrictEqual(
+      (await this.buffered()).map(s => [s.key, s.payload]),
+      [
+        ["o1", { n: 1 }],
+        ["o9", undefined]
+      ]
+    );
+  }
+
+  @test
+  async waitOfInactiveInstanceIgnored() {
+    const { uuid } = await this.staleWait();
+    await WorkflowInstance.ref(uuid).patch({ status: "CANCELLED" } as any);
+    assert.deepStrictEqual(await this.signal("alice", "approval", "o1", { n: 1 }), { delivered: 0 });
+    assert.strictEqual((await this.buffered()).length, 1);
+  }
+
+  @test
+  async staleSignalsNotConsumed() {
+    const { uuid, wait } = await this.staleWait();
+    const instance = (await WorkflowInstance.ref(uuid).get()) as WorkflowInstance;
+    // Expired between the query and the consumption
+    const expired = (await WorkflowSignal.create({
+      event: "approval",
+      key: "o1",
+      payload: {},
+      senderId: "alice",
+      createdAt: Date.now() - 2,
+      expiresAt: Date.now() - 1
+    } as any)) as WorkflowSignal;
+    assert.strictEqual(await this.service["consumeSignal"](expired, instance, wait, true), false);
+    // Consumed by another worker meanwhile
+    const gone = await this.bufferedFromAlice();
+    await WorkflowSignal.ref(gone.uuid).delete();
+    assert.strictEqual(await this.service["consumeSignal"](gone, instance, wait, true), false);
+    assert.strictEqual((await this.instance(uuid)).status, "WAITING");
+  }
+
+  @test
+  async earlySignalOfRefusedSenderNotDelivered() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const def = this.flow(approvalFlow({}, [task("f/sleep", "Workflow.Sleep", { lit: { duration: "1h" } })]), [
+      "order"
+    ]);
+    const uuid = await this.launch(def, { order: "o1" }, "alice");
+    vi.setSystemTime(1_000_000 + 3600_000);
+    // The wait appears while bob's signal is buffered: he may not signal it
+    const original = this.service["bufferSignal"].bind(this.service);
+    this.service["bufferSignal"] = async (...args: any[]) => {
+      await this.drain();
+      return original(...args);
+    };
+    try {
+      assert.deepStrictEqual(await this.signal("bob", "approval", "o1", { n: 1 }), { delivered: 0 });
+    } finally {
+      delete this.service["bufferSignal"];
+    }
+    assert.strictEqual((await this.instance(uuid)).status, "WAITING");
+    assert.strictEqual((await this.buffered()).length, 1);
+  }
+
+  @test
+  async waitWithoutInput() {
+    const def = this.flow([task("f/wait", "Wait.ForEvent", { lit: null })]);
+    const uuid = await this.launch(def, {}, "alice");
+    const [wait] = await this.tasks(uuid);
+    assert.strictEqual(wait.status, "WAITING_EVENT");
+    assert.strictEqual(wait.event, "undefined");
+    assert.strictEqual(wait.runAt, NO_TIMEOUT);
   }
 }

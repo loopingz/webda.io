@@ -4,6 +4,8 @@ import { useInstanceStorage } from "@webda/core";
 import * as assert from "assert";
 import { vi } from "vitest";
 import type { FlowDefinition, Stmt } from "./graph.js";
+import { WorkflowInstance } from "./models/workflowinstance.model.js";
+import { WorkflowTask } from "./models/workflowtask.model.js";
 import { WorkflowService, WorkflowServiceParameters } from "./workflow.service.js";
 import { task, WorkflowTestBase } from "../test/fixture.js";
 
@@ -239,5 +241,163 @@ class ControlsTest extends WorkflowTestBase {
     const instance = await this.instance(uuid);
     assert.strictEqual(instance.status, "SUCCESS");
     assert.strictEqual(instance.output.code, "Cancelled");
+  }
+
+  /**
+   * Make the next instance patch matching a predicate fail as a concurrent write
+   * @param predicate - which patch to fail
+   * @returns the spy
+   */
+  concurrentWrite(predicate: (data: any) => boolean) {
+    const original = this.service["patchInstance"].bind(this.service);
+    let failed = false;
+    return vi.spyOn(this.service as any, "patchInstance").mockImplementation(async (instance: any, data: any) => {
+      if (!failed && predicate(data)) {
+        failed = true;
+        return false;
+      }
+      return original(instance, data);
+    });
+  }
+
+  @test
+  async controlsRetryOnConcurrentWrite() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const def = this.flow([
+      task("f/sleep", "Workflow.Sleep", { lit: { duration: "1h" } }),
+      { kind: "return", id: "f/ret", value: { lit: 1 } }
+    ]);
+    // Finishing
+    let spy = this.concurrentWrite(data => data.status === "SUCCESS");
+    try {
+      const uuid = await this.launch(def, {}, "alice");
+      vi.setSystemTime(1_000_000 + 3600_000);
+      await this.drain();
+      assert.strictEqual((await this.instance(uuid)).status, "SUCCESS");
+      assert.strictEqual(spy.mock.calls.filter(call => call[1].status === "SUCCESS").length, 2);
+    } finally {
+      spy.mockRestore();
+    }
+    // Migrating, then cancelling
+    const uuid = await this.launch(def, {}, "alice");
+    spy = this.concurrentWrite(data => data.definition !== undefined);
+    try {
+      await this.act("alice", uuid, "migrate");
+      assert.strictEqual(spy.mock.calls.filter(call => call[1].definition).length, 2);
+    } finally {
+      spy.mockRestore();
+    }
+    spy = this.concurrentWrite(data => data.status === "CANCELLED");
+    try {
+      await this.act("alice", uuid, "cancel");
+      assert.strictEqual((await this.instance(uuid)).status, "CANCELLED");
+      assert.strictEqual(spy.mock.calls.filter(call => call[1].status === "CANCELLED").length, 2);
+    } finally {
+      spy.mockRestore();
+    }
+    // Retrying
+    const failing = this.flow([task("f/fail", "FlowTest.Fail", { lit: {} })]);
+    const failed = await this.launch(failing, {}, "alice");
+    await this.drain();
+    spy = this.concurrentWrite(data => data.journal !== undefined && data.status === "RUNNING");
+    try {
+      await this.act("alice", failed, "retry");
+      assert.strictEqual(spy.mock.calls.filter(call => call[1].journal && call[1].status === "RUNNING").length, 2);
+    } finally {
+      spy.mockRestore();
+    }
+    assert.strictEqual((await this.instance(failed)).status, "RUNNING");
+  }
+
+  @test
+  async retryEdgeCases() {
+    // The error does not come from a task
+    const thrown = this.flow([{ kind: "throw", id: "f/throw", value: { lit: "bad" } }]);
+    const uuid = await this.launch(thrown, {}, "alice");
+    assert.strictEqual((await this.instance(uuid)).status, "ERROR");
+    await assert.rejects(() => this.act("alice", uuid, "retry"), /does not come from a task/);
+    // Entries without sequence (an older journal): ordered by time, the latest failure is the one retried
+    this.guardedFor("bob");
+    const def = this.flow([
+      task("f/A", "FlowTest.Add", { lit: { a: 1, b: 1 } }, "a"),
+      task("f/G", "FlowTest.Guarded", { lit: {} }, "g"),
+      { kind: "return", id: "f/ret", value: { arr: [{ var: "a" }, { var: "g" }] } }
+    ]);
+    const old = await this.launch(def, {}, "alice");
+    await this.drain();
+    const instance = await this.instance(old);
+    assert.strictEqual(instance.status, "ERROR");
+    const error = instance.journal["f/G@"]["error"];
+    await WorkflowInstance.ref(old).patch({
+      journal: {
+        "f/A@": { result: 2 },
+        "f/G@": { error: structuredClone(error), at: 5 },
+        "f/old@": { error: structuredClone(error), seq: 1 }
+      },
+      revision: instance.revision + 1
+    } as any);
+    this.guardedFor("alice");
+    await this.act("alice", old, "retry");
+    assert.deepStrictEqual(Object.keys((await this.instance(old)).journal).sort(), ["f/A@", "f/old@"]);
+    await this.drain();
+    const retried = await this.instance(old);
+    assert.strictEqual(retried.status, "SUCCESS");
+    assert.deepStrictEqual(retried.output, [2, "ok"]);
+  }
+
+  @test
+  async migrateRefusals() {
+    const done = await this.launch(this.flow([{ kind: "return", id: "f/ret", value: { lit: 1 } }]), {}, "alice");
+    await assert.rejects(() => this.act("alice", done, "migrate"), /not running/);
+    const waiting = this.flow([task("f/sleep", "Workflow.Sleep", { lit: { duration: "1h" } })]);
+    const uuid = await this.launch(waiting, {}, "alice");
+    // The flow is gone from every service
+    this.service["flows"].delete(waiting.id);
+    delete useInstanceStorage().operations[waiting.id];
+    await assert.rejects(() => this.act("alice", uuid, "migrate"), /unknown version \(latest\)/);
+  }
+
+  @test
+  async cancelSkipsFinishedRowsAndRetriesSupersede() {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000_000 });
+    const def = this.flow([
+      task("f/A", "FlowTest.Add", { lit: { a: 1, b: 1 } }),
+      task("f/sleep", "Workflow.Sleep", { lit: { duration: "1h" } })
+    ]);
+    const rows = async (uuid: string) =>
+      (await this.tasks(uuid)).map(r => [r.operation, r.status]).sort((a, b) => a[0].localeCompare(b[0]));
+    // The sleep row changes hands between the read and the patch
+    let uuid = await this.launch(def, {}, "alice");
+    await this.drain();
+    let spy = vi.spyOn(this.service as any, "patchLeased").mockImplementationOnce(async (row: any) => {
+      await WorkflowTask.ref(row.uuid).patch({ leaseUntil: 7 } as any);
+      return false;
+    });
+    try {
+      await this.act("alice", uuid, "cancel");
+    } finally {
+      spy.mockRestore();
+    }
+    assert.deepStrictEqual(await rows(uuid), [
+      ["FlowTest.Add", "SUCCESS"],
+      ["Workflow.Sleep", "CANCELLED"]
+    ]);
+    // Cancelled meanwhile
+    uuid = await this.launch(def, {}, "alice");
+    await this.drain();
+    spy = vi.spyOn(this.service as any, "patchLeased").mockImplementationOnce(async (row: any) => {
+      await WorkflowTask.ref(row.uuid).patch({ status: "CANCELLED" } as any);
+      return false;
+    });
+    try {
+      await this.act("alice", uuid, "cancel");
+    } finally {
+      spy.mockRestore();
+    }
+    assert.deepStrictEqual(await rows(uuid), [
+      ["FlowTest.Add", "SUCCESS"],
+      ["Workflow.Sleep", "CANCELLED"]
+    ]);
+    assert.strictEqual((await this.instance(uuid)).status, "CANCELLED");
   }
 }

@@ -1566,9 +1566,21 @@
         }
       },
       "Actions": {
-        "cancel": {},
-        "retry": {},
-        "migrate": {}
+        "cancel": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "retry": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "migrate": {
+          "rest": {
+            "method": "POST"
+          }
+        }
       },
       "Events": [
         "Create",
@@ -2486,7 +2498,16 @@
     },
     "Webda/WorkflowInstance.cancel.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [
+          "uuid"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/WorkflowInstance.cancel.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2494,7 +2515,16 @@
     },
     "Webda/WorkflowInstance.retry.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [
+          "uuid"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/WorkflowInstance.retry.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2506,6 +2536,17 @@
         "version": {
           "type": "string"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [
+          "uuid"
+        ],
+        "query": [],
+        "body": [
+          "version"
+        ]
       }
     },
     "Webda/WorkflowInstance.migrate.output": {
@@ -2526,7 +2567,18 @@
       "required": [
         "event",
         "key"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "workflows/signal",
+        "path": [],
+        "query": [],
+        "body": [
+          "event",
+          "key",
+          "payload"
+        ]
+      }
     },
     "WorkflowService.signal.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

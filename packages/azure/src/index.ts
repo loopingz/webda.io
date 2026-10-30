@@ -1,3 +1,4 @@
+import { registerWebdaPackage } from "@webda/utils";
 export * from "./services/azure-parameters.js";
 export * from "./services/contributors.js";
 export * from "./services/keyvault.service.js";
@@ -12,3 +13,6 @@ export * from "./deployers/arm.service.js";
 export * from "./deployers/containerapps.service.js";
 export * from "./deployers/functionspackager.service.js";
 export * from "./deployers/functions.service.js";
+
+// Refuse a second copy of the package, see registerWebdaPackage
+registerWebdaPackage("@webda/azure", import.meta.url);

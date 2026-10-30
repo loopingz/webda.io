@@ -63,3 +63,6 @@ Composite primary keys are supported; a reference to a composite key gets one co
 `WARN` or `BLOCK` (type change, narrowing, removed enum value, field becoming optional, relation kind/target/delete
 policy change, primary key change, hierarchy change, layout option change). `allowIncompatible` downgrades a `BLOCK` of
 a table, column, model or attribute to a forced `WARN`.
+
+The plan is consumed by `@webda/sql` (`RelationalRepository`, `RelationalSchemaManager`) and rendered by
+`PostgresRelationalStore` in `@webda/postgres`.

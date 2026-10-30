@@ -68,7 +68,7 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
    * @param layout - alternative layout (rebuilds the plan, the tables are not recreated)
    * @returns its repository
    */
-  repo<T extends any>(model: T, layout: Record<string, any> = {}): RelationalRepository<any> {
+  repo(model: any, layout: Record<string, any> = {}): RelationalRepository<any> {
     const meta = useModelMetadata(model as any);
     let manager = this.manager;
     if (Object.keys(layout).length) {
@@ -685,5 +685,38 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
     assert.deepStrictEqual(await this.rows("rel_post"), []);
     assert.deepStrictEqual(await this.rows("rel_post_tags"), []);
     assert.strictEqual((await this.rows("rel_tag")).length, 3);
+  }
+  @test
+  async remainingBranches() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    assert.strictEqual(await repo.backfillTypes(), 0);
+    await repo.create({ uuid: "p1", title: "T", tags: ["t1"], meta: { a: 1 } });
+    // Junction removal honours the write condition
+    await assert.rejects(() => repo.removeAttribute("p1", "tags", "title", "nope"), UpdateConditionFailError);
+    await repo.removeAttribute("p1", "tags", "title", "T");
+    assert.deepStrictEqual(((await repo.get("p1")) as any).tags, []);
+    // A composite reference is removed as a whole, an unknown field without extra column cannot be
+    const refs = this.repo(RelPairRef);
+    await this.insert("rel_pair", { a: "x", b: "y", __type: "Rel/Pair" });
+    await refs.create({ uuid: "r1", pair: "x_y" });
+    await refs.removeAttribute("r1", "pair");
+    assert.strictEqual(((await refs.get("r1")) as any).pair, undefined);
+    await assert.rejects(
+      () => this.repo(RelPost, { extraColumn: false }).removeAttribute("p1", "zz"),
+      WebdaError.BadRequest
+    );
+    // An append with a write condition never matches
+    await assert.rejects(
+      () => repo.upsertItemToCollection("p1", "tags" as any, "t2", undefined, "uuid", "t1"),
+      UpdateConditionFailError
+    );
+    // A whole JSON column assignment, and counters on a table without _lastUpdate
+    assert.strictEqual(await repo.updateMany("UPDATE SET meta = 'str' WHERE uuid = 'p1'"), 1);
+    assert.strictEqual(((await repo.get("p1")) as any).meta, "str");
+    const agg = this.repo(RelAggRow);
+    await agg.create({ uuid: "a1", score: 1 });
+    await agg.incrementAttributes("a1", { score: 2 } as any);
+    assert.strictEqual(((await agg.get("a1")) as any).score, 3);
   }
 }

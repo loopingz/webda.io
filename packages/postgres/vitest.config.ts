@@ -1,6 +1,6 @@
 /// <reference types="vitest" />
 
-import { defineConfig } from "vite";
+import { defineConfig, normalizePath } from "vite";
 import { resolve } from "path";
 
 export default defineConfig({
@@ -8,7 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts"),
-      "@webda/sql/lib/test": resolve(__dirname, "../sql/src/test/index.ts")
+      "@webda/sql/lib/test": resolve(__dirname, "../sql/src/test/index.ts"),
+      // The relational layer of @webda/sql is measured by this suite (the sqlite suite measures the JSON layer)
+      "@webda/sql": resolve(__dirname, "../sql/src/index.ts")
     }
   },
   test: {
@@ -18,8 +20,12 @@ export default defineConfig({
     coverage: {
       enabled: true,
       provider: "v8",
-      include: ["src/**/*.ts", "../sql/src/relational/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/**/*.bench.ts", "src/index.ts", "../sql/src/**/*.spec.ts"],
+      allowExternal: true,
+      include: [
+        normalizePath(resolve(__dirname, "src/**/*.ts")),
+        normalizePath(resolve(__dirname, "../sql/src/relational/**/*.ts"))
+      ],
+      exclude: ["**/*.spec.ts", "**/*.bench.ts", "**/src/index.ts", "**/src/relational/index.ts", "**/src/test/**"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

@@ -167,6 +167,16 @@ export class PostgresRelationalDialectTest {
   }
 
   @test
+  async describeSchemaWithoutTablesNeverQueries() {
+    const client = {
+      query: async () => {
+        throw new Error("no query expected");
+      }
+    };
+    assert.deepStrictEqual(await this.dialect.describeSchema(client, []), { tables: {} });
+  }
+
+  @test
   classifiesForeignKeyErrors() {
     assert.deepStrictEqual(this.dialect.isForeignKeyViolation({ code: "23503", constraint: "fk_x" }), {
       constraint: "fk_x"

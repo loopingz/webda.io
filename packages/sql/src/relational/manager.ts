@@ -2,7 +2,6 @@ import { buildSchemaPlan } from "@webda/sql-schema";
 import type { RelationalSchemaOptions, RelationalSchemaPlan, SchemaModelMetadata, TablePlan } from "@webda/sql-schema";
 import type { SQLClient } from "../dialect.js";
 import type { RelationalDialect, SchemaStep } from "./dialect.js";
-import { TableMapping } from "./mapping.js";
 import { SchemaDriftError, describeStep, planSchemaChanges } from "./sync.js";
 import type { SchemaDrift, SchemaSyncMode } from "./sync.js";
 import { runTransaction } from "./transaction.js";
@@ -32,7 +31,6 @@ export class RelationalSchemaManager {
    * The plan, once {@link build} ran
    */
   plan: RelationalSchemaPlan | undefined;
-  private mappings = new Map<string, TableMapping>();
 
   /**
    * @param options - the store's dialect, layout and logger
@@ -48,7 +46,6 @@ export class RelationalSchemaManager {
    */
   build(models: Iterable<SchemaModelMetadata>, knownModels: Iterable<SchemaModelMetadata>): RelationalSchemaPlan {
     this.plan = undefined;
-    this.mappings.clear();
     const plan = buildSchemaPlan(models, { ...this.options.layout, knownModels });
     for (const warning of plan.warnings) {
       const where = warning.attribute ? `${warning.model}.${warning.attribute}` : warning.model;
@@ -76,23 +73,6 @@ export class RelationalSchemaManager {
   tableOf(model: string): TablePlan | undefined {
     const table = this.plan?.models[model]?.table;
     return table ? this.plan!.tables.find(t => t.name === table) : undefined;
-  }
-
-  /**
-   * @param model - a model identifier
-   * @returns the mapping of its table (one per table), undefined when the model is not in the plan
-   */
-  mappingOf(model: string): TableMapping | undefined {
-    const table = this.tableOf(model);
-    if (!table) {
-      return undefined;
-    }
-    let mapping = this.mappings.get(table.name);
-    if (!mapping) {
-      mapping = new TableMapping(this.plan!, table);
-      this.mappings.set(table.name, mapping);
-    }
-    return mapping;
   }
 
   /**

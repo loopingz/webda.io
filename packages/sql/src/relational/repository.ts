@@ -7,7 +7,7 @@ import { SQLRepository } from "../repository.js";
 import { SQLColumnComparisonExpression } from "./comparison.js";
 import type { RelationalDialect } from "./dialect.js";
 import { TableMapping } from "./mapping.js";
-import type { AttributeTarget, JunctionWrite } from "./mapping.js";
+import type { AttributeTarget, JunctionWrite, RowWrite } from "./mapping.js";
 import type { Transact } from "./transaction.js";
 
 /**
@@ -497,7 +497,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @param args - the statement parameters, extended
    * @returns the assignments
    */
-  protected assignments(row: { columns: string[]; values: unknown[] }, args: unknown[]): string[] {
+  protected assignments(row: Pick<RowWrite, "columns" | "values">, args: unknown[]): string[] {
     const sets: string[] = [];
     let typed = false;
     row.columns.forEach((column, i) => {
@@ -533,12 +533,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @param conditionField - write condition field
    * @param condition - write condition value
    */
-  protected async writeRow(
-    primaryKey: any,
-    row: { columns: string[]; values: unknown[]; junctions: JunctionWrite[] },
-    conditionField?: any,
-    condition?: any
-  ): Promise<void> {
+  protected async writeRow(primaryKey: any, row: RowWrite, conditionField?: any, condition?: any): Promise<void> {
     const key = this.getPrimaryKey(primaryKey).toString();
     const owner = this.getPrimaryKey(primaryKey, true) as Record<string, unknown>;
     await this.maybeTransact(row.junctions.length > 0, "UPDATE", async tx => {
@@ -650,6 +645,8 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
     let set: string;
     if (target.kind === "column" || target.kind === "json") {
       set = `${this.q(target.column.name)} = NULL`;
+    } else if (target.kind === "reference") {
+      set = target.columns.map(c => `${this.q(c.name)} = NULL`).join(", ");
     } else if (target.kind === "extra") {
       args.push(name);
       set = `${this.q(target.column.name)} = ${this.sql.columnJsonRemoveKey(target.column.name, args.length)}`;

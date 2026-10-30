@@ -133,6 +133,12 @@ const string = { type: "string" };
  * @param identifier - the model identifier
  * @param properties - the stored properties
  * @param options - keys, relations and hierarchy
+ * @param options.required - the required properties (`["uuid"]` by default)
+ * @param options.primaryKey - the primary key fields (`["uuid"]` by default)
+ * @param options.separator - the separator of a composite key
+ * @param options.relations - the compiled `Relations`
+ * @param options.ancestors - the ancestor identifiers, closest first
+ * @param options.subclasses - the subclass classes
  * @returns the metadata
  */
 function metadata(

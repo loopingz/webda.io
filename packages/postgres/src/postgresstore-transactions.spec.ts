@@ -387,4 +387,45 @@ class PostgresStoreTransactionTest extends WebdaApplicationTest {
       /Invalid transactionIsolation/
     );
   }
+
+  @test
+  async beginFailureReleasesTheConnection() {
+    const pool = store.getClient() as pg.Pool;
+    const connect = pool.connect.bind(pool);
+    const spy = vi.spyOn(pool, "connect").mockImplementation((async () => {
+      const client = await connect();
+      const query = client.query.bind(client);
+      // The connection is checked out, then its BEGIN fails
+      vi.spyOn(client, "query").mockImplementation(((text: any, ...args: any[]) =>
+        typeof text === "string" && text.startsWith("BEGIN")
+          ? Promise.reject(new Error("begin failed"))
+          : query(text, ...args)) as any);
+      return client;
+    }) as any);
+    try {
+      await assert.rejects(() => store.withTransaction(() => repo().create({ uuid: "a" })), /begin failed/);
+    } finally {
+      spy.mockRestore();
+    }
+    // The connection whose BEGIN failed was destroyed, not leaked
+    this.assertNoLeak();
+    assert.deepStrictEqual(await this.stored(), []);
+    await store.withTransaction(() => repo().create({ uuid: "a" }));
+    assert.deepStrictEqual(await this.stored(), ["a"]);
+  }
+
+  @test
+  async checkedOutConnectionErrors() {
+    const pool = store.getClient() as pg.Pool;
+    const connection = await (store as any).openTransaction();
+    const log = vi.spyOn(store as any, "log");
+    // A connection lost while checked out is logged, it never crashes the process
+    connection.client.emit("error", new Error("terminated"));
+    assert.ok(log.mock.calls.some(call => call[0] === "WARN" && call[1] === "Transaction connection lost"));
+    await connection.rollback();
+    // A reason that is not an Error still destroys the connection
+    connection.release("broken");
+    this.assertNoLeak();
+    assert.ok(pool.totalCount <= 1, "the connection was destroyed, not given back");
+  }
 }

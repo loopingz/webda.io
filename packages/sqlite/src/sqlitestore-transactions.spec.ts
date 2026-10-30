@@ -3,12 +3,14 @@ import {
   OperationContext,
   registerOperation,
   runAsSystem,
+  runWithTransaction,
   Service,
   ServiceParameters,
   useModel
 } from "@webda/core";
 import type { Repository } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { SQLStore } from "@webda/sql";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -157,6 +159,13 @@ abstract class SQLiteTransactionSuite extends WebdaApplicationTest {
     ] as const) {
       registerOperation(id, { service: "TxOps", method, input: "void", output: "void" } as any);
     }
+    registerOperation("TxOps.CreateTwoThenFailNoTx", {
+      service: "TxOps",
+      method: "createTwoThenFail",
+      input: "void",
+      output: "void",
+      transaction: false
+    } as any);
   }
 
   async afterEach() {
@@ -281,10 +290,172 @@ abstract class SQLiteTransactionSuite extends WebdaApplicationTest {
     const open = vi.spyOn(store as any, "openTransaction");
     await this.call("TxOps.NoStore");
     assert.strictEqual(open.mock.calls.length, 0);
+    const ctx = new OperationContext();
+    await ctx.init();
+    // Outside a transaction, begin has nothing to enlist in
+    await store.begin(ctx);
+    assert.strictEqual(store.getTransactionClient(), undefined);
     await store.stop();
     store = await this.makeStore("txnone", "none");
     await assert.rejects(() => this.call("TxOps.CreateTwoThenFail"), /operation failed/);
     assert.deepStrictEqual(await this.stored(), ["a", "b"], "autocommit per statement");
+    // A store in "none" mode stays out even when asked to begin
+    await runWithTransaction(async () => {
+      await store.begin(ctx);
+      assert.strictEqual(store.getTransactionClient(), undefined);
+    }, []);
+  }
+
+  @test
+  async operationOptOut() {
+    const open = vi.spyOn(store as any, "openTransaction");
+    await assert.rejects(() => this.call("TxOps.CreateTwoThenFailNoTx"), /operation failed/);
+    assert.strictEqual(open.mock.calls.length, 0);
+    assert.deepStrictEqual(await this.stored(), ["a", "b"], "transaction: false keeps the autocommit statements");
+  }
+
+  @test
+  async storesSharingTheDatabaseShareTheTransaction() {
+    const second = await this.makeStore("txstore2", "operation");
+    const secondRepo = () => second.getRepository(useModel("Webda/OwnerModel"));
+    try {
+      // Both stores are participants: the second one joins the transaction opened by the first
+      await assert.rejects(() => this.call("TxOps.CreateTwoThenFail"), /operation failed/);
+      assert.deepStrictEqual(await this.stored(), []);
+      await store.withTransaction(async () => {
+        await repo().create({ uuid: "a" });
+        assert.strictEqual(await secondRepo().exists("a"), true, "the second store reads the uncommitted row");
+        await second.withTransaction(() => secondRepo().create({ uuid: "b" }));
+      });
+      assert.deepStrictEqual(await this.stored(), ["a", "b"]);
+    } finally {
+      await second.stop();
+    }
+  }
+
+  @test
+  async statementsAfterTheEndRunInAutocommit() {
+    let state: any;
+    await store.withTransaction(async () => {
+      await repo().create({ uuid: "a" });
+      state = store.getTransactionClient();
+    });
+    assert.strictEqual(state.isFinished(), true);
+    assert.strictEqual(store.getTransactionClient(), undefined);
+    // A promise left running by the operation: its statement runs on the store client, outside any transaction
+    const res = await state.query(`SELECT uuid FROM ${TABLE}`);
+    assert.deepStrictEqual(
+      res.rows.map(r => r.uuid),
+      ["a"]
+    );
+  }
+
+  @test
+  async beginFailureReleasesTheConnection() {
+    const handle = store.getHandle()!;
+    // A transaction already open on the connection: BEGIN IMMEDIATE fails
+    handle.db.exec("BEGIN");
+    try {
+      await assert.rejects(() => store.withTransaction(() => repo().create({ uuid: "a" })), /within a transaction/);
+    } finally {
+      handle.db.exec("ROLLBACK");
+    }
+    assert.strictEqual(handle.client.isHeld(), false, "the connection is given back");
+    await store.withTransaction(() => repo().create({ uuid: "a" }));
+    assert.deepStrictEqual(await this.stored(), ["a"]);
+  }
+
+  @test
+  async rollbackOfAnEndedTransactionIsSkipped() {
+    const handle = store.getHandle()!;
+    if ((handle.db as { isTransaction?: boolean }).isTransaction === undefined) {
+      // Node < 22.16: the state of the transaction is unknown
+      return;
+    }
+    const connection = await (store as any).openTransaction({});
+    await connection.rollback();
+    // After a failed COMMIT ended the transaction, the rollback has nothing to do
+    await connection.rollback();
+    connection.release();
+    assert.strictEqual(handle.client.isHeld(), false);
+  }
+
+  @test
+  async uninitializedStore() {
+    const fresh = new SQLiteStore(
+      "txfresh",
+      new SQLiteStoreParameters().load({
+        ...this.connection(),
+        database: { name: "txdb" },
+        transaction: "operation",
+        table: TABLE,
+        models: ["Webda/OwnerModel"]
+      })
+    );
+    assert.strictEqual((fresh as any).transactionKey(), "sql.tx.sqlite:txfresh");
+    await assert.rejects(
+      () => (fresh as any).openTransaction({}),
+      (err: any) => err.code === "SQLITE_NOT_INITIALIZED"
+    );
+  }
+
+  @test
+  async baseStoreRefusesTransactions() {
+    const base = SQLStore.prototype as any;
+    assert.strictEqual(base.transactionKey.call(store), "sql.tx.txstore");
+    await assert.rejects(
+      () => base.openTransaction.call(store, {}),
+      (err: any) => err.code === "SQL_TRANSACTION_UNSUPPORTED"
+    );
+  }
+
+  @test
+  async rowsWaitForTheHolder() {
+    const client = store.getHandle()!.client;
+    const release = await client.acquireExclusive(() => false);
+    let rows: any[] | undefined;
+    const pending = client.rows("SELECT 1 AS one").then(r => (rows = r));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    assert.strictEqual(rows, undefined, "the read waits for the holder");
+    release();
+    await pending;
+    assert.strictEqual(rows?.length, 1);
+    assert.strictEqual(rows![0].one, 1);
+    // Releasing twice is harmless
+    release();
+    assert.strictEqual(client.isHeld(), false);
+  }
+
+  @test
+  async readOnlyDatabaseBeginsADeferredTransaction() {
+    const path = this.connection().persistence?.path;
+    if (!path) {
+      // An in-memory database cannot be opened read-only by another handle
+      return;
+    }
+    await store.withTransaction(() => repo().create({ uuid: "a" }));
+    const reader = new SQLiteStore(
+      "txreader",
+      new SQLiteStoreParameters().load({
+        persistence: { path, readOnly: true },
+        database: { name: "txreader" },
+        transaction: "operation",
+        autoCreateTable: false,
+        table: TABLE,
+        models: ["Webda/OwnerModel"]
+      })
+    );
+    this.registerService(reader as any, "txreader");
+    await reader.resolve().init();
+    try {
+      assert.strictEqual(reader.getHandle()!.readOnly, true);
+      const open = vi.spyOn(reader as any, "openTransaction");
+      const seen = await reader.withTransaction(() => reader.getRepository(useModel("Webda/OwnerModel")).exists("a"));
+      assert.strictEqual(seen, true);
+      assert.strictEqual(open.mock.calls.length, 1, "a read-only database begins a deferred transaction");
+    } finally {
+      await reader.stop();
+    }
   }
 
   @test

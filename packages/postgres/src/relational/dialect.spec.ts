@@ -124,7 +124,9 @@ export class PostgresRelationalDialectTest {
         }
       }),
       [
-        "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rel_comment_post') THEN " +
+        "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint con JOIN pg_class c ON c.oid = con.conrelid " +
+          "JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = current_schema() AND c.relname = 'rel_comment' " +
+          "AND con.conname = 'fk_rel_comment_post') THEN " +
           'ALTER TABLE "rel_comment" ADD CONSTRAINT "fk_rel_comment_post" FOREIGN KEY ("post") REFERENCES "rel_post" ("uuid") ' +
           "ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED; END IF; END $$"
       ]

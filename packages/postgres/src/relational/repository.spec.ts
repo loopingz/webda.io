@@ -719,4 +719,31 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
     await agg.incrementAttributes("a1", { score: 2 } as any);
     assert.strictEqual(((await agg.get("a1")) as any).score, 3);
   }
+  @test
+  async parentPatchWritesSubclassColumns() {
+    const animals = this.repo(RelAnimal);
+    const dogs = this.repo(RelDog);
+    await dogs.create({ uuid: "d1", kind: "dog", bark: true });
+    await animals.patch("d1", { bark: false });
+    assert.strictEqual(((await dogs.get("d1")) as any).bark, false, "the patched column is written");
+    await animals.update({ uuid: "d1", kind: "dog", bark: true });
+    assert.strictEqual(((await dogs.get("d1")) as any).bark, true);
+    assert.deepStrictEqual((await this.rows("rel_animal"))[0]._extra, {}, "a table column never lands in _extra");
+    await animals.removeAttribute("d1", "bark");
+    assert.strictEqual(((await dogs.get("d1")) as any).bark, undefined, "nothing resurrects the removed column");
+  }
+
+  @test
+  async dateColumnsRoundTrip() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", day: "2024-01-02" });
+    await repo.create({ uuid: "p2", title: "T", day: new Date("2024-03-04T23:30:00.000Z") });
+    assert.strictEqual(((await repo.get("p1")) as any).day, "2024-01-02");
+    assert.strictEqual(((await repo.get("p2")) as any).day, "2024-03-04");
+    assert.strictEqual(
+      (await this.client.query(`SELECT day::text AS d FROM rel_post WHERE uuid = 'p1'`)).rows[0].d,
+      "2024-01-02"
+    );
+    assert.deepStrictEqual(await this.uuids(repo, "day >= '2024-02-01'"), ["p2"]);
+  }
 }

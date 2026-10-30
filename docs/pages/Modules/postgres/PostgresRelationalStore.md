@@ -49,7 +49,7 @@ Those of `PostgresStore` (`postgresqlServer`, `usePool`, `models`, `tables`), pl
 | `numericAsDecimal` | `false`      | map JSON `number` to `NUMERIC` instead of `DOUBLE PRECISION`                                                                                                                                                         |
 
 `table` (one shared table) is refused, `autoCreateTable` is replaced by `schemaSync`, `views` and `viewPrefix` do
-nothing (the tables are already typed).
+nothing (the tables are already typed). A `tables` override must be a lowercase identifier (`[a-z_][a-z0-9_]*`).
 
 ## Mapping
 
@@ -91,8 +91,9 @@ their tooling.
 
 - Every statement names its columns from the plan: a row written by an older application version keeps the columns
   this version does not know, `update()` only replaces the columns of its own projection and merges `_extra`.
-- Junction rows are written in the same transaction as the owner row (a dedicated connection of the pool, or a
-  serialized transaction on the single client) and read with one statement per junction per page.
+- Junction rows are written in the same transaction as the owner row and read with one statement per junction per
+  page. With `usePool` each transaction takes its own connection; on a single client every statement of the store
+  goes through one lock, so a plain write never runs inside another caller's transaction.
 - WebdaQL: `=, !=, <, <=, >, >=, LIKE, IN, IS NULL, IS NOT NULL, ORDER BY, LIMIT/OFFSET` on columns and JSONB paths,
   `CONTAINS` on JSONB arrays, with the in-memory semantics (`views = '1'` matches a `BIGINT`, `views = 'abc'` matches
   nothing, `!=` matches `NULL`). `NULL` sorts first ascending, last descending.

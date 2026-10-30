@@ -39,7 +39,15 @@ export interface RowWrite {
 }
 
 const NUMBER_KINDS = new Set(["bigint", "double", "decimal"]);
-const TIME_KINDS = new Set(["timestamptz", "date"]);
+
+/**
+ * @param date - a date
+ * @returns its local calendar day as `YYYY-MM-DD`
+ */
+function localDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 /**
  * Maps the JSON of the models of one table to its columns and junction rows, and back
@@ -145,7 +153,10 @@ export class TableMapping {
     if (kind === "json") {
       return JSON.stringify(value);
     }
-    if (TIME_KINDS.has(kind)) {
+    if (kind === "date") {
+      return value instanceof Date ? value.toISOString().slice(0, 10) : value;
+    }
+    if (kind === "timestamptz") {
       return value instanceof Date ? value.toISOString() : value;
     }
     if (NUMBER_KINDS.has(kind)) {
@@ -172,7 +183,8 @@ export class TableMapping {
       return decodeJson(value);
     }
     if (value instanceof Date) {
-      return kind === "date" ? value.toISOString().slice(0, 10) : value.toISOString();
+      // pg parses a DATE as a local-midnight Date: its local calendar day is the stored day
+      return kind === "date" ? localDay(value) : value.toISOString();
     }
     if (NUMBER_KINDS.has(kind) && typeof value === "string") {
       return Number(value);
@@ -237,9 +249,20 @@ export class TableMapping {
     }
     const extra: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(json)) {
-      if (!handled.has(key) && value !== undefined) {
-        extra[key] = value;
+      if (handled.has(key) || value === undefined) {
+        continue;
       }
+      // A column of the table outside the writer's projection (a subclass field written through the parent): the
+      // writer named it, so it is written, never stashed in the extra column where it would shadow nothing
+      const named = this.byField.get(key);
+      if (named) {
+        for (const column of named) {
+          columns.push(column.name);
+          values.push(this.referenceValue(value, column));
+        }
+        continue;
+      }
+      extra[key] = value;
     }
     if (this.extraColumn) {
       if (!partial || Object.keys(extra).length) {

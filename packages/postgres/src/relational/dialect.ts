@@ -86,7 +86,9 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
       case "addForeignKey": {
         const { name, table, columns, references, onDelete } = step.foreignKey;
         return [
-          `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ${sqlString(name)}) THEN ` +
+          `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint con JOIN pg_class c ON c.oid = con.conrelid ` +
+            `JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = current_schema() AND c.relname = ${sqlString(table)} ` +
+            `AND con.conname = ${sqlString(name)}) THEN ` +
             `ALTER TABLE ${this.quote(table)} ADD CONSTRAINT ${this.quote(name)} FOREIGN KEY (${this.columnList(columns)}) ` +
             `REFERENCES ${this.quote(references.table)} (${this.columnList(references.columns)}) ` +
             `ON DELETE ${onDelete} DEFERRABLE INITIALLY DEFERRED; END IF; END $$`

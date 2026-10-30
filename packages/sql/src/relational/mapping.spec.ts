@@ -38,6 +38,7 @@ const models = [
       views: { type: "integer" },
       meta: { type: "object" },
       createdAt: { type: "string", format: "date-time" },
+      day: { type: "string", format: "date" },
       author: { type: "string" },
       tags: { type: "array", items: { type: "string" } },
       contributors: { type: "array", items: { type: "object", properties: { role: { type: "string" } } } },
@@ -227,7 +228,10 @@ describe("TableMapping", () => {
   it("subclassProjectionAddsItsColumns", () => {
     const animals = new TableMapping(plan, table("app_animal"));
     expect(animals.toRow({ uuid: "d1", __type: "App/Dog", bark: true }, "App/Animal", false).columns).toContain("bark");
-    expect(animals.toRow({ uuid: "a1", bark: true }, "App/Animal", false).columns).not.toContain("bark");
+    // A named column outside the writer's projection is written, not stashed (see namedColumnsOutsideTheProjection...)
+    const named = animals.toRow({ uuid: "a1", bark: true }, "App/Animal", false);
+    expect(named.columns).toContain("bark");
+    expect(named.values[named.columns.indexOf("_extra")]).toBe("{}");
     expect(animals.projection("App/Dog")).toContain("bark");
     expect(animals.projection("App/Unknown")).toEqual(animals.projection("App/Animal"));
     expect(animals.readColumns()).toEqual(table("app_animal").columns.map(c => c.name));
@@ -272,5 +276,24 @@ describe("TableMapping", () => {
   it("junctionTablesHaveNoProjection", () => {
     const junction = new TableMapping(plan, table("app_post_tags"));
     expect(junction.projection("App/Nope")).toEqual(["post", "tag", "_position"]);
+  });
+  it("namedColumnsOutsideTheProjectionAreWrittenNotStashed", () => {
+    const animals = new TableMapping(plan, table("app_animal"));
+    const patch = animals.toRow({ uuid: "d1", bark: false }, "App/Animal", true);
+    expect(patch.columns).toEqual(["uuid", "bark"]);
+    expect(patch.values).toEqual(["d1", false]);
+    const full = animals.toRow({ uuid: "d1", kind: "dog", bark: true, note: "x" }, "App/Animal", false);
+    expect(full.columns).toContain("bark");
+    expect(full.values[full.columns.indexOf("_extra")]).toBe(JSON.stringify({ note: "x" }));
+  });
+
+  it("dateColumnsKeepTheirDayInEveryTimezone", () => {
+    const column = table("app_post").columns.find(c => c.name === "day")!;
+    expect(column.type).toEqual({ kind: "date" });
+    // pg parses a DATE as a local-midnight Date
+    expect(posts.decode(new Date(2024, 0, 2), column, decodeJson)).toBe("2024-01-02");
+    expect(posts.decode("2024-01-02", column, decodeJson)).toBe("2024-01-02");
+    expect(posts.encode(new Date("2024-01-02T23:30:00.000Z"), column)).toBe("2024-01-02");
+    expect(posts.encode("2024-01-02", column)).toBe("2024-01-02");
   });
 });

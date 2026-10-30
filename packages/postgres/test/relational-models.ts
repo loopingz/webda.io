@@ -25,6 +25,7 @@ export class RelPost extends UuidModel {
   files?: any[];
   _creationDate?: string;
   _lastUpdate?: string;
+  day?: string;
   author?: string;
   tags?: string[];
   contributors?: any[];
@@ -195,6 +196,7 @@ export function relationalMetadata(): Record<string, any> {
         files: { type: "array", items: { type: "object" } },
         _creationDate: { type: "string", format: "date-time" },
         _lastUpdate: { type: "string", format: "date-time" },
+        day: { type: "string", format: "date" },
         author: string,
         tags: { type: "array", items: string },
         contributors: { type: "array", items: { type: "object" } },

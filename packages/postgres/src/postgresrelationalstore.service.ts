@@ -56,6 +56,15 @@ export class PostgresRelationalParameters extends PostgresParameters {
         "A relational store has one typed table per model: `table` is not supported, use `tables` for names"
       );
     }
+    for (const [model, table] of Object.entries(this.tables ?? {})) {
+      // Written quoted in the relational statements and unquoted in the shared ones: only a plain identifier fits both
+      if (!/^[a-z_][a-z0-9_]*$/.test(table)) {
+        throw new WebdaError.CodeError(
+          "RELATIONAL_TABLE_NAME",
+          `Table name '${table}' for ${model} must be a lowercase identifier ([a-z_][a-z0-9_]*)`
+        );
+      }
+    }
     this.schemaSync ??= "create";
     this.columnNaming ??= "preserve";
     this.extraColumn ??= "_extra";
@@ -153,6 +162,22 @@ export class PostgresRelationalStore<
   }
 
   /**
+   * The client the repositories run their statements on. A single (not pooled) client runs every statement under
+   * the same lock as the transactions, so a plain write never lands inside another caller's transaction
+   * @returns the client, undefined while the store is not connected
+   */
+  protected statementClient(): SQLClient | undefined {
+    const client = this.client;
+    if (!client || this.parameters.usePool) {
+      return client;
+    }
+    return {
+      query: (q, values) =>
+        this.writeMutex.run(() => client.query(q, values) as Promise<{ rows: any[]; rowCount: number }>)
+    };
+  }
+
+  /**
    * Run statements in one transaction: on its own pooled connection, or serialized on the single client
    * @param fn - the statements
    * @returns the function result
@@ -208,7 +233,7 @@ export class PostgresRelationalStore<
     return new RelationalRepository<T>(model, meta.PrimaryKey, {
       plan,
       table,
-      client: () => this.client,
+      client: () => this.statementClient(),
       transact: fn => this.transact(fn),
       dialect: this.dialect as PostgresRelationalDialect,
       separator: meta.PrimaryKeySeparator,

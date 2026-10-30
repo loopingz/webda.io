@@ -233,6 +233,55 @@ export class PostgresRelationalStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async transactionsDoNotSwallowConcurrentWrites() {
+    const tags = useRepository(RelTag as any);
+    const posts = useRepository(RelPost as any);
+    await tags.create({ uuid: "t1", label: "x" } as any);
+    // A junction transaction that fails at COMMIT (deferred FK) runs while plain writes arrive on the same client
+    const [failed] = await Promise.all([
+      posts.create({ uuid: "p1", title: "a", tags: ["t1", "missing"] } as any).then(
+        () => undefined,
+        err => err
+      ),
+      tags.create({ uuid: "t9", label: "y" } as any),
+      tags.create({ uuid: "t8", label: "z" } as any)
+    ]);
+    assert.ok(failed instanceof WebdaError.BadRequest, String(failed));
+    assert.strictEqual(await posts.exists("p1" as any), false);
+    assert.strictEqual(await tags.exists("t9" as any), true, "a concurrent write survives the rollback");
+    assert.strictEqual(await tags.exists("t8" as any), true);
+    // A plain write failing while a transaction is open must not abort the transaction
+    const [dup, created] = await Promise.all([
+      tags.create({ uuid: "t1", label: "dup" } as any).then(
+        () => undefined,
+        err => err
+      ),
+      posts.create({ uuid: "p2", title: "b", tags: ["t1"] } as any).then(() => "ok")
+    ]);
+    assert.match(String(dup), /Already exists/);
+    assert.strictEqual(created, "ok");
+    assert.deepStrictEqual(((await posts.get("p2" as any)) as any).tags, ["t1"]);
+  }
+
+  @test
+  tableOverridesMustBeLowercaseIdentifiers() {
+    assert.throws(
+      () => new PostgresRelationalParameters().load({ ...params, tables: { "Rel/Post": "Posts" } }),
+      (err: any) => err instanceof WebdaError.CodeError && err.code === "RELATIONAL_TABLE_NAME"
+    );
+    assert.throws(
+      () => new PostgresRelationalParameters().load({ ...params, tables: { "Rel/Post": "a$$b" } }),
+      (err: any) => err instanceof WebdaError.CodeError && err.code === "RELATIONAL_TABLE_NAME"
+    );
+    assert.deepStrictEqual(
+      new PostgresRelationalParameters().load({ ...params, tables: { "Rel/Post": "blog_posts" } }).tables,
+      {
+        "Rel/Post": "blog_posts"
+      }
+    );
+  }
+
+  @test
   async cleanEmptiesEveryTable() {
     const tags = useRepository(RelTag as any);
     await tags.create({ uuid: "t1", label: "x" } as any);

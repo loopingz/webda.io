@@ -48,6 +48,7 @@ The same package holds the engine-neutral part of the **typed table** stores (`P
   shared statements at columns; reads select the table columns and fold the junction rows; writes name their columns
   and replace junction rows in one transaction (`Transact`); foreign key violations become `WebdaError.BadRequest`
   (insert, update) or `WebdaError.Conflict` (delete).
-- `runTransaction` / `AsyncMutex`: `BEGIN` / `COMMIT` / `ROLLBACK` on one connection, serialized when it is not pooled.
+- `runTransaction` / `AsyncMutex`: `BEGIN` / `COMMIT` / `ROLLBACK` on one connection; on a connection that is not
+  pooled, the store runs every statement and every transaction through the same mutex.
 
 See [`PostgresRelationalStore`](../postgres/PostgresRelationalStore.md) for the user-facing behavior.

@@ -19,8 +19,16 @@ import {
   unregisterOperationAuthorizer,
   listOperationAuthorizers,
   toOperationOutput,
-  useCoreEvents
+  useCoreEvents,
+  registerOperationTransactionParticipant,
+  unregisterOperationTransactionParticipant,
+  listOperationTransactionParticipants,
+  runWithTransaction,
+  useOperationTransaction,
+  runAsSystem
 } from "../index.js";
+import type { OperationTransactionParticipant } from "../index.js";
+import * as WebdaError from "../errors/errors.js";
 import type { OperationDefinition } from "../index.js";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
@@ -2429,5 +2437,408 @@ class OperationMetadataInheritanceTest {
       ((getMetadata(target)?.["webda.operations"] as any[]) ?? []).map(op => op._methodName).sort();
     assert.deepStrictEqual(names(InheritParentService), ["parentOp"]);
     assert.deepStrictEqual(names(InheritChildService), ["childOp", "parentOp"]);
+  }
+}
+
+/**
+ * Calls recorded by the fake transaction participants, shared with TxTestService
+ */
+let txLog: string[] = [];
+
+/**
+ * Fake participant recording its calls in {@link txLog}
+ */
+class FakeParticipant implements OperationTransactionParticipant {
+  seen: { begin?: OperationDefinition; rollback?: unknown; context?: any } = {};
+  /**
+   * @param name - the participant name
+   * @param fail - the call throwing
+   */
+  constructor(
+    public readonly name: string,
+    public fail: { begin?: Error; commit?: Error; rollback?: Error } = {}
+  ) {}
+
+  async begin(context: any, operation?: OperationDefinition): Promise<void> {
+    this.seen.begin = operation;
+    this.seen.context = context;
+    txLog.push(`${this.name}.begin:${operation?.id}:${operation?.transaction}`);
+    if (this.fail.begin) throw this.fail.begin;
+  }
+
+  async commit(): Promise<void> {
+    txLog.push(`${this.name}.commit`);
+    if (this.fail.commit) throw this.fail.commit;
+  }
+
+  async rollback(_context: any, error: unknown): Promise<void> {
+    this.seen.rollback = error;
+    txLog.push(`${this.name}.rollback:${(error as Error)?.message}`);
+    if (this.fail.rollback) throw this.fail.rollback;
+  }
+}
+
+/**
+ * Service whose operations record their execution in {@link txLog}
+ */
+class TxTestService extends Service {
+  static createConfiguration(params: any) {
+    return new ServiceParameters().load(params);
+  }
+
+  static filterParameters(params: any) {
+    return params;
+  }
+
+  async write(): Promise<string> {
+    txLog.push(`method:${useOperationTransaction() !== undefined}`);
+    return "ok";
+  }
+
+  async fail(): Promise<string> {
+    txLog.push("method");
+    throw new Error("method failed");
+  }
+
+  async *stream(): AsyncGenerator<string> {
+    yield "a";
+    txLog.push("after-a");
+    yield "b";
+    txLog.push("after-b");
+  }
+
+  async outer(): Promise<string> {
+    txLog.push("outer");
+    const inner = new FakeOpContext();
+    await inner.init();
+    await callOperation(inner, "TxSvc.Inner");
+    return "outer";
+  }
+}
+
+@suite
+class OperationTransactionTest extends WebdaApplicationTest {
+  participants: FakeParticipant[] = [];
+  offs: (() => void)[] = [];
+
+  getTestConfiguration() {
+    return {
+      services: {
+        TxSvc: {
+          type: "TxTestService"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    app.addModda("Webda/TxTestService", TxTestService);
+  }
+
+  async beforeEach() {
+    await super.beforeEach();
+    txLog = [];
+    for (const [id, method, extra] of [
+      ["TxSvc.Write", "write", {}],
+      ["TxSvc.Fail", "fail", {}],
+      ["TxSvc.Stream", "stream", { generator: true }],
+      ["TxSvc.Outer", "outer", {}],
+      ["TxSvc.Inner", "write", {}],
+      ["TxSvc.NoTx", "write", { transaction: false }]
+    ] as const) {
+      registerOperation(id, { service: "TxSvc", method, input: "void", output: "void", ...extra } as any);
+    }
+    this.offs.push(
+      useCoreEvents("Webda.BeforeOperation", evt => {
+        txLog.push(`before:${evt.operationId}`);
+      }),
+      useCoreEvents("Webda.OperationSuccess", evt => {
+        // Success listeners of the outermost operation run once the transaction is committed
+        const tx = useOperationTransaction();
+        txLog.push(`success:${evt.operationId}${tx && txLog.some(l => l.endsWith(".commit")) ? ":open" : ""}`);
+      }),
+      useCoreEvents("Webda.OperationFailure", evt => {
+        txLog.push(`failure:${evt.operationId}:${evt.error?.message}`);
+      })
+    );
+  }
+
+  async afterEach() {
+    this.participants.forEach(p => unregisterOperationTransactionParticipant(p));
+    this.participants = [];
+    this.offs.forEach(off => off());
+    this.offs = [];
+    await super.afterEach();
+  }
+
+  /**
+   * Register fake participants for the test
+   * @param participants - the participants
+   * @returns the participants
+   */
+  register(...participants: FakeParticipant[]): FakeParticipant[] {
+    participants.forEach(p => registerOperationTransactionParticipant(p));
+    this.participants.push(...participants);
+    return participants;
+  }
+
+  /**
+   * @param operationId - the operation
+   * @returns the operation context after the call
+   */
+  async call(operationId: string): Promise<FakeOpContext> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await callOperation(ctx, operationId);
+    return ctx;
+  }
+
+  @test
+  async registerAndList() {
+    const [p] = this.register(new FakeParticipant("p"));
+    // Registering twice keeps one entry
+    registerOperationTransactionParticipant(p);
+    assert.deepStrictEqual(listOperationTransactionParticipants(), [p]);
+    unregisterOperationTransactionParticipant(p);
+    assert.deepStrictEqual(listOperationTransactionParticipants(), []);
+  }
+
+  @test
+  async noParticipantNoTransaction() {
+    await this.call("TxSvc.Write");
+    assert.deepStrictEqual(txLog, ["before:TxSvc.Write", "method:false", "success:TxSvc.Write"]);
+  }
+
+  @test
+  async commitBeforeSuccess() {
+    const [p] = this.register(new FakeParticipant("p"));
+    const ctx = await this.call("TxSvc.Write");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Write:undefined",
+      "before:TxSvc.Write",
+      "method:true",
+      "p.commit",
+      "success:TxSvc.Write"
+    ]);
+    assert.strictEqual(p.seen.context, ctx);
+    assert.strictEqual(useOperationTransaction(), undefined, "no transaction outlives the operation");
+  }
+
+  @test
+  async rollbackOnMethodError() {
+    const [p] = this.register(new FakeParticipant("p"));
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    let thrown: unknown;
+    await callOperation(ctx, "TxSvc.Fail").catch(err => (thrown = err));
+    assert.strictEqual((thrown as Error).message, "method failed");
+    assert.strictEqual(p.seen.rollback, thrown, "rollback receives the original error");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Fail:undefined",
+      "before:TxSvc.Fail",
+      "method",
+      "p.rollback:method failed",
+      "failure:TxSvc.Fail:method failed"
+    ]);
+  }
+
+  @test
+  async commitFailureRollsBackTheOthers() {
+    const commitError = new Error("commit failed");
+    this.register(
+      new FakeParticipant("a"),
+      new FakeParticipant("b", { commit: commitError }),
+      new FakeParticipant("c")
+    );
+    await assert.rejects(() => this.call("TxSvc.Write"), /commit failed/);
+    assert.deepStrictEqual(txLog, [
+      "a.begin:TxSvc.Write:undefined",
+      "b.begin:TxSvc.Write:undefined",
+      "c.begin:TxSvc.Write:undefined",
+      "before:TxSvc.Write",
+      "method:true",
+      "a.commit",
+      "b.commit",
+      // Participants are committed in registration order: a stays committed, b and c roll back
+      "b.rollback:commit failed",
+      "c.rollback:commit failed",
+      "failure:TxSvc.Write:commit failed"
+    ]);
+  }
+
+  @test
+  async rollbackFailureKeepsOriginalError() {
+    this.register(new FakeParticipant("a", { rollback: new Error("rollback failed") }), new FakeParticipant("b"));
+    await assert.rejects(() => this.call("TxSvc.Fail"), /method failed/);
+    // A failing rollback does not prevent the next participants from rolling back
+    assert.deepStrictEqual(txLog.slice(-3), [
+      "a.rollback:method failed",
+      "b.rollback:method failed",
+      "failure:TxSvc.Fail:method failed"
+    ]);
+  }
+
+  @test
+  async beginFailure() {
+    this.register(new FakeParticipant("a"), new FakeParticipant("b", { begin: new Error("begin failed") }));
+    await assert.rejects(() => this.call("TxSvc.Write"), /begin failed/);
+    assert.deepStrictEqual(txLog, [
+      "a.begin:TxSvc.Write:undefined",
+      "b.begin:TxSvc.Write:undefined",
+      "a.rollback:begin failed",
+      "b.rollback:begin failed",
+      "failure:TxSvc.Write:begin failed"
+    ]);
+  }
+
+  @test
+  async streamCommitsAfterLastChunk() {
+    this.register(new FakeParticipant("p"));
+    await this.call("TxSvc.Stream");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Stream:undefined",
+      "before:TxSvc.Stream",
+      "after-a",
+      "after-b",
+      "p.commit",
+      "success:TxSvc.Stream"
+    ]);
+  }
+
+  @test
+  async nestedOperationsJoinTheOuterTransaction() {
+    this.register(new FakeParticipant("p"));
+    await this.call("TxSvc.Outer");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Outer:undefined",
+      "before:TxSvc.Outer",
+      "outer",
+      "before:TxSvc.Inner",
+      "method:true",
+      "success:TxSvc.Inner",
+      "p.commit",
+      "success:TxSvc.Outer"
+    ]);
+  }
+
+  @test
+  async operationOptOutIsHandedToParticipants() {
+    const [p] = this.register(new FakeParticipant("p"));
+    await this.call("TxSvc.NoTx");
+    assert.strictEqual(p.seen.begin?.transaction, false);
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.NoTx:false",
+      "before:TxSvc.NoTx",
+      "method:true",
+      "p.commit",
+      "success:TxSvc.NoTx"
+    ]);
+  }
+
+  @test
+  async operationDecoratorTransactionOption() {
+    class Decorated {
+      @Operation({ transaction: false })
+      async streamed() {}
+    }
+    const ops = (Decorated as any)[Symbol.metadata]["webda.operations"] as any[];
+    assert.strictEqual(ops[0].transaction, false);
+  }
+
+  @test
+  async runWithTransactionOutsideOperation() {
+    const [p] = this.register(new FakeParticipant("p"));
+    const result = await runWithTransaction(async () => {
+      assert.ok(useOperationTransaction());
+      txLog.push("fn");
+      return 42;
+    });
+    assert.strictEqual(result, 42);
+    assert.deepStrictEqual(txLog, ["p.begin:undefined:undefined", "fn", "p.commit"]);
+    txLog = [];
+    await assert.rejects(
+      () =>
+        runWithTransaction(async () => {
+          throw new Error("fn failed");
+        }, [p]),
+      /fn failed/
+    );
+    assert.deepStrictEqual(txLog, ["p.begin:undefined:undefined", "p.rollback:fn failed"]);
+    assert.strictEqual(useOperationTransaction(), undefined);
+  }
+
+  @test
+  async runWithTransactionJoinsCurrent() {
+    const [a] = this.register(new FakeParticipant("a"));
+    const b = new FakeParticipant("b");
+    await runWithTransaction(async () => {
+      // Joining: b is enlisted in the current transaction, a is not begun twice
+      await runWithTransaction(async () => {
+        txLog.push("inner");
+      }, [a, b]);
+      txLog.push("outer");
+    });
+    assert.deepStrictEqual(txLog, [
+      "a.begin:undefined:undefined",
+      "b.begin:undefined:undefined",
+      "inner",
+      "outer",
+      "a.commit",
+      "b.commit"
+    ]);
+  }
+
+  @test
+  async participantsReachTheTransactionWhileFinishing() {
+    const seen: string[] = [];
+    const participant: OperationTransactionParticipant = {
+      name: "reader",
+      begin: async () => {
+        useOperationTransaction()!.set("reader", "state");
+      },
+      commit: async () => {
+        seen.push(`commit:${useOperationTransaction()?.get("reader")}`);
+      },
+      rollback: async () => {
+        seen.push(`rollback:${useOperationTransaction()?.get("reader")}`);
+      }
+    };
+    registerOperationTransactionParticipant(participant);
+    try {
+      await this.call("TxSvc.Write");
+      await assert.rejects(() => this.call("TxSvc.Fail"), /method failed/);
+    } finally {
+      unregisterOperationTransactionParticipant(participant);
+    }
+    assert.deepStrictEqual(seen, ["commit:state", "rollback:state"]);
+  }
+
+  @test
+  async committedParticipantIsNotCommittedTwice() {
+    this.register(new FakeParticipant("p"));
+    await runWithTransaction(async () => {
+      const transaction = useOperationTransaction()!;
+      await transaction.commit();
+      await transaction.commit();
+    });
+    assert.deepStrictEqual(txLog, ["p.begin:undefined:undefined", "p.commit"]);
+  }
+
+  @test
+  async transactionSlots() {
+    this.register(new FakeParticipant("p"));
+    await runWithTransaction(async () => {
+      const tx = useOperationTransaction()!;
+      assert.strictEqual(tx.get("k"), undefined);
+      tx.set("k", 1);
+      assert.strictEqual(tx.get("k"), 1);
+      // A separate async chain started inside the transaction shares it
+      await Promise.resolve().then(() => assert.strictEqual(useOperationTransaction()?.get("k"), 1));
+      // Switching to the system context keeps the transaction: it follows the async chain, not the context
+      assert.strictEqual(
+        runAsSystem(() => useOperationTransaction()),
+        tx
+      );
+    });
   }
 }

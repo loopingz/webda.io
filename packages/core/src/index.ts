@@ -22,6 +22,7 @@ export * from "./contexts/globaloperationcontext.js";
 export * from "./core/icore.js";
 export * from "./core/instancestorage.js";
 export * from "./core/operations.js";
+export * from "./core/transactions.js";
 export * from "./core/asyncqueue.js";
 export * from "./core/core.js";
 export * from "./core/hooks.js";

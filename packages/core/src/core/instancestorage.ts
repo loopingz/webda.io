@@ -26,6 +26,8 @@ export type InstanceStorage = Partial<{
   operationAuthorizers: Set<(...args: any[]) => Promise<any>>;
   // Protected resource servers (see registerProtectedResource)
   protectedResources: { path: string; uri?: string }[];
+  // Transaction participants of the operations (see registerOperationTransactionParticipant)
+  operationTransactionParticipants: Set<any>;
   // Second factor methods available to the MFA behavior (see registerSecondFactor)
   secondFactors: Map<string, SecondFactorProvider>;
   loginMfa: LoginMfaPolicy;

@@ -27,6 +27,8 @@ export interface RestParameters {
     | {
         method: "get" | "post" | "put" | "delete" | "patch";
         path: string;
+        /** Method parameter receiving the whole JSON body. */
+        body?: string;
         responses?: {
           [statusCode: string]: {
             description?: string;
@@ -201,6 +203,14 @@ export interface OperationDefinition {
    * The method is an async generator (set by the @Operation decorator)
    */
   generator?: boolean;
+  /**
+   * Run the operation in a transaction of the registered participants (e.g. a SQL store with
+   * `transaction: "operation"`)
+   *
+   * `false` opts the operation out, e.g. a long streaming read that should not hold a connection; undefined lets the
+   * participants decide. A nested operation always joins the transaction of the outermost one.
+   */
+  transaction?: boolean;
   /**
    * Additional transport hints for future extensibility
    */

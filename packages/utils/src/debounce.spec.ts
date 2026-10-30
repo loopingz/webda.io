@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { vi } from "vitest";
+import * as sinon from "sinon";
 import { debounce } from "./debounce.js";
 
 @suite
@@ -339,24 +339,36 @@ export class DebounceTest {
 
   @test
   "should handle maxWait in tight loop"() {
-    vi.useFakeTimers();
-    try {
-      let callCount = 0;
-      const debouncedFunc = debounce(() => callCount++, 50, { maxWait: 100 });
+    const clock = sinon.useFakeTimers({ now: 1000, toFake: ["Date", "setTimeout", "clearTimeout"] });
+    let callCount = 0;
+    const debouncedFunc = debounce(
+      () => {
+        callCount++;
+      },
+      50,
+      { maxWait: 100 }
+    );
 
+    try {
       debouncedFunc();
       for (let i = 0; i < 3; i++) {
-        vi.advanceTimersByTime(25);
+        clock.tick(25);
         debouncedFunc();
       }
-      vi.advanceTimersByTime(24);
+      clock.tick(24);
       assert.strictEqual(callCount, 0);
-      vi.advanceTimersByTime(1);
+      clock.tick(1);
       assert.strictEqual(callCount, 1);
-      vi.advanceTimersByTime(100);
+
+      // A call after maxWait starts a new trailing edge.
+      debouncedFunc();
+      clock.tick(49);
       assert.strictEqual(callCount, 1);
+      clock.tick(1);
+      assert.strictEqual(callCount, 2);
     } finally {
-      vi.useRealTimers();
+      debouncedFunc.cancel();
+      clock.restore();
     }
   }
 

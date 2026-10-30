@@ -1,4 +1,5 @@
 import {
+  Command,
   EventRepository,
   InstanceCache,
   MemoryRepository,
@@ -6,10 +7,20 @@ import {
   Store,
   StoreNotFoundError,
   StoreParameters,
+  UNTYPED,
   UpdateConditionFailError,
   useModelMetadata
 } from "@webda/core";
-import type { CountResult, ModelClass, Repository } from "@webda/core";
+import type {
+  CountResult,
+  MigratableStore,
+  ModelClass,
+  RawPage,
+  RawPatch,
+  RawTable,
+  Repository,
+  StoredTypeCounts
+} from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 import { Collection, Db, DbOptions, Document, MongoClient } from "mongodb";
 
@@ -134,6 +145,18 @@ export function mapExpression(expression: WebdaQL.Expression): any {
 }
 
 /**
+ * Anchored, case-insensitive regular expressions matching exactly the given strings: stored types resolve
+ * case-insensitively (`WEBDA/USER` is `Webda/User`)
+ * @param names - the strings
+ * @returns one expression per distinct lower-cased string
+ */
+export function matchIgnoreCase(names: string[]): RegExp[] {
+  return [...new Set(names.map(name => name.toLowerCase()))].map(
+    name => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+  );
+}
+
+/**
  * MongoDB-backed repository for a single model class
  *
  * Every object is stored as a plain document with `_id` set to its primary key
@@ -205,19 +228,44 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
    */
   protected fromDocument(doc: any): InstanceType<T> {
     const { _id, __type, ...data } = doc;
-    const instance = new this.model(data) as InstanceType<T>;
+    const typed = typeof __type === "string" && __type !== "";
+    // A document loads as the class its type resolves to (a Webda 3 form included): a subclass row as the subclass
+    const clazz: any = (typed && this.findModelClass(__type)) || this.model;
+    const instance = new clazz(data) as InstanceType<T>;
     if (typeof (instance as any).load === "function") {
       (instance as any).load(data);
     } else {
       Object.assign(instance as any, data);
     }
     Object.defineProperty(instance, "__type", {
-      value: __type ?? (this.model as any).Metadata?.Identifier,
+      // The current identifier of a legacy type, the stored value when it is unknown or ambiguous
+      value: typed ? this.currentTypeOf(instance, __type) : (this.model as any).Metadata?.Identifier,
       enumerable: false,
       configurable: true,
       writable: true
     });
     return instance;
+  }
+
+  /**
+   * Aggregation expression of the `__type` a written document keeps: its stored type, rewritten to the current
+   * identifier when it is a legacy form of this model family (see `legacyTypeRewrites`)
+   * @returns the expression, `"$__type"` when nothing is rewritten
+   */
+  protected keptTypeExpression(): any {
+    const rewrites = Object.entries(this.legacyTypeRewrites());
+    if (!rewrites.length) {
+      return "$__type";
+    }
+    return {
+      $switch: {
+        branches: rewrites.map(([stored, current]) => ({
+          case: { $eq: [{ $toLower: { $ifNull: ["$__type", ""] } }, stored] },
+          then: current
+        })),
+        default: "$__type"
+      }
+    };
   }
 
   /**
@@ -274,10 +322,13 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
       res = await collection.replaceOne(filter, this.toDocument(data, key));
     } else {
       // Plain data (ModelRef.update) keeps the stored type, in one atomic write: a write through a parent
-      // repository never re-types a subclass document. `$literal` keeps `$`-prefixed values as data.
+      // repository never re-types a subclass document, a legacy type is rewritten to its current identifier.
+      // `$literal` keeps `$`-prefixed values as data.
       res = await collection.updateOne(filter, [
         {
-          $replaceWith: { $mergeObjects: [{ $literal: this.toDocument(data, key, null) }, { __type: "$__type" }] }
+          $replaceWith: {
+            $mergeObjects: [{ $literal: this.toDocument(data, key, null) }, { __type: this.keptTypeExpression() }]
+          }
         }
       ]);
     }
@@ -292,7 +343,14 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
     const $set = JSON.parse(JSON.stringify(data));
     delete $set._id;
     delete $set.__type;
-    const res = await (await this.getCollection()).updateOne(this.getFilter(key, conditionField, condition), { $set });
+    // One atomic pipeline: the fields are merged at the top level and a legacy type gets its current identifier.
+    // `$literal` keeps `$`-prefixed values as data.
+    const res = await (
+      await this.getCollection()
+    ).updateOne(this.getFilter(key, conditionField, condition), [
+      { $replaceWith: { $mergeObjects: ["$$ROOT", { $literal: $set }] } },
+      { $set: { __type: this.keptTypeExpression() } }
+    ]);
     if (res.matchedCount === 0) {
       throw new UpdateConditionFailError(key as any, conditionField as string, condition);
     }
@@ -422,9 +480,11 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   }
 
   /**
-   * Build the MongoDB filter restricting results to this model and its subclasses
+   * Build the MongoDB filter restricting results to this model and its subclasses, whatever form their `__type` has
+   * (Webda 3 short, lower-case and aliased types included, matched case-insensitively)
    *
-   * Documents without `__type` are considered as instance of the repository model
+   * Documents without `__type` (written before stamping) and documents typed as a strict ancestor of the table root
+   * belong to the table root and its ancestors; to every model when the table root is not known
    * @returns the class filter or undefined if the model has no metadata
    */
   protected getClassFilter(): any {
@@ -432,7 +492,19 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
     if (!ids) {
       return undefined;
     }
-    return { $or: [{ __type: { $in: ids } }, { __type: { $exists: false } }] };
+    // A model unknown to the application keeps the exact matching of its own hierarchy
+    const typed = (names: string[]) => ({
+      __type: { $in: this.typeResolver().exactOnly ? names : matchIgnoreCase(names) }
+    });
+    const conditions: any[] = [typed([...new Set([...ids, ...this.acceptedTypes()])])];
+    if (this.belongsToModel(undefined)) {
+      conditions.push({ __type: null }, { __type: "" });
+      const ancestors = this.tableRootAncestorTypes();
+      if (ancestors.length) {
+        conditions.push(typed(ancestors));
+      }
+    }
+    return { $or: conditions };
   }
 
   /**
@@ -650,7 +722,7 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
  *
  * @WebdaModda
  */
-export class MongoStore<K extends MongoParameters = MongoParameters> extends Store<K> {
+export class MongoStore<K extends MongoParameters = MongoParameters> extends Store<K> implements MigratableStore {
   /**
    * Connect promise
    */
@@ -716,7 +788,115 @@ export class MongoStore<K extends MongoParameters = MongoParameters> extends Sto
     const inner = new MongoRepository<T>(model, pks, () => this._connect(), meta.PrimaryKeySeparator);
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).
-    return new EventRepository<T>(model, pks, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
+    // Untyped documents of the shared collection belong to the first model of the store
+    return new EventRepository<T>(model, pks, inner, meta.PrimaryKeySeparator).setTableRoot(
+      this.getTableRoot()
+    ) as unknown as Repository<T>;
+  }
+
+  /**
+   * One table: the collection of the store
+   * @override
+   */
+  getRawTables(): RawTable[] {
+    return [{ name: this.parameters.collection, root: this.getTableRoot() }];
+  }
+
+  /**
+   * Refuse a table that is not the collection of this store
+   * @param table - the requested table
+   */
+  protected checkCollection(table: string): void {
+    if (table !== this.parameters.collection) {
+      throw new Error(`Unknown table ${table} in store ${this.getName()}`);
+    }
+  }
+
+  /**
+   * Documents ordered by `_id`, the token is the last `_id` of the page
+   * @override
+   */
+  async rawPages(table: string, batchSize: number, token?: string): Promise<RawPage> {
+    this.checkCollection(table);
+    const docs = await (
+      await this._connect()
+    )
+      .find(token === undefined ? {} : { _id: { $gt: <any>token } })
+      .sort({ _id: 1 })
+      .limit(batchSize + 1)
+      .toArray();
+    const rows = docs.slice(0, batchSize).map(({ _id, ...data }) => ({ table, key: String(_id), data }));
+    return {
+      rows,
+      continuationToken: docs.length > batchSize ? rows[rows.length - 1].key : undefined
+    };
+  }
+
+  /**
+   * Set top-level fields of the document in one update, no read: `$literal` keeps `$`-prefixed values as data
+   * @override
+   */
+  async rawPatch(table: string, key: string, patch: RawPatch): Promise<void> {
+    this.checkCollection(table);
+    const res = await (
+      await this._connect()
+    ).updateOne({ _id: <any>key }, [{ $replaceWith: { $mergeObjects: ["$$ROOT", { $literal: patch }] } }]);
+    if (res.matchedCount === 0) {
+      throw new Error(`Raw row not found: ${key}`);
+    }
+  }
+
+  /**
+   * Exact counts with one `$group` on the collection: never truncated
+   * @override
+   */
+  async countStoredTypes(_maxRows: number): Promise<StoredTypeCounts> {
+    const counts: Record<string, number> = {};
+    const groups = await (
+      await this._connect()
+    )
+      .aggregate([
+        {
+          $group: {
+            // A missing, empty or non-string type is untyped, as for the other stores
+            _id: {
+              $cond: [
+                { $and: [{ $eq: [{ $type: "$__type" }, "string"] }, { $ne: ["$__type", ""] }] },
+                "$__type",
+                UNTYPED
+              ]
+            },
+            n: { $sum: 1 }
+          }
+        }
+      ])
+      .toArray();
+    for (const group of groups) {
+      counts[group._id] = (counts[group._id] ?? 0) + group.n;
+    }
+    return { tables: { [this.parameters.collection]: counts }, truncated: false };
+  }
+
+  /**
+   * Rewrite the Webda 3 types of the store to their Webda 4 identifiers
+   * @param dryRun - only count the rows to migrate, write nothing
+   * @param batch - rows per page
+   * @param allowUnknown - exit with 0 even when rows keep an unknown or ambiguous type
+   * @returns the exit code
+   */
+  @Command("migrate", {
+    description: "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+    phase: "initialized"
+  })
+  async migrate(
+    /** @description Only count the rows to migrate, write nothing */
+    dryRun: boolean = false,
+    /** @description Rows per page */
+    batch: number = 500,
+    /** @description Exit with 0 even when rows keep an unknown or ambiguous type */
+    allowUnknown: boolean = false
+  ): Promise<number> {
+    return this.migrateCommand(dryRun, batch, allowUnknown);
   }
 
   /**

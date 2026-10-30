@@ -114,6 +114,12 @@ export default class SQLitePubSubService<
       this.poll(true);
     }
   };
+  /**
+   * A transaction released the connection: deliver what it committed
+   */
+  protected onReleased = () => {
+    this.poll(true);
+  };
 
   /**
    * @returns the validated table name
@@ -166,6 +172,7 @@ export default class SQLitePubSubService<
       await this.client.query(`CREATE INDEX IF NOT EXISTS ${this.table}_channel_idx ON ${this.table} (channel, id)`);
     }
     this.handle.events.on("changed", this.onChanged);
+    this.handle.events.on("released", this.onReleased);
     return this;
   }
 
@@ -236,7 +243,9 @@ export default class SQLitePubSubService<
    * @param force - read even when PRAGMA data_version did not change (a write by this process is not reflected)
    */
   protected poll(force: boolean): void {
-    if (!this.handle || this.polling || this.subscribers.size === 0) {
+    // While a transaction holds the connection, its uncommitted messages would be read (and the cursor moved past ids
+    // a rollback gives back): wait for its release
+    if (!this.handle || this.polling || this.subscribers.size === 0 || this.handle.client.isHeld()) {
       return;
     }
     this.polling = true;
@@ -313,6 +322,7 @@ export default class SQLitePubSubService<
     }
     if (this.handle) {
       this.handle.events.off("changed", this.onChanged);
+      this.handle.events.off("released", this.onReleased);
       releaseDatabase(this.handle);
       this.handle = undefined;
     }

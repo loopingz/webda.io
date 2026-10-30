@@ -26,6 +26,7 @@ import { ModelMetadata } from "@webda/compiler";
 import { applyDeployment, getDeploymentFile, loadDeployment, type Deployment } from "./deployment.js";
 import type { BehaviorMetadata } from "@webda/compiler";
 import { installModelTypes } from "./model-types.js";
+import { checkRelations, logDiagnostic } from "./relations-check.js";
 
 /**
  * Define a static member that only belongs to `target`
@@ -901,6 +902,7 @@ export class Application {
     await Promise.all([sectionLoader("moddas"), sectionLoader("models"), sectionLoader("beans")]);
     // Set metadata on models - need to be done after all models are loaded
     this.setModelMetadata(info.models);
+    this.checkRelations();
   }
 
   /**
@@ -930,6 +932,19 @@ export class Application {
     }
     // Stored types (Webda 3 short, lower-case and aliased forms) resolve against the loaded models
     installModelTypes(this);
+  }
+
+  /**
+   * Validate symmetry of model relations
+   */
+  protected checkRelations(): void {
+    const diagnostics = checkRelations(this.models, {
+      isFinalModel: (id: string) => this.isFinalModel(id),
+      deferStoreCheck: true
+    });
+    for (const d of diagnostics) {
+      logDiagnostic(d);
+    }
   }
 
   /**

@@ -21,6 +21,7 @@ import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import * as WebdaError from "../errors/errors.js";
+import { inputSchemaToOpenAPI } from "./binding.js";
 
 /** Mode used to serve an alias */
 export type RouteAliasMode = "rewrite" | "redirect";
@@ -589,12 +590,14 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     if (parse_result !== undefined) {
       const parseUrl = new URL(`http://localhost${finalUrl}`);
       if (entry._queryCatchAll) {
-        parse_result[entry._queryCatchAll] = {};
-        parseUrl.searchParams.forEach((v, k) => {
-          if (!entry._queryParams?.find(q => q.name === k)) {
-            parse_result[entry._queryCatchAll][k] = v;
-          }
-        });
+        parse_result[entry._queryCatchAll] = Object.fromEntries(
+          [...new Set(parseUrl.searchParams.keys())]
+            .filter(key => !entry._queryParams?.some(q => q.name === key))
+            .map(key => {
+              const values = parseUrl.searchParams.getAll(key);
+              return [key, values.length > 1 ? values : values[0]];
+            })
+        );
       }
       // Check for each params
       let mandatoryParams = true;
@@ -603,7 +606,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
           mandatoryParams &&= !q.required;
           return;
         }
-        parse_result[q.name] = parseUrl.searchParams.get(q.name);
+        const values = parseUrl.searchParams.getAll(q.name);
+        parse_result[q.name] = values.length > 1 ? values : values[0];
       });
       // Skip if we miss mandatory params
       if (!mandatoryParams) {
@@ -1167,9 +1171,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     const app = useApplication();
     const models = app.getModels();
     const schemas = app.getSchemas();
+    const operationSchemas = new Set(
+      Object.values(useInstanceStorage().operations ?? {}).flatMap(op => [op.input, op.output])
+    );
     // Copy all input/output from actions
     for (const i in schemas) {
-      if (!(i.endsWith(".input") || i.endsWith(".output"))) {
+      if (!(i.endsWith(".input") || i.endsWith(".output") || operationSchemas.has(i))) {
         continue;
       }
       // @ts-ignore
@@ -1211,6 +1218,9 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       openapi.components.schemas[modelName] = JSON.parse(
         JSON.stringify(desc).replace(/#\/definitions\//g, "#/components/schemas/")
       );
+    }
+    for (const [name, schema] of Object.entries(openapi.components.schemas)) {
+      openapi.components.schemas[name] = inputSchemaToOpenAPI(schema);
     }
     this.completeOpenAPI(openapi, skipHidden);
     openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));

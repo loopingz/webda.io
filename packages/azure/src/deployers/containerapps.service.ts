@@ -1,4 +1,4 @@
-import { Command, CronService, Deployer, getDeploymentVariables, SecretString, useCore, WebdaError } from "@webda/core";
+import { Command, CronService, Deployer, getDeploymentVariables, SecretString, WebdaError } from "@webda/core";
 import { formatImageReference, parseImageReference } from "@webda/oci";
 import { AzureAuth } from "../auth.js";
 import {
@@ -357,10 +357,10 @@ export class AzureContainerAppsDeployer
     });
   }
   /**
-   * Export declared cron methods as scheduled jobs.
+   * Export declared crons as scheduled jobs, each running `cron run --id` on its operation.
    */
   Jobs(): void {
-    for (const cron of CronService.loadAnnotations(useCore().getServices())) {
+    for (const cron of CronService.resolveCrons()) {
       const id = CronService.getExportId(cron),
         p = this.resources,
         app = p.containerApp;

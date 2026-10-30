@@ -56,7 +56,7 @@ const CONTEXT_TYPES = ["IOperationContext", "OperationContext"];
  * @param checker - the resident checker
  * @returns true for `IOperationContext`, `OperationContext` and their subclasses
  */
-function isContextType(type: Type, checker: Checker): boolean {
+export function isContextType(type: Type, checker: Checker): boolean {
   return CONTEXT_TYPES.some(name => derivesFrom(type, name, checker));
 }
 

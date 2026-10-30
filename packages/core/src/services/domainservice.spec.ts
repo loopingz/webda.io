@@ -688,7 +688,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     } as any;
     try {
       useDynamicService<DomainService>("DomainService").initOperations();
-      assert.strictEqual((listOperations()["Classroom.Test"] as any).input, "uuidRequest");
+      assert.strictEqual((listOperations()["Classroom.Test"] as any).input, "WebdaDemo/Classroom.primaryKey");
       const uuid = "550e8400-e29b-41d4-a716-446655440012";
       await Classroom.create({ uuid, name: "Room204" } as any);
       const ctx = new FakeOpContext();

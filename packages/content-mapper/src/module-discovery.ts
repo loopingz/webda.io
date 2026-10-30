@@ -664,7 +664,7 @@ export interface ModelRelations {
   /** Polymorphic references, optionally constrained to exact model identifiers. */
   polymorphicLinks?: { attribute: string; models?: string[] }[];
   /** Reverse lookups, from `ModelRelated<T, U, "attr">`. */
-  queries?: { attribute: string; model: string; targetAttribute: string }[];
+  queries?: { attribute: string; model: string; targetAttribute?: string }[];
   /** Behaviour-typed attributes. */
   behaviors?: { attribute: string; behavior: string }[];
 }
@@ -769,11 +769,11 @@ export function buildRelations(
     } else if (typeName === "ModelRelated") {
       if (!model) continue;
       relations.queries ??= [];
+      const targetAttribute = typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : undefined;
       relations.queries.push({
         attribute,
         model,
-        // ModelRelated<T, L, K>: K is the attribute of T linking back
-        targetAttribute: typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : ""
+        ...(targetAttribute !== undefined ? { targetAttribute } : {})
       });
     } else if (LINK_KINDS[typeName]) {
       relations.links ??= [];

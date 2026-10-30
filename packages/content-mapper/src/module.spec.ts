@@ -73,6 +73,19 @@ describe("module metadata on a fixture", () => {
   });
   afterAll(() => session?.dispose());
 
+  it("keeps model REST paths, methods and OpenAPI overrides alongside renamed handlers", () => {
+    const actions = buildModelActions(session.ctx, classOf(session, "actions.ts", "RestActions"));
+    expect(actions.assign).toEqual({
+      rest: { method: "post", path: "{uuid}/assign{?notify?}", body: "assignment" },
+      methods: ["POST"],
+      openapi: { post: { summary: "Assign" } },
+      handler: "assignAction"
+    });
+    expect(
+      buildBehaviorActions(session.ctx, classOf(session, "actions.ts", "RestActions"), "Fixture/Rest").assignAction
+    ).toMatchObject({ methods: ["POST"], openapi: { post: { summary: "Assign" } } });
+  });
+
   it("extracts @Command and @BuildCommand definitions", () => {
     const commands = buildCommands(session.ctx, classOf(session, "commands.service.ts", "Tooling"));
     expect(Object.keys(commands)).toEqual(["greet", "build", "nameless-phase"]);
@@ -472,7 +485,7 @@ describe("module relations", () => {
       buildRelations(session.ctx, undefined, classOf(session, "blog.model.ts", "Tag"), name => `Rel/${name}`).queries
     ).toEqual([
       { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
-      { attribute: "untargeted", model: "Rel/Post", targetAttribute: "" }
+      { attribute: "untargeted", model: "Rel/Post" }
     ]);
   });
 
@@ -500,6 +513,27 @@ function committedModule(relative: string): any {
  * committed files are written by the TypeScript 6 generator, so matching them
  * is evidence for the port rather than a restatement of it.
  */
+describe("reverse relation attribute metadata", () => {
+  it("keeps explicit attributes and omits unspecified ones in the discovery helper", () => {
+    const dir = join(here, "..", "test", "parity-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const relations = buildRelations(
+        session.ctx,
+        undefined,
+        classOf(session, "book.model.ts", "Book"),
+        name => `Test/${name}`
+      );
+      expect(relations.queries).toEqual([
+        { attribute: "siblings", model: "Test/Book", targetAttribute: "author" },
+        { attribute: "related", model: "Test/Book" }
+      ]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
 describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])("module for %s", relative => {
   const root = join(repo, relative);
   const committed = committedModule(relative);
@@ -525,6 +559,17 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     }
   });
 
+  it("extracts targetAttribute from typeArguments[2] for ModelRelated", () => {
+    if (relative !== "packages/core" || !committed) return;
+    const userQueries = result!.module.models["Webda/SimpleUser"]?.Relations?.queries;
+    const identsQuery = userQueries?.find(q => q.attribute === "_idents");
+    expect(identsQuery).toEqual({
+      attribute: "_idents",
+      model: "Webda/Ident",
+      targetAttribute: "_user"
+    });
+  });
+
   it("matches service commands, capabilities and Configuration", () => {
     if (!committed) return;
     for (const section of ["moddas", "beans"] as const) {
@@ -543,9 +588,10 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     expect(result!.module.capabilities).toEqual(committed.capabilities);
   });
 
-  it("is byte-identical to the committed module", () => {
+  it("matches the committed module apart from newly recorded REST bindings", () => {
     if (!committed) return;
-    expect(JSON.stringify(result!.module, undefined, 2)).toBe(JSON.stringify(committed, undefined, 2));
+    const legacy = (key: string, value: unknown) => (key === "x-webda-rest" ? undefined : value);
+    expect(JSON.stringify(result!.module, legacy, 2)).toBe(JSON.stringify(committed, legacy, 2));
     expect(result!.errors).toEqual([]);
     expect(result!.namingViolations).toEqual([]);
   });
@@ -614,7 +660,9 @@ describe("model action exposed under another name", () => {
 
   it("records the action under its name, with the method as handler", () => {
     if (!available) return;
-    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({ status: { handler: "statusAction" } });
+    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({
+      status: { openapi: { hidden: true }, handler: "statusAction" }
+    });
     expect(result!.errors).toEqual([]);
   });
 

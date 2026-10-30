@@ -9,6 +9,7 @@ import {
   unregisterOperationAuthorizer,
   useApplication,
   useCore,
+  useSystem,
   WebdaError
 } from "@webda/core";
 import { suite, test } from "@webda/test";
@@ -233,6 +234,13 @@ class IAMServiceTest extends IAMTest {
       () => this.call(new IAMContext({ uuid: "u9" }, { status: "draft" }), "Tasks.Update"),
       WebdaError.Forbidden
     );
+  }
+
+  @test
+  async systemIsAllowed() {
+    // The system has no user to load and no attachment: IAM lets it through, like the permission query
+    await callOperation(useSystem({ status: "archived" }), "Tasks.Delete");
+    assert.strictEqual(await canCallOperation(useSystem(), "Tasks.Delete"), true);
   }
 
   @test

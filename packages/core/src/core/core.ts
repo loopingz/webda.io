@@ -338,6 +338,8 @@ export class Core implements ICore {
     } catch (err) {
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
+      // The application must not start without it
+      if (err instanceof WebdaError.FatalInitError) throw err;
     }
   }
 

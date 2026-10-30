@@ -41,12 +41,15 @@ import {
   type ReflectedAttribute,
   type Section
 } from "./module-discovery.ts";
+import { compileFlows, formatFlowError } from "./flows/compile.ts";
+import type { CompiledFlow } from "./flows/types.ts";
 import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order, ts6PropertyOrder } from "./property-order.ts";
 import { generateModelSchemas } from "./schema/model.ts";
 import { generateTopLevelSchemas } from "./schema/project.ts";
 import { findParametersNode, findStaticParametersDeclaration, generateServiceSchema } from "./schema/service.ts";
 import type { JSONSchema7 } from "./schema/types.ts";
+import { literalOption } from "./schema/rest.ts";
 
 /** Value of `$schema` in every generated module. */
 export const WEBDA_MODULE_SCHEMA = "https://webda.io/schemas/webda.module.v4.json";
@@ -145,6 +148,10 @@ export interface WebdaModuleJson {
   schemas: Record<string, JSONSchema7>;
   behaviors: Record<string, BehaviorEntry>;
   capabilities?: Record<string, string>;
+  /**
+   * Flows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`): present only when there is one
+   */
+  flows?: Record<string, CompiledFlow>;
 }
 
 /** A Webda class declared in a file that does not follow the naming convention. */
@@ -196,7 +203,7 @@ export interface ModuleResult {
 }
 
 /** Suffixes the content mapper is registered for. */
-const MAPPED_SUFFIXES = [".model.ts", ".service.ts"];
+const MAPPED_SUFFIXES = [".model.ts", ".service.ts", ".flow.ts"];
 
 /** Suffix suggested for a section when a file has none of {@link MAPPED_SUFFIXES}. */
 const SECTION_SUFFIX: Record<string, string> = {
@@ -575,6 +582,10 @@ export function buildModelActions(
         meta[key] = initializer.text;
       }
       readMaxMfaAge(key, initializer, meta);
+      if (["rest", "methods", "openapi"].includes(key)) {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
+      }
       // `@Action({ name })` exposes the action under another name than the method
       if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
         name = initializer.text;
@@ -1160,6 +1171,10 @@ export function buildBehaviorActions(
       if (key === "global") {
         throw new Error(`Behavior ${identifier}: @Action({ global: true }) is not allowed (method "${methodName}").`);
       }
+      if (key === "methods" || key === "openapi") {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
+      }
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
@@ -1173,7 +1188,8 @@ export function buildBehaviorActions(
             is.isStringLiteral((restProperty as any).initializer)
           ) {
             const restKey = (restProperty as any).name.text;
-            if (restKey === "route" || restKey === "method") rest[restKey] = (restProperty as any).initializer.text;
+            if (["route", "method", "path", "body"].includes(restKey))
+              rest[restKey] = (restProperty as any).initializer.text;
           }
         }
         if (Object.keys(rest).length > 0) meta.rest = rest;
@@ -1320,11 +1336,11 @@ function processModels(
           relations.queries ??= [];
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find query model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          const targetAttribute = typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined;
           relations.queries.push({
             attribute,
             model,
-            // ModelRelated<T, L, K>: K is the attribute of T linking back
-            targetAttribute: typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined
+            ...(targetAttribute !== undefined ? { targetAttribute } : {})
           });
           break;
         }
@@ -1744,7 +1760,10 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     }
   }
   try {
-    Object.assign(module.schemas, generateTopLevelSchemas(ctx, discovery));
+    const primaryKeys = Object.fromEntries(
+      models.map(({ object, declaration }) => [object.name, buildModelPrimaryKey(ctx, declaration) ?? ["uuid"]])
+    );
+    Object.assign(module.schemas, generateTopLevelSchemas(ctx, { ...discovery, primaryKeys }));
   } catch (error) {
     errors.push(`schemas: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -1799,6 +1818,11 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     const aliases = buildModelAliases(declaration, namespace).filter(alias => alias !== object.name);
     if (aliases.length) entry.Aliases = aliases;
   }
+
+  // Flows: a forbidden construct fails the build, as it is a diagnostic in the editor
+  const flows = compileFlows(ctx);
+  if (Object.keys(flows.flows).length) module.flows = flows.flows;
+  errors.push(...flows.errors.map(error => formatFlowError(ctx, error)));
 
   // An alias naming another model would make its rows ambiguous: the build fails instead
   for (const [name, entry] of Object.entries(module.models)) {

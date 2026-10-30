@@ -276,7 +276,7 @@ export class MongoStoreTest extends WebdaApplicationTest {
         })
       ),
       [
-        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: { $exists: false } }] } },
+        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: null }, { __type: "" }] } },
         { $group: { _id: { g0: { $ifNull: ["$team.name", null] } }, n: { $sum: 1 }, d: { $addToSet: "$label" } } },
         { $addFields: { d: { $size: { $filter: { input: "$d", cond: { $ne: ["$$this", null] } } } } } },
         { $sort: { n: -1 } },
@@ -443,6 +443,26 @@ export class MongoStoreTest extends WebdaApplicationTest {
     assert.strictEqual((await this.repo.query("")).results.length, 1);
     assert.strictEqual(await events.deleteMany("DELETE LIMIT 0"), 0);
     assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
+  }
+
+  @test
+  async writesWithoutMetadataKeepTheStoredType() {
+    // A model without Metadata rewrites no type: patch and plain-data update keep whatever the document carries
+    const repo = new MongoRepository(Row as any, ["uuid"], () => this.store._connect());
+    const collection = await this.store._connect();
+    await collection.insertMany([
+      { _id: <any>"r1", uuid: "r1", __type: "Other/Thing", n: 1 },
+      { _id: <any>"r2", uuid: "r2", n: 1 }
+    ]);
+    await repo.patch("r1", { n: 2 });
+    await repo.update({ uuid: "r2", n: 3 });
+    assert.deepStrictEqual(await collection.findOne({ _id: <any>"r1" }), {
+      _id: "r1",
+      uuid: "r1",
+      __type: "Other/Thing",
+      n: 2
+    });
+    assert.deepStrictEqual(await collection.findOne({ _id: <any>"r2" }), { _id: "r2", uuid: "r2", n: 3 });
   }
 
   @test

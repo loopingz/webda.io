@@ -62,15 +62,17 @@ Or rely on libpq environment variables (`PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSE
 }
 ```
 
-| Parameter          | Type                           | Default        | Required | Description                                                                                |
-| ------------------ | ------------------------------ | -------------- | -------- | ------------------------------------------------------------------------------------------ |
-| `postgresqlServer` | `ClientConfig` \| `PoolConfig` | libpq env vars | No       | PostgreSQL connection config (host, port, database, user, password)                        |
-| `usePool`          | boolean                        | `false`        | No       | Use a connection pool (`pg.Pool`) instead of a single client                               |
-| `table`            | string                         | —              | No       | Table of every model of the store (subclasses and fallback models included), as in Webda 3 |
-| `tables`           | object                         | `{}`           | No       | Per-model table overrides: `{ "MyApp/Model": "my_table" }`                                 |
-| `autoCreateTable`  | boolean                        | `true`         | No       | Automatically create the JSONB table if it does not exist                                  |
-| `viewPrefix`       | string                         | `""`           | No       | Prefix for auto-generated SQL views                                                        |
-| `views`            | string[]                       | `["regex:.*"]` | No       | Regexp list of model names to generate views for                                           |
+| Parameter              | Type                           | Default            | Required | Description                                                                                |
+| ---------------------- | ------------------------------ | ------------------ | -------- | ------------------------------------------------------------------------------------------ |
+| `postgresqlServer`     | `ClientConfig` \| `PoolConfig` | libpq env vars     | No       | PostgreSQL connection config (host, port, database, user, password)                        |
+| `usePool`              | boolean                        | `false`            | No       | Use a connection pool (`pg.Pool`) instead of a single client, required by `transaction`    |
+| `table`                | string                         | —                  | No       | Table of every model of the store (subclasses and fallback models included), as in Webda 3 |
+| `tables`               | object                         | `{}`               | No       | Per-model table overrides: `{ "MyApp/Model": "my_table" }`                                 |
+| `autoCreateTable`      | boolean                        | `true`             | No       | Automatically create the JSONB table if it does not exist                                  |
+| `viewPrefix`           | string                         | `""`               | No       | Prefix for auto-generated SQL views                                                        |
+| `views`                | string[]                       | `["regex:.*"]`     | No       | Regexp list of model names to generate views for                                           |
+| `transaction`          | `"none"` \| `"operation"`      | `"none"`           | No       | One transaction per operation, see [Transactions](#transactions)                           |
+| `transactionIsolation` | string                         | `"READ COMMITTED"` | No       | Isolation level of the transactions                                                        |
 
 ## Relational store
 
@@ -129,6 +131,57 @@ const results = await Post.query("title CONTAINS 'Hello'"); // filtered query
 //     data JSONB NOT NULL
 //   );
 ```
+
+## Transactions
+
+With `"transaction": "operation"`, every statement of an operation runs in **one PostgreSQL transaction**: committed
+when the operation succeeds, rolled back when it throws. An operation writing several objects (a `create`, the
+`patch` of a parent, a counter increment) never leaves them half-written.
+
+```json
+{
+  "services": {
+    "postStore": {
+      "type": "PostgresStore",
+      "usePool": true,
+      "transaction": "operation",
+      "transactionIsolation": "READ COMMITTED"
+    }
+  }
+}
+```
+
+| Parameter              | Type                                                          | Default            | Description                                                                                           |
+| ---------------------- | ------------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `transaction`          | `"none"` \| `"operation"`                                     | `"none"`           | `"none"`: autocommit per statement (unchanged behavior). `"operation"`: one transaction per operation |
+| `transactionIsolation` | `"READ COMMITTED"` \| `"REPEATABLE READ"` \| `"SERIALIZABLE"` | `"READ COMMITTED"` | Isolation level of `BEGIN`                                                                            |
+
+- **A pool is required**: a transaction needs a connection of its own. `"transaction": "operation"` with
+  `"usePool": false` fails at `init()` with the `POSTGRES_TRANSACTION_REQUIRES_POOL` error.
+- **Lazy**: the store takes part in every operation, but checks a connection out of the pool (and runs `BEGIN`) only
+  on the first statement. An operation that never uses the store costs nothing.
+- **Lifecycle**: `COMMIT` runs once the method resolved (a streamed result fully written) and before
+  `Webda.OperationSuccess`; `ROLLBACK` runs before `Webda.OperationFailure`. The connection is always released; a
+  connection whose `COMMIT` or `ROLLBACK` failed is destroyed rather than given back to the pool. See the
+  [operation lifecycle](https://docs.webda.io/pages/Concepts/Operations#operation-lifecycle-and-transactions).
+- **Scope**: the transaction follows the async call chain of the operation: code running under `runAsSystem` or in a
+  nested `callOperation` takes part in it (nested operations join the outermost one, no savepoints). Code outside
+  the operation (another request, a queue worker) does not see the uncommitted writes.
+- **A failed statement aborts the transaction** (PostgreSQL refuses any further statement): the next statements and
+  the commit fail with `SQL_TRANSACTION_ABORTED`, even when the operation caught the first error.
+- **Opting out**: `@Operation({ transaction: false })` keeps an operation in autocommit, e.g. a long streaming read
+  that should not hold a connection for its whole duration.
+- **Outside operations** (CLI, queue workers, tests): `store.withTransaction(async () => { ... })` commits when the
+  function resolves and rolls back when it throws, or joins the current transaction. It works whatever `transaction`
+  is set to.
+- Table creation (`autoCreateTable`) and `createViews()` always run on the pool, never in a transaction.
+- `Webda/PostgresRelationalStore` takes part the same way: inside an operation, a row and its junction rows are
+  written on the connection of the operation transaction instead of a transaction of their own.
+- Concurrent statements of one operation (`Promise.all`) are safe: they are queued on its connection.
+- **Not atomic across stores**: each store commits on its own, in registration order; when the commit of a second
+  store fails after the first one committed, the first one stays committed.
+- **Events before commit**: repository events (`Created`, `Updated`...) are emitted when the statement runs, before
+  the commit: a listener may see data that is later rolled back.
 
 ## Reference
 

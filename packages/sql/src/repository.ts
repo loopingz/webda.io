@@ -25,6 +25,8 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
    * @param tableModel - identifier of the model the table was declared for: rows without `__type` (written before
    *   stamping) belong to it. Defaults to the topmost ancestor of `model` carrying metadata.
    * @param dialect - the engine syntax
+   * @param transactionClient - the client of the transaction active in the current async chain, undefined outside
+   *   one: the statements (DDL excepted) run on it rather than on `client`
    */
   constructor(
     model: T,
@@ -34,14 +36,21 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
     separator: string | undefined,
     prepare: (() => Promise<void>) | undefined,
     tableModel: string | undefined,
-    protected readonly dialect: SQLDialect
+    protected readonly dialect: SQLDialect,
+    transactionClient?: () => SQLClient | undefined
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
     super(model, pks, separator, new Map<string, string>() as any);
     this.clientSource = client;
     this.prepare = prepare;
     this.tableModel = tableModel ?? SQLRepository.rootIdentifier(model);
+    this.transactionClient = transactionClient;
   }
+
+  /**
+   * The client of the transaction active in the current async chain, undefined outside one
+   */
+  protected readonly transactionClient?: () => SQLClient | undefined;
 
   /**
    * Awaited before every statement (e.g. to ensure the table exists)
@@ -115,7 +124,8 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
 
   /**
    * Ensure the backing table for this repository's model exists.
-   * Owns the per-model DDL of the store.
+   * Owns the per-model DDL of the store: it runs on the store client, never in an operation transaction (a rollback
+   * would leave the table missing while the store believes it created).
    * @internal Not part of the @webda/models Repository interface.
    */
   async setupTable(): Promise<void> {
@@ -123,14 +133,15 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
   }
 
   /**
-   * Run a statement against the client once {@link prepare} has resolved.
+   * Run a statement once {@link prepare} has resolved: on the transaction of the current async chain when there is
+   * one, otherwise on the store client.
    * @param q - the SQL statement
    * @param values - the statement parameters
    * @returns the raw query result
    */
   protected async execute(q: string, values?: any[]): Promise<{ rows: any[]; rowCount: number }> {
     await this.prepare?.();
-    return this.client.query(q, values);
+    return (this.transactionClient?.() ?? this.client).query(q, values);
   }
 
   /**

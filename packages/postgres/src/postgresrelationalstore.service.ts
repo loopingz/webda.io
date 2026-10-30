@@ -120,11 +120,17 @@ export class PostgresRelationalStore<
   }
 
   /**
-   * The client the repositories run their statements on. A single (not pooled) client runs every statement under
-   * the same lock as the transactions, so a plain write never lands inside another caller's transaction
+   * The client the repositories run their statements on: the connection of the transaction of the current async
+   * chain (an operation with `transaction: "operation"`, `withTransaction`) when there is one, else the pool, or the
+   * single client under the same lock as the transactions, so a plain write never lands inside another caller's
+   * transaction
    * @returns the client, undefined while the store is not connected
    */
   protected statementClient(): SQLClient | undefined {
+    const transaction = this.getTransactionClient();
+    if (transaction) {
+      return transaction;
+    }
     const client = this.client;
     if (!client || this.parameters.usePool) {
       return client;
@@ -133,11 +139,16 @@ export class PostgresRelationalStore<
   }
 
   /**
-   * Run statements in one transaction: on its own pooled connection, or serialized on the single client
+   * Run statements in one transaction: the transaction of the current async chain when there is one, else one of
+   * its own on a pooled connection, or serialized on the single client
    * @param fn - the statements
    * @returns the function result
    */
   transact<R>(fn: (tx: SQLClient) => Promise<R>): Promise<R> {
+    const current = this.getTransactionClient();
+    if (current) {
+      return fn(current);
+    }
     if (this.parameters.usePool) {
       return this.withConnection(connection => runTransaction(connection, fn));
     }

@@ -94,6 +94,8 @@ their tooling.
 - Junction rows are written in the same transaction as the owner row and read with one statement per junction per
   page. With `usePool` each transaction takes its own connection; on a single client every statement of the store
   goes through one lock, so a plain write never runs inside another caller's transaction.
+- With `"transaction": "operation"` (see [PostgresStore](./PostgresStore.md#transactions)), every statement of an
+  operation runs in the operation transaction: the owner row and its junctions join it instead of opening their own.
 - WebdaQL: `=, !=, <, <=, >, >=, LIKE, IN, IS NULL, IS NOT NULL, ORDER BY, LIMIT/OFFSET` on columns and JSONB paths,
   `CONTAINS` on JSONB arrays, with the in-memory semantics (`views = '1'` matches a `BIGINT`, `views = 'abc'` matches
   nothing, `!=` matches `NULL`). `NULL` sorts first ascending, last descending.

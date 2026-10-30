@@ -317,6 +317,29 @@ describe("KeyVault", () => {
     ).rejects.toBeInstanceOf(KeyringPinError);
   });
 
+  it("createPasswordEscrowDoesNotSend", async () => {
+    // The host sends the blob itself, with its login password change
+    const server = new FakeServer();
+    const a = device(server).vault;
+    await expect(a.createPasswordEscrow("new password")).rejects.toBeInstanceOf(VaultLockedError);
+    await a.enroll({ password: PASSWORD, device: PASSCODE, deviceName: "laptop" });
+    const before = structuredClone(server.escrows);
+    const unlocked = await a.createPasswordEscrow("new password");
+    const locked = await device(server).vault.createPasswordEscrow("third", { oldPassword: PASSWORD });
+    expect(server.escrows).toEqual(before);
+    expect(JSON.stringify([unlocked, locked, server.payloads])).not.toContain("new password");
+    const env = await server.sealForUser("readable");
+    for (const [escrow, password] of [
+      [unlocked, "new password"],
+      [locked, "third"]
+    ] as const) {
+      await server.setEscrow("password", escrow);
+      const b = device(server).vault;
+      await b.unlockWithEscrow({ password }, { device: PASSCODE, deviceName: "b" });
+      expect(await b.open(env, CTX)).toBe("readable");
+    }
+  });
+
   it("rotateKeepsOldReadable", async () => {
     const server = new FakeServer();
     const a = device(server);

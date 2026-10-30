@@ -960,6 +960,53 @@
         },
         "next": {
           "type": "string"
+        },
+        "escrow": {
+          "additionalProperties": false,
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kdf": {
+              "description": "Supported password KDFs",
+              "enum": [
+                "argon2id",
+                "pbkdf2-sha256"
+              ],
+              "type": "string"
+            },
+            "kdfParams": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "password",
+                "recovery"
+              ],
+              "type": "string"
+            },
+            "salt": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kdf",
+            "kdfParams",
+            "kind",
+            "salt",
+            "v"
+          ],
+          "type": "object"
         }
       },
       "required": [

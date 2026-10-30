@@ -438,6 +438,27 @@ export class UserKeys {
   }
 
   /**
+   * @param kind - escrow kind
+   * @returns true when an escrow of this kind is stored
+   */
+  hasEscrow(kind: EscrowKind): boolean {
+    return this.__escrows?.[checkKind(kind)] !== undefined;
+  }
+
+  /**
+   * Validate and replace an escrow in memory, without the fresh-authentication gate and without saving: for a host
+   * operation that proves the user another way and saves the owner itself, such as the password change of
+   * `@webda/auth` which stores the escrow of the new password with the new password hash
+   * @param kind - escrow kind
+   * @param escrow - escrow blob of this kind
+   * @throws SealedFormatError (400) on a malformed escrow, PreconditionFailed (412) before setup
+   */
+  replaceEscrow(kind: EscrowKind, escrow: EscrowBlob): void {
+    this.requireSetup();
+    this.__escrows = { ...this.__escrows, [checkKind(kind)]: checkEscrow(kind, escrow) };
+  }
+
+  /**
    * Create or replace an escrow, from a device holding the keyring key
    * @param kind - escrow kind
    * @param escrow - escrow blob of this kind
@@ -445,8 +466,7 @@ export class UserKeys {
   @Action({ rest: { method: "PUT" } })
   async setEscrow(kind: EscrowKind, escrow: EscrowBlob): Promise<void> {
     this.authorize();
-    this.requireSetup();
-    this.__escrows = { ...this.__escrows, [checkKind(kind)]: checkEscrow(kind, escrow) };
+    this.replaceEscrow(kind, escrow);
     await this.saveOwner();
   }
 

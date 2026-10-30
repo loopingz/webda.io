@@ -27,7 +27,8 @@
   },
   "dependencies": {
     "@webda/core": "workspace:*",
-    "@webda/ql": "workspace:*"
+    "@webda/ql": "workspace:*",
+    "@webda/sql-schema": "workspace:*"
   },
   "files": [
     "lib",

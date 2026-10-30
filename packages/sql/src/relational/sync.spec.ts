@@ -153,9 +153,30 @@ describe("planSchemaChanges", () => {
     expect(compatibleType({ kind: "varchar", length: 5 }, { kind: "varchar", length: 10 })).toBe(false);
   });
 
+  it("inlineForeignKeysSkipStepsAndReportDrift", () => {
+    const fresh = planSchemaChanges(plan, emptyLive, "create", { inlineForeignKeys: true });
+    expect(fresh.steps.some(s => s.kind === "addForeignKey")).toBe(false);
+    const post = fresh.steps.find(s => s.kind === "createTable" && s.table.name === "app_post") as any;
+    expect(post.foreignKeys).toEqual(plan.foreignKeys.filter(fk => fk.table === "app_post"));
+    expect(post.foreignKeys.length).toBeGreaterThan(0);
+    const existing: LiveSchema = {
+      tables: {
+        app_post: live("app_post", planned("app_post"), false),
+        app_user: live("app_user", planned("app_user"))
+      }
+    };
+    const alter = planSchemaChanges(plan, existing, "alter", { inlineForeignKeys: true });
+    expect(alter.steps.some(s => s.kind === "addForeignKey")).toBe(false);
+    expect(alter.drift.map(d => d.message)).toContain(
+      `foreign key ${plan.foreignKeys[0].name} cannot be added to app_post: recreate the table`
+    );
+    // Without the option the step is planned, as before
+    expect(planSchemaChanges(plan, existing, "alter").steps.some(s => s.kind === "addForeignKey")).toBe(true);
+  });
+
   it("schemaDriftErrorListsEverything", () => {
     const steps: SchemaStep[] = [
-      { kind: "createTable", table: plan.tables[0] },
+      { kind: "createTable", table: plan.tables[0], foreignKeys: [] },
       { kind: "addColumn", table: "app_post", column: plan.tables[0].columns[0] },
       { kind: "createIndex", index: plan.indexes[0] },
       { kind: "addForeignKey", foreignKey: plan.foreignKeys[0] }

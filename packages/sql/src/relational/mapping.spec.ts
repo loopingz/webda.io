@@ -208,6 +208,14 @@ describe("TableMapping", () => {
     expect(posts.encode("7", column("views"))).toBe(7);
   });
 
+  it("booleanNumbersDecode", () => {
+    const published: any = { name: "b", field: "b", role: "field", type: { kind: "boolean" }, nullable: true };
+    expect(posts.decode(1, published, decodeJson)).toBe(true);
+    expect(posts.decode(0, published, decodeJson)).toBe(false);
+    expect(posts.decode(true, published, decodeJson)).toBe(true);
+    expect(posts.decode(null, published, decodeJson)).toBeUndefined();
+  });
+
   it("foldsJunctions", () => {
     const junctionRows = new Map<string, Record<string, unknown>[]>([
       [

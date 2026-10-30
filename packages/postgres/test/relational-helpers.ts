@@ -1,6 +1,7 @@
-import { useApplication, useModel, useModelMetadata } from "@webda/core";
+import { RELATIONAL_TABLES } from "@webda/sql/lib/test";
 import type pg from "pg";
-import { RELATIONAL_MODELS, RELATIONAL_TABLES } from "./relational-models.js";
+
+export { fixtureMetadata, knownMetadata } from "@webda/sql/lib/test";
 
 export const params = {
   postgresqlServer: {
@@ -21,20 +22,4 @@ export async function dropRelationalTables(client: pg.Client | pg.Pool): Promise
   for (const table of RELATIONAL_TABLES) {
     await client.query(`DROP TABLE IF EXISTS "${table}" CASCADE`);
   }
-}
-
-/**
- * @returns the metadata of the fixture models the store lists, subclasses included
- */
-export function fixtureMetadata(): any[] {
-  return [...RELATIONAL_MODELS, "Rel/Dog"].map(id => useModelMetadata(useModel(id)));
-}
-
-/**
- * @returns the metadata of every application model
- */
-export function knownMetadata(): any[] {
-  return Object.values(useApplication().getModels())
-    .map((m: any) => m?.Metadata)
-    .filter(m => m?.Identifier);
 }

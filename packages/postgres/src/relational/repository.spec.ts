@@ -28,7 +28,7 @@ import {
   RelTag,
   RelUser,
   registerRelationalFixtures
-} from "../../test/relational-models.js";
+} from "@webda/sql/lib/test";
 import { PostgresRelationalDialect } from "./dialect.js";
 import { dropRelationalTables, fixtureMetadata, knownMetadata, params } from "../../test/relational-helpers.js";
 

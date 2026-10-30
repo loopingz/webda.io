@@ -78,12 +78,15 @@ export function compatibleType(live: ColumnType, plan: ColumnType): boolean {
  * @param plan - the plan
  * @param live - the database as described by the dialect
  * @param mode - `create` or `alter`
+ * @param options - planner options
+ * @param options.inlineForeignKeys - the engine declares the foreign keys inside `CREATE TABLE` and cannot add one later
  * @returns the steps in application order (tables, columns, indexes, foreign keys) and the drift
  */
 export function planSchemaChanges(
   plan: RelationalSchemaPlan,
   live: LiveSchema,
-  mode: "create" | "alter"
+  mode: "create" | "alter",
+  options: { inlineForeignKeys?: boolean } = {}
 ): { steps: SchemaStep[]; drift: SchemaDrift[] } {
   const steps: SchemaStep[] = [];
   const drift: SchemaDrift[] = [];
@@ -102,7 +105,7 @@ export function planSchemaChanges(
   for (const table of plan.tables) {
     const existing: LiveTable | undefined = live.tables[table.name];
     if (!existing) {
-      steps.push({ kind: "createTable", table });
+      steps.push({ kind: "createTable", table, foreignKeys: plan.foreignKeys.filter(fk => fk.table === table.name) });
       created.add(table.name);
       continue;
     }
@@ -146,9 +149,18 @@ export function planSchemaChanges(
   }
   for (const foreignKey of plan.foreignKeys) {
     if (created.has(foreignKey.table)) {
-      steps.push({ kind: "addForeignKey", foreignKey });
+      if (!options.inlineForeignKeys) {
+        steps.push({ kind: "addForeignKey", foreignKey });
+      }
     } else if (!live.tables[foreignKey.table]?.constraints.has(foreignKey.name)) {
-      onExisting(foreignKey.table, { kind: "addForeignKey", foreignKey });
+      if (options.inlineForeignKeys) {
+        drift.push({
+          table: foreignKey.table,
+          message: `foreign key ${foreignKey.name} cannot be added to ${foreignKey.table}: recreate the table`
+        });
+      } else {
+        onExisting(foreignKey.table, { kind: "addForeignKey", foreignKey });
+      }
     }
   }
   return { steps, drift };

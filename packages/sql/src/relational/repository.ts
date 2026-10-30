@@ -311,7 +311,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
       return err;
     }
     const relation = this.relationOfConstraint(violation.constraint);
-    const what = relation ? `${relation.model}.${relation.attribute}` : String(violation.constraint);
+    const what = relation ? `${relation.model}.${relation.attribute}` : (violation.constraint ?? "a foreign key");
     return q.startsWith("DELETE")
       ? new WebdaError.Conflict(`Row still referenced through ${what}`)
       : new WebdaError.BadRequest(`Unknown reference for ${what}`);
@@ -501,8 +501,8 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
     row.columns.forEach((column, i) => {
       const value = row.values[i];
       if (column === this.mapping.extraColumn) {
-        args.push(value);
-        sets.push(`${this.q(column)} = ${this.sql.columnJsonMerge(column, args.length)}`);
+        // toRow serialized the extra object for an INSERT; the UPDATE merges it
+        sets.push(`${this.q(column)} = ${this.sql.columnJsonMerge(column, JSON.parse(value as string), args)}`);
       } else if (column === this.mapping.typeColumn) {
         typed = true;
         args.push(value ?? this.modelIdentifier());

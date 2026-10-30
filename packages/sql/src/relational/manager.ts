@@ -79,7 +79,14 @@ export class RelationalSchemaManager {
    * @returns the DDL creating the whole plan on an empty database
    */
   createStatements(): string[] {
-    return this.render(planSchemaChanges(this.requirePlan(), { tables: {} }, "create").steps);
+    return this.render(planSchemaChanges(this.requirePlan(), { tables: {} }, "create", this.planOptions()).steps);
+  }
+
+  /**
+   * @returns the planner options of the dialect
+   */
+  protected planOptions(): { inlineForeignKeys?: boolean } {
+    return { inlineForeignKeys: this.options.dialect.inlineForeignKeys };
   }
 
   /**
@@ -101,7 +108,7 @@ export class RelationalSchemaManager {
       client,
       plan.tables.map(t => t.name)
     );
-    const { steps, drift } = planSchemaChanges(plan, live, "alter");
+    const { steps, drift } = planSchemaChanges(plan, live, "alter", this.planOptions());
     return { steps, drift, statements: this.render(steps) };
   }
 
@@ -121,7 +128,7 @@ export class RelationalSchemaManager {
       client,
       plan.tables.map(t => t.name)
     );
-    const { steps, drift } = planSchemaChanges(plan, live, mode === "validate" ? "alter" : mode);
+    const { steps, drift } = planSchemaChanges(plan, live, mode === "validate" ? "alter" : mode, this.planOptions());
     if (mode === "validate") {
       if (steps.length || drift.length) {
         throw new SchemaDriftError(steps, drift);

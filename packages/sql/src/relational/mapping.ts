@@ -190,6 +190,9 @@ export class TableMapping {
     if (NUMBER_KINDS.has(kind) && typeof value === "string") {
       return Number(value);
     }
+    if (kind === "boolean" && typeof value === "number") {
+      return value !== 0;
+    }
     return value;
   }
 

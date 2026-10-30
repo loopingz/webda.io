@@ -297,7 +297,7 @@ const CLASSES: Record<string, any> = {
  * @param app - the test application
  */
 export function registerRelationalFixtures(app: Application): void {
-  if (app.getModels()["Rel/Post"] === RelPost) {
+  if ((app.getModels()["Rel/Post"] as unknown) === RelPost) {
     return;
   }
   const all = relationalMetadata();

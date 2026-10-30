@@ -322,7 +322,8 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @returns the relation it enforces, undefined for a junction key or an unknown constraint
    */
   protected relationOfConstraint(constraint: string | undefined): RelationPlan | undefined {
-    return this.mapping.plan.relations.find(r => r.foreignKey === constraint);
+    // SQLite names no constraint: a relation without foreign key must not match an undefined name
+    return constraint ? this.mapping.plan.relations.find(r => r.foreignKey === constraint) : undefined;
   }
 
   /** @override */

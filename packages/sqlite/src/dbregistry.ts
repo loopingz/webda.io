@@ -1,4 +1,5 @@
 import { useApplication, WebdaError } from "@webda/core";
+import { AsyncMutex } from "@webda/sql";
 import { EventEmitter } from "node:events";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -15,6 +16,10 @@ export interface SQLiteHandle {
    * In-process notifications: `changed(table)` after a write by a service of this process
    */
   events: EventEmitter;
+  /**
+   * Serializes the transactions (and, for the relational stores, every statement) of the single connection
+   */
+  mutex: AsyncMutex;
   refCount: number;
   /**
    * Resolved file path, undefined in memory
@@ -125,6 +130,7 @@ export async function acquireDatabase(params: SQLiteConnectionParameters, servic
     db,
     client: new SQLiteClient(db),
     events: new EventEmitter(),
+    mutex: new AsyncMutex(),
     refCount: 1,
     path,
     readOnly

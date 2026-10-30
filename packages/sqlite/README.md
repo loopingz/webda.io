@@ -4,12 +4,12 @@
 (Node >= 22.13, no third-party dependency). Without a `persistence` block the database lives in memory and is lost
 on `stop()`, like `MemoryStore`; with `persistence.path` it is a single durable file.
 
-| Need | Pick |
-| --- | --- |
-| Throw-away data in tests, zero setup | `MemoryStore` / `MemoryQueue` |
-| A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file | `@webda/sqlite` |
-| One JSON file per object you can read by hand | `@webda/fs` |
-| Several hosts, heavy concurrent traffic | `@webda/postgres` |
+| Need                                                                             | Pick                          |
+| -------------------------------------------------------------------------------- | ----------------------------- |
+| Throw-away data in tests, zero setup                                             | `MemoryStore` / `MemoryQueue` |
+| A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file | `@webda/sqlite`               |
+| One JSON file per object you can read by hand                                    | `@webda/fs`                   |
+| Several hosts, heavy concurrent traffic                                          | `@webda/postgres`             |
 
 ## Modes
 
@@ -20,6 +20,15 @@ on `stop()`, like `MemoryStore`; with `persistence.path` it is a single durable 
   process on the same path share one connection; other processes open their own.
 - Differences from `MemoryStore.persistence`: no `delay`; `key`, `cipher` and `compressionLevel` are refused at
   `init()` (`node:sqlite` has no encryption or compression), never silently ignored.
+
+## Relational store
+
+`Webda/SQLiteRelationalStore` keeps the models you list in **typed tables** (one column per field, primary and foreign
+keys, junction tables, indexes) generated from the model metadata by `@webda/sql-schema`, on the relational layer of
+`@webda/sql` shared with `PostgresRelationalStore`. Foreign keys are inline and enforced (`PRAGMA foreign_keys`),
+`schemaSync` (`none` | `create` | `alter` | `validate`) is additive only, `webda sqlite schema [--sql | --diff | --json]`
+prints the plan. It is never the `Registry` and only stores listed models. See
+[the documentation](https://webda.io/docs/Modules/sqlite/SQLiteRelationalStore).
 
 ## Caveats
 

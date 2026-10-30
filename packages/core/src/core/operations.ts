@@ -1,6 +1,7 @@
 import { QueryValidator } from "@webda/ql";
 import { OperationDefinition, OperationDefinitionInfo, OperationStreaming } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import { WebContext } from "../contexts/webcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
@@ -15,6 +16,7 @@ import { runWithContext, useContext } from "../contexts/execution.js";
 import { checkStaticModelPermission, loadModelForAction } from "../models/permissions.js";
 import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
 import { Duration } from "@webda/utils";
+import { bindRestInput, resolveInputSchema } from "../rest/binding.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -520,9 +522,19 @@ function subjectOf(context: OperationContext, operationId: string, args: any[], 
  * schema validation rejects it with the field name.
  * @param value - the string received in the URL
  * @param schema - the property schema
+ * @param root - input schema carrying referenced definitions
  * @returns the converted value, or the string
  */
-function coerceParameterValue(value: string, schema: any): any {
+function coerceParameterValue(value: any, schema: any, root: any = schema): any {
+  schema = resolveInputSchema(schema, root);
+  if (schema?.anyOf || schema?.oneOf) {
+    const choices = schema.anyOf ?? schema.oneOf;
+    schema = choices.find(s => s.type && s.type !== "null") ?? schema;
+  }
+  if (schema?.type === "array" && Array.isArray(value)) {
+    return value.map(item => coerceParameterValue(item, schema.items, root));
+  }
+  if (typeof value !== "string") return value;
   switch (schema?.type) {
     case "number":
     case "integer": {
@@ -535,7 +547,7 @@ function coerceParameterValue(value: string, schema: any): any {
       if (value === "false" || value === "0") return false;
       return value;
     case "array":
-      return value === "" ? [] : value.split(",").map(item => coerceParameterValue(item, schema.items));
+      return value === "" ? [] : value.split(",").map(item => coerceParameterValue(item, schema.items, root));
     default:
       return value;
   }
@@ -559,17 +571,31 @@ function coerceParameterValue(value: string, schema: any): any {
  * @param merged - merged params + body object to coerce in place
  * @param params - the path/query parameters
  * @param body - the request body
+ * @param operation - operation whose REST template identifies query catch-all fields
  */
 function coerceParametersToSchema(
   schema: any,
   merged: Record<string, any>,
   params: Record<string, any>,
-  body: Record<string, any>
+  body: Record<string, any>,
+  operation: OperationDefinition
 ): void {
   if (!schema?.properties) return;
+  const rest = operation.rest;
+  const catchAll = rest && bindRestInput(rest.path, rest.method, schema).binding.query.find(q => q.catchAll)?.name;
   for (const [name, propSchema] of Object.entries(schema.properties as Record<string, any>)) {
-    if (!(name in params) || body[name] !== undefined || typeof merged[name] !== "string") continue;
-    merged[name] = coerceParameterValue(merged[name], propSchema);
+    if (!(name in params) || body[name] !== undefined) continue;
+    if (catchAll === name && merged[name] && typeof merged[name] === "object" && !Array.isArray(merged[name])) {
+      const resolvedSchema = resolveInputSchema(propSchema, schema);
+      merged[name] = Object.fromEntries(
+        Object.entries(merged[name]).map(([key, value]) => [
+          key,
+          coerceParameterValue(value, resolvedSchema?.properties?.[key] ?? resolvedSchema?.additionalProperties, schema)
+        ])
+      );
+    } else {
+      merged[name] = coerceParameterValue(merged[name], propSchema, schema);
+    }
   }
 }
 
@@ -611,7 +637,15 @@ async function getOperationInput(
   } catch {
     // No input (e.g., GET request)
   }
-  const body = typeof input === "object" && input !== null ? input : {};
+  const operation = useInstanceStorage().operations[operationId];
+  const bodyParameter = context instanceof WebContext && operation?.rest && operation.rest.body;
+  const body = bodyParameter
+    ? input === undefined
+      ? {}
+      : { [bodyParameter]: input }
+    : typeof input === "object" && input !== null
+      ? input
+      : {};
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || body[key] === undefined || isSameParameterValue(value, body[key])) {
       continue;
@@ -653,7 +687,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
       // place so `resolveArguments` sees the typed value too.
       const app = useApplication();
       const inputSchema = app.getSchema(operations[operationId].input);
-      coerceParametersToSchema(inputSchema, merged, params, body);
+      coerceParametersToSchema(inputSchema, merged, params, body, operations[operationId]);
       validateSchema(operations[operationId].input, merged);
       context.setExtension("operationResolvedInput", merged);
     }

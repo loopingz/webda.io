@@ -27,6 +27,8 @@ export interface RestParameters {
     | {
         method: "get" | "post" | "put" | "delete" | "patch";
         path: string;
+        /** Method parameter receiving the whole JSON body. */
+        body?: string;
         responses?: {
           [statusCode: string]: {
             description?: string;

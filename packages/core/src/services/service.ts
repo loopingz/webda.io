@@ -20,6 +20,7 @@ import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
 import { ServiceState, ServiceStates } from "./iservice.js";
 import { getMetadata } from "@webda/decorators";
+import { bindRestInput } from "../rest/binding.js";
 
 /**
  * Represent a Inject annotation
@@ -459,11 +460,19 @@ abstract class Service<
         : `${serviceName}.${opName.substring(0, 1).toUpperCase() + opName.substring(1)}`;
       if (!this.getOperationId(opId)) continue;
       this.log("TRACE", "Adding operation", opId, "for service", this.getName());
+      const input = op.input || this.operationSchemaName(actualMethod, "input");
+      const rest = op.rest
+        ? {
+            ...op.rest,
+            path: bindRestInput(op.rest.path, op.rest.method, useApplication().getSchema(input), op.rest.body).path
+          }
+        : op.rest;
       registerOperation(opId, {
         ...op,
+        rest,
         service: this.getName(),
         method: actualMethod,
-        input: op.input || this.operationSchemaName(actualMethod, "input"),
+        input,
         output: op.output || this.operationSchemaName(actualMethod, "output"),
         id: opId
       });

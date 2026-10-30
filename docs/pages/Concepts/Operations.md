@@ -220,6 +220,7 @@ registered with `registerOperationTransactionParticipant`. Without registered pa
 stores (`PostgresStore`, `SQLiteStore`) are participants when configured with `transaction: "operation"`, see
 [PostgreSQL transactions](../Modules/postgres/PostgresStore.md#transactions).
 
+
 - The transaction follows the async call chain of the operation, not the execution context: code running inside the
   operation under `runAsSystem` or in a nested `callOperation` takes part in it. `useOperationTransaction()` returns it.
 - Nested operations join the transaction of the outermost operation: only the outermost one begins and finishes it

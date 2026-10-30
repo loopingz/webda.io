@@ -52,8 +52,12 @@ export function getWebdaPackages(): ReadonlyMap<string, WebdaPackageInfo> {
  * @returns the readable location
  */
 function toLocation(url: string): string {
+  const nodeUrl = globalThis.process?.getBuiltinModule?.("node:url");
+  if (!nodeUrl || !url.startsWith("file:")) {
+    return url;
+  }
   try {
-    return globalThis.process?.getBuiltinModule?.("node:url")?.fileURLToPath(url) ?? url;
+    return nodeUrl.fileURLToPath(url);
   } catch {
     return url;
   }

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -32,7 +32,9 @@ class PackagesTest {
   previousEscapeHatch: string | undefined;
 
   beforeEach() {
-    this.tmp = mkdtempSync(join(tmpdir(), "webda-packages-"));
+    // Resolve the real path: `import.meta.url` of the fixtures is resolved, while the Windows
+    // temp folder is reported with a short name (RUNNER~1) and the macOS one is a symlink
+    this.tmp = realpathSync.native(mkdtempSync(join(tmpdir(), "webda-packages-")));
     this.previousEscapeHatch = process.env.WEBDA_ALLOW_DUPLICATE_PACKAGES;
     delete process.env.WEBDA_ALLOW_DUPLICATE_PACKAGES;
   }

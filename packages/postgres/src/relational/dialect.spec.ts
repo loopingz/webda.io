@@ -148,9 +148,12 @@ export class PostgresRelationalDialectTest {
     assert.strictEqual(d.columnJsonMerge("e", 3), `COALESCE("e", '{}'::jsonb) || $3::jsonb`);
     assert.strictEqual(d.columnJsonRemoveKey("e", 3), `"e" - $3`);
     assert.strictEqual(
-      d.columnJsonSetPath("m", 2, 3),
-      `jsonb_set(COALESCE("m", '{}'::jsonb), $2::text[], $3::jsonb, true)`
+      d.columnJsonSetPath("m", ["a"], 3),
+      `jsonb_set(COALESCE("m", '{}'::jsonb), '{a}', $3::jsonb, true)`
     );
+    const nested = d.columnJsonSetPath("m", ["a", "b"], 3);
+    assert.ok(nested.endsWith(`, '{a,b}', $3::jsonb, true)`));
+    assert.ok(nested.includes(`CASE WHEN jsonb_typeof(COALESCE("m", '{}'::jsonb) #> '{a}') IN ('object', 'array')`));
     assert.strictEqual(
       d.columnJsonSetItem("files", 2, undefined),
       `COALESCE("files", '[]'::jsonb) || jsonb_build_array($2::jsonb)`

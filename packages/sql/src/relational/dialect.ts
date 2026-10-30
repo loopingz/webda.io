@@ -129,13 +129,13 @@ export interface RelationalDialect extends SQLDialect {
    */
   columnJsonRemoveKey(column: string, param: number): string;
   /**
-   * The JSON column with the value bound at `valueParam` set at the path bound at `pathParam` (parents created)
+   * The JSON column with the value bound at `valueParam` set at the path, missing parents created as objects
    * @param column - the JSON column
-   * @param pathParam - position of the bound path (text array)
+   * @param path - validated segments, at least one
    * @param valueParam - position of the bound JSON text
    * @returns the expression
    */
-  columnJsonSetPath(column: string, pathParam: number, valueParam: number): string;
+  columnJsonSetPath(column: string, path: string[], valueParam: number): string;
   /**
    * The JSON array column with the item bound at `itemParam` appended (index undefined) or set at `index`
    * @param column - the JSON column

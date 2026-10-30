@@ -208,9 +208,17 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
     return `${this.quote(column)} - $${param}`;
   }
 
-  /** @override */
-  columnJsonSetPath(column: string, pathParam: number, valueParam: number): string {
-    return `jsonb_set(COALESCE(${this.quote(column)}, '{}'::jsonb), $${pathParam}::text[], $${valueParam}::jsonb, true)`;
+  /**
+   * Nested `jsonb_set`: every parent of the path is made an object when missing (an existing object or array is kept)
+   * @override
+   */
+  columnJsonSetPath(column: string, path: string[], valueParam: number): string {
+    let json = `COALESCE(${this.quote(column)}, '{}'::jsonb)`;
+    for (let i = 1; i < path.length; i++) {
+      const parent = `'{${path.slice(0, i).join(",")}}'`;
+      json = `jsonb_set(${json}, ${parent}, CASE WHEN jsonb_typeof(${json} #> ${parent}) IN ('object', 'array') THEN ${json} #> ${parent} ELSE '{}'::jsonb END, true)`;
+    }
+    return `jsonb_set(${json}, '{${path.join(",")}}', $${valueParam}::jsonb, true)`;
   }
 
   /** @override */

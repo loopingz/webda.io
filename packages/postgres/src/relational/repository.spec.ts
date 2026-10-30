@@ -1,15 +1,30 @@
-import { WebdaError, useApplication, useModel, useModelMetadata } from "@webda/core";
-import { WebdaApplicationTest } from "@webda/core/lib/test";
+import {
+  MemoryRepository,
+  StoreNotFoundError,
+  UpdateConditionFailError,
+  WebdaError,
+  useApplication,
+  useModelMetadata
+} from "@webda/core";
+import {
+  checkAggregation,
+  checkCount,
+  checkCountClassFilter,
+  checkCreateWithoutPrimaryKey,
+  WebdaApplicationTest
+} from "@webda/core/lib/test";
 import { escape } from "@webda/ql";
 import { RelationalRepository, RelationalSchemaManager, runTransaction } from "@webda/sql";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
 import {
+  RelAggRow,
   RelAnimal,
   RelDog,
   RelPairRef,
   RelPost,
+  RelTag,
   RelUser,
   registerRelationalFixtures
 } from "../../test/relational-models.js";
@@ -309,5 +324,366 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
     );
     assert.strictEqual(await this.repo(RelUser).exists("u1"), true);
     assert.strictEqual(await this.repo(RelPost).deleteMany("DELETE WHERE uuid = 'p4'"), 1);
+  }
+  /**
+   * @param table - a table
+   * @param where - a condition
+   * @returns the rows
+   */
+  async rows(table: string, where = "TRUE"): Promise<any[]> {
+    return (await this.client.query(`SELECT * FROM "${table}" WHERE ${where} ORDER BY 1`)).rows;
+  }
+
+  /**
+   * Seed the users and tags the posts reference
+   */
+  async seedTargets(): Promise<void> {
+    await this.insert("rel_user", { uuid: "u1", name: "alice", __type: "Rel/User" });
+    await this.insert("rel_user", { uuid: "u2", name: "bob", __type: "Rel/User" });
+    for (const t of ["t1", "t2", "t3"]) {
+      await this.insert("rel_tag", { uuid: t, label: t, __type: "Rel/Tag" });
+    }
+  }
+
+  @test
+  async createUpdatePatchDeleteWithJunctions() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    const created = await repo.create({
+      uuid: "p1",
+      title: "T",
+      views: 1,
+      author: "u1",
+      tags: ["t1", "t2"],
+      contributors: [{ uuid: "u1", role: "x" }],
+      reviewers: { lead: { uuid: "u2" } },
+      k: 1
+    });
+    assert.ok(created instanceof RelPost);
+    assert.deepStrictEqual(
+      (await this.rows("rel_post_tags")).map(r => [r.tag, Number(r._position)]),
+      [
+        ["t1", 0],
+        ["t2", 1]
+      ]
+    );
+    assert.deepStrictEqual((await this.rows("rel_post_contributors"))[0].attributes, { role: "x" });
+    assert.strictEqual((await this.rows("rel_post_reviewers"))[0].key, "lead");
+    assert.deepStrictEqual((await this.rows("rel_post"))[0]._extra, { k: 1 });
+    assert.strictEqual((await this.rows("rel_post"))[0].__type, "Rel/Post");
+    await assert.rejects(() => repo.create({ uuid: "p1", title: "again" }), /Already exists: p1/);
+    const post: any = await repo.get("p1");
+    assert.deepStrictEqual(post.tags, ["t1", "t2"]);
+    assert.deepStrictEqual(post.contributors, [{ uuid: "u1", role: "x" }]);
+    assert.deepStrictEqual(post.reviewers, { lead: { uuid: "u2" } });
+    // Full update: junctions replaced, the extra column merged
+    await repo.update({ uuid: "p1", title: "T2", tags: ["t2"], contributors: [], reviewers: {} });
+    assert.deepStrictEqual(
+      (await this.rows("rel_post_tags")).map(r => r.tag),
+      ["t2"]
+    );
+    assert.deepStrictEqual(await this.rows("rel_post_contributors"), []);
+    assert.deepStrictEqual((await this.rows("rel_post"))[0]._extra, { k: 1 }, "extra keys survive a full update");
+    assert.strictEqual((await this.rows("rel_post"))[0].views, null, "a column of the projection is replaced");
+    // Patch: only the given columns, extra merged, a junction attribute replaced
+    await repo.patch("p1", { views: 3, newKey: true });
+    const patched = (await this.rows("rel_post"))[0];
+    assert.strictEqual(Number(patched.views), 3);
+    assert.strictEqual(patched.title, "T2");
+    assert.deepStrictEqual(patched._extra, { k: 1, newKey: true });
+    await repo.patch("p1", { tags: [] });
+    assert.deepStrictEqual(await this.rows("rel_post_tags"), []);
+    await repo.patch("p1", { tags: ["t3", "t1"] });
+    assert.deepStrictEqual(((await repo.get("p1")) as any).tags, ["t3", "t1"]);
+    await repo.delete("p1");
+    assert.deepStrictEqual(await this.rows("rel_post"), []);
+    assert.deepStrictEqual(await this.rows("rel_post_tags"), []);
+    await repo.delete("p1");
+  }
+
+  @test
+  async writeConditionsAndNotFound() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", views: 1 });
+    await assert.rejects(() => repo.update({ uuid: "p1", title: "x" }, "views", 99), UpdateConditionFailError);
+    await assert.rejects(() => repo.patch("p1", { title: "x" }, "views", 99), UpdateConditionFailError);
+    await assert.rejects(() => repo.patch("zz", { title: "x" }), UpdateConditionFailError);
+    await assert.rejects(() => repo.removeAttribute("zz", "title"), StoreNotFoundError);
+    await assert.rejects(() => repo.removeAttribute("p1", "title", "views", 99), UpdateConditionFailError);
+    await assert.rejects(() => repo.delete("p1", "views", 99), UpdateConditionFailError);
+    await repo.update({ uuid: "p1", title: "y", views: 1 }, "views", 1);
+    await repo.patch("p1", { title: "z" }, "title", "y");
+    await repo.patch("p1", { title: "w" }, "author", undefined);
+    assert.strictEqual(((await repo.get("p1")) as any).title, "w");
+    await repo.delete("p1", "title", "w");
+    assert.strictEqual(await repo.exists("p1"), false);
+  }
+
+  @test
+  async datesRoundTripAndCondition() {
+    const repo = this.repo(RelPost);
+    const date = new Date("2024-05-06T07:08:09.123Z");
+    await repo.create({ uuid: "p1", title: "T", _lastUpdate: date, _creationDate: "2024-05-06T07:08:09.123Z" });
+    const post: any = await repo.get("p1");
+    assert.strictEqual(post._lastUpdate, "2024-05-06T07:08:09.123Z");
+    assert.strictEqual(post._creationDate, "2024-05-06T07:08:09.123Z");
+    await repo.update(
+      { uuid: "p1", title: "T2", _lastUpdate: new Date("2024-05-07T00:00:00.000Z") },
+      "_lastUpdate",
+      date
+    );
+    await assert.rejects(() => repo.update({ uuid: "p1", title: "T3" }, "_lastUpdate", date), UpdateConditionFailError);
+    await repo.patch("p1", { title: "T4" }, "_lastUpdate", "2024-05-07T00:00:00.000Z");
+    assert.strictEqual(((await repo.get("p1")) as any).title, "T4");
+  }
+
+  @test
+  async removeAttributeOnColumnExtraAndJunction() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", tags: ["t1"], k: 1, other: 2 });
+    await repo.removeAttribute("p1", "title");
+    await repo.removeAttribute("p1", "k");
+    await repo.removeAttribute("p1", "tags");
+    const post: any = await repo.get("p1");
+    assert.strictEqual(post.title, undefined);
+    assert.strictEqual(post.k, undefined);
+    assert.strictEqual(post.other, 2);
+    assert.deepStrictEqual(post.tags, []);
+    await assert.rejects(() => repo.removeAttribute("zz", "tags"), StoreNotFoundError);
+  }
+
+  @test
+  async incrementKeepsNumbers() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", views: 7, score: 1 });
+    await repo.incrementAttributes("p1", { views: 2, score: 0.5 } as any);
+    await repo.incrementAttributes("p1", [{ property: "order", value: 3 }, "views"] as any);
+    const post: any = await repo.get("p1");
+    assert.strictEqual(post.views, 10);
+    assert.strictEqual(post.score, 1.5);
+    assert.strictEqual(post.order, 3, "a NULL counter starts at 0");
+    assert.ok(post._lastUpdate);
+    await assert.rejects(() => repo.incrementAttributes("p1", { title: 1 } as any), WebdaError.BadRequest);
+    await assert.rejects(() => repo.incrementAttributes("zz", { views: 1 } as any), StoreNotFoundError);
+  }
+
+  @test
+  async collectionOpsOnJsonAndJunction() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", files: [{ name: "f0" }], tags: ["t1", "t2"] });
+    // JSON array column
+    await repo.upsertItemToCollection("p1", "files" as any, { name: "f5" }, 5);
+    await repo.upsertItemToCollection("p1", "files" as any, { name: "f1" }, 1);
+    await repo.upsertItemToCollection("p1", "files" as any, { name: "f0b" }, 0);
+    assert.deepStrictEqual(((await repo.get("p1")) as any).files, [{ name: "f0b" }, { name: "f1" }]);
+    await assert.rejects(
+      () => repo.upsertItemToCollection("p1", "files" as any, { name: "x" }, undefined, "name", "f1"),
+      UpdateConditionFailError
+    );
+    await assert.rejects(
+      () => repo.deleteItemFromCollection("p1", "files" as any, 1, "name", "nope"),
+      UpdateConditionFailError
+    );
+    await repo.deleteItemFromCollection("p1", "files" as any, 1, "name", "f1");
+    assert.deepStrictEqual(((await repo.get("p1")) as any).files, [{ name: "f0b" }]);
+    await repo.upsertItemToCollection("p1", "files" as any, { name: "f9" });
+    assert.deepStrictEqual(((await repo.get("p1")) as any).files, [{ name: "f0b" }, { name: "f9" }]);
+    assert.ok(((await repo.get("p1")) as any)._lastUpdate);
+    await assert.rejects(() => repo.upsertItemToCollection("zz", "files" as any, { name: "x" }), StoreNotFoundError);
+    // Junction: append, delete and renumber, replace at a position with a condition on the key
+    await repo.upsertItemToCollection("p1", "tags" as any, "t3");
+    assert.deepStrictEqual(((await repo.get("p1")) as any).tags, ["t1", "t2", "t3"]);
+    await assert.rejects(() => repo.upsertItemToCollection("p1", "tags" as any, "t1"), WebdaError.Conflict);
+    await assert.rejects(
+      () => repo.deleteItemFromCollection("p1", "tags" as any, 1, "uuid", "t3"),
+      UpdateConditionFailError
+    );
+    await repo.deleteItemFromCollection("p1", "tags" as any, 1, "uuid", "t2");
+    assert.deepStrictEqual(((await repo.get("p1")) as any).tags, ["t1", "t3"]);
+    assert.deepStrictEqual((await this.rows("rel_post_tags")).map(r => Number(r._position)).sort(), [0, 1]);
+    await assert.rejects(
+      () => repo.upsertItemToCollection("p1", "tags" as any, "t2", 1, "uuid", "nope"),
+      UpdateConditionFailError
+    );
+    await repo.upsertItemToCollection("p1", "tags" as any, "t2", 1, "uuid", "t3");
+    assert.deepStrictEqual(((await repo.get("p1")) as any).tags, ["t1", "t2"]);
+    await repo.upsertItemToCollection("p1", "tags" as any, "t3", 5);
+    assert.deepStrictEqual(((await repo.get("p1")) as any).tags, ["t1", "t2", "t3"], "an index beyond the end appends");
+    await assert.rejects(() => repo.deleteItemFromCollection("p1", "tags" as any, 7), StoreNotFoundError);
+    await assert.rejects(() => repo.upsertItemToCollection("zz", "tags" as any, "t1"), StoreNotFoundError);
+    // Scalar columns are not collections
+    await assert.rejects(() => repo.upsertItemToCollection("p1", "title" as any, "x"), WebdaError.BadRequest);
+    await assert.rejects(() => repo.deleteItemFromCollection("p1", "title" as any, 0), WebdaError.BadRequest);
+  }
+
+  @test
+  async updateManyOnColumnsJsonAndExtra() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "a", published: true, views: 5, meta: { keep: 1 } });
+    await repo.create({ uuid: "p2", title: "b", published: true, views: 6 });
+    await repo.create({ uuid: "p3", title: "c", published: false, views: 7 });
+    assert.strictEqual(
+      await repo.updateMany("UPDATE SET views = 0, meta.level = 3 WHERE published = TRUE AND views < 6 LIMIT 1"),
+      1
+    );
+    const p1: any = await repo.get("p1");
+    assert.strictEqual(p1.views, 0);
+    assert.deepStrictEqual(p1.meta, { keep: 1, level: 3 });
+    // Unknown fields are refused by the statement parser, like every store with model metadata
+    await assert.rejects(() => repo.updateMany("UPDATE SET k = 'x'"), /Unknown assignment field/);
+    assert.strictEqual(((await repo.get("p2")) as any).views, 6);
+    assert.strictEqual(await repo.updateMany("UPDATE SET meta.r = :r, published = FALSE WHERE views > 5", { r: 1 }), 2);
+    assert.deepStrictEqual(((await repo.get("p3")) as any).meta, { r: 1 });
+    assert.strictEqual(await repo.updateMany("UPDATE SET meta.a.b = 1 WHERE uuid = 'p2'"), 1);
+    assert.deepStrictEqual(((await repo.get("p2")) as any).meta, { r: 1, a: { b: 1 } });
+    await assert.rejects(() => repo.updateMany("UPDATE SET meta.a = 1, meta.b = 2"), WebdaError.BadRequest);
+    await assert.rejects(() => repo.updateMany("UPDATE SET tags = 'x'"), WebdaError.BadRequest);
+    await assert.rejects(() => repo.updateMany("UPDATE SET title.x = 'x'"), WebdaError.BadRequest);
+    await assert.rejects(() => repo.updateMany("UPDATE SET uuid = 'x'"), /primary key/);
+    assert.strictEqual(await repo.deleteMany("DELETE WHERE published = FALSE LIMIT 2"), 2);
+    assert.strictEqual((await repo.query("")).results.length, 1);
+  }
+
+  @test
+  async junctionWritesAreTransactional() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    await assert.rejects(() => repo.create({ uuid: "p1", title: "T", tags: ["t1", "missing"] }), WebdaError.BadRequest);
+    assert.deepStrictEqual(await this.rows("rel_post"), []);
+    assert.deepStrictEqual(await this.rows("rel_post_tags"), []);
+    await repo.create({ uuid: "p1", title: "T", tags: ["t1"] });
+    await assert.rejects(() => repo.update({ uuid: "p1", title: "T", tags: ["missing"] }), WebdaError.BadRequest);
+    assert.deepStrictEqual(((await repo.get("p1")) as any).tags, ["t1"], "a failed update leaves the junction rows");
+  }
+
+  @test
+  async foreignKeyOnInsertIsBadRequest() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    await assert.rejects(
+      () => repo.create({ uuid: "p9", title: "t", author: "nobody" }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("Rel/Post.author")
+    );
+    await repo.create({ uuid: "p9", title: "t", author: "u1" });
+    await assert.rejects(() => repo.patch("p9", { author: "nobody" }), WebdaError.BadRequest);
+    await assert.rejects(() => this.repo(RelUser).delete("u1"), WebdaError.Conflict);
+  }
+
+  @test
+  async parentWritesKeepTheChildType() {
+    const animals = this.repo(RelAnimal);
+    const dogs = this.repo(RelDog);
+    await dogs.create(new RelDog({ uuid: "d2", kind: "dog" }));
+    await dogs.create({ uuid: "d3", kind: "dog", bark: true });
+    await animals.create({ uuid: "a1", kind: "cat" });
+    // An instance read through the parent, and plain data
+    await animals.update(await animals.get("d2"));
+    await animals.update({ uuid: "d3", kind: "wolf" });
+    await animals.patch("a1", { kind: "lion" });
+    assert.deepStrictEqual(await this.uuids(dogs, ""), ["d2", "d3"]);
+    const types = (await this.rows("rel_animal")).map(r => [r.uuid, r.__type]);
+    assert.deepStrictEqual(types, [
+      ["a1", "Rel/Animal"],
+      ["d2", "Rel/Dog"],
+      ["d3", "Rel/Dog"]
+    ]);
+    assert.strictEqual(((await dogs.get("d3")) as any).bark, true, "a parent write only touches its own projection");
+    // An instance of a class writes its own type
+    await animals.update(new RelAnimal({ uuid: "d3", kind: "x" }));
+    assert.deepStrictEqual(await this.uuids(dogs, ""), ["d2"]);
+  }
+
+  @test
+  async bulkStaysInTheModelHierarchy() {
+    const animals = this.repo(RelAnimal);
+    const dogs = this.repo(RelDog);
+    await animals.create({ uuid: "a1", kind: "cat" });
+    await dogs.create({ uuid: "d1", kind: "dog" });
+    assert.strictEqual(await dogs.updateMany("UPDATE SET kind = 'x'"), 1);
+    assert.strictEqual(((await animals.get("a1")) as any).kind, "cat");
+    assert.strictEqual(await dogs.deleteMany("DELETE"), 1);
+    assert.strictEqual(await animals.exists("a1"), true);
+    await dogs.create({ uuid: "d2" });
+    assert.strictEqual((await animals.query("")).results.length, 2, "the parent sees its subclasses");
+    assert.strictEqual(await animals.deleteMany("DELETE"), 2);
+    await checkCountClassFilter(
+      animals as any,
+      dogs as any,
+      async (repo: any, uuid) => void (await repo.create(new (repo.getRootModel())({ uuid })))
+    );
+  }
+
+  @test
+  async createWithoutPrimaryKeyPersistsGeneratedUuid() {
+    await checkCreateWithoutPrimaryKey([this.repo(RelTag)], {
+      data: () => ({ label: "x" }),
+      readStored: async key => (await this.rows("rel_tag", `uuid = '${key}'`))[0]
+    });
+  }
+
+  @test
+  async countConformance() {
+    await checkCount(this.repo(RelAggRow) as any, { native: true });
+  }
+
+  @test
+  async aggregationConformance() {
+    await checkAggregation(this.repo(RelAggRow) as any, { native: true });
+  }
+
+  @test
+  async queryParityWithMemory() {
+    const repo = this.repo(RelPost);
+    const memory = new MemoryRepository<any>(RelPost as any, ["uuid"]);
+    const rows = [
+      { uuid: "r1", views: 1, title: "x", published: true, meta: ["x", 1] },
+      { uuid: "r2", views: 5, title: "abc", published: false, meta: ["y"] },
+      { uuid: "r3" },
+      { uuid: "r4", title: "1", meta: "x" },
+      { uuid: "r5", title: null }
+    ];
+    for (const row of rows) {
+      await repo.create({ ...row });
+      await memory.create({ ...row });
+    }
+    const queries = [
+      "views < 2",
+      "views <= 1",
+      "views = 1",
+      "views != 1",
+      "views > 1",
+      "views >= 5",
+      "views IN [1, 5]",
+      "views = 'abc'",
+      "views = '1'",
+      "published = TRUE",
+      "published = FALSE",
+      "published != TRUE",
+      "title = 'x'",
+      "title != 'x'",
+      "title = 1",
+      "title LIKE 'a%'",
+      "title IS NULL",
+      "views IS NOT NULL",
+      "meta CONTAINS 'x'",
+      "views < 2 OR published = TRUE"
+    ];
+    const uuids = async (r: any, q: string) => (await r.query(q)).results.map((o: any) => o.uuid).sort();
+    for (const query of queries) {
+      assert.deepStrictEqual(await uuids(repo, query), await uuids(memory, query), query);
+    }
+  }
+
+  @test
+  async cleanEmptiesTableAndJunctions() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", tags: ["t1"] });
+    await repo.__clean();
+    assert.deepStrictEqual(await this.rows("rel_post"), []);
+    assert.deepStrictEqual(await this.rows("rel_post_tags"), []);
+    assert.strictEqual((await this.rows("rel_tag")).length, 3);
   }
 }

@@ -42,7 +42,8 @@ const models = [
       author: { type: "string" },
       tags: { type: "array", items: { type: "string" } },
       contributors: { type: "array", items: { type: "object", properties: { role: { type: "string" } } } },
-      reviewers: { type: "object", additionalProperties: { type: "object" } }
+      reviewers: { type: "object", additionalProperties: { type: "object" } },
+      ghosts: { type: "object", additionalProperties: { type: "object" } }
     },
     {
       Relations: {
@@ -50,7 +51,8 @@ const models = [
           { attribute: "author", model: "App/User", type: "LINK" },
           { attribute: "tags", model: "App/Tag", type: "LINKS_SIMPLE_ARRAY" },
           { attribute: "contributors", model: "App/User", type: "LINKS_ARRAY" },
-          { attribute: "reviewers", model: "App/User", type: "LINKS_MAP" }
+          { attribute: "reviewers", model: "App/User", type: "LINKS_MAP" },
+          { attribute: "ghosts", model: "App/Ghost", type: "LINKS_MAP" }
         ]
       }
     }
@@ -68,8 +70,15 @@ const models = [
   ),
   model(
     "App/PairRef",
-    { uuid, pair: { type: "string" } },
-    { Relations: { links: [{ attribute: "pair", model: "App/Pair", type: "LINK" }] } }
+    { uuid, pair: { type: "string" }, pairs: { type: "array", items: { type: "string" } } },
+    {
+      Relations: {
+        links: [
+          { attribute: "pair", model: "App/Pair", type: "LINK" },
+          { attribute: "pairs", model: "App/Pair", type: "LINKS_SIMPLE_ARRAY" }
+        ]
+      }
+    }
   ),
   model(
     "App/Animal",
@@ -141,6 +150,7 @@ describe("TableMapping", () => {
     expect(value("_extra")).toBe(JSON.stringify({ extraKey: 1 }));
     expect(row.junctions.map(j => j.table.name).sort()).toEqual([
       "app_post_contributors",
+      "app_post_ghosts",
       "app_post_reviewers",
       "app_post_tags"
     ]);
@@ -217,7 +227,7 @@ describe("TableMapping", () => {
         .junctions()
         .map(j => j.relation.attribute)
         .sort()
-    ).toEqual(["contributors", "reviewers", "tags"]);
+    ).toEqual(["contributors", "ghosts", "reviewers", "tags"]);
     expect(posts.ownerColumns(table("app_post_tags"), { uuid: "p1" })).toEqual({ post: "p1" });
     const reviewers = posts.toRow({ uuid: "p1", reviewers: { lead: { uuid: "u1", since: 2020 } } }, "App/Post", true);
     expect(reviewers.junctions[0].rows).toEqual([
@@ -295,5 +305,55 @@ describe("TableMapping", () => {
     expect(posts.decode("2024-01-02", column, decodeJson)).toBe("2024-01-02");
     expect(posts.encode(new Date("2024-01-02T23:30:00.000Z"), column)).toBe("2024-01-02");
     expect(posts.encode("2024-01-02", column)).toBe("2024-01-02");
+  });
+  it("unresolvedJunctionTargetsUseUuid", () => {
+    const row = posts.toRow({ uuid: "p1", ghosts: { k: { uuid: "g1", note: 1 } } }, "App/Post", true);
+    const ghosts = row.junctions.find(j => j.table.name === "app_post_ghosts")!;
+    expect(ghosts.rows).toEqual([{ post: "p1", ghost: "g1", key: "k", attributes: JSON.stringify({ note: 1 }) }]);
+    const json = posts.fromRow(
+      { uuid: "p1" },
+      new Map([["ghosts", [{ post: "p1", ghost: "g1", key: "k", attributes: null }]]]),
+      decodeJson
+    );
+    expect(json.ghosts).toEqual({ k: { uuid: "g1" } });
+  });
+
+  it("compositeTargetJunctionSplitsAndJoinsKeys", () => {
+    const refs = new TableMapping(plan, table("app_pairref"));
+    const row = refs.toRow({ uuid: "r1", pairs: ["x_y"] }, "App/PairRef", true);
+    expect(row.junctions[0].rows).toEqual([{ pairRef: "r1", pair_a: "x", pair_b: "y", _position: 0 }]);
+    const json = refs.fromRow(
+      { uuid: "r1" },
+      new Map([["pairs", [{ pairRef: "r1", pair_a: "x", pair_b: "y", _position: "0" }]]]),
+      decodeJson
+    );
+    expect(json.pairs).toEqual(["x_y"]);
+    const short = refs.toRow({ uuid: "r1", pair: "x" }, "App/PairRef", false);
+    expect(short.values[short.columns.indexOf("pair_b")]).toBeNull();
+  });
+
+  it("fromRowIgnoresUnknownJunctionsAndNullFields", () => {
+    const json = posts.fromRow(
+      { uuid: "p1" },
+      new Map([
+        ["nope", [{ x: 1 }]],
+        ["contributors", [{ post: "p1", user: "u1", _position: "0", role: null }]]
+      ]),
+      decodeJson
+    );
+    expect(json.nope).toBeUndefined();
+    expect(json.contributors).toEqual([{ uuid: "u1" }]);
+    const strictPlan = buildSchemaPlan(models, { extraColumn: false });
+    const strict = new TableMapping(
+      strictPlan,
+      strictPlan.tables.find(t => t.name === "app_post")!
+    );
+    expect(strict.fromRow({ uuid: "p1", title: "T" }, new Map(), decodeJson)).toEqual({ uuid: "p1", title: "T" });
+    expect(
+      posts.encode(
+        1,
+        table("app_post").columns.find(c => c.name === "title")!
+      )
+    ).toBe("1");
   });
 });

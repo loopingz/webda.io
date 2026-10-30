@@ -81,11 +81,12 @@ export class TableMapping {
         continue;
       }
       this.relations.set(relation.attribute, relation);
-      if (relation.storage.kind === "junction") {
-        const junction = plan.tables.find(t => t.name === (relation.storage as { table: string }).table);
-        if (junction) {
-          this.junctionTables.set(relation.attribute, junction);
-        }
+      const storage = relation.storage;
+      if (storage.kind === "junction") {
+        this.junctionTables.set(
+          relation.attribute,
+          plan.tables.find(t => t.name === storage.table)!
+        );
       }
     }
   }
@@ -288,8 +289,7 @@ export class TableMapping {
       if (value === undefined || value === null) {
         return null;
       }
-      const relation = this.relations.get(column.field);
-      const parts = String(value).split(relation?.keySeparator ?? "_");
+      const parts = String(value).split(this.relations.get(column.field)!.keySeparator!);
       return parts[siblings.indexOf(column)] ?? null;
     }
     return this.encode(value, column);
@@ -304,7 +304,7 @@ export class TableMapping {
     const owner: Record<string, unknown> = {};
     for (const column of junction.columns) {
       if (column.role === "owner") {
-        owner[column.name] = keyValues[column.keyPart ?? this.primaryKey[0]];
+        owner[column.name] = keyValues[column.keyPart!];
       }
     }
     return owner;
@@ -394,7 +394,7 @@ export class TableMapping {
     for (const field of references) {
       const parts = this.byField.get(field)!.map(c => row[c.name]);
       if (parts.some(p => p !== undefined && p !== null)) {
-        out[field] = parts.join(this.relations.get(field)?.keySeparator ?? "_");
+        out[field] = parts.join(this.relations.get(field)!.keySeparator!);
       }
     }
     for (const [attribute, rows] of junctionRows) {

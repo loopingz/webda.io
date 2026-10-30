@@ -282,6 +282,26 @@ export class PostgresRelationalStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async emptyStoreHasNoTables() {
+    await this.store.stop();
+    await dropRelationalTables(this.admin);
+    const empty = await this.another("empty", { models: undefined });
+    assert.deepStrictEqual(empty.getSchemaPlan().tables, []);
+    assert.deepStrictEqual(await this.columns("rel_post"), []);
+    await empty.stop();
+  }
+
+  @test
+  async stoppedStoreHasNoClient() {
+    const tags = useRepository(RelTag as any);
+    await tags.create({ uuid: "t1", label: "x" } as any);
+    await this.store.stop();
+    await assert.rejects(() => tags.get("t1" as any), /No SQL client/);
+    await this.store.init();
+    assert.strictEqual(await tags.exists("t1" as any), true);
+  }
+
+  @test
   async cleanEmptiesEveryTable() {
     const tags = useRepository(RelTag as any);
     await tags.create({ uuid: "t1", label: "x" } as any);

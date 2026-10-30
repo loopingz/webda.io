@@ -56,7 +56,7 @@ export class PostgresRelationalParameters extends PostgresParameters {
         "A relational store has one typed table per model: `table` is not supported, use `tables` for names"
       );
     }
-    for (const [model, table] of Object.entries(this.tables ?? {})) {
+    for (const [model, table] of Object.entries(this.tables!)) {
       // Written quoted in the relational statements and unquoted in the shared ones: only a plain identifier fits both
       if (!/^[a-z_][a-z0-9_]*$/.test(table)) {
         throw new WebdaError.CodeError(
@@ -127,7 +127,7 @@ export class PostgresRelationalStore<
    * @returns the metadata of the models of the store, subclasses included
    */
   protected planModels(): SchemaModelMetadata[] {
-    return Object.keys(this._modelsHierarchy ?? {}).map(id => useModelMetadata(id) as SchemaModelMetadata);
+    return Object.keys(this._modelsHierarchy).map(id => useModelMetadata(id) as SchemaModelMetadata);
   }
 
   /**

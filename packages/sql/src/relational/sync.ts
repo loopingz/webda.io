@@ -89,13 +89,12 @@ export function planSchemaChanges(
   const drift: SchemaDrift[] = [];
   const created = new Set<string>();
   const columns: SchemaStep[] = [];
-  const onExisting = (table: string, step: SchemaStep, column?: string) => {
+  const onExisting = (table: string, step: SchemaStep) => {
     if (mode === "alter") {
       steps.push(step);
     } else {
       drift.push({
         table,
-        ...(column ? { column } : {}),
         message: `${describeStep(step)} is missing (schemaSync: alter adds it)`
       });
     }

@@ -94,7 +94,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @returns the description of the attribute, for messages
    */
   protected attributeName(attribute: string[]): string {
-    return `${(this.model as any)?.Metadata?.Identifier ?? this.table}.${attribute.join(".")}`;
+    return `${this.modelIdentifier()}.${attribute.join(".")}`;
   }
 
   /**
@@ -187,7 +187,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @returns the field the column holds
    */
   protected fieldOf(column: string): string {
-    return this.mapping.table.columns.find(c => c.name === column)?.field ?? column;
+    return this.mapping.table.columns.find(c => c.name === column)!.field;
   }
 
   /**
@@ -221,9 +221,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @returns the owner key values of its junction rows, in owner column order
    */
   protected ownerValues(row: Record<string, unknown>, junction: TablePlan): unknown[] {
-    return junction.columns
-      .filter(c => c.role === "owner")
-      .map(c => row[this.columnOfField(c.keyPart ?? this.fieldOf(this.mapping.primaryKey[0]))]);
+    return junction.columns.filter(c => c.role === "owner").map(c => row[this.columnOfField(c.keyPart!)]);
   }
 
   /**
@@ -231,7 +229,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @returns its column name
    */
   protected columnOfField(field: string): string {
-    return this.mapping.table.columns.find(c => c.field === field && c.role !== "extra")?.name ?? field;
+    return this.mapping.table.columns.find(c => c.field === field && c.role !== "extra")!.name;
   }
 
   /**
@@ -313,7 +311,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
       return err;
     }
     const relation = this.relationOfConstraint(violation.constraint);
-    const what = relation ? `${relation.model}.${relation.attribute}` : (violation.constraint ?? "a foreign key");
+    const what = relation ? `${relation.model}.${relation.attribute}` : String(violation.constraint);
     return q.startsWith("DELETE")
       ? new WebdaError.Conflict(`Row still referenced through ${what}`)
       : new WebdaError.BadRequest(`Unknown reference for ${what}`);
@@ -324,7 +322,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @returns the relation it enforces, undefined for a junction key or an unknown constraint
    */
   protected relationOfConstraint(constraint: string | undefined): RelationPlan | undefined {
-    return constraint ? this.mapping.plan.relations.find(r => r.foreignKey === constraint) : undefined;
+    return this.mapping.plan.relations.find(r => r.foreignKey === constraint);
   }
 
   /** @override */
@@ -440,7 +438,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * @returns the identifier of the repository model
    */
   protected modelIdentifier(): string {
-    return (this.model as any)?.Metadata?.Identifier ?? this.tableModel ?? "";
+    return (this.model as any).Metadata.Identifier;
   }
 
   /**
@@ -756,7 +754,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
       `SELECT count(*) AS n FROM ${this.q(table.name)} WHERE ${this.ownerCondition(table, owner, args)}`,
       args
     );
-    return Number(res.rows[0]?.n ?? 0);
+    return Number(res.rows[0].n);
   }
 
   /**
@@ -793,7 +791,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
       const table = target.table;
       const targetColumn = table.columns.find(c => c.role === "target")!.name;
       const position = table.columns.find(c => c.role === "position")!.name;
-      const targetKey = typeof item === "object" && item !== null ? (item[targetColumn] ?? item.uuid) : item;
+      const targetKey = typeof item === "object" && item !== null ? item.uuid : item;
       await this.transact(async tx => {
         await this.requireRow(tx, primaryKey, key);
         if (index !== undefined) {

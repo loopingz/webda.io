@@ -48,7 +48,7 @@ export class RelationalSchemaManager {
     this.plan = undefined;
     const plan = buildSchemaPlan(models, { ...this.options.layout, knownModels });
     for (const warning of plan.warnings) {
-      const where = warning.attribute ? `${warning.model}.${warning.attribute}` : warning.model;
+      const where = [warning.model, warning.attribute].filter(Boolean).join(".");
       this.options.log("WARN", `${warning.code} ${where}: ${warning.message}`);
     }
     this.plan = plan;

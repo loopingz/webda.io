@@ -60,6 +60,7 @@ export class RelPair extends Model {
   a?: string;
   b?: string;
   label?: string;
+  tags?: string[];
 }
 
 /** A reference to a composite key */
@@ -120,6 +121,7 @@ export const RELATIONAL_TABLES = [
   "rel_tag",
   "rel_animal",
   "rel_pairref",
+  "rel_pair_tags",
   "rel_pair",
   "rel_node",
   "rel_cyclea",
@@ -233,8 +235,13 @@ export function relationalMetadata(): Record<string, any> {
     ),
     "Rel/Pair": metadata(
       "Rel/Pair",
-      { a: string, b: string, label: string },
-      { required: ["a", "b"], primaryKey: ["a", "b"], separator: "_" }
+      { a: string, b: string, label: string, tags: { type: "array", items: string } },
+      {
+        required: ["a", "b"],
+        primaryKey: ["a", "b"],
+        separator: "_",
+        relations: { links: [{ attribute: "tags", model: "Rel/Tag", type: "LINKS_SIMPLE_ARRAY" }] }
+      }
     ),
     "Rel/PairRef": metadata(
       "Rel/PairRef",

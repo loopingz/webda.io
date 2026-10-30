@@ -22,6 +22,7 @@ import {
   RelAggRow,
   RelAnimal,
   RelDog,
+  RelPair,
   RelPairRef,
   RelPost,
   RelTag,
@@ -718,6 +719,52 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
     await agg.create({ uuid: "a1", score: 1 });
     await agg.incrementAttributes("a1", { score: 2 } as any);
     assert.strictEqual(((await agg.get("a1")) as any).score, 3);
+    // Attribute mapping of typed and JSON columns as JSON values
+    assert.strictEqual(repo.mapJsonAttribute(["views"]), 'to_jsonb("views")');
+    assert.strictEqual(repo.mapJsonAttribute(["meta", "a"]), `"meta"#>'{a}'`);
+    // A patch without data only checks the row exists
+    await repo.patch("p1", undefined as any);
+    await assert.rejects(() => repo.patch("zz", undefined as any), UpdateConditionFailError);
+    // Counter list entries default to 1
+    await repo.create({ uuid: "p2", title: "T", views: 1 });
+    await repo.incrementAttributes("p2", [{ property: "views" }] as any);
+    assert.strictEqual(((await repo.get("p2")) as any).views, 2);
+    // Object items in a simple link array, and an unconditioned JSON item delete
+    await repo.upsertItemToCollection("p2", "tags" as any, { uuid: "t3" } as any);
+    assert.deepStrictEqual(((await repo.get("p2")) as any).tags, ["t3"]);
+    await repo.upsertItemToCollection("p2", "files" as any, { name: "f0" });
+    await repo.deleteItemFromCollection("p2", "files" as any, 0);
+    assert.deepStrictEqual(((await repo.get("p2")) as any).files, []);
+    await assert.rejects(() => repo.deleteItemFromCollection("zz", "files" as any, 0), StoreNotFoundError);
+    // A foreign key the plan does not know (added by a DBA) is still reported as a bad request, by its name
+    await this.client.query(
+      `ALTER TABLE rel_pairref ADD CONSTRAINT dba_fk FOREIGN KEY (pair_a) REFERENCES rel_tag (uuid)`
+    );
+    await assert.rejects(
+      () => refs.create({ uuid: "r2", pair: "zz_y" }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("dba_fk")
+    );
+  }
+
+  @test
+  async compositeKeyOwnerJunction() {
+    await this.seedTargets();
+    const pairs = this.repo(RelPair);
+    await pairs.create({ a: "x", b: "y", label: "l", tags: ["t1", "t2"] });
+    const pair: any = await pairs.get({ a: "x", b: "y" });
+    assert.deepStrictEqual(pair.tags, ["t1", "t2"]);
+    assert.deepStrictEqual(
+      (await this.rows("rel_pair_tags")).map(r => [r.pair_a, r.pair_b, r.tag]),
+      [
+        ["x", "y", "t1"],
+        ["x", "y", "t2"]
+      ]
+    );
+    await pairs.upsertItemToCollection({ a: "x", b: "y" }, "tags" as any, "t3");
+    await pairs.deleteItemFromCollection({ a: "x", b: "y" }, "tags" as any, 0);
+    assert.deepStrictEqual(((await pairs.get({ a: "x", b: "y" })) as any).tags, ["t2", "t3"]);
+    assert.strictEqual(await pairs.deleteMany("DELETE WHERE label = 'l' LIMIT 1"), 1);
+    assert.deepStrictEqual(await this.rows("rel_pair_tags"), []);
   }
   @test
   async parentPatchWritesSubclassColumns() {

@@ -1,6 +1,6 @@
 import { Command } from "@webda/core";
 import type { MigratableStore } from "@webda/core";
-import { SQLStore, SQLStoreParameters } from "@webda/sql";
+import { SQLStore, SQLStoreParameters, serializedClient } from "@webda/sql";
 import type { SQLClient, SQLDialect } from "@webda/sql";
 import type { SQLiteConnectionParameters, SQLitePersistence } from "./connection.js";
 import { acquireDatabase, releaseDatabase } from "./dbregistry.js";
@@ -64,7 +64,9 @@ export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters
    * @returns the client, undefined while the store is not initialized
    */
   getClient(): SQLClient | undefined {
-    return this.handle?.client;
+    // Every statement of the handle goes through its mutex: a relational store transaction on the same database never
+    // has another service's statement land inside it
+    return this.handle ? serializedClient(this.handle.client, this.handle.mutex) : undefined;
   }
 
   /**

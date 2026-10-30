@@ -34,8 +34,8 @@ import { SQLiteRelationalDialect } from "./dialect.js";
 import { fixtureMetadata, knownMetadata } from "@webda/sql/lib/test";
 
 /**
- * RelationalRepository against a local PostgreSQL, without a store: the manager creates the schema, rows are seeded
- * with explicit INSERTs
+ * RelationalRepository against an in-memory SQLite database, without a store: the manager creates the schema, rows
+ * are seeded with explicit INSERTs
  */
 @suite
 export class SQLiteRelationalRepositoryTest extends WebdaApplicationTest {
@@ -790,6 +790,27 @@ export class SQLiteRelationalRepositoryTest extends WebdaApplicationTest {
     assert.deepStrictEqual((await this.rows("rel_animal"))[0]._extra, {}, "a table column never lands in _extra");
     await animals.removeAttribute("d1", "bark");
     assert.strictEqual(((await dogs.get("d1")) as any).bark, undefined, "nothing resurrects the removed column");
+  }
+
+  @test
+  async jsonScalarsRoundTrip() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", meta: 42 });
+    await repo.create({ uuid: "p2", title: "T", meta: 1.5 });
+    await repo.create({ uuid: "p3", title: "T", meta: "42" });
+    await repo.create({ uuid: "p4", title: "T", meta: true });
+    assert.strictEqual(((await repo.get("p1")) as any).meta, 42);
+    assert.strictEqual(((await repo.get("p2")) as any).meta, 1.5);
+    assert.strictEqual(((await repo.get("p3")) as any).meta, "42");
+    assert.strictEqual(((await repo.get("p4")) as any).meta, true);
+    assert.deepStrictEqual(await this.uuids(repo, "meta = 42"), ["p1"], "a number matches JSON numbers only");
+    assert.deepStrictEqual(
+      await this.uuids(repo, "meta = '42'"),
+      ["p1", "p3"],
+      "a string matches the text of the value"
+    );
+    assert.deepStrictEqual(await this.uuids(repo, "meta > 1"), ["p1", "p2"]);
+    assert.deepStrictEqual(await this.uuids(repo, "meta = TRUE"), ["p4"]);
   }
 
   @test

@@ -116,8 +116,12 @@ export class SQLiteRelationalStore<
    * @override
    */
   async checkTable(): Promise<void> {
-    this.handle!.db.exec("PRAGMA foreign_keys = ON");
-    await this.handle!.mutex.run(() => this.relational.sync(this.handle!.client));
+    const handle = this.handle!;
+    await handle.mutex.run(async () => {
+      // Ignored by SQLite while a transaction is open on the connection: run it under the lock
+      handle.db.exec("PRAGMA foreign_keys = ON");
+      return this.relational.sync(handle.client);
+    });
   }
 
   /**

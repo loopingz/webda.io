@@ -13,6 +13,7 @@ import {
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import { __resetDatabases } from "./dbregistry.js";
+import { SQLiteStore, SQLiteStoreParameters } from "./sqlitestore.service.js";
 import { SQLiteRelationalParameters, SQLiteRelationalStore } from "./sqliterelationalstore.service.js";
 
 @suite
@@ -236,25 +237,64 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
   async storesSharingADatabaseSerializeWrites() {
     await this.store.stop();
     __resetDatabases();
-    const a = await this.makeStore("a", { database: { name: "shared" }, models: ["Rel/Tag", "Rel/User"] });
-    const b = await this.makeStore("b", { database: { name: "shared" }, models: ["Rel/Post"] });
+    const a = await this.makeStore("a", { database: { name: "shared" }, models: ["Rel/User"] });
+    const b = await this.makeStore("b", { database: { name: "shared" }, models: ["Rel/Post", "Rel/Tag"] });
     assert.strictEqual(a.getHandle(), b.getHandle());
-    const tags = a.getRepository(useModel("Rel/Tag"));
+    const users = a.getRepository(useModel("Rel/User"));
+    const tags = b.getRepository(useModel("Rel/Tag"));
     const posts = b.getRepository(useModel("Rel/Post"));
     await tags.create({ uuid: "t1", label: "x" } as any);
-    // The post store references tags of the other store: a column without foreign key, so the junction target FK is
-    // the only constraint; "missing" fails at COMMIT while the tag store writes
+    // The junction target FK fails at COMMIT in store b while store a writes on the same handle
     const [failed] = await Promise.all([
       posts.create({ uuid: "p1", title: "a", tags: ["t1", "missing"] } as any).then(
-        () => "created",
+        () => undefined,
         err => err
       ),
-      tags.create({ uuid: "t2", label: "y" } as any)
+      users.create({ uuid: "u1", name: "alice" } as any)
     ]);
-    assert.strictEqual(await tags.exists("t2" as any), true);
-    assert.ok(failed === "created" || failed instanceof WebdaError.BadRequest);
+    assert.ok(failed instanceof WebdaError.BadRequest, String(failed));
+    assert.strictEqual(await users.exists("u1" as any), true, "the other store's write survives the rollback");
+    assert.strictEqual(await posts.exists("p1" as any), false);
     await a.stop();
     await b.stop();
+  }
+
+  @test
+  async jsonStoreOnTheSameHandleIsSerializedAndForeignKeysEnforced() {
+    await this.store.stop();
+    __resetDatabases();
+    // The JSON store opens the database first, the relational store joins it
+    const json = new SQLiteStore(
+      "json",
+      new SQLiteStoreParameters().load({ database: { name: "mixed" }, models: ["Webda/OwnerModel"] })
+    );
+    this.registerService(json as any, "json");
+    this.extra.push("json");
+    await json.resolve().init();
+    const relational = await this.makeStore("rel2", { database: { name: "mixed" }, models: RELATIONAL_MODELS });
+    assert.strictEqual(json.getHandle(), relational.getHandle());
+    assert.strictEqual((await json.getClient()!.query("PRAGMA foreign_keys")).rows[0].foreign_keys, 1);
+    assert.notStrictEqual(
+      json.getClient(),
+      json.getHandle()!.client,
+      "the JSON store statements go through the handle mutex"
+    );
+    const owners = json.getRepository(useModel("Webda/OwnerModel"));
+    const tags = relational.getRepository(useModel("Rel/Tag"));
+    const posts = relational.getRepository(useModel("Rel/Post"));
+    await tags.create({ uuid: "t1", label: "x" } as any);
+    const [failed] = await Promise.all([
+      posts.create({ uuid: "p1", title: "a", tags: ["t1", "missing"] } as any).then(
+        () => undefined,
+        err => err
+      ),
+      owners.create({ uuid: "o1", name: "owner" } as any)
+    ]);
+    assert.ok(failed instanceof WebdaError.BadRequest, String(failed));
+    assert.strictEqual(await owners.exists("o1" as any), true, "the JSON store's write survives the rollback");
+    await relational.stop();
+    await json.stop();
+    assert.strictEqual(json.getClient(), undefined, "a stopped store has no client");
   }
 
   @test

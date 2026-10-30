@@ -76,6 +76,7 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
     );
     assert.strictEqual(this.store.resolveTable(useModel("Rel/Dog")), "rel_animal");
     assert.strictEqual(this.store.resolveTableModel(useModel("Rel/Dog")), "Rel/Animal");
+    assert.strictEqual(this.store.resolveTableModel(useModel("Webda/OwnerModel")), "Webda/OwnerModel");
     assert.deepStrictEqual(this.store.getRawTables(), []);
     assert.strictEqual(this.store.getSchemaPlan().version, 1);
     // The foreign keys are inline: the second init finds nothing to do
@@ -281,6 +282,16 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
     } finally {
       console.log = log;
     }
+  }
+
+  @test
+  async stoppedStoreHasNoClient() {
+    const tags = useRepository(RelTag as any);
+    await tags.create({ uuid: "t1", label: "x" } as any);
+    await this.store.stop();
+    await assert.rejects(() => tags.get("t1" as any), /No SQL client/);
+    await this.store.init();
+    assert.strictEqual(await tags.exists("t1" as any), false, "an in-memory database is dropped at the last release");
   }
 
   @test

@@ -203,6 +203,7 @@ describe("TableMapping", () => {
     expect(posts.decode("1.5", { ...column("views"), type: { kind: "decimal" } }, decodeJson)).toBe(1.5);
     expect(posts.decode(null, column("views"), decodeJson)).toBeUndefined();
     expect(posts.decode('{"a":1}', column("meta"), decodeJson)).toEqual({ a: 1 });
+    expect(posts.decode("null", column("meta"), decodeJson)).toBeUndefined();
     expect(posts.encode(undefined, column("title"))).toBeNull();
     expect(posts.encode("2024-01-02T03:04:05.000Z", column("createdAt"))).toBe("2024-01-02T03:04:05.000Z");
     expect(posts.encode("7", column("views"))).toBe(7);
@@ -313,6 +314,7 @@ describe("TableMapping", () => {
     expect(posts.decode("2024-01-02", column, decodeJson)).toBe("2024-01-02");
     expect(posts.encode(new Date("2024-01-02T23:30:00.000Z"), column)).toBe("2024-01-02");
     expect(posts.encode("2024-01-02", column)).toBe("2024-01-02");
+    expect(posts.encode("2024-01-02T23:30:00.000Z", column)).toBe("2024-01-02");
   });
   it("unresolvedJunctionTargetsUseUuid", () => {
     const row = posts.toRow({ uuid: "p1", ghosts: { k: { uuid: "g1", note: 1 } } }, "App/Post", true);

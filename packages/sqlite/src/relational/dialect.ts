@@ -193,7 +193,8 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
     if (type.kind === "boolean") {
       return `CASE WHEN ${expr} IS NULL THEN NULL WHEN ${expr} THEN json('true') ELSE json('false') END`;
     }
-    return `json_quote(${expr})`;
+    // json_quote(NULL) is the JSON null text: a SQL NULL must stay NULL for COUNT and the group keys
+    return `CASE WHEN ${expr} IS NULL THEN NULL ELSE json_quote(${expr}) END`;
   }
 
   /**

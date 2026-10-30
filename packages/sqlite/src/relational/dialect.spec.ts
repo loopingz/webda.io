@@ -75,6 +75,9 @@ export class SQLiteRelationalDialectTest {
     assert.deepStrictEqual(this.dialect.liveType("CHARACTER(3)"), { kind: "text" });
     assert.strictEqual(this.dialect.liveType("BLOB"), undefined);
     assert.strictEqual(this.dialect.liveType(""), undefined);
+    assert.strictEqual(this.dialect.liveType(undefined as any), undefined);
+    assert.deepStrictEqual(this.dialect.liveType("CHARACTER VARYING(5)"), { kind: "varchar", length: 5 });
+    assert.deepStrictEqual(this.dialect.liveType("character varying"), { kind: "text" });
   }
 
   @test
@@ -141,7 +144,7 @@ export class SQLiteRelationalDialectTest {
   jsonColumnOperations() {
     const d = this.dialect;
     assert.strictEqual(d.castText('"n"'), 'CAST("n" AS TEXT)');
-    assert.strictEqual(d.toJson('"n"', { kind: "bigint" }), 'json_quote("n")');
+    assert.strictEqual(d.toJson('"n"', { kind: "bigint" }), 'CASE WHEN "n" IS NULL THEN NULL ELSE json_quote("n") END');
     assert.strictEqual(
       d.toJson('"b"', { kind: "boolean" }),
       `CASE WHEN "b" IS NULL THEN NULL WHEN "b" THEN json('true') ELSE json('false') END`
@@ -163,6 +166,7 @@ export class SQLiteRelationalDialectTest {
     );
     assert.deepStrictEqual(args, ["x", "1", '"v"']);
     assert.strictEqual(d.columnJsonMerge("e", {}, []), `COALESCE("e", '{}')`);
+    assert.strictEqual(d.columnJsonMerge("e", { skipped: undefined }, []), `COALESCE("e", '{}')`);
     assert.strictEqual(d.columnJsonRemoveKey("e", 3), `json_remove("e", '$.' || ?3)`);
     assert.strictEqual(d.columnJsonSetPath("m", ["a"], 3), `json_set(COALESCE("m", '{}'), '$.a', json(?3))`);
     assert.strictEqual(
@@ -190,6 +194,8 @@ export class SQLiteRelationalDialectTest {
     assert.strictEqual(this.dialect.isForeignKeyViolation({ code: "ERR_SQLITE_ERROR", errcode: 1555 }), undefined);
     assert.strictEqual(this.dialect.isForeignKeyViolation(new Error("x")), undefined);
     assert.strictEqual(this.dialect.isForeignKeyViolation(undefined), undefined);
+    assert.strictEqual(this.dialect.isForeignKeyViolation(null), undefined);
+    assert.strictEqual(this.dialect.isForeignKeyViolation({ code: "OTHER", errcode: 787 }), undefined);
   }
 
   @test

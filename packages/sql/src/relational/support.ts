@@ -55,7 +55,7 @@ export interface RelationalLayoutParameters {
 
 /**
  * Defaults and checks of the relational parameters, called from the `load()` of the engine parameters
- * @param params - the parameters, after the engine `load()`
+ * @param params - the parameters, after the engine `load()` (which sets `tables`)
  * @throws WebdaError.CodeError `RELATIONAL_SHARED_TABLE` when `table` is set, `RELATIONAL_TABLE_NAME` when an
  *   override is not a lowercase identifier
  */
@@ -66,7 +66,7 @@ export function loadRelationalParameters(params: RelationalLayoutParameters): vo
       "A relational store has one typed table per model: `table` is not supported, use `tables` for names"
     );
   }
-  for (const [model, table] of Object.entries(params.tables ?? {})) {
+  for (const [model, table] of Object.entries(params.tables!)) {
     // Written quoted in the relational statements and unquoted in the shared ones: only a plain identifier fits both
     if (!/^[a-z_][a-z0-9_]*$/.test(table)) {
       throw new WebdaError.CodeError(
@@ -189,8 +189,7 @@ export class RelationalStoreSupport {
    * @returns the model its table was declared for, undefined when the model is not in the plan
    */
   resolveTableModel(model: ModelClass): string | undefined {
-    const identifier = useModelMetadata(model)?.Identifier;
-    return identifier ? this.manager.tableOf(identifier)?.root : undefined;
+    return this.manager.tableOf(useModelMetadata(model).Identifier)?.root;
   }
 
   /**

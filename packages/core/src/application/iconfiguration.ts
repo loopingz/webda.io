@@ -110,11 +110,11 @@ export type UnpackedConfiguration = {
    */
   parameters?: {
     /**
-     * Allow you to authorize one or several websites
-     * If you use "*" then the API is open to direct call and any origins
-     * You can also serve one static website by having a
+     * Origins allowed to call the API from a browser (CORS), matched on the request `Origin` header
      *
-     * {@link WebsiteOriginFilter}
+     * Exact origins, `https://*.example.com` for the subdomains, or "*" for any origin
+     *
+     * {@link CorsOriginFilter}
      */
     website?: string | string[];
     /**

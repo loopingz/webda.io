@@ -1,0 +1,152 @@
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { afterEach } from "vitest";
+import {
+  registerRequestTracer,
+  RequestTracer,
+  traceRequest,
+  TracedRequest,
+  useRequestTracer
+} from "./requesttracer.js";
+import { createSubnetChecker } from "./subnetchecker.js";
+
+const request: TracedRequest = { protocol: "http", method: "GET", path: "/test", headers: {} };
+
+afterEach(() => registerRequestTracer(undefined));
+
+@suite
+class RequestTracerTest {
+  @test
+  async withoutTracer() {
+    let calls = 0;
+    const result = await traceRequest(request, async handle => {
+      calls++;
+      handle.setStatus(200);
+      return "ok";
+    });
+    assert.strictEqual(result, "ok");
+    assert.strictEqual(calls, 1);
+  }
+
+  @test
+  async usesRegisteredTracer() {
+    const seen: TracedRequest[] = [];
+    const tracer: RequestTracer = {
+      trace: (req, fn) => {
+        seen.push(req);
+        return fn({ setStatus: () => {} });
+      }
+    };
+    registerRequestTracer(tracer);
+    assert.strictEqual(useRequestTracer(), tracer);
+    assert.strictEqual(await traceRequest(request, async () => 1), 1);
+    assert.deepStrictEqual(seen, [request]);
+    registerRequestTracer(undefined);
+    assert.strictEqual(useRequestTracer(), undefined);
+    assert.strictEqual(await traceRequest(request, async () => 2), 2);
+    assert.strictEqual(seen.length, 1);
+  }
+
+  @test
+  async fallsBackWhenTracerFailsBeforeFn() {
+    for (const tracer of [
+      {
+        trace: () => {
+          throw new Error("sync");
+        }
+      },
+      { trace: async () => Promise.reject(new Error("async")) }
+    ] as RequestTracer[]) {
+      registerRequestTracer(tracer);
+      let calls = 0;
+      const result = await traceRequest(request, async () => {
+        calls++;
+        return "ok";
+      });
+      assert.strictEqual(result, "ok");
+      assert.strictEqual(calls, 1);
+    }
+  }
+
+  @test
+  async fnErrorPropagatesWithoutRerun() {
+    registerRequestTracer({ trace: (_req, fn) => fn({ setStatus: () => {} }) });
+    let calls = 0;
+    await assert.rejects(
+      traceRequest(request, async () => {
+        calls++;
+        throw new Error("boom");
+      }),
+      /boom/
+    );
+    assert.strictEqual(calls, 1);
+    // A tracer failing after fn ran does not re-run it either
+    registerRequestTracer({
+      trace: async (_req, fn) => {
+        await fn({ setStatus: () => {} });
+        throw new Error("tracer");
+      }
+    });
+    calls = 0;
+    assert.strictEqual(
+      await traceRequest(request, async () => {
+        calls++;
+        return "done";
+      }),
+      "done"
+    );
+    assert.strictEqual(calls, 1);
+  }
+
+  @test
+  async tracerFailingWhileFnRuns() {
+    let release: () => void = () => {};
+    const pending = new Promise<void>(resolve => (release = resolve));
+    // The tracer starts fn without waiting for it, then fails: fn has no outcome yet
+    registerRequestTracer({
+      trace: async (_req, fn) => {
+        fn({ setStatus: () => {} }).catch(() => {});
+        throw new Error("tracer");
+      }
+    });
+    let calls = 0;
+    await assert.rejects(
+      traceRequest(request, async () => {
+        calls++;
+        await pending;
+        return "late";
+      }),
+      /tracer/
+    );
+    // Never re-run
+    assert.strictEqual(calls, 1);
+    release();
+  }
+
+  @test
+  subnetChecker() {
+    const check = createSubnetChecker(["10.0.0.0/8", "192.168.1.1"]);
+    assert.ok(check("10.2.3.4"));
+    assert.ok(check("192.168.1.1"));
+    assert.ok(!check("192.168.1.2"));
+  }
+
+  @test
+  subnetCheckerBareIpv6() {
+    // A bare IPv6 address is a /128: only itself
+    const check = createSubnetChecker(["fd00::5"]);
+    assert.ok(check("fd00::5"));
+    assert.ok(!check("fd00::abcd"));
+    assert.ok(!check("fd00::6"));
+  }
+
+  @test
+  subnetCheckerIpv4Mapped() {
+    // Node sockets report IPv4 clients of a dual-stack server as IPv4-mapped IPv6 addresses
+    const check = createSubnetChecker(["10.0.0.0/8", "192.168.1.1"]);
+    assert.ok(check("::ffff:10.0.0.1"));
+    assert.ok(check("::ffff:192.168.1.1"));
+    assert.ok(!check("::ffff:192.168.1.2"));
+    assert.ok(!check("::ffff:11.0.0.1"));
+  }
+}

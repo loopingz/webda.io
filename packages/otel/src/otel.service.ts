@@ -9,8 +9,27 @@ import { BatchLogRecordProcessor, LogRecordExporter, LoggerProvider } from "@ope
 import { ConsoleMetricExporter, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
-import { SecretString, Service, ServiceParameters, WebContext, useApplication, useCore, useRouter } from "@webda/core";
+import {
+  type Context,
+  Operation,
+  SecretString,
+  Service,
+  ServiceParameters,
+  WebContext,
+  WebdaError,
+  useApplication,
+  useContext,
+  useCore,
+  useCrypto,
+  useRouter
+} from "@webda/core";
+import { randomUUID } from "node:crypto";
 import { WorkerLogger, WorkerMessage, WorkerOutput } from "@webda/workout";
+
+/**
+ * Audience of the web tracing tokens: a token of another audience is never accepted
+ */
+const TRACE_TOKEN_AUDIENCE = "webda-trace";
 
 /**
  * Forward WorkerOutput log messages to an OpenTelemetry logger
@@ -100,6 +119,29 @@ export class OtelServiceParameters extends ServiceParameters {
    * Service name reported to OpenTelemetry, default to the package name
    */
   name?: string;
+  /**
+   * On-demand web tracing: an authorized user gets a short-lived token, the browser sends it as
+   * `X-Webda-Trace` to have its `traceparent` and `baggage` honored
+   */
+  webTracing?: {
+    /**
+     * Emails allowed to enable web tracing, as regular expressions matching the whole email
+     * (`"*"` means any authenticated user). Empty or missing means nobody.
+     */
+    allowedEmails?: string[];
+    /**
+     * Token lifetime in seconds
+     *
+     * @default 900
+     */
+    duration?: number;
+  };
+  /**
+   * Sources (IP or CIDR) whose `traceparent` and `baggage` are always honored
+   *
+   * @default []
+   */
+  trustedTraceSources?: string[];
 
   /**
    * Apply default values
@@ -124,6 +166,10 @@ export class OtelServiceParameters extends ServiceParameters {
       url: "http://localhost:4317"
     };
     this.diagnostic ??= "NONE";
+    this.webTracing ??= {};
+    this.webTracing.allowedEmails ??= [];
+    this.webTracing.duration ??= 900;
+    this.trustedTraceSources ??= [];
     return this;
   }
 }
@@ -221,6 +267,10 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
     this.sdk ??= new NodeSDK({
       resource,
       traceExporter: this.getTraceExporter(),
+      // Honor the sampling decision of a (verified) remote parent, sample the roots by ratio
+      sampler: new tracing.ParentBasedSampler({
+        root: new tracing.TraceIdRatioBasedSampler(this.parameters.traceExporter.sampling)
+      }),
       metricReader:
         this.parameters.metricExporter?.enable !== false
           ? (new PeriodicExportingMetricReader({
@@ -236,6 +286,81 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
     this.sdk.start();
     this.updatePatch();
     return this;
+  }
+
+  /**
+   * Check whether the caller can enable web tracing
+   *
+   * Anonymous callers are refused. Override to change the policy.
+   * @param context - the caller context
+   * @returns true if allowed
+   */
+  protected async canEnableWebTracing(context: Context): Promise<boolean> {
+    const allowed = this.parameters.webTracing?.allowedEmails ?? [];
+    if (!allowed.length || !context.getCurrentUserId()) {
+      return false;
+    }
+    if (allowed.includes("*")) {
+      return true;
+    }
+    const email = (await context.getCurrentUser())?.getEmail?.();
+    if (!email) {
+      return false;
+    }
+    return allowed.some(pattern => {
+      try {
+        return new RegExp(`^(?:${pattern})$`).test(email);
+      } catch {
+        this.log("WARN", `Invalid web tracing allowedEmails pattern ${pattern}`);
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Enable web tracing for the current user
+   *
+   * @param sessionId - the tracing session to join, generated when omitted
+   * @returns the trace token to send as `X-Webda-Trace` and its expiration
+   * @throws WebdaError.Forbidden when the caller is not allowed
+   */
+  @Operation({
+    id: "Otel.EnableWebTracing",
+    rest: { method: "post", path: "otel/tracing" },
+    graphql: false,
+    grpc: false,
+    mcp: false
+  })
+  async enableWebTracing(sessionId?: string): Promise<{ token: string; sessionId: string; expiresAt: number }> {
+    const ctx = useContext();
+    if (!(await this.canEnableWebTracing(ctx))) {
+      throw new WebdaError.Forbidden("Web tracing is not allowed");
+    }
+    sessionId = sessionId || randomUUID();
+    const duration = this.parameters.webTracing?.duration ?? 900;
+    // The uid claim is for logs only, never the session userId
+    const token = await useCrypto().jwtSign(
+      { sid: sessionId, uid: ctx.getCurrentUserId() },
+      { audience: TRACE_TOKEN_AUDIENCE, expiresIn: duration }
+    );
+    return { token, sessionId, expiresAt: Date.now() + duration * 1000 };
+  }
+
+  /**
+   * Verify a trace token
+   * @param token - the `X-Webda-Trace` value
+   * @returns the claims or undefined when the token is invalid, expired or not a trace token
+   */
+  async verifyTraceToken(token: string): Promise<{ sid: string; uid: string } | undefined> {
+    try {
+      const claims = await useCrypto().jwtVerify(token, { audience: TRACE_TOKEN_AUDIENCE });
+      if (typeof claims?.sid !== "string") {
+        return undefined;
+      }
+      return { sid: claims.sid, uid: claims.uid };
+    } catch {
+      return undefined;
+    }
   }
 
   /**

@@ -1,5 +1,40 @@
 # Changelog
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.5...sdk-v4.0.0-beta.6) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996))
+
+### Features
+
+* **compiler,models:** record delete policies on relations ([#982](https://github.com/loopingz/webda.io/issues/982)) ([7cd83af](https://github.com/loopingz/webda.io/commit/7cd83afd16fa5af6b6c5816bbb2f05257362bd89))
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996)) ([d9ddb34](https://github.com/loopingz/webda.io/commit/d9ddb34f2ec01bece5c4ca64631e14fe6d3d6264))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **core:** validate symmetry of model relations and store routing ([#458](https://github.com/loopingz/webda.io/issues/458)) ([#905](https://github.com/loopingz/webda.io/issues/905)) ([3754359](https://github.com/loopingz/webda.io/commit/37543596ca25bbea2a2c1f83d0f438f047b884ec))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/graphql bumped to 4.0.0-beta.13
+    * @webda/grpc bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/offline bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/test bumped to 4.0.0-beta.9
+  * peerDependencies
+    * @webda/graphql bumped to 4.0.0-beta.13
+    * @webda/grpc bumped to 4.0.0-beta.13
+    * @webda/offline bumped to 4.0.0-beta.13
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.4...sdk-v4.0.0-beta.5) (2026-10-22)
 
 

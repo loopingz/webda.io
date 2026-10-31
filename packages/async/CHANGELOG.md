@@ -105,6 +105,31 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.12...async-v4.0.0-beta.13) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996))
+
+### Features
+
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996)) ([d9ddb34](https://github.com/loopingz/webda.io/commit/d9ddb34f2ec01bece5c4ca64631e14fe6d3d6264))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.11...async-v4.0.0-beta.12) (2026-10-22)
 
 

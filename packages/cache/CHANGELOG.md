@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-beta.12...cache-v4.0.0-beta.13) (2026-10-31)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/decorators bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-beta.11...cache-v4.0.0-beta.12) (2026-10-22)
 
 

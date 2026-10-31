@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/serialize-v4.0.0-beta.8...serialize-v4.0.0-beta.9) (2026-10-31)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/serialize-v4.0.0-beta.7...serialize-v4.0.0-beta.8) (2026-10-22)
 
 

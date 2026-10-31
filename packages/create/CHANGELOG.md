@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/create-v4.0.0-beta.10...create-v4.0.0-beta.11) (2026-10-31)
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/create-v4.0.0-beta.9...create-v4.0.0-beta.10) (2026-10-22)
 
 

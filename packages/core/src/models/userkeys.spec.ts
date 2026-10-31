@@ -199,6 +199,27 @@ class UserKeysTest extends WebdaApplicationTest {
   }
 
   @test
+  async replaceEscrowInMemory() {
+    // For a host operation storing the escrow itself (the password change of @webda/auth): validated, not saved
+    const alice = await this.newUser("alice");
+    const m = await this.material(alice);
+    await this.op(alice, alice, "Setup", m);
+    const keys = await this.keysOf(alice);
+    assert.ok(keys.hasEscrow("password"));
+    assert.ok(!keys.hasEscrow("recovery"));
+    const recovery = fakeEscrow("recovery");
+    keys.replaceEscrow("recovery", recovery);
+    assert.deepStrictEqual(keys.__escrows, { ...m.escrows, recovery });
+    assert.deepStrictEqual((await this.keysOf(alice)).__escrows, m.escrows);
+    assert.throws(() => keys.replaceEscrow("recovery", fakeEscrow("password")), SealedFormatError);
+    assert.throws(() => keys.hasEscrow("other" as any), SealedFormatError);
+    // Before setup
+    const fresh = new UserKeys();
+    assert.ok(!fresh.hasEscrow("password"));
+    assert.throws(() => fresh.replaceEscrow("password", fakeEscrow("password")), WebdaError.PreconditionFailed);
+  }
+
+  @test
   async ownerOnly() {
     const alice = await this.newUser("alice");
     const bob = await this.newUser("bob");

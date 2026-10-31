@@ -54,7 +54,7 @@ export class FeatureFlagsServiceParameters extends ServiceParameters {
    * @param params - raw parameters
    * @returns this
    */
-  load(params: any = {}): this {
+  load(params: any): this {
     super.load(params);
     this.flags ??= {};
     this.operations ??= {};
@@ -70,14 +70,6 @@ export class FeatureFlagsService extends Service<FeatureFlagsServiceParameters> 
   protected compiledConditions = new Map<string, QueryValidator>();
   protected registeredMappings: { pattern: string; flag: string }[] = [];
   protected offConfigApplied?: () => void;
-
-  /**
-   * Initialize service parameters
-   * @returns new FeatureFlagsServiceParameters instance
-   */
-  initParameters() {
-    return new FeatureFlagsServiceParameters();
-  }
 
   /**
    * Compile conditions and register operation pattern mappings from current parameters

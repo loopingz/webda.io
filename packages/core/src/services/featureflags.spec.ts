@@ -197,6 +197,12 @@ class FeatureFlagsTest extends WebdaApplicationTest {
       const res = await isFeatureEnabled("priority-flag");
       assert.strictEqual(res, true, "First non-undefined provider should win");
 
+      // Registering a provider again only moves it: C now runs before B
+      registerFeatureFlagProvider(providerC, 75);
+      assert.strictEqual(await isFeatureEnabled("priority-flag"), false);
+      registerFeatureFlagProvider(providerC, 10);
+      assert.strictEqual(await isFeatureEnabled("priority-flag"), true);
+
       // Now add throwing provider with higher priority
       const throwingProvider: FeatureFlagProvider = {
         isEnabled() {
@@ -463,6 +469,26 @@ class FeatureFlagsTest extends WebdaApplicationTest {
     assert.strictEqual(await canCallOperation(ctx, "FlagTest.HotReload"), true);
     await callOperation(ctx, "FlagTest.HotReload");
     assert.deepStrictEqual(JSON.parse(ctx.getOutput()), { success: true });
+
+    // The operations mapping reloads too: a configured pattern gates the operation with a second flag
+    useCore().updateConfiguration({
+      services: {
+        featureFlags: {
+          flags: { "hot-flag": true, "hot-mapped": false },
+          operations: { "FlagTest.*": "hot-mapped" }
+        }
+      }
+    });
+    assert.deepStrictEqual(getOperationFeatureFlags("FlagTest.HotReload"), ["hot-flag", "hot-mapped"]);
+    assert.strictEqual(await canCallOperation(ctx, "FlagTest.HotReload"), false);
+    // A new mapping replaces the previous one
+    useCore().updateConfiguration({
+      services: {
+        featureFlags: { flags: { "hot-flag": true }, operations: { "Other.*": "hot-mapped" } }
+      }
+    });
+    assert.deepStrictEqual(getOperationFeatureFlags("FlagTest.HotReload"), ["hot-flag"]);
+    assert.strictEqual(await canCallOperation(ctx, "FlagTest.HotReload"), true);
   }
 
   @test
@@ -516,18 +542,20 @@ class FeatureFlagsTest extends WebdaApplicationTest {
     });
 
     registerOperationFeatureFlag("FlagTest.ListedTest", "mapped-flag");
+    registerOperationFeatureFlag("*", "global-flag");
     try {
       const ops = listOperations();
       assert.ok(ops["FlagTest.ListedTest"]);
-      assert.ok(Array.isArray(ops["FlagTest.ListedTest"].featureFlags));
-      assert.ok(ops["FlagTest.ListedTest"].featureFlags.includes("meta-flag"));
-      assert.ok(ops["FlagTest.ListedTest"].featureFlags.includes("mapped-flag"));
+      assert.deepStrictEqual(ops["FlagTest.ListedTest"].featureFlags, ["meta-flag", "mapped-flag", "global-flag"]);
+      // An operation without flag of its own only gets the global one
+      assert.deepStrictEqual(getOperationFeatureFlags("FlagTest.Unflagged"), ["global-flag"]);
 
       const fullOps = listFullOperations();
       assert.ok(fullOps["FlagTest.ListedTest"]);
       assert.ok(fullOps["FlagTest.ListedTest"].featureFlags.includes("meta-flag"));
     } finally {
       unregisterOperationFeatureFlag("FlagTest.ListedTest", "mapped-flag");
+      unregisterOperationFeatureFlag("*", "global-flag");
     }
   }
 

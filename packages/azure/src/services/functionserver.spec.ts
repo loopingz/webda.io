@@ -1,4 +1,5 @@
 import { suite, test } from "@webda/test";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import {
   CronDefinition,
   CronService,
@@ -129,6 +130,70 @@ class FunctionServerTest extends AzureTest {
     } finally {
       registerRequestTracer(undefined);
     }
+  }
+
+  /**
+   * Run fn capturing the WARN log messages
+   * @param fn - the function to run
+   * @returns the first argument of each WARN log
+   */
+  async warnings(fn: () => Promise<void>): Promise<string[]> {
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      await fn();
+    } finally {
+      memoryLogger.close();
+    }
+    return memoryLogger
+      .getLogs()
+      .filter(m => m.log?.level === "WARN")
+      .map(m => m.log!.args[0]);
+  }
+
+  @test async tracerStatusFailureKeepsTheResponse() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    registerRequestTracer({
+      trace: async (_request, fn) =>
+        fn({
+          setStatus: () => {
+            throw new Error("tracer broken");
+          }
+        })
+    });
+    try {
+      runtime.execute.mockImplementationOnce(async context => {
+        context.statusCode = 202;
+      });
+      let status: number | undefined;
+      const warnings = await this.warnings(async () => {
+        status = (
+          await service.handleRequest(
+            {
+              url: "https://example.test/path",
+              method: "GET",
+              headers: new Headers(),
+              arrayBuffer: async () => new ArrayBuffer(0)
+            } as any,
+            {} as any
+          )
+        ).status;
+      });
+      expect(status).toBe(202);
+      expect(warnings).toContain("Request tracer failed to record the status");
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test async clientIpNeverThrows() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    let clientIp: string | undefined = "unset";
+    // A header value that is not a string (not built from the Headers of a request)
+    const warnings = await this.warnings(async () => {
+      clientIp = service["getClientIp"]({ "x-forwarded-for": 42 as any });
+    });
+    expect(clientIp).toBeUndefined();
+    expect(warnings).toEqual(["Cannot resolve the client address"]);
   }
 
   @test async mapsHttpAndBinaryResponses() {

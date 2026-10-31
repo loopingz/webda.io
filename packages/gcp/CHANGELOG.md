@@ -117,6 +117,25 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.6.3](https://github.com/loopingz/webda.io/compare/gcp-v3.6.2...gcp-v3.6.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* create pubsub on resolve ([30c6dca](https://github.com/loopingz/webda.io/commit/30c6dca0f6a664280d35074f4d765bd4ce3483e2))
+* module generation ([74b1232](https://github.com/loopingz/webda.io/commit/74b12322b34fdd984c7dac0c3f1df7dfcd84f4a2))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/async bumped from ^3.9.3 to ^3.8.0
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.6.1](https://github.com/loopingz/webda.io/compare/gcp-v3.6.0...gcp-v3.6.1) (2024-05-19)
 
 

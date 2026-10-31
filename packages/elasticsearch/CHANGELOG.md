@@ -187,6 +187,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.2.13](https://github.com/loopingz/webda.io/compare/elasticsearch-v3.2.12...elasticsearch-v3.2.13) (2026-10-31)
+
+
+### Bug Fixes
+
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/elasticsearch-v3.1.3...elasticsearch-v3.2.0) (2023-11-22)
 
 

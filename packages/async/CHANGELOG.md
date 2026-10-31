@@ -105,6 +105,34 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [3.8.0](https://github.com/loopingz/webda.io/compare/async-v3.7.2...async-v3.8.0) (2026-10-31)
+
+
+### Features
+
+* **async:** cancel status ([5b41552](https://github.com/loopingz/webda.io/commit/5b415529a43964aad1ac8aa5d642153216e86b3a))
+
+
+### Bug Fixes
+
+* add updated webda.module.json ([2fdd85f](https://github.com/loopingz/webda.io/commit/2fdd85f55ded1034a50cd4b756968ab9016d5504))
+* async package version ([8c5b0a7](https://github.com/loopingz/webda.io/commit/8c5b0a7da8e475a2bdf761af9cbd6d866d3d26e8))
+* **async:** add servicerunner export ([2aaf9c2](https://github.com/loopingz/webda.io/commit/2aaf9c2763bd1cd952a8d210730b27e60d2faffe))
+* **async:** operation context deserialization ([dd07eb5](https://github.com/loopingz/webda.io/commit/dd07eb57fb2185c53f8af0cd37a6e756704075e3))
+* **async:** prevent event stuck if action not found ([19d46ac](https://github.com/loopingz/webda.io/commit/19d46acee0cf86e9e8f0375099f20a617ff371fc))
+* **async:** service runner operation context ([afa2472](https://github.com/loopingz/webda.io/commit/afa2472b4762ae194f3ff0c26d76e27551b70b62))
+* patch for postHook without condition ([475f855](https://github.com/loopingz/webda.io/commit/475f8553bf55063e97425d4502fe02f192a6b91b))
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* unit test ([fbbd46b](https://github.com/loopingz/webda.io/commit/fbbd46b53d11c64ed584b533d96e1237e43d23cc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+
 ## [3.7.0](https://github.com/loopingz/webda.io/compare/async-v3.6.0...async-v3.7.0) (2024-04-12)
 
 

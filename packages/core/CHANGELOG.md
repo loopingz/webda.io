@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.17.0](https://github.com/loopingz/webda.io/compare/core-v3.16.0...core-v3.17.0) (2026-10-31)
+
+
+### Features
+
+* add default header on oauth ([cb82e53](https://github.com/loopingz/webda.io/commit/cb82e533eb4b5cbe0555b851a51a0a3f972251e8))
+* **docs:** publish v3 documentation lane ([#938](https://github.com/loopingz/webda.io/issues/938)) ([d1792ca](https://github.com/loopingz/webda.io/commit/d1792ca40c987d396c8a4191a938a34783871768))
+
+
+### Bug Fixes
+
+* **core:** pass the request context to attributePermission on writes (v3) ([#1019](https://github.com/loopingz/webda.io/issues/1019)) ([43e985c](https://github.com/loopingz/webda.io/commit/43e985ca82ab2e9bd52ad5794fa5431dd277f8fc))
+* ensure BinaryFileInfo ([687dbeb](https://github.com/loopingz/webda.io/commit/687dbeb424b22ae89563ca27534bb40398d0e244))
+* optimize webda.module.json search ([97550b4](https://github.com/loopingz/webda.io/commit/97550b4972c374c74c336624ef54c328048cf47c))
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* prometheus missing export and additional close ([0c8d697](https://github.com/loopingz/webda.io/commit/0c8d697971a9dd73d68ad83a4059a1993beb5227))
+* restdomainservice parent query injector ([f79bf97](https://github.com/loopingz/webda.io/commit/f79bf97b158f81dd4573ca5ac9a966dda8a2f492))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* unit test ([fbbd46b](https://github.com/loopingz/webda.io/commit/fbbd46b53d11c64ed584b533d96e1237e43d23cc))
+* **webdaql:** bad escape of ' and " ([3479571](https://github.com/loopingz/webda.io/commit/347957107daa10c353ce01d344dd90d35e564cda))
+
 ## [3.16.0](https://github.com/loopingz/webda.io/compare/core-v3.15.1...core-v3.16.0) (2024-07-16)
 
 

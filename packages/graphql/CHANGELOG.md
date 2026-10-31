@@ -134,6 +134,29 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.8.7](https://github.com/loopingz/webda.io/compare/graphql-v3.8.6...graphql-v3.8.7) (2026-10-31)
+
+
+### Bug Fixes
+
+* graphql subscription caching issue ([215b899](https://github.com/loopingz/webda.io/commit/215b899179a90213e51b3e1cde56597370974737))
+* **graphql:** prevent parse error ([93cae93](https://github.com/loopingz/webda.io/commit/93cae930db8fa366753d642b5c0f747d402097ce))
+* optimize webda.module.json search ([97550b4](https://github.com/loopingz/webda.io/commit/97550b4972c374c74c336624ef54c328048cf47c))
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* prevent canAct on non-CoreModel object ([84142ac](https://github.com/loopingz/webda.io/commit/84142ac62163827507a38f1c2b98a6713d03b6e8))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* unit test ([fbbd46b](https://github.com/loopingz/webda.io/commit/fbbd46b53d11c64ed584b533d96e1237e43d23cc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+    * @webda/runtime bumped from ^3.6.3 to ^3.5.3
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.8.0](https://github.com/loopingz/webda.io/compare/graphql-v3.7.0...graphql-v3.8.0) (2024-01-16)
 
 

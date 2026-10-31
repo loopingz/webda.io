@@ -61,6 +61,25 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.13.2 to ^3.14.0
     * @webda/kubernetes bumped from ^3.3.3 to ^3.3.4
 
+## [3.11.1](https://github.com/loopingz/webda.io/compare/shell-v3.11.0...shell-v3.11.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* compiler with .d.ts project ([cf598da](https://github.com/loopingz/webda.io/commit/cf598da79192cf8fc86e86cf65d27cd63962ff60))
+* models tree generation ([7a6ccf4](https://github.com/loopingz/webda.io/commit/7a6ccf487f8da625e91c414d50de2235baa0ecd8))
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* upgrade k8s client ([e6dd3a6](https://github.com/loopingz/webda.io/commit/e6dd3a63d56f52c7fda96990474ee2c94ceefa9d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+    * @webda/kubernetes bumped from ^3.6.3 to ^3.4.3
+
 ## [3.11.0](https://github.com/loopingz/webda.io/compare/shell-v3.10.1...shell-v3.11.0) (2024-07-16)
 
 

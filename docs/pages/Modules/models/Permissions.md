@@ -202,7 +202,7 @@ Before input reaches a model, the DomainService (and GraphQL) removes:
 - `__`-prefixed (private) attributes, at any depth;
 - `_`-prefixed (server-managed) **top-level** attributes: `_user`, `_roles`, `_groups`, `_creationDate`... (nested objects keep their `_` keys). A model that genuinely accepts one from clients lists it in its static `getClientWritableAttributes()`; the parent link of a create is kept (and checked against the parent);
 - behavior attributes (changed only through the behavior's actions);
-- the attributes returned by the model's optional static `getProtectedAttributes()`, even when listed as writable. `OwnerModel` protects `_user`, so the owner can never be set or changed by a client;
+- the attributes returned by the model's optional static `getProtectedAttributes(context?)`, even when listed as writable. `OwnerModel` protects `_user`, so the owner can never be set or changed by a client. The caller context is passed, so the list can depend on who asks (see [Per-caller field rules](#per-caller-field-rules));
 - the attributes marked `@readOnly` in the model (read-only in its schemas): server-managed dates and the like.
 
 ```typescript
@@ -230,6 +230,45 @@ On update and patch the key comes from the URL (or the GraphQL `uuid` argument):
 For a `UuidModel` (`uuid` primary key) a client `uuid` is **ignored on create**: the key is always generated, so a create can neither target an existing object nor reveal that a uuid exists. This also means a `User` record cannot be created through REST/GraphQL with a chosen uuid (users are created by the authentication services).
 
 Models with a natural key (e.g. a `slug`) keep the client key. Creating over an existing key is a `409 Conflict` (GraphQL `CONFLICT`), whether the caller can read the existing object or not, and the existing object is left unchanged. This 409 is the one remaining way to learn that a key exists: it is inherent to client-chosen keys. Use generated keys for objects whose existence is sensitive.
+
+### Per-caller field rules
+
+A field some callers may write and others not (an admin sets `roles`, the owner edits the rest) is **protected per caller**: `getProtectedAttributes(context)` receives the caller context on every client write (REST, gRPC, MCP, GraphQL, offline sync), on create, update and patch, and the attributes it returns are dropped from the input before the object is loaded. The request itself succeeds without them, like a `_` attribute sent by a client; the stored value is kept on update and patch.
+
+```typescript
+import { UuidModel } from "@webda/models";
+import type { IOperationContext } from "@webda/core";
+
+export class Account extends UuidModel {
+  owner!: string;
+  name!: string;
+  roles?: string[];
+
+  static isAdmin(context?: IOperationContext): boolean {
+    return context?.getSession()?.roles?.includes("admin") === true;
+  }
+
+  // Only an admin may write `roles`; `owner` is never taken from a client
+  static getProtectedAttributes(context?: IOperationContext): string[] {
+    return Account.isAdmin(context) ? ["owner"] : ["owner", "roles"];
+  }
+
+  prepareCreate(context: IOperationContext): void {
+    this.owner = context.getCurrentUserId();
+  }
+
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    if (!context.getCurrentUserId()) return "Login required";
+    return context.getCurrentUserId() === this.owner || Account.isAdmin(context);
+  }
+}
+```
+
+Treat a missing context as an unknown caller, never as a privileged one: `sanitizeModelInput(model, input)` without a context is what a unit test or a server-side helper calls, and the rule above protects `roles` then. The rule is about the **caller** (its session, user, roles), not the input: it must not read the request body.
+
+To refuse the whole request instead of dropping the field (a `403`), check the input in `canAct(context, "update")` with `await context.getInput()`: the body is the raw client input, so only look at the fields the rule is about. This form depends on the transport carrying the input in the context (REST does), the protected form does not.
+
+There is no per-field hook on the object itself: the v3 `attributePermission(key, value, "WRITE", context)` is not called by any v4 path (`IAttributeLevelPermissionModel` is deprecated). Per-field **read** rules go through `toDTO()` (see [Exposing fields conditionally](#exposing-fields-conditionally--dto-pattern)).
 
 ### Server-managed fields on create
 

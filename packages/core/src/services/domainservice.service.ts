@@ -2,6 +2,7 @@ import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
+import type { IOperationContext } from "../contexts/icontext.js";
 import { MFA, useLoginMfa } from "../models/mfa.model.js";
 import { useBehaviorParameters } from "../application/modelconfiguration.js";
 import { OperationContext } from "../contexts/operationcontext.js";
@@ -36,13 +37,16 @@ import {
  *   by convention they are server-managed (`_user`, `_roles`, `_groups`, `_creationDate`...);
  * - Behavior-typed attributes (Metadata.Relations.behaviors) are removed: behavior state can only be changed through
  *   the behavior's own actions;
- * - the attributes of the model's static `getProtectedAttributes()` are removed, even when listed as writable;
+ * - the attributes of the model's static `getProtectedAttributes(context)` are removed, even when listed as writable:
+ *   the caller context is passed, so a model can protect an attribute from some callers only (per-caller field
+ *   write rules, see the Permissions documentation);
  * - the attributes the model schemas mark `readOnly` (`@readOnly` on the property) are removed: they are server-managed.
  * @param model - the model class
  * @param input - the client input
+ * @param context - the caller context, handed to `getProtectedAttributes(context)`
  * @returns the sanitized input
  */
-export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T {
+export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T, context?: IOperationContext): T {
   const out: any = stripPrivateFields(input);
   if (!out || typeof out !== "object" || Array.isArray(out)) {
     return out;
@@ -52,7 +56,7 @@ export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T
     ...getReadOnlyAttributes(model),
     ...(useModelMetadata(model)?.Relations?.behaviors ?? []).map(rel => rel.attribute),
     // Server-managed attributes (e.g. the owner of an OwnerModel) are never taken from client input
-    ...getProtectedAttributes(model)
+    ...getProtectedAttributes(model, context)
   ]);
   // Object.fromEntries defines own properties: no client-chosen key is ever written or deleted dynamically
   return Object.fromEntries(
@@ -78,15 +82,16 @@ export function getClientWritableAttributes(model: any): string[] {
  *   existing object nor reveal that a uuid exists. Natural-key models keep the client key (an existing key is a 409).
  * @param model - the model class
  * @param input - the raw client input
+ * @param context - the caller context, handed to `getProtectedAttributes(context)`
  * @returns the input to load in the new object
  */
-export function prepareCreateInput<T = any>(model: ModelClass<any>, input: T): T {
+export function prepareCreateInput<T = any>(model: ModelClass<any>, input: T, context?: IOperationContext): T {
   const parent = getParentRelation(model);
   const parentId =
-    parent && !getProtectedAttributes(model).includes(parent.attribute)
+    parent && !getProtectedAttributes(model, context).includes(parent.attribute)
       ? (input as any)?.[parent.attribute]
       : undefined;
-  const out: any = sanitizeModelInput(model, input);
+  const out: any = sanitizeModelInput(model, input, context);
   if (!out || typeof out !== "object" || Array.isArray(out)) {
     return out;
   }
@@ -123,12 +128,17 @@ export function getReadOnlyAttributes(model: any): string[] {
 }
 
 /**
- * Attributes a model refuses from client input, declared by its optional static `getProtectedAttributes()`
+ * Attributes a model refuses from client input, declared by its optional static `getProtectedAttributes(context?)`
+ *
+ * The caller context is passed when the input comes from a client (REST, gRPC, MCP, GraphQL, offline sync), so the
+ * list can depend on who asks: a model with per-caller rules protects the attribute unless the context proves the
+ * caller may write it (an absent context is an unknown caller, not a privileged one).
  * @param model - the model class
+ * @param context - the caller context, undefined when unknown
  * @returns the attribute names
  */
-export function getProtectedAttributes(model: any): string[] {
-  return typeof model?.getProtectedAttributes === "function" ? (model.getProtectedAttributes() ?? []) : [];
+export function getProtectedAttributes(model: any, context?: IOperationContext): string[] {
+  return typeof model?.getProtectedAttributes === "function" ? (model.getProtectedAttributes(context) ?? []) : [];
 }
 
 /**
@@ -398,7 +408,7 @@ export class DomainService<
   async modelCreate(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    const input = prepareCreateInput(model, await this.getModelInput(context));
+    const input = prepareCreateInput(model, await this.getModelInput(context), context);
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
@@ -489,7 +499,7 @@ export class DomainService<
       model: ModelClass<Model>;
       pkFields?: string[];
     }>("operationContext");
-    const input = sanitizeModelInput(model, await this.getModelInput(context));
+    const input = sanitizeModelInput(model, await this.getModelInput(context), context);
     // Resolve the PK from the URL params (or the body) using the model's actual PK fields;
     // fall back to "uuid" for legacy operations without pkFields in the context.
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
@@ -565,7 +575,7 @@ export class DomainService<
       model: ModelClass<Model>;
       pkFields?: string[];
     }>("operationContext");
-    const input = sanitizeModelInput(model, await this.getModelInput(context));
+    const input = sanitizeModelInput(model, await this.getModelInput(context), context);
     // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
     const object = await this.loadModel(model, pk);
@@ -653,7 +663,9 @@ export class DomainService<
         return model[handler](...args);
       }
       const resolved = args.length > 0 && !(args[0] instanceof OperationContext);
-      return model[handler](...(resolved ? [sanitizeModelInput(model, args[0]), ...args.slice(1)] : [context]));
+      return model[handler](
+        ...(resolved ? [sanitizeModelInput(model, args[0], context), ...args.slice(1)] : [context])
+      );
     }
   }
 

@@ -29,6 +29,9 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
 
   /**
    * Attributes never taken from client input by the DomainService (REST, gRPC, MCP) or GraphQL
+   *
+   * The caller context is available to a subclass that protects attributes from some callers only
+   * (`static getProtectedAttributes(context?: IOperationContext)`)
    * @returns the attribute names
    */
   static getProtectedAttributes(): string[] {

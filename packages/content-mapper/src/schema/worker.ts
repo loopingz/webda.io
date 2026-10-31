@@ -208,7 +208,9 @@ export function formatGeneratedDiagnostic(diagnostic: FileDiagnostic, cwd: strin
   const line = before.split("\n").length;
   const column = diagnostic.start - (before.lastIndexOf("\n") + 1) + 1;
   const severity = diagnostic.severity ?? "error";
-  return `${relative(cwd, diagnostic.fileName)}(${line},${column}): ${severity} WQL${diagnostic.code}: ${diagnostic.messageText}`;
+  // Forward slashes on every platform, as tsc prints them
+  const file = relative(cwd, diagnostic.fileName).replace(/\\/g, "/");
+  return `${file}(${line},${column}): ${severity} WQL${diagnostic.code}: ${diagnostic.messageText}`;
 }
 
 /**

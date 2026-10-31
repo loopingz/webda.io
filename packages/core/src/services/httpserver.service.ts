@@ -337,24 +337,38 @@ export class HttpServer<
     this.inflight++;
     try {
       const headers = Object.fromEntries(Object.entries(req.headers).filter(([k]) => !k.startsWith(":")));
-      const forwardedProto = headers["x-forwarded-proto"];
+      const defaultScheme = this.isHttp2 ? "https" : "http";
+      const forwarded = headers["x-forwarded-proto"];
+      const proto = (
+        typeof forwarded === "string" ? forwarded.split(",")[0].trim().toLowerCase() : undefined
+      ) as string;
+      const scheme: "http" | "https" =
+        (proto === "http" || proto === "https") && this.isProxyTrusted(req.socket?.remoteAddress)
+          ? proto
+          : defaultScheme;
+      let clientIp: string | undefined;
+      try {
+        clientIp = this.resolveClientIp(req);
+      } catch (err) {
+        useLog("WARN", "Cannot resolve the client address", err);
+      }
       await traceRequest(
         {
           protocol: "http",
           method: req.method,
           path: (req.url ?? "").split("?")[0],
-          scheme: <"http" | "https">(
-            ((typeof forwardedProto === "string" && this.isProxyTrusted(req.socket?.remoteAddress)
-              ? forwardedProto
-              : undefined) ?? (this.isHttp2 ? "https" : "http"))
-          ),
+          scheme,
           protocolVersion: req.httpVersion,
           headers,
-          clientIp: this.resolveClientIp(req)
+          clientIp
         },
         async handle => {
           await this.handleWebRequest(req, res);
-          handle.setStatus(res.statusCode);
+          try {
+            handle.setStatus(res.statusCode);
+          } catch (err) {
+            useLog("WARN", "Request tracer failed to record the status", err);
+          }
         }
       );
     } finally {

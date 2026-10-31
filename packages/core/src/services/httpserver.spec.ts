@@ -17,6 +17,7 @@ import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../r
 import { HttpContext } from "../contexts/httpcontext.js";
 import { createChecker } from "is-in-subnet";
 import { registerRequestTracer } from "./requesttracer.js";
+import { createSubnetChecker } from "./subnetchecker.js";
 import { Session } from "../session/session.js";
 import { Context } from "../contexts/icontext.js";
 import { Service } from "./service.js";
@@ -1482,6 +1483,63 @@ class HttpServerTest extends WebdaApplicationTest {
       assert.strictEqual(traced[0].headers["x-custom"], "Value");
       assert.ok(traced[0].clientIp);
       assert.deepStrictEqual(statuses, [404]);
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test
+  async resolveClientIpNeverThrows() {
+    const server = this.replaceServer({ trustedProxies: ["10.0.0.0/8"] });
+    (server as any).subnetChecker = createSubnetChecker(["10.0.0.0/8"]);
+    const req = (remote: string | undefined, xff?: string) => {
+      const r = this.fakeRequest("x", xff ? { "x-forwarded-for": xff } : {});
+      r.socket.remoteAddress = remote;
+      return r;
+    };
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1", "unknown, 10.0.0.5")), "unknown");
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1", "1.2.3.4:5678")), "1.2.3.4:5678");
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1", "[::1]:80")), "[::1]:80");
+    assert.strictEqual(server.resolveClientIp(req(undefined)), undefined);
+    assert.strictEqual(server.resolveClientIp(req(undefined, "1.2.3.4")), undefined);
+  }
+
+  @test
+  async tracerRobustness() {
+    this.replaceServer({});
+    const traced: any[] = [];
+    registerRequestTracer({
+      trace: (request, fn) => {
+        traced.push(request);
+        return fn({
+          setStatus: () => {
+            throw new Error("handle failed");
+          }
+        });
+      }
+    });
+    try {
+      const port = await this.startServer();
+      const res = await httpRequest({
+        hostname: "127.0.0.1",
+        port,
+        path: "/nope",
+        method: "GET",
+        headers: { "X-Forwarded-For": "garbage", "X-Forwarded-Proto": "https, http" }
+      });
+      assert.strictEqual(res.statusCode, 404);
+      assert.strictEqual(traced.length, 1);
+      assert.strictEqual(traced[0].scheme, "https");
+      assert.strictEqual(traced[0].clientIp, "garbage");
+      // Not a valid scheme: default one
+      await httpRequest({
+        hostname: "127.0.0.1",
+        port,
+        path: "/nope",
+        method: "GET",
+        headers: { "X-Forwarded-Proto": "gopher" }
+      });
+      assert.strictEqual(traced[1].scheme, "http");
     } finally {
       registerRequestTracer(undefined);
     }

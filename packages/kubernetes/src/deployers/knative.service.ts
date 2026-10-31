@@ -325,12 +325,17 @@ export class KnativeDeployerParameters extends ServiceParameters implements Kube
  * @returns the label
  */
 export function toDns1123Label(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 63)
-    .replace(/-+$/, "");
+  const label = name.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  // No leading or trailing dash, without a `-+$` regex (polynomial on long dash runs)
+  let start = 0;
+  while (label[start] === "-") {
+    start++;
+  }
+  let end = Math.min(label.length, start + 63);
+  while (end > start && label[end - 1] === "-") {
+    end--;
+  }
+  return label.slice(start, end);
 }
 
 /**

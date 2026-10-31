@@ -66,6 +66,32 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
   }
 
   @test
+  async coreKeepsFlowsSection() {
+    const { __dirname } = getCommonJS(import.meta.url);
+    const app: any = new UnpackedApplication(join(__dirname, "..", "..", "test/config.json"));
+    const flow = (id: string) => ({
+      id,
+      version: "v",
+      params: [],
+      input: { type: "object" },
+      body: [{ kind: "return", id: "run/return[0]", value: { lit: 1 } }],
+      source: "code"
+    });
+    const modules = {
+      a: { schemas: {}, flows: { "A.Run": flow("A.Run"), "Shared.Run": flow("Shared.Run") } },
+      b: { schemas: {}, flows: { "B.Run": flow("B.Run"), "Shared.Run": flow("Shared.Run") } },
+      c: { schemas: {} }
+    };
+    app.findModules = async () => ["a", "b", "c"];
+    app.loadWebdaModule = (f: string) => structuredClone(modules[f]);
+    app.loadModule = async () => {};
+    const merged = await app.mergeModules({ cachedModules: { schemas: {}, moddas: {}, models: {}, beans: {} } });
+    assert.deepStrictEqual(Object.keys(merged.flows).sort(), ["A.Run", "B.Run", "Shared.Run"]);
+    // A flow is replaced whole, its statements are never concatenated
+    assert.deepStrictEqual(merged.flows["Shared.Run"], flow("Shared.Run"));
+  }
+
+  @test
   defaultConfiguration() {
     assert.strictEqual(
       useApplication()!.getCurrentConfiguration().services["SampleService"]?.type,

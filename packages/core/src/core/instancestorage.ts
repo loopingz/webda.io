@@ -5,6 +5,7 @@ import { IRouter } from "../rest/irest.js";
 import type { Application } from "../application/application.js";
 import type { Core } from "./core.js";
 import type { LoginMfaPolicy, SecondFactorProvider } from "../models/mfa.model.js";
+import type { CronDefinition } from "../services/cron.service.js";
 
 export type InstanceStorage = Partial<{
   // Used to store the application
@@ -23,9 +24,15 @@ export type InstanceStorage = Partial<{
   interruptables: Set<{ cancel: () => Promise<void> }>;
   // Awaited operation authorizers (see registerOperationAuthorizer)
   operationAuthorizers: Set<(...args: any[]) => Promise<any>>;
+  // Protected resource servers (see registerProtectedResource)
+  protectedResources: { path: string; uri?: string }[];
+  // Transaction participants of the operations (see registerOperationTransactionParticipant)
+  operationTransactionParticipants: Set<any>;
   // Second factor methods available to the MFA behavior (see registerSecondFactor)
   secondFactors: Map<string, SecondFactorProvider>;
   loginMfa: LoginMfaPolicy;
+  // Crons registered from other sources than @Cron (see CronService.register)
+  crons: CronDefinition[];
 }>;
 
 // Test are transpiling and creating several instances of 'instancestorage.ts'

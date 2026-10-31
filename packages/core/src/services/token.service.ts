@@ -11,7 +11,11 @@ import { registerOperationAuthorizer } from "../core/operations.js";
 import { scopeAuthorizer } from "./scopeauthorizer.js";
 import { MfaState, type MfaVerification, Session } from "../session/session.js";
 
-const ACCESS_AUDIENCE = "webda-access";
+/** Audience of the access tokens that are not bound to a resource */
+export const ACCESS_AUDIENCE = "webda-access";
+
+/** JWT `typ` of the access tokens issued for an issuer (RFC 9068) */
+export const ACCESS_TOKEN_TYPE = "at+jwt";
 
 /** Raised for unknown, expired, revoked or reused tokens (403 TOKEN_INVALID) */
 export class TokenInvalid extends WebdaError.HttpError {
@@ -19,6 +23,12 @@ export class TokenInvalid extends WebdaError.HttpError {
   constructor(message: string = "Invalid token") {
     super(message, 403);
   }
+}
+
+/** Requested resource differs from the one the token is bound to (RFC 8707 `invalid_target`) */
+export class InvalidTarget extends WebdaError.BadRequest {
+  /** OAuth error code */
+  code = "invalid_target";
 }
 
 /** Tokens returned by a successful login or refresh */
@@ -34,6 +44,13 @@ export interface IssueOptions {
   clientId?: string;
   /** Granted scope */
   scope?: Scope;
+  /** Resource (RFC 8707) the access tokens are bound to: becomes their audience; kept by the family on refresh */
+  resource?: string;
+  /**
+   * Authorization server issuing the tokens: becomes their `iss`, with the RFC 9068 `at+jwt` type, so another
+   * application can verify them from the issuer keys. Not stored: give it again on refresh
+   */
+  issuer?: string;
   /** Display name of the refresh family */
   name?: string;
   /** Access token lifetime (s), defaults to the `accessTtl` parameter; kept by the family on refresh */
@@ -66,9 +83,13 @@ export interface AccessClaims {
   roles?: string[];
   fam: string;
   mfa: MfaState;
+  /** When the second factor was verified (ms), carried unchanged across refreshes */
+  mfaAt?: number;
   mfaVerifications?: Record<string, MfaVerification>;
   /** When the session was authenticated (ms): checked against the user's last password change */
   authAt?: number;
+  /** Audience: the bound resource, or {@link ACCESS_AUDIENCE} */
+  aud?: string | string[];
   /** Granted scope (space-separated operation globs) */
   scope?: string;
   /** OAuth client the token was issued to */
@@ -214,11 +235,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       provider: session.provider,
       amr: session.getPersistentAmr(),
       mfa: session.mfa ?? "none",
+      mfaAt: session.mfaAt,
       mfaVerifications: session.mfaVerifications,
       family,
       expiresAt: Date.now() + (options.refreshTtl ?? this.parameters.refreshTtl) * 1000,
       clientId: options.clientId,
       scope,
+      resource: options.resource,
       name: options.name,
       accessTtl: options.accessTtl,
       refreshTtl: options.refreshTtl,
@@ -236,6 +259,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       roles: session.roles,
       fam: family,
       mfa: session.mfa ?? "none",
+      mfaAt: session.mfaAt,
       mfaVerifications: session.mfaVerifications,
       authAt: session.authAt,
       iatMs: Date.now(),
@@ -243,20 +267,29 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       ...(options.clientId ? { client_id: options.clientId } : {})
     };
     const accessToken = await useCrypto().jwtSign(claims, {
-      audience: ACCESS_AUDIENCE,
-      expiresIn: accessTtl
+      audience: options.resource ?? ACCESS_AUDIENCE,
+      expiresIn: accessTtl,
+      ...(options.issuer ? { issuer: options.issuer, header: { typ: ACCESS_TOKEN_TYPE } } : {})
     });
     return { accessToken, refreshToken, expiresIn: accessTtl, family };
   }
 
   /**
    * @param token - access token
+   * @param options - accepted audience(s), defaults to {@link ACCESS_AUDIENCE} (tokens bound to no resource)
+   * @param options.audience - accepted audience(s)
    * @returns claims, or undefined when invalid/expired
    */
-  async verifyAccess(token: string): Promise<AccessClaims | undefined> {
+  async verifyAccess(token: string, options: { audience?: string | string[] } = {}): Promise<AccessClaims | undefined> {
+    const audience = options.audience === undefined ? ACCESS_AUDIENCE : options.audience;
+    // Fail closed: jsonwebtoken skips the audience check on a falsy audience
+    const audiences = Array.isArray(audience) ? audience : [audience];
+    if (!audiences.length || audiences.some(a => typeof a !== "string" || !a)) {
+      return undefined;
+    }
     let claims: AccessClaims;
     try {
-      claims = await useCrypto().jwtVerify(token, { audience: ACCESS_AUDIENCE });
+      claims = await useCrypto().jwtVerify(token, { audience });
     } catch {
       return undefined;
     }
@@ -366,11 +399,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * @param options - client the token must belong to and optional narrower scope
    * @param options.scope - narrower scope to grant
    * @param options.clientId - client the token must belong to
+   * @param options.resource - resource the token must be bound to: the new tokens keep the stored one
+   * @param options.issuer - issuer of the new access tokens, see {@link IssueOptions.issuer}
    * @returns new tokens, the rebuilt session and the granted scope
    */
   async refresh(
     refreshToken: string,
-    options: { scope?: Scope; clientId?: string } = {}
+    options: { scope?: Scope; clientId?: string; resource?: string; issuer?: string } = {}
   ): Promise<IssuedTokens & { session: Session; scope?: Scope }> {
     if (typeof refreshToken !== "string" || !refreshToken) {
       throw new TokenInvalid();
@@ -395,6 +430,9 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     // A token issued to an OAuth client is only refreshed by that client: never by a first-party (client-less) caller
     if ((stored.clientId ?? undefined) !== (options.clientId ?? undefined)) {
       throw new TokenInvalid("Refresh token issued to another client");
+    }
+    if (options.resource !== undefined && options.resource !== (stored.resource ?? undefined)) {
+      throw new InvalidTarget("Refresh token is bound to another resource");
     }
     /** replay within the grace: the unused token it was exchanged for, to retire (undefined when never stored) */
     let retired: RefreshToken | undefined;
@@ -441,11 +479,15 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       provider: stored.provider,
       amr: stored.amr,
       mfa: stored.mfa ?? "none",
+      // The proof time of the second factor, not the refresh time: refreshing never makes MFA fresher
+      mfaAt: stored.mfaAt,
       mfaVerifications: stored.mfaVerifications
     });
     const tokens = await this.issue(session, stored.family, {
       clientId: stored.clientId,
       scope,
+      resource: stored.resource,
+      issuer: options.issuer,
       name: stored.name,
       accessTtl: stored.accessTtl,
       refreshTtl: stored.refreshTtl,

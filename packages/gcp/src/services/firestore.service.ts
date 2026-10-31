@@ -6,6 +6,7 @@ import {
   Store,
   StoreNotFoundError,
   StoreParameters,
+  WebdaError,
   UpdateConditionFailError,
   useModel,
   useModelMetadata
@@ -48,20 +49,22 @@ export class FireStoreParameters extends StoreParameters {
   /**
    * Collection to use
    */
-  collection: string;
+  collection!: string;
   /**
    * Per-model collection overrides.
    * Maps a model identifier (e.g. "Webda/User") to a collection name.
    * When not specified, the first model uses `collection` and others use their identifier
    * lowercased with "/" replaced by "_".
    */
-  collections?: { [modelIdentifier: string]: string };
+  /** @default {} */
+  collections!: { [modelIdentifier: string]: string };
   /**
    * To allow efficient query on several fields
    *
    * @see https://firebase.google.com/docs/firestore/query-data/queries
    */
-  compoundIndexes?: FireStoreIndex[];
+  /** @default [] */
+  compoundIndexes!: FireStoreIndex[];
 
   /**
    * @override
@@ -99,7 +102,7 @@ export function toFirestore(value: any): any {
         return toFirestore(json);
       }
     }
-    const res = {};
+    const res: Record<string, any> = {};
     for (const key of Object.keys(value)) {
       if (value[key] === undefined || typeof value[key] === "function") {
         continue;
@@ -122,7 +125,7 @@ export function giveDatesBack(doc: any): any {
   } else if (Array.isArray(doc)) {
     return doc.map(d => giveDatesBack(d));
   } else if (doc instanceof Object) {
-    const res = {};
+    const res: Record<string, any> = {};
     Object.keys(doc).forEach(k => {
       res[k] = giveDatesBack(doc[k]);
     });
@@ -215,7 +218,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
    * @param field - the field to check
    * @param condition - the expected value
    */
-  protected checkFirestoreCondition(uid: string, data: any, field: string, condition: any): void {
+  protected checkFirestoreCondition(uid: string, data: any, field: string | undefined, condition: any): void {
     if (!field) {
       return;
     }
@@ -263,7 +266,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
       try {
         await this.getDocumentRef(item).create(toFirestore(item));
       } catch (err) {
-        if (err?.code === ALREADY_EXISTS) {
+        if (typeof err === "object" && err !== null && "code" in err && err.code === ALREADY_EXISTS) {
           throw new Error(`Already exists: ${this.getPrimaryKey(item).toString()}`);
         }
         throw err;
@@ -294,7 +297,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
       if (!doc.exists) {
         throw new StoreNotFoundError(docRef.id as any, this.collection);
       }
-      this.checkFirestoreCondition(docRef.id, doc.data(), conditionField, condition);
+      this.checkFirestoreCondition(docRef.id, doc.data()!, conditionField, condition);
       t.set(docRef, update, { merge });
     });
   }
@@ -315,7 +318,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     await this.firestore.runTransaction(async t => {
       const doc = await t.get(docRef);
       if (conditionField) {
-        this.checkFirestoreCondition(docRef.id, doc.data(), conditionField, condition);
+        this.checkFirestoreCondition(docRef.id, doc.data()!, conditionField, condition);
       }
       t.delete(docRef);
     });
@@ -329,7 +332,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
       if (!doc.exists) {
         throw new StoreNotFoundError(docRef.id as any, this.collection);
       }
-      this.checkFirestoreCondition(docRef.id, doc.data(), conditionField, condition);
+      this.checkFirestoreCondition(docRef.id, doc.data()!, conditionField, condition);
       t.update(docRef, {
         [attribute]: FieldValue.delete()
       });
@@ -369,19 +372,23 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     const docRef = this.getDocumentRef(primaryKey);
     const prop = String(collection);
     if (index !== undefined) {
+      if (!Number.isSafeInteger(index) || index < 0) {
+        throw new WebdaError.BadRequest("Collection index must be a non-negative safe integer");
+      }
       await this.firestore.runTransaction(async t => {
         const doc = await t.get(docRef);
         if (!doc.exists) {
           throw new StoreNotFoundError(docRef.id as any, this.collection);
         }
-        const data = doc.data();
-        data[prop] ??= [];
+        const data = doc.data()!;
+        const items = Object.prototype.hasOwnProperty.call(data, prop) ? data[prop] : [];
+        if (!Array.isArray(items)) throw new WebdaError.BadRequest("Collection must be an array");
         if (itemWriteCondition !== undefined) {
-          this.checkFirestoreCondition(docRef.id, data[prop][index], itemWriteConditionField, itemWriteCondition);
+          this.checkFirestoreCondition(docRef.id, items[index], itemWriteConditionField, itemWriteCondition);
         }
-        data[prop][index] = toFirestore(item);
+        items[index] = toFirestore(item);
         t.update(docRef, {
-          [prop]: data[prop],
+          [prop]: items,
           _lastUpdate: new Date()
         });
       });
@@ -412,7 +419,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
       if (!doc.exists) {
         throw new StoreNotFoundError(docRef.id as any, this.collection);
       }
-      const data = doc.data();
+      const data = doc.data()!;
       const items: any[] = Array.isArray(data[prop]) ? data[prop] : [];
       if (index < 0 || index >= items.length) {
         return;
@@ -446,7 +453,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     }
 
     const filter = new WebdaQL.AndExpression([]);
-    let rangeAttribute: string;
+    let rangeAttribute: string | undefined;
     let toProcess: WebdaQL.AndExpression;
     if (!(parsedQuery.filter instanceof WebdaQL.AndExpression)) {
       toProcess = new WebdaQL.AndExpression([parsedQuery.filter]);
@@ -555,15 +562,15 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
    */
   handleOrderBy(
     query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>,
-    orderBy: WebdaQL.OrderBy[],
-    rangeAttribute: string
+    orderBy: WebdaQL.OrderBy[] | undefined,
+    rangeAttribute: string | undefined
   ): FirebaseFirestore.Query<FirebaseFirestore.DocumentData> {
     // Manage order if index
     if (!orderBy) {
       return query;
     }
     const requiredIndex = orderBy.map(order => order.field).sort();
-    let orders;
+    let orders: FireStoreIndexOrder | undefined;
     // Require index with multiple ORDER BY
     if (requiredIndex.length > 1) {
       orders = this.compoundIndexes[requiredIndex.join("/")];
@@ -663,7 +670,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
  * @WebdaModda GoogleCloudFireStore
  */
 export default class FireStore<K extends FireStoreParameters = FireStoreParameters> extends Store<K> {
-  firestore: Firestore;
+  firestore!: Firestore;
 
   /**
    * Create the Firestore client

@@ -52,26 +52,28 @@ pnpm add @webda/mcp
       // "serverName": "my-app", // defaults to the application package name
       // "serverVersion": "1.0.0", // defaults to the application package version
       // "stdio": { "user": "<userId>" }, // default --user for `webda mcp`
-      // "authenticator": "myAuthenticator" // service implementing McpAuthenticator; default uses the Webda session
+      // "authenticator": "myAuthenticator", // service implementing McpAuthenticator; default uses the Webda session
+      // "listOutOfScopeTools": false // list the tools an OAuth token scope does not cover
     }
   }
 }
 ```
 
-| Parameter        | Type                            | Default                             | Description                                                                                                                                                 |
-| ---------------- | ------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `url`            | string \| false                 | `"/mcp"`                            | HTTP endpoint; `false` disables HTTP (stdio only)                                                                                                           |
-| `operations`     | string[]                        | `["*"]`                             | Operation filter, with `!` for exclusions                                                                                                                   |
-| `resources`      | `{ models: string[] }` \| false | `{ "models": ["*"] }`               | Models exposed as resources; `false` disables resources                                                                                                     |
-| `sessionTimeout` | number                          | `1800`                              | Seconds of inactivity before an MCP session is evicted                                                                                                      |
-| `allowedOrigins` | string[]                        | `[]`                                | Extra `Origin` values accepted besides the request host                                                                                                     |
-| `allowedHosts`   | string[]                        | `["localhost", "127.0.0.1", "::1"]` | Hostnames accepted on the `Host` header (any port); `"*"` disables the check                                                                                |
-| `maxSessions`    | number                          | `1000`                              | Cap on open HTTP sessions; at the cap a new `initialize` closes the least recently used session, whose next request gets `404` (clients then re-initialize) |
-| `maxOutputBytes` | number                          | `1048576`                           | Larger tool/resource outputs are truncated with a notice                                                                                                    |
-| `serverName`     | string                          | application package name            | Server name announced to clients                                                                                                                            |
-| `serverVersion`  | string                          | application package version         | Server version announced to clients                                                                                                                         |
-| `stdio.user`     | string                          | none                                | Default `--user` for `webda mcp`                                                                                                                            |
-| `authenticator`  | string                          | none                                | Name of a service implementing `McpAuthenticator`; the default uses the Webda session                                                                       |
+| Parameter             | Type                            | Default                             | Description                                                                                                                                                 |
+| --------------------- | ------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`                 | string \| false                 | `"/mcp"`                            | HTTP endpoint; `false` disables HTTP (stdio only)                                                                                                           |
+| `operations`          | string[]                        | `["*"]`                             | Operation filter, with `!` for exclusions                                                                                                                   |
+| `resources`           | `{ models: string[] }` \| false | `{ "models": ["*"] }`               | Models exposed as resources; `false` disables resources                                                                                                     |
+| `sessionTimeout`      | number                          | `1800`                              | Seconds of inactivity before an MCP session is evicted                                                                                                      |
+| `allowedOrigins`      | string[]                        | `[]`                                | Extra `Origin` values accepted besides the request host                                                                                                     |
+| `allowedHosts`        | string[]                        | `["localhost", "127.0.0.1", "::1"]` | Hostnames accepted on the `Host` header (any port); `"*"` disables the check                                                                                |
+| `maxSessions`         | number                          | `1000`                              | Cap on open HTTP sessions; at the cap a new `initialize` closes the least recently used session, whose next request gets `404` (clients then re-initialize) |
+| `maxOutputBytes`      | number                          | `1048576`                           | Larger tool/resource outputs are truncated with a notice                                                                                                    |
+| `serverName`          | string                          | application package name            | Server name announced to clients                                                                                                                            |
+| `serverVersion`       | string                          | application package version         | Server version announced to clients                                                                                                                         |
+| `stdio.user`          | string                          | none                                | Default `--user` for `webda mcp`                                                                                                                            |
+| `authenticator`       | string                          | none                                | Name of a service implementing `McpAuthenticator`; the default uses the Webda session                                                                       |
+| `listOutOfScopeTools` | boolean                         | `false`                             | With `McpOAuthAuthenticator`, also list the tools the token scope does not cover (see [OAuth](#oauth))                                                      |
 
 > **Remote deployments must set `allowedHosts`.** The Host header is checked on every HTTP request as DNS-rebinding protection: unless your public hostname(s) are listed (or the value is `"*"`), every request gets `403 Host not allowed`.
 >
@@ -134,27 +136,55 @@ export class ApiKeyAuthenticator extends Service implements McpAuthenticator {
 ### OAuth
 
 `McpOAuthAuthenticator` makes the MCP endpoint an OAuth 2.1 protected resource (RFC 9728) for tokens issued by
-[`@webda/oauth`](../oauth/README.md). MCP clients discover the authorization server, send the user through consent and
-then call with a scoped bearer token:
+[`@webda/oauth`](../oauth/README.md). MCP clients discover the authorization server, register themselves, send the user
+through consent and then call with a scoped bearer token bound to this endpoint. Step-by-step client setup:
+[Connecting agents](https://github.com/loopingz/webda.io/blob/main/docs/pages/Modules/mcp/ConnectingAgents.md).
 
 ```jsonc
 {
   "services": {
-    "McpOAuthAuthenticator": { "type": "Webda/McpOAuthAuthenticator" },
+    "McpOAuthAuthenticator": {
+      "type": "Webda/McpOAuthAuthenticator",
+      "publicUrl": "https://api.example.com"
+    },
     "Mcp": { "type": "Webda/McpService", "authenticator": "McpOAuthAuthenticator" }
   }
 }
 ```
 
-- The resource is derived from the `McpService` `url` (prefix aware); the metadata is served at
-  `/.well-known/oauth-protected-resource` (`resourceMetadataPath`), with the RFC 9728 path-suffixed form when several
-  MCP endpoints share the authenticator.
-- `authorizationServers` lists the advertised authorization servers; it defaults to the request origin.
-- `scopesSupported` lists the scopes advertised in the metadata (`scopes_supported`); it defaults to `*`, the
-  top-level operation groups (`<Group>.*`) and `offline_access`, like the Webda authorization server.
-- Tools outside the token scope are filtered from `tools/list`, and calling one answers the JSON-RPC error
-  `Unknown tool`, as for a tool that does not exist.
-- Without a valid token the endpoint answers `401` with a `WWW-Authenticate` header pointing to the metadata.
+| Parameter (authenticator) | Default                                 | Description                                                            |
+| ------------------------- | --------------------------------------- | ---------------------------------------------------------------------- |
+| `publicUrl`               | none (request host, development only)   | Public origin of the application, including any external path prefix   |
+| `authorizationServers`    | `publicUrl` or the request origin       | Authorization servers advertised in the metadata                       |
+| `resourceMetadataPath`    | `/.well-known/oauth-protected-resource` | Path of the protected resource metadata                                |
+| `scopesSupported`         | `*`, `<Group>.*`, `offline_access`      | Scopes advertised in the metadata, like the Webda authorization server |
+
+**Audience binding.** The resource is `publicUrl` + the `McpService` `url` (`https://api.example.com/mcp` above). It
+is registered with the `OAuthServer`, advertised in the metadata, and every token must carry it as audience (RFC 8707):
+an application token (`aud` `webda-access`) or a token issued for another resource is refused with `401` and
+`WWW-Authenticate: Bearer error="invalid_token", resource_metadata="…"`, so the client signs in again.
+
+- `publicUrl` must be the URL **clients use**, including any path prefix added in front of the application (an API
+  Gateway stage such as `https://abc.execute-api.eu-west-1.amazonaws.com/prod`, a reverse proxy mount point...).
+- Without `publicUrl` the resource is derived from the request `Host` (or a trusted `X-Forwarded-Host`) and a warning
+  is logged at startup. The audience check then follows whatever host the request names: it is **not a security
+  boundary**, use it for development only.
+- The metadata is served at `/.well-known/oauth-protected-resource` (`resourceMetadataPath`), with the RFC 9728
+  path-suffixed form when several MCP endpoints share the authenticator.
+- Without a token the endpoint answers `401` with `WWW-Authenticate: Bearer resource_metadata="…"`, which starts the
+  client sign-in.
+
+**Scope.** The token scope limits the tools a client sees and calls, on top of the user's own permissions:
+
+- Tools outside the token scope are hidden from `tools/list` by default. Calling one anyway answers HTTP `403` with
+  `WWW-Authenticate: Bearer error="insufficient_scope", scope="<granted scope> <operation>", resource_metadata="…"`
+  and the JSON-RPC error `-32001` (`insufficient_scope`, the same `scope` in `data`). A client re-authorizes with that
+  scope: the consent screen shows the operations already granted as "(already allowed)" and the new grant adds to them.
+  In a JSON-RPC batch the error is carried in the body (HTTP `200`).
+- `listOutOfScopeTools: true` on the `McpService` also lists the tools the user may call but the token scope does not
+  cover, so an agent can discover them and step up when it needs one. Default `false`.
+- Tools the user cannot call because of **permissions** are never listed and answer `Unknown tool`, as for a tool that
+  does not exist; so do the `OAuth.*` operations, which are never delegated.
 
 ### Multiple instances
 

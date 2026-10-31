@@ -5,6 +5,7 @@ import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { getCommonJS } from "@webda/utils";
 import type { JSONSchema7 } from "json-schema";
 import { WebdaApplicationTest } from "../test/application.js";
+import { FakeService, TestApplication } from "../test/objects.js";
 import { useApplication } from "../application/hooks.js";
 import { CryptoService } from "./cryptoservice.service.js";
 import { findConfigurationSecrets, findUnencryptedSecrets, secretPathExcluder } from "./secretscheck.js";
@@ -187,12 +188,26 @@ const b64 = (value: string) => Buffer.from(value).toString("base64");
 
 @suite
 class EncryptCheckCommandTest extends WebdaApplicationTest {
+  /**
+   * Register a service whose schema declares the `auth.pass` and `SES.credentials` secrets
+   * @param app - the test application
+   */
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    app.addModda("WebdaTest/SecretPathService", FakeService);
+    app["baseConfiguration"].cachedModules.schemas["WebdaTest/SecretPathService"] = {
+      type: "object",
+      properties: {},
+      "x-webda-secret": ["auth.pass", "SES.credentials"]
+    };
+  }
+
   getTestConfiguration() {
     return {
       application: { ignoreBeans: true },
       parameters: {},
       services: {
-        Mailer: { type: "Webda/Mailer", sender: "me@webda.io" },
+        SecretPath: { type: "WebdaTest/SecretPathService", sender: "me@webda.io" },
         cookies: {
           type: "Webda/CookieSessionManager",
           jwt: { secretOrPublicKey: `crypt:b64:${b64("jwt-secret")}` }
@@ -243,12 +258,12 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
 
   @test
   async check() {
-    // Mailer uses the compiled schema: it is tagged `@secret auth.pass,SES.credentials`
+    // SecretPath uses its registered schema: it declares the `auth.pass` and `SES.credentials` secrets
     writeFileSync(
       FILE,
       [
         "parameters:",
-        // Inherited by the Mailer of the application configuration, this file does not override it
+        // Inherited by the SecretPath service of the application configuration, this file does not override it
         "  auth:",
         "    pass: global-plain-token",
         "services:",
@@ -257,7 +272,7 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
         "      secretOrPublicKey: hunter2-plain",
         "units:",
         "  - name: image",
-        "    type: Webda/Mailer",
+        "    type: WebdaTest/SecretPathService",
         "    sender: x",
         "    auth:",
         "      pass: unit-plain-key",
@@ -278,14 +293,18 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
 
   @test
   async checkStrict() {
-    writeFileSync(FILE, "services:\n  Mailer:\n    auth:\n      pass: encrypt:smtp-plain-pass\n");
+    writeFileSync(FILE, "services:\n  SecretPath:\n    auth:\n      pass: encrypt:smtp-plain-pass\n");
     assert.strictEqual((await this.run(FILE, undefined, undefined, true, false)).code, 0);
     const { code, written } = await this.run(FILE, undefined, undefined, true, true);
     assert.strictEqual(code, 1);
-    assert.ok(written.includes("test/check-secrets.yaml: services.Mailer.auth.pass (Webda/Mailer): secret is marked"));
+    assert.ok(
+      written.includes(
+        "test/check-secrets.yaml: services.SecretPath.auth.pass (WebdaTest/SecretPathService): secret is marked"
+      )
+    );
     assert.ok(written.includes("1 unencrypted secret(s) found"));
     assert.ok(!written.includes("smtp-plain-pass"));
-    writeFileSync(FILE, `services:\n  Mailer:\n    auth:\n      pass: crypt:b64:${b64("x")}\n`);
+    writeFileSync(FILE, `services:\n  SecretPath:\n    auth:\n      pass: crypt:b64:${b64("x")}\n`);
     const clean = await this.run(FILE, undefined, undefined, true);
     assert.strictEqual(clean.code, 0);
     assert.ok(clean.written.includes("No unencrypted secret found"));
@@ -300,7 +319,7 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
         "  configurationEncryption:",
         "    default: b64",
         "services:",
-        "  Mailer:",
+        "  SecretPath:",
         "    auth:",
         "      pass: crypt:none:public-pass",
         "  cookies:",
@@ -320,7 +339,7 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
     assert.strictEqual(code, 0);
     assert.ok(
       written.includes(
-        "! test/check-secrets.yaml: services.Mailer.auth.pass (Webda/Mailer): secret is kept in clear text on purpose"
+        "! test/check-secrets.yaml: services.SecretPath.auth.pass (WebdaTest/SecretPathService): secret is kept in clear text on purpose"
       )
     );
     assert.ok(written.includes("No unencrypted secret found, 2 kept in clear text on purpose"));
@@ -332,7 +351,7 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
     );
     assert.deepStrictEqual(output.findings, []);
     assert.deepStrictEqual(output.warnings.map(w => `${w.path} ${w.reason}`).sort(), [
-      "services.Mailer.auth.pass opted-out",
+      "services.SecretPath.auth.pass opted-out",
       "services.cookies.jwt.secretOrPublicKey opted-out"
     ]);
     // The service receives the value as is
@@ -352,7 +371,7 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
         "  configurationEncryption:",
         "    default: b64",
         "services:",
-        "  Mailer:",
+        "  SecretPath:",
         "    auth:",
         "      pass: crypt:none:public-pass",
         "  cookies:",
@@ -368,7 +387,9 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
     );
     const { code, written } = await this.run(FILE, undefined, undefined, true, true, "json", false, "services.cookies");
     assert.strictEqual(code, 1);
-    assert.deepStrictEqual(this.jsonFindings(written), ["test/check-secrets.yaml services.Mailer.auth.pass opted-out"]);
+    assert.deepStrictEqual(this.jsonFindings(written), [
+      "test/check-secrets.yaml services.SecretPath.auth.pass opted-out"
+    ]);
     // --exclude: neither checked nor auto-encrypted
     assert.strictEqual((await this.run(FILE, undefined, undefined, true)).code, 1);
     assert.strictEqual(
@@ -399,14 +420,14 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
       [
         "# My comment",
         "services:",
-        "  Mailer:",
+        "  SecretPath:",
         "    host: smtp.example.com",
         "    auth:",
         "      user: me",
         "      pass: smtp-plain-pass # inline",
         "units:",
         "  - name: image",
-        "    type: Webda/Mailer",
+        "    type: WebdaTest/SecretPathService",
         "    sender: x",
         "    auth:",
         "      pass: unit-plain-key",
@@ -416,7 +437,7 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
     // A plain secret needs a default encrypter
     await assert.rejects(
       () => this.run(FILE),
-      /2 secret\(s\) are not encrypted .*services\.Mailer\.auth\.pass, units\[image\]\.auth\.pass.*configurationEncryption\.default/
+      /2 secret\(s\) are not encrypted .*services\.SecretPath\.auth\.pass, units\[image\]\.auth\.pass.*configurationEncryption\.default/
     );
     assert.ok(readFileSync(FILE, "utf-8").includes("smtp-plain-pass"), "nothing written");
     writeFileSync(FILE, readFileSync(FILE, "utf-8") + "parameters:\n  configurationEncryption:\n    default: b64\n");
@@ -436,19 +457,19 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
   async defaultFiles() {
     const app = useApplication();
     app["configurationFile"] = FILE;
-    writeFileSync(FILE, "services:\n  Mailer:\n    type: Webda/Mailer\n");
+    writeFileSync(FILE, "services:\n  SecretPath:\n    type: WebdaTest/SecretPathService\n");
     assert.strictEqual((await this.run(undefined, undefined, undefined, true)).code, 0);
     // The deployment file of the selected deployment is checked too
     app["deployment"] = {};
     app["deploymentFile"] = DEPLOYMENT_FILE;
     writeFileSync(
       DEPLOYMENT_FILE,
-      `{\n  // Production\n  "services": { "Mailer": { "auth": { "pass": "smtp-plain-pass" } } }\n}\n`
+      `{\n  // Production\n  "services": { "SecretPath": { "auth": { "pass": "smtp-plain-pass" } } }\n}\n`
     );
     const { code, written } = await this.run(undefined, undefined, undefined, true, true, "json");
     assert.strictEqual(code, 1);
     assert.deepStrictEqual(this.jsonFindings(written), [
-      "test/check-secrets-deployment.jsonc services.Mailer.auth.pass plain"
+      "test/check-secrets-deployment.jsonc services.SecretPath.auth.pass plain"
     ]);
     // Without a file to update
     app["configurationFile"] = undefined;

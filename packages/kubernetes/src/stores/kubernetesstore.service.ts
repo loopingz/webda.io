@@ -14,7 +14,8 @@ import type { RbacGrant } from "../crd/rbac.js";
 import { buildCrd, CustomResourceDefinition } from "../crd/schema.js";
 import { getKubernetesApiClient, K8sConfiguration, KubernetesParameters } from "../utils/client.js";
 import { KubernetesRepository } from "./kubernetesrepository.js";
-import { CustomResources, isApiStatus } from "./resources.js";
+import { CustomResources, isApiStatus, WriteTracker } from "./resources.js";
+import { ResourceWatcher } from "./watcher.js";
 
 /**
  * The typed object of a CustomResourceDefinition manifest, as the API client serializes it
@@ -84,6 +85,12 @@ export class KubernetesStoreParameters extends StoreParameters implements Kubern
    * @default 5
    */
   maxRetries?: number;
+  /**
+   * Watch the resources and emit the repository events (`Created`, `Updated`, `Deleted`) of the changes made by others
+   * than this process: kubectl, GitOps, another replica
+   * @default false
+   */
+  watch?: boolean;
 
   /**
    * @override
@@ -103,6 +110,7 @@ export class KubernetesStoreParameters extends StoreParameters implements Kubern
     this.statusFields ??= {};
     this.installCrds ??= false;
     this.maxRetries ??= 5;
+    this.watch ??= false;
     return this;
   }
 }
@@ -121,6 +129,9 @@ export class KubernetesStoreParameters extends StoreParameters implements Kubern
  */
 export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesStoreParameters> extends Store<K> {
   protected api?: k8s.CustomObjectsApi;
+  protected watchers: ResourceWatcher[] = [];
+  /** writes of this process, by resources plural */
+  protected trackers = new Map<string, WriteTracker>();
 
   /**
    * @returns the custom objects API client
@@ -244,7 +255,34 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
     if (this.parameters.installCrds) {
       await this.installCrds();
     }
-    return super.init();
+    await super.init();
+    if (this.parameters.watch) {
+      await this.startWatchers();
+    }
+    return this;
+  }
+
+  /**
+   * Watch the resources of every root model
+   */
+  async startWatchers(): Promise<void> {
+    if (this.watchers.length) return;
+    this.watchers = this.getRootModels().map(
+      root =>
+        new ResourceWatcher(this, root, this.getResources(root), err =>
+          this.log("WARN", `Watch of ${useModelId(root)} failed`, err)
+        )
+    );
+    await Promise.all(this.watchers.map(watcher => watcher.start()));
+  }
+
+  /**
+   * @override
+   */
+  async stop(): Promise<void> {
+    await Promise.all(this.watchers.map(watcher => watcher.stop()));
+    this.watchers = [];
+    await super.stop();
   }
 
   /**
@@ -256,13 +294,23 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
     const metadata = useModelMetadata(root);
     checkResourceKey(metadata as any);
     const { plural, kind } = getCrdNames(metadata as any, this.parameters.group);
-    return new CustomResources(this.getApi(), {
-      group: this.parameters.group,
-      version: this.parameters.version!,
-      plural,
-      kind,
-      namespace: this.parameters.scope === "Cluster" ? undefined : this.parameters.namespace
-    });
+    // The writes are tracked to tell them from the changes made by others, when watching
+    let tracker: WriteTracker | undefined;
+    if (this.parameters.watch) {
+      tracker = this.trackers.get(plural) ?? new WriteTracker();
+      this.trackers.set(plural, tracker);
+    }
+    return new CustomResources(
+      this.getApi(),
+      {
+        group: this.parameters.group,
+        version: this.parameters.version!,
+        plural,
+        kind,
+        namespace: this.parameters.scope === "Cluster" ? undefined : this.parameters.namespace
+      },
+      tracker
+    );
   }
 
   /**

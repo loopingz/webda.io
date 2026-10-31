@@ -3,7 +3,13 @@ import * as assert from "node:assert";
 import * as WebdaQL from "@webda/ql";
 import { parse } from "@webda/ql";
 import { MongoClient } from "mongodb";
-import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import {
+  checkAggregation,
+  checkCount,
+  checkCountClassFilter,
+  checkCreateWithoutPrimaryKey,
+  WebdaApplicationTest
+} from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
 import { MongoParameters, MongoRepository, MongoStore, mapExpression } from "./mongodb.service.js";
 
@@ -188,6 +194,55 @@ export class MongoStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async countConformance() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    await checkCount(new MongoRepository(Item as any, ["uuid"], () => this.store._connect()) as any, { native: true });
+    await collection.deleteMany({});
+  }
+
+  @test
+  async countStaysInTheModelHierarchy() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    await checkCountClassFilter(this.repo as any, this.sub as any, async (repo: any, uuid) => {
+      await repo.create(new (repo.getRootModel())({ uuid }));
+    });
+    await collection.deleteMany({});
+  }
+
+  @test
+  async countUsesCountDocuments() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    const calls: any[][] = [];
+    const repo = new MongoRepository(Item as any, ["uuid"], async () => {
+      const real = await this.store._connect();
+      return new Proxy(real, {
+        get: (target: any, prop) =>
+          prop === "countDocuments"
+            ? (...args: any[]) => (calls.push(args), target.countDocuments(...args))
+            : Reflect.get(target, prop)
+      });
+    });
+    for (const uuid of ["a", "b", "c"]) {
+      await repo.create(new Item({ uuid, name: "x" }) as any);
+    }
+    assert.deepStrictEqual(await repo.count("name = 'x'"), { value: 3, relation: "eq", native: true });
+    assert.deepStrictEqual(await repo.count("name = 'x'", undefined, { max: 2 }), {
+      value: 2,
+      relation: "gte",
+      native: true
+    });
+    assert.strictEqual(calls.length, 2, "one countDocuments per count");
+    assert.deepStrictEqual(calls[0][1], {});
+    assert.deepStrictEqual(calls[1][1], { limit: 3 });
+    // The class filter is part of the filter
+    assert.ok(JSON.stringify(calls[0][0]).includes("Test/SubItem"));
+    await collection.deleteMany({});
+  }
+
+  @test
   async aggregationMissingAndNullGroupTogether() {
     const collection = (await this.store._connect()) as any;
     await collection.deleteMany({});
@@ -221,7 +276,7 @@ export class MongoStoreTest extends WebdaApplicationTest {
         })
       ),
       [
-        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: { $exists: false } }] } },
+        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: null }, { __type: "" }] } },
         { $group: { _id: { g0: { $ifNull: ["$team.name", null] } }, n: { $sum: 1 }, d: { $addToSet: "$label" } } },
         { $addFields: { d: { $size: { $filter: { input: "$d", cond: { $ne: ["$$this", null] } } } } } },
         { $sort: { n: -1 } },
@@ -388,6 +443,26 @@ export class MongoStoreTest extends WebdaApplicationTest {
     assert.strictEqual((await this.repo.query("")).results.length, 1);
     assert.strictEqual(await events.deleteMany("DELETE LIMIT 0"), 0);
     assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
+  }
+
+  @test
+  async writesWithoutMetadataKeepTheStoredType() {
+    // A model without Metadata rewrites no type: patch and plain-data update keep whatever the document carries
+    const repo = new MongoRepository(Row as any, ["uuid"], () => this.store._connect());
+    const collection = await this.store._connect();
+    await collection.insertMany([
+      { _id: <any>"r1", uuid: "r1", __type: "Other/Thing", n: 1 },
+      { _id: <any>"r2", uuid: "r2", n: 1 }
+    ]);
+    await repo.patch("r1", { n: 2 });
+    await repo.update({ uuid: "r2", n: 3 });
+    assert.deepStrictEqual(await collection.findOne({ _id: <any>"r1" }), {
+      _id: "r1",
+      uuid: "r1",
+      __type: "Other/Thing",
+      n: 2
+    });
+    assert.deepStrictEqual(await collection.findOne({ _id: <any>"r2" }), { _id: "r2", uuid: "r2", n: 3 });
   }
 
   @test

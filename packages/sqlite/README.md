@@ -4,12 +4,12 @@
 (Node >= 22.13, no third-party dependency). Without a `persistence` block the database lives in memory and is lost
 on `stop()`, like `MemoryStore`; with `persistence.path` it is a single durable file.
 
-| Need | Pick |
-| --- | --- |
-| Throw-away data in tests, zero setup | `MemoryStore` / `MemoryQueue` |
-| A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file | `@webda/sqlite` |
-| One JSON file per object you can read by hand | `@webda/fs` |
-| Several hosts, heavy concurrent traffic | `@webda/postgres` |
+| Need                                                                             | Pick                          |
+| -------------------------------------------------------------------------------- | ----------------------------- |
+| Throw-away data in tests, zero setup                                             | `MemoryStore` / `MemoryQueue` |
+| A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file | `@webda/sqlite`               |
+| One JSON file per object you can read by hand                                    | `@webda/fs`                   |
+| Several hosts, heavy concurrent traffic                                          | `@webda/postgres`             |
 
 ## Modes
 
@@ -21,6 +21,15 @@ on `stop()`, like `MemoryStore`; with `persistence.path` it is a single durable 
 - Differences from `MemoryStore.persistence`: no `delay`; `key`, `cipher` and `compressionLevel` are refused at
   `init()` (`node:sqlite` has no encryption or compression), never silently ignored.
 
+## Relational store
+
+`Webda/SQLiteRelationalStore` keeps the models you list in **typed tables** (one column per field, primary and foreign
+keys, junction tables, indexes) generated from the model metadata by `@webda/sql-schema`, on the relational layer of
+`@webda/sql` shared with `PostgresRelationalStore`. Foreign keys are inline and enforced (`PRAGMA foreign_keys`),
+`schemaSync` (`none` | `create` | `alter` | `validate`) is additive only, `webda sqlite schema [--sql | --diff | --json]`
+prints the plan. It is never the `Registry` and only stores listed models. See
+[the documentation](https://webda.io/docs/Modules/sqlite/SQLiteRelationalStore).
+
 ## Caveats
 
 - `DatabaseSync` is synchronous: every statement blocks the event loop. Fits development, tests, CLI tools and
@@ -29,6 +38,24 @@ on `stop()`, like `MemoryStore`; with `persistence.path` it is a single durable 
   a subscriber offline longer than `retention` misses messages (use `SQLiteQueue` for guaranteed delivery), and
   it works inside one host only (in-process wake-up, `PRAGMA data_version` polling for other processes).
 - Node 22 prints an `ExperimentalWarning` the first time `node:sqlite` is loaded; Node 24 does not.
+
+## Transactions
+
+`"transaction": "operation"` runs every statement of an operation in one transaction (`BEGIN IMMEDIATE` on its first
+statement, `COMMIT` when it succeeds, `ROLLBACK` when it fails), with the same lifecycle, `withTransaction()` helper
+and `@Operation({ transaction: false })` opt-out as [`PostgresStore`](../postgres/README.md#transactions).
+
+The services of a database share its single connection, so:
+
+- an open transaction holds the database until its operation ends: the statements of other requests and workers
+  wait for it (transactions are serialized, fine for the single-node use cases of SQLite);
+- the services of the same database used by the operation (another `SQLiteStore`, a `SQLiteRelationalStore`, a
+  `SQLiteQueue`, a `SQLitePubSub`) take part in its transaction: a message sent by a failing operation is rolled back
+  with its rows, a relational row and its junction rows are written in it instead of a transaction of their own, and
+  `SQLitePubSub` delivers the messages of a transaction once it committed;
+- a table created inside a transaction that rolls back is created again on the next statement;
+- an operation must not wait for work another async chain does on the same database (e.g. a queue consumer it
+  waits for): that work waits for the end of the transaction.
 
 ## Configuration
 

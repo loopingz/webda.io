@@ -21,6 +21,14 @@ export class OperationIdTransportParameters extends OperationsTransportParameter
    */
   streamKeepAliveInterval?: number;
 
+  /** CLI requirements advertised in the operations listing; update behavior remains a client setting */
+  cli?: {
+    /** Semver constraint the Webda CLI must satisfy, for example ">=1.4.0" */
+    version_range?: string;
+    /** Release download base URL; the CLI defaults to the official GitHub releases when omitted */
+    download_url?: string;
+  };
+
   /** @override */
   load(params: any = {}): this {
     super.load(params);
@@ -69,7 +77,7 @@ export class OperationIdTransport<
   }
 
   /**
-   * List the operations the caller (and its token scope) may call: `{ version, aliases?, operations }`. `version` is a
+   * List the operations the caller (and its token scope) may call: `{ version, aliases?, cli?, operations }`. `version` is a
    * hash of the listing (16 hex characters): it changes whenever an operation the caller sees is added, removed or
    * changed, so a client can cache the listing. `aliases` maps a model plural to its singular (`MindNodes` → `MindNode`),
    * as model operations use both (`MindNodes.Query`, `MindNode.Get`), for the models of the listed operations only
@@ -100,7 +108,7 @@ export class OperationIdTransport<
     const listing = { operations, aliases: Object.keys(aliases).length ? aliases : undefined };
     const version = createHash("sha256").update(JSON.stringify(listing)).digest("hex").slice(0, 16);
     ctx.setHeader("Content-Type", "application/json");
-    ctx.write({ version, ...listing });
+    ctx.write({ version, ...listing, cli: this.parameters.cli });
   }
 
   /**

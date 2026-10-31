@@ -24,7 +24,8 @@ operation call, whatever the transport (REST, `/operations`, MCP).
         "Webda/RevokedAccess",
         "Webda/OAuthCode",
         "Webda/OAuthDeviceCode",
-        "Webda/OAuthGrant"
+        "Webda/OAuthGrant",
+        "Webda/OAuthRegisteredClient"
       ]
     },
     "OAuthServer": { "type": "Webda/OAuthServer", "loginUrl": "/auth/google" },
@@ -45,12 +46,39 @@ operation call, whatever the transport (REST, `/operations`, MCP).
 - Use a shared store for `Webda/RevokedAccess` and `Webda/RefreshToken` in multi-instance deployments, see
   [Revocation](#revocation).
 
+### CLI version requirements
+
+Configure `cli` on `Webda/OperationsTransport` to advertise a required CLI version:
+
+```json
+{
+  "services": {
+    "Operations": {
+      "type": "Webda/OperationsTransport",
+      "cli": {
+        "version_range": ">=1.4.0"
+      }
+    }
+  }
+}
+```
+
+`GET /operations` includes `"cli": { "version_range": ">=1.4.0" }`. The Webda CLI
+compares its installed version with that semver range and follows its own configured
+update mode (`warn`, `prompt`, or `silent`). This metadata does not reject requests
+from older clients. Omit `cli` to leave the requirement unspecified.
+
+An optional `cli.download_url` sets the release download base URL; when omitted,
+the CLI uses the official Webda CLI GitHub releases. CLI metadata does not change
+the operations listing's `version` hash.
+
 ## Parameters
 
 | Parameter                            | Default        | Description                                                            |
 | ------------------------------------ | -------------- | ---------------------------------------------------------------------- |
 | `url`                                | `/oauth`       | Base path of the endpoints                                             |
-| `issuer`                             | request host   | Issuer advertised in the metadata                                      |
+| `issuer`                             | request host   | Issuer advertised in the metadata, `iss` of the access tokens          |
+| `resources`                          | `[]`           | Resources of other applications, see [below](#other-applications)      |
 | `loginUrl`                           |                | Application login page (required)                                      |
 | `clients`                            | CLI client     | Static clients by id, `null` removes a built-in one                    |
 | `clientMetadataDocuments`            | `true`         | Accept `https://` client ids resolved as metadata documents            |
@@ -65,11 +93,18 @@ operation call, whatever the transport (REST, `/operations`, MCP).
 | `rememberConsent`                    | `true`         | Skip the consent screen when the remembered consent covers the request |
 | `rememberConsentTtl`                 | `7776000`      | Remembered consent lifetime (s), 90 days                               |
 | `scopesSupported`                    | top groups     | Scopes advertised in the metadata                                      |
+| `registration`                       | see below      | Dynamic client registration: `open` or `off`                           |
+| `registrationRedirectPatterns`       | none           | Globs every registered redirect URI must match one of                  |
+| `registrationRateLimit`              | `20`           | Registrations per client IP per window                                 |
+| `registrationRateWindow`             | `3600`         | Window of the registration rate limit (s)                              |
+| `registrationUnusedTtl`              | `86400`        | Lifetime of a registered client never used (s), 24 hours               |
+| `registrationIdleTtl`                | `7776000`      | Lifetime of a registered client after its last token (s), 90 days      |
 
 ## Endpoints
 
 With the default `url`: `/.well-known/oauth-authorization-server`, `/oauth/authorize`, `/oauth/token`,
-`/oauth/revoke`, `/oauth/device_authorization`, the browser pages `/oauth/consent`, `/oauth/device` and
+`/oauth/revoke`, `/oauth/device_authorization`, `/oauth/register` (when [registration](#dynamic-client-registration)
+is open), the browser pages `/oauth/consent`, `/oauth/device` and
 `/oauth/done`, and the routes of the browser operations `/oauth/consent/request`, `/oauth/consent/decide` and
 `/oauth/device/lookup`.
 
@@ -114,6 +149,9 @@ A built-in `webda-cli` client (loopback callback, device flow, `* offline_access
 to remove it. Redirect rules: an `http` loopback URI (`127.0.0.1`, `localhost`, `[::1]`) matches **any port**; every
 other URI, including custom schemes, must match **exactly**.
 
+A static client gets tokens bound to no resource (the application audience) unless it sends `resource` or sets
+`defaultResource` to the absolute URI of a protected resource (see [MCP](#mcp)).
+
 ### Client ID Metadata Documents
 
 A client may use an `https://` URL as its `client_id`; the server fetches the JSON document (name, `redirect_uris`,
@@ -128,6 +166,39 @@ and cached for `clientMetadataCacheTtl`.
 
 Set `clientMetadataDocuments: false` to disable the feature.
 
+### Dynamic client registration
+
+`POST /oauth/register` implements RFC 7591 for **public clients**: most MCP clients (Claude Code, Cursor, VS Code,
+claude.ai and ChatGPT connectors...) register themselves this way the first time they connect. It is advertised as
+`registration_endpoint` in the metadata.
+
+- `registration` defaults to `open` when a protected resource is registered (an `McpService` using
+  `McpOAuthAuthenticator`), `off` otherwise; `off` answers `404`. Set it explicitly to override.
+- Only `token_endpoint_auth_method: "none"` (public client with PKCE S256) is accepted, `grant_types` among
+  `authorization_code` and `refresh_token`, `response_types` `["code"]`. No client secret is issued. Other fields than
+  `redirect_uris`, `client_name`, `client_uri`, `logo_uri` and `scope` are ignored.
+- `redirect_uris` follow the metadata document rules (https, loopback `http` on any port, private-use custom scheme;
+  no fragment or credentials) and must be in **canonical form** (as `new URL(uri).href` prints it, e.g.
+  `https://example.com/cb`, not `HTTPS://Example.com/cb`).
+- The response is `201` with a `client_id` prefixed `dcr_` and `client_id_issued_at`. `scope`, when sent, is kept as
+  the client default scope, restricted to the advertised scopes.
+- **Rate limit:** `registrationRateLimit` registrations per client IP per `registrationRateWindow` (default 20 per hour),
+  then `429 slow_down`. An IPv4 client is counted per address, an IPv6 client per /64 prefix. Requests without a
+  known client address (no `getClientIp()`) all share a single `unknown` counter. The counter is in memory, per
+  process, like the device flow limits.
+- **Expiry:** a client never used expires after `registrationUnusedTtl` (24 hours); each token issued to it extends its
+  life to `registrationIdleTtl` (90 days) after that use. An expired client is refused; the periodic sweep deletes it and revokes its
+  refresh tokens and remembered consents.
+- **`registrationRedirectPatterns`** restricts registration to known clients, for example
+  `["http://127.0.0.1/*", "http://localhost/*", "cursor://*", "vscode://*", "https://claude.ai/*", "https://chatgpt.com/*"]`.
+  A pattern is matched against `<scheme>://<host><path>` of the canonical URI (no query). For a loopback host the
+  **port is ignored**: write `http://127.0.0.1/*`, not `http://127.0.0.1:*/*`.
+
+The name of a registered client is chosen by whoever registered it: the consent screen shows it in quotes with an
+**"Unverified application"** notice and where the browser will be sent back (the redirect host, or "local
+application" for a loopback or custom scheme redirect). Remembered consent is kept per `client_id`, so each new
+registration of the same tool asks the user again.
+
 ## Consent
 
 The authorization endpoint redirects an anonymous browser to `loginUrl`, then to the consent screen listing the
@@ -136,9 +207,12 @@ the client. A later request skips the screen when the remembered scope covers **
 that the user can call now**, and `offline_access` when requested. The check is done on operations, not on the
 scope text: a `*` request remembered as `Task.* User.*` is answered while those are still all the user can call. An
 operation added or made callable since is not covered, so the screen is shown again with the remembered operations
-pre-selected. The issued token carries the intersection of the request and the remembered scope. The client can force
-the screen with `prompt=consent`; the device flow always shows it. Remembered grants are listed and forgotten through
-the connected-apps operations below.
+pre-selected and marked **(already allowed)**: a new decision adds to the remembered consent, it never withdraws
+from it (step-up). The remembered operations the token will carry are listed too, even outside the request. The issued
+token carries, when the screen is skipped, the intersection of the request and the remembered scope; after a decision
+on the screen, the remembered scope (without `offline_access`) plus the newly allowed operations, bounded by the
+client `allowedScopes`. The client can force the screen with `prompt=consent`; the device flow always shows it.
+Remembered grants are listed and forgotten through the connected-apps operations below.
 
 ## Device flow
 
@@ -202,17 +276,73 @@ this server:
 ```jsonc
 {
   "services": {
-    "McpOAuthAuthenticator": { "type": "Webda/McpOAuthAuthenticator" },
+    "McpOAuthAuthenticator": {
+      "type": "Webda/McpOAuthAuthenticator",
+      "publicUrl": "https://api.example.com"
+    },
     "Mcp": { "type": "Webda/McpService", "authenticator": "McpOAuthAuthenticator" }
   }
 }
 ```
 
-The resource identifier is derived from the `McpService` `url` (prefix aware) and the metadata is served at
-`/.well-known/oauth-protected-resource`, with `scopes_supported` (by default the same `*`, `<Group>.*` and
-`offline_access` the authorization server advertises; set `scopesSupported` on the authenticator to override). Tools
-outside the token scope are filtered from `tools/list`, and calling one answers the JSON-RPC error `Unknown tool`
-(HTTP 200), as for a tool that does not exist: a delegated client does not learn which operations it was not granted. See the [@webda/mcp README](https://github.com/loopingz/webda.io/blob/main/packages/mcp/README.md).
+Each MCP endpoint is a **resource** identified by `publicUrl` + the `McpService` `url` (here
+`https://api.example.com/mcp`), registered with the authorization server at startup. Tokens are **audience bound**
+(RFC 8707):
+
+- `/authorize` and `/token` accept `resource`; it must be a registered resource, otherwise `invalid_target`. The code
+  and the refresh token keep it: a token request or a refresh naming a different one is refused with `invalid_target`,
+  and `/revoke` accepts the bound tokens.
+- Without `resource`, a dynamically registered or metadata document client gets a token bound to the only registered
+  resource (`invalid_target` when there are several: the client must name one). A static client gets an application
+  token (`aud` `webda-access`) unless it sets `defaultResource`.
+- A resource-bound token is only accepted by its MCP endpoint: it is not a general API bearer token, and the MCP
+  endpoint refuses application tokens (`401 invalid_token`).
+
+The metadata is served at `/.well-known/oauth-protected-resource`, with `scopes_supported` (by default the same `*`,
+`<Group>.*` and `offline_access` the authorization server advertises; set `scopesSupported` on the authenticator to
+override). Tools outside the token scope are hidden from `tools/list`; calling one answers `403` with an
+`insufficient_scope` challenge the client can use to ask for a wider grant. See the
+[@webda/mcp README](https://github.com/loopingz/webda.io/blob/main/packages/mcp/README.md) and
+[Connecting agents](../mcp/ConnectingAgents.md).
+
+## Other applications
+
+One `OAuthServer` can sign users in for several applications, deployed separately or on other domains. An SPA on
+`my.example.com` logs in at `auth.example.com` and calls `api.example.com` and `admin.other.com` with Bearer tokens:
+cookies do not cross registrable domains, Bearer tokens do.
+
+```jsonc
+// auth.example.com
+"CryptoService": { "url": "/jwks", "jwt": { "algorithm": "RS256" } },
+"OAuthServer": {
+  "type": "Webda/OAuthServer",
+  "issuer": "https://auth.example.com",
+  "loginUrl": "/login",
+  "resources": ["https://api.example.com", "https://admin.other.com"],
+  "clients": { "my": { "name": "My", "redirect_uris": ["https://my.example.com/callback"], "allowedScopes": "Tasks.* offline_access" } }
+}
+
+// api.example.com: see @webda/oidc
+"OIDCVerifier": {
+  "type": "Webda/OIDCVerifier",
+  "audience": "https://api.example.com",
+  "trustedIssuers": [{ "issuer": "https://auth.example.com", "session": "user" }]
+}
+```
+
+- The client requests one token per API with `resource=https://api.example.com` (RFC 8707): the token audience is
+  that API, the scope lists its operations. A remote resource is only used when the client names it, or as its
+  `defaultResource`; it is never chosen by default and does not open dynamic registration.
+- With `issuer` set, every access token carries `iss` and the JWT type `at+jwt` (RFC 9068). The metadata advertises
+  `jwks_uri`, the `CryptoService` JWKS.
+- `resources` requires `issuer`, an asymmetric `CryptoService` `jwt.algorithm` and its JWKS `url`: the startup fails
+  otherwise, since a remote application could not verify the tokens.
+- The consent page lists the requested scope as it is: this server knows neither the operations of the remote
+  application nor the permissions of the user there, the remote application enforces them. A remembered consent is
+  per client, not per resource: it is never used, nor recorded, for a remote resource.
+- The remote application only checks the token: it cannot see the revocations of the issuer nor a password change.
+  A revoked token stays valid there until it expires, so keep `accessTtl` short (900 s by default).
+- Each API allows the SPA origin in its CORS configuration; no credentials are needed with Bearer tokens.
 
 ## OpenAPI
 

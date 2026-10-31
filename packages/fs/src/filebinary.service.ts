@@ -531,8 +531,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       throw new WebdaError.PreconditionFailed("No folder for hash " + result.hash);
     }
     const path = this._getPath(result.hash, "data");
-    if (!fs.existsSync(path)) {
-      fs.writeFileSync(path, body as any);
+    try {
+      // Exclusive creation cannot follow a symlink or overwrite a concurrent upload.
+      fs.writeFileSync(path, body as any, { flag: "wx" });
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
     }
     this._touch(this._getPath(result.hash, this.proofMarker(result.challenge)));
     if (dt.target) {

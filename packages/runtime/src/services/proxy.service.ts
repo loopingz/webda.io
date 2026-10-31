@@ -14,6 +14,7 @@ import {
 } from "@webda/core";
 import * as http from "http";
 import * as https from "https";
+import type { Duplex } from "stream";
 
 /**
  * Build a raw HTTP header block from a status line and header map
@@ -21,7 +22,7 @@ import * as https from "https";
  * @param headers - header key-value map (values may be arrays for multi-value headers)
  * @returns formatted header string terminated by CRLFCRLF
  */
-export function createHttpHeader(line, headers) {
+export function createHttpHeader(line: string, headers: http.IncomingHttpHeaders | http.OutgoingHttpHeaders): string {
   return (
     Object.keys(headers)
       .reduce(
@@ -38,7 +39,7 @@ export function createHttpHeader(line, headers) {
           }
           return head;
         },
-        [line]
+        <string[]>[line]
       )
       .join("\r\n") + "\r\n\r\n"
   );
@@ -138,7 +139,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   resolve() {
     // Register the proxy on the 'upgrade' event of http socket
     useCoreEvents("Webda.Init.Http" as any, (evt: any) => {
-      evt.on("upgrade", (req, socket, head) => {
+      evt.on("upgrade", (req: http.IncomingMessage, socket: Duplex, head: Buffer) => {
         this.proxyWS(req, socket, head);
       });
     });
@@ -184,7 +185,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @returns filtered headers safe to forward to the client
    */
   filterHeaders(responseHeaders: http.IncomingHttpHeaders = {}): http.OutgoingHttpHeaders {
-    const headers = {};
+    const headers: http.OutgoingHttpHeaders = {};
     Object.keys(responseHeaders)
       // Filter all CORS by default
       .filter(k => !k.startsWith("access") && k !== "")
@@ -202,7 +203,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param context - WebContext to write the proxied response to
    */
   async forwardResponse(response: http.IncomingMessage, context: WebContext) {
-    context.writeHead(response.statusCode, this.filterHeaders(response.headers));
+    // statusCode is always set on a client response; fallback to Bad Gateway otherwise
+    context.writeHead(response.statusCode ?? 502, this.filterHeaders(response.headers));
     response.pipe(await context.getOutputStream());
   }
 
@@ -214,17 +216,24 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   getRequestHeaders(context: HttpContext) {
     const headers = { ...context.getHeaders() };
     if (this.parameters.proxyHeaders) {
-      let xff = context.getHeader("x-forwarded-for");
-      if (!xff) {
-        xff += `, ${context.getClientIp()}`;
-      } else {
-        xff = context.getClientIp();
-      }
+      const existing = context.getHeader("x-forwarded-for");
+      const previous = Array.isArray(existing) ? existing.join(", ") : existing;
+      // Append the client to the chain built by upstream proxies, or start the chain
+      const xff = previous ? `${previous}, ${context.getClientIp()}` : context.getClientIp();
       const protocol = context.getProtocol();
-      headers["X-Rewrite-URL"] = context.getRelativeUri();
-      headers["X-Forwarded-Host"] = context.getHeader("x-forwarded-host", `${context.getHost()}`);
-      headers["X-Forwarded-Proto"] = context.getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1));
-      headers["X-Forwarded-For"] = xff;
+      const forwarded: Record<string, string | string[]> = {
+        "X-Rewrite-URL": context.getRelativeUri(),
+        // Keep the values set by an upstream proxy, they describe the original request
+        "X-Forwarded-Host": context.getHeader("x-forwarded-host", `${context.getHost()}`),
+        "X-Forwarded-Proto": context.getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
+        "X-Forwarded-Port": context.getHeader("x-forwarded-port", `${context.getPortNumber()}`),
+        "X-Forwarded-For": xff
+      };
+      for (const name in forwarded) {
+        // Incoming headers are lowercased: drop them so only one casing is forwarded
+        delete headers[name.toLowerCase()];
+        headers[name] = forwarded[name];
+      }
     }
     return headers;
   }
@@ -245,7 +254,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * Handle proxy request errors (logged at ERROR level)
    * @param e - the error that occurred during proxying
    */
-  onError(e) {
+  onError(e: unknown) {
     this.log("ERROR", "Proxying error", e);
   }
 
@@ -256,25 +265,24 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param head - first packet of the upgraded stream
    * @returns promise resolving when the WebSocket proxy is set up
    */
-  async proxyWS(req, socket, head) {
-    if (!req.url.startsWith(this.parameters.url)) {
+  async proxyWS(req: http.IncomingMessage, socket: Duplex, head: Buffer) {
+    const prefix = this.parameters.url;
+    if (prefix === undefined || !req.url?.startsWith(prefix)) {
       return;
     }
     if (req.method !== "GET" || !req.headers.upgrade) {
       socket.destroy();
+      return;
     }
 
     if (req.headers.upgrade.toLowerCase() !== "websocket") {
       socket.destroy();
+      return;
     }
     // Proxy WS Only works with a WebdaServer from @webda/shell for now
     const webdaContext = await (<any>useCore()).getContextFromRequest(req);
     await webdaContext.init();
-    return this.rawProxyWS(
-      webdaContext,
-      `${this.getBackend(webdaContext)}${req.url.substring(this.parameters.url.length)}`,
-      socket
-    );
+    return this.rawProxyWS(webdaContext, `${this.getBackend(webdaContext)}${req.url.substring(prefix.length)}`, socket);
   }
 
   /**
@@ -313,7 +321,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       }
     });
 
-    const onError = err => {
+    const onError = (err: Error) => {
       this.log("ERROR", err);
       socket.end();
     };
@@ -371,13 +379,13 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
         host,
         handler: url
       };
-      const onError = e => {
+      const onError = (e: unknown) => {
         this.metrics.http_request_in_flight.dec();
         this.metrics.http_errors.inc({ ...labels, statuscode: -1 });
         this.onError(e);
         resolve();
       };
-      let Host;
+      let Host: string | undefined;
       try {
         Host = new URL(host).host;
       } catch (err) {
@@ -402,7 +410,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
               ...labels,
               statuscode: res.statusCode
             });
-            if (res.statusCode >= 400) {
+            if (res.statusCode !== undefined && res.statusCode >= 400) {
               this.metrics.http_errors.inc(labels);
             }
             this.forwardResponse(res, ctx);
@@ -437,6 +445,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       throw new WebdaError.Unauthorized("You need to be authenticated to access this route");
     }
     // Add any additional controls here
-    await this.proxy(ctx, this.getBackend(ctx), this.parameters.url);
+    await this.proxy(ctx, this.getBackend(ctx), this.parameters.url ?? "");
   }
 }

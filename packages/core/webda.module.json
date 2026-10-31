@@ -39,6 +39,10 @@
             "configOnly": {
               "type": "boolean",
               "description": "Only output the deployed configuration"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Allow --config-only to overwrite the configuration file of the application"
             }
           },
           "phase": "resolved"
@@ -380,8 +384,18 @@
                 "type": "string"
               },
               "audience": {
-                "description": "Audience for the jwt",
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Audience for the jwt"
               },
               "expiresIn": {
                 "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\").",
@@ -530,8 +544,18 @@
                 "type": "string"
               },
               "audience": {
-                "description": "Audience for the jwt",
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Audience for the jwt"
               },
               "expiresIn": {
                 "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\").",
@@ -844,6 +868,30 @@
         ],
         "type": "object",
         "title": "DebugMailer"
+      },
+      "Configuration": "lib/services/serviceparameters:ServiceParameters"
+    },
+    "Webda/DebugSmsSender": {
+      "Import": "lib/services/debugsmssender.service:DebugSmsSender",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "DebugSmsSender"
       },
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
@@ -1212,59 +1260,6 @@
       },
       "Configuration": "lib/configurations/kubernetesconfiguration.service:KubernetesConfigurationParameters"
     },
-    "Webda/Mailer": {
-      "Import": "lib/services/mailer.service:Mailer",
-      "Schema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "additionalProperties": false,
-        "description": "Parameters for the Mailer service configuration\n\nConfigures the email transport, templates directory and template engine",
-        "properties": {
-          "SES": {
-            "description": "SES AWS Bean if transport === \"ses\"\n\nCredentials inside can be encrypted with `webda config encrypt`"
-          },
-          "emailTemplateOptions": {
-            "see": "https://www.npmjs.com/package/email-templates"
-          },
-          "sender": {
-            "description": "Define the default sender",
-            "type": "string"
-          },
-          "templates": {
-            "default": "templates",
-            "description": "Specify which folder contains templates",
-            "type": "string"
-          },
-          "templatesEngine": {
-            "default": "mustache",
-            "description": "Template engine to use",
-            "type": "string"
-          },
-          "transport": {
-            "description": "Define the type of transport to use",
-            "type": "string"
-          },
-          "type": {
-            "description": "Type of the service",
-            "type": "string"
-          },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "sender",
-          "type"
-        ],
-        "type": "object",
-        "x-webda-secret": [
-          "auth.pass",
-          "SES.credentials"
-        ],
-        "title": "Mailer"
-      },
-      "Configuration": "lib/services/mailer.service:MailerParameters"
-    },
     "Webda/MemoryLogger": {
       "Import": "lib/loggers/memory.service:MemoryLoggerService",
       "Schema": {
@@ -1608,8 +1603,29 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "definitions": {
+          "cli": {
+            "additionalProperties": false,
+            "description": "CLI requirements advertised in the operations listing; update behavior remains a client setting",
+            "properties": {
+              "download_url": {
+                "description": "Release download base URL; the CLI defaults to the official GitHub releases when omitted",
+                "type": "string"
+              },
+              "version_range": {
+                "description": "Semver constraint the Webda CLI must satisfy, for example \">=1.4.0\"",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
         "description": "Parameters of the operation-id transport",
         "properties": {
+          "cli": {
+            "$ref": "#/definitions/cli",
+            "description": "CLI requirements advertised in the operations listing; update behavior remains a client setting"
+          },
           "operations": {
             "default": [
               "*"
@@ -2003,6 +2019,49 @@
           ]
         }
       }
+    },
+    "Webda/StoreClusterService": {
+      "Import": "lib/services/storecluster.service:StoreClusterService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "StoreClusterService parameters",
+        "properties": {
+          "instanceId": {
+            "description": "Identity of this instance, unique per process: defaults to `<HOSTNAME or hostname()>-<pid>-<random>`",
+            "type": "string"
+          },
+          "leaseDuration": {
+            "default": 15000,
+            "description": "Milliseconds a lease is valid without renewal",
+            "type": "number"
+          },
+          "leaseName": {
+            "default": "leader",
+            "description": "Name of the lease",
+            "type": "string"
+          },
+          "renewInterval": {
+            "default": 5000,
+            "description": "Milliseconds between two attempts to acquire or renew the lease, lower than `leaseDuration`",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "StoreClusterService"
+      },
+      "Configuration": "lib/services/storecluster.service:StoreClusterServiceParameters"
     },
     "Webda/TokenService": {
       "Import": "lib/services/token.service:TokenService",
@@ -2998,6 +3057,9 @@
         "mfa": {
           "type": "MfaState"
         },
+        "mfaAt": {
+          "type": "number"
+        },
         "mfaVerifications": {
           "type": "Record",
           "typeParameters": [
@@ -3027,6 +3089,9 @@
           "type": "string"
         },
         "scope": {
+          "type": "string"
+        },
+        "resource": {
           "type": "string"
         },
         "name": {
@@ -3131,6 +3196,10 @@
               ],
               "type": "string"
             },
+            "mfaAt": {
+              "description": "When the second factor was verified (ms): refreshing does not advance it",
+              "type": "number"
+            },
             "mfaVerifications": {
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
@@ -3146,6 +3215,10 @@
             "refreshTtl": {
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
+            },
+            "resource": {
+              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "type": "string"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
@@ -3267,6 +3340,10 @@
               ],
               "type": "string"
             },
+            "mfaAt": {
+              "description": "When the second factor was verified (ms): refreshing does not advance it",
+              "type": "number"
+            },
             "mfaVerifications": {
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
@@ -3282,6 +3359,10 @@
             "refreshTtl": {
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
+            },
+            "resource": {
+              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "type": "string"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
@@ -3403,6 +3484,10 @@
               ],
               "type": "string"
             },
+            "mfaAt": {
+              "description": "When the second factor was verified (ms): refreshing does not advance it",
+              "type": "number"
+            },
             "mfaVerifications": {
               "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
               "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
@@ -3418,6 +3503,10 @@
             "refreshTtl": {
               "description": "Refresh token lifetime of the family (s), when it overrides the TokenService one",
               "type": "number"
+            },
+            "resource": {
+              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "type": "string"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
@@ -6746,6 +6835,20 @@
     "Webda/MFA.confirm.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "Webda/MFA.challenge.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "Webda/MFA.challenge.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "Webda/MFA.verify.input": {
       "type": "object",
       "properties": {
@@ -8379,6 +8482,11 @@
           }
         },
         "confirm": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "challenge": {
           "rest": {
             "method": "POST"
           }

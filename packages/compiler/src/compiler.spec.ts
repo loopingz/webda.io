@@ -576,6 +576,76 @@ class CompilerTest {
   }
 
   /**
+   * Schemas inherit types from the Webda dependencies, so a rebuilt dependency
+   * must rebuild an app whose own sources did not change (#923).
+   */
+  @test
+  async requireCompilationChecksDependencies() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-deps-"));
+    try {
+      const project = {
+        getAppPath: (p: string = "") => path.join(dir, p),
+        getDigest: () => "digest"
+      } as unknown as WebdaProject;
+      writeFileSync(
+        path.join(dir, "package.json"),
+        JSON.stringify({
+          name: "app",
+          dependencies: { "@test/core": "1.0.0", plain: "1.0.0" },
+          devDependencies: { "@test/missing": "1.0.0" }
+        })
+      );
+      writeFileSync(path.join(dir, "webda.module.json"), JSON.stringify({ moddas: {}, models: {} }));
+      mkdirSync(path.join(dir, ".webda"));
+      mkdirSync(path.join(dir, "lib"));
+      // A Webda module dependency, with its declarations and module
+      const core = path.join(dir, "node_modules", "@test", "core");
+      mkdirSync(path.join(core, "lib"), { recursive: true });
+      mkdirSync(path.join(core, "node_modules", "nested"), { recursive: true });
+      writeFileSync(path.join(core, "package.json"), JSON.stringify({ name: "@test/core", version: "1.0.0" }));
+      writeFileSync(path.join(core, "webda.module.json"), JSON.stringify({ moddas: {} }));
+      writeFileSync(path.join(core, "lib", "queue.d.ts"), "export interface QueueParameters { a: string }");
+      writeFileSync(path.join(core, "node_modules", "nested", "index.d.ts"), "export {};");
+      // A dependency that is not a Webda module
+      const plain = path.join(dir, "node_modules", "plain");
+      mkdirSync(plain, { recursive: true });
+      writeFileSync(path.join(plain, "package.json"), JSON.stringify({ name: "plain", version: "1.0.0" }));
+      writeFileSync(path.join(plain, "index.d.ts"), "export {};");
+
+      const compiler = new Compiler(project);
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), false, "unchanged dependencies must not rebuild");
+
+      // Files of a non-Webda dependency or of nested node_modules are not read
+      writeFileSync(path.join(plain, "index.d.ts"), "export const a = 1;");
+      writeFileSync(path.join(core, "node_modules", "nested", "index.d.ts"), "export const a = 1;");
+      assert.strictEqual(compiler.requireCompilation(), false, "unrelated files must not rebuild");
+
+      writeFileSync(path.join(core, "lib", "queue.d.ts"), "export interface QueueParameters { a: string; b?: number }");
+      assert.strictEqual(compiler.requireCompilation(), true, "a changed dependency declaration must rebuild");
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), false);
+
+      writeFileSync(path.join(core, "webda.module.json"), JSON.stringify({ moddas: { "Test/Queue": {} } }));
+      assert.strictEqual(compiler.requireCompilation(), true, "a changed dependency module must rebuild");
+      (compiler as any).updateCache();
+
+      writeFileSync(path.join(plain, "package.json"), JSON.stringify({ name: "plain", version: "1.0.1" }));
+      assert.strictEqual(compiler.requireCompilation(), true, "a dependency upgrade must rebuild");
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), false);
+
+      const cachePath = path.join(dir, ".webda", "cache");
+      const { dependencyDigest, ...legacy } = JSON.parse(readFileSync(cachePath, "utf8"));
+      assert.ok(dependencyDigest);
+      writeFileSync(cachePath, JSON.stringify(legacy));
+      assert.strictEqual(compiler.requireCompilation(), true, "a cache without dependency digest must rebuild");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /**
    * The `@Shared` allowlist comes from the application's configuration, and is
    * left to the content mapper's default when there is no configuration file.
    */

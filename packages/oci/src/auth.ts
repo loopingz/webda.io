@@ -85,11 +85,41 @@ export function parseAuthChallenge(header: string | null | undefined): AuthChall
   }
   const scheme = match[1].toLowerCase();
   const parameters: Record<string, string> = {};
-  const pattern = /([a-zA-Z0-9_.-]+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^,\s]*))\s*,?/g;
-  let parameter: RegExpExecArray | null;
-  while ((parameter = pattern.exec(match[2])) !== null) {
-    parameters[parameter[1].toLowerCase()] =
-      parameter[2] !== undefined ? parameter[2].replace(/\\(.)/g, "$1") : parameter[3];
+  const input = match[2];
+  let cursor = 0;
+  while (cursor < input.length) {
+    while (cursor < input.length && (input[cursor] === "," || /\s/.test(input[cursor]))) cursor++;
+    const start = cursor;
+    while (cursor < input.length && /[a-zA-Z0-9_.-]/.test(input[cursor])) cursor++;
+    const key = input.slice(start, cursor).toLowerCase();
+    while (cursor < input.length && /\s/.test(input[cursor])) cursor++;
+    if (!key || input[cursor] !== "=") {
+      const comma = input.indexOf(",", cursor);
+      if (comma === -1) break;
+      cursor = comma + 1;
+      continue;
+    }
+    cursor++;
+    while (cursor < input.length && /\s/.test(input[cursor])) cursor++;
+    let value = "";
+    if (input[cursor] === '"') {
+      cursor++;
+      let closed = false;
+      while (cursor < input.length) {
+        const char = input[cursor++];
+        if (char === '"') {
+          closed = true;
+          break;
+        }
+        value += char === "\\" && cursor < input.length ? input[cursor++] : char;
+      }
+      if (!closed) break;
+    } else {
+      const valueStart = cursor;
+      while (cursor < input.length && input[cursor] !== "," && !/\s/.test(input[cursor])) cursor++;
+      value = input.slice(valueStart, cursor);
+    }
+    parameters[key] = value;
   }
   return { scheme, parameters };
 }

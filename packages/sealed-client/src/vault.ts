@@ -380,19 +380,22 @@ export class KeyVault {
   }
 
   /**
-   * Re-wrap the keyring key under a new password and replace the password escrow: directly while unlocked, otherwise
-   * through the password escrow opened with the old password (a throttled `getEscrow`, checked against the pin).
+   * Build the password escrow of a new password without sending it: the keyring key is re-wrapped under the new
+   * password, directly while unlocked, otherwise through the password escrow opened with the old password (a
+   * throttled `getEscrow`, checked against the pin).
    *
-   * The password escrow must follow the login password: the host changes both together (this call right after, or
-   * before, the login password change), otherwise the next device has to be added with the old password.
+   * For a host whose login password change takes the escrow with it (`Auth.Password.Change` of `@webda/auth` refuses
+   * a change without it once a password escrow exists): send the blob as its `escrow` input, both are then stored
+   * together. {@link KeyVault.changePassword} sends it alone with `User.Keys.SetEscrow`.
    *
-   * While unlocked, the change is refused with a `KeyringPinError` when the keyring changed on another device since
+   * While unlocked, the escrow is refused with a `KeyringPinError` when the keyring changed on another device since
    * the unlock (its keyring key may have been replaced): unlock again first.
    * @param newPassword - new password
    * @param opts - options
    * @param opts.oldPassword - current password, needed while locked
+   * @returns the escrow of the keyring key under the new password
    */
-  async changePassword(newPassword: string, opts: { oldPassword?: string } = {}): Promise<void> {
+  async createPasswordEscrow(newPassword: string, opts: { oldPassword?: string } = {}): Promise<EscrowBlob> {
     let keyringKey = this.keyringKey;
     if (keyringKey) {
       await this.assertKeyringCurrent();
@@ -402,8 +405,22 @@ export class KeyVault {
       }
       keyringKey = (await this.openEscrow({ password: opts.oldPassword })).keyringKey;
     }
-    const escrow = await createEscrowBlob("password", newPassword, keyringKey, this.options.userId);
-    await this.options.api.setEscrow("password", escrow);
+    return createEscrowBlob("password", newPassword, keyringKey, this.options.userId);
+  }
+
+  /**
+   * Re-wrap the keyring key under a new password and replace the password escrow with `User.Keys.SetEscrow`
+   * (see {@link KeyVault.createPasswordEscrow} for the unlock rules).
+   *
+   * The password escrow must follow the login password: a host whose password change does not take the escrow
+   * changes both together (this call right after, or before, the login password change), otherwise the next device
+   * has to be added with the old password.
+   * @param newPassword - new password
+   * @param opts - options
+   * @param opts.oldPassword - current password, needed while locked
+   */
+  async changePassword(newPassword: string, opts: { oldPassword?: string } = {}): Promise<void> {
+    await this.options.api.setEscrow("password", await this.createPasswordEscrow(newPassword, opts));
   }
 
   /**

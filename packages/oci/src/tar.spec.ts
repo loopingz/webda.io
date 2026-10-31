@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { comparePaths, generateTar, paxRecord, type TarEntry, withDirectories } from "./tar.js";
+import { comparePaths, generateTar, paxRecord, type TarEntry, trimSlashes, withDirectories } from "./tar.js";
 
 /**
  * Collect a generated archive
@@ -26,6 +26,14 @@ class TarTest {
   async missingFileContent() {
     await assert.rejects(() => archive([{ path: "missing", type: "file", mode: 0o644 }]), /neither content nor source/);
     assert.ok((await archive([{ path: "empty", type: "file", mode: 0o644, content: Buffer.alloc(0) }])).length);
+  }
+
+  @test
+  trimsLongSlashRuns() {
+    const long = "/".repeat(100_000);
+    assert.strictEqual(trimSlashes(long), "");
+    assert.strictEqual(trimSlashes(long + "app/x" + long), "app/x");
+    assert.strictEqual(trimSlashes("a" + long + "b"), "a" + long + "b");
   }
 
   @test

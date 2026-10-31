@@ -53,6 +53,7 @@ Plug-and-play persistence backends — swap them via configuration without touch
 | [elasticsearch](./elasticsearch/README.md) | Elasticsearch store for full-text search and analytics workloads. |
 | [aws](./aws/README.md) | AWS integrations including **DynamoStore** (DynamoDB), **S3Binary**, and CloudFormation/Lambda deployers. |
 | [gcp](./gcp/README.md) | Google Cloud integrations including **FireStore** persistence and GCP deployer. |
+| [azure](./azure/README.md) | Blob binaries, Cosmos DB, Service Bus, Key Vault, Monitor logs, Container Apps and Functions deployers. |
 
 ---
 
@@ -65,6 +66,7 @@ Decouple background work and fan-out events with these messaging adapters.
 | [amqp](./amqp/README.md) | AMQP 0-9-1 queue adapter (RabbitMQ-compatible) for `QueueService`. |
 | [async](./async/README.md) | Async Action runner — executes model actions in background workers via any queue backend. |
 | [cloudevents](./cloudevents/README.md) | CloudEvents publisher/subscriber adapter for cross-service event delivery. |
+| [workflow](./workflow/README.md) | Durable workflows: operations chained with control flow, that survive restarts, retry, sleep and run as their launcher. |
 
 ---
 

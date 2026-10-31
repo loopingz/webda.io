@@ -1,6 +1,6 @@
 {
   "name": "@webda/sqlite",
-  "version": "4.0.0-beta.3",
+  "version": "4.0.0-beta.4",
   "description": "SQLite store, queue and pub/sub for webda on node:sqlite (in memory or file)",
   "keywords": [
     "sqlite",
@@ -30,6 +30,7 @@
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
     "@webda/sql": "workspace:*",
+    "@webda/sql-schema": "workspace:*",
     "@webda/utils": "workspace:*",
     "@webda/workout": "workspace:*"
   },

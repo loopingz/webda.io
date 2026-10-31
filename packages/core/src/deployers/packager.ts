@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import type { Application } from "../application/application.js";
-import type { Configuration } from "../application/iconfiguration.js";
+import type { Configuration, PackagedInformation } from "../application/iconfiguration.js";
 import * as WebdaError from "../errors/errors.js";
 import { getGitInformation } from "./git.js";
 
@@ -25,6 +25,11 @@ export const PACKAGED_CONFIGURATION = "webda.config.json";
  * Marker file of a packaged application: the CLI loads it from its cached configuration
  */
 export const PACKAGED_MARKER = ".webda/packaged.json";
+/**
+ * Top-level entry of a configuration holding the content of the {@link PACKAGED_MARKER} file: the CLI loads
+ * this configuration as packaged too
+ */
+export const PACKAGED_INLINE_KEY = "$packaged";
 
 /**
  * Top-level entries of the application never packaged, `webda.config.*` and dot entries are always skipped
@@ -104,6 +109,10 @@ export interface DeployedConfigurationOptions {
    * Rewrite the `Import` and `Configuration` paths of the cached modules, kept as is when omitted
    */
   rewriteImport?: (value: string) => string;
+  /**
+   * Add the {@link PACKAGED_INLINE_KEY} entry, so the configuration runs as packaged without the marker file
+   */
+  marker?: boolean;
 }
 
 /**
@@ -268,11 +277,11 @@ function rewriteImport(value: string, appPath: string, realAppPath: string, plac
 /**
  * Compute the configuration of the application with its current deployment applied
  *
- * It is a copy of the current configuration without the deployment units and the excluded services,
- * with the deployment name and the git information baked in the cached project.
+ * It is a copy of the current configuration without the deployment units, the excluded services and the
+ * `$import` (already merged), with the deployment name and the git information baked in the cached project.
  *
  * @param app - the loaded application
- * @param options - excluded services and import rewriting
+ * @param options - excluded services, import rewriting and inline marker
  * @returns the deployed configuration
  */
 export function getDeployedConfiguration(app: Application, options: DeployedConfigurationOptions = {}): Configuration {
@@ -283,6 +292,7 @@ export function getDeployedConfiguration(app: Application, options: DeployedConf
   ]) {
     delete configuration.services?.[name];
   }
+  delete configuration.$import;
   const modules: any = configuration.cachedModules ?? {};
   if (options.rewriteImport) {
     for (const section of ["moddas", "beans", "deployers", "models", "behaviors"]) {
@@ -301,7 +311,26 @@ export function getDeployedConfiguration(app: Application, options: DeployedConf
     modules.project.deployment = { ...modules.project.deployment, name: app.getCurrentDeployment() ?? "" };
     modules.project.git = getGitInformation(realAppPath, description.name, description.version);
   }
+  if (options.marker) {
+    // First entry, so the marker is visible at the top of the file
+    return { [PACKAGED_INLINE_KEY]: getPackagedInformation(app, configuration), ...configuration };
+  }
   return configuration;
+}
+
+/**
+ * Content of the packaged marker, the {@link PACKAGED_MARKER} file or the {@link PACKAGED_INLINE_KEY} entry
+ * @param app - the loaded application
+ * @param configuration - its deployed configuration, with the git information baked
+ * @returns the packaged deployment, package and git information
+ */
+function getPackagedInformation(app: Application, configuration: Configuration): PackagedInformation {
+  const description = readPackage(realpathSync(app.applicationPath));
+  return {
+    deployment: app.getCurrentDeployment() ?? "",
+    package: { name: description.name, version: description.version },
+    git: configuration.cachedModules?.project?.git
+  };
 }
 
 /**
@@ -419,19 +448,10 @@ export async function packageApplication(app: Application, options: PackageOptio
     excludeServices: options.excludeServices,
     rewriteImport: value => rewriteImport(value, appPath, realAppPath, byLength)
   });
-  const modules: any = configuration.cachedModules ?? {};
   files.push({ target: PACKAGED_CONFIGURATION, content: JSON.stringify(configuration, undefined, 2) });
   files.push({
     target: PACKAGED_MARKER,
-    content: JSON.stringify(
-      {
-        deployment: app.getCurrentDeployment() ?? "",
-        package: { name: description.name, version: description.version },
-        git: modules.project?.git
-      },
-      undefined,
-      2
-    )
+    content: JSON.stringify(getPackagedInformation(app, configuration), undefined, 2)
   });
   // A file listed twice (overlapping `files` entries) is packaged once
   const unique = [...new Map(files.map(file => [file.target, file])).values()];

@@ -19,6 +19,8 @@ export interface LoginOptions {
   provider?: string;
   amr?: string[];
   mfa?: MfaState;
+  /** When the second factor was verified (ms), only kept with `mfa: "verified"` */
+  mfaAt?: number;
   mfaVerifications?: Record<string, MfaVerification>;
 }
 
@@ -90,6 +92,11 @@ export class Session {
    * MFA state of the session
    */
   mfa?: MfaState;
+  /**
+   * When the second factor was last verified (ms timestamp): a proof time, never advanced by a token refresh.
+   * Undefined unless `mfa === "verified"`; sessions verified before it existed have none and are never fresh
+   */
+  mfaAt?: number;
   mfaVerifications?: Record<string, MfaVerification>;
 
   /**
@@ -141,6 +148,11 @@ export class Session {
     this.amr = options.amr ?? [];
     delete this.transientAmr;
     this.mfa = options.mfa ?? "none";
+    if (this.mfa === "verified" && options.mfaAt !== undefined) {
+      this.mfaAt = options.mfaAt;
+    } else {
+      delete this.mfaAt;
+    }
     this.mfaVerifications = options.mfaVerifications ?? {};
   }
   /**
@@ -177,6 +189,7 @@ export class Session {
     delete this.amr;
     delete this.transientAmr;
     delete this.mfa;
+    delete this.mfaAt;
     delete this.mfaVerifications;
     delete this.refreshFamily;
     delete this.authAt;
@@ -198,6 +211,26 @@ export class Session {
    */
   isPending(): boolean {
     return this.userId !== undefined && this.mfa === "pending";
+  }
+
+  /**
+   * Record a second factor verified now on an already identified session (login completion or step-up): keeps the
+   * user, ident, provider, `authAt` and refresh family
+   * @param amr - second factor method(s) verified, added to the session methods
+   * @param now - verification time (ms)
+   */
+  markMfaVerified(amr: string[], now: number = Date.now()): void {
+    this.mfa = "verified";
+    this.mfaAt = now;
+    this.amr = [...new Set([...(this.amr ?? []), ...amr])];
+  }
+
+  /**
+   * @param now - reference time (ms)
+   * @returns ms since the second factor was verified, Infinity when it never was
+   */
+  mfaAge(now: number = Date.now()): number {
+    return this.mfa === "verified" && typeof this.mfaAt === "number" ? now - this.mfaAt : Infinity;
   }
 
   /**

@@ -84,6 +84,13 @@ type SessionAttributes = Attributes<Session>; // every non-method key
 The decorator factories `createClassDecorator`, `createPropertyDecorator` and
 `createMethodDecorator` come from `@webda/decorators`.
 
+### Duplicate package guard
+
+Each `@webda/*` package calls `registerWebdaPackage(name, import.meta.url)` from its entry. The registry lives
+on `globalThis`, so every copy of every package shares it: loading the same package from a second path throws
+`<name> loaded twice: ...`, even when both copies have the same version. `getWebdaPackages()` lists the
+registered packages. See [Common Issues](../../CommonIssues/CommonIssues.md) to fix a duplicate install.
+
 ## Reference
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/utils/`.

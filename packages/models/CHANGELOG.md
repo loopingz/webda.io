@@ -1,5 +1,47 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.11...models-v4.0.0-beta.12) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** instance canAct overrides must match canAct(context: CanActContext, action: string).
+* **utils:** @webda/tsc-esm is no longer published. Import its types and helpers from @webda/utils, and createClassDecorator, createPropertyDecorator and createMethodDecorator from @webda/decorators.
+
+### Features
+
+* opt-in total count for paginated queries (Repository.count, REST/GraphQL total) ([#967](https://github.com/loopingz/webda.io/issues/967)) ([b43e6d1](https://github.com/loopingz/webda.io/commit/b43e6d18820773d24a8b754013dc4dec4c57e1c7))
+
+
+### Bug Fixes
+
+* **content-mapper:** list Events of an optional [WEBDA_EVENTS]? member under strict ([#978](https://github.com/loopingz/webda.io/issues/978)) ([c303962](https://github.com/loopingz/webda.io/commit/c30396298c8545f9c1ff5d8c4839191afbd7609f))
+* **core:** body cannot override path params ([#947](https://github.com/loopingz/webda.io/issues/947)); feat(models)!: typed instance canAct ([#948](https://github.com/loopingz/webda.io/issues/948)) ([30d534b](https://github.com/loopingz/webda.io/commit/30d534bddb85ae60389209dbfe465b8a27ed71f6))
+
+
+### Performance Improvements
+
+* **models:** index MemoryStore storage by stored type ([#977](https://github.com/loopingz/webda.io/issues/977)) ([d4f2ddb](https://github.com/loopingz/webda.io/commit/d4f2ddb5827759ef216bd24fe62a4ebefdfcd0e2)), closes [#922](https://github.com/loopingz/webda.io/issues/922)
+
+
+### Code Refactoring
+
+* **utils:** merge @webda/tsc-esm into @webda/utils and remove it ([#942](https://github.com/loopingz/webda.io/issues/942)) ([efcf87c](https://github.com/loopingz/webda.io/commit/efcf87c5adb1b697c4cf433545efb09a51459837))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/serialize bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.11
+  * peerDependencies
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.11
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.10...models-v4.0.0-beta.11) (2026-10-16)
 
 

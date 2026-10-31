@@ -5690,6 +5690,14 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     },
+    "BeanService.cron.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "BeanService.cron.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
     "CustomService.testOperation.input": {
       "type": "object",
       "properties": {},
@@ -5740,6 +5748,14 @@
     "SampleAppGoodBean.operation2.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "number"
+    },
+    "SampleAppGoodBean.cron.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "SampleAppGoodBean.cron.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     }
   },
   "behaviors": {}

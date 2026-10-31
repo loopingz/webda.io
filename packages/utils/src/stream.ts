@@ -18,7 +18,7 @@ export function sanitizeFilename(name: string) {
  */
 export function streamToBuffer(stream: Readable): Promise<Buffer> {
   // codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer
-  const chunks = [];
+  const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
     stream.on("data", chunk => chunks.push(Buffer.from(chunk)));
     stream.on("error", err => reject(err));

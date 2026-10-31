@@ -325,6 +325,25 @@ describe("top-level schemas", () => {
     namespace: "Test"
   });
 
+  it("exports URI bindings from literal decorator options with typed inputs and return-only outputs", () => {
+    expect(schemas["Test/RestDesk.list.input"]["x-webda-rest"]).toEqual({
+      method: "get",
+      template: "tickets/{projectId}{?tags?,filters*}",
+      path: ["projectId"],
+      query: [
+        { name: "tags", required: false },
+        { name: "filters", required: false, catchAll: true },
+        { name: "limit", required: false }
+      ],
+      body: []
+    });
+    expect(schemas["Test/RestDesk.create.input"]["x-webda-rest"]).toMatchObject({
+      body: ["ticket"],
+      bodyParameter: "ticket"
+    });
+    expect(schemas["Test/RestDesk.list.output"].type).toBe("array");
+  });
+
   it("publishes a @WebdaSchema type under its namespaced name", () => {
     expect(schemas["Test/Ticket"]).toBeDefined();
     expect(schemas["Test/Ticket"].WebdaSchema).toBe(true);

@@ -51,7 +51,14 @@ await fetch(`/api/notes/${uuid}/content.set`, {
 // A new device, through an escrow (fresh login required by the server)
 await vault.unlockWithEscrow({ password }, { device: { kind: "passcode", passcode }, deviceName: "Phone" });
 
-// Change the password escrow together with the login password (unlocked, or locked with { oldPassword })
+// Change the password escrow together with the login password (unlocked, or locked with { oldPassword }):
+// `Auth.Password.Change` of @webda/auth takes the escrow of the new password and stores both at once
+await request("POST", "/auth/password/change", {
+  current: password,
+  next: newPassword,
+  escrow: await vault.createPasswordEscrow(newPassword)
+});
+// A host whose password change does not take the escrow replaces it alone (User.Keys.SetEscrow)
 await vault.changePassword(newPassword); // re-wraps the keyring key, every device keeps working
 const code = await vault.setRecoveryCode(); // show once
 await vault.rotate(); // new active key, older values stay readable

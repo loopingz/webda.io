@@ -11,6 +11,7 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import { runWithContext } from "../contexts/execution.js";
 
 /**
  * Task 8: addBehaviorOperations registers one operation per Behavior action
@@ -131,6 +132,89 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
   }
 
   @test
+  async directBehaviorCallsReadTheParentKeyFromTheInput() {
+    const restore = this.patchUserWithMfaBehavior();
+    let ref: sinon.SinonStub | undefined;
+    try {
+      const { service, User } = this.setupBehaviorDispatcher();
+      const verify = sinon.stub().resolves(true);
+      ref = this.stubModelRef(User, {
+        isDeleted: () => false,
+        canAct: async () => true,
+        mfa: { verify }
+      });
+      const context = new SimpleOperationContext().setInput(Buffer.from(JSON.stringify({ uuid: "legacy-parent" })));
+      await context.init();
+      context.setExtension("operationContext", {
+        model: User,
+        attribute: "mfa",
+        action: "verify",
+        behavior: "Test/MFA"
+      });
+      assert.strictEqual(await runWithContext(context, () => service.modelBehaviorAction("123456")), true);
+      assert.deepStrictEqual(ref.firstCall.args, ["legacy-parent"]);
+      assert.deepStrictEqual(verify.firstCall.args, ["123456"]);
+      sinon.stub(context, "getInput").rejects(new Error("missing legacy input"));
+      ref.withArgs(undefined).returns({
+        async get() {
+          throw new Error("missing parent");
+        }
+      });
+      await assert.rejects(
+        () => runWithContext(context, () => service.modelBehaviorAction("123456")),
+        WebdaError.NotFound
+      );
+      assert.strictEqual(verify.callCount, 1);
+    } finally {
+      ref?.restore();
+      restore();
+    }
+  }
+
+  @test
+  registersWholeBodyBindingsAndLegacySchemasWithoutProperties() {
+    const restore = this.patchUserWithMfaBehavior();
+    const app: any = useApplication();
+    const User: any = useModel("User");
+    const metadata = User.Metadata;
+    const inputName = "Test/MFA.verify.input";
+    const actionName = `${metadata.Identifier}.apply.input`;
+    const schemas = app.getSchemas();
+    const previous = schemas[inputName];
+    const previousAction = schemas[actionName];
+    try {
+      const payload = { type: "object", properties: { payload: { type: "object" } } };
+      schemas[inputName] = payload;
+      registerSchema(inputName, payload, true);
+      schemas[actionName] = payload;
+      registerSchema(actionName, payload, true);
+      app.behaviors["Test/MFA"].metadata.Actions.verify.rest = { method: "post", body: "payload" };
+      User.Metadata = {
+        ...metadata,
+        Actions: { ...metadata.Actions, apply: { rest: { method: "post", path: "{uuid}/apply", body: "payload" } } }
+      };
+      this.setupBehaviorDispatcher();
+      const operations = listFullOperations();
+      assert.deepStrictEqual(operations["User.Apply"].rest, { method: "post", path: "{uuid}/apply", body: "payload" });
+      assert.strictEqual((operations["User.Mfa.Verify"].rest as any).body, "payload");
+      // Hand-written schemas may omit properties altogether.
+      schemas[inputName] = {};
+      registerSchema(inputName, {}, true);
+      delete app.behaviors["Test/MFA"].metadata.Actions.verify.rest;
+      this.setupBehaviorDispatcher();
+      const request: any = app.getSchema(listFullOperations()["User.Mfa.Verify"].input);
+      assert.deepStrictEqual(request["x-webda-arguments"], ["uuid"]);
+    } finally {
+      User.Metadata = metadata;
+      if (previous === undefined) delete schemas[inputName];
+      else schemas[inputName] = previous;
+      if (previousAction === undefined) delete schemas[actionName];
+      else schemas[actionName] = previousAction;
+      restore();
+    }
+  }
+
+  @test
   async registersBehaviorOperations() {
     const restore = this.patchUserWithMfaBehavior();
     try {
@@ -168,6 +252,99 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
       assert.strictEqual(setCtx.action, "set");
     } finally {
       restore();
+    }
+  }
+
+  @test
+  async typedBehaviorInputIncludesCompositeParentKeyAndContextPosition() {
+    const restore = this.patchUserWithMfaBehavior();
+    const app = useApplication<Application>();
+    const User: any = useModel("User");
+    const metadata = User.Metadata;
+    const schemas = app.getSchemas();
+    const inputName = "Test/MFA.verify.input";
+    const previous = schemas[inputName];
+    schemas[inputName] = {
+      type: "object",
+      properties: { code: { type: "string" }, force: { type: "boolean" } },
+      required: ["code"],
+      "x-webda-arguments": ["code", "context", "force"],
+      "x-webda-context": ["context"]
+    } as any;
+    User.Metadata = { ...metadata, PrimaryKey: ["tenant", "userId"] };
+    const calls: any[] = [];
+    const ref = this.stubModelRef(User, {
+      isDeleted: () => false,
+      canAct: async () => true,
+      mfa: {
+        verify: (...args: any[]) => {
+          calls.push(args);
+          return true;
+        }
+      }
+    });
+    try {
+      this.setupBehaviorDispatcher();
+      const op = listFullOperations()["User.Mfa.Verify"];
+      const schema: any = app.getSchema(op.input);
+      assert.deepStrictEqual(schema.required, ["tenant", "userId", "code"]);
+      assert.strictEqual(op.rest && op.rest.path, "{tenant}/{userId}/mfa.verify");
+      const ctx = new SimpleOperationContext().setInput(
+        Buffer.from(JSON.stringify({ tenant: "org", userId: "u1", code: "123" }))
+      );
+      await ctx.init();
+      await callOperation(ctx, op.id);
+      assert.deepStrictEqual(ref.firstCall.args, [{ tenant: "org", userId: "u1" }]);
+      assert.deepStrictEqual(calls, [["123", ctx, undefined]]);
+      const invalid = new SimpleOperationContext().setInput(
+        Buffer.from(JSON.stringify({ tenant: "org", userId: "u1" }))
+      );
+      await invalid.init();
+      await assert.rejects(() => callOperation(invalid, op.id), /InvalidInput.*code/);
+      assert.strictEqual(calls.length, 1);
+    } finally {
+      ref.restore();
+      User.Metadata = metadata;
+      if (previous === undefined) delete schemas[inputName];
+      else schemas[inputName] = previous;
+      restore();
+    }
+  }
+
+  @test
+  async forwardsMaxMfaAgeOfActions() {
+    const app = useApplication<Application>() as any;
+    const previousBehavior = app.behaviors["Test/MFA"];
+    app.behaviors["Test/MFA"] = {
+      metadata: {
+        Identifier: "Test/MFA",
+        Import: "fake:FakeMFA",
+        Actions: { verify: { method: "PUT" }, disable: { method: "PUT", maxMfaAge: "5m" } }
+      }
+    };
+    const User = useModel("User") as any;
+    const previousMetadata = User.Metadata;
+    User.Metadata = Object.freeze({
+      ...previousMetadata,
+      Actions: { ...previousMetadata.Actions, payout: { method: "POST", maxMfaAge: 600 } },
+      Relations: {
+        ...(previousMetadata.Relations || {}),
+        behaviors: [{ attribute: "mfa", behavior: "Test/MFA" }]
+      }
+    });
+    try {
+      this.setupBehaviorDispatcher();
+      const all = listFullOperations();
+      assert.strictEqual(all["User.Payout"].maxMfaAge, 600);
+      assert.strictEqual(all["User.Mfa.Disable"].maxMfaAge, "5m");
+      assert.strictEqual(all["User.Mfa.Verify"].maxMfaAge, undefined);
+    } finally {
+      User.Metadata = previousMetadata;
+      if (previousBehavior === undefined) {
+        delete app.behaviors["Test/MFA"];
+      } else {
+        app.behaviors["Test/MFA"] = previousBehavior;
+      }
     }
   }
 
@@ -227,7 +404,8 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
         uuid: { type: "string" },
         totp: { type: "string" }
       },
-      required: ["uuid", "totp"]
+      required: ["uuid", "totp"],
+      "x-webda-arguments": ["uuid", "totp"]
     };
     const wasRegistered = hasSchema(schemaName);
     if (!wasRegistered) registerSchema(schemaName, schema);

@@ -73,3 +73,31 @@ export interface AggregationOptions {
    */
   warn?: (message: string) => void;
 }
+
+/**
+ * Result of a count
+ */
+export interface CountResult {
+  /**
+   * Rows counted; with relation "gte" the real total is at least this value
+   */
+  value: number;
+  /**
+   * "eq": exact total. "gte": the count stopped at {@link CountOptions.max}
+   */
+  relation: "eq" | "gte";
+  /**
+   * false when the in-memory fallback ran
+   */
+  native: boolean;
+}
+
+/**
+ * Options of a count
+ */
+export interface CountOptions {
+  /**
+   * Stop counting after max rows (then relation is "gte"); undefined means an exact count
+   */
+  max?: number;
+}

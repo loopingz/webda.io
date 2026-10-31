@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/application.js";
 import { Session } from "../session/session.js";
-import { TokenInvalid, TokenService } from "./token.service.js";
+import { InvalidTarget, TokenInvalid, TokenService } from "./token.service.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
 import { RevokedAccess } from "../models/revokedaccess.model.js";
 import { useService } from "../core/hooks.js";
@@ -116,6 +116,27 @@ class TokenServiceTest extends WebdaApplicationTest {
     assert.deepStrictEqual(refreshed.session.mfaVerifications, session.mfaVerifications);
     const claims = await this.service.verifyAccess(refreshed.accessToken);
     assert.deepStrictEqual(claims.mfaVerifications, session.mfaVerifications);
+  }
+
+  @test
+  async mfaAtIsAProofTimeNotATokenTime() {
+    const session = new Session();
+    session.login("u1", "a@b.c:email", { provider: "email", amr: ["pwd", "totp"], mfa: "verified", mfaAt: 123 });
+    const tokens = await this.service.issue(session);
+    const claims = await this.service.verifyAccess(tokens.accessToken);
+    assert.strictEqual(claims.mfaAt, 123);
+    const stored = await RefreshToken.ref({ hash: (this.service as any).hash(tokens.refreshToken) } as any).get();
+    assert.strictEqual(stored.mfaAt, 123);
+    // Refreshing never advances mfaAt
+    const refreshed = await this.service.refresh(tokens.refreshToken);
+    assert.strictEqual(refreshed.session.mfaAt, 123);
+    assert.strictEqual((await this.service.verifyAccess(refreshed.accessToken)).mfaAt, 123);
+    const again = await this.service.refresh(refreshed.refreshToken);
+    assert.strictEqual(again.session.mfaAt, 123);
+    // A session without second factor carries none
+    const plain = await this.service.issue(this.session());
+    assert.strictEqual((await this.service.verifyAccess(plain.accessToken)).mfaAt, undefined);
+    assert.strictEqual((await this.service.refresh(plain.refreshToken)).session.mfaAt, undefined);
   }
 
   @test
@@ -619,5 +640,106 @@ class TokenServiceTest extends WebdaApplicationTest {
     };
     assert.strictEqual(await svc.isRevoked({ fam: "f", amr: [], mfa: "none" } as any), false);
     assert.deepStrictEqual(looked, ["fam:f"]);
+  }
+
+  @test
+  async issueBindsResource() {
+    const res = "https://app.example/mcp";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", resource: res });
+    assert.strictEqual(await this.service.verifyAccess(t.accessToken), undefined);
+    const claims = await this.service.verifyAccess(t.accessToken, { audience: res });
+    assert.strictEqual(claims.sub, "u1");
+    assert.strictEqual(claims.aud, res);
+    const stored = await RefreshToken.query(`family = '${claims.fam}'`);
+    assert.strictEqual(stored.results[0].resource, res);
+  }
+
+  @test
+  async refreshKeepsResource() {
+    const res = "https://app.example/mcp";
+    const first = await this.service.issue(this.session(), undefined, { clientId: "c", resource: res });
+    const second = await this.service.refresh(first.refreshToken, { clientId: "c", resource: res });
+    assert.strictEqual(await this.service.verifyAccess(second.accessToken), undefined);
+    assert.ok(await this.service.verifyAccess(second.accessToken, { audience: res }));
+    const third = await this.service.refresh(second.refreshToken, { clientId: "c" });
+    assert.ok(await this.service.verifyAccess(third.accessToken, { audience: res }));
+  }
+
+  @test
+  async refreshRejectsOtherResource() {
+    const first = await this.service.issue(this.session(), undefined, {
+      clientId: "c",
+      resource: "https://app.example/mcp"
+    });
+    await assert.rejects(
+      () => this.service.refresh(first.refreshToken, { clientId: "c", resource: "https://other/mcp" }),
+      (err: any) => err instanceof InvalidTarget && err.code === "invalid_target"
+    );
+    // not burnt by the rejection
+    assert.ok(await this.service.refresh(first.refreshToken, { clientId: "c" }));
+  }
+
+  @test
+  async loadFromTokenRefusesBoundToken() {
+    const manager = useService("SessionManager") as any;
+    const t = await this.service.issue(this.session(), undefined, {
+      clientId: "c",
+      resource: "https://app.example/mcp"
+    });
+    const loaded = await manager.loadFromToken(await this.newContext(), t.accessToken);
+    assert.ok(!loaded.isLogged());
+  }
+
+  @test
+  async sessionFromAccessTokenWithAudience() {
+    const manager = useService("SessionManager") as any;
+    const res = "https://app.example/mcp";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", scope: ["Task.*"], resource: res });
+    assert.strictEqual(await manager.sessionFromAccessToken(t.accessToken), undefined);
+    const session = await manager.sessionFromAccessToken(t.accessToken, { audience: res });
+    assert.ok(session.isLogged());
+    assert.strictEqual(session.stateless, true);
+    assert.deepStrictEqual(session.scopes, ["Task.*"]);
+    assert.strictEqual(session.clientId, "c");
+  }
+
+  @test
+  async issuerSetsIssAndAccessTokenType() {
+    const decode = (token: string) =>
+      token
+        .split(".")
+        .slice(0, 2)
+        .map(part => JSON.parse(Buffer.from(part, "base64url").toString()));
+    const res = "https://api.example";
+    const iss = "https://auth.example";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", resource: res, issuer: iss });
+    let [header, payload] = decode(t.accessToken);
+    assert.strictEqual(header.typ, "at+jwt");
+    assert.strictEqual(payload.iss, iss);
+    // Still verified locally
+    assert.ok(await this.service.verifyAccess(t.accessToken, { audience: res }));
+    // Kept on refresh when given again
+    const second = await this.service.refresh(t.refreshToken, { clientId: "c", issuer: iss });
+    [header, payload] = decode(second.accessToken);
+    assert.strictEqual(header.typ, "at+jwt");
+    assert.strictEqual(payload.iss, iss);
+    // First-party tokens are unchanged
+    [header, payload] = decode((await this.service.issue(this.session())).accessToken);
+    assert.strictEqual(header.typ, "JWT");
+    assert.strictEqual(payload.iss, undefined);
+  }
+
+  @test
+  async emptyAudienceFailsClosed() {
+    const manager = useService("SessionManager") as any;
+    const t = await this.service.issue(this.session(), undefined, {
+      clientId: "c",
+      resource: "https://app.example/mcp"
+    });
+    for (const audience of ["", [], [""], ["https://app.example/mcp", ""]]) {
+      assert.strictEqual(await this.service.verifyAccess(t.accessToken, { audience }), undefined);
+      assert.strictEqual(await manager.sessionFromAccessToken(t.accessToken, { audience }), undefined);
+    }
+    assert.ok(await this.service.verifyAccess(t.accessToken, { audience: ["x", "https://app.example/mcp"] }));
   }
 }

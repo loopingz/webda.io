@@ -11,11 +11,15 @@
         "description": "McpOAuthAuthenticator parameters",
         "properties": {
           "authorizationServers": {
-            "description": "Authorization servers advertised in the protected resource metadata; defaults to the request origin",
+            "description": "Authorization servers advertised in the protected resource metadata; defaults to `publicUrl` when set, otherwise\nthe request origin (with the application prefix)",
             "items": {
               "type": "string"
             },
             "type": "array"
+          },
+          "publicUrl": {
+            "description": "Canonical public origin of the application (absolute, e.g. `https://mcp.example.com`): the token audience and the\nadvertised resource are derived from it instead of the request headers. Set it in production, notably behind a proxy",
+            "type": "string"
           },
           "resourceMetadataPath": {
             "default": "/.well-known/oauth-protected-resource",
@@ -106,6 +110,11 @@
           "authenticator": {
             "description": "Name of a service implementing McpAuthenticator; default uses the Webda session",
             "type": "string"
+          },
+          "listOutOfScopeTools": {
+            "default": false,
+            "description": "List the tools the token scope does not cover in tools/list; calling them still\nanswers insufficient_scope so the client can ask for a wider grant",
+            "type": "boolean"
           },
           "maxOutputBytes": {
             "default": 1048576,

@@ -1,16 +1,24 @@
 import {
   EventRepository,
   InstanceCache,
+  registerOperationTransactionParticipant,
+  runWithTransaction,
   Store,
   StoreParameters,
   UNREADABLE,
   UNTYPED,
+  unregisterOperationTransactionParticipant,
   useModel,
-  useModelMetadata
+  useModelMetadata,
+  useOperationTransaction,
+  WebdaError
 } from "@webda/core";
 import type {
+  Context,
   MigratableStore,
   ModelClass,
+  OperationDefinition,
+  OperationTransactionParticipant,
   RawPage,
   RawPatch,
   RawTable,
@@ -19,6 +27,8 @@ import type {
 } from "@webda/core";
 import type { SQLClient, SQLDatabase, SQLDialect } from "./dialect.js";
 import { SQLRepository } from "./repository.js";
+import { SQLTransactionState } from "./transaction.js";
+import type { SQLTransactionConnection, SQLTransactionMode } from "./transaction.js";
 
 /** Base parameters for SQL-backed stores */
 export class SQLStoreParameters extends StoreParameters {
@@ -38,6 +48,15 @@ export class SQLStoreParameters extends StoreParameters {
    * Maps a model identifier (e.g. "Webda/User") to a custom table name.
    */
   tables?: { [modelIdentifier: string]: string };
+  /**
+   * Wrap all statements of an operation in a single transaction
+   *
+   * - "none": autocommit per statement
+   * - "operation": BEGIN on the first statement of an operation, COMMIT when the operation succeeds, ROLLBACK when
+   *   it fails. Nested operations join the outermost one; `transaction: false` on an operation opts it out.
+   * @default "none"
+   */
+  transaction?: SQLTransactionMode;
 
   /**
    * @override
@@ -48,6 +67,7 @@ export class SQLStoreParameters extends StoreParameters {
     super.load(params);
     this.autoCreateTable ??= true;
     this.tables ??= {};
+    this.transaction ??= "none";
     return this;
   }
 }
@@ -58,7 +78,7 @@ export class SQLStoreParameters extends StoreParameters {
  */
 export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters>
   extends Store<K>
-  implements MigratableStore
+  implements MigratableStore, OperationTransactionParticipant
 {
   /**
    * Engine syntax, created once per store
@@ -101,17 +121,158 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
       meta.PrimaryKeySeparator,
       () => this.ensureTable(repo),
       tableModel,
-      this.dialect
+      this.dialect,
+      () => this.getTransactionClient()
     );
     return repo;
+  }
+
+  /**
+   * Register the store as a transaction participant of the operations when `transaction` is "operation"
+   * @override
+   */
+  async init(): Promise<this> {
+    await super.init();
+    if (this.parameters.transaction === "operation") {
+      this.checkTransactionSupport();
+      registerOperationTransactionParticipant(this);
+    }
+    return this;
   }
 
   /**
    * @override
    */
   async stop(): Promise<void> {
+    unregisterOperationTransactionParticipant(this);
     this.tablesReady.clear();
     await super.stop();
+  }
+
+  /**
+   * Participant enlisted by {@link withTransaction}, whatever the `transaction` mode
+   */
+  protected explicitParticipant?: OperationTransactionParticipant;
+
+  /**
+   * Key of the transaction state in the operation transaction: stores sharing one connection share it
+   * @returns the key
+   */
+  protected transactionKey(): string {
+    return `sql.tx.${this.getName()}`;
+  }
+
+  /**
+   * Check the store can run transactions with its configuration
+   * @throws WebdaError.CodeError when it cannot
+   */
+  protected checkTransactionSupport(): void {
+    // Engines refusing some configuration override this
+  }
+
+  /**
+   * Open a connection dedicated to a transaction and begin it
+   * @param _state - the transaction state the connection is opened for
+   * @returns the connection, BEGIN run
+   */
+  protected async openTransaction(_state: SQLTransactionState): Promise<SQLTransactionConnection> {
+    throw new WebdaError.CodeError(
+      "SQL_TRANSACTION_UNSUPPORTED",
+      `${this.constructor.name} ${this.getName()} does not support transactions`
+    );
+  }
+
+  /**
+   * @returns the transaction state of this store in the current async chain, while active
+   */
+  protected getTransactionState(): SQLTransactionState | undefined {
+    const state = useOperationTransaction()?.get<SQLTransactionState>(this.transactionKey());
+    return state && !state.isFinished() ? state : undefined;
+  }
+
+  /**
+   * The client of the transaction the current async chain runs in (an operation or {@link withTransaction})
+   *
+   * Statements on it open the transaction connection on first use.
+   * @returns the client, undefined outside a transaction of this store
+   */
+  getTransactionClient(): SQLClient | undefined {
+    return this.getTransactionState();
+  }
+
+  /**
+   * Create the transaction state of this store in the current transaction, unless it has one already
+   */
+  protected enlistTransaction(): void {
+    const transaction = useOperationTransaction();
+    const key = this.transactionKey();
+    if (!transaction || transaction.get(key)) {
+      return;
+    }
+    transaction.set(
+      key,
+      new SQLTransactionState(
+        state => this.openTransaction(state),
+        () => this.getClient(),
+        this
+      )
+    );
+  }
+
+  /**
+   * @returns the transaction state created by this store in the current transaction
+   */
+  protected ownTransactionState(): SQLTransactionState | undefined {
+    const state = useOperationTransaction()?.get<SQLTransactionState>(this.transactionKey());
+    return state?.owner === this ? state : undefined;
+  }
+
+  /**
+   * Take part in the transaction of an operation: nothing is opened until the first statement
+   * @param _context - the execution context
+   * @param operation - the operation, its `transaction: false` keeps the store out
+   */
+  async begin(_context: Context, operation?: OperationDefinition): Promise<void> {
+    if (this.parameters.transaction !== "operation" || operation?.transaction === false) {
+      return;
+    }
+    this.enlistTransaction();
+  }
+
+  /**
+   * Commit the transaction of the operation, when a statement opened it
+   * @param _context - the execution context
+   */
+  async commit(_context: Context): Promise<void> {
+    await this.ownTransactionState()?.commit();
+  }
+
+  /**
+   * Roll back the transaction of the operation, when a statement opened it
+   * @param _context - the execution context
+   * @param error - the error failing the operation
+   */
+  async rollback(_context: Context, error: unknown): Promise<void> {
+    await this.ownTransactionState()?.rollback(error);
+  }
+
+  /**
+   * Run a function in a transaction of this store, for code outside operations (CLI, queue workers, tests)
+   *
+   * Committed when the function resolves, rolled back when it throws. Inside an operation or another transaction,
+   * the store joins it: the work is committed with it. Works whatever the `transaction` mode.
+   * @param fn - the function
+   * @returns the function result
+   */
+  async withTransaction<T>(fn: () => Promise<T>): Promise<T> {
+    this.checkTransactionSupport();
+    this.explicitParticipant ??= {
+      name: this.getName(),
+      begin: async () => this.enlistTransaction(),
+      commit: context => this.commit(context),
+      rollback: (context, error) => this.rollback(context, error)
+    };
+    return runWithTransaction(fn, [this.explicitParticipant]);
   }
 
   /**
@@ -221,9 +382,16 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
     let ready = this.tablesReady.get(table);
     if (!ready) {
       ready = repo.setupTable();
-      this.tablesReady.set(table, ready);
+      const created = ready;
+      this.tablesReady.set(table, created);
       // Allow a retry after a failed creation
-      ready.catch(() => this.tablesReady.get(table) === ready && this.tablesReady.delete(table));
+      const forget = () => this.tablesReady.get(table) === created && this.tablesReady.delete(table);
+      created.catch(forget);
+      // On a single-connection engine the DDL runs inside the open transaction: forget it if it rolls back
+      const state = this.getTransactionState();
+      if (state?.isOpen()) {
+        state.onRollback(forget);
+      }
     }
     await ready;
   }

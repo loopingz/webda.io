@@ -41,6 +41,30 @@ class AuthTest {
   }
 
   @test
+  malformedChallengeParametersDoNotTriggerRepeatedSuffixSearches() {
+    assert.deepStrictEqual(parseAuthChallenge("Bearer " + "-".repeat(100_000)), {
+      scheme: "bearer",
+      parameters: {}
+    });
+    assert.deepStrictEqual(parseAuthChallenge('Bearer malformed, realm="https://registry/token"'), {
+      scheme: "bearer",
+      parameters: { realm: "https://registry/token" }
+    });
+  }
+
+  @test
+  rejectsUnterminatedQuotedChallengeValues() {
+    assert.deepStrictEqual(parseAuthChallenge('Bearer realm="unterminated'), {
+      scheme: "bearer",
+      parameters: {}
+    });
+    assert.deepStrictEqual(parseAuthChallenge('Bearer , , realm = "x", scope = a , error=denied'), {
+      scheme: "bearer",
+      parameters: { realm: "x", scope: "a", error: "denied" }
+    });
+  }
+
+  @test
   credentials() {
     const config = {
       auths: {

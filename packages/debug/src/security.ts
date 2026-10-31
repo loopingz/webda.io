@@ -218,9 +218,11 @@ export function resolveTelemetry(flag: boolean | undefined, env: Record<string, 
 export function browserOpenCommand(url: string, os: string = platform()): { command: string; args: string[] } {
   if (os === "darwin") return { command: "open", args: [url] };
   if (os === "win32") {
-    // `start` is a cmd.exe builtin; the empty string is the window title and
-    // `&` must be escaped or cmd.exe would split the command.
-    return { command: "cmd", args: ["/c", "start", "", url.replace(/&/g, "^&")] };
+    const target = new URL(url);
+    if (target.protocol !== "http:" && target.protocol !== "https:") {
+      throw new Error("The debug browser URL must use HTTP or HTTPS");
+    }
+    return { command: "explorer.exe", args: [target.href] };
   }
   return { command: "xdg-open", args: [url] };
 }

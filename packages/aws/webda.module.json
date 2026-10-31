@@ -1059,7 +1059,34 @@
         "type": "object",
         "title": "DynamoStore"
       },
-      "Configuration": "lib/services/dynamodb.service:DynamoStoreParameters"
+      "Configuration": "lib/services/dynamodb.service:DynamoStoreParameters",
+      "capabilities": [
+        "store"
+      ],
+      "commands": {
+        "migrate": {
+          "description": "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+          "method": "migrate",
+          "args": {
+            "dryRun": {
+              "type": "boolean",
+              "default": false,
+              "description": "Only count the rows to migrate, write nothing"
+            },
+            "batch": {
+              "type": "number",
+              "default": 500,
+              "description": "Rows per page"
+            },
+            "allowUnknown": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exit with 0 even when rows keep an unknown or ambiguous type"
+            }
+          },
+          "phase": "initialized"
+        }
+      }
     },
     "Webda/LambdaCaller": {
       "Import": "lib/services/lambdacaller.service:LambdaCaller",
@@ -1582,6 +1609,76 @@
         "title": "SQSQueue"
       },
       "Configuration": "lib/services/sqsqueue.service:SQSQueueParameters"
+    },
+    "Webda/SnsSmsSender": {
+      "Import": "lib/services/snssmssender.service:SnsSmsSender",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
+            "properties": {
+              "accessKeyId": {
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "secretAccessKey": {
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "sessionToken": {
+                "type": "string",
+                "x-webda-secret": true
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "SnsSmsSender parameters",
+        "properties": {
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, ...)",
+            "type": "string"
+          },
+          "originationNumber": {
+            "description": "Origination number (E.164) registered in AWS End User Messaging",
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "senderId": {
+            "description": "Alphanumeric sender ID shown to recipients, in the countries supporting it",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SnsSmsSender"
+      },
+      "Configuration": "lib/services/snssmssender.service:SnsSmsSenderParameters"
     }
   },
   "models": {},

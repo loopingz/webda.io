@@ -166,7 +166,7 @@ export interface JWTOptions {
   /**
    * Audience for the jwt
    */
-  audience?: string;
+  audience?: string | string[];
   /**
    * Issuer of the token
    */
@@ -176,4 +176,9 @@ export interface JWTOptions {
    */
   subject?: string;
   keyid?: any;
+  /**
+   * Extra protected header parameters (`typ`, ...), set by the code: not a configuration
+   * @SchemaIgnore
+   */
+  header?: { typ?: string };
 }

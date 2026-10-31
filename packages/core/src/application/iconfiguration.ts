@@ -171,7 +171,33 @@ export type Configuration = UnpackedConfiguration & {
    * Parameters will be set
    */
   parameters: UnpackedConfiguration["parameters"];
+  /**
+   * Packaged marker written by `webda package --config-only`: the configuration has its deployment
+   * applied and its modules cached, the CLI loads it without the deployment files nor a modules scan
+   */
+  $packaged?: PackagedInformation;
 };
+
+/**
+ * Description of a packaged application, in `.webda/packaged.json` or inline as `$packaged`
+ */
+export interface PackagedInformation {
+  /**
+   * Deployment applied on the configuration, empty when none was selected
+   */
+  deployment: string;
+  /**
+   * Packaged application
+   */
+  package: {
+    name: string;
+    version: string;
+  };
+  /**
+   * Git information baked when packaging
+   */
+  git?: GitInformation;
+}
 
 /**
  * Return the gather information from the repository

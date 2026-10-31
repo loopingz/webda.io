@@ -85,6 +85,8 @@ class OptionsTest {
     assert.strictEqual(toPackageName("My_App"), "my_app");
     assert.strictEqual(toPackageName("..weird//name.."), "weird-name");
     assert.strictEqual(toPackageName("!!!"), "webda-app");
+    assert.strictEqual(toPackageName(".".repeat(100_000)), "webda-app");
+    assert.strictEqual(toPackageName(".".repeat(100_000) + "app" + "_".repeat(100_000)), "app");
   }
 
   @test

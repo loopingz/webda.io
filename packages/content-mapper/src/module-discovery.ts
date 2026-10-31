@@ -670,8 +670,10 @@ export interface ModelRelations {
    * `onDelete` is absent for the default `NONE`; `ownership` marks a `Contains`.
    */
   links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: "CONTAINS" }[];
+  /** Polymorphic references, optionally constrained to exact model identifiers. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   /** Reverse lookups, from `ModelRelated<T, U, "attr">`. */
-  queries?: { attribute: string; model: string; targetAttribute: string }[];
+  queries?: { attribute: string; model: string; targetAttribute?: string }[];
   /** Behaviour-typed attributes. */
   behaviors?: { attribute: string; behavior: string }[];
   /** Models declaring this model as their parent, filled by {@link backfillModelRelations}. */
@@ -731,6 +733,17 @@ export function buildRelations(
     );
     const where = `${cls.name?.text ?? "?"}.${attribute}`;
     const typeArguments = (typeNode as any).typeArguments ?? [];
+    if (typeName === "ModelLinksAny") {
+      const targets = polymorphicTargetTypes(ctx, property, cls);
+      const models = targets?.map(target => resolveModelId(target.getSymbol?.()?.name)).filter(Boolean) as
+        string[] | undefined;
+      relations.polymorphicLinks ??= [];
+      relations.polymorphicLinks.push({
+        attribute,
+        ...(models?.length ? { models: [...new Set(models)].sort() } : {})
+      });
+      continue;
+    }
     if (!typeArguments.length) continue;
 
     const targetName = symbolNameOfTypeNode(ctx, typeArguments[0]);
@@ -751,11 +764,11 @@ export function buildRelations(
     } else if (typeName === "ModelRelated") {
       if (!model) continue;
       relations.queries ??= [];
+      const targetAttribute = typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : undefined;
       relations.queries.push({
         attribute,
         model,
-        // ModelRelated<T, L, K>: K is the attribute of T linking back
-        targetAttribute: typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : ""
+        ...(targetAttribute !== undefined ? { targetAttribute } : {})
       });
     } else if (LINK_KINDS[typeName]) {
       relations.links ??= [];
@@ -807,4 +820,20 @@ function symbolNameOfTypeNode(ctx: AnalysisContext, typeNode: any): string | und
   const declaration = symbol.valueDeclaration ?? symbol.declarations?.[0];
   const node = declaration?.resolve(ctx.project);
   return (node as any)?.name?.text ?? name;
+}
+
+/**
+ * Concrete second generic argument of a polymorphic relation in its owning class.
+ * @param ctx - analysis context
+ * @param property - relation property
+ * @param cls - owning class, including inherited substitutions
+ * @returns target types, or undefined for the unconstrained/default Storable target
+ */
+export function polymorphicTargetTypes(ctx: AnalysisContext, property: any, cls: any): any[] | undefined {
+  const type = ctx.checker.getTypeOfSymbolAtLocation(property, cls);
+  const reference = (type.isUnionType() ? type.getTypes() : [type]).find((member: any) => member.isTypeReference());
+  if (!reference) return undefined;
+  const target = ctx.checker.getTypeArguments(reference as any)[1];
+  if (!target || target.isTypeParameter() || target.getSymbol?.()?.name === "Storable") return undefined;
+  return target.isUnionType() ? [...target.getTypes()] : [target];
 }

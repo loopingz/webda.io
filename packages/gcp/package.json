@@ -1,6 +1,6 @@
 {
   "name": "@webda/gcp",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-beta.12",
   "description": "Webda GCP Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -50,6 +50,7 @@
     "access": "public"
   },
   "devDependencies": {
+    "@types/mime-types": "^3.0.1",
     "@types/node": "25.5.0",
     "@vitest/coverage-v8": "^4.1.2",
     "@webda/bench": "workspace:*",

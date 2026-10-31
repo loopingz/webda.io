@@ -3,15 +3,47 @@ import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import { RESTOperationsTransport, RESTOperationsTransportParameters } from "./restoperationstransport.service.js";
 import { useRouter } from "./hooks.js";
-import { listOperations } from "../core/operations.js";
+import { callOperation, listOperations, Operation } from "../core/operations.js";
 import * as WebdaError from "../errors/errors.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { Router, RouterParameters } from "./router.service.js";
 import { runWithContext } from "../contexts/execution.js";
 import { randomUUID } from "node:crypto";
-import { useModel } from "../application/hooks.js";
+import { useApplication, useModel } from "../application/hooks.js";
 import { MemoryRepository, registerRepository } from "@webda/models";
+import { Service } from "../services/service.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { registerSchema } from "../schemas/hooks.js";
+import { DomainService } from "../services/domainservice.service.js";
+import { useDynamicService } from "../core/hooks.js";
+import * as sinon from "sinon";
+import { SimpleOperationContext } from "../contexts/simplecontext.js";
+import { inputSchemaToOpenAPI } from "./binding.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
+
+class RestBindingService extends Service {
+  @Operation({ rest: false, input: "void" })
+  internal() {}
+
+  @Operation({
+    input: "RestBinding.Mixed",
+    rest: { method: "post", path: "binding/{id}{?count?,active?,tags?,filters*}" }
+  })
+  mixed(id: string, count: number, active: boolean, tags: number[], filters: any, title: string) {
+    return { id, count, active, tags, filters, title };
+  }
+
+  @Operation({ input: "RestBinding.List", rest: { method: "get", path: "binding/list/{id}" } })
+  list(id: string, limit: number = 20, active?: boolean, mode?: string) {
+    return { id, limit, active, mode };
+  }
+
+  @Operation({ input: "RestBinding.Whole", rest: { method: "post", path: "binding/body/{id}", body: "payload" } })
+  whole(id: string, payload: { count: number }) {
+    return { id, payload };
+  }
+}
 
 // Minimal Swagger HTML for testing
 const SWAGGER_HTML_TEST = `<html><div id="swagger-ui"></div><script>SwaggerUIBundle({})</script></html>`;
@@ -39,6 +71,346 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     router.resolve();
     await router.init();
     return core;
+  }
+
+  private async bindingTransport() {
+    const schemas: Record<string, any> = {
+      "RestBinding.Mixed": {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: { type: "string" },
+          count: { type: "number" },
+          active: { type: "boolean" },
+          tags: { type: "array", items: { type: "integer" } },
+          filters: { $ref: "#/definitions/Binding%2FFilters%3CNumber%3E" },
+          title: { type: "string" }
+        },
+        required: ["id", "title"],
+        definitions: {
+          "Binding/Filters<Number>": {
+            type: "object",
+            properties: { limit: { type: "integer" }, enabled: { type: "boolean" } },
+            additionalProperties: { type: "number" }
+          }
+        }
+      },
+      "RestBinding.List": {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          limit: { anyOf: [{ type: "null" }, { type: "number" }] },
+          active: { oneOf: [{ type: "null" }, { type: "boolean" }] },
+          mode: { anyOf: [{ enum: ["yes", "no"] }] }
+        },
+        required: ["id"]
+      },
+      "RestBinding.Whole": {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          payload: { type: "object", properties: { count: { type: "number" } }, required: ["count"] }
+        },
+        required: ["id", "payload"]
+      }
+    };
+    for (const [name, schema] of Object.entries(schemas)) {
+      useApplication().getSchemas()[name] = schema;
+      registerSchema(name, schema, true);
+    }
+    const service = new RestBindingService("RestBindingService", new ServiceParameters().load({}));
+    this.registerService(service);
+    service.initOperations();
+    const transport = new RESTOperationsTransport(
+      "BindingTransport",
+      new RESTOperationsTransportParameters().load({ url: "/v2/" })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    return transport;
+  }
+
+  @test
+  async nestedActionInjectsItsParentBeforeValidatingTypedInput() {
+    const transport = await this.bindingTransport();
+    (transport as any).exposeActionRoute(
+      "/nested/{pid.0}",
+      "RestBindingService",
+      "",
+      "mixed",
+      { global: true },
+      1,
+      "title"
+    );
+    assert.deepStrictEqual(await this.routerHttp({ method: "POST", url: "/nested/parent/binding/key", body: {} }), {
+      id: "key",
+      title: "parent",
+      filters: {}
+    });
+  }
+
+  @test
+  async legacyRouteMetadataKeepsFallbackMethodsPathsAndResponseOverrides() {
+    const transport: any = await this.bindingTransport();
+    const storage = useInstanceStorage();
+    const app: any = useApplication();
+    const operations = storage.operations!;
+    const operation = (id: string, extra: any = {}) => ({ id, input: "void", output: "void", ...extra });
+    operations["Legacy.Global"] = operation("Legacy.Global");
+    operations["Legacy.Instance"] = operation("Legacy.Instance");
+    operations["Legacy.Explicit"] = operation("Legacy.Explicit", { rest: { path: "custom", method: "get" } });
+    transport.exposeActionRoute("/legacy", "Legacy", "", "global", { global: true }, 0);
+    transport.exposeActionRoute("/legacy", "Legacy", "", "instance", {}, 0);
+    transport.exposeActionRoute("/legacy", "Legacy", "", "explicit", { rest: { method: "GET" } }, 0);
+    const behavior = "Test/LegacyRoutes";
+    const previous = app.behaviors[behavior];
+    app.behaviors[behavior] = { metadata: { Actions: { multi: { methods: ["POST", "PATCH"] }, fallback: {} } } };
+    operations["Legacy.Payload.Multi"] = operation("Legacy.Payload.Multi");
+    operations["Legacy.Payload.Fallback"] = operation("Legacy.Payload.Fallback");
+    try {
+      transport.exposeBehaviorRoutes("/legacy", "Legacy", "", "", { behavior, attribute: "payload" });
+      const doc: any = useRouter().exportOpenAPI();
+      assert.strictEqual(doc.paths["/legacy/global"].put.operationId, "Legacy.Global");
+      assert.strictEqual(doc.paths["/legacy/{uuid}/instance"].put.operationId, "Legacy.Instance");
+      assert.strictEqual(doc.paths["/legacy/custom"].get.operationId, "Legacy.Explicit");
+      assert.strictEqual(doc.paths["/legacy/{uuid}/payload.multi"].post.operationId, "Legacy.Payload.Multi");
+      assert.strictEqual(doc.paths["/legacy/{uuid}/payload.multi"].patch.operationId, undefined);
+      assert.ok(doc.paths["/legacy/{uuid}/payload.fallback"].put);
+      const schemaName = "Legacy.OptionalBody";
+      app.getSchemas()[schemaName] = { type: "object", properties: { optional: { type: "string" } } };
+      registerSchema(schemaName, app.getSchemas()[schemaName], true);
+      const optional = transport.operationOpenAPI(
+        operation("Legacy.Optional", { input: schemaName }),
+        "/optional",
+        "POST"
+      );
+      assert.strictEqual(optional.requestBody.required, false);
+      const response = { description: "Override" };
+      const legacy = transport.operationOpenAPI(
+        operation("Legacy.Query", {
+          rest: { method: "get", path: "query{?unknown?}", responses: { "418": response } }
+        }),
+        "/query{?unknown?}",
+        "GET"
+      );
+      assert.deepStrictEqual(legacy.parameters[0].schema, { type: "string" });
+      assert.deepStrictEqual(legacy.responses["418"], response);
+      assert.ok(transport.operationOpenAPI(operation("Legacy.Disabled", { rest: false }), "/disabled", "POST"));
+      // Export also works before any operations have been registered.
+      storage.operations = undefined;
+      assert.ok(useRouter().exportOpenAPI().components);
+    } finally {
+      storage.operations = operations;
+      if (previous === undefined) delete app.behaviors[behavior];
+      else app.behaviors[behavior] = previous;
+    }
+  }
+
+  @test
+  async restBindingsConvertOnlyUrlValuesAndKeepPositionalOrder() {
+    await this.bindingTransport();
+    assert.deepStrictEqual(
+      await this.routerHttp({
+        method: "POST",
+        url: "/v2/binding/key?count=2&active=1&tags=3&tags=4&limit=7&enabled=false",
+        body: { title: "hello" }
+      }),
+      {
+        id: "key",
+        count: 2,
+        active: true,
+        tags: [3, 4],
+        filters: { limit: 7, enabled: false },
+        title: "hello"
+      }
+    );
+    assert.deepStrictEqual(
+      (await this.routerHttp<any>({ method: "POST", url: "/v2/binding/key?tags=3,4", body: { title: "hello" } })).tags,
+      [3, 4]
+    );
+    for (const query of [
+      "count=NaN",
+      "count=Infinity",
+      "count=abc",
+      "active=yes",
+      "tags=1,nope",
+      "limit=abc",
+      "limit=1&limit=2"
+    ]) {
+      await assert.rejects(
+        () => this.routerHttp({ method: "POST", url: `/v2/binding/key?${query}`, body: { title: "hello" } }),
+        WebdaError.BadRequest
+      );
+    }
+    await assert.rejects(
+      () => this.routerHttp({ method: "POST", url: "/v2/binding/key", body: { title: "hello", count: "2" } }),
+      /InvalidInput.*count/
+    );
+    assert.deepStrictEqual(
+      await this.routerHttp<any>({ method: "POST", url: "/v2/binding/key?tags=&custom=2", body: { title: "hello" } }),
+      { id: "key", tags: [], filters: { custom: 2 }, title: "hello" }
+    );
+    await assert.rejects(
+      () => this.routerHttp({ method: "POST", url: "/v2/binding/key", body: { title: "hello", id: "other" } }),
+      /conflicts with path parameter/
+    );
+  }
+
+  @test
+  async getBindingAddsQueryParametersAndHonorsDefaults() {
+    await this.bindingTransport();
+    assert.deepStrictEqual(await this.routerHttp({ method: "GET", url: "/v2/binding/list/key?limit=5&active=false" }), {
+      id: "key",
+      limit: 5,
+      active: false
+    });
+    assert.deepStrictEqual(await this.routerHttp({ method: "GET", url: "/v2/binding/list/key" }), {
+      id: "key",
+      limit: 20
+    });
+    assert.strictEqual(
+      (listOperations()["RestBindingService.List"] as any).rest.path,
+      "binding/list/{id}{?limit?,active?,mode?}"
+    );
+    assert.deepStrictEqual(await this.routerHttp({ method: "GET", url: "/v2/binding/list/key?mode=yes" }), {
+      id: "key",
+      limit: 20,
+      mode: "yes"
+    });
+  }
+
+  @test
+  async wholeBodyBindingPreservesObjectsAndStrictValidation() {
+    await this.bindingTransport();
+    assert.deepStrictEqual(await this.routerHttp({ method: "POST", url: "/v2/binding/body/key", body: { count: 2 } }), {
+      id: "key",
+      payload: { count: 2 }
+    });
+    await assert.rejects(
+      () => this.routerHttp({ method: "POST", url: "/v2/binding/body/key", body: { count: "2" } }),
+      /InvalidInput.*count/
+    );
+    const rpc = new SimpleOperationContext().setInput(
+      Buffer.from(JSON.stringify({ id: "key", payload: { count: 2 } }))
+    );
+    await rpc.init();
+    await callOperation(rpc, "RestBindingService.Whole");
+    assert.deepStrictEqual(JSON.parse(rpc.getOutput()), { id: "key", payload: { count: 2 } });
+    const empty = await this.newWebContext(new HttpContext("test.webda.io", "POST", "/", "http", 80));
+    empty.setParameters({ id: "key" });
+    sinon.stub(empty, "getInput").resolves(undefined);
+    await assert.rejects(() => callOperation(empty, "RestBindingService.Whole"), /InvalidInput.*payload/);
+  }
+
+  @test
+  async openApiDocumentsTheSameUrlAndBodyBinding() {
+    assert.deepStrictEqual(
+      inputSchemaToOpenAPI({
+        $schema: "https://json-schema.org/draft-07/schema",
+        definitions: { Value: { type: "string" } },
+        properties: { definitions: { type: "string" } },
+        default: { definitions: { value: "keep" } }
+      }),
+      { properties: { definitions: { type: "string" } }, default: { definitions: { value: "keep" } } }
+    );
+    await this.bindingTransport();
+    const doc: any = useRouter().exportOpenAPI();
+    const mixed = doc.paths["/v2/binding/{id}"].post;
+    assert.deepStrictEqual(
+      mixed.parameters.find(p => p.name === "count"),
+      { name: "count", in: "query", required: false, schema: { type: "number" } }
+    );
+    assert.strictEqual(mixed.parameters.find(p => p.name === "tags").explode, true);
+    assert.deepStrictEqual(mixed.parameters.find(p => p.name === "filters").schema, {
+      $ref: "#/components/schemas/Binding~1Filters%3CNumber%3E"
+    });
+    assert.strictEqual(doc.components.schemas["Binding/Filters<Number>"].properties.limit.type, "integer");
+    assert.deepStrictEqual(mixed.requestBody.content["application/json"].schema, {
+      type: "object",
+      properties: { title: { type: "string" } },
+      required: ["title"]
+    });
+    const get = doc.paths["/v2/binding/list/{id}"].get;
+    assert.ok(!get.requestBody);
+    assert.deepStrictEqual(
+      get.parameters.map(p => [p.name, p.in]),
+      [
+        ["id", "path"],
+        ["limit", "query"],
+        ["active", "query"],
+        ["mode", "query"]
+      ]
+    );
+    assert.deepStrictEqual(doc.paths["/v2/binding/body/{id}"].post.requestBody.content["application/json"].schema, {
+      type: "object",
+      properties: { count: { type: "number" } },
+      required: ["count"]
+    });
+  }
+
+  @test
+  async actionRestHintSupportsCompositePrimaryKeysAndQueryArguments() {
+    const Classroom: any = useModel("Classroom");
+    const metadata = Classroom.Metadata;
+    const permission = sinon.stub(Classroom, "canAct").returns(true);
+    Classroom.Metadata = {
+      ...metadata,
+      PrimaryKey: ["tenant", "slug"],
+      Actions: { ...metadata.Actions, rename: { methods: ["GET", "POST"], rest: { path: "rename{?force?}" } } }
+    };
+    const calls: any[] = [];
+    const ref = sinon.stub(Classroom, "ref").callsFake((key: any) => ({
+      get: async () => ({
+        isDeleted: () => false,
+        canAct: async () => true,
+        rename: (...args: any[]) => {
+          calls.push([key, ...args]);
+          return { ok: true };
+        }
+      })
+    }));
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      const transport = new RESTOperationsTransport(
+        "CompositeActionTransport",
+        new RESTOperationsTransportParameters().load({ url: "/v2/" })
+      );
+      this.registerService(transport);
+      transport.resolve();
+      await transport.init();
+      assert.deepStrictEqual(
+        await this.routerHttp({
+          method: "POST",
+          url: "/v2/classrooms/org/room/rename?force=true",
+          body: { name: "new" }
+        }),
+        { ok: true }
+      );
+      assert.deepStrictEqual(calls, [[{ tenant: "org", slug: "room" }, "new", true]]);
+      assert.deepStrictEqual(
+        await this.routerHttp({ method: "GET", url: "/v2/classrooms/org/room/rename?name=other&force=false" }),
+        { ok: true }
+      );
+      assert.deepStrictEqual(calls[1], [{ tenant: "org", slug: "room" }, "other", false]);
+      await assert.rejects(
+        () => this.routerHttp({ method: "POST", url: "/v2/classrooms/org/room/rename", body: {} }),
+        /InvalidInput.*name/
+      );
+      const doc: any = useRouter().exportOpenAPI();
+      const op = doc.paths["/v2/classrooms/{tenant}/{slug}/rename"].post;
+      assert.ok(!doc.paths["/v2/classrooms/{tenant}/{slug}/rename"].get.requestBody);
+      assert.deepStrictEqual(
+        op.parameters.map(p => p.name),
+        ["tenant", "slug", "force"]
+      );
+      assert.deepStrictEqual(Object.keys(op.requestBody.content["application/json"].schema.properties), ["name"]);
+    } finally {
+      ref.restore();
+      permission.restore();
+      Classroom.Metadata = metadata;
+      useDynamicService<DomainService>("DomainService").initOperations();
+    }
   }
 
   /**

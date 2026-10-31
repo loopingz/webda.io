@@ -2332,9 +2332,9 @@ abstract class Store<
       let updateObject: any = new this._model();
       updateObject.setContext(ctx);
       updateObject.load(body);
-      // Copy back the _ attributes
+      // Copy back the _ attributes and the attributes this caller is not allowed to write
       Object.keys(object)
-        .filter(i => i.startsWith("_"))
+        .filter(i => i.startsWith("_") || updateObject.attributePermission(i, object[i], "WRITE", ctx) === undefined)
         .forEach(i => {
           updateObject[i] = object[i];
         });

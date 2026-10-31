@@ -1302,11 +1302,19 @@ class CoreModel {
    * This method allows you to do permission based attribute
    * But also a mask destructive attribute
    *
+   * On "WRITE", `load()` calls it with the context attached to the object
+   * (`setContext()`), which the REST create and update paths set to the
+   * request context before loading the body: an override can therefore
+   * restrict a field per caller (for example only admins may write `roles`).
+   * Internal callers that load without a context still receive `undefined`,
+   * so an override should keep delegating to `super` for the default
+   * `_`-prefixed attributes filtering.
+   *
    * @param key
    * @param value
    * @param mode
-   * @param context
-   * @returns updated value
+   * @param context request context when known, undefined otherwise
+   * @returns updated value, undefined to skip the attribute
    */
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
     if (mode === "WRITE") {
@@ -1320,14 +1328,14 @@ class CoreModel {
    * Load an object from RAW
    *
    * @param raw data
-   * @param secure if false will ignore any _ variable
+   * @param secure if false will filter attributes through attributePermission("WRITE") with the object context
    */
   load(raw: RawModel<this>, secure: boolean = false, relations: boolean = true): this {
     // Object assign with filter
     for (let prop in raw) {
       let val = raw[prop];
       if (!secure) {
-        val = this.attributePermission(prop, raw[prop], "WRITE");
+        val = this.attributePermission(prop, raw[prop], "WRITE", this.__ctx);
         if (val === undefined) {
           continue;
         }

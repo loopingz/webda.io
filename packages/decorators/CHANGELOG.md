@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/decorators-v4.0.0-beta.5...decorators-v4.0.0-beta.6) (2026-10-31)
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/decorators-v4.0.0-beta.3...decorators-v4.0.0-beta.5) (2026-10-08)
 
 

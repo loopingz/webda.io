@@ -134,6 +134,29 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.12...graphql-v4.0.0-beta.13) (2026-10-31)
+
+
+### Features
+
+* **core:** hand the caller context to getProtectedAttributes (per-caller field write rules) ([#1020](https://github.com/loopingz/webda.io/issues/1020)) ([8118f69](https://github.com/loopingz/webda.io/commit/8118f698a2730f207f8e6623a35480d00a37ab47))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **models:** add permission-aware polymorphic links ([#997](https://github.com/loopingz/webda.io/issues/997)) ([004562e](https://github.com/loopingz/webda.io/commit/004562e14b3bf47d61b29dcee5a430ae8082f4b5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/runtime bumped to 4.0.0-beta.13
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.11...graphql-v4.0.0-beta.12) (2026-10-22)
 
 

@@ -1,5 +1,38 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.12...compiler-v4.0.0-beta.13) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996))
+
+### Features
+
+* **compiler,models:** record delete policies on relations ([#982](https://github.com/loopingz/webda.io/issues/982)) ([7cd83af](https://github.com/loopingz/webda.io/commit/7cd83afd16fa5af6b6c5816bbb2f05257362bd89))
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996)) ([d9ddb34](https://github.com/loopingz/webda.io/commit/d9ddb34f2ec01bece5c4ca64631e14fe6d3d6264))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **core:** validate symmetry of model relations and store routing ([#458](https://github.com/loopingz/webda.io/issues/458)) ([#905](https://github.com/loopingz/webda.io/issues/905)) ([3754359](https://github.com/loopingz/webda.io/commit/37543596ca25bbea2a2c1f83d0f438f047b884ec))
+* **models:** add permission-aware polymorphic links ([#997](https://github.com/loopingz/webda.io/issues/997)) ([004562e](https://github.com/loopingz/webda.io/commit/004562e14b3bf47d61b29dcee5a430ae8082f4b5))
+* **sealed:** offline decrypt-on-read, sealed-field query warning, escrow kid precondition, set size cap ([#1022](https://github.com/loopingz/webda.io/issues/1022)) ([5be9b53](https://github.com/loopingz/webda.io/commit/5be9b53aafacda210eda0163158273444d5c471a))
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+* **sql:** relational store polish: review minors, @Index/@Unique, foreignKeysToJsonb, importFromJsonb ([#1023](https://github.com/loopingz/webda.io/issues/1023)) ([277555f](https://github.com/loopingz/webda.io/commit/277555fb450ef1e926cd4ace68be8cab72d116f3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.11
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.11...compiler-v4.0.0-beta.12) (2026-10-22)
 
 

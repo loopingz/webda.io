@@ -24,6 +24,13 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.6...workout-v4.0.0-beta.7) (2026-10-31)
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.5...workout-v4.0.0-beta.6) (2026-10-22)
 
 

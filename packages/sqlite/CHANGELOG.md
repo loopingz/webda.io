@@ -1,5 +1,37 @@
 # Changelog
 
+## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/sqlite-v4.0.0-beta.4...sqlite-v4.0.0-beta.5) (2026-10-31)
+
+
+### Features
+
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **postgres,sqlite:** operation-scoped transactions in the SQL stores ([#981](https://github.com/loopingz/webda.io/issues/981)) ([ebe633d](https://github.com/loopingz/webda.io/commit/ebe633d054bceebe4302161ee928dc61374f7ab1))
+* **sqlite:** SQLiteRelationalStore on the shared relational layer ([#1012](https://github.com/loopingz/webda.io/issues/1012)) ([9de054d](https://github.com/loopingz/webda.io/commit/9de054d55d07c30ff51c70eff8ed2464bc82bffb))
+* **sql:** junction-attribute filters, composite references, ModelsMapped filling and the sealed @Index warning ([#1027](https://github.com/loopingz/webda.io/issues/1027)) ([b2cc2c8](https://github.com/loopingz/webda.io/commit/b2cc2c8876b40822e64eb0093aaeba0246197849)), closes [#1026](https://github.com/loopingz/webda.io/issues/1026)
+* **sql:** multi-version schema registry for the relational stores ([#1016](https://github.com/loopingz/webda.io/issues/1016)) ([#1024](https://github.com/loopingz/webda.io/issues/1024)) ([1a895d0](https://github.com/loopingz/webda.io/commit/1a895d0dcbfe6dce4c33e1e665e01639f40ada92))
+
+
+### Bug Fixes
+
+* **sql:** relational store polish: review minors, @Index/@Unique, foreignKeysToJsonb, importFromJsonb ([#1023](https://github.com/loopingz/webda.io/issues/1023)) ([277555f](https://github.com/loopingz/webda.io/commit/277555fb450ef1e926cd4ace68be8cab72d116f3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/sql bumped to 4.0.0-beta.5
+    * @webda/sql-schema bumped to 4.0.0-beta.2
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.13
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/sqlite-v4.0.0-beta.3...sqlite-v4.0.0-beta.4) (2026-10-22)
 
 

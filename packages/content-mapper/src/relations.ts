@@ -48,7 +48,13 @@ export const LINK_KINDS: Record<string, string> = {
 };
 
 /** Relation types, the end of an alias chain. */
-const RELATION_TYPES = new Set(["ModelParent", "ModelRelated", "ModelsMapped", ...Object.keys(LINK_KINDS)]);
+const RELATION_TYPES = new Set([
+  "ModelParent",
+  "ModelRelated",
+  "ModelsMapped",
+  "ModelLinksAny",
+  ...Object.keys(LINK_KINDS)
+]);
 
 /**
  * @param typeName - a written type name
@@ -76,10 +82,8 @@ export interface RelationType {
  * @param node - a type name
  * @returns its last identifier: `ModelLink` for `models.ModelLink`
  */
-function nameOf(node: any): string | undefined {
-  if (is.isIdentifier(node)) return node.text;
-  if (is.isQualifiedName(node)) return node.right.text;
-  return undefined;
+function nameOf(node: any): string {
+  return is.isQualifiedName(node) ? node.right.text : node.text;
 }
 
 /**
@@ -107,11 +111,12 @@ function aliasTargetOf(ctx: AnalysisContext, typeName: Node): any {
  * Resolve the relation type of a property type, following the alias chain
  * @param ctx - analysis context
  * @param typeNode - the property type reference
- * @param written - the written type name
- * @returns the relation type and whether the chain went through `Contains`
+ * @returns the relation type and whether the chain went through `Contains`; the written name when the chain
+ * leads to no relation type
  */
-export function resolveRelationType(ctx: AnalysisContext, typeNode: any, written: string): RelationType {
-  let name: string | undefined = nameOf(typeNode.typeName) ?? written;
+export function resolveRelationType(ctx: AnalysisContext, typeNode: any): RelationType {
+  const written = nameOf(typeNode.typeName);
+  let name: string | undefined = written;
   let node = typeNode;
   let contains = false;
   // Bounded: an alias cycle is a compile error anyway
@@ -132,11 +137,7 @@ export function resolveRelationType(ctx: AnalysisContext, typeNode: any, written
  * @returns the tag, undefined when the property does not have it
  */
 function findTag(member: Node, tagName: string): any {
-  try {
-    return getJSDocTags(member).find((tag: any) => tag.tagName.text === tagName);
-  } catch {
-    return undefined;
-  }
+  return getJSDocTags(member).find((tag: any) => tag.tagName.text === tagName);
 }
 
 /**

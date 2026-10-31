@@ -1322,7 +1322,7 @@ function processModels(
 
       const attribute = property.name;
       const typeArguments: any[] = (typeNode as any).typeArguments ?? [];
-      const { type: typeName, contains } = resolveRelationType(ctx, typeNode, text(ctx, (typeNode as any).typeName));
+      const { type: typeName, contains } = resolveRelationType(ctx, typeNode);
       const policyOf = (kind: "PARENT" | "CONTAINS" | "LINK"): DeletePolicy | undefined => {
         const { onDelete, error } = relationPolicyOf(member, kind, `${name}.${attribute}`);
         if (error) errors.push(error);

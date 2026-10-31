@@ -726,12 +726,8 @@ export function buildRelations(
     const typeNode = (member as any).type;
     if (!typeNode || !is.isTypeReferenceNode(typeNode)) continue;
 
-    const { type: typeName, contains } = resolveRelationType(
-      ctx,
-      typeNode,
-      ctx.textOf(owner, (typeNode as any).typeName)
-    );
-    const where = `${cls.name?.text ?? "?"}.${attribute}`;
+    const { type: typeName, contains } = resolveRelationType(ctx, typeNode);
+    const where = `${cls.name.text}.${attribute}`;
     const typeArguments = (typeNode as any).typeArguments ?? [];
     if (typeName === "ModelLinksAny") {
       const targets = polymorphicTargetTypes(ctx, property, cls);

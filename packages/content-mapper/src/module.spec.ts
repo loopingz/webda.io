@@ -507,7 +507,8 @@ describe("module relations", () => {
       "Rel/Broken.target: @OnDelete SET_NULL is not allowed on a ModelParent (BelongTo): a parent is mandatory, " +
         "use CASCADE, RESTRICT or NONE",
       "Rel/Broken.items: @OnDelete SET_NULL is not allowed on a Contains: the owner holds the keys, use CASCADE, " +
-        "RESTRICT or NONE"
+        "RESTRICT or NONE",
+      "Rel/Broken.copies: @OnDelete RESTRICT is not allowed on a ModelsMapped, use CASCADE or NONE"
     ]);
   });
 
@@ -522,7 +523,9 @@ describe("module relations", () => {
         { attribute: "team", model: "Rel/Company", type: "LINK", onDelete: "CASCADE" },
         // No tag on a link: NONE, omitted
         { attribute: "employer", model: "Rel/Company", type: "LINK" },
-        { attribute: "watched", model: "Rel/Project", type: "LINKS_ARRAY" }
+        { attribute: "watched", model: "Rel/Project", type: "LINKS_ARRAY" },
+        // A qualified type name (`models.ManyToOne`), and an empty @OnDelete keeps the default
+        { attribute: "qualified", model: "Rel/Company", type: "LINK" }
       ],
       dependents: [{ model: "Rel/Member", attribute: "mentor", type: "LINK", onDelete: "SET_NULL" }]
     });

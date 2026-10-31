@@ -157,7 +157,7 @@ class SealedTest {
       /differs/
     );
     // Escrow: unknown kind, missing kdfParams, wrapped key of the wrong length
-    const escrow = await createEscrowBlob("password", "pw", key, "user", "pbkdf2-sha256");
+    const escrow = await createEscrowBlob("password", "pw", key, "user", "k1", "pbkdf2-sha256");
     await rejects(openEscrowBlob({ ...escrow, kind: "device" } as any, "pw", "user"), SealedFormatError);
     await rejects(openEscrowBlob({ ...escrow, kdfParams: undefined } as any, "pw", "user"), SealedFormatError);
     const kek = await deriveKek("pw", crypto.getRandomValues(new Uint8Array(16)), "pbkdf2-sha256", {
@@ -222,9 +222,10 @@ class SealedTest {
     ] as const;
     for (const c of cases) {
       const secret = c.kind === "recovery" ? generateRecoveryCode() : "correct horse battery staple";
-      const blob = await createEscrowBlob(c.kind, secret, key, "user-1", c.kdf);
+      const blob = await createEscrowBlob(c.kind, secret, key, "user-1", "k1", c.kdf);
       assert.strictEqual(blob.v, 1);
       assert.strictEqual(blob.kind, c.kind);
+      assert.strictEqual(blob.kid, "k1");
       assert.strictEqual(blob.kdf, c.kdf);
       assert.strictEqual(b64u.decode(blob.salt).length, 16);
       if (c.kdf === "argon2id") {
@@ -239,9 +240,9 @@ class SealedTest {
     }
     // Recovery code is accepted in any normalized spelling
     const code = generateRecoveryCode();
-    const blob = await createEscrowBlob("recovery", code, key, "u", "pbkdf2-sha256");
+    const blob = await createEscrowBlob("recovery", code, key, "u", "k1", "pbkdf2-sha256");
     await openEscrowBlob(blob, code.toLowerCase().replace(/-/g, " "), "u");
-    await rejects(createEscrowBlob("recovery", "short", key, "u", "pbkdf2-sha256"), SealedFormatError);
+    await rejects(createEscrowBlob("recovery", "short", key, "u", "k1", "pbkdf2-sha256"), SealedFormatError);
     // kdf selects the algorithm: same secret and salt give different keys across kdfs
     await rejects(openEscrowBlob({ ...blob, kdf: "argon2id", kdfParams: { m: 1024, t: 1, p: 1 } }, code, "u"));
     await rejects(openEscrowBlob({ ...blob, kdf: "scrypt" } as any, code, "u"), SealedFormatError);

@@ -75,3 +75,13 @@ describe("runTwoPass", () => {
     }
   });
 });
+
+describe("runTwoPass generator diagnostics", () => {
+  it("carries what the generators reported against the authored sources", () => {
+    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
+    const sealed = result.generated.filter(d => d.code === 9004);
+    expect(sealed.length).toBeGreaterThan(0);
+    expect(sealed.every(d => d.fileName.endsWith("sealed.model.ts") && d.severity === "warning")).toBe(true);
+    expect(result.generated.some(d => d.code === 9001 && d.severity === undefined)).toBe(true);
+  });
+});

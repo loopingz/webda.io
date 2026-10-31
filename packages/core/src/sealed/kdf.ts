@@ -13,10 +13,17 @@ export type Argon2Params = { m: number; t: number; p: number };
 /** PBKDF2-SHA-256 parameters */
 export type Pbkdf2Params = { iterations: number };
 
-/** Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve */
+/**
+ * Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve
+ *
+ * `kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the
+ * server refuses an escrow made for another key than its active one (a device that missed a rotation).
+ */
 export type EscrowBlob = {
   v: 1;
   kind: "password" | "recovery";
+  /** Active key id when the escrow was created */
+  kid: string;
   kdf: KdfName;
   kdfParams: object;
   salt: string;
@@ -120,6 +127,7 @@ const secretOf = (kind: EscrowBlob["kind"], secret: string) =>
  * @param secret - password or recovery code
  * @param keyringKey - key to escrow
  * @param userId - owner
+ * @param kid - active key id, the one the keyring key encrypts the keyring for
  * @param kdf - algorithm, Argon2id by default
  * @returns the blob
  */
@@ -128,6 +136,7 @@ export async function createEscrowBlob(
   secret: string,
   keyringKey: CryptoKey,
   userId: string,
+  kid: string,
   kdf: KdfName = "argon2id"
 ): Promise<EscrowBlob> {
   const salt = globalThis.crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
@@ -136,6 +145,7 @@ export async function createEscrowBlob(
   return {
     v: 1,
     kind,
+    kid,
     kdf,
     kdfParams,
     salt: b64u.encode(salt),

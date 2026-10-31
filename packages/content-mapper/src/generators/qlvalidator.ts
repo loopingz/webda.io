@@ -7,7 +7,10 @@
  * - **Validation.** Arguments typed `WebdaQLString<T>` are parsed at compile
  *   time and reported through `FileEdits.diagnostics`, which the content mapper
  *   protocol carries in `TransformResult.diagnostics`. Positions refer to the
- *   authored file, so errors land on the query the developer wrote.
+ *   authored file, so errors land on the query the developer wrote. A query on a
+ *   sealed field (`SealedField`, an envelope the server cannot read) is a
+ *   warning, in these arguments and in the static `getPermissionQuery` of the
+ *   models; the build logs it without failing.
  * - **Rewrite.** A template literal is turned into an `escape(parts, values)`
  *   call so interpolated values cannot break out of the query.
  *
@@ -15,6 +18,7 @@
  * here it is text through the shared plan model.
  */
 import type { SourceFile } from "typescript/unstable/ast";
+import { SyntaxKind } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import type { AnalysisContext, Edit, FileEdits, GeneratedDiagnostic, Generator } from "../plan.ts";
 
@@ -27,6 +31,11 @@ const WQL_UNKNOWN_ATTRIBUTE = 9001;
 const WQL_GRAMMAR_ERROR = 9002;
 /** A DELETE / UPDATE / SELECT field list where a filter query is expected. */
 const WQL_STATEMENT_NOT_ALLOWED = 9003;
+/** A sealed field (`@WebdaBehavior Webda/Sealed`) in a query: the server cannot filter, compare or index it. */
+const WQL_SEALED_ATTRIBUTE = 9004;
+
+/** Identifier of the `SealedField` behavior of `@webda/core`. */
+const SEALED_BEHAVIOR = "Webda/Sealed";
 
 /**
  * A statement head: DELETE, UPDATE or SELECT (keywords are uppercase only, so `delete = 1` is a filter)
@@ -113,6 +122,28 @@ function queryableAttributes(ctx: AnalysisContext, type: any): string[] {
   return (type?.getProperties?.() ?? [])
     .map((property: any) => property.name as string)
     .filter((name: string) => typeof name === "string" && !name.startsWith("__"));
+}
+
+/**
+ * Attribute names of a type whose declared type is a `@WebdaBehavior Webda/Sealed` class (`SealedField<T>`): their
+ * stored value is an opaque envelope, a query on them never matches.
+ * @param ctx - analysis context
+ * @param type - the target type
+ * @returns property names
+ */
+function sealedAttributes(ctx: AnalysisContext, type: any): string[] {
+  return type
+    .getProperties()
+    .filter((property: any) => {
+      // A primitive type has no symbol
+      const symbol = ctx.checker.getTypeOfSymbol(property).getSymbol();
+      return symbol
+        ?.getJsDocTags(ctx.checker)
+        .some(
+          (tag: any) => tag.name === "WebdaBehavior" && String(tag.text).trim().split(/\s+/)[0] === SEALED_BEHAVIOR
+        );
+    })
+    .map((property: any) => property.name as string);
 }
 
 /**
@@ -244,10 +275,81 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
          */
         function visit(node: any): void {
           if (is.isCallExpression(node)) inspectCall(node);
+          if (is.isClassDeclaration(node)) inspectPermissionQueries(node);
           node.forEachChild?.((child: any) => {
             visit(child);
             return undefined;
           });
+        }
+
+        /**
+         * Check the sealed fields of a model against the queries of its static `getPermissionQuery`: every string
+         * literal written under a `query:` property of its body (the first argument of a `bind(...)` included) is
+         * read as a filter on the model; a query built elsewhere is not followed. A permission query is not a
+         * branded parameter, so only the sealed warning applies.
+         * @param cls - the class declaration
+         */
+        function inspectPermissionQueries(cls: any): void {
+          const method = cls.members.find(
+            (member: any) =>
+              is.isMethodDeclaration(member) &&
+              (member.name as any).text === "getPermissionQuery" &&
+              (member.modifiers ?? []).some((modifier: any) => modifier.kind === SyntaxKind.StaticKeyword)
+          );
+          // An anonymous class (`export default class`) is not a model
+          const symbol = cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
+          if (!method?.body || !symbol) return;
+          const target = ctx.checker.getDeclaredTypeOfSymbol(symbol);
+          const sealed = sealedAttributes(ctx, target);
+          if (!sealed.length) return;
+          const literals = (node: any): void => {
+            if (is.isStringLiteral(node) || is.isNoSubstitutionTemplateLiteral(node)) {
+              warnSealed(node.text, node, sealed);
+            } else if (is.isTemplateExpression(node)) {
+              warnSealed(
+                [node.head.text, ...node.templateSpans.map((span: any) => span.literal.text)].join("?"),
+                node,
+                sealed
+              );
+            }
+            node.forEachChild((child: any) => {
+              literals(child);
+              return undefined;
+            });
+          };
+          const queries = (node: any): void => {
+            if (is.isPropertyAssignment(node) && (node.name as any).text === "query") {
+              literals(node.initializer);
+              return;
+            }
+            node.forEachChild((child: any) => {
+              queries(child);
+              return undefined;
+            });
+          };
+          queries(method.body);
+        }
+
+        /**
+         * Warn on every sealed attribute a query references
+         * @param query - query text
+         * @param node - node used for diagnostic position
+         * @param sealed - sealed attribute names of the target
+         */
+        function warnSealed(query: string, node: any, sealed: string[]): void {
+          const start = (node as any).getStart();
+          for (const attribute of referencedAttributes(query)) {
+            if (!sealed.includes(attribute)) continue;
+            diagnostics.push({
+              start,
+              length: node.end - start,
+              code: WQL_SEALED_ATTRIBUTE,
+              severity: "warning",
+              messageText:
+                `Attribute '${attribute}' is a sealed field: the server stores an envelope it cannot read, ` +
+                "so the query never matches it (sealed values cannot be filtered, compared or indexed)"
+            });
+          }
         }
 
         /**
@@ -350,6 +452,7 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
                 (suggestion ? `. Did you mean '${suggestion}'?` : ".")
             });
           }
+          warnSealed(query, node, sealedAttributes(ctx, target));
         }
       }
 
@@ -362,7 +465,8 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
 export const WQL_CODES = {
   UNKNOWN_ATTRIBUTE: WQL_UNKNOWN_ATTRIBUTE,
   GRAMMAR_ERROR: WQL_GRAMMAR_ERROR,
-  STATEMENT_NOT_ALLOWED: WQL_STATEMENT_NOT_ALLOWED
+  STATEMENT_NOT_ALLOWED: WQL_STATEMENT_NOT_ALLOWED,
+  SEALED_ATTRIBUTE: WQL_SEALED_ATTRIBUTE
 };
 
 export type { SourceFile };

@@ -30,11 +30,21 @@ type KeyMaterial = Awaited<ReturnType<typeof generateUserKeyPair>>;
 /**
  * Shape-valid escrow blob without real key material (validation only)
  * @param kind - escrow kind
+ * @param kid - active key id it claims
  * @returns the blob
  */
-function fakeEscrow(kind: "password" | "recovery"): EscrowBlob {
+function fakeEscrow(kind: "password" | "recovery", kid: string = "k1"): EscrowBlob {
   const rnd = (n: number) => b64u.encode(globalThis.crypto.getRandomValues(new Uint8Array(n)));
-  return { v: 1, kind, kdf: "argon2id", kdfParams: { m: 65536, t: 3, p: 1 }, salt: rnd(16), iv: rnd(12), ct: rnd(48) };
+  return {
+    v: 1,
+    kind,
+    kid,
+    kdf: "argon2id",
+    kdfParams: { m: 65536, t: 3, p: 1 },
+    salt: rnd(16),
+    iv: rnd(12),
+    ct: rnd(48)
+  };
 }
 
 @suite
@@ -97,7 +107,7 @@ class UserKeysTest extends WebdaApplicationTest {
     keyringKey ??= await createKeyringKey();
     const pubs = all.map(p => ({ kid: p.kid, jwk: p.publicJwk }));
     const keyring = await encryptKeyring({ keys, active: pair.kid }, keyringKey, userId, pubs);
-    const escrow = await createEscrowBlob("password", PASSWORD, keyringKey, userId, "pbkdf2-sha256");
+    const escrow = await createEscrowBlob("password", PASSWORD, keyringKey, userId, pair.kid, "pbkdf2-sha256");
     return {
       pair,
       keyringKey,
@@ -207,11 +217,18 @@ class UserKeysTest extends WebdaApplicationTest {
     const keys = await this.keysOf(alice);
     assert.ok(keys.hasEscrow("password"));
     assert.ok(!keys.hasEscrow("recovery"));
-    const recovery = fakeEscrow("recovery");
+    const recovery = fakeEscrow("recovery", m.pair.kid);
     keys.replaceEscrow("recovery", recovery);
     assert.deepStrictEqual(keys.__escrows, { ...m.escrows, recovery });
     assert.deepStrictEqual((await this.keysOf(alice)).__escrows, m.escrows);
-    assert.throws(() => keys.replaceEscrow("recovery", fakeEscrow("password")), SealedFormatError);
+    assert.throws(() => keys.replaceEscrow("recovery", fakeEscrow("password", m.pair.kid)), SealedFormatError);
+    // Made for another key than the active one (a device that missed a rotation), or without kid
+    assert.throws(() => keys.replaceEscrow("recovery", fakeEscrow("recovery", "stale")), WebdaError.PreconditionFailed);
+    assert.throws(
+      () => keys.replaceEscrow("recovery", { ...recovery, kid: undefined } as any),
+      (e: any) => e instanceof SealedFormatError && /kid must be the active key id/.test(e.message)
+    );
+    assert.deepStrictEqual(keys.__escrows, { ...m.escrows, recovery });
     assert.throws(() => keys.hasEscrow("other" as any), SealedFormatError);
     // Before setup
     const fresh = new UserKeys();
@@ -406,15 +423,40 @@ class UserKeysTest extends WebdaApplicationTest {
       () => this.op(alice, alice, "RemoveEscrow", { kind: "password" }),
       (e: any) => e.getResponseCode() === 412
     );
-    await this.op(alice, alice, "Setup", await this.material(alice));
-    const recovery = fakeEscrow("recovery");
+    const m = await this.material(alice);
+    await this.op(alice, alice, "Setup", m);
+    const recovery = fakeEscrow("recovery", m.pair.kid);
     await this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: recovery });
     assert.deepStrictEqual((await this.op(alice, alice, "GetEscrow", { kind: "recovery" })).escrow, recovery);
     // The blob kind must match the slot, and only known kinds exist
     await assert.rejects(
-      () => this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("password") }),
+      () => this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("password", m.pair.kid) }),
       SealedFormatError
     );
+    // An escrow made for another key than the active one is refused (412): the device missed a rotation
+    await assert.rejects(
+      () => this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery", "stale") }),
+      (e: any) => e.getResponseCode() === 412 && /another key than the active one/.test(e.message)
+    );
+    assert.deepStrictEqual((await this.op(alice, alice, "GetEscrow", { kind: "recovery" })).escrow, recovery);
+    // After a rotation, escrows are made for the new key
+    const next = await this.material(alice, [m.pair], m.keyringKey);
+    await this.op(alice, alice, "Rotate", { publicKey: next.publicKey, keyring: next.keyring });
+    await assert.rejects(
+      () => this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery", m.pair.kid) }),
+      (e: any) => e.getResponseCode() === 412
+    );
+    await this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery", next.pair.kid) });
+    // Escrows of a new keyring key must be made for the rotated key
+    const third = await this.material(alice, [m.pair, next.pair]);
+    await assert.rejects(
+      () => this.op(alice, alice, "Rotate", { ...third, escrows: { password: fakeEscrow("password", next.pair.kid) } }),
+      (e: any) => e.getResponseCode() === 412
+    );
+    await this.op(alice, alice, "Rotate", third);
+    assert.deepStrictEqual(Object.keys((await this.keysOf(alice)).__escrows!), ["password"]);
+    assert.strictEqual((await this.keysOf(alice)).__escrows!.password!.kid, third.pair.kid);
+    await this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery", third.pair.kid) });
     await assert.rejects(() =>
       this.op(alice, alice, "SetEscrow", { kind: "device", escrow: { ...recovery, kind: "device" } })
     );
@@ -435,7 +477,8 @@ class UserKeysTest extends WebdaApplicationTest {
       () => this.op(alice, alice, "RegisterDevice", { name: "laptop" }),
       (e: any) => e.getResponseCode() === 412
     );
-    await this.op(alice, alice, "Setup", await this.material(alice));
+    const m = await this.material(alice);
+    await this.op(alice, alice, "Setup", m);
     const { id } = await this.op(alice, alice, "RegisterDevice", { name: "laptop" });
     const { id: id2 } = await this.op(alice, alice, "RegisterDevice", { name: "phone" });
     assert.ok(typeof id === "string" && id.length > 0 && id !== id2);
@@ -463,7 +506,7 @@ class UserKeysTest extends WebdaApplicationTest {
     // Never leave neither an escrow nor a device
     await this.op(alice, alice, "RemoveEscrow", { kind: "password" });
     await assert.rejects(() => this.op(alice, alice, "RevokeDevice", { id: id2 }), WebdaError.Conflict);
-    await this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") });
+    await this.op(alice, alice, "SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery", m.pair.kid) });
     await this.op(alice, alice, "RevokeDevice", { id: id2 });
     assert.deepStrictEqual((await this.keysOf(alice)).devices, []);
     // At most MAX_DEVICES devices
@@ -487,7 +530,7 @@ class UserKeysTest extends WebdaApplicationTest {
     const next = await this.material(alice, [m.pair], m.keyringKey);
     const actions: [string, any][] = [
       ["GetEscrow", { kind: "password" }],
-      ["SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery") }],
+      ["SetEscrow", { kind: "recovery", escrow: fakeEscrow("recovery", m.pair.kid) }],
       ["RemoveEscrow", { kind: "password" }],
       ["GetKeyring", {}],
       ["Rotate", { publicKey: next.publicKey, keyring: next.keyring }],
@@ -570,7 +613,8 @@ class UserKeysTest extends WebdaApplicationTest {
     await bad({ ...m, escrows: { password: { ...m.escrows.password, salt: "+/=" } } });
     await bad({ ...m, escrows: { password: { ...m.escrows.password, kdfParams: "x" } } });
     // KDF floors (Argon2id m=65536 t=3 p=1, PBKDF2 600000) and maxima, exact parameter names
-    const argon = fakeEscrow("password");
+    await bad({ ...m, escrows: { password: { ...m.escrows.password, kid: 1 } } });
+    const argon = fakeEscrow("password", m.pair.kid);
     for (const kdfParams of [
       { m: 65535, t: 3, p: 1 },
       { m: 65536, t: 2, p: 1 },

@@ -963,7 +963,7 @@
         },
         "escrow": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -981,6 +981,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -1002,6 +1006,7 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"

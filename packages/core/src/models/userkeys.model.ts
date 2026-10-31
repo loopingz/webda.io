@@ -192,17 +192,22 @@ function checkKind(kind: unknown): EscrowKind {
 }
 
 /**
- * Check an escrow blob stored in the `kind` slot
+ * Check an escrow blob stored in the `kind` slot: it must be made for the key `kid`, the one whose keyring key it
+ * wraps (412 otherwise: the device that made it missed a rotation, its keyring key may be stale)
  * @param kind - slot
  * @param escrow - submitted blob
+ * @param kid - active key id the escrow must be made for
  * @returns the normalised blob
  */
-function checkEscrow(kind: EscrowKind, escrow: EscrowBlob): EscrowBlob {
+function checkEscrow(kind: EscrowKind, escrow: EscrowBlob, kid: string): EscrowBlob {
   if (!isObject(escrow) || escrow.v !== 1) {
     throw new SealedFormatError("Invalid escrow: v must be 1");
   }
   if (escrow.kind !== kind) {
     throw new SealedFormatError(`Escrow kind ${String(escrow.kind)} stored as ${kind}`);
+  }
+  if (typeof escrow.kid !== "string" || !escrow.kid) {
+    throw new SealedFormatError("Invalid escrow: kid must be the active key id");
   }
   if (!KDFS.includes(escrow.kdf)) {
     throw new SealedFormatError(`Unsupported kdf ${String(escrow.kdf)}`);
@@ -225,22 +230,26 @@ function checkEscrow(kind: EscrowKind, escrow: EscrowBlob): EscrowBlob {
   assertB64u(escrow.iv, "escrow iv", 12);
   // Wrapped 32-byte keyring key and its GCM tag
   assertB64u(escrow.ct, "escrow ciphertext", 48);
+  if (escrow.kid !== kid) {
+    throw new WebdaError.PreconditionFailed("The escrow was made for another key than the active one: unlock again");
+  }
   const { v, kdf, kdfParams, salt, iv, ct } = escrow;
-  return { v, kind, kdf, kdfParams: { ...kdfParams }, salt, iv, ct };
+  return { v, kind, kid, kdf, kdfParams: { ...kdfParams }, salt, iv, ct };
 }
 
 /**
- * Check a set of escrows: at least one, each in its own kind slot
+ * Check a set of escrows: at least one, each in its own kind slot, every one made for the key `kid`
  * @param escrows - submitted escrows
+ * @param kid - active key id the escrows must be made for
  * @returns the normalised escrows
  */
-function checkEscrows(escrows: Escrows): Escrows {
+function checkEscrows(escrows: Escrows, kid: string): Escrows {
   if (!isObject(escrows) || Object.keys(escrows).length === 0) {
     throw new SealedFormatError("At least one escrow is required");
   }
   const result: Escrows = {};
   for (const [kind, escrow] of Object.entries(escrows)) {
-    result[checkKind(kind)] = checkEscrow(kind as EscrowKind, escrow);
+    result[checkKind(kind)] = checkEscrow(kind as EscrowKind, escrow, kid);
   }
   return result;
 }
@@ -390,7 +399,7 @@ export class UserKeys {
     }
     const jwk = await checkPublicKey(publicKey);
     this.__keyring = checkKeyring(keyring, publicKey.kid);
-    this.__escrows = checkEscrows(escrows);
+    this.__escrows = checkEscrows(escrows, publicKey.kid);
     this.publicKeys = [{ kid: publicKey.kid, alg: "ECDH-ES+A256GCM", jwk, createdAt: Date.now() }];
     await this.saveOwner();
   }
@@ -449,17 +458,25 @@ export class UserKeys {
    * Validate and replace an escrow in memory, without the fresh-authentication gate and without saving: for a host
    * operation that proves the user another way and saves the owner itself, such as the password change of
    * `@webda/auth` which stores the escrow of the new password with the new password hash
+   *
+   * The escrow must be made for the active key (`escrow.kid`): a device that missed a rotation with a new keyring key
+   * would otherwise escrow a keyring key that opens nothing (the client checks the same before sending)
    * @param kind - escrow kind
    * @param escrow - escrow blob of this kind
-   * @throws SealedFormatError (400) on a malformed escrow, PreconditionFailed (412) before setup
+   * @throws SealedFormatError (400) on a malformed escrow, PreconditionFailed (412) before setup or when the escrow
+   * is made for another key than the active one
    */
   replaceEscrow(kind: EscrowKind, escrow: EscrowBlob): void {
     this.requireSetup();
-    this.__escrows = { ...this.__escrows, [checkKind(kind)]: checkEscrow(kind, escrow) };
+    this.__escrows = {
+      ...this.__escrows,
+      [checkKind(kind)]: checkEscrow(kind, escrow, this.getActivePublicKey()!.kid)
+    };
   }
 
   /**
-   * Create or replace an escrow, from a device holding the keyring key
+   * Create or replace an escrow, from a device holding the keyring key; refused (412) when the escrow is made for
+   * another key than the active one
    * @param kind - escrow kind
    * @param escrow - escrow blob of this kind
    */
@@ -506,7 +523,7 @@ export class UserKeys {
       throw new WebdaError.Conflict("This public key was already used");
     }
     const newKeyring = checkKeyring(keyring, publicKey.kid);
-    const newEscrows = escrows === undefined ? this.__escrows : checkEscrows(escrows);
+    const newEscrows = escrows === undefined ? this.__escrows : checkEscrows(escrows, publicKey.kid);
     const now = Date.now();
     for (const key of this.publicKeys) {
       key.retiredAt ??= now;

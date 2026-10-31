@@ -200,6 +200,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.2.17](https://github.com/loopingz/webda.io/compare/mongo-v3.2.16...mongo-v3.2.17) (2026-10-31)
+
+
+### Bug Fixes
+
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+* update webda.module.json ([04cf008](https://github.com/loopingz/webda.io/commit/04cf008d69efec39ef4dbc2213bea0a6b39940ae))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/mongo-v3.1.9...mongo-v3.2.0) (2023-11-12)
 
 

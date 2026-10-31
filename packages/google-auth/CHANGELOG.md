@@ -184,6 +184,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [3.1.17](https://github.com/loopingz/webda.io/compare/google-auth-v3.1.16...google-auth-v3.1.17) (2026-10-31)
+
+
+### Bug Fixes
+
+* prependQuery offset injection ([#682](https://github.com/loopingz/webda.io/issues/682)) ([67aead2](https://github.com/loopingz/webda.io/commit/67aead2ed728074242b3e761322f69bc14bd7738))
+* typescript typing due to change in Buffer ([7bef830](https://github.com/loopingz/webda.io/commit/7bef830ad0034a36452b11345c23d8c7092c12d9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.18.1 to ^3.17.0
+  * devDependencies
+    * @webda/shell bumped from ^3.13.2 to ^3.11.1
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/google-auth-v3.0.12...google-auth-v3.1.0) (2023-11-12)
 
 

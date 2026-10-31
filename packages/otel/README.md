@@ -65,6 +65,47 @@ pnpm add @webda/otel
 | `loggerExporter.enable` | boolean | `true` | No | Enable/disable log exporting |
 | `loggerExporter.url` | string | `"http://localhost:4317"` | No | OTLP gRPC endpoint for log export |
 | `diagnostic` | string | `"NONE"` | No | OTel SDK diagnostic level: `NONE`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `ALL` |
+| `webTracing.allowedEmails` | string[] | `[]` | No | Emails allowed to enable web tracing, regular expressions matching the whole email (`"*"`: any authenticated user). Empty: nobody |
+| `webTracing.duration` | number | `900` | No | Trace token lifetime in seconds |
+| `trustedTraceSources` | string[] | `[]` | No | IPs or CIDRs whose `traceparent` and `baggage` are always honored |
+
+## Request tracing
+
+Webda starts the server span of every request itself (HTTP/1.1, HTTP/2, h2c and gRPC; the incoming spans of the
+HTTP instrumentation are disabled) and records `http.server.request.duration` (seconds) or `rpc.server.duration`
+(milliseconds) for every request, traced or not.
+
+An outside caller cannot force sampling or inject baggage. The incoming W3C `traceparent` and `baggage` are honored
+only in these cases:
+
+| Request | `traceparent` | `baggage` | Span `session.id` |
+|---|---|---|---|
+| From a `trustedTraceSources` address | honored (sampled flag too) | honored, propagated | from baggage if present |
+| Valid, unexpired `X-Webda-Trace` token | honored (sampled flag too); none or invalid: a new root, always sampled | honored, propagated, `session.id` rewritten to the token session | token session |
+| Anything else (including an invalid or expired token) | ignored: new root, `sampling` ratio | dropped | none |
+
+The client address is the one `HttpServer` resolves through its `trustedProxies`. `X-Webda-Trace` is never sent on
+outgoing calls; `traceparent`, `tracestate` and `baggage` are, and are allowed on cross-origin requests.
+
+### On-demand web tracing
+
+An allowed user (`webTracing.allowedEmails`, or override `canEnableWebTracing`) calls the `Otel.EnableWebTracing`
+operation:
+
+```http
+POST /otel/tracing
+{ "sessionId": "optional-session-to-join" }
+```
+
+It answers `{ token, sessionId, expiresAt }`. The browser then sends `X-Webda-Trace: <token>`, a sampled
+`traceparent` and `baggage: session.id=<sessionId>` on its requests: every span of those requests carries
+`session.id`, so one session can be searched in the tracing backend. The token is signed with the application keys
+for the `webda-trace` audience: it is not a session token.
+
+### Profiling
+
+Continuous profiling is not done in process: run the OpenTelemetry collector eBPF profiler next to the application
+to export OTLP profiles, and correlate them with these traces.
 
 ## Usage
 

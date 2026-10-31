@@ -1,12 +1,13 @@
 import { DiagLogLevel, diag, trace } from "@opentelemetry/api";
 import { Logger as OtelLibLogger } from "@opentelemetry/api-logs";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
+import type { Instrumentation } from "@opentelemetry/instrumentation";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor, LogRecordExporter, LoggerProvider } from "@opentelemetry/sdk-logs";
-import { ConsoleMetricExporter, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import { ConsoleMetricExporter, type MetricReader, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
 import {
@@ -17,14 +18,17 @@ import {
   ServiceParameters,
   WebContext,
   WebdaError,
+  registerRequestTracer,
   useApplication,
   useContext,
   useCore,
   useCrypto,
+  useRequestTracer,
   useRouter
 } from "@webda/core";
 import { randomUUID } from "node:crypto";
 import { WorkerLogger, WorkerMessage, WorkerOutput } from "@webda/workout";
+import { ForceableRootSampler, OtelRequestTracer, SessionIdSpanProcessor } from "./request-tracer.js";
 
 /**
  * Audience of the web tracing tokens: a token of another audience is never accepted
@@ -178,7 +182,7 @@ export class OtelServiceParameters extends ServiceParameters {
  * Otel Service
  *
  * Start the OpenTelemetry NodeSDK, forward the logs and add a span
- * for each request and each service method call
+ * for each request (see {@link OtelRequestTracer}) and each service method call
  *
  * @WebdaModda
  */
@@ -193,12 +197,19 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
   otelLogger: OtelLogger;
   loggerExporter: LogRecordExporter;
   loggerProvider: LoggerProvider;
+  requestTracer?: OtelRequestTracer;
+  instrumentations?: Instrumentation[];
 
   /**
    * Stop otlp
    */
   async stop() {
+    if (this.requestTracer && useRequestTracer() === this.requestTracer) {
+      registerRequestTracer(undefined);
+    }
     this.unpatch();
+    // The SDK shutdown leaves the instrumentations enabled
+    this.instrumentations?.forEach(instrumentation => instrumentation.disable());
     this.otelLogger?.close();
     await Promise.all([super.stop(), this.loggerProvider?.shutdown(), this.sdk?.shutdown()]);
   }
@@ -264,28 +275,53 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
       });
       this.otelLogger ??= new OtelLogger(this.loggerProvider.getLogger("webda"), useApplication().getWorkerOutput());
     }
+    // Webda starts the server spans itself, after deciding whether to trust the incoming trace context
+    this.instrumentations ??= getNodeAutoInstrumentations({
+      "@opentelemetry/instrumentation-http": { ignoreIncomingRequestHook: () => true }
+    });
     this.sdk ??= new NodeSDK({
       resource,
-      traceExporter: this.getTraceExporter(),
+      spanProcessors: this.getSpanProcessors(),
       // Honor the sampling decision of a (verified) remote parent, sample the roots by ratio
+      // unless a trace token asks for the request to be recorded
       sampler: new tracing.ParentBasedSampler({
-        root: new tracing.TraceIdRatioBasedSampler(this.parameters.traceExporter.sampling)
+        root: new ForceableRootSampler(new tracing.TraceIdRatioBasedSampler(this.parameters.traceExporter.sampling))
       }),
-      metricReader:
-        this.parameters.metricExporter?.enable !== false
-          ? (new PeriodicExportingMetricReader({
-              exporter:
-                this.parameters.metricExporter?.type === "console"
-                  ? new ConsoleMetricExporter()
-                  : new OTLPMetricExporter()
-            }) as any)
-          : undefined,
-      instrumentations: [getNodeAutoInstrumentations()]
+      metricReaders: this.getMetricReaders(),
+      instrumentations: this.instrumentations
     });
 
     this.sdk.start();
+    this.requestTracer = new OtelRequestTracer(this);
+    registerRequestTracer(this.requestTracer);
+    useRouter()?.addCorsAllowedHeaders("traceparent", "tracestate", "baggage", "X-Webda-Trace");
     this.updatePatch();
     return this;
+  }
+
+  /**
+   * Span processors of the SDK: `session.id` attribute then export
+   * @returns the processors, empty when the trace exporter is disabled
+   */
+  protected getSpanProcessors(): tracing.SpanProcessor[] {
+    const exporter = this.getTraceExporter();
+    return exporter ? [new SessionIdSpanProcessor(), new tracing.BatchSpanProcessor(exporter)] : [];
+  }
+
+  /**
+   * Metric readers of the SDK
+   * @returns the readers, undefined when the metric exporter is disabled
+   */
+  protected getMetricReaders(): MetricReader[] | undefined {
+    if (this.parameters.metricExporter?.enable === false) {
+      return undefined;
+    }
+    return [
+      new PeriodicExportingMetricReader({
+        exporter:
+          this.parameters.metricExporter?.type === "console" ? new ConsoleMetricExporter() : new OTLPMetricExporter()
+      })
+    ];
   }
 
   /**
@@ -433,29 +469,12 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
    */
   patch() {
     const tracer = trace.getTracer("webda");
-    const mod = Math.floor(1 / this.parameters.traceExporter.sampling);
-    let count = 0;
     const router = useRouter();
-    // Add a span around each request execution
+    // Expose the tracer to the request: its server span is started by the OtelRequestTracer
     this._wrap(router, "execute", (original: Function) => {
       return async (ctx: WebContext) => {
         ctx.setExtension("otel", tracer);
-        // Sampling logic
-        if (mod > 1) {
-          if (count++ % mod !== 0) {
-            return original(ctx);
-          } else {
-            count = 0;
-          }
-        }
-        const httpContext = ctx.getHttpContext();
-        return tracer.startActiveSpan(`${httpContext.getMethod()} ${httpContext.getPathName() || "/"}`, async span => {
-          try {
-            return await original(ctx);
-          } finally {
-            span.end();
-          }
-        });
+        return original(ctx);
       };
     });
     diag.debug(`Applying patch for each services`);

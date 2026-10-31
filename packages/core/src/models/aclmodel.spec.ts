@@ -55,7 +55,7 @@ class AclModelTest {
     this.model.setContext(this._ctx);
     await this.model._onGet();
     // @ts-ignore
-    assert.deepStrictEqual(this.model._permissions, ["get", "action"]);
+    assert.deepStrictEqual([...this.model._permissions], ["get", "action"]);
   }
 
   @test async multigroups() {
@@ -169,7 +169,7 @@ class AclModelTest {
   @test async onSave() {
     this.model.setContext(this._ctx);
     await this.model._onSave();
-    assert.deepStrictEqual(this.model.__acl, { "user-uid": "all" });
+    assert.deepStrictEqual({ ...this.model.__acl }, { "user-uid": "all" });
     assert.strictEqual(this.model._creator, "user-uid");
   }
 }

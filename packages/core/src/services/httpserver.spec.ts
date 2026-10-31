@@ -24,7 +24,8 @@ import { useRouter } from "../rest/hooks.js";
 import { CancelablePromise } from "@webda/utils";
 import * as http2 from "node:http2";
 import { X509Certificate } from "node:crypto";
-import { afterAll } from "vitest";
+import { afterAll, vi } from "vitest";
+import { State } from "@webda/utils";
 import { createTestCertificates } from "../test/certificates.js";
 import type { ClientCertificate } from "../contexts/clientcertificate.js";
 
@@ -1400,5 +1401,173 @@ class HttpServerTest extends WebdaApplicationTest {
     const other = this.fakeRequest("10.1.2.3");
     other.socket.getPeerCertificate = () => peer;
     assert.strictEqual(server.extractClientCertificate(other)?.verified, false);
+  }
+
+  /**
+   * Server with the given parameters, replacing the default one of the test
+   * @param params - the parameters
+   * @returns the server
+   */
+  protected replaceServer(params: any): HttpServer {
+    this.server = new HttpServer(
+      "HttpServerReadiness",
+      new ServiceParameters().load({ port: 0, trustedProxies: ["127.0.0.1", "::1"], ...params })
+    );
+    this.registerService(this.server);
+    (this.server as any).subnetChecker = createChecker(["127.0.0.1/32", "::1/32"]);
+    return this.server;
+  }
+
+  @test
+  async listenPortPrecedence() {
+    const env = process.env.PORT;
+    try {
+      delete process.env.PORT;
+      assert.strictEqual(this.replaceServer({ port: undefined }).getListenPort(), 18080);
+      process.env.PORT = "8080";
+      assert.strictEqual(this.server.getListenPort(), 8080);
+      // The configuration wins over the environment, the command line over both
+      assert.strictEqual(this.replaceServer({ port: 0 }).getListenPort(), 0);
+      assert.strictEqual(this.replaceServer({ port: 9090 }).getListenPort(), 8080 + 1010);
+      assert.strictEqual(this.server.getListenPort(7070), 7070);
+      process.env.PORT = "not-a-port";
+      assert.strictEqual(this.replaceServer({ port: undefined }).getListenPort(), 18080);
+    } finally {
+      if (env === undefined) {
+        delete process.env.PORT;
+      } else {
+        process.env.PORT = env;
+      }
+    }
+  }
+
+  @test
+  healthPathFromEnvironment() {
+    const env = process.env.WEBDA_HEALTH_PATH;
+    try {
+      delete process.env.WEBDA_HEALTH_PATH;
+      assert.strictEqual(new HttpServerParameters().load({}).healthPath, undefined);
+      process.env.WEBDA_HEALTH_PATH = "";
+      assert.strictEqual(new HttpServerParameters().load({}).healthPath, undefined);
+      process.env.WEBDA_HEALTH_PATH = "/healthz";
+      assert.strictEqual(new HttpServerParameters().load({}).healthPath, "/healthz");
+      assert.strictEqual(new HttpServerParameters().load({ healthPath: "/ready" }).healthPath, "/ready");
+      assert.strictEqual(new HttpServerParameters().load({}).shutdownGracePeriod, 10000);
+    } finally {
+      if (env === undefined) {
+        delete process.env.WEBDA_HEALTH_PATH;
+      } else {
+        process.env.WEBDA_HEALTH_PATH = env;
+      }
+    }
+  }
+
+  @test
+  async healthEndpoint() {
+    this.replaceServer({ healthPath: "/healthz" });
+    const port = await this.startServer();
+    const probe = (path: string) => httpRequest({ hostname: "127.0.0.1", port, path, method: "GET" });
+    let res = await probe("/healthz?verbose=1");
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.headers["cache-control"], "no-store");
+    assert.deepStrictEqual(JSON.parse(res.body), { status: "ok" });
+    // Other paths go through the router
+    res = await probe("/healthz/other");
+    assert.strictEqual(res.statusCode, 404);
+    // Not ready while Core initializes
+    const state = vi.spyOn(State, "getCurrentState").mockReturnValue("initializing");
+    try {
+      res = await probe("/healthz");
+      assert.strictEqual(res.statusCode, 503);
+      assert.deepStrictEqual(JSON.parse(res.body), { status: "starting" });
+    } finally {
+      state.mockRestore();
+    }
+    // Not ready while draining
+    (this.server as any).draining = true;
+    res = await probe("/healthz");
+    assert.strictEqual(res.statusCode, 503);
+    assert.deepStrictEqual(JSON.parse(res.body), { status: "stopping" });
+  }
+
+  /**
+   * Hold the responses of the server until `release` is called
+   * @returns the release function and the number of held requests
+   */
+  protected holdResponses(): { release: () => void; held: () => number } {
+    const responses: http.ServerResponse[] = [];
+    this.server.registerRequestInterceptor((req, res) => {
+      if (req.url === "/slow") {
+        responses.push(res);
+        return true;
+      }
+      return false;
+    });
+    return {
+      release: () => responses.splice(0).forEach(res => res.end("done")),
+      held: () => responses.length
+    };
+  }
+
+  @test
+  async stopWaitsForInFlightRequests() {
+    this.replaceServer({ healthPath: "/healthz", shutdownGracePeriod: 5000 });
+    const port = await this.startServer();
+    const { release, held } = this.holdResponses();
+    const pending = httpRequest({ hostname: "127.0.0.1", port, path: "/slow", method: "GET" });
+    while (held() === 0) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    const started = Date.now();
+    let stopped = false;
+    const stopping = this.server.stop().then(() => (stopped = true));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    // Draining: not ready, new connections are refused, the in-flight request is still served
+    assert.strictEqual(this.server.getHealthStatus(), "stopping");
+    assert.strictEqual(stopped, false);
+    await assert.rejects(httpRequest({ hostname: "127.0.0.1", port, path: "/healthz", method: "GET" }), /ECONNREFUSED/);
+    release();
+    assert.strictEqual((await pending).body, "done");
+    await stopping;
+    assert.ok(Date.now() - started < 4000, "stopped before the grace period");
+  }
+
+  @test
+  async stopDropsConnectionsAfterGracePeriod() {
+    this.replaceServer({ shutdownGracePeriod: 100 });
+    const port = await this.startServer();
+    const { held } = this.holdResponses();
+    const pending = httpRequest({ hostname: "127.0.0.1", port, path: "/slow", method: "GET" });
+    while (held() === 0) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    await this.server.stop();
+    await assert.rejects(pending, /socket hang up|ECONNRESET/);
+  }
+
+  @test
+  async stopClosesHttp2Sessions() {
+    this.replaceServer({ h2c: true, shutdownGracePeriod: 100 });
+    const port = await this.startServer();
+    const { held } = this.holdResponses();
+    const session = http2.connect(`http://127.0.0.1:${port}`);
+    const closed = new Promise<void>(resolve => session.on("close", resolve));
+    const request = new Promise<void>((resolve, reject) => {
+      const req = session.request({ ":path": "/slow" });
+      req.on("close", () => resolve());
+      req.on("error", () => reject(new Error("stream error")));
+      req.end();
+    });
+    while (held() === 0) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    assert.strictEqual((this.server as any).sessions.size, 1);
+    // The session is closed gracefully then destroyed when its stream is still open after the grace period
+    await this.server.stop();
+    await Promise.allSettled([request]);
+    await closed;
+    while ((this.server as any).sessions.size > 0) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
   }
 }

@@ -1144,6 +1144,10 @@
             "description": "Run this instance as an HTTP/2 cleartext (h2c) server rather than\nHTTP/1.1. The resulting port accepts only prior-knowledge HTTP/2\nclients (e.g. `grpcurl -plaintext`). To serve both REST (HTTP/1.1)\nand gRPC without TLS, configure a second HttpServer service with\n`h2c: true` on a separate port.",
             "type": "boolean"
           },
+          "healthPath": {
+            "description": "Path of the readiness and liveness probe, disabled when unset\n\nAnswered before the routing, without a context: `200 {\"status\":\"ok\"}` once Core is ready, `503` while\nit is starting (`{\"status\":\"starting\"}`) or the server is draining (`{\"status\":\"stopping\"}`).\nThe `WEBDA_HEALTH_PATH` environment variable enables it when not configured: the Knative deployer sets\nit for the readiness probe of its revisions.",
+            "type": "string"
+          },
           "http2": {
             "default": false,
             "description": "Enable HTTP/2 (default: true when key+cert provided)\nSet to false for HTTPS without HTTP/2",
@@ -1155,7 +1159,7 @@
           },
           "port": {
             "default": 18080,
-            "description": "Port to listen on",
+            "description": "Port to listen on\n\nWhen not set, the `PORT` environment variable is used (Knative, Cloud Run and most PaaS inject it),\nthen 18080. An explicit value always wins over the environment.",
             "type": "number"
           },
           "requestLimit": {
@@ -1166,6 +1170,11 @@
           "requestTimeout": {
             "default": 60000,
             "description": "Will not take more than this to read a request (unit: milliseconds)\n\nThis parameter can be overriden by a direct call to\ngetHttpContext().getRawBody(undefined, xxx)",
+            "type": "number"
+          },
+          "shutdownGracePeriod": {
+            "default": 10000,
+            "description": "Milliseconds the server waits for its in-flight requests when it stops, before closing their connections\n\nStopping first refuses new connections and answers `503` on `healthPath`, so a load balancer stops\nrouting to the instance. Keep it below the termination grace period of the pod (30s on Kubernetes).",
             "type": "number"
           },
           "trustedProxies": {

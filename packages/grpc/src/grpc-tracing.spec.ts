@@ -206,4 +206,25 @@ class GrpcTracingTest extends WebdaApplicationTest {
     assert.strictEqual(await this.unary(PATH, "title = 'x'", server), GrpcStatus.OK);
     assert.strictEqual(this.traced[0].request.clientIp, undefined);
   }
+
+  @test
+  async requestWithoutPathIsUnimplemented() {
+    await this.setup();
+    assert.strictEqual(await this.unary(undefined as any, "x"), GrpcStatus.UNIMPLEMENTED);
+    assert.strictEqual(this.traced[0].request.path, "/_OTHER/_OTHER");
+    assert.deepStrictEqual(this.traced[0].statuses, [GrpcStatus.UNIMPLEMENTED]);
+  }
+
+  @test
+  async refusedClientCertificateReportsPermissionDenied() {
+    await this.setup();
+    const server = {
+      extractClientCertificate: () => {
+        throw new Error("untrusted certificate header");
+      }
+    };
+    assert.strictEqual(await this.unary(PATH, "title = 'x'", server), GrpcStatus.PERMISSION_DENIED);
+    assert.deepStrictEqual(this.traced[0].statuses, [GrpcStatus.PERMISSION_DENIED]);
+    assert.ok(this.traced[0].done);
+  }
 }

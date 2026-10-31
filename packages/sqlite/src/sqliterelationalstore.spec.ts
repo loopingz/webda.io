@@ -460,6 +460,15 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
         (err: any) => err instanceof WebdaError.CodeError && err.code === "RELATIONAL_IMPORT_TABLE"
       );
       await fk.stop();
+      // A relational store on another database references no JSON table: the link stays a plain column
+      const apart = await this.makeStore("apart", {
+        database: { name: "apart" },
+        models: RELATIONAL_MODELS,
+        foreignKeysToJsonb: true
+      });
+      const apartFks = (await apart.getClient()!.query(`PRAGMA foreign_key_list("rel_comment")`)).rows.map(r => r.from);
+      assert.ok(!apartFks.includes("moderator"), apartFks.join(", "));
+      assert.ok((await this.columns("rel_comment", apart)).includes("moderator"));
     } finally {
       await registry.stop();
       this.registerService(previous, "Registry");

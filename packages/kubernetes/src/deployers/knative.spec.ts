@@ -10,6 +10,7 @@ import { vi } from "vitest";
 import { FAKE_KUBECONFIG } from "../../test/fixture.js";
 import {
   buildKnativeService,
+  buildKnativeTriggers,
   deepMerge,
   getReadyCondition,
   KnativeDeployer,
@@ -102,6 +103,7 @@ class KnativeDeployerTest extends WebdaApplicationTest {
     assert.strictEqual(params.healthPath, "/healthz");
     assert.strictEqual(params.revisionSuffix, "${git.short}");
     assert.strictEqual(params.visibility, "public");
+    assert.deepStrictEqual(params.triggers, []);
     assert.strictEqual(params.readyTimeout, 300);
   }
 
@@ -263,6 +265,134 @@ class KnativeDeployerTest extends WebdaApplicationTest {
     assert.strictEqual(project.metadata.namespace, "my-project");
     assert.strictEqual(project.spec.template.spec.containerConcurrency, undefined);
     assert.strictEqual(project.metadata.annotations, undefined);
+  }
+
+  @test
+  buildTriggers() {
+    const service = buildKnativeService(params({ name: "My App", namespace: "apps" }));
+    assert.deepStrictEqual(buildKnativeTriggers(params(), service), []);
+    const warnings: string[] = [];
+    const triggers = buildKnativeTriggers(
+      params({
+        triggers: [
+          { filter: { type: "com.acme.order.created", source: "/orders" } },
+          {
+            name: "Returns",
+            broker: "returns",
+            filter: {},
+            filters: [{ cesql: "type LIKE 'com.acme.return.%'" }],
+            path: "/events"
+          }
+        ]
+      }),
+      service,
+      message => warnings.push(message)
+    );
+    assert.deepStrictEqual(warnings, []);
+    assert.deepStrictEqual(triggers, [
+      {
+        apiVersion: "eventing.knative.dev/v1",
+        kind: "Trigger",
+        metadata: { name: "my-app-0", namespace: "apps", labels: { "app.kubernetes.io/managed-by": "webda" } },
+        spec: {
+          broker: "default",
+          filter: { attributes: { type: "com.acme.order.created", source: "/orders" } },
+          subscriber: {
+            ref: { apiVersion: "serving.knative.dev/v1", kind: "Service", name: "my-app" },
+            uri: "/cloudevents"
+          }
+        }
+      },
+      {
+        apiVersion: "eventing.knative.dev/v1",
+        kind: "Trigger",
+        metadata: { name: "returns", namespace: "apps", labels: { "app.kubernetes.io/managed-by": "webda" } },
+        spec: {
+          broker: "returns",
+          filters: [{ cesql: "type LIKE 'com.acme.return.%'" }],
+          subscriber: {
+            ref: { apiVersion: "serving.knative.dev/v1", kind: "Service", name: "my-app" },
+            uri: "/events"
+          }
+        }
+      }
+    ]);
+    // Cloud Run has no Eventing, a Service without namespace gives Triggers without one
+    const cloudRun = params({ platform: "cloudrun", triggers: [{ broker: "default" }] });
+    assert.deepStrictEqual(
+      buildKnativeTriggers(cloudRun, buildKnativeService(cloudRun), message => warnings.push(message)),
+      []
+    );
+    assert.deepStrictEqual(warnings, ["Cloud Run has no Knative Eventing: 'triggers' are dropped, use Eventarc"]);
+    const [trigger] = buildKnativeTriggers(params({ triggers: [{}] }), { ...service, metadata: { name: "app" } });
+    assert.strictEqual(trigger.metadata.namespace, undefined);
+  }
+
+  @test
+  async manifestWithTriggers() {
+    const output = join(this.folder, "manifest.yaml");
+    const { deployer } = this.deployer({
+      name: "app",
+      triggers: [{ filter: { type: "com.acme.order.created" } }, { broker: "other", path: "/events" }]
+    });
+    const yaml = await deployer.manifest();
+    assert.deepStrictEqual(outputs.lines, [yaml]);
+    const documents = yaml.split("---\n");
+    assert.strictEqual(documents.length, 3);
+    assert.ok(documents[0].startsWith("apiVersion: serving.knative.dev/v1\nkind: Service\n"));
+    assert.ok(
+      documents[1].startsWith("apiVersion: eventing.knative.dev/v1\nkind: Trigger\nmetadata:\n  name: app-0\n")
+    );
+    assert.ok(documents[2].includes("\n  broker: other\n"));
+    assert.ok(documents[2].includes("uri: /events\n"));
+    assert.ok(yaml.endsWith("\n") && !yaml.endsWith("\n\n"));
+    // Written to the output as one file
+    await deployer.manifest(output);
+    assert.strictEqual(readFileSync(output).toString(), yaml);
+    assert.deepStrictEqual(
+      deployer.getManifests().map(manifest => manifest.kind),
+      ["Service", "Trigger", "Trigger"]
+    );
+  }
+
+  @test
+  async deployAppliesTriggers() {
+    const { deployer, client } = this.deployer({
+      name: "app",
+      output: join(this.folder, "manifest.yaml"),
+      triggers: [{ filter: { type: "com.acme.order.created" } }, { name: "existing" }]
+    });
+    // The Service exists and is patched, the first Trigger is created, the second patched
+    client.read.mockResolvedValueOnce(cluster({ status: "True" }));
+    client.patch.mockResolvedValue({ metadata: { generation: 2 } });
+    client.read.mockResolvedValueOnce(cluster({ status: "True" }, { observedGeneration: 2 }));
+    client.read.mockRejectedValueOnce(new k8s.ApiException(404, "not found", {}, {}));
+    client.create.mockResolvedValue({});
+    client.read.mockResolvedValueOnce({ kind: "Trigger" });
+    await deployer.deploy();
+    assert.strictEqual(client.create.mock.calls.length, 1);
+    assert.strictEqual(client.create.mock.calls[0][0].kind, "Trigger");
+    assert.strictEqual(client.create.mock.calls[0][0].metadata.name, "app-0");
+    assert.strictEqual(client.patch.mock.calls.length, 2);
+    assert.strictEqual(client.patch.mock.calls[1][0].kind, "Trigger");
+    assert.strictEqual(client.patch.mock.calls[1][0].metadata.name, "existing");
+    assert.strictEqual(client.patch.mock.calls[1][5], k8s.PatchStrategy.ServerSideApply);
+    assert.strictEqual(readFileSync(join(this.folder, "manifest.yaml")).toString().split("---\n").length, 3);
+  }
+
+  @test
+  async deleteWithTriggers() {
+    const { deployer, client } = this.deployer({ name: "app", triggers: [{ name: "missing" }, { name: "existing" }] });
+    client.read.mockRejectedValueOnce(new k8s.ApiException(404, "not found", {}, {}));
+    client.read.mockResolvedValueOnce({ kind: "Trigger" });
+    await deployer.delete(true);
+    assert.deepStrictEqual(
+      client.delete.mock.calls.map(call => [call[0].kind, call[0].metadata.name]),
+      [
+        ["Trigger", "existing"],
+        ["Service", "app"]
+      ]
+    );
   }
 
   @test

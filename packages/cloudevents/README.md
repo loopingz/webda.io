@@ -13,12 +13,13 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-> CloudEvents v1.0 producer and consumer utilities for Webda — validate, emit, and subscribe to CloudEvents over HTTP or AMQP transports, with a store-backed subscription model.
+> CloudEvents v1.0 producer and consumer utilities for Webda — receive CloudEvents over HTTP (`CloudEventsReceiver`), publish and consume through a Knative Eventing Broker (`KnativeBrokerPubSub`), validate, emit and subscribe with a store-backed subscription model.
 
 ## When to use it
 
 - You need to publish events from a Webda store save/update as CloudEvents to an external sink (webhook, AMQP broker, MQTT).
-- You want to receive and validate incoming CloudEvents from third-party producers.
+- You want to receive and validate incoming CloudEvents from third-party producers, or from a Knative `Trigger`.
+- You deploy on Knative and want a `PubSubService` backed by its Broker.
 - You are building an event-driven integration that must conform to the CNCF CloudEvents v1.0 specification.
 
 ## Install
@@ -29,14 +30,77 @@ pnpm add @webda/cloudevents
 
 ## Configuration
 
-`@webda/cloudevents` exports model and utility classes — it does not register a service bean with the Webda DI container. Wire it up by using the exported `CloudEvent`, `Subscription`, and `isCloudEvent` helpers directly in a custom service.
+The module registers two services; the `CloudEvent`, `Subscription`, filters and `isCloudEvent` helpers are also exported for custom services.
+
+```jsonc title="webda.config.jsonc"
+{
+  "services": {
+    "CloudEventsReceiver": {
+      "type": "Webda/CloudEventsReceiver",
+      "url": "/cloudevents",
+      "strict": false,
+      "filters": [{ "prefix": { "type": "com.acme." } }],
+      "dedupe": true
+    },
+    "Events": {
+      "type": "Webda/KnativeBrokerPubSub",
+      "namespace": "apps",
+      "broker": "default",
+      "receiver": "CloudEventsReceiver"
+    }
+  }
+}
+```
+
+### `Webda/CloudEventsReceiver`
+
+A `POST` route receiving CloudEvents in the binary (`ce-*` headers), structured (`application/cloudevents+json`) and batch (`application/cloudevents-batch+json`) HTTP content modes, dispatched to handlers registered by exact `type` or predicate.
+
+| Parameter    | Default        | Description                                                                                                                          |
+| ------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `url`        | `/cloudevents` | Path of the route                                                                                                                    |
+| `strict`     | `false`        | `specversion` must be `1.0`, required attributes non-empty, `time` RFC3339, plus the SDK schema (`dataschema` URI, ...)              |
+| `filters`    | —              | CloudEvents Subscriptions filters (`exact`, `prefix`, `suffix`, `all`, `any`, `sql`), non-matching events are acknowledged unhandled |
+| `dedupe`     | `false`        | Acknowledge an event already handled with the same `source` and `id` (in-memory, per replica)                                        |
+| `dedupeTtl`  | `3600000`      | Milliseconds an entry is remembered                                                                                                  |
+| `dedupeSize` | `10000`        | Entries kept, the oldest are evicted                                                                                                 |
+
+Response contract: `202` acknowledges (`200` with the reply CloudEvent when a handler returns one), `400` refuses a malformed or invalid event (no retry), `500` when a handler throws (the sender retries; a thrown `WebdaError.HttpError` keeps its status). Delivery is at-least-once: keep the handlers idempotent. The `CloudEvents.Received`, `CloudEvents.Handled` and `CloudEvents.Failed` events are emitted around the dispatch.
+
+### `Webda/KnativeBrokerPubSub`
+
+A `PubSubService<CloudEvent>` on a Knative Eventing Broker: `sendMessage` posts the event to `brokerUrl` (`http://broker-ingress.knative-eventing.svc.cluster.local/<namespace>/<broker>`, with `headers` and `timeout`) and fails on a non-2xx answer; `consume` registers on the `receiver` (`CloudEventsReceiver`) since Knative pushes through a `Trigger` (see `Webda/KnativeDeployer` `triggers`); `size()` is unsupported and returns 0.
 
 ## Usage
 
 ```typescript
-import { isCloudEvent } from "@webda/cloudevents";
+import {
+  CloudEventHandler,
+  CloudEventsReceiver,
+  isCloudEvent,
+  KnativeBrokerPubSub,
+  Subscription
+} from "@webda/cloudevents";
 import { CloudEvent, emitterFor, httpTransport } from "cloudevents";
-import { Subscription } from "@webda/cloudevents";
+
+// Handle a type on any service: discovered by the receiver when it initializes
+class Orders extends Service {
+  @CloudEventHandler("com.acme.order.created")
+  async onCreated(event: CloudEvent<Order>) {
+    // A returned CloudEvent is the reply, a thrown error answers 500 (retried)
+  }
+}
+
+// Or register at runtime, by type or predicate; the returned function unsubscribes
+useService<CloudEventsReceiver>("CloudEventsReceiver").subscribe(
+  event => event.type.startsWith("com.acme."),
+  async event => {}
+);
+
+// Publish to the Knative Broker
+await useService<KnativeBrokerPubSub>("Events").sendMessage(
+  new CloudEvent({ type: "com.acme.order.created", source: "/orders", data: { id } })
+);
 
 // Validate an incoming payload
 const body = await ctx.getRequestBody();

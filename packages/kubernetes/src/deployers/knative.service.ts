@@ -12,7 +12,7 @@ import {
 } from "@webda/core";
 import { FileUtils, YAMLUtils } from "@webda/utils";
 import { useLog, useOutput } from "@webda/workout";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { getKubernetesApiClient, type K8sConfiguration, type KubernetesParameters } from "../utils/client.js";
 
@@ -68,6 +68,62 @@ export interface KnativeResources {
    * Requested resources, like `{ "cpu": "100m", "memory": "128Mi" }`
    */
   requests?: Record<string, string>;
+}
+
+/**
+ * A Knative Eventing Trigger delivering the events of a Broker to the application
+ */
+export interface KnativeTrigger {
+  /**
+   * Name of the Trigger, `<service>-<index>` by default, sanitized to a DNS-1123 label
+   */
+  name?: string;
+  /**
+   * Broker the Trigger subscribes to
+   *
+   * @default "default"
+   */
+  broker?: string;
+  /**
+   * Attributes the events must have, exact match: `{ "type": "com.acme.order.created" }`
+   *
+   * Every event of the Broker is delivered when unset.
+   */
+  filter?: Record<string, string>;
+  /**
+   * The `spec.filters` of the Trigger (`exact`, `prefix`, `suffix`, `all`, `any`, `not`, `cesql`), passed through
+   *
+   * Needs the `new-trigger-filters` feature of Knative Eventing.
+   */
+  filters?: Record<string, unknown>[];
+  /**
+   * Path of the `Webda/CloudEventsReceiver` route the events are delivered to
+   *
+   * @default "/cloudevents"
+   */
+  path?: string;
+}
+
+/**
+ * An `eventing.knative.dev/v1` Trigger
+ */
+export interface KnativeTriggerManifest {
+  apiVersion: "eventing.knative.dev/v1";
+  kind: "Trigger";
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: Record<string, string>;
+    [key: string]: any;
+  };
+  spec: {
+    broker: string;
+    filter?: { attributes: Record<string, string> };
+    filters?: Record<string, unknown>[];
+    subscriber: { ref: { apiVersion: string; kind: string; name: string }; uri?: string };
+    [key: string]: any;
+  };
+  [key: string]: any;
 }
 
 /**
@@ -280,6 +336,16 @@ export class KnativeDeployerParameters extends ServiceParameters implements Kube
    */
   template?: string | Record<string, any>;
   /**
+   * Knative Eventing Triggers delivering the events of a Broker to the application
+   *
+   * Each one becomes an `eventing.knative.dev/v1` Trigger whose subscriber is the Service on `path`, the route
+   * of a `Webda/CloudEventsReceiver`. `knative manifest` prints them after the Service, `deploy` applies them once
+   * the Service is Ready and `knative delete` removes them. Dropped on Cloud Run (use Eventarc).
+   *
+   * @default []
+   */
+  triggers: KnativeTrigger[];
+  /**
    * File the manifest is written to, relative to the application
    *
    * `knative manifest` writes it instead of printing it, `deploy` writes it before applying it.
@@ -311,6 +377,7 @@ export class KnativeDeployerParameters extends ServiceParameters implements Kube
     this.visibility ??= "public";
     this.annotations ??= {};
     this.labels ??= {};
+    this.triggers ??= [];
     this.readyTimeout ??= 300;
     return this;
   }
@@ -475,9 +542,65 @@ export function buildKnativeService(
 }
 
 /**
- * What identifies a Service on the cluster
+ * Build the `eventing.knative.dev/v1` Triggers of resolved parameters
+ *
+ * Pure like {@link buildKnativeService}. The subscriber of every Trigger is the Service, on the `path` of the
+ * receiver.
+ *
+ * @param params - the parameters, with their templates resolved
+ * @param service - the Service the Triggers deliver to
+ * @param warn - receives the Triggers dropped for the platform
+ * @returns the manifests, none on Cloud Run
  */
-export type KnativeServiceReference = Pick<KnativeServiceManifest, "apiVersion" | "kind"> & {
+export function buildKnativeTriggers(
+  params: KnativeDeployerParameters,
+  service: KnativeServiceManifest,
+  warn: (message: string) => void = () => {}
+): KnativeTriggerManifest[] {
+  if (!params.triggers.length) {
+    return [];
+  }
+  if (params.platform === "cloudrun") {
+    warn("Cloud Run has no Knative Eventing: 'triggers' are dropped, use Eventarc");
+    return [];
+  }
+  const { name, namespace } = service.metadata;
+  return params.triggers.map((trigger, index) => {
+    const spec: KnativeTriggerManifest["spec"] = {
+      broker: trigger.broker ?? "default",
+      subscriber: {
+        ref: { apiVersion: service.apiVersion, kind: service.kind, name },
+        uri: trigger.path ?? "/cloudevents"
+      }
+    };
+    if (trigger.filter && Object.keys(trigger.filter).length) {
+      spec.filter = { attributes: trigger.filter };
+    }
+    if (trigger.filters?.length) {
+      spec.filters = trigger.filters;
+    }
+    return {
+      apiVersion: "eventing.knative.dev/v1",
+      kind: "Trigger",
+      metadata: {
+        name: toDns1123Label(trigger.name ?? `${name}-${index}`),
+        ...(namespace ? { namespace } : {}),
+        labels: { "app.kubernetes.io/managed-by": "webda" }
+      },
+      spec
+    };
+  });
+}
+
+/**
+ * A manifest the deployer manages: the Service, or a Trigger
+ */
+export type KnativeManifest = KnativeServiceManifest | KnativeTriggerManifest;
+
+/**
+ * What identifies a Service or a Trigger on the cluster
+ */
+export type KnativeServiceReference = Pick<KnativeManifest, "apiVersion" | "kind"> & {
   metadata: { name: string; namespace?: string };
 };
 
@@ -571,35 +694,66 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
   }
 
   /**
-   * Write the manifest to a file
+   * Build the Trigger manifests of the `triggers` parameter
    *
-   * @param manifest - the manifest
+   * @param service - the Service they deliver to, built from the parameters by default
+   * @returns the manifests
+   */
+  getTriggers(service: KnativeServiceManifest = this.getManifest()): KnativeTriggerManifest[] {
+    return buildKnativeTriggers(this.getResolvedParameters(), service, message => this.log("WARN", message));
+  }
+
+  /**
+   * The Service and its Triggers
+   *
+   * @param image - the image to deploy, the `image` parameter by default
+   * @returns the Service first, then the Triggers
+   */
+  getManifests(image?: string): KnativeManifest[] {
+    const service = this.getManifest(image);
+    return [service, ...this.getTriggers(service)];
+  }
+
+  /**
+   * Serialize manifests as a multi-document YAML
+   *
+   * @param manifests - the manifests
+   * @returns the YAML, one document per manifest
+   */
+  static toYaml(manifests: KnativeManifest[]): string {
+    return manifests.map(manifest => YAMLUtils.stringify(manifest).replace(/\n*$/, "\n")).join("---\n");
+  }
+
+  /**
+   * Write the manifests to a file
+   *
+   * @param manifests - the manifests
    * @param output - the file, relative to the application
    * @returns the absolute path
    */
-  protected writeManifest(manifest: KnativeServiceManifest, output: string): string {
+  protected writeManifest(manifests: KnativeManifest[], output: string): string {
     const path = this.resolvePath(output);
     mkdirSync(dirname(path), { recursive: true });
-    FileUtils.save(manifest, path, "yaml");
-    this.log("INFO", `Wrote the Knative Service manifest to ${path}`);
+    writeFileSync(path, KnativeDeployer.toYaml(manifests));
+    this.log("INFO", `Wrote the Knative manifest to ${path}`);
     return path;
   }
 
   /**
-   * Print the Service manifest, or write it to `output`, without touching the cluster
+   * Print the Service manifest and its Triggers, or write them to `output`, without touching the cluster
    *
    * Review it, or apply it yourself: `kubectl apply -f` on Knative, `gcloud run services replace` on Cloud Run.
    *
    * @param output - File to write the manifest to, the `output` parameter by default
-   * @returns the YAML manifest
+   * @returns the YAML manifest, one document per resource
    */
-  @Command("knative manifest", { description: "Print the Knative Service manifest of the application" })
+  @Command("knative manifest", { description: "Print the Knative Service and Trigger manifests of the application" })
   async manifest(output?: string): Promise<string> {
-    const manifest = this.getManifest();
-    const yaml = YAMLUtils.stringify(manifest);
+    const manifests = this.getManifests();
+    const yaml = KnativeDeployer.toYaml(manifests);
     const target = output ?? this.parameters.output;
     if (target) {
-      this.writeManifest(manifest, target);
+      this.writeManifest(manifests, target);
     } else {
       useOutput(yaml);
     }
@@ -617,9 +771,9 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
   }
 
   /**
-   * Header identifying the Service on the cluster
+   * Header identifying a Service or a Trigger on the cluster
    *
-   * @param manifest - the manifest, built from the parameters by default
+   * @param manifest - the manifest, the Service built from the parameters by default
    * @returns the apiVersion, kind, name and namespace
    */
   protected getReference(manifest: KnativeServiceReference = this.getManifest()): KnativeServiceReference {
@@ -631,14 +785,16 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
   }
 
   /**
-   * Read the Service from the cluster
+   * Read a Service or a Trigger from the cluster
    *
    * @param manifest - the manifest identifying it
-   * @returns the Service, undefined when it does not exist
+   * @returns the resource, undefined when it does not exist
    */
-  async read(manifest?: KnativeServiceReference): Promise<KnativeServiceManifest | undefined> {
+  async read<T extends KnativeManifest = KnativeServiceManifest>(
+    manifest?: KnativeServiceReference
+  ): Promise<T | undefined> {
     try {
-      return await this.getClient().read<KnativeServiceManifest>(this.getReference(manifest));
+      return await this.getClient().read<T>(this.getReference(manifest));
     } catch (err) {
       if (err instanceof k8s.ApiException && err.code === 404) {
         return undefined;
@@ -648,19 +804,19 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
   }
 
   /**
-   * Create the Service, or server-side apply it when it exists: the `webda` field manager owns the fields
+   * Create a Service or a Trigger, or server-side apply it when it exists: the `webda` field manager owns the fields
    *
    * @param manifest - the manifest
-   * @returns the Service as stored by the cluster
+   * @returns the resource as stored by the cluster
    */
-  async apply(manifest: KnativeServiceManifest): Promise<KnativeServiceManifest> {
+  async apply<T extends KnativeManifest>(manifest: T): Promise<T> {
     const client = this.getClient();
     const { name, namespace } = manifest.metadata;
     if (await this.read(manifest)) {
-      this.log("INFO", `Applying the Knative Service ${namespace}/${name}`);
+      this.log("INFO", `Applying the Knative ${manifest.kind} ${namespace}/${name}`);
       return client.patch(manifest, undefined, undefined, "webda", true, k8s.PatchStrategy.ServerSideApply);
     }
-    this.log("INFO", `Creating the Knative Service ${namespace}/${name}`);
+    this.log("INFO", `Creating the Knative ${manifest.kind} ${namespace}/${name}`);
     return client.create(manifest, undefined, undefined, "webda");
   }
 
@@ -703,8 +859,8 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
   }
 
   /**
-   * Push the image with the `containerDeployer` unit, then create or apply the Service and wait for it
-   * to be Ready
+   * Push the image with the `containerDeployer` unit, create or apply the Service, wait for it to be Ready,
+   * then apply its Triggers
    *
    * @returns the ready Service
    */
@@ -722,8 +878,9 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
       image = `${pusher.getResolvedParameters().image}@${digest}`;
     }
     const manifest = this.getManifest(image);
+    const triggers = this.getTriggers(manifest);
     if (this.parameters.output) {
-      this.writeManifest(manifest, this.parameters.output);
+      this.writeManifest([manifest, ...triggers], this.parameters.output);
     }
     const applied = await this.apply(manifest);
     const service = await this.waitReady(manifest, applied.metadata.generation);
@@ -732,6 +889,13 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
       `Knative Service ${manifest.metadata.name} is ready: ${service.status?.url ?? "no url"} ` +
         `(revision ${service.status?.latestReadyRevisionName ?? "unknown"})`
     );
+    for (const trigger of triggers) {
+      await this.apply(trigger);
+      useLog(
+        "INFO",
+        `Knative Trigger ${trigger.metadata.name} delivers ${trigger.spec.broker} to ${trigger.spec.subscriber.uri}`
+      );
+    }
     return service;
   }
 
@@ -769,16 +933,24 @@ export class KnativeDeployer<T extends KnativeDeployerParameters = KnativeDeploy
   }
 
   /**
-   * Delete the Service and its revisions
+   * Delete the Triggers, then the Service and its revisions
    *
    * @param yes - Confirm the deletion
    */
-  @Command("knative delete", { description: "Delete the Knative Service, requires --yes" })
+  @Command("knative delete", { description: "Delete the Knative Service and its Triggers, requires --yes" })
   async delete(yes: boolean = false): Promise<void> {
-    const reference = this.getReference();
+    const manifest = this.getManifest();
+    const reference = this.getReference(manifest);
     const { name, namespace } = reference.metadata;
     if (!yes) {
       throw new WebdaError.BadRequest(`Deleting the Knative Service ${namespace}/${name} requires --yes`);
+    }
+    for (const trigger of this.getTriggers(manifest)) {
+      if (!(await this.read(trigger))) {
+        continue;
+      }
+      await this.getClient().delete(this.getReference(trigger));
+      this.log("INFO", `Deleted the Knative Trigger ${namespace}/${trigger.metadata.name}`);
     }
     await this.getClient().delete(reference);
     this.log("INFO", `Deleted the Knative Service ${namespace}/${name}`);

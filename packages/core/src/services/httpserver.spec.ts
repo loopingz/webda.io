@@ -1554,10 +1554,12 @@ class HttpServerTest extends WebdaApplicationTest {
     const port = await this.startServer();
     const session = http2.connect(`http://127.0.0.1:${port}`);
     const closed = new Promise<void>(resolve => session.on("close", resolve));
-    const request = new Promise<void>((resolve, reject) => {
+    // The destroyed session closes the stream, or errors it first (Windows): both end it, and the promise must
+    // not reject before it is awaited (an unhandled rejection fails the run)
+    const request = new Promise<void>(resolve => {
       const req = session.request({ ":path": "/stream" });
       req.on("close", () => resolve());
-      req.on("error", () => reject(new Error("stream error")));
+      req.on("error", () => resolve());
       req.end();
     });
     while ((this.server as any).sessions.size === 0) {
@@ -1566,7 +1568,7 @@ class HttpServerTest extends WebdaApplicationTest {
     const started = Date.now();
     await this.server.stop();
     assert.ok(Date.now() - started < 4000, "stopped without waiting for the stream");
-    await Promise.allSettled([request]);
+    await request;
     await closed;
     while ((this.server as any).sessions.size > 0) {
       await new Promise(resolve => setTimeout(resolve, 5));

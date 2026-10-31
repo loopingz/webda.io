@@ -71,10 +71,10 @@ Nothing specific is needed in the application:
   `503 {"status":"starting"}` before, and `503 {"status":"stopping"}` while the server drains. The route is
   answered before the routing and needs no authentication. Set `healthPath` to `""` for a TCP probe instead.
 - **Graceful shutdown**: on `SIGTERM`, the CLI stops the `HttpServer`: it refuses new connections, answers
-  `503` on the health path and waits for the in-flight requests up to `shutdownGracePeriod` (10s), then
-  closes the remaining connections and stops the services. Keep `shutdownGracePeriod` below the revision
-  `timeoutSeconds` (Knative uses it as the pod termination grace period) and expect requests longer than the
-  grace period to be cut.
+  `503` on the health path and waits for the requests in the web pipeline up to `shutdownGracePeriod` (10s),
+  then closes every connection (idle keep-alive, streams kept open after their handler, gRPC streams) and
+  stops the services. Keep `shutdownGracePeriod` below the revision `timeoutSeconds` (Knative uses it as the
+  pod termination grace period) and expect requests longer than the grace period to be cut.
 
 ```json title="webda.config.json (optional, the environment enables the same)"
 {

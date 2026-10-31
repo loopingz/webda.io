@@ -75,7 +75,11 @@ const { recoveryCode: resetCode } = await vault.reset({
   device: passcodeKek,
   deviceName: "Phone"
 });
-// On another device, cut off by the reset: trust the new key explicitly, then add it again with the new escrow
+// On another device, cut off by the reset (its unlock fails with KeyringPinError): show both fingerprints, let the
+// user compare the served one with the device that did the reset, then trust the new key explicitly and add the
+// device again with the new escrow. Never call forgetPin automatically: a served fingerprint the user does not
+// recognise is a substituted key
+console.log(await otherVault.pinnedFingerprint(), await otherVault.servedFingerprint());
 await otherVault.forgetPin();
 await otherVault.unlockWithEscrow({ recoveryCode: resetCode! }, { device: passcodeKek, deviceName: "Laptop" });
 
@@ -109,7 +113,11 @@ imports the sources of this package (`../../../sealed-client/src/index.js`), so 
   escrow. While unlocked, `changePassword` and `setRecoveryCode` refuse to write (`KeyringPinError`) once the keyring
   changed on another device: unlock again.
 - `reset` is the explicit way out when the keys are lost; it re-pins the device running it. Other devices keep their
-  pin and refuse the new key until the user calls `forgetPin` on them.
+  pin and refuse the new key until the user calls `forgetPin` on them, after comparing `servedFingerprint()` with the
+  device that did the reset (`pinnedFingerprint()` is the key they still trust).
+- Every escrow records the active key id it was made for (`kid`): `User.Keys.SetEscrow`, `Setup`, `Rotate` and the
+  password change of `@webda/auth` refuse (412) an escrow made for another key than the active one, so a device that
+  missed a rotation with a new keyring key cannot store an escrow of a keyring key that opens nothing.
 - The password escrow does not follow the login password by itself: the host calls `changePassword` together with the
   login password change.
 - When the device registration fails at enrollment (e.g. the session is no longer fresh), the keys and the device blob

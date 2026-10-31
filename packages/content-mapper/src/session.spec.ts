@@ -92,6 +92,25 @@ describe("WarmSession", () => {
     }
   });
 
+  it("reports generator diagnostics without the severity the protocol does not carry", () => {
+    const session = new WarmSession({
+      configFile,
+      cwd: fixture,
+      storageModule: "./runtime.js",
+      qlModule: "./runtime.js"
+    });
+    try {
+      const sealedModel = join(fixture, "src", "sealed.model.ts");
+      const out = session.transform(sealedModel, readFileSync(sealedModel, "utf8"));
+      const warning = out.diagnostics.find(d => d.code === 9004);
+      expect(warning).toBeDefined();
+      expect(warning).not.toHaveProperty("severity");
+      expect(Object.keys(warning!).sort()).toEqual(["code", "length", "messageText", "start"]);
+    } finally {
+      session.dispose();
+    }
+  });
+
   it("is idempotent, so generated source can be re-processed safely", () => {
     const session = new WarmSession({
       configFile,

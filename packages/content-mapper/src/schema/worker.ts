@@ -25,10 +25,10 @@
  * `{ "id": "m", "kind": "module" }` answers with
  * `{ module, namingViolations, errors }` — see `../module.ts`.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { formatDiagnostics } from "typescript/unstable/sync";
-import { runTwoPass } from "../twopass.ts";
+import { runTwoPass, type FileDiagnostic } from "../twopass.ts";
 import { ModifierFlags } from "typescript/unstable/ast";
 import type { ClassDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
@@ -187,6 +187,28 @@ export interface EmitReport {
   written: number;
   /** Edits per generator, for the build log. */
   editCounts: Record<string, number>;
+  /** Generator warnings against the authored sources, formatted as `tsc` prints diagnostics; they do not fail the build. */
+  warnings: string[];
+}
+
+/**
+ * Format a generator diagnostic as `tsc` prints one: `file(line,col): warning WQL9004: message`
+ * @param diagnostic - the diagnostic, with the file it was reported against
+ * @param cwd - directory the file path is made relative to
+ * @returns the line
+ */
+export function formatGeneratedDiagnostic(diagnostic: FileDiagnostic, cwd: string): string {
+  let text = "";
+  try {
+    text = readFileSync(diagnostic.fileName, "utf8");
+  } catch {
+    // A file the build cannot read back: reported at its first line
+  }
+  const before = text.slice(0, diagnostic.start);
+  const line = before.split("\n").length;
+  const column = diagnostic.start - (before.lastIndexOf("\n") + 1) + 1;
+  const severity = diagnostic.severity ?? "error";
+  return `${relative(cwd, diagnostic.fileName)}(${line},${column}): ${severity} WQL${diagnostic.code}: ${diagnostic.messageText}`;
 }
 
 /**
@@ -199,10 +221,17 @@ export interface EmitReport {
  * wrote files even when `getPreEmitDiagnostics` failed.
  * @param configFile - absolute tsconfig path
  * @param rootDir - source root
+ * @param options - module specifiers of the generated imports (the `@webda/models` and `@webda/ql` defaults otherwise)
+ * @param options.storageModule - module providing `WEBDA_STORAGE`
+ * @param options.qlModule - module providing the WebdaQL `escape` helper
  * @returns diagnostics and what was written
  */
-export function emitProject(configFile: string, rootDir: string): EmitReport {
-  const result = runTwoPass({ configFile, rootDir, emit: true });
+export function emitProject(
+  configFile: string,
+  rootDir: string,
+  options: { storageModule?: string; qlModule?: string } = {}
+): EmitReport {
+  const result = runTwoPass({ configFile, rootDir, emit: true, ...options });
   const conflicts = result.conflicts.map(c => `${c.fileName}: overlapping edits from ${c.a.source} and ${c.b.source}`);
   const diagnostics =
     formatDiagnostics(result.diagnostics, {
@@ -219,7 +248,11 @@ export function emitProject(configFile: string, rootDir: string): EmitReport {
       written++;
     }
   }
-  return { diagnostics, diagnosticCount, written, editCounts: result.editCounts };
+  // What the generators found in the authored sources: the editor shows all of it, the build logs the warnings
+  const warnings = result.generated
+    .filter(d => d.severity === "warning")
+    .map(d => formatGeneratedDiagnostic(d, dirname(configFile)));
+  return { diagnostics, diagnosticCount, written, editCounts: result.editCounts, warnings };
 }
 
 /**

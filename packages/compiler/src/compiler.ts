@@ -351,6 +351,8 @@ export class Compiler {
       this.project.emit("compilationError");
       return false;
     }
+    // Generator warnings (a WebdaQL query on a sealed field) do not fail the build
+    (result.emit.warnings ?? []).forEach(line => this.project.log("WARN", line));
 
     const compilation = Date.now() - started;
     const moduleStart = Date.now();

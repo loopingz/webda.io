@@ -2,9 +2,14 @@ import { QueryValidator } from "@webda/ql";
 import { clone, type LocalRecord } from "./record.js";
 import type { OfflineClient } from "./client.js";
 import type { ChangeEvent } from "./client.js";
+import { assertSealedWrites, openSealed } from "./sealed.js";
 
 /**
  * Local, offline-first access to the objects of one model
+ *
+ * With the `sealed` option of the client, the sealed fields of the objects returned by `get` and `query` are opened
+ * with the vault ({@link Collection.open}): the plaintext stays in memory, the local storage and the change events
+ * hold the envelope. Writes must store envelopes (`KeyVault.seal`): a plaintext in a sealed field is refused.
  */
 export class Collection<T = any> {
   /**
@@ -30,6 +35,7 @@ export class Collection<T = any> {
    * @returns the created object
    */
   async create(data: Partial<T>): Promise<T> {
+    assertSealedWrites(this.client.options.sealed, this.model, data);
     const fields = this.client.pkFields(this.model);
     const object: any = clone(data);
     if (fields.length === 1 && fields[0] === "uuid" && !object.uuid) {
@@ -65,6 +71,7 @@ export class Collection<T = any> {
    * @returns the updated object
    */
   async patch(key: unknown, data: Partial<T>): Promise<T> {
+    assertSealedWrites(this.client.options.sealed, this.model, data);
     const record = await this.client.storage.getRecord(this.id(key));
     if (!record || record.current === null) {
       throw new Error(`Object ${this.id(key)} not found`);
@@ -105,24 +112,39 @@ export class Collection<T = any> {
   }
 
   /**
-   * @param key - the object key
-   * @returns the local value, undefined when missing or deleted
+   * Open the sealed fields of a stored object with the vault of the client `sealed` option, in memory only: the
+   * object is a copy of the record. Without the option, or while the vault is locked, the envelopes are kept (see
+   * `isSealed`); a value that does not open is kept too and its error emitted as an `error` event of the client
+   * @param object - copy of the stored object
+   * @returns the object, its sealed fields opened
    */
-  async get(key: unknown): Promise<T | undefined> {
-    const record = await this.client.storage.getRecord(this.id(key));
-    return record?.current ?? undefined;
+  protected async open(object: T): Promise<T> {
+    const { sealed } = this.client.options;
+    if (!sealed) return object;
+    return openSealed(sealed, this.model, this.client.pkFields(this.model), object, error => this.client.fail(error));
   }
 
   /**
-   * Filter the local objects with a WebdaQL expression
+   * @param key - the object key
+   * @returns the local value (sealed fields opened), undefined when missing or deleted
+   */
+  async get(key: unknown): Promise<T | undefined> {
+    const record = await this.client.storage.getRecord(this.id(key));
+    return record?.current ? this.open(clone(record.current)) : undefined;
+  }
+
+  /**
+   * Filter the local objects with a WebdaQL expression: it is evaluated on the stored objects, so a sealed field never
+   * matches; the returned objects have their sealed fields opened
    * @param filter - the filter, every object when empty
    * @returns the matching objects
    */
   async query(filter: string = ""): Promise<T[]> {
     const validator = new QueryValidator(filter);
-    return (await this.client.storage.scan(this.model))
-      .filter(record => record.current !== null && validator.eval(record.current))
-      .map(record => record.current);
+    const matching = (await this.client.storage.scan(this.model)).filter(
+      record => record.current !== null && validator.eval(record.current)
+    );
+    return Promise.all(matching.map(record => this.open(clone(record.current))));
   }
 
   /**

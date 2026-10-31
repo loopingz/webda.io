@@ -9,6 +9,7 @@ export * from "./storage/indexeddb.js";
 export * from "./emitter.js";
 export * from "./transport/transport.js";
 export * from "./collection.js";
+export * from "./sealed.js";
 export * from "./client.js";
 export * from "./transport/http.js";
 export * from "./sync.js";

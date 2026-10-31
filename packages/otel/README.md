@@ -81,7 +81,7 @@ only in these cases:
 | Request | `traceparent` | `baggage` | Span `session.id` |
 |---|---|---|---|
 | From a `trustedTraceSources` address | honored (sampled flag too) | honored, propagated | from baggage if present |
-| Valid, unexpired `X-Webda-Trace` token | honored (sampled flag too); none or invalid: a new root, always sampled | honored, propagated, `session.id` rewritten to the token session | token session |
+| Valid, unexpired `X-Webda-Trace` token | trace and parent ids honored, always recorded (an unsampled parent is treated as sampled); none or invalid: a new root, always recorded | honored, propagated, `session.id` rewritten to the token session | token session |
 | Anything else (including an invalid or expired token) | ignored: new root, `sampling` ratio | dropped | none |
 
 The client address is the one `HttpServer` resolves through its `trustedProxies`. `X-Webda-Trace` is never sent on

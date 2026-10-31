@@ -7,6 +7,7 @@ import {
   ROOT_CONTEXT,
   SpanKind,
   SpanStatusCode,
+  TraceFlags,
   context,
   createContextKey,
   isSpanContextValid,
@@ -151,7 +152,8 @@ export class OtelRequestTracer implements RequestTracer {
    * Decide how much of the incoming trace context to honor
    *
    * - `trusted`: the client address is in `trustedTraceSources`: `traceparent` and `baggage` are honored
-   * - `token`: a valid `X-Webda-Trace` token: `traceparent` and `baggage` are honored, `session.id` is the token `sid`
+   * - `token`: a valid `X-Webda-Trace` token: `traceparent` and `baggage` are honored, `session.id` is the token `sid`,
+   *   and the request is always recorded (an unsampled parent is treated as sampled)
    * - `ignore`: anything else, including an invalid or expired token: the incoming context is dropped
    * @param request - the request
    * @returns the mode, with the token session id for `token`
@@ -190,10 +192,14 @@ export class OtelRequestTracer implements RequestTracer {
         value: decision.sid
       });
       ctx = propagation.setBaggage(ctx, baggage);
-      // No usable parent: the token still asks for this request to be recorded
+      // A valid token always records the request
       const remote = trace.getSpanContext(ctx);
       if (!remote || !isSpanContextValid(remote)) {
+        // No usable parent: sample the new root
         ctx = ctx.setValue(FORCE_SAMPLING, true);
+      } else if (!(remote.traceFlags & TraceFlags.SAMPLED)) {
+        // Unsampled parent: keep its trace and span ids, treat it as sampled so downstream is sampled too
+        ctx = trace.setSpanContext(ctx, { ...remote, traceFlags: remote.traceFlags | TraceFlags.SAMPLED });
       }
     }
     return ctx;

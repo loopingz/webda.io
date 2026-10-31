@@ -382,14 +382,24 @@ class RequestTracerTest extends WebdaApplicationTest {
 
   @test
   @timeout(30000)
-  async tokenHonorsAnUnsampledParent() {
-    this.createOtel();
+  async tokenRecordsAnUnsampledParent() {
+    this.createOtel({ trustedTraceSources: ["10.0.0.0/8"] });
+    const unsampled = `00-${TRACE_ID}-${SPAN_ID}-00`;
     const { spans, outgoing } = await this.run({
-      headers: { traceparent: `00-${TRACE_ID}-${SPAN_ID}-00`, "x-webda-trace": await this.token("s1") }
+      headers: { traceparent: unsampled, "x-webda-trace": await this.token("s1") }
     });
-    assert.strictEqual(spans.length, 0);
-    assert.match(String(outgoing.traceparent), new RegExp(`^00-${TRACE_ID}-[0-9a-f]{16}-00$`));
+    // A valid token always records: same trace and parent, sampled downstream
+    const root = this.span(spans, "POST /path");
+    assert.strictEqual(root.spanContext().traceId, TRACE_ID);
+    assert.strictEqual(root.parentSpanContext?.spanId, SPAN_ID);
+    assert.strictEqual(root.attributes["session.id"], "s1");
+    assert.match(String(outgoing.traceparent), new RegExp(`^00-${TRACE_ID}-[0-9a-f]{16}-01$`));
     assert.strictEqual(outgoing.baggage, "session.id=s1");
+    // A trusted source keeps the parent's decision
+    TestOtelService.exporter.reset();
+    const trusted = await this.run({ headers: { traceparent: unsampled }, clientIp: "10.0.0.1" });
+    assert.strictEqual(trusted.spans.length, 0);
+    assert.match(String(trusted.outgoing.traceparent), new RegExp(`^00-${TRACE_ID}-[0-9a-f]{16}-00$`));
   }
 
   @test

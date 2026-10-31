@@ -403,6 +403,8 @@ class RelationIntegrityTest extends WebdaApplicationTest {
   @test
   async indexEdgeCases() {
     const service: any = this.integrity;
+    // An entry of the application models can be undefined (a model that failed to load): skipped
+    service.buildIndex({ ...useApplication().getModels(), [`${NS}/RiMissing`]: undefined });
     assert.deepStrictEqual(service.dependentsOf("Nope/Model"), []);
     // A company cascades to its projects through the parent and the mapped relation, once
     assert.deepStrictEqual(

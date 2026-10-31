@@ -7,7 +7,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
-import { HttpContext, WebdaError, useRouter, useService } from "@webda/core";
+import {
+  FeatureFlagProvider,
+  HttpContext,
+  WebdaError,
+  registerFeatureFlagProvider,
+  unregisterFeatureFlagProvider,
+  useRouter,
+  useService
+} from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
@@ -93,6 +101,27 @@ class GrpcLiveTest extends WebdaApplicationTest {
       client.Echo({ text: "hi" }, metadata, (err: Error, res: any) => (err ? reject(err) : resolve(res)))
     );
     assert.deepStrictEqual(out, { text: "hi", authorization: "Bearer u1" });
+  }
+
+  @test
+  async aDisabledOperationIsNotFound() {
+    const client = await this.connect();
+    const calls = fixtureState.echoCalls;
+    const err: any = await new Promise(resolve => client.Hidden({ text: "hi" }, (e: Error) => resolve(e)));
+    assert.strictEqual(err.code, grpc.status.NOT_FOUND);
+    assert.match(err.details, /Fixture.Hidden Unknown/);
+    assert.strictEqual(fixtureState.echoCalls, calls);
+    // The same call once a provider turns the flag on
+    const provider: FeatureFlagProvider = { isEnabled: flag => (flag === "grpc-hidden" ? true : undefined) };
+    registerFeatureFlagProvider(provider);
+    try {
+      const out = await new Promise<any>((resolve, reject) =>
+        client.Hidden({ text: "hi" }, (e: Error, res: any) => (e ? reject(e) : resolve(res)))
+      );
+      assert.strictEqual(out.text, "hi");
+    } finally {
+      unregisterFeatureFlagProvider(provider);
+    }
   }
 
   @test

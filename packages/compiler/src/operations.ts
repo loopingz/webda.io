@@ -15,6 +15,7 @@ export interface OperationEntry {
   input: string;
   output: string;
   rest?: { method: string; path: string; body?: string };
+  featureFlag?: string | true;
 }
 
 /**
@@ -153,6 +154,9 @@ function processModelOperations(
       mod.schemas?.[inputSchema],
       actions[action].global ? [] : pkFields
     );
+    if (actions[action].featureFlag !== undefined) {
+      entry.featureFlag = actions[action].featureFlag;
+    }
     addOperation(result, id, entry);
   }
 
@@ -174,7 +178,8 @@ function processModelOperations(
       addOperation(result, `${shortId}.${capitalize(relation.attribute)}.${capitalize(action)}`, {
         input: request,
         output: mod.schemas?.[output] ? output : "void",
-        rest: actionRest({ ...metadata, rest: { ...metadata.rest, path: suffix } }, action, input, pkFields)
+        rest: actionRest({ ...metadata, rest: { ...metadata.rest, path: suffix } }, action, input, pkFields),
+        ...(metadata.featureFlag !== undefined ? { featureFlag: metadata.featureFlag } : {})
       });
     }
   }

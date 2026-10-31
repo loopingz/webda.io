@@ -6,6 +6,26 @@ import { WebdaModule } from "./definition.js";
 @suite
 class OperationsTest {
   @test
+  carriesFeatureFlagsOfModelAndBehaviorActions() {
+    const mod = {
+      models: {
+        "App/Task": {
+          Relations: { behaviors: [{ attribute: "approval", behavior: "App/Approval" }] },
+          Actions: { archive: { featureFlag: "archive-v2" }, export: { global: true, featureFlag: true }, plain: {} }
+        }
+      },
+      behaviors: { "App/Approval": { Actions: { set: { featureFlag: "approvals" }, clear: {} } } },
+      schemas: {}
+    } as any as WebdaModule;
+    const result = generateOperations(mod);
+    assert.strictEqual(result.operations["Task.Archive"].featureFlag, "archive-v2");
+    assert.strictEqual(result.operations["Task.Export"].featureFlag, true);
+    assert.strictEqual(result.operations["Task.Plain"].featureFlag, undefined);
+    assert.strictEqual(result.operations["Task.Approval.Set"].featureFlag, "approvals");
+    assert.strictEqual(result.operations["Task.Approval.Clear"].featureFlag, undefined);
+  }
+
+  @test
   exportsDefaultQueriesAndBehaviorRouteVariants() {
     const mod = {
       models: {

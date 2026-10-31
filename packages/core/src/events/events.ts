@@ -57,6 +57,11 @@ export type CoreEvents = {
     /** Object the operation targeted, when it has one */
     subject?: OperationSubject;
   };
+  "Webda.OperationDisabled": {
+    context: OperationContext;
+    operationId: string;
+    flag: string;
+  };
   "Webda.BeforeOperation": {
     context: OperationContext;
     operationId: string;

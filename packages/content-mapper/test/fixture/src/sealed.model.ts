@@ -32,11 +32,28 @@ export class SealedNote extends UuidModel {
   }
 }
 
-/** A model without permission query. */
+/** A model whose permission query is not static: not a permission query. */
 export class PlainNote extends UuidModel {
   title: string = "";
-  static getPermissionQuery(): null {
-    return null;
+  content: SealedField<string>;
+  getPermissionQuery(): { partial: boolean; query: string } {
+    return { partial: false, query: "content = 'instance'" };
+  }
+}
+
+/** A model without sealed fields: nothing to warn about in its permission query. */
+export class OpenNote extends UuidModel {
+  title: string = "";
+  static getPermissionQuery(): { partial: boolean; query: string } {
+    return { partial: false, query: "title = 'open'" };
+  }
+}
+
+/** A model without a name: not a model. */
+export default class {
+  content: SealedField<string>;
+  static getPermissionQuery(): { partial: boolean; query: string } {
+    return { partial: false, query: "content = 'anonymous'" };
   }
 }
 

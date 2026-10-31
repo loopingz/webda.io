@@ -132,13 +132,15 @@ function queryableAttributes(ctx: AnalysisContext, type: any): string[] {
  * @returns property names
  */
 function sealedAttributes(ctx: AnalysisContext, type: any): string[] {
-  return (type?.getProperties?.() ?? [])
+  return type
+    .getProperties()
     .filter((property: any) => {
-      const symbol = ctx.checker.getTypeOfSymbol(property)?.getSymbol?.();
+      // A primitive type has no symbol
+      const symbol = ctx.checker.getTypeOfSymbol(property).getSymbol();
       return symbol
         ?.getJsDocTags(ctx.checker)
         .some(
-          (tag: any) => tag.name === "WebdaBehavior" && (tag.text ?? "").trim().split(/\s+/)[0] === SEALED_BEHAVIOR
+          (tag: any) => tag.name === "WebdaBehavior" && String(tag.text).trim().split(/\s+/)[0] === SEALED_BEHAVIOR
         );
     })
     .map((property: any) => property.name as string);
@@ -288,12 +290,13 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
          * @param cls - the class declaration
          */
         function inspectPermissionQueries(cls: any): void {
-          const method = (cls.members ?? []).find(
+          const method = cls.members.find(
             (member: any) =>
               is.isMethodDeclaration(member) &&
-              (member.name as any)?.text === "getPermissionQuery" &&
+              (member.name as any).text === "getPermissionQuery" &&
               (member.modifiers ?? []).some((modifier: any) => modifier.kind === SyntaxKind.StaticKeyword)
           );
+          // An anonymous class (`export default class`) is not a model
           const symbol = cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
           if (!method?.body || !symbol) return;
           const target = ctx.checker.getDeclaredTypeOfSymbol(symbol);
@@ -309,17 +312,17 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
                 sealed
               );
             }
-            node.forEachChild?.((child: any) => {
+            node.forEachChild((child: any) => {
               literals(child);
               return undefined;
             });
           };
           const queries = (node: any): void => {
-            if (is.isPropertyAssignment(node) && (node.name as any)?.text === "query") {
+            if (is.isPropertyAssignment(node) && (node.name as any).text === "query") {
               literals(node.initializer);
               return;
             }
-            node.forEachChild?.((child: any) => {
+            node.forEachChild((child: any) => {
               queries(child);
               return undefined;
             });

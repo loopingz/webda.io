@@ -96,6 +96,14 @@ interface PendingOwned {
 }
 
 /**
+ * @param value - a link array or map, hydrated or plain
+ * @returns its plain form
+ */
+function plainOf(value: any): any {
+  return typeof value.toJSON === "function" ? value.toJSON() : value;
+}
+
+/**
  * Applies the delete policies of the relations (`DeletePolicy` of `@webda/models`)
  *
  * The policies come from the compiled `Relations` of every model: `parent` (`CASCADE` by default), `links` with an
@@ -176,13 +184,7 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
     if (!this.parameters.enabled) {
       return;
     }
-    let models: Record<string, ModelClass>;
-    try {
-      models = useApplication().getModels() as any;
-    } catch {
-      // Standalone service, outside of an application
-      return;
-    }
+    const models: Record<string, ModelClass> = useApplication().getModels() as any;
     this.buildIndex(models);
     for (const [identifier, model] of Object.entries(models)) {
       if (!model || (!this.dependentsOf(identifier).length && !this.ownedOf(identifier).length)) {
@@ -192,6 +194,7 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
       try {
         repository = useRepository(model);
       } catch (err) {
+        // A model without a store (no primary key): nothing emits its deletes
         this.log("TRACE", `No repository for ${identifier}: its delete policies are not applied`, err);
         continue;
       }
@@ -221,15 +224,16 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
       dependents.get(target)!.set(`${dependent.model}\0${dependent.attribute}`, dependent);
     };
     for (const [identifier, model] of Object.entries(models)) {
-      const metadata: any = (model as any)?.Metadata;
-      if (!metadata) continue;
+      // An entry of the application models can be undefined (a failed import)
+      if (!model) continue;
+      const metadata: any = (model as any).Metadata;
       lineage.set(identifier, [
         identifier,
-        ...(metadata.Ancestors ?? [])
-          .map((ancestor: any) => (typeof ancestor === "string" ? ancestor : ancestor?.Metadata?.Identifier))
-          .filter((ancestor: string | undefined) => ancestor)
+        ...metadata.Ancestors.map((ancestor: any) =>
+          typeof ancestor === "string" ? ancestor : ancestor.Metadata.Identifier
+        )
       ]);
-      const relations = metadata.Relations ?? {};
+      const relations = metadata.Relations;
       if (relations.parent) {
         add(relations.parent.model, {
           model: identifier,
@@ -240,10 +244,10 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
       }
       for (const link of relations.links ?? []) {
         if (link.ownership === "CONTAINS") {
-          const onDelete: DeletePolicy = link.onDelete ?? "CASCADE";
-          if (link.model && onDelete !== "NONE") {
+          // The policy of a Contains is always recorded
+          if (link.model && link.onDelete !== "NONE") {
             if (!owned.has(identifier)) owned.set(identifier, []);
-            owned.get(identifier)!.push({ attribute: link.attribute, model: link.model, type: link.type, onDelete });
+            owned.get(identifier)!.push({ ...link, model: link.model, onDelete: link.onDelete });
           }
           continue;
         }
@@ -254,7 +258,7 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
     }
     // ModelsMapped tagged @CascadeDelete: deleting the owner deletes the mapped models linking to it
     for (const [identifier, model] of Object.entries(models)) {
-      for (const map of (model as any)?.Metadata?.Relations?.maps ?? []) {
+      for (const map of (model as any)?.Metadata.Relations.maps ?? []) {
         if (!map.cascadeDelete || !map.model) continue;
         const mapped = (models[map.model] as any)?.Metadata?.Relations ?? {};
         const type: RelationIntegrityType =
@@ -321,11 +325,7 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
    * @returns its string form
    */
   protected uidOf(repository: Repository<any>, key: any): string {
-    try {
-      return repository.getUID(key);
-    } catch {
-      return String(key);
-    }
+    return repository.getUID(key);
   }
 
   /**
@@ -366,16 +366,12 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
     }
     const owned = this.ownedOfAll(identifiers);
     if (!owned.length) return;
-    let object: any;
-    try {
-      object = await repository.get(objectId);
-    } catch {
-      // Not found: nothing listed
-      return;
-    }
+    // Not found: nothing listed
+    const object: any = await repository.get(objectId).catch(() => undefined);
+    if (!object) return;
     const pending: PendingOwned[] = [];
     for (const relation of owned) {
-      const keys = this.keysOf(relation.model, object?.[relation.attribute], relation.type);
+      const keys = this.keysOf(relation.model, object[relation.attribute], relation.type);
       if (relation.onDelete === "RESTRICT") {
         const repo = this.repositoryOf(relation.model);
         for (const key of keys) {
@@ -430,12 +426,9 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
         if (!repo) continue;
         const objects: any[] = [];
         for (const key of keys) {
-          try {
-            const object = await repo.get(key);
-            if (object) objects.push(object);
-          } catch {
-            // Already gone
-          }
+          // Already gone: not listed
+          const object = await repo.get(key).catch(() => undefined);
+          if (object) objects.push(object);
         }
         await this.deleteAll(objects, context, errors);
       }
@@ -458,9 +451,9 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
    */
   protected repositoryOf(identifier: string): Repository<any> | undefined {
     try {
-      const model = useApplication().getModel(identifier);
-      return model ? useRepository(model as any) : undefined;
+      return useRepository(useApplication().getModel(identifier) as any);
     } catch {
+      // Unknown model, or a model without a store
       return undefined;
     }
   }
@@ -474,14 +467,8 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
    */
   protected keysOf(identifier: string, value: any, type: RelationIntegrityType): string[] {
     if (value === undefined || value === null) return [];
-    if (type === "LINKS_MAP") {
-      return Object.keys(typeof value.toJSON === "function" ? value.toJSON() : value);
-    }
-    if (type === "LINK" || type === "PARENT") {
-      return [this.keyOf(identifier, value)].filter(key => key !== undefined);
-    }
-    const items = typeof value[Symbol.iterator] === "function" ? Array.from(value) : [];
-    return items.map(item => this.keyOf(identifier, item)).filter(key => key !== undefined);
+    if (type === "LINKS_MAP") return Object.keys(plainOf(value));
+    return Array.from(value as Iterable<any>, item => this.keyOf(identifier, item)).filter(key => key !== undefined);
   }
 
   /**
@@ -490,18 +477,15 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
    * @returns its uid
    */
   protected keyOf(identifier: string, item: any): string | undefined {
-    if (item === undefined || item === null) return undefined;
     if (typeof item === "string" || typeof item === "number") return String(item);
-    const key = typeof item.getPrimaryKey === "function" ? item.getPrimaryKey() : item;
-    const repository = this.repositoryOf(identifier);
-    if (repository) {
-      try {
-        return repository.getUID(key);
-      } catch {
-        // Not a key of the model
-      }
+    try {
+      return this.repositoryOf(identifier)?.getUID(
+        typeof item?.getPrimaryKey === "function" ? item.getPrimaryKey() : item
+      );
+    } catch {
+      // Not a key of the model
+      return undefined;
     }
-    return typeof key === "object" ? undefined : String(key);
   }
 
   /**
@@ -535,7 +519,7 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
    */
   protected modelOf(object: any): { identifier: string; repository: Repository<any> } {
     const clazz = object.constructor;
-    return { identifier: clazz?.Metadata?.Identifier ?? clazz?.name, repository: useRepository(clazz) };
+    return { identifier: clazz.Metadata.Identifier, repository: useRepository(clazz) };
   }
 
   /**
@@ -559,11 +543,11 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
         const key = repository.getPrimaryKey(object);
         try {
           await repository.delete(key);
-        } catch (err) {
+        } catch (err: any) {
           // The object is deleted but its own cascade failed
-          if (err && typeof err === "object" && this.cascadeErrors.has(err)) throw err;
+          if (this.cascadeErrors.has(err)) throw err;
           // Deleted meanwhile: not a failure
-          if (err instanceof WebdaError.NotFound || !(await repository.exists(key).catch(() => true))) return;
+          if (!(await repository.exists(key))) return;
           throw err;
         }
       },
@@ -587,7 +571,7 @@ export class RelationIntegrity<T extends RelationIntegrityParameters = RelationI
     }
     const value = object[dependent.attribute];
     if (dependent.type === "LINKS_MAP") {
-      const map = { ...(typeof value?.toJSON === "function" ? value.toJSON() : value) };
+      const map = { ...plainOf(value) };
       delete map[uid];
       await repository.patch(key, { [dependent.attribute]: map } as any);
       return;

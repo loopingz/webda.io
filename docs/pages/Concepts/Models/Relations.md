@@ -10,7 +10,10 @@ These relation attributes are self-managed and should not be modified directly.
 The `ModelParent` is used to define a hierarchy between models.
 This attribute must be specified when creating a new model.
 
-If parent is deleted, all children are deleted (Cascading delete).
+If parent is deleted, all children are deleted (Cascading delete): the default delete policy of a parent relation,
+`@OnDelete RESTRICT` or `@OnDelete NONE` on the attribute changes it. A `ModelLink` does nothing when its target is
+deleted unless the attribute declares `@OnDelete CASCADE` or `@OnDelete SET_NULL`. See
+[Delete policies](../../Modules/models/Relationships.md#delete-policies).
 The REST routes are also cascading, and similar for GraphQL.
 
 You can still expose them as Root by adding `@Expose({root: true})`

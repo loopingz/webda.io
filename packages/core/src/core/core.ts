@@ -613,22 +613,16 @@ export class Core implements ICore {
       }
     };
     for (const [serviceName, { type, service, parameters }] of Object.entries(defaults)) {
-      let modda: Modda;
-      try {
-        modda = this.application.getModda(type);
-      } catch {
+      let modda: any = this.application.getModdas()[type];
+      if (!modda) {
         // The module of @webda/core is not loaded (a test application): the class itself
-        if (!Object.prototype.hasOwnProperty.call(service, "createConfiguration")) {
-          installConfigurationFactories(service, parameters);
-        }
         modda = service;
+        installConfigurationFactories(modda, parameters);
       }
-      const configured = Object.values(this.moddas).some(
-        m => m === modda || (m as any)?.prototype instanceof (modda as any)
-      );
+      const configured = Object.values(this.moddas).some(m => m === modda || (m as any)?.prototype instanceof modda);
       if (configured || this.configuration[serviceName]) continue;
       this.moddas[serviceName] = modda;
-      const filtered = ((modda as any).filterParameters || (p => p))({ ...this.applicationConfiguration.parameters });
+      const filtered = modda.filterParameters({ ...this.applicationConfiguration.parameters });
       filtered.type = type;
       this.configuration = { ...this.configuration, [serviceName]: Object.freeze(filtered) };
     }

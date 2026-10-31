@@ -55,6 +55,29 @@ class RiBoard extends UuidModel {
 class RiShelf extends UuidModel {
   pinned?: { uuid: string }[];
 }
+/** A model without a primary key: no store registers a repository for it */
+class RiAlien {
+  uuid?: string;
+  company?: string;
+}
+
+/**
+ * A repository whose store can fail: `iterate` throws, `delete` refuses a missing object
+ */
+class FlakyRepository extends EventRepository<any> {
+  failIterate = false;
+  failMissingDelete = false;
+
+  async *iterate(query: string, params?: any): AsyncGenerator<any, any, any> {
+    if (this.failIterate) throw new Error("store down");
+    yield* super.iterate(query, params);
+  }
+
+  async delete(uuid: any, conditionField?: any, condition?: any): Promise<void> {
+    if (this.failMissingDelete && !(await this.exists(uuid))) throw new Error(`${uuid} is gone`);
+    return super.delete(uuid, conditionField, condition);
+  }
+}
 
 const NS = "WebdaTest";
 const MODELS: [string, any, any][] = [
@@ -67,6 +90,29 @@ const MODELS: [string, any, any][] = [
           attribute: "staff",
           model: `${NS}/RiStaff`,
           targetLink: "employer",
+          targetAttributes: ["uuid"],
+          cascadeDelete: true
+        },
+        // Not cascading, without a model, to an unknown model, and through the parent attribute of the mapped model
+        {
+          attribute: "contractors",
+          model: `${NS}/RiStaff`,
+          targetLink: "employer",
+          targetAttributes: [],
+          cascadeDelete: false
+        },
+        { attribute: "ghosts", targetLink: "employer", targetAttributes: [], cascadeDelete: true },
+        {
+          attribute: "nobodies",
+          model: `${NS}/RiNobody`,
+          targetLink: "company",
+          targetAttributes: [],
+          cascadeDelete: true
+        },
+        {
+          attribute: "projects",
+          model: `${NS}/RiProject`,
+          targetLink: "company",
           targetAttributes: ["uuid"],
           cascadeDelete: true
         }
@@ -93,7 +139,9 @@ const MODELS: [string, any, any][] = [
         { attribute: "watchers", model: `${NS}/RiCompany`, type: "LINKS_SIMPLE_ARRAY", onDelete: "SET_NULL" },
         { attribute: "fan", model: `${NS}/RiCompany`, type: "LINK" },
         { attribute: "sponsors", model: `${NS}/RiCompany`, type: "LINKS_ARRAY", onDelete: "SET_NULL" },
-        { attribute: "byKey", model: `${NS}/RiCompany`, type: "LINKS_MAP", onDelete: "SET_NULL" }
+        { attribute: "byKey", model: `${NS}/RiCompany`, type: "LINKS_MAP", onDelete: "SET_NULL" },
+        // A link declared on a generic base: no model
+        { attribute: "ghost", type: "LINK", onDelete: "CASCADE" }
       ]
     }
   ],
@@ -106,7 +154,15 @@ const MODELS: [string, any, any][] = [
     RiBoard,
     {
       links: [
-        { attribute: "cards", model: `${NS}/RiCard`, type: "LINKS_ARRAY", onDelete: "CASCADE", ownership: "CONTAINS" }
+        { attribute: "cards", model: `${NS}/RiCard`, type: "LINKS_ARRAY", onDelete: "CASCADE", ownership: "CONTAINS" },
+        // A model of a dependency not loaded here: nothing to delete
+        {
+          attribute: "phantoms",
+          model: `${NS}/RiNobody`,
+          type: "LINKS_SIMPLE_ARRAY",
+          onDelete: "CASCADE",
+          ownership: "CONTAINS"
+        }
       ]
     }
   ],
@@ -115,14 +171,25 @@ const MODELS: [string, any, any][] = [
     RiShelf,
     {
       links: [
-        { attribute: "pinned", model: `${NS}/RiCard`, type: "LINKS_ARRAY", onDelete: "RESTRICT", ownership: "CONTAINS" }
+        {
+          attribute: "pinned",
+          model: `${NS}/RiCard`,
+          type: "LINKS_ARRAY",
+          onDelete: "RESTRICT",
+          ownership: "CONTAINS"
+        },
+        // Not applied: NONE, and no model
+        { attribute: "ignored", model: `${NS}/RiCard`, type: "LINKS_ARRAY", onDelete: "NONE", ownership: "CONTAINS" },
+        { attribute: "ghosts", type: "LINKS_ARRAY", onDelete: "CASCADE", ownership: "CONTAINS" }
       ]
     }
-  ]
+  ],
+  // Its own dependent: a policy applies to it, but no store emits its deletes
+  ["RiAlien", RiAlien, { parent: { attribute: "company", model: `${NS}/RiAlien` } }]
 ];
 
 for (const [name, clazz] of MODELS) {
-  clazz.registerSerializer(true, `${NS}/${name}`);
+  clazz.registerSerializer?.(true, `${NS}/${name}`);
 }
 
 /**
@@ -137,7 +204,7 @@ function addModels(app: Application): void {
       Ancestors: ancestors,
       Subclasses: clazz === RiProject ? [`${NS}/RiSubProject`] : [],
       Relations: relations,
-      PrimaryKey: ["uuid"],
+      PrimaryKey: clazz === RiAlien ? undefined : ["uuid"],
       Events: [],
       Schemas: {},
       Actions: {},
@@ -154,10 +221,12 @@ function addModels(app: Application): void {
 function registerRepositories(): void {
   const projects = new Map<string, string>();
   for (const [, clazz] of MODELS) {
+    if (clazz === RiAlien) continue;
     const storage = clazz === RiProject || clazz === RiSubProject ? projects : undefined;
+    const Repository = clazz === RiSession ? FlakyRepository : EventRepository;
     registerRepository(
       clazz,
-      new EventRepository(clazz, ["uuid"], new MemoryRepository(clazz, ["uuid"], undefined, storage)) as any
+      new Repository(clazz, ["uuid"], new MemoryRepository(clazz, ["uuid"], undefined, storage)) as any
     );
   }
 }
@@ -266,24 +335,22 @@ class RelationIntegrityTest extends WebdaApplicationTest {
     await RiProfile.create({
       uuid: "pr1",
       reviewer: "c1",
-      watchers: ["c0", "c1", "c2"],
+      // A missing or numeric item is not a key of the company
+      watchers: ["c0", "c1", null, 7, "c2"],
       fan: "c1",
-      sponsors: [
-        { uuid: "c1", since: 1 },
-        { uuid: "c2", since: 2 }
-      ],
+      sponsors: [{ uuid: "c1", since: 1 }, { uuid: "c2", since: 2 }, { since: 3 }],
       byKey: { c1: { since: 1 }, c2: { since: 2 } }
     } as any);
-    await RiProfile.create({ uuid: "pr2", reviewer: "c2", watchers: ["c2"] } as any);
+    await RiProfile.create({ uuid: "pr2", reviewer: "c2", watchers: ["c2"], sponsors: null } as any);
 
     await useRepository(RiCompany).delete("c1");
 
     const profile: any = await useRepository(RiProfile).get("pr1");
     assert.strictEqual(profile.reviewer, undefined);
-    assert.deepStrictEqual([...profile.watchers], ["c0", "c2"]);
+    assert.deepStrictEqual([...profile.watchers], ["c0", null, 7, "c2"]);
     assert.deepStrictEqual(
       [...profile.sponsors].map((s: any) => s.uuid),
-      ["c2"]
+      ["c2", undefined]
     );
     assert.deepStrictEqual(Object.keys(profile.byKey), ["c2"]);
     // A link without policy: nothing happens
@@ -315,6 +382,79 @@ class RelationIntegrityTest extends WebdaApplicationTest {
     assert.strictEqual(await exists(RiCard, "k1"), false);
     assert.strictEqual(await exists(RiCard, "k2"), false);
     assert.strictEqual(await exists(RiCard, "k3"), true);
+  }
+
+  @test
+  async containsMissingOrEmpty() {
+    // Nothing listed, a listed model already gone, a model not loaded, and a missing owner
+    await RiCard.create({ uuid: "k1" } as any);
+    const empty = await RiBoard.create({ uuid: "b0" } as any);
+    await empty.delete();
+    const board = await RiBoard.create({
+      uuid: "b1",
+      cards: [{ uuid: "k1" }, { uuid: "gone" }],
+      phantoms: ["x1", { uuid: "x2" }]
+    } as any);
+    await board.delete();
+    assert.strictEqual(await exists(RiCard, "k1"), false);
+    await useRepository(RiBoard).delete("missing");
+  }
+
+  @test
+  async indexEdgeCases() {
+    const service: any = this.integrity;
+    assert.deepStrictEqual(service.dependentsOf("Nope/Model"), []);
+    // A company cascades to its projects through the parent and the mapped relation, once
+    assert.deepStrictEqual(
+      service.dependentsOf(`${NS}/RiCompany`).filter((d: any) => d.model === `${NS}/RiProject`),
+      [{ model: `${NS}/RiProject`, attribute: "company", type: "PARENT", onDelete: "CASCADE" }]
+    );
+    assert.deepStrictEqual(
+      service.ownedOf(`${NS}/RiShelf`).map((o: any) => o.attribute),
+      ["pinned"]
+    );
+    // Hydrated maps and links
+    assert.deepStrictEqual(service.keysOf(`${NS}/RiCompany`, { toJSON: () => ({ c1: {} }) }, "LINKS_MAP"), ["c1"]);
+    assert.deepStrictEqual(
+      service.keysOf(`${NS}/RiCompany`, [{ getPrimaryKey: () => "c2" }, "c3", undefined], "LINKS_SIMPLE_ARRAY"),
+      ["c2", "c3"]
+    );
+    assert.deepStrictEqual(service.keysOf(`${NS}/RiCompany`, 42, "LINKS_ARRAY"), []);
+  }
+
+  @test
+  async cascadeFailureIsReported() {
+    const sessions = useRepository(RiSession) as FlakyRepository;
+    await RiUser.create({ uuid: "u1" } as any);
+    await RiSession.create({ uuid: "s1", user: "u1" } as any);
+    sessions.failIterate = true;
+    try {
+      await assert.rejects(() => useRepository(RiUser).delete("u1"), /store down/);
+    } finally {
+      sessions.failIterate = false;
+    }
+    // The user is deleted, the session is an orphan
+    assert.strictEqual(await exists(RiUser, "u1"), false);
+    assert.strictEqual(await exists(RiSession, "s1"), true);
+  }
+
+  @test
+  async deleteAllSkipsVisitedAndGoneObjects() {
+    const service: any = this.integrity;
+    const sessions = useRepository(RiSession) as FlakyRepository;
+    const session = await RiSession.create({ uuid: "s1", user: "u1" } as any);
+    const errors: any[] = [];
+    await service.deleteAll([session], { visited: new Set([`${NS}/RiSession#s1`]), depth: 1 }, errors);
+    assert.strictEqual(await exists(RiSession, "s1"), true);
+    // Deleted meanwhile: the store refuses, not an error
+    await sessions.delete("s1");
+    sessions.failMissingDelete = true;
+    try {
+      await service.deleteAll([session], { visited: new Set(), depth: 1 }, errors);
+    } finally {
+      sessions.failMissingDelete = false;
+    }
+    assert.deepStrictEqual(errors, []);
   }
 
   @test
@@ -370,6 +510,29 @@ class RelationIntegrityTest extends WebdaApplicationTest {
   }
 
   @test
+  async maxDepthAggregatesTheErrors() {
+    const service = this.integrity;
+    const maxDepth = service.getParameters().maxDepth;
+    try {
+      service.getParameters().maxDepth = 1;
+      await RiFolder.create({ uuid: "d0" } as any);
+      for (const branch of ["a", "b"]) {
+        await RiFolder.create({ uuid: `d1${branch}`, parent: "d0" } as any);
+        await RiFolder.create({ uuid: `d2${branch}`, parent: `d1${branch}` } as any);
+      }
+      // Both branches fail at the same level: one error reporting the two
+      await assert.rejects(
+        () => useRepository(RiFolder).delete("d0"),
+        (err: any) => err instanceof AggregateError && err.errors.length === 2 && /failed 2 times/.test(err.message)
+      );
+      assert.strictEqual(await exists(RiFolder, "d1a"), false);
+      assert.strictEqual(await exists(RiFolder, "d2a"), true);
+    } finally {
+      service.getParameters().maxDepth = maxDepth;
+    }
+  }
+
+  @test
   async deleteManyDoesNotCascade() {
     await RiCompany.create({ uuid: "c1" } as any);
     await RiProject.create({ uuid: "p1", company: "c1" } as any);
@@ -387,6 +550,26 @@ class RelationIntegrityTest extends WebdaApplicationTest {
     const deleted = deletedOf(RiProject);
     await useRepository(RiCompany).delete("c1");
     assert.deepStrictEqual(deleted, ["p1"]);
+  }
+}
+
+@suite
+class RelationIntegrityWithoutModuleTest extends WebdaApplicationTest {
+  getTestConfiguration(): string | undefined {
+    return process.cwd() + "/../../sample-app";
+  }
+
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    // An application not loading the @webda/core module
+    delete app.getModdas()["Webda/RelationIntegrity"];
+  }
+
+  @test
+  async declaredFromTheClass() {
+    const service = useCore().getService<RelationIntegrity>("RelationIntegrity");
+    assert.ok(service instanceof RelationIntegrity);
+    assert.strictEqual(service.getParameters().enabled, true);
   }
 }
 

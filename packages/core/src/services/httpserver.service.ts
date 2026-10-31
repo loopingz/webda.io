@@ -238,6 +238,11 @@ export class HttpServer<
    * Open HTTP/2 sessions, closed when the server drains (they have no closeAllConnections)
    */
   protected sessions: Set<{ close(): void; destroy(): void }> = new Set();
+  /**
+   * Requests being handled by the web pipeline: the drain waits for them, not for the streams
+   * owned by the interceptors (gRPC) or kept open after their handler returned (SSE)
+   */
+  protected inflight = 0;
   /** In TLS mode, the server answering plain HTTP with a redirect */
   protected redirectServer?: Server;
   protected subnetChecker: (address: string) => boolean;
@@ -328,6 +333,21 @@ export class HttpServer<
         useLog("ERROR", "Request interceptor failed", err);
       }
     }
+    this.inflight++;
+    try {
+      await this.handleWebRequest(req, res);
+    } finally {
+      this.inflight--;
+    }
+  }
+
+  /**
+   * Run the web pipeline of a request: create the context, route, flush the response
+   *
+   * @param req - the incoming message
+   * @param res - the server response
+   */
+  protected async handleWebRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
       const ctx = await this.getContextFromRequest(req, res);
       if (!ctx) {
@@ -678,7 +698,11 @@ export class HttpServer<
 
   /**
    * Close the HTTP server: refuse new connections, wait for the in-flight requests up to
-   * `shutdownGracePeriod`, then drop the remaining connections
+   * `shutdownGracePeriod`, then close every connection
+   *
+   * Only the requests in the web pipeline hold the drain: the long-lived streams (gRPC through an
+   * interceptor, SSE kept open after the handler returned, idle keep-alive connections) are closed as
+   * soon as those requests are answered, so a stop never waits for a stream that would not end.
    * @returns a promise resolved once the server is closed
    */
   protected async closeServer(): Promise<void> {
@@ -689,26 +713,24 @@ export class HttpServer<
     if (!server?.listening) {
       return;
     }
-    await new Promise<void>(resolve => {
-      const timer = setTimeout(() => {
-        useLog("WARN", `Closing the connections still open after ${this.parameters.shutdownGracePeriod}ms`);
-        clearInterval(idle);
-        server.closeAllConnections?.();
-        this.sessions.forEach(session => session.destroy());
-        resolve();
-      }, this.parameters.shutdownGracePeriod);
-      // Keep-alive connections would hold close() until they time out: close them as they become idle
-      const idle = setInterval(() => server.closeIdleConnections?.(), 100);
-      // Stop accepting connections: the in-flight requests complete, then their connections close
-      server.close(() => {
-        clearTimeout(timer);
-        clearInterval(idle);
-        resolve();
-      });
-      server.closeIdleConnections?.();
-      // An HTTP/2 session closes once its streams are done
-      this.sessions.forEach(session => session.close());
-    });
+    // Stop accepting connections, tell the HTTP/2 clients to open no more streams
+    const closed = new Promise<void>(resolve => server.close(() => resolve()));
+    server.closeIdleConnections?.();
+    this.sessions.forEach(session => session.close());
+    const deadline = Date.now() + this.parameters.shutdownGracePeriod;
+    while (this.inflight > 0 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    if (this.inflight > 0) {
+      useLog(
+        "WARN",
+        `Closing ${this.inflight} requests still in flight after ${this.parameters.shutdownGracePeriod}ms`
+      );
+    }
+    server.closeAllConnections?.();
+    this.sessions.forEach(session => session.destroy());
+    // A TLS HTTP/2 server has no closeAllConnections for its HTTP/1 connections: do not wait for them forever
+    await Promise.race([closed, new Promise(resolve => setTimeout(resolve, 1000).unref())]);
   }
 
   /**

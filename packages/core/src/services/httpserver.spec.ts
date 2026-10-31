@@ -1491,29 +1491,30 @@ class HttpServerTest extends WebdaApplicationTest {
   }
 
   /**
-   * Hold the responses of the server until `release` is called
+   * Route `/slow` holding its response until `release` is called
    * @returns the release function and the number of held requests
    */
   protected holdResponses(): { release: () => void; held: () => number } {
-    const responses: http.ServerResponse[] = [];
-    this.server.registerRequestInterceptor((req, res) => {
-      if (req.url === "/slow") {
-        responses.push(res);
-        return true;
+    const releases: (() => void)[] = [];
+    useRouter().addRouteToRouter("/slow", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async ctx => {
+        await new Promise<void>(resolve => releases.push(resolve));
+        ctx.write("done");
       }
-      return false;
     });
     return {
-      release: () => responses.splice(0).forEach(res => res.end("done")),
-      held: () => responses.length
+      release: () => releases.splice(0).forEach(resolve => resolve()),
+      held: () => releases.length
     };
   }
 
   @test
   async stopWaitsForInFlightRequests() {
     this.replaceServer({ healthPath: "/healthz", shutdownGracePeriod: 5000 });
-    const port = await this.startServer();
     const { release, held } = this.holdResponses();
+    const port = await this.startServer();
     const pending = httpRequest({ hostname: "127.0.0.1", port, path: "/slow", method: "GET" });
     while (held() === 0) {
       await new Promise(resolve => setTimeout(resolve, 5));
@@ -1535,8 +1536,8 @@ class HttpServerTest extends WebdaApplicationTest {
   @test
   async stopDropsConnectionsAfterGracePeriod() {
     this.replaceServer({ shutdownGracePeriod: 100 });
-    const port = await this.startServer();
     const { held } = this.holdResponses();
+    const port = await this.startServer();
     const pending = httpRequest({ hostname: "127.0.0.1", port, path: "/slow", method: "GET" });
     while (held() === 0) {
       await new Promise(resolve => setTimeout(resolve, 5));
@@ -1547,23 +1548,24 @@ class HttpServerTest extends WebdaApplicationTest {
 
   @test
   async stopClosesHttp2Sessions() {
-    this.replaceServer({ h2c: true, shutdownGracePeriod: 100 });
+    this.replaceServer({ h2c: true, shutdownGracePeriod: 5000 });
+    // A stream owned by an interceptor (gRPC) does not hold the drain: the session is closed then destroyed
+    this.server.registerRequestInterceptor(req => req.url === "/stream");
     const port = await this.startServer();
-    const { held } = this.holdResponses();
     const session = http2.connect(`http://127.0.0.1:${port}`);
     const closed = new Promise<void>(resolve => session.on("close", resolve));
     const request = new Promise<void>((resolve, reject) => {
-      const req = session.request({ ":path": "/slow" });
+      const req = session.request({ ":path": "/stream" });
       req.on("close", () => resolve());
       req.on("error", () => reject(new Error("stream error")));
       req.end();
     });
-    while (held() === 0) {
+    while ((this.server as any).sessions.size === 0) {
       await new Promise(resolve => setTimeout(resolve, 5));
     }
-    assert.strictEqual((this.server as any).sessions.size, 1);
-    // The session is closed gracefully then destroyed when its stream is still open after the grace period
+    const started = Date.now();
     await this.server.stop();
+    assert.ok(Date.now() - started < 4000, "stopped without waiting for the stream");
     await Promise.allSettled([request]);
     await closed;
     while ((this.server as any).sessions.size > 0) {

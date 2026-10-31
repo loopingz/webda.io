@@ -1,4 +1,4 @@
-import type { ContractStep, LiveSchema, RelationalDialect, SchemaStep, SQLClient } from "@webda/sql";
+import type { ContractStep, LiveSchema, RelationalDialect, SchemaStep, SQLClient, UniqueViolation } from "@webda/sql";
 import { sqlString } from "@webda/sql";
 import { constraintName } from "@webda/sql-schema";
 import type { ColumnPlan, ColumnType, ForeignKeyPlan, TablePlan } from "@webda/sql-schema";
@@ -207,6 +207,14 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   }
 
   /**
+   * Time columns hold their ISO text already
+   * @override
+   */
+  timeText(expr: string, _type: ColumnType): string {
+    return expr;
+  }
+
+  /**
    * Booleans are stored as 0/1: rendered as JSON booleans for the aggregations
    * @override
    */
@@ -298,11 +306,8 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   }
 
   /** @override */
-  columnJsonItemCondition(column: string, index: number | undefined, field: string, valueParam: number): string {
+  columnJsonItemCondition(column: string, index: number, field: string, valueParam: number): string {
     this.checkKey(field);
-    if (index === undefined) {
-      return `0 = ?${valueParam}`;
-    }
     return `${this.quote(column)} ->> '$[${this.checkIndex(index)}].${field}' = ?${valueParam}`;
   }
 
@@ -313,5 +318,29 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   isForeignKeyViolation(err: unknown): { constraint?: string } | undefined {
     const e = err as any;
     return typeof e === "object" && e !== null && e.code === "ERR_SQLITE_ERROR" && e.errcode === 787 ? {} : undefined;
+  }
+
+  /**
+   * SQLITE_CONSTRAINT_PRIMARYKEY (1555) or SQLITE_CONSTRAINT_UNIQUE (2067); the message names the columns
+   * (`UNIQUE constraint failed: t.a, t.b`), never the index
+   * @override
+   */
+  uniqueViolation(err: unknown): UniqueViolation | undefined {
+    if (!this.isUniqueViolation(err)) {
+      return undefined;
+    }
+    const e = err as { errcode: number; message?: string };
+    const columns = (e.message ?? "")
+      .replace(/^.*constraint failed: /, "")
+      .split(",")
+      .map(part => part.trim().split("."))
+      .filter(part => part.length === 2);
+    const table = columns[0]?.[0];
+    const primaryKey = e.errcode === 1555;
+    return {
+      ...(table ? { table, columns: columns.map(c => c[1]) } : {}),
+      ...(table && primaryKey ? { constraint: `${table}_pkey` } : {}),
+      primaryKey
+    };
   }
 }

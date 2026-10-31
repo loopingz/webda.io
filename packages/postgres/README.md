@@ -93,17 +93,18 @@ API. It is never the `Registry` and only stores listed models.
 }
 ```
 
-| Parameter           | Type                                        | Default      | Description                                                                                                                                                                         |
-| ------------------- | ------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `schemaSync`        | `none` \| `create` \| `alter` \| `validate` | `create`     | What `init()` does with the schema: nothing, create the missing tables, also add the missing columns / indexes / foreign keys of existing tables (never destructive), or only check |
-| `columnNaming`      | `preserve` \| `snake_case`                  | `preserve`   | Column names from the field names                                                                                                                                                   |
-| `extraColumn`       | string \| `false`                           | `_extra`     | JSONB column of the properties the schema does not declare                                                                                                                          |
-| `foreignKeys`       | boolean                                     | `true`       | Create the foreign key constraints                                                                                                                                                  |
-| `numericAsDecimal`  | boolean                                     | `false`      | `NUMERIC` instead of `DOUBLE PRECISION` for JSON `number`                                                                                                                           |
-| `appVersion`        | string                                      | package.json | The application version recorded in the `Webda/SchemaVersion` registry                                                                                                              |
-| `allowIncompatible` | string[]                                    | `[]`         | Elements whose blocking changes against a live version are accepted (`BLOCK` becomes a forced `WARN`)                                                                               |
-| `versionHeartbeat`  | number                                      | `60`         | Seconds between two heartbeats of the version, `0` for none                                                                                                                         |
-| `versionTtl`        | number                                      | `600`        | Seconds after its last heartbeat a version still counts as live                                                                                                                     |
+| Parameter            | Type                                        | Default      | Description                                                                                                                                                                         |
+| -------------------- | ------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaSync`         | `none` \| `create` \| `alter` \| `validate` | `create`     | What `init()` does with the schema: nothing, create the missing tables, also add the missing columns / indexes / foreign keys of existing tables (never destructive), or only check |
+| `columnNaming`       | `preserve` \| `snake_case`                  | `preserve`   | Column names from the field names                                                                                                                                                   |
+| `extraColumn`        | string \| `false`                           | `_extra`     | JSONB column of the properties the schema does not declare                                                                                                                          |
+| `foreignKeys`        | boolean                                     | `true`       | Create the foreign key constraints                                                                                                                                                  |
+| `foreignKeysToJsonb` | boolean                                     | `false`      | Also a foreign key to the `uuid` of the JSONB table of a model served by a `PostgresStore` on the same server and database (table per model)                                        |
+| `numericAsDecimal`   | boolean                                     | `false`      | `NUMERIC` instead of `DOUBLE PRECISION` for JSON `number`                                                                                                                           |
+| `appVersion`         | string                                      | package.json | The application version recorded in the `Webda/SchemaVersion` registry                                                                                                              |
+| `allowIncompatible`  | string[]                                    | `[]`         | Elements whose blocking changes against a live version are accepted (`BLOCK` becomes a forced `WARN`)                                                                               |
+| `versionHeartbeat`   | number                                      | `60`         | Seconds between two heartbeats of the version, `0` for none                                                                                                                         |
+| `versionTtl`         | number                                      | `600`        | Seconds after its last heartbeat a version still counts as live                                                                                                                     |
 
 Several application versions can run on the same database (blue/green, canary): each one registers its plan as a
 `Webda/SchemaVersion` in the `Registry`, `init()` refuses a plan incompatible with a live version
@@ -111,8 +112,10 @@ Several application versions can run on the same database (blue/green, canary): 
 foreign keys `NOT VALID` then validated). `webda postgres schema show [--sql | --diff | --json]` prints the plan,
 `schema check [--against <version>]` the compatibility table for CI, `schema contract [--dry-run]` what no live
 version uses any more, `schema retire --version <v>` and `schema backfill --table t --from a --to b` the rest of the
-expand/contract cycle. See [the documentation](https://webda.io/docs/Modules/postgres/PostgresRelationalStore) for
-the mapping, the schema lifecycle, the compatibility rules and the limitations.
+expand/contract cycle. `webda postgres import --models A,B --source Registry [--purge]` promotes models from a JSONB
+store. `@Index` / `@Unique` JSDoc tags on the model attributes become indexes. See
+[the documentation](https://webda.io/docs/Modules/postgres/PostgresRelationalStore) for the mapping, the schema
+lifecycle, the compatibility rules and the limitations.
 
 ## Usage
 

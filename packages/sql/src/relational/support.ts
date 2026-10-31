@@ -1,8 +1,15 @@
-import { Store, WebdaError, useApplication, useCore, useModelMetadata } from "@webda/core";
+import { Store, WebdaError, useApplication, useCore, useModel, useModelMetadata } from "@webda/core";
 import type { ModelClass } from "@webda/core";
 import { blockingChanges } from "@webda/sql-schema";
-import type { LiveSchemaPlan, RelationalSchemaPlan, SchemaChange, SchemaModelMetadata } from "@webda/sql-schema";
+import type {
+  LiveSchemaPlan,
+  ReferencedTable,
+  RelationalSchemaPlan,
+  SchemaChange,
+  SchemaModelMetadata
+} from "@webda/sql-schema";
 import type { SQLClient } from "../dialect.js";
+import type { SQLStore } from "../store.js";
 import { describeContractStep } from "./contract.js";
 import type { RelationalDialect, SchemaStep } from "./dialect.js";
 import { RelationalSchemaManager } from "./manager.js";
@@ -48,6 +55,12 @@ export interface RelationalLayoutParameters {
    * @default true
    */
   foreignKeys?: boolean;
+  /**
+   * Also create a foreign key to the key column of the JSON table of a model served by a JSON store of the same
+   * engine (the `Registry`) on the same database with a table per model; the JSON table is created with the schema
+   * @default false
+   */
+  foreignKeysToJsonb?: boolean;
   /**
    * Store JSON `number` fields as decimals instead of doubles
    * @default false
@@ -110,6 +123,7 @@ export function loadRelationalParameters(params: RelationalLayoutParameters): vo
   params.columnNaming ??= "preserve";
   params.extraColumn ??= "_extra";
   params.foreignKeys ??= true;
+  params.foreignKeysToJsonb ??= false;
   params.numericAsDecimal ??= false;
   params.allowIncompatible ??= [];
   params.versionHeartbeat ??= 60;
@@ -138,6 +152,29 @@ export interface RelationalStoreHost {
    * The models of the store with their hierarchy depth, built at resolve time by `Store`
    */
   readonly _modelsHierarchy: { [identifier: string]: number };
+  /**
+   * The JSON table of a model served by a JSON store of the same engine on the same database, with a table per
+   * model (`foreignKeysToJsonb`)
+   * @param store - the store serving the model, undefined without a `Registry`
+   * @param model - the model
+   * @returns the table name, undefined when no foreign key can reference it
+   */
+  jsonTableOf?(store: Store | undefined, model: ModelClass): string | undefined;
+}
+
+/**
+ * What an import from a JSON store reports, per model
+ */
+export interface ImportReport {
+  model: string;
+  /**
+   * Rows written in the relational table
+   */
+  imported: number;
+  /**
+   * Rows left alone: their key already exists in the relational table
+   */
+  skipped: number;
 }
 
 /**
@@ -146,6 +183,10 @@ export interface RelationalStoreHost {
  */
 export class RelationalStoreSupport {
   readonly manager: RelationalSchemaManager;
+  /**
+   * The JSON tables the plan references (`foreignKeysToJsonb`), created before the DDL
+   */
+  protected referencedTables: { [identifier: string]: ReferencedTable } = {};
   /**
    * The versions of the store in the `Registry`
    */
@@ -313,25 +354,152 @@ export class RelationalStoreSupport {
     const known = Object.values(useApplication().getModels())
       .map((model: any) => model?.Metadata as SchemaModelMetadata | undefined)
       .filter((meta): meta is SchemaModelMetadata => !!meta?.Identifier);
-    return this.manager.build(models, known);
+    this.referencedTables = this.jsonTables(known);
+    return this.manager.build(models, known, this.referencedTables);
   }
 
   /**
-   * Bring the database to the plan (`schemaSync`) under the version registry: lock, read the live versions, check,
-   * DDL, register this version, unlock. A store whose registry may share the connection (SQLite) runs
-   * {@link checkVersions} and {@link registerVersion} itself, around the lock, and gives the live plans here
+   * The JSON tables a foreign key may reference: those of the models outside the store served by a JSON store of
+   * the same engine on the same database (`foreignKeysToJsonb`), keyed by their `uuid` column
+   * @param known - every application model
+   * @returns the tables by model identifier
+   */
+  protected jsonTables(known: SchemaModelMetadata[]): { [identifier: string]: ReferencedTable } {
+    const parameters = this.host.getParameters();
+    const tables: { [identifier: string]: ReferencedTable } = {};
+    // The parameters may not have gone through loadRelationalParameters (tests): the defaults of the plan apply
+    if (parameters.foreignKeys === false || !parameters.foreignKeysToJsonb || !this.host.jsonTableOf) {
+      return tables;
+    }
+    for (const meta of known) {
+      if (meta.Identifier in this.host._modelsHierarchy) {
+        continue;
+      }
+      const model = useModel(meta.Identifier);
+      const table = this.host.jsonTableOf(Store.storeOf(model), model);
+      if (table) {
+        tables[meta.Identifier] = { table, columns: ["uuid"] };
+      }
+    }
+    return tables;
+  }
+
+  /**
+   * Bring the database to the plan (`schemaSync`) under the version registry: the JSON tables the plan references
+   * are created first, with the DDL of their store, then lock, read the live versions, check, DDL, register this
+   * version, unlock. A store whose registry may share the connection (SQLite) runs {@link checkVersions} and
+   * {@link registerVersion} itself, around the lock, and gives the live plans here
    * @param client - a client whose statements run on one connection
    * @param live - the plans of the live versions when the store checked them already
    * @returns the applied steps
    */
   async sync(client: SQLClient, live?: LiveSchemaPlan[]): Promise<SchemaStep[]> {
     this.getSchemaPlan();
+    const mode = this.host.getParameters().schemaSync ?? "create";
+    if (mode === "create" || mode === "alter") {
+      for (const table of new Set(Object.values(this.referencedTables).map(r => r.table))) {
+        await client.query(this.dialect.createTable(table));
+      }
+    }
     this.appliedSteps = await this.manager.sync(
       client,
-      this.host.getParameters().schemaSync!,
+      mode,
       live ? { live } : { check: () => this.checkVersions(), register: () => this.registerVersion() }
     );
     return this.appliedSteps;
+  }
+
+  /**
+   * Promote models from a JSON store (`importFromJsonb`): their rows are read through the JSON repository of the
+   * source, written through the relational repositories in one transaction (the deferred foreign keys let the links
+   * between imported rows point in any direction), and deleted from the source once committed when `purge` is set.
+   * A row whose key is already in the relational table is skipped. The models must already be listed by the store.
+   * @param source - the JSON store holding the rows
+   * @param options - what to import
+   * @param options.models - the model identifiers, every table root of the plan by default
+   * @param options.purge - delete the imported rows from the source after the commit
+   * @param options.transact - runs the import in one transaction of the store: either one the repositories of the
+   *   store join (the async chain transaction of `withTransaction`), or one on a connection it hands over
+   * @param options.repository - the relational repository of a model: the store's own (inside its event wrapper),
+   *   or one bound to the handed-over connection
+   * @returns one report per model
+   * @throws WebdaError.CodeError `RELATIONAL_IMPORT_SOURCE` when the source is this store or a relational store,
+   *   `MODEL_NOT_PLANNED` for a model the store does not list, `RELATIONAL_IMPORT_TABLE` when the JSON table of a
+   *   model is the relational one (name it differently with `tables`)
+   */
+  async importFromJson(
+    source: SQLStore<any>,
+    options: {
+      models?: string[];
+      purge?: boolean;
+      transact: <R>(fn: (tx?: SQLClient) => Promise<R>) => Promise<R>;
+      repository: (model: ModelClass, tx?: SQLClient) => RelationalRepository<any>;
+    }
+  ): Promise<ImportReport[]> {
+    if ((source as unknown) === this.host || (source as any).relational instanceof RelationalStoreSupport) {
+      throw new WebdaError.CodeError(
+        "RELATIONAL_IMPORT_SOURCE",
+        `${source.getName()} is not a JSON store: import from the JSON store the models were served by`
+      );
+    }
+    const plan = this.getSchemaPlan();
+    const roots = plan.tables.filter(t => t.root).map(t => t.root!);
+    const models = options.models?.length ? options.models : roots;
+    const targets = models.map(identifier => {
+      const model = useModel(identifier);
+      const table = this.manager.tableOf(identifier);
+      if (!table) {
+        throw new WebdaError.CodeError(
+          "MODEL_NOT_PLANNED",
+          `${identifier} is not stored by ${this.host.getName()}: list it in the store models before importing`
+        );
+      }
+      if (source.resolveTable(model) === table.name) {
+        throw new WebdaError.CodeError(
+          "RELATIONAL_IMPORT_TABLE",
+          `${identifier} is stored by ${source.getName()} in ${table.name}, the relational table: name one of them differently (tables)`
+        );
+      }
+      return { identifier, model, order: plan.tables.indexOf(table) };
+    });
+    if (!targets.length) {
+      return [];
+    }
+    // Referenced tables first: the import then reads naturally in the logs, the transaction allows any order
+    targets.sort((a, b) => a.order - b.order);
+    const reports: ImportReport[] = [];
+    // Maps the error of a deferred foreign key failing at COMMIT like the statement's (the plan is shared)
+    const mapper = options.repository(targets[0].model);
+    await options
+      .transact(async tx => {
+        for (const { identifier, model } of targets) {
+          const report: ImportReport = { model: identifier, imported: 0, skipped: 0 };
+          const target = options.repository(model, tx);
+          for await (const item of source.getRepository(model).iterate("")) {
+            if (await target.exists(item)) {
+              report.skipped++;
+              continue;
+            }
+            await target.create(item);
+            report.imported++;
+          }
+          this.host.log(
+            "INFO",
+            `${identifier}: ${report.imported} row(s) imported from ${source.getName()}, ${report.skipped} skipped`
+          );
+          reports.push(report);
+        }
+      })
+      .catch(err => {
+        throw mapper.mapError("INSERT", err);
+      });
+    if (options.purge) {
+      for (const { identifier, model } of targets) {
+        const deleted = await source.getRepository(model).deleteMany("DELETE");
+        this.host.log("INFO", `${identifier}: ${deleted} row(s) deleted from ${source.getName()}`);
+      }
+    }
+    return reports;
   }
 
   /**

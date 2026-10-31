@@ -52,10 +52,29 @@ export interface SchemaModelMetadata {
     links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: string }[];
     queries?: { attribute: string; model?: string; targetAttribute?: string }[];
     maps?: { attribute: string; model?: string; [key: string]: unknown }[];
+    /**
+     * Attributes tagged `@Index` / `@Unique`; those sharing a `name` form one composite index, in declaration order
+     */
+    indexes?: IndexDeclaration[];
     [key: string]: unknown;
   };
   Reflection?: { [field: string]: { type: string; typeParameters?: string[] } };
   Schemas?: { Stored?: JSONSchemaLike; [key: string]: unknown };
+}
+
+/**
+ * An index declared on a model attribute (`@Index` / `@Unique` JSDoc tag), as compiled
+ */
+export interface IndexDeclaration {
+  attribute: string;
+  /**
+   * `@Unique`: a unique index
+   */
+  unique?: boolean;
+  /**
+   * Group name (`@Index <name>`): the tagged attributes sharing it form one composite index
+   */
+  name?: string;
 }
 
 /**

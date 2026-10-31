@@ -460,6 +460,15 @@ describe("module relations", () => {
     ]);
   });
 
+  it("records the @Index and @Unique tags of the attributes", () => {
+    expect(result.module.models["Rel/Author"].Relations.indexes).toEqual([
+      { attribute: "email", unique: true },
+      { attribute: "name", name: "byName" },
+      { attribute: "birthday", name: "byName" }
+    ]);
+    expect(result.module.models["Rel/Post"].Relations.indexes).toBeUndefined();
+  });
+
   it("binds a link declared on a generic base to the subclass type argument", () => {
     expect(result.module.models["Rel/Owned"].Relations.links).toEqual([
       { attribute: "owner", type: "LINK" },

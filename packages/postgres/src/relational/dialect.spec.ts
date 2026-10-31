@@ -249,4 +249,25 @@ export class PostgresRelationalDialectTest {
     assert.deepStrictEqual(map("uuid"), { kind: "uuid" });
     assert.strictEqual(map("money"), undefined);
   }
+
+  @test
+  timeTextAndUniqueViolation() {
+    const d = this.dialect;
+    assert.strictEqual(d.timeText('"d"', { kind: "date" }), `to_char("d", 'YYYY-MM-DD')`);
+    assert.strictEqual(
+      d.timeText('"d"', { kind: "timestamptz" }),
+      `to_char("d" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
+    );
+    assert.deepStrictEqual(d.uniqueViolation({ code: "23505", table: "rel_post", constraint: "rel_post_pkey" }), {
+      table: "rel_post",
+      constraint: "rel_post_pkey",
+      primaryKey: true
+    });
+    assert.deepStrictEqual(d.uniqueViolation({ code: "23505", table: "rel_user", constraint: "uq_rel_user_email" }), {
+      table: "rel_user",
+      constraint: "uq_rel_user_email",
+      primaryKey: false
+    });
+    assert.strictEqual(d.uniqueViolation({ code: "23503" }), undefined);
+  }
 }

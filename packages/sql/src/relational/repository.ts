@@ -5,7 +5,7 @@ import type { ColumnPlan, RelationPlan, RelationalSchemaPlan, TablePlan } from "
 import type { SQLClient } from "../dialect.js";
 import { SQLRepository } from "../repository.js";
 import { SQLColumnComparisonExpression } from "./comparison.js";
-import type { RelationalDialect } from "./dialect.js";
+import type { RelationalDialect, UniqueViolation } from "./dialect.js";
 import { TableMapping } from "./mapping.js";
 import type { AttributeTarget, JunctionWrite, RowWrite } from "./mapping.js";
 import type { Transact } from "./transaction.js";
@@ -289,7 +289,8 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
-   * Foreign key violations become Webda errors: a conflict when deleting a referenced row, a bad request otherwise
+   * Foreign key violations become Webda errors: a conflict when deleting a referenced row, a bad request otherwise;
+   * a unique index collision is a conflict
    * @override
    */
   protected async execute(q: string, values?: any[]): Promise<{ rows: any[]; rowCount: number }> {
@@ -301,11 +302,16 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
-   * @param q - the statement that failed
+   * @param q - the statement that failed (or its kind: a deferred foreign key fails at `COMMIT`)
    * @param err - the error
-   * @returns the Webda error of a foreign key violation, the error itself otherwise
+   * @returns the Webda error of a foreign key violation or of a unique index collision (a primary key violation is
+   *   left to the caller: it tells a duplicate row from a duplicate junction key), the error itself otherwise
    */
-  protected mapError(q: string, err: unknown): unknown {
+  mapError(q: string, err: unknown): unknown {
+    const unique = this.sql.uniqueViolation(err);
+    if (unique && !unique.primaryKey) {
+      return new WebdaError.Conflict(`${this.modelIdentifier()}: ${this.describeUnique(unique)}`);
+    }
     const violation = this.sql.isForeignKeyViolation(err);
     if (!violation) {
       return err;
@@ -315,6 +321,25 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
     return q.startsWith("DELETE")
       ? new WebdaError.Conflict(`Row still referenced through ${what}`)
       : new WebdaError.BadRequest(`Unknown reference for ${what}`);
+  }
+
+  /**
+   * @param violation - a violated unique index, by name or by columns
+   * @returns the fields it covers when the plan knows it, what the engine said otherwise
+   */
+  protected describeUnique(violation: UniqueViolation): string {
+    const same = (a: string[], b: string[]) => a.length === b.length && a.every((c, i) => c === b[i]);
+    const index = this.mapping.plan.indexes.find(
+      i =>
+        i.name === violation.constraint ||
+        (violation.columns !== undefined && i.table === violation.table && same(i.columns, violation.columns))
+    );
+    if (!index) {
+      // What the engine reported: the constraint name (Postgres) or the columns (SQLite)
+      const what = [violation.constraint, ...(violation.columns ?? [])].filter(Boolean).join(", ");
+      return `unique constraint ${what} violated`;
+    }
+    return `${index.columns.map(c => this.fieldOf(c)).join(", ")} must be unique`;
   }
 
   /**
@@ -463,16 +488,41 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
     if (!junction.rows.length) {
       return;
     }
-    const columns = Object.keys(junction.rows[0]);
+    // A links array mixing keys and objects: the rows do not share their columns
+    const columns = [...new Set(junction.rows.flatMap(row => Object.keys(row)))];
     const args: unknown[] = [];
     const tuples = junction.rows.map(
-      row => `(${columns.map(c => (args.push(row[c]), this.dialect.placeholder(args.length))).join(", ")})`
+      row => `(${columns.map(c => (args.push(row[c] ?? null), this.dialect.placeholder(args.length))).join(", ")})`
     );
     await this.run(
       tx,
       `INSERT INTO ${this.q(table.name)} (${columns.map(c => this.q(c)).join(", ")}) VALUES ${tuples.join(", ")}`,
       args
     );
+  }
+
+  /**
+   * Write the junction rows of an object: a key listed twice in a link collection is a bad request
+   * @param tx - the transaction client
+   * @param owner - the owner object (its primary key fields)
+   * @param junctions - the rows by junction
+   * @param replace - delete the current rows first
+   */
+  protected async writeJunctions(
+    tx: SQLClient | undefined,
+    owner: Record<string, unknown>,
+    junctions: JunctionWrite[],
+    replace: boolean
+  ): Promise<void> {
+    for (const junction of junctions) {
+      try {
+        await this.writeJunction(tx, owner, junction, replace);
+      } catch (err) {
+        throw this.sql.uniqueViolation(err)?.primaryKey
+          ? new WebdaError.BadRequest(`${this.attributeName([junction.relation.attribute])} holds a key twice`)
+          : err;
+      }
+    }
   }
 
   /**
@@ -546,9 +596,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
       if (res.rowCount === 0) {
         throw new UpdateConditionFailError(key as any, conditionField as string, condition);
       }
-      for (const junction of row.junctions) {
-        await this.writeJunction(tx, owner, junction, true);
-      }
+      await this.writeJunctions(tx, owner, row.junctions, true);
     });
   }
 
@@ -559,28 +607,26 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
     const json = this.toJSONRecord(item, this.modelIdentifier());
     const row = this.mapping.toRow(json, this.modelIdentifier(), false);
     const placeholders = row.values.map((_, i) => this.dialect.placeholder(i + 1));
-    try {
-      await this.maybeTransact(
-        row.junctions.some(j => j.rows.length > 0),
-        "INSERT",
-        async tx => {
+    await this.maybeTransact(
+      row.junctions.some(j => j.rows.length > 0),
+      "INSERT",
+      async tx => {
+        try {
           await this.run(
             tx,
             `INSERT INTO ${this.q(this.table)} (${row.columns.map(c => this.q(c)).join(", ")}) VALUES (${placeholders.join(", ")})`,
             row.values
           );
-          for (const junction of row.junctions) {
-            await this.writeJunction(tx, json, junction, false);
+        } catch (err) {
+          // Primary key violation: the object exists, never overwrite it (a unique index collision is already mapped)
+          if (this.sql.uniqueViolation(err)?.primaryKey) {
+            throw new Error(`Already exists: ${key}`);
           }
+          throw err;
         }
-      );
-    } catch (err) {
-      // unique violation on the primary key: the object exists, never overwrite it
-      if (this.dialect.isUniqueViolation(err)) {
-        throw new Error(`Already exists: ${key}`);
+        await this.writeJunctions(tx, json, row.junctions, false);
       }
-      throw err;
-    }
+    );
     return item;
   }
 
@@ -592,7 +638,9 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
 
   /** @override */
   async patch(primaryKey: any, data: any, conditionField?: any, condition?: any): Promise<void> {
-    const json: Record<string, unknown> = { ...(data ?? {}) };
+    // The same JSON round trip as create and update: relation instances serialize through their toJSON, undefined
+    // values are not patched
+    const json: Record<string, unknown> = JSON.parse(JSON.stringify(data ?? {}));
     // An enumerable `__type` of plain data is never trusted
     delete json.__type;
     const keyValues = this.getPrimaryKey(primaryKey, true) as Record<string, unknown>;
@@ -826,6 +874,10 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
       });
       return;
     }
+    if (index === undefined && itemWriteCondition !== undefined) {
+      // An append with a write condition never matches, like the other stores
+      throw new UpdateConditionFailError(key as any, String(itemWriteConditionField), itemWriteCondition);
+    }
     const column = target.column.name;
     // The item is bound as a parameter: inlining it would break (and inject) on any quote
     const args: unknown[] = [JSON.stringify(item)];
@@ -833,7 +885,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
     let q = `UPDATE ${this.q(this.table)} SET ${sets.join(", ")} WHERE ${this.pkCondition(primaryKey, args)}`;
     if (itemWriteCondition !== undefined) {
       args.push(itemWriteCondition);
-      q += ` AND ${this.sql.columnJsonItemCondition(column, index, String(itemWriteConditionField), args.length)}`;
+      q += ` AND ${this.sql.columnJsonItemCondition(column, index!, String(itemWriteConditionField), args.length)}`;
     }
     const res = await this.execute(q, args);
     if (res.rowCount === 0) {
@@ -941,13 +993,16 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
-   * Delete every row of the table and of its junctions (tests)
+   * Delete every row of the table and of its junctions (tests), in one transaction so the deferred foreign keys of a
+   * self reference are checked once every row is gone
    * @override
    */
   async __clean(): Promise<void> {
-    for (const { table } of this.mapping.junctions()) {
-      await this.execute(`DELETE FROM ${this.q(table.name)}`, []);
-    }
-    await this.execute(`DELETE FROM ${this.q(this.table)}`, []);
+    await this.transact(async tx => {
+      for (const { table } of this.mapping.junctions()) {
+        await this.run(tx, `DELETE FROM ${this.q(table.name)}`, []);
+      }
+      await this.run(tx, `DELETE FROM ${this.q(this.table)}`, []);
+    });
   }
 }

@@ -461,6 +461,11 @@
             "description": "Declare the foreign key constraints between the tables of the store",
             "type": "boolean"
           },
+          "foreignKeysToJsonb": {
+            "default": false,
+            "description": "Also declare a foreign key to the `uuid` column of the JSON table of a model served by a `SQLiteStore` (the\n`Registry`) on the same database with a table per model; the JSON table is created at `init()`",
+            "type": "boolean"
+          },
           "maxGroups": {
             "default": 10000,
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
@@ -581,6 +586,28 @@
       },
       "Configuration": "lib/sqliterelationalstore.service:SQLiteRelationalParameters",
       "commands": {
+        "sqlite import": {
+          "description": "Import the rows of models from a JSON SQLiteStore into the relational tables",
+          "method": "import",
+          "args": {
+            "models": {
+              "type": "string",
+              "default": "",
+              "description": "Comma-separated model identifiers, every table root of the plan by default"
+            },
+            "source": {
+              "type": "string",
+              "default": "Registry",
+              "description": "The JSON store holding the rows"
+            },
+            "purge": {
+              "type": "boolean",
+              "default": false,
+              "description": "Delete the imported rows from the source once committed"
+            }
+          },
+          "phase": "initialized"
+        },
         "sqlite schema show": {
           "description": "Print the relational schema plan, its DDL or the diff with the database",
           "method": "schema",

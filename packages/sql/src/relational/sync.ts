@@ -59,6 +59,21 @@ export function describeStep(step: SchemaStep): string {
 }
 
 /**
+ * @param step - a schema change on an existing table
+ * @returns what it adds, for the drift messages
+ */
+function describeMissing(step: Exclude<SchemaStep, { kind: "createTable" }>): string {
+  switch (step.kind) {
+    case "addColumn":
+      return `column ${step.table}.${step.column.name}`;
+    case "createIndex":
+      return `index ${step.index.name}`;
+    case "addForeignKey":
+      return `foreign key ${step.foreignKey.name}`;
+  }
+}
+
+/**
  * Whether a live column can hold the planned column: the same type, a wider one, or `text` for `uuid` (engines
  * render `uuid` as text)
  * @param live - the type the database holds
@@ -93,13 +108,20 @@ export function planSchemaChanges(
   const drift: SchemaDrift[] = [];
   const created = new Set<string>();
   const columns: SchemaStep[] = [];
-  const onExisting = (table: string, step: SchemaStep) => {
+  // Something missing from an existing table: planned in `alter`, reported in `create`
+  const onExisting = (step: Exclude<SchemaStep, { kind: "createTable" }>, sink: SchemaStep[] = steps) => {
     if (mode === "alter") {
-      steps.push(step);
+      sink.push(step);
     } else {
       drift.push({
-        table,
-        message: `${describeStep(step)} is missing (schemaSync: alter adds it)`
+        table:
+          step.kind === "addColumn"
+            ? step.table
+            : step.kind === "createIndex"
+              ? step.index.table
+              : step.foreignKey.table,
+        ...(step.kind === "addColumn" ? { column: step.column.name } : {}),
+        message: `${describeMissing(step)} is missing (schemaSync: alter adds it)`
       });
     }
   };
@@ -113,15 +135,7 @@ export function planSchemaChanges(
     for (const column of table.columns) {
       const current = existing.columns[column.name];
       if (!current) {
-        if (mode === "alter") {
-          columns.push({ kind: "addColumn", table: table.name, column });
-        } else {
-          drift.push({
-            table: table.name,
-            column: column.name,
-            message: `column ${table.name}.${column.name} is missing (schemaSync: alter adds it)`
-          });
-        }
+        onExisting({ kind: "addColumn", table: table.name, column }, columns);
       } else if (!current.type || !compatibleType(current.type, column.type)) {
         drift.push({
           table: table.name,
@@ -145,7 +159,7 @@ export function planSchemaChanges(
     if (created.has(index.table)) {
       steps.push({ kind: "createIndex", index });
     } else if (!live.tables[index.table]?.indexes.has(index.name)) {
-      onExisting(index.table, { kind: "createIndex", index, online: true });
+      onExisting({ kind: "createIndex", index, online: true });
     }
   }
   for (const foreignKey of plan.foreignKeys) {
@@ -160,7 +174,7 @@ export function planSchemaChanges(
           message: `foreign key ${foreignKey.name} cannot be added to ${foreignKey.table}: recreate the table`
         });
       } else {
-        onExisting(foreignKey.table, { kind: "addForeignKey", foreignKey, online: true });
+        onExisting({ kind: "addForeignKey", foreignKey, online: true });
       }
     }
   }

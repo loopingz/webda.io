@@ -40,39 +40,58 @@ configuration).
 
 Those of `PostgresStore` (`postgresqlServer`, `usePool`, `models`, `tables`), plus:
 
-| Parameter           | Default      | Description                                                                                                                                                                                                          |
-| ------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `schemaSync`        | `"create"`   | `none`, `create` (missing tables, with their indexes and foreign keys), `alter` (`create` plus the missing columns, indexes and foreign keys of existing tables), `validate` (write nothing, fail on any difference) |
-| `columnNaming`      | `"preserve"` | `preserve` keeps the field names (quoted camelCase), `snake_case` converts them                                                                                                                                      |
-| `extraColumn`       | `"_extra"`   | JSONB column of the properties the model schema does not declare, `false` to refuse them                                                                                                                             |
-| `foreignKeys`       | `true`       | create the foreign key constraints                                                                                                                                                                                   |
-| `numericAsDecimal`  | `false`      | map JSON `number` to `NUMERIC` instead of `DOUBLE PRECISION`                                                                                                                                                         |
-| `appVersion`        | package.json | the application version recorded in the `Webda/SchemaVersion` registry                                                                                                                                               |
-| `allowIncompatible` | `[]`         | elements (`<table>`, `<table>.<column>`, `<model>`, `<model>.<attribute>`) whose blocking changes against a live version are accepted (`BLOCK` becomes `WARN`, recorded in `forced`)                                 |
-| `versionHeartbeat`  | `60`         | seconds between two heartbeats of the version in the registry, `0` for none                                                                                                                                          |
-| `versionTtl`        | `600`        | seconds after its last heartbeat a version still counts as live                                                                                                                                                      |
+| Parameter            | Default      | Description                                                                                                                                                                                                          |
+| -------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaSync`         | `"create"`   | `none`, `create` (missing tables, with their indexes and foreign keys), `alter` (`create` plus the missing columns, indexes and foreign keys of existing tables), `validate` (write nothing, fail on any difference) |
+| `columnNaming`       | `"preserve"` | `preserve` keeps the field names (quoted camelCase), `snake_case` converts them                                                                                                                                      |
+| `extraColumn`        | `"_extra"`   | JSONB column of the properties the model schema does not declare, `false` to refuse them                                                                                                                             |
+| `foreignKeys`        | `true`       | create the foreign key constraints                                                                                                                                                                                   |
+| `foreignKeysToJsonb` | `false`      | also create a foreign key to the `uuid` of the JSONB table of a model served by a `PostgresStore` (the `Registry`) on the same server and database with a table per model; that table is created at `init()`         |
+| `numericAsDecimal`   | `false`      | map JSON `number` to `NUMERIC` instead of `DOUBLE PRECISION`                                                                                                                                                         |
+| `appVersion`         | package.json | the application version recorded in the `Webda/SchemaVersion` registry                                                                                                                                               |
+| `allowIncompatible`  | `[]`         | elements (`<table>`, `<table>.<column>`, `<model>`, `<model>.<attribute>`) whose blocking changes against a live version are accepted (`BLOCK` becomes `WARN`, recorded in `forced`)                                 |
+| `versionHeartbeat`   | `60`         | seconds between two heartbeats of the version in the registry, `0` for none                                                                                                                                          |
+| `versionTtl`         | `600`        | seconds after its last heartbeat a version still counts as live                                                                                                                                                      |
 
 `table` (one shared table) is refused, `autoCreateTable` is replaced by `schemaSync`, `views` and `viewPrefix` do
 nothing (the tables are already typed). A `tables` override must be a lowercase identifier (`[a-z_][a-z0-9_]*`).
 
 ## Mapping
 
-| Model                                                    | Table                                                                                                                     |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `string` (`maxLength`, `format`)                         | `TEXT`, `VARCHAR(n)`, `TIMESTAMPTZ` (`date-time` or `Date`), `DATE`; `enum` adds a `CHECK`                                |
-| `integer` / `number` / `boolean`                         | `BIGINT` / `DOUBLE PRECISION` / `BOOLEAN`                                                                                 |
-| objects, arrays, unions, untyped                         | `JSONB`; nested paths stay queryable (`meta.a = 1`)                                                                       |
-| primary key                                              | `TEXT` column(s) and the primary key constraint (composite keys supported)                                                |
-| `ModelParent` / `BelongTo`                               | key column(s) + `FOREIGN KEY ... ON DELETE CASCADE`                                                                       |
-| `ModelLink` / `ManyToOne` / `OneToOne`                   | key column(s) + `FOREIGN KEY ... ON DELETE NO ACTION`, indexed (`OneToOne`: unique)                                       |
-| `ModelLinksSimpleArray` / `ManyToMany` / `ModelLinksMap` | junction table `<table>_<attribute>` (owner key, target key, `_position` or `key`, link attributes or `attributes` JSONB) |
-| `ModelRelated` / `OneToMany` / `ModelsMapped`            | no storage (`ModelsMapped` stays empty: do not attach a `ModelMapper` to these models)                                    |
-| a link to a model of another store                       | column + index, no foreign key, one `WARN` at init                                                                        |
-| subclasses                                               | the table of their closest listed ancestor, with an indexed `__type` column; `useRepository(Dog).query("")` filters on it |
-| unknown properties                                       | the `_extra` JSONB column, merged under the typed columns on read                                                         |
+| Model                                                    | Table                                                                                                                         |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `string` (`maxLength`, `format`)                         | `TEXT`, `VARCHAR(n)`, `TIMESTAMPTZ` (`date-time` or `Date`), `DATE`; `enum` adds a `CHECK`                                    |
+| `integer` / `number` / `boolean`                         | `BIGINT` / `DOUBLE PRECISION` / `BOOLEAN`                                                                                     |
+| objects, arrays, unions, untyped                         | `JSONB`; nested paths stay queryable (`meta.a = 1`)                                                                           |
+| primary key                                              | `TEXT` column(s) and the primary key constraint (composite keys supported)                                                    |
+| `ModelParent` / `BelongTo`                               | key column(s) + `FOREIGN KEY ... ON DELETE CASCADE`                                                                           |
+| `ModelLink` / `ManyToOne` / `OneToOne`                   | key column(s) + `FOREIGN KEY ... ON DELETE NO ACTION`, indexed (`OneToOne`: unique)                                           |
+| `ModelLinksSimpleArray` / `ManyToMany` / `ModelLinksMap` | junction table `<table>_<attribute>` (owner key, target key, `_position` or `key`, link attributes or `attributes` JSONB)     |
+| `ModelRelated` / `OneToMany` / `ModelsMapped`            | no storage (`ModelsMapped` stays empty: do not attach a `ModelMapper` to these models)                                        |
+| a link to a model of another store                       | column + index, no foreign key, one `WARN` at init; with `foreignKeysToJsonb`, a foreign key to the `uuid` of its JSONB table |
+| `@Index` / `@Unique` JSDoc tag on an attribute           | an index (unique with `@Unique`) on its column(s); `@Index <name>` on several attributes builds one composite index           |
+| subclasses                                               | the table of their closest listed ancestor, with an indexed `__type` column; `useRepository(Dog).query("")` filters on it     |
+| unknown properties                                       | the `_extra` JSONB column, merged under the typed columns on read                                                             |
 
 Every column is created **nullable** (the model schema validates `required`); foreign keys are `DEFERRABLE INITIALLY
 DEFERRED`, so self references and cycles insert in one transaction.
+
+```ts
+class User extends UuidModel {
+  /** @Unique */
+  email: string;
+  /** @Index byNameDay */
+  name: string;
+  /** @Index byNameDay */
+  day: string;
+}
+```
+
+**`DATE` columns and time zones.** A `DATE` column holds a calendar day, never an instant: the store writes the first
+ten characters of the value, i.e. the written day of a `YYYY-MM-DD` or ISO date-time string (whatever its offset) and
+the **UTC** day of a `Date` object (`new Date("2024-03-04T23:30:00-05:00")` is stored as `2024-03-05`). It reads back
+as the `YYYY-MM-DD` text, whatever the time zone of the server or the process, and compares as that text
+(`day >= '2024-02-01'`). A `TIMESTAMPTZ` column holds an instant and reads back as its ISO 8601 UTC text.
 
 ## Schema lifecycle
 
@@ -156,7 +175,9 @@ Per-version views, `schemaPerVersion` and the dual-write trigger of the design a
   operation runs in the operation transaction: the owner row and its junctions join it instead of opening their own.
 - WebdaQL: `=, !=, <, <=, >, >=, LIKE, IN, IS NULL, IS NOT NULL, ORDER BY, LIMIT/OFFSET` on columns and JSONB paths,
   `CONTAINS` on JSONB arrays, with the in-memory semantics (`views = '1'` matches a `BIGINT`, `views = 'abc'` matches
-  nothing, `!=` matches `NULL`). `NULL` sorts first ascending, last descending.
+  nothing, `!=` matches `NULL`). A time column compares natively with a date or a date text and reads as its ISO text
+  otherwise: `_lastUpdate = 'abc'` matches nothing, `_lastUpdate LIKE '2024-05%'` and `day LIKE '2024-05%'` match the
+  ISO form the models store. `NULL` sorts first ascending, last descending.
 - `incrementAttributes` works on numeric columns; `upsertItemToCollection` / `deleteItemFromCollection` work on JSONB
   arrays and on simple link arrays (by position); `updateMany` assigns columns and JSONB paths (one assignment per
   JSONB column); `deleteMany` is one `DELETE`.
@@ -164,20 +185,40 @@ Per-version views, `schemaPerVersion` and the dual-write trigger of the design a
 
 ### Errors
 
-| Situation                                                                                                                                                                                     | Error                                                        |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| duplicate primary key on `create`                                                                                                                                                             | `Error("Already exists: <key>")`                             |
-| foreign key violation on insert or update (unknown link target)                                                                                                                               | `WebdaError.BadRequest` naming the relation                  |
-| delete of a row still referenced (`NO ACTION`)                                                                                                                                                | `WebdaError.Conflict`                                        |
-| duplicate key appended to a simple link array                                                                                                                                                 | `WebdaError.Conflict`                                        |
-| filter or `ORDER BY` on a junction attribute, on a composite reference, on an unknown field without `_extra`; collection operation on a scalar; `incrementAttributes` on a non-numeric column | `WebdaError.BadRequest`                                      |
-| service named `Registry`                                                                                                                                                                      | `WebdaError.CodeError("RELATIONAL_STORE_AS_REGISTRY")`       |
-| `table` parameter                                                                                                                                                                             | `WebdaError.CodeError("RELATIONAL_SHARED_TABLE")`            |
-| repository of a model not listed                                                                                                                                                              | `WebdaError.CodeError("MODEL_NOT_PLANNED")`                  |
-| `schemaSync: "validate"` with a difference                                                                                                                                                    | `SchemaDriftError` (`SCHEMA_DRIFT`)                          |
-| plan incompatible with a live application version                                                                                                                                             | `SchemaIncompatibleError` (409, fatal at `init()`)           |
-| `Registry` unreachable at `init()`                                                                                                                                                            | `SchemaRegistryError` (`SCHEMA_REGISTRY_UNAVAILABLE`, fatal) |
-| `Webda/SchemaVersion` listed in the store models                                                                                                                                              | `WebdaError.CodeError("RELATIONAL_SCHEMA_VERSION_MODEL")`    |
+| Situation                                                                                                                                                                                     | Error                                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| duplicate primary key on `create`                                                                                                                                                             | `Error("Already exists: <key>")`                                                |
+| a key listed twice in a link collection (`tags: ["t1", "t1"]`) on `create`, `update` or `patch`                                                                                               | `WebdaError.BadRequest` naming the attribute                                    |
+| collision on a unique index (`@Unique`, `OneToOne`) on `create`, `update` or `patch`                                                                                                          | `WebdaError.Conflict` naming the fields                                         |
+| foreign key violation on insert or update (unknown link target)                                                                                                                               | `WebdaError.BadRequest` naming the relation                                     |
+| delete of a row still referenced (`NO ACTION`)                                                                                                                                                | `WebdaError.Conflict`                                                           |
+| duplicate key appended to a simple link array                                                                                                                                                 | `WebdaError.Conflict`                                                           |
+| filter or `ORDER BY` on a junction attribute, on a composite reference, on an unknown field without `_extra`; collection operation on a scalar; `incrementAttributes` on a non-numeric column | `WebdaError.BadRequest`                                                         |
+| service named `Registry`                                                                                                                                                                      | `WebdaError.CodeError("RELATIONAL_STORE_AS_REGISTRY")`                          |
+| `table` parameter                                                                                                                                                                             | `WebdaError.CodeError("RELATIONAL_SHARED_TABLE")`                               |
+| repository of a model not listed                                                                                                                                                              | `WebdaError.CodeError("MODEL_NOT_PLANNED")`                                     |
+| `schemaSync: "validate"` with a difference                                                                                                                                                    | `SchemaDriftError` (`SCHEMA_DRIFT`)                                             |
+| plan incompatible with a live application version                                                                                                                                             | `SchemaIncompatibleError` (409, fatal at `init()`)                              |
+| `Registry` unreachable at `init()`                                                                                                                                                            | `SchemaRegistryError` (`SCHEMA_REGISTRY_UNAVAILABLE`, fatal)                    |
+| `Webda/SchemaVersion` listed in the store models                                                                                                                                              | `WebdaError.CodeError("RELATIONAL_SCHEMA_VERSION_MODEL")`                       |
+| `importFromJsonb` from a relational store, or of a model whose JSONB table is the relational one                                                                                              | `WebdaError.CodeError("RELATIONAL_IMPORT_SOURCE" \| "RELATIONAL_IMPORT_TABLE")` |
+
+## Promoting a model from the JSONB store
+
+A model served by the `Registry` (or any `PostgresStore`) moves to the relational store in three steps: list it in
+`models`, start the application (`schemaSync` creates its typed table), then import its rows:
+
+```bash
+webda postgres import --models MyApp/Post,MyApp/Tag --source Registry --purge
+```
+
+`importFromJsonb(source, { models, purge })` reads the rows through the JSONB repository of the source and writes them
+through the relational repositories in **one transaction**: the links between the imported rows can point in any
+direction (deferred foreign keys), a row whose key is already in the relational table is skipped, and a failure
+(an unknown link target, a duplicate) rolls everything back. With `purge`, the rows are deleted from the source once
+committed. The JSONB table and the relational table of a model must have different names: name one of them with
+`tables` (the default name is the same on both stores). On a single client the import runs on its own transaction; with
+`usePool` it joins `withTransaction()`.
 
 ## Limitations
 
@@ -188,8 +229,8 @@ Per-version views, `schemaPerVersion` and the dual-write trigger of the design a
 - No `MigratableStore` raw access (there are no Webda 3 JSON rows in a typed table).
 - A JSON `null` stored in a JSONB column reads as an absent field.
 
-Follow-ups tracked in [#838](https://github.com/loopingz/webda.io/issues/838): `importFromJsonb` from a JSONB store,
-`foreignKeysToJsonb`, `@Index` / `@Unique` tags (#1017), per-version views and `schemaPerVersion` (#1016).
+Follow-ups tracked in [#838](https://github.com/loopingz/webda.io/issues/838): per-version views and
+`schemaPerVersion` (#1016), filters on junction attributes and composite references (#1017).
 
 ## Other engines
 

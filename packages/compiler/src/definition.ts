@@ -162,6 +162,11 @@ export type ModelGraph = {
     cascadeDelete: boolean;
   }[];
   /**
+   * Attributes tagged `@Index` / `@Unique`: an index (unique with `@Unique`) in the relational stores. The attributes
+   * sharing a name (`@Index <name>`) form one composite index, in declaration order
+   */
+  indexes?: { attribute: string; unique?: boolean; name?: string }[];
+  /**
    * References to every model that declare this model
    * as a parent
    */

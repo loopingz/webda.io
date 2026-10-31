@@ -105,6 +105,8 @@ export interface ModuleRelations {
     targetAttributes: string[];
   }[];
   behaviors?: { attribute: string; behavior: string }[];
+  /** Attributes tagged `@Index` / `@Unique`, those sharing a `name` forming one composite index. */
+  indexes?: { attribute: string; unique?: boolean; name?: string }[];
   /** Models declaring this model as their parent. */
   children?: string[];
   /** Relations of other models targeting this model, with a policy other than `NONE`. */
@@ -1243,6 +1245,20 @@ function behaviorOfTypeReference(
 }
 
 /**
+ * The `@Index` / `@Unique` JSDoc tag of a property: the relational stores index the attribute, uniquely with
+ * `@Unique`; a payload names the composite index the attribute belongs to (`@Index byAuthorDate`).
+ * @param member - the property declaration
+ * @returns the index, undefined without a tag
+ */
+function indexTagOf(member: Node): { unique?: boolean; name?: string } | undefined {
+  const unique = findTag(member, "Unique");
+  const tag = unique ?? findTag(member, "Index");
+  if (!tag) return undefined;
+  const name = (getTextOfJSDocComment(tag.comment) ?? "").trim().split(/\s+/)[0];
+  return { ...(unique ? { unique: true } : {}), ...(name ? { name } : {}) };
+}
+
+/**
  * Whether a property should be skipped entirely: `@NotEnumerable` (the bare
  * decorator only) or an `@ignore` JSDoc tag.
  * @param ctx - analysis context
@@ -1317,6 +1333,11 @@ function processModels(
         if (!member) continue;
       }
       if (isSkippedProperty(ctx, member)) continue;
+      const index = indexTagOf(member);
+      if (index) {
+        relations.indexes ??= [];
+        relations.indexes.push({ attribute: property.name, ...index });
+      }
       const typeNode = member.type;
       if (!typeNode || !is.isTypeReferenceNode(typeNode)) continue;
 

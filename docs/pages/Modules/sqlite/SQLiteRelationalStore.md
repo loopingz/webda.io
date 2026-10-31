@@ -28,8 +28,10 @@ Both stores can share one database file (one handle per file, reference counted)
 
 Those of `SQLiteStore` (`persistence`, `database`, `busyTimeout`, `pragmas`, `models`, `tables`), plus the relational
 ones: `schemaSync` (`none` | `create` | `alter` | `validate`, default `create`), `columnNaming`, `extraColumn`,
-`foreignKeys`, `numericAsDecimal`, and those of the version registry (`appVersion`, `allowIncompatible`,
-`versionHeartbeat`, `versionTtl`). `table` is refused and a `tables` override must be a lowercase identifier.
+`foreignKeys`, `foreignKeysToJsonb` (a foreign key to the `uuid` of the JSON table of a model served by a
+`SQLiteStore` on the same database file, created at `init()`), `numericAsDecimal`, and those of the version registry
+(`appVersion`, `allowIncompatible`, `versionHeartbeat`, `versionTtl`). `table` is refused and a `tables` override must
+be a lowercase identifier.
 
 ## SQLite specifics
 
@@ -52,6 +54,8 @@ ones: `schemaSync` (`none` | `create` | `alter` | `validate`, default `create`),
   `WebdaError.Conflict` (delete) says "a foreign key".
 - `webda sqlite schema show [--sql | --diff | --json]` prints the plan, its DDL or the differences with the database
   file.
+- `webda sqlite import --models MyApp/Post --source Registry [--purge]` promotes models from the JSON store
+  (`importFromJsonb`): one transaction of the database handle, which the source reads inside.
 
 ## Several app versions on the same database
 

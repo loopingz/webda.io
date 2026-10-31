@@ -1,9 +1,15 @@
-import { Command } from "@webda/core";
+import { Command, Store, WebdaError, useCore } from "@webda/core";
 import type { ModelClass, RawTable } from "@webda/core";
-import { RelationalStoreSupport, loadRelationalParameters, runTransaction } from "@webda/sql";
-import type { RelationalLayoutParameters, RelationalRepository, SQLClient, SchemaSyncMode } from "@webda/sql";
+import { RelationalStoreSupport, SQLStore, loadRelationalParameters, runTransaction } from "@webda/sql";
+import type {
+  ImportReport,
+  RelationalLayoutParameters,
+  RelationalRepository,
+  SQLClient,
+  SchemaSyncMode
+} from "@webda/sql";
 import type { RelationalSchemaPlan } from "@webda/sql-schema";
-import { acquireDatabase, releaseDatabase } from "./dbregistry.js";
+import { acquireDatabase, databaseKey, releaseDatabase } from "./dbregistry.js";
 import { SQLiteRelationalDialect } from "./relational/dialect.js";
 import { SQLiteStore, SQLiteStoreParameters } from "./sqlitestore.service.js";
 
@@ -37,6 +43,12 @@ export class SQLiteRelationalParameters extends SQLiteStoreParameters implements
    * @default true
    */
   foreignKeys?: boolean;
+  /**
+   * Also declare a foreign key to the `uuid` column of the JSON table of a model served by a `SQLiteStore` (the
+   * `Registry`) on the same database with a table per model; the JSON table is created at `init()`
+   * @default false
+   */
+  foreignKeysToJsonb?: boolean;
   /**
    * Declare JSON `number` fields as `DECIMAL` instead of `REAL`
    * @default false
@@ -113,6 +125,24 @@ export class SQLiteRelationalStore<
    */
   getSchemaPlan(): RelationalSchemaPlan {
     return this.relational.getSchemaPlan();
+  }
+
+  /**
+   * The JSON table of a model served by a `SQLiteStore` on the same database, with a table per model
+   * (`foreignKeysToJsonb`)
+   * @param store - the store serving the model
+   * @param model - the model
+   * @returns the table, undefined when no foreign key can reference it
+   */
+  jsonTableOf(store: Store | undefined, model: ModelClass): string | undefined {
+    if (!(store instanceof SQLiteStore) || store instanceof SQLiteRelationalStore) {
+      return undefined;
+    }
+    const parameters = store.getParameters();
+    if (parameters.table || databaseKey(parameters, store.getName()) !== databaseKey(this.parameters, this.getName())) {
+      return undefined;
+    }
+    return store.resolveTable(model);
   }
 
   /**
@@ -208,13 +238,75 @@ export class SQLiteRelationalStore<
   }
 
   /**
-   * Delete every row of every table of the plan (tests)
+   * Delete every row of every table of the plan (tests), in one transaction: the deferred foreign keys of a cycle
+   * are checked once every row is gone
    * @override
    */
   async __clean(): Promise<void> {
-    for (const statement of this.relational.cleanStatements()) {
-      await this.getClient()!.query(statement);
+    await this.transact(async tx => {
+      for (const statement of this.relational.cleanStatements()) {
+        await tx.query(statement);
+      }
+    });
+  }
+
+  /**
+   * Promote models from a JSON store: their rows are imported in the relational tables in one transaction, then
+   * deleted from the source when `purge` is set. The models must already be listed in `models`, and their relational
+   * table must not be the JSON one (name one of them with `tables`)
+   * @param source - the JSON store holding the rows
+   * @param options - the models (every table root by default) and whether to purge the source
+   * @param options.models - the model identifiers
+   * @param options.purge - delete the imported rows from the source after the commit
+   * @returns one report per model
+   */
+  async importFromJsonb(
+    source: SQLStore<any>,
+    options: { models?: string[]; purge?: boolean } = {}
+  ): Promise<ImportReport[]> {
+    return this.relational.importFromJson(source, {
+      ...options,
+      // The transaction of the async chain: the source, on the same database handle, reads inside it
+      transact: fn => this.withTransaction(() => fn()),
+      repository: model => (this.getRepository(model) as any).repository
+    });
+  }
+
+  /**
+   * Import the rows of models from a JSON store (`importFromJsonb`)
+   * @param models - comma-separated model identifiers, every table root of the plan by default
+   * @param source - the JSON store holding the rows
+   * @param purge - delete the imported rows from the source once committed
+   * @returns 0
+   * @throws WebdaError.CodeError `RELATIONAL_IMPORT_SOURCE` when the source is not a `SQLiteStore`
+   */
+  @Command("sqlite import", {
+    description: "Import the rows of models from a JSON SQLiteStore into the relational tables",
+    phase: "initialized"
+  })
+  async import(
+    /** @description Comma-separated model identifiers, every table root of the plan by default */
+    models: string = "",
+    /** @description The JSON store holding the rows */
+    source: string = "Registry",
+    /** @description Delete the imported rows from the source once committed */
+    purge: boolean = false
+  ): Promise<number> {
+    const store = useCore().getService(source);
+    if (!(store instanceof SQLStore)) {
+      throw new WebdaError.CodeError("RELATIONAL_IMPORT_SOURCE", `${source} is not a SQL store`);
     }
+    const reports = await this.importFromJsonb(store, {
+      models: models
+        .split(",")
+        .map(m => m.trim())
+        .filter(Boolean),
+      purge
+    });
+    for (const report of reports) {
+      console.log(`${report.model}: ${report.imported} imported, ${report.skipped} skipped`);
+    }
+    return 0;
   }
 
   /**

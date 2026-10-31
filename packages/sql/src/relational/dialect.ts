@@ -120,6 +120,14 @@ export interface RelationalDialect extends SQLDialect {
    */
   castText(expr: string): string;
   /**
+   * ISO 8601 text of a time column expression: `YYYY-MM-DD` for a `date`, the UTC `...Z` form for a `timestamptz`
+   * (what the models store and compare), for `LIKE` and the loose text comparisons
+   * @param expr - a SQL expression
+   * @param type - the column type (`date` or `timestamptz`)
+   * @returns the text
+   */
+  timeText(expr: string, type: ColumnType): string;
+  /**
    * JSON value of a scalar column expression, for aggregations: a time column renders as its ISO 8601 UTC text
    * @param expr - a SQL expression
    * @param type - the column type
@@ -194,10 +202,29 @@ export interface RelationalDialect extends SQLDialect {
    * @param valueParam - position of the bound value
    * @returns the condition
    */
-  columnJsonItemCondition(column: string, index: number | undefined, field: string, valueParam: number): string;
+  columnJsonItemCondition(column: string, index: number, field: string, valueParam: number): string;
   /**
    * @param err - an error thrown by the client
    * @returns the violated constraint when the error is a foreign key violation, undefined otherwise
    */
   isForeignKeyViolation(err: unknown): { constraint?: string } | undefined;
+  /**
+   * @param err - an error thrown by the client
+   * @returns what a unique violation hit: the table, the constraint or index name when the engine reports it, and
+   *   whether it is the primary key; undefined for any other error
+   */
+  uniqueViolation(err: unknown): UniqueViolation | undefined;
+}
+
+/**
+ * A unique violation as a dialect reports it
+ */
+export interface UniqueViolation {
+  table?: string;
+  constraint?: string;
+  /**
+   * The columns of the violated index, when the engine names them instead of the index
+   */
+  columns?: string[];
+  primaryKey: boolean;
 }

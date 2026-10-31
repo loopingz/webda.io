@@ -22,6 +22,7 @@ import {
   RelAggRow,
   RelAnimal,
   RelDog,
+  RelNode,
   RelPair,
   RelPairRef,
   RelPost,
@@ -792,5 +793,119 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
       "2024-01-02"
     );
     assert.deepStrictEqual(await this.uuids(repo, "day >= '2024-02-01'"), ["p2"]);
+  }
+
+  @test
+  async timeColumnsMatchNothingOnNonDateText() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", _lastUpdate: "2024-05-06T07:08:09.123Z", day: "2024-05-06" });
+    await repo.create({ uuid: "p2", title: "T" });
+    // A text that is no date matches nothing instead of raising, `!=` matches everything
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate = 'abc'"), []);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate != 'abc'"), ["p1", "p2"]);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate > 'abc'"), []);
+    assert.deepStrictEqual(await this.uuids(repo, "day = 'abc'"), []);
+    assert.deepStrictEqual(await this.uuids(repo, "day < 'abc'"), []);
+    // Dates compare natively, LIKE sees the ISO text
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate = '2024-05-06T07:08:09.123Z'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate LIKE '2024-05-06T07%'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate LIKE '%.123Z'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "day >= '2024-05-06'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "day LIKE '2024-05%'"), ["p1"]);
+  }
+
+  @test
+  async duplicatesTellRowJunctionAndUniqueIndexApart() {
+    await this.seedTargets();
+    const users = this.repo(RelUser);
+    const posts = this.repo(RelPost);
+    await users.create({ uuid: "u3", email: "a@b" });
+    await assert.rejects(() => users.create({ uuid: "u3", email: "other" }), /^Error: Already exists: u3$/);
+    // The `@Unique` index of the fixture
+    await assert.rejects(
+      () => users.create({ uuid: "u4", email: "a@b" }),
+      (err: any) => err instanceof WebdaError.Conflict && err.message === "Rel/User: email must be unique"
+    );
+    assert.strictEqual(await users.exists("u4"), false);
+    await users.create({ uuid: "u4", email: "c@d" });
+    await assert.rejects(() => users.update({ uuid: "u4", email: "a@b" }), WebdaError.Conflict);
+    await assert.rejects(() => users.patch("u4", { email: "a@b" }), WebdaError.Conflict);
+    await assert.rejects(
+      () => posts.create({ uuid: "p1", title: "T", tags: ["t1", "t1"] }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message === "Rel/Post.tags holds a key twice"
+    );
+    assert.strictEqual(await posts.exists("p1"), false, "the row insert is rolled back with its junction");
+    await posts.create({ uuid: "p1", title: "T", tags: ["t1"] });
+    await assert.rejects(() => posts.patch("p1", { tags: ["t2", "t2"] }), WebdaError.BadRequest);
+    assert.deepStrictEqual(((await posts.get("p1")) as any).tags, ["t1"]);
+    // Any other junction failure is reported as is
+    (posts as any).writeJunction = async () => {
+      throw new Error("boom");
+    };
+    await assert.rejects(() => posts.patch("p1", { tags: ["t2"] }), /boom/);
+  }
+
+  @test
+  async patchRoundTripsItsData() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", views: 1, meta: { a: 1 } });
+    // Undefined values are not patched, dates serialize, an enumerable __type is never trusted
+    await repo.patch("p1", {
+      views: undefined,
+      title: "T2",
+      _lastUpdate: new Date("2024-05-06T07:08:09.123Z"),
+      __type: "Rel/Dog"
+    } as any);
+    const post: any = await repo.get("p1");
+    assert.strictEqual(post.views, 1);
+    assert.strictEqual(post.title, "T2");
+    assert.strictEqual(post._lastUpdate, "2024-05-06T07:08:09.123Z");
+    assert.ok(post instanceof RelPost);
+    // What has a toJSON is patched as it serializes
+    await repo.patch("p1", { title: "ignored", toJSON: () => ({ title: "T3", meta: { b: 2 } }) } as any);
+    const again: any = await repo.get("p1");
+    assert.strictEqual(again.title, "T3");
+    assert.deepStrictEqual(again.meta, { b: 2 });
+  }
+
+  @test
+  async linksArrayMixingKeysAndObjects() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", contributors: ["u1", { uuid: "u2", role: "x" }] });
+    assert.deepStrictEqual(((await repo.get("p1")) as any).contributors, [{ uuid: "u1" }, { uuid: "u2", role: "x" }]);
+    await repo.update({ uuid: "p1", title: "T", contributors: [{ uuid: "u2", role: "y" }, "u1"] });
+    assert.deepStrictEqual(((await repo.get("p1")) as any).contributors, [{ uuid: "u2", role: "y" }, { uuid: "u1" }]);
+  }
+
+  @test
+  async cleanDeletesSelfReferencesInOneTransaction() {
+    const nodes = this.repo(RelNode);
+    await nodes.create({ uuid: "n1" });
+    await nodes.create({ uuid: "n2", parentNode: "n1" });
+    await nodes.patch("n1", { parentNode: "n2" });
+    await nodes.__clean();
+    assert.deepStrictEqual(await this.rows("rel_node"), []);
+  }
+
+  @test
+  async jsonItemConditionAtAnIndexAndUnknownUniqueIndex() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", files: [{ name: "f0" }, { name: "f1" }] });
+    await assert.rejects(
+      () => repo.upsertItemToCollection("p1", "files" as any, { name: "x" }, 1, "name", "nope"),
+      UpdateConditionFailError
+    );
+    await repo.upsertItemToCollection("p1", "files" as any, { name: "f1b" }, 1, "name", "f1");
+    assert.deepStrictEqual(((await repo.get("p1")) as any).files, [{ name: "f0" }, { name: "f1b" }]);
+    // A unique index the plan does not know (added by a DBA) is a conflict named after what the engine reports
+    await this.client.query(`CREATE UNIQUE INDEX dba_uq ON rel_tag (label)`);
+    const tags = this.repo(RelTag);
+    await tags.create({ uuid: "t1", label: "same" });
+    await assert.rejects(
+      () => tags.create({ uuid: "t2", label: "same" }),
+      (err: any) =>
+        err instanceof WebdaError.Conflict && /^Rel\/Tag: unique constraint (dba_uq|label) violated$/.test(err.message)
+    );
   }
 }

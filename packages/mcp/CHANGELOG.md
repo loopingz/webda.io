@@ -1,5 +1,31 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-beta.11...mcp-v4.0.0-beta.12) (2026-10-22)
+
+
+### Features
+
+* **mcp,oauth:** dynamic client registration, resource-bound tokens and insufficient_scope ([#901](https://github.com/loopingz/webda.io/issues/901)) ([#988](https://github.com/loopingz/webda.io/issues/988)) ([f75c854](https://github.com/loopingz/webda.io/commit/f75c8548791ef77a81bca304e4f5e5f84094b807))
+
+
+### Bug Fixes
+
+* **mcp:** filter resources/templates/list by Get operation permission ([#958](https://github.com/loopingz/webda.io/issues/958)) ([9a1c09a](https://github.com/loopingz/webda.io/commit/9a1c09a6d455a566c0f28139b15a112140f0c108)), closes [#912](https://github.com/loopingz/webda.io/issues/912)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.11
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.12
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-beta.10...mcp-v4.0.0-beta.11) (2026-10-16)
 
 

@@ -42,8 +42,8 @@ export class FakeApiServer {
       req.on("end", () => {
         try {
           this.handle(req, res, body ? JSON.parse(body) : undefined);
-        } catch (err) {
-          this.send(res, 500, this.status(500, "InternalError", String(err)));
+        } catch {
+          this.send(res, 500, this.status(500, "InternalError", "Internal server error"));
         }
       });
     });

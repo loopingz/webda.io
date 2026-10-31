@@ -327,6 +327,91 @@
       },
       "Configuration": "lib/email/emailpassword.service:EmailPasswordParameters"
     },
+    "Webda/SmsMfaService": {
+      "Import": "lib/mfa/sms.service:SmsMfaService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "ThrottleParameters": {
+            "additionalProperties": false,
+            "description": "Throttle configuration options",
+            "properties": {
+              "failedBeforeDelay": {
+                "description": "Failures allowed before lockout engages",
+                "type": "number"
+              },
+              "lockout": {
+                "description": "Lockout duration in milliseconds",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters for the SMS second factor",
+        "properties": {
+          "app": {
+            "description": "Application name in the message (defaults to the application package name)",
+            "type": "string"
+          },
+          "digits": {
+            "description": "Number of digits of a code",
+            "maximum": 10,
+            "minimum": 4,
+            "type": "number"
+          },
+          "message": {
+            "default": "{code} is your {app} verification code",
+            "description": "Message template, `{code}` and `{app}` are replaced",
+            "type": "string"
+          },
+          "recoveryCodes": {
+            "description": "Number of recovery codes generated (default 10, 0 disables recovery codes)",
+            "type": "number"
+          },
+          "resendDelay": {
+            "default": "60s",
+            "description": "Minimum delay between two codes sent to the same factor: seconds or a duration string such as \"60s\"",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "sender": {
+            "default": "SmsSender",
+            "description": "Name of the {@link SmsSender} service delivering the codes",
+            "type": "string"
+          },
+          "throttle": {
+            "$ref": "#/definitions/ThrottleParameters",
+            "description": "Throttle config for failed attempts"
+          },
+          "ttl": {
+            "default": "5m",
+            "description": "Lifetime of a code: seconds or a duration string such as \"5m\"",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SmsMfaService"
+      },
+      "Configuration": "lib/mfa/sms.service:SmsMfaParameters"
+    },
     "Webda/TotpService": {
       "Import": "lib/mfa/totp.service:TotpService",
       "Schema": {
@@ -875,6 +960,53 @@
         },
         "next": {
           "type": "string"
+        },
+        "escrow": {
+          "additionalProperties": false,
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "properties": {
+            "ct": {
+              "type": "string"
+            },
+            "iv": {
+              "type": "string"
+            },
+            "kdf": {
+              "description": "Supported password KDFs",
+              "enum": [
+                "argon2id",
+                "pbkdf2-sha256"
+              ],
+              "type": "string"
+            },
+            "kdfParams": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "password",
+                "recovery"
+              ],
+              "type": "string"
+            },
+            "salt": {
+              "type": "string"
+            },
+            "v": {
+              "const": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "ct",
+            "iv",
+            "kdf",
+            "kdfParams",
+            "kind",
+            "salt",
+            "v"
+          ],
+          "type": "object"
         }
       },
       "required": [

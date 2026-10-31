@@ -123,8 +123,10 @@ export class ImageLayout {
   writeBlob(data: Buffer, mediaType: string): Descriptor {
     const digest = sha256(data);
     const path = this.blobPath(digest);
-    if (!existsSync(path)) {
-      writeFileSync(path, data);
+    try {
+      writeFileSync(path, data, { flag: "wx" });
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
     }
     return { mediaType, digest, size: data.length };
   }

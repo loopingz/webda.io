@@ -35,3 +35,12 @@ export class ModelsMapped<T, K extends string, L extends string> {
   link?: K;
   attributes?: L;
 }
+
+export interface Storable {}
+export type ModelLinkData<K extends object = object> = { model: string; key: string | number | Record<string, string | number> } & K;
+export class ModelLinksAny<K extends object = object, T extends Storable = Storable> {
+  constructor(targets: readonly (new () => T)[] = []) {}
+  /** @WebdaAutoSetter */
+  set(values: readonly ModelLinkData<K>[] = []): void {}
+  toJSON(): ModelLinkData<K>[] { return []; }
+}

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { useCoreEvents, useRegistry, WebContext, Bean } from "../index.js";
+import { useCoreEvents, useRegistry, WebContext, Bean, Service, WebdaError } from "../index.js";
 import { WebdaInternalTest } from "../test/index.js";
 import { JSONUtils } from "@webda/utils";
 import { MemoryRepository } from "@webda/models";
@@ -18,6 +18,27 @@ class CoreTest extends WebdaInternalTest {
   async beforeAll() {
     await super.beforeAll();
     this.ctx = await this.newContext({});
+  }
+
+  @test
+  async initServiceFatalError() {
+    const failing = (error: Error) =>
+      new (class extends Service {
+        async init(): Promise<this> {
+          throw error;
+        }
+      })("failing", {});
+    const services = this.webda.getServices();
+    try {
+      // A regular init error is logged, the other services keep starting
+      services["failing"] = failing(new Error("not fatal"));
+      await this.webda["initService"]("failing");
+      // A fatal one stops the startup
+      services["failing"] = failing(new WebdaError.FatalInitError("fatal"));
+      await assert.rejects(() => this.webda["initService"]("failing"), /fatal/);
+    } finally {
+      delete services["failing"];
+    }
   }
 
   @test

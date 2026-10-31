@@ -913,6 +913,9 @@
         "logLevel": {
           "type": "WorkerLogLevel"
         },
+        "system": {
+          "type": "boolean"
+        },
         "status": {
           "type": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\""
         },
@@ -1046,6 +1049,11 @@
             "statusDetails": {
               "description": "Job current status"
             },
+            "system": {
+              "default": false,
+              "description": "The operation is called as the system (`useSystem`), a cron for example\n\nThe context is stored as data: the runner rebuilds a system context from this flag",
+              "type": "boolean"
+            },
             "type": {
               "description": "Type of action",
               "type": "string"
@@ -1156,6 +1164,11 @@
             "statusDetails": {
               "description": "Job current status"
             },
+            "system": {
+              "default": false,
+              "description": "The operation is called as the system (`useSystem`), a cron for example\n\nThe context is stored as data: the runner rebuilds a system context from this flag",
+              "type": "boolean"
+            },
             "type": {
               "description": "Type of action",
               "type": "string"
@@ -1265,6 +1278,11 @@
             },
             "statusDetails": {
               "description": "Job current status"
+            },
+            "system": {
+              "default": false,
+              "description": "The operation is called as the system (`useSystem`), a cron for example\n\nThe context is stored as data: the runner rebuilds a system context from this flag",
+              "type": "boolean"
             },
             "type": {
               "description": "Type of action",

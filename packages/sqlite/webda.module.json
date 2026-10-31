@@ -240,9 +240,22 @@
             "$ref": "#/definitions/SQLDatabase",
             "description": "Services giving the same database name share one handle"
           },
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
           "maxConsumers": {
             "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
           "persistence": {
@@ -294,6 +307,280 @@
         "title": "SQLiteQueueService"
       },
       "Configuration": "lib/sqlitequeue.service:SQLiteQueueParameters"
+    },
+    "Webda/SQLiteRelationalStore": {
+      "Import": "lib/sqliterelationalstore.service:SQLiteRelationalStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, string | number>": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "SQLDatabase": {
+            "additionalProperties": false,
+            "description": "Database connection metadata",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "SQLitePersistence": {
+            "additionalProperties": false,
+            "description": "Same name and role as MemoryStoreParameters.persistence",
+            "properties": {
+              "path": {
+                "description": "Database file; relative paths resolve against the application directory",
+                "type": "string"
+              },
+              "readOnly": {
+                "default": false,
+                "description": "Open the file read-only: writes are rejected with a WebdaError",
+                "type": "boolean"
+              },
+              "synchronous": {
+                "default": "\"NORMAL\" with WAL, \"FULL\" otherwise",
+                "description": "PRAGMA synchronous",
+                "enum": [
+                  "OFF",
+                  "NORMAL",
+                  "FULL",
+                  "EXTRA"
+                ],
+                "type": "string"
+              },
+              "wal": {
+                "default": true,
+                "description": "PRAGMA journal_mode=WAL (concurrent readers across processes)",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          },
+          "tables#2": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.",
+            "type": "object"
+          },
+          "typeCheck#2": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the relational store: those of {@link SQLiteStore} plus the schema layout and lifecycle",
+        "properties": {
+          "aggregationFallback": {
+            "default": "warn",
+            "description": "What to do when an aggregation on this store cannot run natively and must\nstream every matching object through memory",
+            "enum": [
+              "allow",
+              "warn",
+              "deny"
+            ],
+            "type": "string"
+          },
+          "autoCreateTable": {
+            "default": true,
+            "description": "Auto create tables if they do not exist",
+            "type": "boolean"
+          },
+          "busyTimeout": {
+            "default": 5000,
+            "description": "PRAGMA busy_timeout in ms",
+            "type": "number"
+          },
+          "columnNaming": {
+            "default": "preserve",
+            "description": "`preserve` keeps the field names as column names (quoted camelCase), `snake_case` converts them",
+            "enum": [
+              "preserve",
+              "snake_case"
+            ],
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/definitions/SQLDatabase"
+          },
+          "extraColumn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "const": false,
+                "type": "boolean"
+              }
+            ],
+            "default": "_extra",
+            "description": "JSON column keeping the properties the model schema does not declare, `false` to refuse them"
+          },
+          "foreignKeys": {
+            "default": true,
+            "description": "Declare the foreign key constraints between the tables of the store",
+            "type": "boolean"
+          },
+          "maxGroups": {
+            "default": 10000,
+            "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "minimum": 1,
+            "type": "number"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "numericAsDecimal": {
+            "default": false,
+            "description": "Declare JSON `number` fields as `DECIMAL` instead of `REAL`",
+            "type": "boolean"
+          },
+          "persistence": {
+            "$ref": "#/definitions/SQLitePersistence",
+            "description": "Omitted: in-memory database, lost on stop() (like MemoryStore without persistence)\nSet: file database, every committed write is durable"
+          },
+          "pragmas": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20number%3E",
+            "description": "Extra PRAGMAs run on open, e.g. { cache_size: -64000 }"
+          },
+          "schemaSync": {
+            "default": "create",
+            "description": "What `init()` does with the database schema\n\n- `none`: nothing\n- `create`: create the missing tables, with their indexes and inline foreign keys\n- `alter`: `create`, plus add the missing columns and indexes of the existing tables (SQLite cannot add a\n  foreign key to an existing table: it is reported)\n- `validate`: write nothing, fail when anything is missing or differs",
+            "enum": [
+              "none",
+              "create",
+              "alter",
+              "validate"
+            ],
+            "type": "string"
+          },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "table": {
+            "description": "The table of every model of the store, subclasses and models routed to this store as fallback included (the\nWebda 3 layout). Without it each model gets its own table (its identifier lowercased with \"/\" → \"_\").",
+            "type": "string"
+          },
+          "tables": {
+            "$ref": "#/definitions/tables%232",
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name."
+          },
+          "transaction": {
+            "default": "none",
+            "description": "Wrap all statements of an operation in a single transaction\n\n- \"none\": autocommit per statement\n- \"operation\": BEGIN on the first statement of an operation, COMMIT when the operation succeeds, ROLLBACK when\n  it fails. Nested operations join the outermost one; `transaction: false` on an operation opts it out.",
+            "enum": [
+              "none",
+              "operation"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck%232",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SQLiteRelationalStore"
+      },
+      "Configuration": "lib/sqliterelationalstore.service:SQLiteRelationalParameters",
+      "commands": {
+        "sqlite schema": {
+          "description": "Print the relational schema plan, its DDL or the diff with the database",
+          "method": "schema",
+          "args": {
+            "sql": {
+              "type": "boolean",
+              "default": false,
+              "description": "Print the CREATE statements of the plan"
+            },
+            "diff": {
+              "type": "boolean",
+              "default": false,
+              "description": "Open the database and print what schemaSync alter would run, and the drift it never resolves"
+            },
+            "json": {
+              "type": "boolean",
+              "default": false,
+              "description": "Print the plan as JSON"
+            }
+          },
+          "phase": "resolved"
+        }
+      }
     },
     "Webda/SQLiteStore": {
       "Import": "lib/sqlitestore.service:SQLiteStore",
@@ -471,6 +758,15 @@
           "tables": {
             "$ref": "#/definitions/tables%232",
             "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name."
+          },
+          "transaction": {
+            "default": "none",
+            "description": "Wrap all statements of an operation in a single transaction\n\n- \"none\": autocommit per statement\n- \"operation\": BEGIN on the first statement of an operation, COMMIT when the operation succeeds, ROLLBACK when\n  it fails. Nested operations join the outermost one; `transaction: false` on an operation opts it out.",
+            "enum": [
+              "none",
+              "operation"
+            ],
+            "type": "string"
           },
           "type": {
             "description": "Type of the service",

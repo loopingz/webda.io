@@ -141,7 +141,10 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     router.remapRoutes();
     const routePaths = Object.keys(router.routes);
     // Post publish action
-    assert.ok(routePaths.includes("/posts/{uuid}/publish"), "Should have /posts/{uuid}/publish action route");
+    assert.ok(
+      routePaths.includes("/posts/{slug}/publish"),
+      "Should have /posts/{slug}/publish using the Post primary key"
+    );
     // User follow/unfollow actions
     assert.ok(routePaths.includes("/users/{uuid}/follow"), "Should have /users/{uuid}/follow action route");
     assert.ok(routePaths.includes("/users/{uuid}/unfollow"), "Should have /users/{uuid}/unfollow action route");

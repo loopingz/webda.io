@@ -1,0 +1,8 @@
+{
+  "name": "workflow-compiled-app",
+  "private": true,
+  "type": "module",
+  "webda": {
+    "namespace": "FlowApp"
+  }
+}

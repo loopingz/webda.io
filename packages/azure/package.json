@@ -1,0 +1,80 @@
+{
+  "name": "@webda/azure",
+  "version": "4.0.0-beta.12",
+  "description": "Azure services and deployers for Webda",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
+    "pretest": "npm run build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/azure"
+  },
+  "keywords": [
+    "webda",
+    "modda"
+  ],
+  "files": [
+    "lib",
+    "webda.module.json",
+    "package.json"
+  ],
+  "author": "loopingz",
+  "license": "LGPL-3.0-only",
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
+  "homepage": "https://github.com/loopingz/webda.io#readme",
+  "dependencies": {
+    "@azure/core-auth": "^1.11.0",
+    "@azure/identity": "^4.14.0",
+    "@webda/core": "workspace:*",
+    "@azure/storage-blob": "^12.34.0",
+    "@azure/cosmos": "^4.10.1",
+    "@azure/service-bus": "^7.10.0",
+    "@azure/keyvault-secrets": "^4.11.2",
+    "@azure/keyvault-keys": "^4.10.2",
+    "@azure/monitor-ingestion": "^1.2.0",
+    "@azure/arm-resources": "^8.0.0",
+    "@azure/functions": "^4.17.0",
+    "@webda/utils": "workspace:*",
+    "@webda/oci": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "@webda/models": "workspace:*",
+    "@webda/workout": "workspace:*",
+    "@azure/arm-resourcesdeployments": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@webda/compiler": "workspace:^",
+    "@webda/test": "workspace:*",
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core"
+    ]
+  },
+  "typings": "lib/index.d.ts",
+  "webda": {
+    "namespace": "Webda"
+  }
+}

@@ -16,12 +16,13 @@ import {
 } from "../services/servicecommands.js";
 import { getDeploymentUnitServices, mergeDeploymentUnits } from "../application/deployment.js";
 import { DEPLOYER_CAPABILITY } from "../deployers/deployer.js";
+import { PACKAGED_INLINE_KEY, PACKAGED_MARKER } from "../deployers/packager.js";
 import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
 import { STORE_CAPABILITY } from "../stores/capability.js";
 import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
-import { CancelablePromise, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
+import { CancelablePromise, FileUtils, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
 import {
   ConsoleLogger,
   type ConsoleLogStream,
@@ -74,7 +75,8 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
   },
   searchRequest: {
     options: {
-      query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" }
+      query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" },
+      count: { type: "boolean", describe: "Also return the total of the query" }
     }
   }
 };
@@ -103,17 +105,16 @@ function paramDefOf(
 /**
  * Convert a JSON Schema's properties into yargs option definitions.
  *
+ * Options stay optional here because input can also come from --json/--file; the assembled input is validated later.
  * @param schema - JSON Schema describing an object with properties
- * @param skipRequired - When true, all options are marked optional (useful when input can also come from --json/--file)
  * @returns Map of property names to yargs {@link Options} definitions
  */
-function schemaToOptions(schema: JSONSchema7, skipRequired?: boolean): Record<string, Options> {
+function schemaToOptions(schema: JSONSchema7): Record<string, Options> {
   if (schema.type !== "object" || !schema.properties) return {};
   const opts: Record<string, Options> = {};
-  const required = new Set(schema.required || []);
   for (const [name, prop] of Object.entries(schema.properties)) {
     if (typeof prop === "boolean") continue;
-    const o: Options = { describe: prop.description || name, demandOption: skipRequired ? false : required.has(name) };
+    const o: Options = { describe: prop.description || name, demandOption: false };
     if (prop.type === "number" || prop.type === "integer") o.type = "number";
     else if (prop.type === "boolean") o.type = "boolean";
     else if (prop.type === "array") o.type = "array";
@@ -178,7 +179,7 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
     // Offer both raw JSON/file and per-property CLI options
     y.option("json", { type: "string", describe: "JSON input (inline)" });
     y.option("file", { type: "string", alias: "f", describe: "JSON input from file" });
-    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input], true))) {
+    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input]))) {
       // The positional is not an option
       if (name === paramDef?.positional) continue;
       y.option(name, opt);
@@ -523,14 +524,6 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
   }
 }
 
-/**
- * Default handler: prints the operation call as JSON
- * @param call - the function to call
- */
-async function defaultHandler(call: OperationCall): Promise<void> {
-  useOutput(JSON.stringify(call, undefined, 2));
-}
-
 /** Values accepted by the `--log-stream` option */
 const LOG_STREAM_CHOICES = ["auto", "stdout", "stderr"] as const;
 
@@ -607,15 +600,83 @@ export function unknownCommandMessage(command: string, available: string[], prog
 }
 
 /**
- * Load the Application from a path, choosing packaged or unpacked mode based on the presence of `.webda/packaged.json`.
+ * Extensions of the configuration file, in the order {@link FileUtils.getConfigurationFile} picks them
+ */
+const CONFIGURATION_EXTENSIONS = ["yaml", "yml", "jsonc", "json"];
+
+/**
+ * Whether a configuration file carries the {@link PACKAGED_INLINE_KEY} marker
+ * @param file - the configuration file
+ * @returns true if its top-level `$packaged` entry is set
+ */
+function hasInlineMarker(file: string): boolean {
+  try {
+    // Only parse the files mentioning the marker, the configuration is parsed again by the Application
+    return readFileSync(file, "utf-8").includes(PACKAGED_INLINE_KEY) && !!FileUtils.load(file)?.[PACKAGED_INLINE_KEY];
+  } catch {
+    // An invalid file is reported by the Application
+    return false;
+  }
+}
+
+/**
+ * Configuration file of the application carrying the inline packaged marker
+ *
+ * A packaged file shadowed by another `webda.config.*` taking precedence is ignored, with a warning.
+ *
+ * @param appPath - the application folder
+ * @returns the configuration file, undefined if the configuration has no inline marker
+ */
+function getInlineMarkerFile(appPath: string): string | undefined {
+  let file: string;
+  try {
+    file = FileUtils.getConfigurationFile(join(appPath, "webda.config"));
+  } catch {
+    return undefined;
+  }
+  if (hasInlineMarker(file)) {
+    return file;
+  }
+  for (const extension of CONFIGURATION_EXTENSIONS) {
+    const shadowed = join(appPath, `webda.config.${extension}`);
+    if (shadowed !== file && existsSync(shadowed) && hasInlineMarker(shadowed)) {
+      useLog(
+        "WARN",
+        `${shadowed} is packaged (${PACKAGED_INLINE_KEY}) but ${file} takes precedence: loading the application unpacked`
+      );
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Whether the application is packaged: loaded from its configuration only, without deployment files nor modules scan
+ *
+ * It is packaged with the `.webda/packaged.json` marker of `webda package`, or when its configuration file has the
+ * `$packaged` entry of `webda package --config-only`.
+ *
+ * @param appPath - the application folder
+ * @returns true if the application is packaged
+ */
+export function isPackagedApplication(appPath: string): boolean {
+  return existsSync(join(appPath, PACKAGED_MARKER)) || getInlineMarkerFile(appPath) !== undefined;
+}
+
+/**
+ * Load the Application from a path, packaged or unpacked, see {@link isPackagedApplication}
  *
  * @param appPath - Absolute or relative path to the application root directory
  * @returns An {@link Application} (packaged) or {@link UnpackedApplication} instance
  */
-function loadApplication(appPath: string): Application {
-  if (!existsSync(join(appPath, ".webda", "packaged.json"))) {
+export function loadApplication(appPath: string): Application {
+  if (existsSync(join(appPath, PACKAGED_MARKER))) {
+    return new Application(appPath);
+  }
+  const inline = getInlineMarkerFile(appPath);
+  if (!inline) {
     return new UnpackedApplication(appPath);
   }
+  useLog("INFO", `Loading the packaged configuration ${inline} (${PACKAGED_INLINE_KEY})`);
   return new Application(appPath);
 }
 

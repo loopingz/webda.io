@@ -1,17 +1,23 @@
 import {
   Cron,
+  CronDefinition,
+  CronService,
   HttpContext,
+  Operation,
   OperationContext,
   Queue,
+  registerOperation,
   runWithContext,
   Service,
   registerOperationAuthorizer,
   ServiceParameters,
   unregisterOperationAuthorizer,
   useApplication,
+  useContext,
   useCore,
   useDynamicService,
   useParameters,
+  useSystem,
   useRouter,
   WebContext,
   WebdaError
@@ -32,11 +38,17 @@ import { Runner } from "./runner.service.js";
  * Service with crons
  */
 class FakeService extends Service {
+  @Operation()
   @Cron("0 4 * * *")
-  cron1() {}
+  async cron1() {}
 
-  @Cron("0 8 * * *")
-  cron2() {}
+  @Operation()
+  @Cron("0 8 * * *", "", { full: true })
+  async cron2() {
+    this.callers.push(useContext().getCurrentUserId());
+  }
+
+  callers: string[] = [];
 
   scheduled() {}
 }
@@ -65,6 +77,23 @@ class AsyncJobServiceTest extends AsyncTest {
     for (const action of (await AsyncAction.query("")).results) {
       await action.delete();
     }
+  }
+
+  @test
+  async rejectsUnconfiguredOperationsAndUnsupportedHooks() {
+    const service = this.getValidService();
+    service.operationModel = undefined;
+    await assert.rejects(() => service.callOperation(new OperationContext()), /Operation model is not configured/);
+    const check = sinon.stub(service, "checkOperation").resolves();
+    try {
+      const context = await this.newContext({});
+      context.getParameters().operationId = "Test.Operation";
+      context.getParameters().schedule = Date.now() + 60000;
+      await assert.rejects(() => service.launchOperation(context), /Operation model is not configured/);
+    } finally {
+      check.restore();
+    }
+    await assert.rejects(() => service.postHook({ JOB_HOOK: "ftp://unsupported" } as any, {}), /Unsupported job hook/);
   }
 
   @test
@@ -627,6 +656,18 @@ class AsyncJobServiceTest extends AsyncTest {
       await action.refresh();
       assert.strictEqual(action.status, "SUCCESS");
       assert.deepStrictEqual(action.results, { myMethod: "async", success: true, args: ["plop", 666] });
+      const fail = sinon.stub(useCore().getServices()["mine"] as any, "myMethod");
+      for (const error of [new Error("execution failed"), "non-error failure"]) {
+        stub.resetHistory();
+        fail.callsFake(async () => {
+          throw error;
+        });
+        await service.runAsyncOperationAction();
+        await action.refresh();
+        assert.strictEqual(action.status, "ERROR");
+        assert.strictEqual(action.errorMessage, error instanceof Error ? error.message : error);
+      }
+      fail.restore();
     } finally {
       sinon.restore();
       delete useCore().getServices()["mine"];
@@ -635,9 +676,59 @@ class AsyncJobServiceTest extends AsyncTest {
   }
 
   @test
+  async asyncRunOperationAction() {
+    const fakeService = new FakeService("fake", new ServiceParameters());
+    this.registerService(fakeService).resolve();
+    registerOperation("Fake.Guarded", { service: "fake", method: "cron2", permission: "userId = 'admin'" });
+    const service = this.getValidService();
+    const reports: any[] = [];
+    // The hook answers the stored action as JSON, as the HTTP status hook does
+    const stored = JSON.parse(
+      JSON.stringify({
+        ...new AsyncOperationAction("Fake.Guarded", useSystem({ full: true })),
+        context: { input: Buffer.from(JSON.stringify({ full: true })) }
+      })
+    );
+    const hook = stub(service, "postHook").callsFake(async (_info, message) => {
+      reports.push(message);
+      return stored;
+    });
+    try {
+      await service.runAsyncOperationAction({
+        JOB_ORCHESTRATOR: "async",
+        JOB_ID: "job",
+        JOB_SECRET_KEY: "secret",
+        JOB_HOOK: "store"
+      });
+      assert.deepStrictEqual(
+        reports.map(r => r.status),
+        ["RUNNING", "SUCCESS"]
+      );
+      assert.deepStrictEqual(fakeService.callers, ["system"]);
+      // Without the system marker the guarded operation is refused
+      stored.system = false;
+      reports.length = 0;
+      await service.runAsyncOperationAction({
+        JOB_ORCHESTRATOR: "async",
+        JOB_ID: "job",
+        JOB_SECRET_KEY: "secret",
+        JOB_HOOK: "store"
+      });
+      assert.deepStrictEqual(
+        reports.map(r => r.status),
+        ["RUNNING", "ERROR"]
+      );
+      assert.match(reports[1].errorMessage, /PermissionDenied/);
+    } finally {
+      hook.restore();
+      delete useCore().getServices()["fake"];
+    }
+  }
+
+  @test
   async scheduledAction() {
     const fakeService = new FakeService("fake", new ServiceParameters());
-    this.registerService(fakeService);
+    this.registerService(fakeService).resolve();
     const service = this.getValidService();
     const action = new AsyncWebdaAction("fake", "schedule");
     const time = Date.now() + 1;
@@ -653,24 +744,13 @@ class AsyncJobServiceTest extends AsyncTest {
     // Scheduled action should have been launched
     assert.strictEqual((await AsyncWebdaAction.ref(action.uuid).get()).status, "QUEUED");
     const stubLaunch = stub(service, "launchAction").callsFake(async () => new AsyncAction());
-    await service.getCronExecutor({
-      cron: "* * * * *",
-      args: [],
-      method: "cron1",
-      serviceName: "fake",
-      description: ""
-    })();
+    const cron = new CronDefinition("* * * * *", {}, "fake", "cron1", "", "Fake.Cron1");
+    await service.getCronExecutor(cron)();
     stubLaunch.callsFake(() => {
       throw new Error("");
     });
     // Should not fail if it cannot launch but log ERROR
-    await service.getCronExecutor({
-      cron: "* * * * *",
-      args: [],
-      method: "cron1",
-      serviceName: "fake",
-      description: ""
-    })();
+    await service.getCronExecutor(cron)();
     assert.strictEqual(stubLaunch.getCalls().length, 2);
 
     const stubExec = stub(service, "getCronExecutor").callsFake(() => {
@@ -684,6 +764,60 @@ class AsyncJobServiceTest extends AsyncTest {
     stubExec.restore();
     stubLaunch.restore();
     delete useCore().getServices()["fake"];
+  }
+
+  @test
+  async schedulerLateTick() {
+    const fakeService = new FakeService("fake", new ServiceParameters());
+    this.registerService(fakeService).resolve();
+    const service = this.getValidService();
+    const action = new AsyncWebdaAction("fake", "schedule");
+    await service.scheduleAction(action, Date.now() - 60000);
+    // Launching takes longer than the resolution: the next tick starts at once
+    const stubLaunch = stub(service, "launchAction").callsFake(async () => {
+      await this.sleep(30);
+      return new AsyncAction();
+    });
+    const { includeCron, schedulerResolution } = service.getParameters();
+    service.getParameters().includeCron = false;
+    service.getParameters().schedulerResolution = 10;
+    try {
+      const p = service.scheduler();
+      await this.sleep(100);
+      await p.cancel();
+      assert.ok(stubLaunch.getCalls().length >= 2);
+    } finally {
+      service.getParameters().includeCron = includeCron;
+      service.getParameters().schedulerResolution = schedulerResolution;
+      stubLaunch.restore();
+      delete useCore().getServices()["fake"];
+    }
+  }
+
+  @test
+  async asyncCronExecutorUsesOperation() {
+    const fakeService = new FakeService("fake", new ServiceParameters());
+    this.registerService(fakeService).resolve();
+    const service = this.getValidService();
+    const launched: AsyncAction[] = [];
+    const stubLaunch = stub(service, "launchAction").callsFake(async action => {
+      launched.push(action);
+      return action;
+    });
+    try {
+      const cron = CronService.resolveCrons({ fake: fakeService }).find(c => c.method === "cron2");
+      await service.getCronExecutor(cron)();
+      assert.strictEqual(launched.length, 1);
+      const action = <AsyncOperationAction>launched[0];
+      assert.ok(action instanceof AsyncOperationAction);
+      assert.strictEqual(action.operationId, "Fake.Cron2");
+      // The operation runs as the system with the cron input
+      assert.strictEqual(action.context.getCurrentUserId(), "system");
+      assert.deepStrictEqual(await action.context.getInput(), { full: true });
+    } finally {
+      stubLaunch.restore();
+      delete useCore().getServices()["fake"];
+    }
   }
 
   @test

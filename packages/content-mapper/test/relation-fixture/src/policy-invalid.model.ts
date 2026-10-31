@@ -1,4 +1,4 @@
-import type { BelongTo, Contains, ManyToOne } from "../models/index.js";
+import type { BelongTo, Contains, ManyToOne, ModelsMapped } from "../models/index.js";
 import { UuidModel } from "../models/index.js";
 
 /** @WebdaModel */
@@ -12,4 +12,6 @@ export class Broken extends UuidModel {
   target: BelongTo<Target>;
   /** @OnDelete SET_NULL */
   items: Contains<Target>;
+  /** @OnDelete RESTRICT */
+  copies: ModelsMapped<Target, "owner", "uuid">;
 }

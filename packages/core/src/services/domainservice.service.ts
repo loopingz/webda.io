@@ -2,7 +2,8 @@ import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
-import { useLoginMfa } from "../models/mfa.model.js";
+import { MFA, useLoginMfa } from "../models/mfa.model.js";
+import { useBehaviorParameters } from "../application/modelconfiguration.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
@@ -14,6 +15,7 @@ import { useModelMetadata } from "../core/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { ARGUMENTS_KEYWORD, registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import { bindRestInput } from "../rest/binding.js";
 import {
   checkModelParent,
   checkModelPermission,
@@ -23,6 +25,7 @@ import {
   hasModelPermissionCheck,
   hasStaticPermissionCheck,
   NOT_FOUND_MESSAGE,
+  QUERY_TOTAL_SCHEMA,
   queryModelWithPermissions
 } from "../models/permissions.js";
 
@@ -160,7 +163,8 @@ export const INTERNAL_MODELS: readonly string[] = [
   // Owned by @webda/oauth
   "Webda/OAuthCode",
   "Webda/OAuthDeviceCode",
-  "Webda/OAuthGrant"
+  "Webda/OAuthGrant",
+  "Webda/OAuthRegisteredClient"
 ];
 
 /**
@@ -294,6 +298,9 @@ export class DomainService<
       properties: {
         query: {
           type: "string"
+        },
+        count: {
+          type: "boolean"
         }
       }
     }
@@ -363,21 +370,35 @@ export class DomainService<
   }
 
   /**
+   * The model input of a create, update or patch: always the full request body
+   *
+   * The CRUD methods take no argument: resolveArguments spreads the model schema's properties into positional args, so
+   * the first one is only the value of the first property, which may itself be an object or an array (#911).
+   *
+   * An empty body (undefined) is accepted as "no fields"; any other body that is not a plain object (array, string,
+   * number, boolean or null) is refused.
+   * @param context - the operation context
+   * @returns the request body
+   * @throws BadRequest when the body is not an object
+   */
+  protected async getModelInput(context: OperationContext): Promise<any> {
+    const input = await context.getInput();
+    if (input !== undefined && (typeof input !== "object" || input === null || Array.isArray(input))) {
+      throw new WebdaError.BadRequest("Model input must be an object");
+    }
+    return input;
+  }
+
+  /**
    * Create a model operation implementation
-   * @param input - the model data to create
+   *
+   * The model data is the request body ({@link getModelInput})
    * @returns the created model instance
    */
-  async modelCreate(input: any): Promise<Model> {
+  async modelCreate(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    // resolveArguments spreads the model schema's properties into positional args,
-    // so what lands here as `input` may be a single property value (e.g. slug string)
-    // rather than the full body. Also handles the no-schema fallback where the
-    // OperationContext itself is passed. In all non-object cases, read the raw input.
-    if (typeof input !== "object" || input === null || input instanceof OperationContext) {
-      input = await context.getInput();
-    }
-    input = prepareCreateInput(model, input);
+    const input = prepareCreateInput(model, await this.getModelInput(context));
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
@@ -458,23 +479,17 @@ export class DomainService<
 
   /**
    * Update a model operation implementation
-   * @param uuid - the model primary key
-   * @param input - the update data (may be undefined if schema was not resolvable)
+   *
+   * The update data is the request body ({@link getModelInput})
    * @returns the updated model instance
    */
-  async modelUpdate(input?: any): Promise<Model> {
+  async modelUpdate(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model, pkFields } = context.getExtension<{
       model: ModelClass<Model>;
       pkFields?: string[];
     }>("operationContext");
-    // resolveArguments spreads all model schema properties as positional args.
-    // The first arg becomes the first property value (often the PK value).
-    // Fall back to context for both PK and input when needed.
-    if (typeof input !== "object" || input === null) {
-      input = await context.getInput();
-    }
-    input = sanitizeModelInput(model, input);
+    const input = sanitizeModelInput(model, await this.getModelInput(context));
     // Resolve the PK from the URL params (or the body) using the model's actual PK fields;
     // fall back to "uuid" for legacy operations without pkFields in the context.
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
@@ -516,9 +531,10 @@ export class DomainService<
   /**
    * Query models
    * @param query - the query string
+   * @param count - also return the total of the query (`total`), when the model allows it
    * @returns the query results
    */
-  async modelQuery(query: string): Promise<any> {
+  async modelQuery(query: string, count?: boolean): Promise<any> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
     if (query !== undefined && query !== null && typeof query !== "string") {
@@ -526,7 +542,7 @@ export class DomainService<
     }
     return runWithContext(context, async () => {
       try {
-        return await queryModelWithPermissions(model, query, context);
+        return await queryModelWithPermissions(model, query, context, { count: count === true });
       } catch (err) {
         if (err instanceof SyntaxError) {
           this.log("INFO", "Query syntax error");
@@ -539,20 +555,17 @@ export class DomainService<
 
   /**
    * Patch a model
-   * @param uuid - the model primary key
-   * @param input - the partial update data (may be undefined if schema was not resolvable)
+   *
+   * The partial update data is the request body ({@link getModelInput})
    * @returns the patched model instance
    */
-  async modelPatch(input?: any): Promise<Model> {
+  async modelPatch(): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model, pkFields } = context.getExtension<{
       model: ModelClass<Model>;
       pkFields?: string[];
     }>("operationContext");
-    if (typeof input !== "object" || input === null) {
-      input = await context.getInput();
-    }
-    input = sanitizeModelInput(model, input);
+    const input = sanitizeModelInput(model, await this.getModelInput(context));
     // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
     const object = await this.loadModel(model, pk);
@@ -602,27 +615,34 @@ export class DomainService<
   /**
    * Action on a model
    *
-   * An instance action receives `uuid` first (to load the object) then its parameters; a static action its
+   * An instance action receives the primary key fields first (to load the object), then its parameters; a static action its
    * parameters. Actions without an input schema receive the context.
    * @param args - arguments forwarded to the action method
    * @returns the action result
    */
   async modelAction(...args: any[]): Promise<any> {
     const context = useContext<OperationContext>();
-    const { model, action } = context.getExtension<{
+    const {
+      model,
+      action,
+      pkFields = ["uuid"]
+    } = context.getExtension<{
       model: ModelClass<Model>;
       action: ModelAction & { name: string };
+      pkFields?: string[];
     }>("operationContext");
     // The action can be exposed under another name than its method
     const handler = action.handler || action.name;
     if (!action.global) {
-      // First arg is uuid when the action is instance-level
-      const uuid = args[0];
+      // The key fields precede the declared action arguments
+      const uuid = pkFields.length === 1 ? args[0] : Object.fromEntries(pkFields.map((field, i) => [field, args[i]]));
       // A missing object and an object the caller cannot read answer the same NotFound
       const object = await this.loadModel(model, uuid);
       await this.checkPermission(object, context, action.name, model);
       // With an input schema the arguments follow the uuid (the context included where a parameter asks for it)
-      return this.hasActionInput(model, action) ? object[handler](...args.slice(1)) : object[handler](context);
+      return this.hasActionInput(model, action)
+        ? object[handler](...args.slice(pkFields.length))
+        : object[handler](context);
     } else {
       // Static action: the model's static canAct is asked without object
       await checkStaticModelPermission(model, context, action.name);
@@ -638,36 +658,43 @@ export class DomainService<
   }
 
   /**
-   * Register the input schema of an instance action operation: the object `uuid` and the action parameters
+   * Register the input schema of an instance action operation: the primary key and action parameters
    *
-   * The `uuid` comes first in `x-webda-arguments`: `modelAction` loads the object with it and passes the rest
+   * The key fields come first in `x-webda-arguments`: `modelAction` loads the object with them and passes the rest
    * to the action method.
    * @param modelKey - model identifier
    * @param name - action name
    * @param input - the action `.input` schema (its parameters)
+   * @param pkFields - implicit primary key fields
+   * @param requireKey - whether the caller must supply the parent key (login MFA uses the session)
    * @returns the registered schema name, `<modelKey>.<name>.request`
-   * @throws Error when an action parameter is named `uuid`
+   * @throws Error when an action parameter conflicts with a primary key field
    */
-  protected actionRequestSchema(modelKey: string, name: string, input: any): string {
-    if (input.properties?.uuid !== undefined) {
+  protected actionRequestSchema(
+    modelKey: string,
+    name: string,
+    input: any,
+    pkFields: string[] = ["uuid"],
+    requireKey = true
+  ): string {
+    const conflict = pkFields.find(field => input.properties?.[field] !== undefined);
+    if (conflict) {
       // The uuid identifies the object: a parameter with the same name would receive it, or break the schema
       throw new Error(
-        `${modelKey}.${name}: parameter "uuid" conflicts with the object primary key, rename the action parameter`
+        `${modelKey}.${name}: parameter "${conflict}" conflicts with the object primary key, rename the action parameter`
       );
     }
     const schemaName = `${modelKey}.${name}.request`;
     const request: any = {
       ...input,
       type: "object",
-      properties: { uuid: { type: "string" }, ...input.properties },
-      required: ["uuid", ...(input.required ?? [])],
-      [ARGUMENTS_KEYWORD]: ["uuid", ...(input[ARGUMENTS_KEYWORD] ?? Object.keys(input.properties ?? {}))]
+      properties: { ...Object.fromEntries(pkFields.map(field => [field, { type: "string" }])), ...input.properties },
+      required: [...(requireKey ? pkFields : []), ...(input.required ?? [])],
+      [ARGUMENTS_KEYWORD]: [...pkFields, ...(input[ARGUMENTS_KEYWORD] ?? Object.keys(input.properties ?? {}))]
     };
-    if (!hasSchema(schemaName)) {
-      registerSchema(schemaName, request);
-    }
+    registerSchema(schemaName, request, true);
     // Always register in the app schema map (the global registry is process-wide) so getSchema() finds it
-    useApplication().getSchemas()[schemaName] ??= request;
+    useApplication().getSchemas()[schemaName] = request;
     return schemaName;
   }
 
@@ -771,7 +798,8 @@ export class DomainService<
         type: "object",
         properties: {
           continuationToken: { type: "string" },
-          results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } }
+          results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } },
+          total: structuredClone(QUERY_TOTAL_SCHEMA)
         }
       };
       if (!hasSchema(queryResultSchemaName)) {
@@ -874,18 +902,33 @@ export class DomainService<
               ? `${modelKey}.${name}.input`
               : "void"
             : actionInput
-              ? this.actionRequestSchema(modelKey, name, actionInput)
-              : "uuidRequest";
+              ? this.actionRequestSchema(modelKey, name, actionInput, pkFields)
+              : pkSchemaName;
           info.output = `${modelKey}.${name}.output`;
           info.context = {
             model,
+            pkFields,
             action: { ...actions[name], name }
           };
-          info.summary = `${name.substring(0, 1).toUpperCase() + name.substring(1)} on ${shortId}`;
+          info.summary =
+            actions[name].summary ?? `${name.substring(0, 1).toUpperCase() + name.substring(1)} on ${shortId}`;
+          info.description = actions[name].description;
           info.tags = [shortId];
+          if (actions[name].maxMfaAge !== undefined) {
+            info.maxMfaAge = actions[name].maxMfaAge;
+          }
+          const hint = actions[name].rest ?? {};
+          const method = (hint.method || actions[name].methods?.[0] || actions[name].method || "PUT").toLowerCase();
+          let path = hint.path ?? (actions[name].global ? name : `${pkPath}/${name}`);
+          if (!actions[name].global && hint.path !== undefined) {
+            const missing = pkFields.filter(field => !path.includes(`{${field}}`));
+            if (missing.length) path = missing.map(field => `{${field}}`).join("/") + "/" + path;
+          }
+          info.context.restPath = path;
           info.rest = {
-            method: (actions[name].method || "PUT").toLowerCase(),
-            path: actions[name].global ? name : `{uuid}/${name}`
+            method,
+            path: bindRestInput(path, method, app.getSchema(info.input), hint.body).path,
+            ...(hint.body ? { body: hint.body } : {})
           };
           registerOperation(id, info);
         });
@@ -909,6 +952,8 @@ export class DomainService<
    */
   addBehaviorOperations(model: ModelClass<Model>, Metadata: any, name: string) {
     const app = useApplication<Application>();
+    const pkFields: string[] = Metadata.PrimaryKey?.length ? Metadata.PrimaryKey : ["uuid"];
+    const pkPath = pkFields.map(field => `{${field}}`).join("/");
     (Metadata.Relations?.behaviors || []).forEach((behaviorRel: { attribute: string; behavior: string }) => {
       const behaviorMeta = app.getBehaviorMetadata(behaviorRel.behavior);
       if (!behaviorMeta) {
@@ -922,94 +967,102 @@ export class DomainService<
         const outputSchema = `${behaviorRel.behavior}.${actionName}.output`;
         const actionMeta = (behaviorMeta.Actions || {})[actionName] || {};
         const restHint = actionMeta.rest ?? {};
-        const route = restHint.route;
-        const method = (restHint.method ?? "PUT").toLowerCase() as "get" | "post" | "put" | "delete" | "patch";
+        const route = restHint.path ?? restHint.route;
+        const method = (restHint.method ?? actionMeta.methods?.[0] ?? "PUT").toLowerCase() as
+          "get" | "post" | "put" | "delete" | "patch";
         let path: string;
         if (route === ".") {
-          path = `{uuid}/${behaviorRel.attribute}`;
+          path = `${pkPath}/${behaviorRel.attribute}`;
         } else if (route !== undefined && route !== "") {
-          path = `{uuid}/${behaviorRel.attribute}/${route}`;
+          path = `${pkPath}/${behaviorRel.attribute}/${route}`;
         } else {
-          path = `{uuid}/${behaviorRel.attribute}.${actionName}`;
+          path = `${pkPath}/${behaviorRel.attribute}.${actionName}`;
         }
+        let input: any = hasSchema(inputSchema) ? app.getSchema(inputSchema) : undefined;
+        // Older hand-written behavior schemas included the implicit parent uuid themselves.
+        if (input?.properties?.uuid && pkFields.length === 1 && pkFields[0] === "uuid") {
+          input = {
+            ...input,
+            properties: { ...input.properties },
+            required: input.required?.filter((p: string) => p !== "uuid")
+          };
+          delete input.properties.uuid;
+          if (input[ARGUMENTS_KEYWORD])
+            input[ARGUMENTS_KEYWORD] = input[ARGUMENTS_KEYWORD].filter((p: string) => p !== "uuid");
+        }
+        const requestSchema = this.actionRequestSchema(
+          `${Metadata.Identifier}.${behaviorRel.attribute}`,
+          actionName,
+          input ?? { type: "object", properties: {} },
+          pkFields,
+          behaviorRel.behavior !== "Webda/MFA" ||
+            useBehaviorParameters(model, behaviorRel.attribute, MFA).purpose !== "login"
+        );
         registerOperation(id, {
           service: this.getName(),
           method: "modelBehaviorAction",
-          input: hasSchema(inputSchema) ? inputSchema : "uuidRequest",
+          input: requestSchema,
           output: hasSchema(outputSchema) ? outputSchema : "void",
           summary: `${actionCap} on ${name}.${behaviorRel.attribute}`,
           tags: [name],
           rest: {
             method,
-            path
+            path: bindRestInput(path, method, app.getSchema(requestSchema), restHint.body).path,
+            ...(restHint.body ? { body: restHint.body } : {})
           },
           context: {
             model,
+            pkFields,
+            restPath: path,
             attribute: behaviorRel.attribute,
             behavior: behaviorRel.behavior,
             action: actionName
-          }
+          },
+          ...(actionMeta.maxMfaAge !== undefined ? { maxMfaAge: actionMeta.maxMfaAge } : {})
         });
       });
     });
   }
 
   /**
-   * Dispatcher for a behavior-attribute action registered by
-   * `addBehaviorOperations`. Mirrors the shape of `modelAction`:
-   *
-   *   1. read the parent model class + attribute/action names off
-   *      `operationContext` (set up by `callOperation`),
-   *   2. take `args[0]` as the parent UUID (Behavior actions are always
-   *      instance-scoped per the spec),
-   *   3. load the parent via `model.ref(uuid).get()` — `NotFound` if missing
-   *      or soft-deleted,
-   *   4. ask the model whether the action is allowed via
-   *      `canAct(ctx, "<attribute>.<action>")` — anything but `true` (or the
-   *      instance itself, the convention some models use to say "yes, on this
-   *      object") is treated as a denial,
-   *   5. read `instance[attribute]` — already a hydrated Behavior instance
-   *      thanks to `CoreModel.deserialize` (Task 7),
-   *   6. call `behaviorInstance[action](...args.slice(1))` and let
-   *      `callOperation` write the result onto the context.
-   *
-   * @param args - resolved arguments from `resolveArguments`; the first is
-   * always the parent UUID, the rest come from the request body / query
-   * params depending on the registered input schema.
-   * @returns the Behavior method's return value (callOperation writes it to
-   * the context output if non-undefined).
+   * Load the parent by its resolved key, check the dotted behavior permission, and forward the typed arguments.
+   * Login MFA keeps its own pending-session lifecycle checks.
+   * @param args - parent key fields followed by method parameters in declaration order
+   * @returns the behavior method's return value
    */
   async modelBehaviorAction(...args: any[]): Promise<any> {
     const context = useContext<OperationContext>();
-    const { model, attribute, action, behavior } = context.getExtension<{
+    const {
+      model,
+      attribute,
+      action,
+      behavior,
+      pkFields = ["uuid"]
+    } = context.getExtension<{
       model: ModelClass<Model>;
       attribute: string;
       behavior: string;
       action: string;
+      pkFields?: string[];
     }>("operationContext");
 
-    // `args` was built by `resolveArguments` from the operation's input
-    // schema. Two schema shapes coexist:
-    //   1. Auto-generated from the method signature (`exploreBehaviorsAction`
-    //      in the compiler) — e.g. `setMetadata(hash, metadata)` produces
-    //      `{ hash, metadata }`. No `uuid` property.
-    //   2. Legacy `uuidRequest` fallback (and hand-crafted test schemas) —
-    //      starts with `{ uuid, ... }`. The `uuid` slot exists only so the
-    //      validator accepts the URL param.
-    // When the schema starts with `uuid`, drop it before forwarding to the
-    // behavior method (whose signature never includes uuid). When it
-    // doesn't, forward as-is.
+    // Registered requests put the key fields first. Keep accepting direct/legacy calls that carry only the
+    // method arguments and supply the parent uuid through the context.
     const operationId = context.getExtension<string>("operation");
     const opInput = operationId ? useInstanceStorage().operations?.[operationId]?.input : undefined;
     const inputSchema = typeof opInput === "string" ? useApplication().getSchema(opInput) : undefined;
     const propNames = inputSchema?.properties ? Object.keys(inputSchema.properties) : [];
-    const passArgs = propNames[0] === "uuid" ? args.slice(1) : args;
+    const hasKeyArguments = pkFields.every((field, index) => propNames[index] === field);
+    const passArgs = hasKeyArguments ? args.slice(pkFields.length) : args;
 
-    // Parent uuid comes from the URL (`/posts/{uuid}/mainImage/...`) on REST; transports without URL parameters
-    // (gRPC, MCP) carry it in the input, as the uuidRequest schema declares
-    let uuid = (context.getParameters() || {}).uuid;
+    // Every transport carries the key in the registered request; legacy direct calls may put it in parameters.
+    let uuid: any = pkFields.length === 1 ? context.getParameters()[pkFields[0]] : undefined;
     if (uuid === undefined) {
-      uuid = propNames[0] === "uuid" ? args[0] : (await context.getInput().catch(() => undefined))?.uuid;
+      uuid = hasKeyArguments
+        ? pkFields.length === 1
+          ? args[0]
+          : Object.fromEntries(pkFields.map((field, i) => [field, args[i]]))
+        : (await context.getInput().catch(() => undefined))?.uuid;
     }
     // A missing parent and a parent the caller cannot read answer the same NotFound
     const loginMfa = useLoginMfa(useModelMetadata(model).Identifier, attribute);

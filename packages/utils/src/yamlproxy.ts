@@ -61,7 +61,7 @@ interface YAMLProxies {
  * @param item - the yaml.js AST node
  * @returns the plain value or proxy wrapper
  */
-function getYAMLNode(item) {
+function getYAMLNode(item: any) {
   if (yaml.isScalar(item)) {
     return item.value;
   }
@@ -80,7 +80,7 @@ function getYAMLNode(item) {
  * @param item - the value to convert
  * @returns the yaml.js AST node
  */
-function createYAMLNode(item) {
+function createYAMLNode(item: any): any {
   if (item instanceof YAMLArray || item instanceof YAMLMap) {
     return item.clone();
   }
@@ -105,8 +105,8 @@ function createYAMLNode(item) {
  * @param target - the object to populate
  * @param node - the yaml.js Map node
  */
-function setYAMLNodes(target, node) {
-  node?.items.forEach(attr => {
+function setYAMLNodes(target: Record<string, any>, node: yaml.YAMLMap<any, any> | null) {
+  node?.items.forEach((attr: yaml.Pair<any, any>) => {
     if (yaml.isScalar(attr.value)) {
       target[attr.key.value] = attr.value.value;
     } else if (yaml.isSeq(attr.value)) {
@@ -167,7 +167,7 @@ class YAMLArray<T> extends Array<T> implements YAMLProxies {
    *
    * @returns the removed element
    */
-  pop(): T {
+  pop(): T | undefined {
     nodesMap.get(this).value.items.pop();
     return super.pop();
   }
@@ -177,7 +177,7 @@ class YAMLArray<T> extends Array<T> implements YAMLProxies {
    *
    * @returns the removed element
    */
-  shift(): T {
+  shift(): T | undefined {
     nodesMap.get(this).value.items.shift();
     return super.shift();
   }
@@ -201,7 +201,7 @@ class YAMLArray<T> extends Array<T> implements YAMLProxies {
    * @param items - elements to insert
    * @returns the removed elements
    */
-  splice(start: number, deleteCount?: number, ...items: T[]): T[] {
+  splice(start: number, deleteCount: number = 0, ...items: T[]): T[] {
     nodesMap.get(this).value.items.splice(start, deleteCount, ...items.map(createYAMLNode));
     return super.splice(start, deleteCount, ...items);
   }
@@ -229,6 +229,7 @@ class YAMLArray<T> extends Array<T> implements YAMLProxies {
  * YAML Map Proxy
  */
 class YAMLMap implements YAMLProxies {
+  [key: string | symbol]: any;
   /** Create a new YAMLMap.
    * @param doc - the YAML document node to proxy
    */
@@ -242,7 +243,7 @@ class YAMLMap implements YAMLProxies {
    *
    * @param doc - the yaml.js document node
    */
-  setYAMLNodes(doc) {
+  setYAMLNodes(doc: any) {
     setYAMLNodes(this, doc.value);
   }
 
@@ -289,7 +290,7 @@ class YAMLMap implements YAMLProxies {
           const newValue = createYAMLNode(value);
           target.getYAMLNodes().items.push(new yaml.Pair(new yaml.Scalar(prop), newValue));
         } else {
-          target.getYAMLNodes().items.forEach((attr, ind) => {
+          target.getYAMLNodes().items.forEach((attr: yaml.Pair<any, any>) => {
             if (attr.key.value === prop) {
               const node = createYAMLNode(value);
               // Keep the comments of a replaced scalar
@@ -306,7 +307,9 @@ class YAMLMap implements YAMLProxies {
         return true;
       },
       deleteProperty(target, prop) {
-        target.getYAMLNodes().items = target.getYAMLNodes().items.filter(attr => attr.key.value !== prop);
+        target.getYAMLNodes().items = target
+          .getYAMLNodes()
+          .items.filter((attr: yaml.Pair<any, any>) => attr.key.value !== prop);
         delete target[prop];
         return true;
       }
@@ -331,7 +334,7 @@ class YAMLDocument extends YAMLMap {
    *
    * @param doc - the yaml.js document
    */
-  setYAMLNodes(doc) {
+  setYAMLNodes(doc: any) {
     setYAMLNodes(this, doc.contents);
   }
 

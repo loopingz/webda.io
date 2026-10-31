@@ -1,6 +1,7 @@
 import { QueryValidator } from "@webda/ql";
 import { OperationDefinition, OperationDefinitionInfo, OperationStreaming } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import { WebContext } from "../contexts/webcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
@@ -13,6 +14,11 @@ import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
 import { checkStaticModelPermission, loadModelForAction } from "../models/permissions.js";
+import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
+import { Duration } from "@webda/utils";
+import { bindRestInput, resolveInputSchema } from "../rest/binding.js";
+import { listOperationTransactionParticipants, OperationTransaction, useOperationTransaction } from "./transactions.js";
+import type { OperationTransactionParticipant } from "./transactions.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -20,6 +26,8 @@ import { useLog } from "@webda/workout";
 /**
  * Check if an operation can be executed with the current context
  * Not checking the input use `checkOperation` instead to check everything
+ *
+ * The system (`useSystem()`, `runAsSystem`) passes the operation `permission` query; the authorizers still apply
  * @param context - the execution context
  * @param operationId - the operation identifier
  * @throws OperationError if operation is unknown
@@ -34,11 +42,52 @@ export function checkOperationPermission(
   if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
   }
+  if (context.isGlobalContext()) {
+    return true;
+  }
   if (operation.permission) {
     operation.permissionQuery ??= new QueryValidator(operation.permission);
     return operation.permissionQuery.eval(context.getSession());
   }
   return true;
+}
+
+/**
+ * Check the second factor freshness an operation requires with `maxMfaAge`
+ *
+ * Synchronous and without I/O: it only reads the session, so every transport and {@link canCallOperation} listing
+ * apply it alike. `maxMfaAge` also makes MFA mandatory.
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @param operation - the operation definition
+ * @throws WebdaError.Unauthorized when the session is anonymous or its second factor is pending
+ * @throws MfaRequired when the user has no second factor
+ * @throws MfaStepUpRequired when the second factor was verified more than `maxMfaAge` ago
+ */
+export function checkOperationMfa(
+  context: OperationContext,
+  operationId: string,
+  operation: OperationDefinition & { maxMfaAgeSeconds?: number } = useInstanceStorage().operations[operationId]
+): void {
+  if (!operation) {
+    throw new WebdaError.NotFound(`${operationId} Unknown`);
+  }
+  // The system has no session to verify
+  if (operation.maxMfaAge === undefined || context.isGlobalContext()) {
+    return;
+  }
+  operation.maxMfaAgeSeconds ??= new Duration(operation.maxMfaAge).toSeconds();
+  const session = context.getSession();
+  if (!session?.isLogged()) {
+    throw new WebdaError.Unauthorized(`${operationId} requires a login with a second factor`);
+  }
+  if (session.mfa !== "verified") {
+    throw new MfaRequired(`${operationId} requires a second factor`);
+  }
+  // Sessions verified before mfaAt existed have an infinite age: never fresh
+  if (session.mfaAge() > operation.maxMfaAgeSeconds * 1000) {
+    throw new MfaStepUpRequired(operation.maxMfaAgeSeconds);
+  }
 }
 
 /**
@@ -125,12 +174,46 @@ async function runAuthorizers(
 }
 
 /**
- * Check whether the context is allowed to call an operation: the session `permission` then the authorizers
+ * Probe whether the context may call an operation, telling an authorizer refusal from a denial
+ *
+ * Never throws. Without `options` the authorizers are asked in probe mode ("could the caller call it with some
+ * input?"), for listings. With `options`, they decide on `options.input` exactly.
+ *
+ * @param context - the execution context holding the session
+ * @param operationId - the operation identifier
+ * @param options - the operation input for an exact check
+ * @param options.input - the operation input
+ * @returns false when the operation is unknown, the permission check fails or an error occurs; otherwise the
+ * authorizers result: true if allowed, or the refusal reason (`"insufficient_scope"` for a token scope refusal)
+ */
+export async function probeOperation(
+  context: OperationContext,
+  operationId: string,
+  options?: { input?: any }
+): Promise<true | string | false> {
+  const operation = useInstanceStorage().operations[operationId];
+  if (!operation) {
+    return false;
+  }
+  try {
+    if (!checkOperationPermission(context, operationId, operation)) {
+      return false;
+    }
+    checkOperationMfa(context, operationId, operation);
+    return await runAuthorizers(context, operationId, operation, {
+      input: options?.input,
+      probe: options === undefined
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check whether the context is allowed to call an operation: the session `permission`, MFA freshness then the authorizers
  *
  * Unlike {@link checkOperation}, this never throws: unknown operations, refusals and errors return false.
- *
- * Without `options` the authorizers are asked in probe mode ("could the caller call it with some input?"), for
- * listings. With `options`, they decide on `options.input` exactly.
+ * See {@link probeOperation} to tell the refusal reasons apart.
  *
  * @param context - the execution context holding the session
  * @param operationId - the operation identifier
@@ -143,23 +226,7 @@ export async function canCallOperation(
   operationId: string,
   options?: { input?: any }
 ): Promise<boolean> {
-  const operation = useInstanceStorage().operations[operationId];
-  if (!operation) {
-    return false;
-  }
-  try {
-    if (!checkOperationPermission(context, operationId, operation)) {
-      return false;
-    }
-    return (
-      (await runAuthorizers(context, operationId, operation, {
-        input: options?.input,
-        probe: options === undefined
-      })) === true
-    );
-  } catch {
-    return false;
-  }
+  return (await probeOperation(context, operationId, options)) === true;
 }
 
 /**
@@ -457,9 +524,19 @@ function subjectOf(context: OperationContext, operationId: string, args: any[], 
  * schema validation rejects it with the field name.
  * @param value - the string received in the URL
  * @param schema - the property schema
+ * @param root - input schema carrying referenced definitions
  * @returns the converted value, or the string
  */
-function coerceParameterValue(value: string, schema: any): any {
+function coerceParameterValue(value: any, schema: any, root: any = schema): any {
+  schema = resolveInputSchema(schema, root);
+  if (schema?.anyOf || schema?.oneOf) {
+    const choices = schema.anyOf ?? schema.oneOf;
+    schema = choices.find(s => s.type && s.type !== "null") ?? schema;
+  }
+  if (schema?.type === "array" && Array.isArray(value)) {
+    return value.map(item => coerceParameterValue(item, schema.items, root));
+  }
+  if (typeof value !== "string") return value;
   switch (schema?.type) {
     case "number":
     case "integer": {
@@ -472,7 +549,7 @@ function coerceParameterValue(value: string, schema: any): any {
       if (value === "false" || value === "0") return false;
       return value;
     case "array":
-      return value === "" ? [] : value.split(",").map(item => coerceParameterValue(item, schema.items));
+      return value === "" ? [] : value.split(",").map(item => coerceParameterValue(item, schema.items, root));
     default:
       return value;
   }
@@ -496,17 +573,31 @@ function coerceParameterValue(value: string, schema: any): any {
  * @param merged - merged params + body object to coerce in place
  * @param params - the path/query parameters
  * @param body - the request body
+ * @param operation - operation whose REST template identifies query catch-all fields
  */
 function coerceParametersToSchema(
   schema: any,
   merged: Record<string, any>,
   params: Record<string, any>,
-  body: Record<string, any>
+  body: Record<string, any>,
+  operation: OperationDefinition
 ): void {
   if (!schema?.properties) return;
+  const rest = operation.rest;
+  const catchAll = rest && bindRestInput(rest.path, rest.method, schema).binding.query.find(q => q.catchAll)?.name;
   for (const [name, propSchema] of Object.entries(schema.properties as Record<string, any>)) {
-    if (!(name in params) || body[name] !== undefined || typeof merged[name] !== "string") continue;
-    merged[name] = coerceParameterValue(merged[name], propSchema);
+    if (!(name in params) || body[name] !== undefined) continue;
+    if (catchAll === name && merged[name] && typeof merged[name] === "object" && !Array.isArray(merged[name])) {
+      const resolvedSchema = resolveInputSchema(propSchema, schema);
+      merged[name] = Object.fromEntries(
+        Object.entries(merged[name]).map(([key, value]) => [
+          key,
+          coerceParameterValue(value, resolvedSchema?.properties?.[key] ?? resolvedSchema?.additionalProperties, schema)
+        ])
+      );
+    } else {
+      merged[name] = coerceParameterValue(merged[name], propSchema, schema);
+    }
   }
 }
 
@@ -548,7 +639,15 @@ async function getOperationInput(
   } catch {
     // No input (e.g., GET request)
   }
-  const body = typeof input === "object" && input !== null ? input : {};
+  const operation = useInstanceStorage().operations[operationId];
+  const bodyParameter = context instanceof WebContext && operation?.rest && operation.rest.body;
+  const body = bodyParameter
+    ? input === undefined
+      ? {}
+      : { [bodyParameter]: input }
+    : typeof input === "object" && input !== null
+      ? input
+      : {};
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || body[key] === undefined || isSameParameterValue(value, body[key])) {
       continue;
@@ -569,6 +668,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
   if (!checkOperationPermission(context, operationId, operations[operationId])) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
+  checkOperationMfa(context, operationId, operations[operationId]);
   if (hasStreamedInput(operations[operationId])) {
     if (!context.getExtension("operationInputStream")) {
       throw new WebdaError.BadRequest(`${operationId} expects a stream of messages (gRPC stream or WebSocket)`);
@@ -589,7 +689,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
       // place so `resolveArguments` sees the typed value too.
       const app = useApplication();
       const inputSchema = app.getSchema(operations[operationId].input);
-      coerceParametersToSchema(inputSchema, merged, params, body);
+      coerceParametersToSchema(inputSchema, merged, params, body, operations[operationId]);
       validateSchema(operations[operationId].input, merged);
       context.setExtension("operationResolvedInput", merged);
     }
@@ -656,11 +756,71 @@ export async function resolveArguments(context: OperationContext, operation: Ope
 }
 
 /**
+ * Public form of an operation result, the one every transport serializes: a value with `toDTO()` (a model) is replaced
+ * by its DTO, arrays and plain objects (a query page, a wrapper) are walked, anything else is kept as is
+ *
+ * Call it within the operation context: a DTO may depend on the caller.
+ * @param value - the operation result or a streamed chunk
+ * @param seen - objects already walked, a circular reference is left to the serializer
+ * @returns the value to write
+ */
+export function toOperationOutput(value: any, seen: WeakSet<object> = new WeakSet()): any {
+  if (!value || typeof value !== "object" || Buffer.isBuffer(value)) {
+    return value;
+  }
+  if (typeof value.toDTO === "function") {
+    return value.toDTO();
+  }
+  if (seen.has(value)) {
+    return value;
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    return value.map(item => toOperationOutput(item, seen));
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return value;
+  }
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toOperationOutput(item, seen)]));
+}
+
+/**
  * Call an operation within the framework
+ *
+ * The result is written in its public form ({@link toOperationOutput}), built as the caller.
+ * When transaction participants are registered (see {@link registerOperationTransactionParticipant}), the outermost
+ * operation runs in a transaction: begun after the checks and before `Webda.BeforeOperation`, committed once the
+ * method resolved (a streamed result fully written) and before `Webda.OperationSuccess`, rolled back before
+ * `Webda.OperationFailure`. Nested operations join it.
  * @param context - the execution context
  * @param operationId - the operation identifier
+ * @returns once the operation finished
  */
 export async function callOperation(context: OperationContext, operationId: string): Promise<void> {
+  const participants = listOperationTransactionParticipants();
+  // A nested operation joins the transaction of the outermost one
+  const transaction =
+    participants.length > 0 && !useOperationTransaction() ? new OperationTransaction(context) : undefined;
+  if (transaction) {
+    return transaction.run(() => executeOperation(context, operationId, transaction, participants));
+  }
+  return executeOperation(context, operationId);
+}
+
+/**
+ * Run an operation: checks, events, method call and result writing
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @param transaction - the transaction to drive, undefined when the operation does not own one
+ * @param participants - the participants to enlist in the transaction
+ */
+async function executeOperation(
+  context: OperationContext,
+  operationId: string,
+  transaction?: OperationTransaction,
+  participants: OperationTransactionParticipant[] = []
+): Promise<void> {
   const operations = useInstanceStorage().operations;
   useLog("DEBUG", "Call operation", operationId);
   let callArgs: any[] = [];
@@ -672,6 +832,12 @@ export async function callOperation(context: OperationContext, operationId: stri
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
     context.setExtension("operationContext", operations[operationId].context || {});
+    if (transaction) {
+      transaction.operation = operations[operationId];
+      for (const participant of participants) {
+        await transaction.enlist(participant);
+      }
+    }
     await Promise.all([
       emitCoreEvent("Webda.BeforeOperation", { context, operationId })
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
@@ -726,14 +892,17 @@ export async function callOperation(context: OperationContext, operationId: stri
         context.setExtension("operationStreaming", true);
         await runWithContext(context, async () => {
           for await (const chunk of result) {
-            if (context.write(chunk) === false) await context.drained();
+            if (context.write(toOperationOutput(chunk)) === false) await context.drained();
           }
         });
       } else if (context.getOutput() === undefined) {
-        // Normal return — write to context only if nothing written yet
-        context.write(result);
+        // Normal return — write to context only if nothing written yet, built as the caller (a DTO may depend on it)
+        context.write(await runWithContext(context, () => toOperationOutput(result)));
       }
     }
+
+    // Commit before the success listeners run: they only ever see committed data
+    await transaction?.commit();
 
     await Promise.all([
       emitCoreEvent("Webda.OperationSuccess", {
@@ -744,6 +913,8 @@ export async function callOperation(context: OperationContext, operationId: stri
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})
     ]);
   } catch (err) {
+    // Roll back before the failure listeners run; a rollback error is logged and never hides the original error
+    await transaction?.rollback(err);
     await Promise.all([
       emitCoreEvent("Webda.OperationFailure", {
         context,
@@ -880,6 +1051,12 @@ interface OperationParameters {
    */
   permissionQuery?: string;
   /**
+   * Require the second factor to be verified within this duration (Duration syntax: `600`, `"10m"`)
+   *
+   * Implies a logged session with a verified second factor
+   */
+  maxMfaAge?: number | string;
+  /**
    * REST transport hints
    */
   rest?: OperationDefinition["rest"];
@@ -895,6 +1072,10 @@ interface OperationParameters {
    * MCP transport hints
    */
   mcp?: OperationDefinition["mcp"];
+  /**
+   * Run the operation in a transaction of the registered participants, `false` to opt out
+   */
+  transaction?: boolean;
 }
 
 function Operation<T = {}>(
@@ -908,7 +1089,10 @@ function Operation(target: (this: OperationTarget, ...args: any) => any, context
  */
 function Operation(...args: any[]) {
   const annotate = (target: AnyMethod, context: ClassMethodDecoratorContext, options: any = {}) => {
-    context.metadata!["webda.operations"] ??= [];
+    // A subclass sees its parent's metadata through the prototype: copy it before adding, never push into the parent's
+    if (!Object.hasOwn(context.metadata!, "webda.operations")) {
+      context.metadata!["webda.operations"] = [...((context.metadata!["webda.operations"] as any[]) ?? [])];
+    }
     (context.metadata!["webda.operations"] as any[]).push({
       id: context.name,
       ...options,

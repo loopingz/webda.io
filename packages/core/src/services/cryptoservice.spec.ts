@@ -45,6 +45,21 @@ class CryptoServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async encryptionWithAsymmetricJwtDefault() {
+    const crypto = useCrypto();
+    const jwt = crypto.getParameters().jwt;
+    // The symmetric key signs the encrypted payload whatever the default algorithm of the tokens
+    crypto.getParameters().jwt = { ...jwt, algorithm: "RS256" };
+    try {
+      const encrypted = await crypto.encrypt({ test: "plop" });
+      assert.strictEqual(crypto.getJWTHeader(encrypted).alg, "HS256");
+      assert.strictEqual((await crypto.decrypt(encrypted)).test, "plop");
+    } finally {
+      crypto.getParameters().jwt = jwt;
+    }
+  }
+
+  @test
   async rotate() {
     const crypto = useCrypto();
     const encrypted = await crypto.encrypt({ test: "plop" });

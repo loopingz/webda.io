@@ -1,3 +1,4 @@
+import { registerWebdaPackage } from "@webda/utils";
 export * from "./metrics/metrics.js";
 import * as WebdaError from "./errors/errors.js";
 export { WebdaError };
@@ -18,9 +19,11 @@ export * from "./contexts/clientcertificate.js";
 export * from "./contexts/streamingcontext.js";
 export * from "./contexts/websocketcontext.js";
 export * from "./contexts/globalcontext.js";
+export * from "./contexts/globaloperationcontext.js";
 export * from "./core/icore.js";
 export * from "./core/instancestorage.js";
 export * from "./core/operations.js";
+export * from "./core/transactions.js";
 export * from "./core/asyncqueue.js";
 export * from "./core/core.js";
 export * from "./core/hooks.js";
@@ -40,7 +43,14 @@ export {
   acceptedTypes,
   belongsToModel
 } from "@webda/models";
-export type { ModelClass, Repository, TypeResolution, TypeResolutionStatus } from "@webda/models";
+export type {
+  CountOptions,
+  CountResult,
+  ModelClass,
+  Repository,
+  TypeResolution,
+  TypeResolutionStatus
+} from "@webda/models";
 export * from "./stores/store.js";
 export * from "./stores/migration.js";
 export * from "./stores/capability.js";
@@ -49,6 +59,9 @@ export * from "./models/simpleuser.model.js";
 export * from "./models/ident.model.js";
 export * from "./models/aclmodel.js";
 export * from "./models/permissions.js";
+export * from "./models/polymorphic.js";
+export { ModelLinksAny, ModelAnyRef, modelLinkIdentity, sameModelLink } from "@webda/models";
+export type { ModelLinkData, ModelAnyRefWithData, PolymorphicKey } from "@webda/models";
 export * from "./models/registry.model.js";
 export * from "./models/user.model.js";
 export * from "./models/password.model.js";
@@ -77,15 +90,20 @@ export * from "./application/model-types.js";
 export * from "./deployers/deployer.js";
 export * from "./deployers/git.js";
 export * from "./deployers/packager.js";
+export * from "./deployers/zip.js";
 export * from "./deployers/packager.service.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";
-export * from "./services/mailer.service.js";
+export * from "./services/abstractmailer.js";
 export * from "./configurations/kubernetesconfiguration.service.js";
 export * from "./services/iauthentication.js";
 export * from "./services/domainservice.service.js";
 export * from "./services/imailer.js";
+export * from "./services/ismssender.js";
+export * from "./services/debugsmssender.service.js";
 export * from "./services/notificationservice.service.js";
+export { InsufficientScope, scopeAuthorizer } from "./services/scopeauthorizer.js";
+export * from "./services/protectedresources.js";
 export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";
 export * from "./services/resource.service.js";
@@ -105,6 +123,8 @@ export * from "./configurations/fileconfiguration.service.js";
 export * from "./services/audit.model.js";
 export * from "./services/service.js";
 export * from "./services/clientcertificatefilter.service.js";
+export * from "./services/cluster.service.js";
+export * from "./services/storecluster.service.js";
 export * from "./services/binary.service.js";
 export * from "./configurations/configuration.service.js";
 export * from "./rest/irest.js";
@@ -158,3 +178,6 @@ export {
   type PublicKeyEntry,
   type SealedEnvelope
 } from "./sealed/index.js";
+
+// Refuse a second copy of the package, see registerWebdaPackage
+registerWebdaPackage("@webda/core", import.meta.url);

@@ -56,7 +56,7 @@ const CONTEXT_TYPES = ["IOperationContext", "OperationContext"];
  * @param checker - the resident checker
  * @returns true for `IOperationContext`, `OperationContext` and their subclasses
  */
-function isContextType(type: Type, checker: Checker): boolean {
+export function isContextType(type: Type, checker: Checker): boolean {
   return CONTEXT_TYPES.some(name => derivesFrom(type, name, checker));
 }
 
@@ -263,7 +263,7 @@ export function normalizeDefinitions<T>(schema: T): T {
   const resolvable = (ref: string): boolean => {
     if (!ref.startsWith("#/definitions/")) return true;
     const raw = ref.slice("#/definitions/".length);
-    let decoded = raw;
+    let decoded: string;
     try {
       decoded = decodeURIComponent(raw);
     } catch {

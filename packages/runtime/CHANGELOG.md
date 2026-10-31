@@ -72,6 +72,36 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-beta.11...runtime-v4.0.0-beta.12) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* Webda/Mailer moved to @webda/mailer
+
+### Features
+
+* @webda/templates and @webda/mailer, keep only mailer contracts in core ([#58](https://github.com/loopingz/webda.io/issues/58)) ([#984](https://github.com/loopingz/webda.io/issues/984)) ([58e6ee6](https://github.com/loopingz/webda.io/commit/58e6ee6cddf42f58776d18a4c94fc2528846d6e2))
+
+
+### Bug Fixes
+
+* **runtime:** append client ip to existing X-Forwarded-For in ProxyService ([#976](https://github.com/loopingz/webda.io/issues/976)) ([163c2c5](https://github.com/loopingz/webda.io/commit/163c2c5e08a1a1d52323e3976f3e2117232160bf))
+* **runtime:** type forwarded proxy headers for strict mode ([#985](https://github.com/loopingz/webda.io/issues/985)) ([c125cab](https://github.com/loopingz/webda.io/commit/c125cab25ecdf5a314ccc7058dd6f9694f73be2a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/models bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-beta.10...runtime-v4.0.0-beta.11) (2026-10-16)
 
 

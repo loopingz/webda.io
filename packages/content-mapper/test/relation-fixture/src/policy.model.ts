@@ -9,6 +9,7 @@ import type {
   RelateTo
 } from "../models/index.js";
 import { UuidModel } from "../models/index.js";
+import type * as models from "../models/index.js";
 
 /** An application alias of an alias: resolved through the chain */
 type OwnedBy<T> = BelongTo<T>;
@@ -45,6 +46,11 @@ export class Member extends UuidModel {
   employer: ManyToOne<Company>;
   /** @OnDelete NONE */
   watched: ManyToMany<Project>;
+  /**
+   * A qualified type name, and an empty tag: the default policy
+   * @OnDelete
+   */
+  qualified: models.ManyToOne<Company>;
 }
 
 /** @WebdaModel */

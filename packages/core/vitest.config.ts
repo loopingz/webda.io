@@ -8,6 +8,8 @@ export default defineConfig({
   plugins: [webdaContentMapper()],
   test: {
     allowOnly: true,
+    // Integration fixtures use the compiled core while specs exercise its sources.
+    env: { WEBDA_ALLOW_DUPLICATE_PACKAGES: "1" },
     testTimeout: 20000,
     hookTimeout: 60000,
     coverage: {
@@ -21,6 +23,7 @@ export default defineConfig({
     setupFiles: ["./vitest.chdir.mts"],
     reporters: "verbose",
     include: [
+      "src/rest/binding.spec.ts",
       "src/bin/*.spec.ts",
       "src/application/*.spec.ts",
       "src/cache/*.spec.ts",
@@ -29,6 +32,7 @@ export default defineConfig({
       "src/core/*.spec.ts",
       "src/deployers/*.spec.ts",
       "src/errors/*.spec.ts",
+      "src/index.spec.ts",
       "src/loggers/*.spec.ts",
       //"src/models/ownermodel.spec.ts",
       "src/models/ident.spec.ts",
@@ -57,6 +61,7 @@ export default defineConfig({
       "src/services/pki.encrypter.spec.ts",
       "src/services/secretscheck.spec.ts",
       "src/services/debugmailer.spec.ts",
+      "src/services/debugsmssender.spec.ts",
       "src/services/domainservice.spec.ts",
       "src/services/domainservice-behaviors.spec.ts",
       "src/services/domainservice-permissions.spec.ts",
@@ -68,7 +73,7 @@ export default defineConfig({
       "src/services/operationstransport.spec.ts",
       "src/services/httpserver.spec.ts",
       "src/services/clientcertificatefilter.spec.ts",
-      "src/services/mailer.spec.ts",
+      "src/services/cluster.service.spec.ts",
       "src/services/notificationservice.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",
@@ -79,6 +84,7 @@ export default defineConfig({
       "src/services/service.spec.ts",
       "src/services/token.spec.ts",
       "src/services/scopeauthorizer.spec.ts",
+      "src/services/protectedresources.spec.ts",
       "src/services/serviceparameters.spec.ts",
       "src/session/session.spec.ts",
       "src/session/scope.spec.ts",

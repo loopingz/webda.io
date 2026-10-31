@@ -12,6 +12,7 @@
     "packages/auth": {},
     "packages/async": {},
     "packages/aws": {},
+    "packages/azure": {},
     "packages/bench": {},
     "packages/cache": {},
     "packages/cloudevents": {},
@@ -30,6 +31,7 @@
     "packages/hawk": {},
     "packages/iam": {},
     "packages/kubernetes": {},
+    "packages/mailer": {},
     "packages/mcp": {},
     "packages/mock": {},
     "packages/models": {},
@@ -48,9 +50,11 @@
     "packages/sql": {},
     "packages/sql-schema": {},
     "packages/sqlite": {},
+    "packages/templates": {},
     "packages/test": {},
     "packages/utils": {},
     "packages/versioning": {},
+    "packages/workflow": {},
     "packages/workout": {}
   }
 }

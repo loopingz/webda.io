@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { MemoryRepository, Model, registerRepository, UuidModel, WEBDA_PRIMARY_KEY } from "@webda/models";
-import { QueryValidator } from "@webda/ql";
+import { AggregationError, QueryValidator } from "@webda/ql";
 import { WebdaApplicationTest } from "../test/index.js";
 import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../rest/restoperationstransport.service.js";
 import { Router, RouterParameters } from "../rest/router.service.js";
@@ -24,6 +24,8 @@ import {
   checkStaticModelPermission,
   mergePermissionQuery,
   queryModelWithPermissions,
+  countModelWithPermissions,
+  MAX_QUERY_COUNT,
   sealContinuationToken,
   unsealContinuationToken,
   MAX_REFILL_PAGES,
@@ -1527,5 +1529,245 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       res.results.map((r: any) => r.uuid),
       ["ok"]
     );
+  }
+
+  @test
+  async totalIsCountedWithThePermissionQuery() {
+    const ctx = (user?: string): any => ({ getCurrentUserId: () => user });
+    // OwnerModel declares a complete permission query (partial: false): the rows it hides are not counted
+    assert.deepStrictEqual(await countModelWithPermissions(PermTask, "", ctx(USER_B)), { value: 2, relation: "eq" });
+    assert.deepStrictEqual(await countModelWithPermissions(PermTask, "", ctx()), { value: 1, relation: "eq" });
+    assert.deepStrictEqual(await countModelWithPermissions(PermTask, "title = 'A private'", ctx(USER_B)), {
+      value: 0,
+      relation: "eq"
+    });
+    const res = await queryModelWithPermissions(PermTask, "LIMIT 1", ctx(USER_B), { count: true });
+    assert.strictEqual(res.results.length, 1);
+    assert.ok(res.continuationToken);
+    assert.deepStrictEqual(res.total, { value: 2, relation: "eq" }, "the total ignores the LIMIT");
+    // Without the option, no count runs and no total is returned
+    const counts: any[] = [];
+    const original = (PermTask as any).count;
+    (PermTask as any).count = async (...args: any[]) => (counts.push(args), original.apply(PermTask, args));
+    try {
+      const plain = await queryModelWithPermissions(PermTask, "", ctx(USER_B));
+      assert.ok(!("total" in plain));
+      assert.strictEqual(counts.length, 0);
+      // The count runs on the merged filter, without ORDER BY, LIMIT or OFFSET, capped at MAX_QUERY_COUNT
+      await countModelWithPermissions(PermTask, "title = 'x' ORDER BY title ASC LIMIT 5", ctx(USER_B));
+      assert.strictEqual(counts.length, 1);
+      const [filter, params, options] = counts[0];
+      assert.doesNotMatch(filter, /ORDER BY|LIMIT|OFFSET/);
+      assert.match(filter, /title = ["']x["']/);
+      assert.match(filter, new RegExp(USER_B));
+      assert.strictEqual(params, undefined);
+      assert.deepStrictEqual(options, { max: MAX_QUERY_COUNT });
+    } finally {
+      (PermTask as any).count = original;
+    }
+    // The client query is checked like a query
+    await assert.rejects(() => countModelWithPermissions(PermTask, "__secret = 1", ctx(USER_B)), /Private fields/);
+    await assert.rejects(() => countModelWithPermissions(PermTask, "DELETE", ctx(USER_B)), /DELETE statements/);
+  }
+
+  @test
+  async totalIsOmittedWhenTheStoreCountWouldNotMatch() {
+    const ctx: any = { getCurrentUserId: () => "u" };
+    let counted = 0;
+    /**
+     * @param extra - model members
+     * @returns a stub model returning one row and counting 42
+     */
+    const stub = (extra: any): any => ({
+      prototype: { canAct: () => true },
+      query: async () => ({ results: [{ uuid: "x", canAct: async () => true }] }),
+      count: async () => (counted++, { value: 42, relation: "eq", native: true }),
+      ...extra
+    });
+    const cases: [string, any][] = [
+      ["partial: true", stub({ getPermissionQuery: () => ({ query: "a = 1", partial: true }) })],
+      ["partial undefined", stub({ getPermissionQuery: () => ({ query: "a = 1" }) })],
+      ["null permission query", stub({ getPermissionQuery: () => null })],
+      ["no permission query", stub({})],
+      ["no permission check", { ...stub({ getPermissionQuery: () => ({ query: "", partial: false }) }), prototype: {} }]
+    ];
+    for (const [name, model] of cases) {
+      const res = await queryModelWithPermissions(model, "", ctx, { count: true });
+      assert.ok(!("total" in res), name);
+      assert.strictEqual(await countModelWithPermissions(model, "", ctx), undefined, name);
+    }
+    assert.strictEqual(counted, 0, "the store is never asked");
+    // A complete permission query: the total is returned, without the native flag
+    const full = stub({ getPermissionQuery: () => ({ query: "a = 1", partial: false }) });
+    assert.deepStrictEqual((await queryModelWithPermissions(full, "", ctx, { count: true })).total, {
+      value: 42,
+      relation: "eq"
+    });
+    // A store refusing the in-memory fallback (deny): no total, no error
+    const denied = stub({
+      getPermissionQuery: () => ({ query: "", partial: false }),
+      count: async () => {
+        throw new AggregationError("AGGREGATION_NOT_NATIVE", "Count on X runs in memory");
+      }
+    });
+    const res = await queryModelWithPermissions(denied, "", ctx, { count: true });
+    assert.strictEqual(res.results.length, 1);
+    assert.ok(!("total" in res));
+    // Any other error is not hidden
+    const broken = stub({
+      getPermissionQuery: () => ({ query: "", partial: false }),
+      count: async () => {
+        throw new Error("db down");
+      }
+    });
+    await assert.rejects(() => queryModelWithPermissions(broken, "", ctx, { count: true }), /db down/);
+  }
+
+  @test
+  async totalIsOmittedWhenCanActIsOverriddenBelowThePermissionQuery() {
+    const ctx: any = { getCurrentUserId: () => USER_B };
+    /**
+     * Inherits the complete permission query of OwnerModel but refuses more rows: the filter no longer decides
+     */
+    class Stricter extends PermTask {
+      async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
+        return action === "get" && this.title === "secret" ? "hidden" : super.canAct(context, action);
+      }
+    }
+    Stricter.registerSerializer();
+    registerRepository(Stricter, new MemoryRepository(Stricter, ["uuid"]));
+    assert.strictEqual(Stricter.getPermissionQuery(ctx)?.partial, false);
+    assert.strictEqual(await countModelWithPermissions(Stricter, "", ctx), undefined);
+    // Re-declaring the permission query takes the new canAct into account
+    class Restated extends Stricter {
+      static getPermissionQuery(context: IOperationContext) {
+        return { query: `(${super.getPermissionQuery(context).query}) AND title != 'secret'`, partial: false };
+      }
+    }
+    Restated.registerSerializer();
+    registerRepository(Restated, new MemoryRepository(Restated, ["uuid"]));
+    await Restated.create({ uuid: "r1", title: "secret", _user: USER_B } as any);
+    await Restated.create({ uuid: "r2", title: "open", _user: USER_B } as any);
+    assert.deepStrictEqual(await countModelWithPermissions(Restated, "", ctx), { value: 1, relation: "eq" });
+    // A subclass whose rows are reached through the model, with its own canAct below the permission query
+    class Base {
+      static Metadata: any = { Subclasses: [] };
+      static getPermissionQuery() {
+        return { query: "", partial: false };
+      }
+      static async count() {
+        return { value: 2, relation: "eq", native: true };
+      }
+      canAct() {
+        return true;
+      }
+    }
+    class Child extends Base {
+      canAct() {
+        return false;
+      }
+    }
+    assert.deepStrictEqual(await countModelWithPermissions(Base, "", ctx), { value: 2, relation: "eq" });
+    Base.Metadata.Subclasses.push(Child);
+    assert.strictEqual(await countModelWithPermissions(Base, "", ctx), undefined);
+  }
+
+  @test
+  async totalRunsConcurrentlyWithTheFirstPage() {
+    let queried!: () => void;
+    const queryCalled = new Promise<void>(resolve => (queried = resolve));
+    let counting!: () => void;
+    const countCalled = new Promise<void>(resolve => (counting = resolve));
+    const model: any = {
+      prototype: { canAct: () => true },
+      getPermissionQuery: () => ({ query: "", partial: false }),
+      // Each side only resolves once the other one was called: run in sequence, they would never resolve
+      query: async () => {
+        queried();
+        await countCalled;
+        return { results: [{ uuid: "x", canAct: async () => true }] };
+      },
+      count: async () => {
+        counting();
+        await queryCalled;
+        return { value: 7, relation: "gte", native: true };
+      }
+    };
+    const res = await queryModelWithPermissions(model, "", { getCurrentUserId: () => "u" } as any, { count: true });
+    assert.deepStrictEqual(res.total, { value: 7, relation: "gte" });
+  }
+
+  @test
+  async totalThroughRest() {
+    // PUT { q, count: true }
+    const put = await this.request(USER_B, "PUT", "/perm/permTasks", { q: "LIMIT 1", count: true });
+    assert.strictEqual(put.status, 200, JSON.stringify(put.body));
+    assert.strictEqual(put.body.results.length, 1);
+    assert.deepStrictEqual(put.body.total, { value: 2, relation: "eq" });
+    // No count: no total
+    const plain = await this.request(USER_B, "PUT", "/perm/permTasks", { q: "", count: false });
+    assert.strictEqual(plain.status, 200);
+    assert.ok(!("total" in plain.body));
+    assert.ok(!("total" in (await this.request(USER_B, "PUT", "/perm/permTasks", { q: "" })).body));
+    // An invalid count type is a client error
+    for (const count of ["yes", 1, "true", {}]) {
+      const bad = await this.request(USER_B, "PUT", "/perm/permTasks", { q: "", count });
+      assert.strictEqual(bad.status, 400, JSON.stringify(count));
+    }
+    // No complete permission query: no total, no error
+    const notes = await this.request(USER_A, "PUT", "/perm/publicNotes", { q: "", count: true });
+    assert.strictEqual(notes.status, 200);
+    assert.ok(!("total" in notes.body));
+  }
+
+  @test
+  async totalThroughRestGet() {
+    const transport = new RESTOperationsTransport(
+      "PermGetTransport",
+      new RESTOperationsTransportParameters().load({ url: "/permget/", exposeOpenAPI: false, queryMethod: "GET" })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    for (const value of ["true", "1"]) {
+      const res = await this.request(USER_B, "GET", `/permget/permTasks?q=LIMIT%201&count=${value}`);
+      assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+      assert.strictEqual(res.body.results.length, 1);
+      assert.deepStrictEqual(res.body.total, { value: 2, relation: "eq" }, value);
+    }
+    for (const value of ["false", "0"]) {
+      const res = await this.request(USER_B, "GET", `/permget/permTasks?q=&count=${value}`);
+      assert.strictEqual(res.status, 200);
+      assert.ok(!("total" in res.body), value);
+    }
+    assert.ok(!("total" in (await this.request(USER_B, "GET", "/permget/permTasks?q=")).body));
+    assert.strictEqual((await this.request(USER_B, "GET", "/permget/permTasks?count=maybe")).status, 400);
+    // OpenAPI documents the parameter and the total
+    const routes: any = useRouter().getRoutes();
+    // The query route of a model, among the routes sharing its URL
+    const openapi = (prefix: string, method: string) =>
+      Object.entries(routes)
+        .filter(([url]) => url.startsWith(`${prefix}permTasks{?`) || url === `${prefix}permTasks`)
+        .flatMap(([, infos]: [string, any]) => infos)
+        .find((info: any) => info.openapi?.[method]?.operationId === "PermTasks.Query").openapi[method];
+    const get = openapi("/permget/", "get");
+    assert.ok(get.parameters.find((p: any) => p.name === "count" && p.in === "query" && p.schema.type === "boolean"));
+    const total = get.responses["200"].content["application/json"].schema.properties.total;
+    assert.deepStrictEqual(total.properties.relation, { type: "string", enum: ["eq", "gte"] });
+    const put: any = openapi("/perm/", "put");
+    assert.strictEqual(put.requestBody.content["application/json"].schema.properties.count.type, "boolean");
+    assert.ok(put.responses["200"].content["application/json"].schema.properties.total);
+  }
+
+  @test
+  async queryResultSchemaDocumentsTheTotal() {
+    const schema: any = useApplication<Application>().getSchema("WebdaDemo/PermTask.queryResult");
+    assert.deepStrictEqual(schema.properties.total, {
+      type: "object",
+      properties: { value: { type: "integer" }, relation: { type: "string", enum: ["eq", "gte"] } },
+      required: ["value", "relation"]
+    });
+    const search: any = useApplication<Application>().getSchema("searchRequest");
+    assert.deepStrictEqual(search.properties.count, { type: "boolean" });
   }
 }

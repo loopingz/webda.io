@@ -1,4 +1,4 @@
-import { useApplication, useInstanceStorage } from "@webda/core";
+import { useApplication, useInstanceStorage, useRouter } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { buildSdkManifest, createIdFilter, globToRegExp, grpcNaming, SdkManifestBuilder } from "./manifest.js";
@@ -6,6 +6,37 @@ import { SampleAppTest } from "../test/sample-app.js";
 
 @suite
 class SdkManifestTest extends SampleAppTest {
+  @test
+  async recordsQueryCatchAllAndWholeBodyBindingsFromTheRegisteredRoute() {
+    const operations = useInstanceStorage().operations;
+    const path = "/binding/{id}{?notify?,filters*}";
+    operations["Binding.Send"] = {
+      id: "Binding.Send",
+      input: "void",
+      output: "void",
+      method: "send",
+      rest: { method: "post", path, body: "payload" }
+    };
+    useRouter().addRouteToRouter(path, {
+      executor: "RESTService",
+      methods: ["POST"],
+      openapi: { post: { operationId: "Binding.Send" } }
+    });
+    try {
+      assert.deepStrictEqual(this.generator.manifest().operations["Binding.Send"].rest, {
+        method: "post",
+        path: "/binding/{id}",
+        pathParams: ["id"],
+        query: ["notify"],
+        queryCatchAll: "filters",
+        body: "payload"
+      });
+    } finally {
+      delete operations["Binding.Send"];
+      delete useRouter().getRoutes()[path];
+    }
+  }
+
   @test
   async describesEveryNonHiddenOperationWithItsRoute() {
     const manifest = this.generator.manifest();
@@ -419,13 +450,13 @@ class SdkManifestRestOptionsTest extends SampleAppTest {
       method: "get",
       path: "/api/companies",
       pathParams: [],
-      query: ["q"]
+      query: ["q", "count"]
     });
     assert.deepStrictEqual(manifest.operations["SubSubProjects.Query"].rest, {
       method: "get",
       path: "/api/companies/{pid.0}/sub_sub_projects",
       pathParams: ["pid.0"],
-      query: ["q"]
+      query: ["q", "count"]
     });
     assert.strictEqual(manifest.operations["User.Get"].rest!.path, "/api/companies/{pid.0}/users/{uuid}");
   }

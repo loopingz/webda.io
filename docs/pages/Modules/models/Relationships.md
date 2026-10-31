@@ -5,7 +5,7 @@ sidebar_label: Relationships
 
 # Model Relationships
 
-`@webda/models` provides typed relationship helpers for the four common cardinality patterns. All relationships are declared as TypeScript field types; the framework infers the store graph at build time.
+`@webda/models` provides typed relationship helpers for common cardinality patterns and references to different model types. All relationships are declared as TypeScript field types; the framework infers the store graph at build time.
 
 ## Relationship types at a glance
 
@@ -16,6 +16,7 @@ sidebar_label: Relationships
 | `OneToMany<T, Owner, Field>` | One-to-many | Query only, no storage | `User.posts → [Post]` (via `Post.author`) |
 | `ManyToMany<T>` | Many-to-many | Nothing, unless `@OnDelete` | `Post.tags ↔ [Tag]` (via `PostTag`) |
 | `ManyToOne<T>` / `RelateTo<T>` | Many-to-one reference | Nothing, unless `@OnDelete` | `Comment.post → Post` (`@OnDelete CASCADE`) |
+| `ModelLinksAny<K, T>` | Polymorphic references | Nothing | `Report.links → [Task, PullRequest, ...]` |
 
 See [Delete policies](#delete-policies) for what happens to the dependents of a deleted model.
 
@@ -310,3 +311,68 @@ npx vitest run src/relations.spec.ts
 - [Lifecycle](./Lifecycle.md) — hooks that fire on relation changes
 - [Actions](./Actions.md) — custom operations on relations
 - [WQL Syntax](../ql/Syntax.md) — the query language for relation queries
+
+## ModelLinksAny — References to different model types
+
+Use `ModelLinksAny<CustomData, Target>` for a collection whose targets can belong to different model classes:
+
+```typescript
+import { ModelLinksAny, UuidModel } from "@webda/models";
+import { findModelBacklinks } from "@webda/core";
+import { Task } from "./Task.js";
+import { PullRequest } from "./PullRequest.js";
+
+export class Report extends UuidModel {
+  links!: ModelLinksAny<{ rel: string }>;
+  // Optional constraint: only these exact registered model identifiers.
+  deliverables!: ModelLinksAny<{ rel: string }, Task | PullRequest>;
+}
+
+report.links.add(task, { rel: "implements" });
+const target = await report.links[0].get();
+await report.save();
+
+for await (const backlink of findModelBacklinks(task, { models: ["App/Report"] })) {
+  console.log(backlink.model, backlink.key, backlink.attribute, backlink.references);
+}
+```
+
+The content mapper creates an empty attached collection on first access. To use the container without generated accessors, initialize it yourself with `new ModelLinksAny()` or `new ModelLinksAny([Task, PullRequest])` for constrained targets. Use `add`, `set`, `push`, `remove`, `pop`, indexed access, `at`, iteration, `map`, and `filter` to work with references. `remove(target)` removes all references to that model and primary key.
+
+Stored data and REST/MCP payloads contain references, never embedded target objects:
+
+```json
+[
+  { "model": "App/Task", "key": "task-123", "rel": "implements" },
+  { "model": "App/PullRequest", "key": { "repository": "webda.io", "number": 42 }, "rel": "delivers" }
+]
+```
+
+Use the canonical, case-sensitive identifier registered in the application. Keys can be nonempty strings, finite numbers, or composite objects with string/number values. The compiler records constrained target identifiers in `Relations.polymorphicLinks` and in the generated input, output and stored JSON Schemas. Custom data cannot shadow `model`, `key`, reference methods, or GraphQL's `target` field.
+
+Every `.get()` resolves through the **active application** and checks the current caller's `canAct(context, "get")`. It does not cache a target, even if the link was added from a loaded model. An unknown identifier, deleted target, or unreadable target answers with the same missing-object error. Standalone `@webda/models` integrations must install a permission-aware loader with `setModelLinkLoader`; reads fail without one.
+
+There is no cascade, target-existence check when adding a reference, or automatic cleanup. Deleting a target leaves a dangling reference that can still carry useful application metadata. Applications choose when to remove or repair it.
+
+`findModelBacklinks` checks permission on the target and each source object, skips private attributes, and matches both identity fields in the same array element. It performs a portable paginated scan of source models declaring polymorphic links. Restrict `models` for large applications. By default it yields at most 100 matching source attributes and examines at most 10,000 source rows and requests at most 10,000 store pages; set `limit` and `scanLimit` explicitly when needed. Exceeding the scan budget throws, so consumers must handle failure even after earlier entries have been yielded. Backlink visibility follows each source model's read policy. Applications needing indexed lookups can implement store-specific queries over the stored references.
+
+GraphQL exposes each reference's `model`, `key`, and custom fields, plus a `target` union containing the allowed models exposed by that GraphQL service. Unconstrained links use all exposed models. Selecting `target` performs the same permission check as reading the object directly:
+
+```graphql
+{
+  report(uuid: "report-123") {
+    links {
+      model
+      key
+      rel
+      target {
+        __typename
+        ... on Task { uuid }
+        ... on PullRequest { uuid }
+      }
+    }
+  }
+}
+```
+
+Actual root/type names follow the service's model naming configuration. Unreadable or dangling targets resolve to `null` with a `NOT_FOUND` error. Reference metadata remains visible to callers who can read the report, so avoid putting target secrets in custom link data. When none of the possible target models is exposed, GraphQL provides the reference fields only.

@@ -19,6 +19,8 @@ export class RefreshToken extends Model {
   amr: string[] = [];
   /** MFA state of the session that issued the token */
   mfa: MfaState = "none";
+  /** When the second factor was verified (ms): refreshing does not advance it */
+  mfaAt?: number;
   /** Scoped MFA verifications; refreshing does not advance their timestamps. */
   mfaVerifications?: Record<string, MfaVerification>;
   /** Rotation family */
@@ -40,6 +42,8 @@ export class RefreshToken extends Model {
   clientId?: string;
   /** Granted scope (space-separated) */
   scope?: string;
+  /** Resource (RFC 8707) the access tokens are bound to */
+  resource?: string;
   /** Display name, e.g. "webda-cli on remi-mbp" */
   name?: string;
   /** Creation of the family, ms since epoch: carried across rotations */

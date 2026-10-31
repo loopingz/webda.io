@@ -207,6 +207,9 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * hook, no behaviour and no validation run, and no permission (`canAct`) is checked. Repositories are trusted
    * internal APIs: application code exposing a bulk statement to clients must check permissions itself.
    *
+   * Without per-object events, the delete policies of the relations (`DeletePolicy`) do not apply either: nothing
+   * cascades, `RESTRICT` does not refuse and `SET_NULL` leaves the links of the dependents in place.
+   *
    * Stores use their native batch operation when they have one, otherwise the matching keys are collected first
    * (up to LIMIT) and deleted with the store's per-key primitive.
    *

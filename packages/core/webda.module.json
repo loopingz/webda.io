@@ -1828,6 +1828,45 @@
       },
       "Configuration": "lib/rest/restoperationstransport.service:RESTOperationsTransportParameters"
     },
+    "Webda/RelationIntegrity": {
+      "Import": "lib/services/relationintegrity.service:RelationIntegrity",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "RelationIntegrity parameters",
+        "properties": {
+          "concurrency": {
+            "default": 10,
+            "description": "Concurrent dependent deletions or updates per level",
+            "type": "number"
+          },
+          "enabled": {
+            "default": true,
+            "description": "Apply the delete policies of the relations",
+            "type": "boolean"
+          },
+          "maxDepth": {
+            "default": 16,
+            "description": "Max cascade depth before aborting",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "RelationIntegrity"
+      },
+      "Configuration": "lib/services/relationintegrity.service:RelationIntegrityParameters"
+    },
     "Webda/ResourceService": {
       "Import": "lib/services/resource.service:ResourceService",
       "Schema": {

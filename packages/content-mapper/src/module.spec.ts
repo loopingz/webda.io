@@ -578,6 +578,13 @@ describe("module relations", () => {
     expect(models["Rel/SubTask"].Relations).not.toHaveProperty("children");
   });
 
+  it("keeps the delete policy tags out of the schemas", () => {
+    const schemas = JSON.stringify(result.module.models["Rel/Member"].Schemas);
+    expect(schemas).toContain('"mentor"');
+    expect(schemas).not.toContain("OnDelete");
+    expect(JSON.stringify(result.module.models["Rel/Company"].Schemas)).not.toContain("CascadeDelete");
+  });
+
   it("does the same in the discovery helper", () => {
     const resolve = (name: string) => `Rel/${name}`;
     const relations = Object.fromEntries(

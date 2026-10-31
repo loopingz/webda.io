@@ -25,6 +25,10 @@ export class PostTag extends Model {
   createdAt!: Date;
 
   // Relations to actual objects
+  /**
+   * Post tagged: deleting the post deletes its tag links
+   * @OnDelete CASCADE
+   */
   post!: ManyToOne<Post>;
   tag!: RelateTo<Tag>;
 

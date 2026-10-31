@@ -19,6 +19,8 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import * as jsondiffpatch from "jsondiffpatch";
 import { ConfigurationService } from "../configurations/configuration.service.js";
 import { CryptoService, SecretString } from "../services/cryptoservice.service.js";
+import { RelationIntegrity, RelationIntegrityParameters } from "../services/relationintegrity.service.js";
+import { installConfigurationFactories } from "../application/application.js";
 import { createHmac, randomBytes } from "node:crypto";
 
 /**
@@ -364,6 +366,7 @@ export class Core implements ICore {
     // Declare application beans before the configuration service bootstraps,
     // so dynamic configuration applies to them like any configured service
     this.registerBeans();
+    this.registerDefaultServices();
     // Create services
     // First create the configuration service if defined
     const initOrders = [];
@@ -591,6 +594,36 @@ export class Core implements ICore {
       });
       filtered.type = beanName;
       // Configuration can be frozen once updated by the configuration service
+      this.configuration = { ...this.configuration, [serviceName]: Object.freeze(filtered) };
+    }
+  }
+
+  /**
+   * Declare the services every application runs, when the configuration does not declare one of their type
+   *
+   * - `RelationIntegrity`: applies the delete policies of the relations; configure it with
+   *   `{"type": "Webda/RelationIntegrity", "enabled": false}` to disable it
+   */
+  registerDefaultServices() {
+    const defaults: Record<string, { type: string; service: any; parameters: new () => any }> = {
+      RelationIntegrity: {
+        type: "Webda/RelationIntegrity",
+        service: RelationIntegrity,
+        parameters: RelationIntegrityParameters
+      }
+    };
+    for (const [serviceName, { type, service, parameters }] of Object.entries(defaults)) {
+      let modda: any = this.application.getModdas()[type];
+      if (!modda) {
+        // The module of @webda/core is not loaded (a test application): the class itself
+        modda = service;
+        installConfigurationFactories(modda, parameters);
+      }
+      const configured = Object.values(this.moddas).some(m => m === modda || (m as any)?.prototype instanceof modda);
+      if (configured || this.configuration[serviceName]) continue;
+      this.moddas[serviceName] = modda;
+      const filtered = modda.filterParameters({ ...this.applicationConfiguration.parameters });
+      filtered.type = type;
       this.configuration = { ...this.configuration, [serviceName]: Object.freeze(filtered) };
     }
   }

@@ -9,14 +9,16 @@ sidebar_label: Relationships
 
 ## Relationship types at a glance
 
-| Type | Cardinality | Ownership | Blog-system example |
-|------|-------------|-----------|---------------------|
-| `BelongTo<T>` | Many-to-one | No | `Comment.author → User` |
-| `Contains<T>` | One-to-many | Yes (cascade delete) | `Post.comments → [Comment]` |
-| `OneToMany<T, Owner, Field>` | One-to-many | No | `User.posts → [Post]` (via `Post.author`) |
-| `ManyToMany<T>` | Many-to-many | Via join table | `Post.tags ↔ [Tag]` (via `PostTag`) |
-| `RelateTo<T>` | Soft reference | No | — |
-| `ModelLinksAny<K, T>` | Polymorphic references | No | `Report.links → [Task, PullRequest, ...]` |
+| Type | Cardinality | Deleting the target | Blog-system example |
+|------|-------------|---------------------|---------------------|
+| `BelongTo<T>` | Many-to-one, the parent | Deletes the model (`CASCADE`) | — |
+| `Contains<T>` | One-to-many | Deleting the owner deletes the listed models (`CASCADE`) | `Post.comments → [Comment]` |
+| `OneToMany<T, Owner, Field>` | One-to-many | Query only, no storage | `User.posts → [Post]` (via `Post.author`) |
+| `ManyToMany<T>` | Many-to-many | Nothing, unless `@OnDelete` | `Post.tags ↔ [Tag]` (via `PostTag`) |
+| `ManyToOne<T>` / `RelateTo<T>` | Many-to-one reference | Nothing, unless `@OnDelete` | `Comment.post → Post` (`@OnDelete CASCADE`) |
+| `ModelLinksAny<K, T>` | Polymorphic references | Nothing | `Report.links → [Task, PullRequest, ...]` |
+
+See [Delete policies](#delete-policies) for what happens to the dependents of a deleted model.
 
 ## BelongTo — Many-to-one reference
 
@@ -62,7 +64,7 @@ export class Post extends Model {
 REST implications:
 - `GET /posts/:slug/comments` — list all comments for this post
 - `POST /posts/:slug/comments` — create a comment on this post
-- Deleting the Post cascades to its Comments
+- Deleting the Post deletes the Comments it lists (`CASCADE`, see [Delete policies](#delete-policies))
 
 ## OneToMany — One-to-many via foreign key
 
@@ -155,6 +157,89 @@ export class UserFollow extends Model {
   createdAt!: Date;
 }
 ```
+
+## Delete policies
+
+A relation carries a **delete policy**: what happens to a model when the model its relation targets is deleted.
+
+| Policy | Effect when the target is deleted |
+|--------|-----------------------------------|
+| `CASCADE` | Delete every dependent, through its repository: its own events fire and it cascades in turn |
+| `RESTRICT` | Refuse the delete with `409 Conflict` while a dependent exists |
+| `SET_NULL` | Remove the attribute of each dependent (a single link) or the item (a link array or map) |
+| `NONE` | Do nothing |
+
+The default comes from the relation kind:
+
+| Relation | Default policy |
+|----------|----------------|
+| `ModelParent<T>` / `BelongTo<T>` | `CASCADE` (`SET_NULL` is refused: a parent is mandatory) |
+| `ModelLink<T>` / `RelateTo<T>` / `ManyToOne<T>` / `OneToOne<T>` | `NONE` |
+| `ModelLinksSimpleArray<T>` / `ModelLinksArray<T>` / `ManyToMany<T>` | `NONE` |
+| `Contains<T>` (declared on the owner) | `CASCADE`: deleting the owner deletes the listed models |
+| `JunctionLink.linkA` (a `ModelParent`) | `CASCADE` |
+| `ModelsMapped` tagged `@CascadeDelete` | `CASCADE`: deleting the owner deletes the mapped models |
+
+Override it with a JSDoc tag on the attribute; `@CascadeDelete` is a synonym of `@OnDelete CASCADE`:
+
+```typescript
+export class Comment extends UuidModel {
+  post!: BelongTo<Post>;          // CASCADE (default)
+  /** @OnDelete RESTRICT */
+  author!: BelongTo<User>;        // a User with comments cannot be deleted
+  /** @OnDelete SET_NULL */
+  reviewer?: RelateTo<User>;      // the attribute is removed when the User is deleted
+}
+
+export class Post extends Model {
+  comments!: Contains<Comment>;   // deleting the Post deletes the listed comments
+}
+```
+
+`webdac build` validates the tags: an unknown policy, or `SET_NULL` on a parent or a `Contains`, fails the build. The
+compiled `Relations` record the policy (`parent.onDelete`, `links[].onDelete`, `links[].ownership: "CONTAINS"`) and,
+on each target model, the reverse index: `children` (the models declaring it as their parent) and `dependents` (every
+relation targeting it with a policy other than `NONE`).
+
+The `RelationIntegrity` service of `@webda/core` applies the policies. The Core declares it when the configuration
+does not, and listens to the repository events of the models a policy applies to:
+
+- `Delete`, before the deletion: `RESTRICT` checks for a dependent and aborts the delete; the keys listed by a
+  `Contains` are read (they are lost with the object)
+- `Deleted`, once the object is gone: `CASCADE` deletes the dependents, a bounded number at a time; `SET_NULL`
+  updates them
+
+Running the destructive work after the deletion means a failure leaves **orphans**, that can be swept and retried,
+rather than dependents deleted under an object that still exists. A relation targeting a model also applies to its
+subclasses, and a cascade remembers what it deleted: self-references (`Folder.parent: ModelParent<Folder>`) and
+cycles terminate. A cascade deeper than `maxDepth` fails.
+
+```jsonc
+{
+  "services": {
+    "RelationIntegrity": {
+      "type": "Webda/RelationIntegrity",
+      // false: no policy is applied
+      "enabled": true,
+      // Max cascade depth before aborting
+      "maxDepth": 16,
+      // Concurrent dependent deletions or updates per level
+      "concurrency": 10
+    }
+  }
+}
+```
+
+Limits:
+
+- `Repository.deleteMany` emits no per-object event: it never cascades, restricts or unlinks
+- The cascade runs at system level: only the first delete is permission checked (`canAct`), as in SQL
+- It is best effort and event driven, not transactional; a `RESTRICT` reached deeper in a cascade fails it once the
+  objects above are deleted
+- The dependents through a link array or map are found by reading every object of the dependent model: prefer single
+  links (`ManyToOne`) for large collections
+- Store-native constraints are separate: `@webda/sql-schema` derives the `ON DELETE` of its foreign keys from the
+  same policies (`SET_NULL` → `SET NULL`, `NONE` → `NO ACTION`)
 
 ## Querying relations at runtime
 

@@ -120,6 +120,26 @@ class WebTracingTest extends WebdaApplicationTest {
 
   @test
   @timeout(30000)
+  async sessionIdShape() {
+    const service = this.createOtel({ webTracing: { allowedEmails: ["*"] } });
+    for (const sessionId of ["a", "abc.DEF_1:2-3", "x".repeat(128)]) {
+      assert.strictEqual((await this.enable(service, "a@b.c", sessionId)).sessionId, sessionId);
+    }
+    for (const sessionId of ["a,b", "x".repeat(129), "with space", "a=b", "é"]) {
+      await assert.rejects(() => this.enable(service, "a@b.c", sessionId), WebdaError.BadRequest, sessionId);
+    }
+  }
+
+  @test
+  @timeout(30000)
+  async emailsMatchCaseInsensitively() {
+    const service = this.createOtel({ webTracing: { allowedEmails: ["admin@example\\.com"] } });
+    await this.enable(service, "Admin@Example.COM");
+    await assert.rejects(() => this.enable(service, "other@example.com"), WebdaError.Forbidden);
+  }
+
+  @test
+  @timeout(30000)
   async verify() {
     const service = this.createOtel({ webTracing: { allowedEmails: ["*"], duration: 1 } });
     const res = await this.enable(service, "a@b.c", "sid-1");
@@ -127,6 +147,10 @@ class WebTracingTest extends WebdaApplicationTest {
     assert.strictEqual(await service.verifyTraceToken(res.token + "x"), undefined);
     assert.strictEqual(await service.verifyTraceToken("garbage"), undefined);
     assert.strictEqual(await service.verifyTraceToken(await useCrypto().jwtSign({ sid: "x" })), undefined);
+    assert.strictEqual(
+      await service.verifyTraceToken(await useCrypto().jwtSign({ sid: "", uid: "u" }, { audience: "webda-trace" })),
+      undefined
+    );
     await new Promise(resolve => setTimeout(resolve, 1500));
     assert.strictEqual(await service.verifyTraceToken(res.token), undefined);
   }

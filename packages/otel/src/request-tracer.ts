@@ -5,6 +5,7 @@ import {
   type Link,
   type Span,
   ROOT_CONTEXT,
+  ValueType,
   SpanKind,
   SpanStatusCode,
   TraceFlags,
@@ -38,6 +39,11 @@ const MAX_TOKEN_LENGTH = 4096;
  * Context key asking {@link ForceableRootSampler} to sample the new root span of a trace token request
  */
 const FORCE_SAMPLING = createContextKey("webda.otel.forceSampling");
+
+/**
+ * Bucket boundaries, in seconds, of `http.server.request.duration` (semantic conventions)
+ */
+export const HTTP_DURATION_BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10];
 
 /**
  * Methods reported as is, any other one is reported as `_OTHER` (semantic conventions, bounded cardinality)
@@ -140,7 +146,9 @@ export class OtelRequestTracer implements RequestTracer {
     const meter = metrics.getMeter("@webda/otel");
     this.httpDuration = meter.createHistogram("http.server.request.duration", {
       description: "Duration of HTTP server requests",
-      unit: "s"
+      unit: "s",
+      valueType: ValueType.DOUBLE,
+      advice: { explicitBucketBoundaries: HTTP_DURATION_BUCKETS }
     });
     this.rpcDuration = meter.createHistogram("rpc.server.duration", {
       description: "Duration of RPC server requests",
@@ -166,7 +174,8 @@ export class OtelRequestTracer implements RequestTracer {
     const token = Array.isArray(header) ? header[0] : header;
     if (typeof token === "string" && token.length > 0 && token.length <= MAX_TOKEN_LENGTH) {
       const claims = await this.service.verifyTraceToken(token);
-      if (claims) {
+      // No token mode without a session
+      if (claims?.sid) {
         return { mode: "token", sid: claims.sid };
       }
       this.service.log("DEBUG", "Ignoring an invalid or expired trace token");
@@ -320,6 +329,9 @@ export class OtelRequestTracer implements RequestTracer {
     const attributes = this.metricAttributes(request, status);
     if (error !== undefined) {
       attributes["error.type"] = (error as Error)?.constructor?.name || "_OTHER";
+    } else if (request.protocol !== "grpc" && this.isError(request, status)) {
+      // Semantic conventions: the status code when no exception type is known
+      attributes["error.type"] = String(status);
     }
     if (span) {
       span.setAttributes(attributes);

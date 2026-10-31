@@ -6,7 +6,12 @@ import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { BatchLogRecordProcessor, LogRecordExporter, LoggerProvider } from "@opentelemetry/sdk-logs";
+import {
+  BatchLogRecordProcessor,
+  LogRecordExporter,
+  type LogRecordProcessor,
+  LoggerProvider
+} from "@opentelemetry/sdk-logs";
 import { ConsoleMetricExporter, type MetricReader, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
@@ -34,6 +39,11 @@ import { ForceableRootSampler, OtelRequestTracer, SessionIdSpanProcessor } from 
  * Audience of the web tracing tokens: a token of another audience is never accepted
  */
 const TRACE_TOKEN_AUDIENCE = "webda-trace";
+
+/**
+ * Accepted shape of a web tracing session id: it is propagated in the `baggage` header and set as a span attribute
+ */
+const SESSION_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
 /**
  * Forward WorkerOutput log messages to an OpenTelemetry logger
@@ -275,9 +285,12 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
       });
       this.otelLogger ??= new OtelLogger(this.loggerProvider.getLogger("webda"), useApplication().getWorkerOutput());
     }
-    // Webda starts the server spans itself, after deciding whether to trust the incoming trace context
+    // Webda starts the server spans itself, after deciding whether to trust the incoming trace context:
+    // the instrumentations that would extract an untrusted context from an incoming request are disabled
+    // (the outgoing HTTP requests are still instrumented, the Lambda server starts its own root span)
     this.instrumentations ??= getNodeAutoInstrumentations({
-      "@opentelemetry/instrumentation-http": { ignoreIncomingRequestHook: () => true }
+      "@opentelemetry/instrumentation-http": { disableIncomingRequestInstrumentation: true },
+      "@opentelemetry/instrumentation-aws-lambda": { enabled: false }
     });
     this.sdk ??= new NodeSDK({
       resource,
@@ -288,6 +301,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
         root: new ForceableRootSampler(new tracing.TraceIdRatioBasedSampler(this.parameters.traceExporter.sampling))
       }),
       metricReaders: this.getMetricReaders(),
+      logRecordProcessors: this.getLogRecordProcessors(),
       instrumentations: this.instrumentations
     });
 
@@ -310,11 +324,13 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
 
   /**
    * Metric readers of the SDK
-   * @returns the readers, undefined when the metric exporter is disabled
+   *
+   * An empty list, not undefined, when disabled: the SDK would otherwise read its exporters from the environment
+   * @returns the readers, empty when the metric exporter is disabled
    */
-  protected getMetricReaders(): MetricReader[] | undefined {
+  protected getMetricReaders(): MetricReader[] {
     if (this.parameters.metricExporter?.enable === false) {
-      return undefined;
+      return [];
     }
     return [
       new PeriodicExportingMetricReader({
@@ -322,6 +338,17 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
           this.parameters.metricExporter?.type === "console" ? new ConsoleMetricExporter() : new OTLPMetricExporter()
       })
     ];
+  }
+
+  /**
+   * Log record processors of the SDK global logger provider
+   *
+   * The Webda logs use their own provider ({@link loggerProvider}). When the logger exporter is disabled, the SDK
+   * gets an empty list so it does not read its exporters from the environment.
+   * @returns an empty list when the logger exporter is disabled, else undefined (SDK defaults)
+   */
+  protected getLogRecordProcessors(): LogRecordProcessor[] | undefined {
+    return this.parameters.loggerExporter?.enable === false ? [] : undefined;
   }
 
   /**
@@ -345,7 +372,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
     }
     return allowed.some(pattern => {
       try {
-        return new RegExp(`^(?:${pattern})$`).test(email);
+        return new RegExp(`^(?:${pattern})$`, "i").test(email);
       } catch {
         this.log("WARN", `Invalid web tracing allowedEmails pattern ${pattern}`);
         return false;
@@ -356,9 +383,11 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
   /**
    * Enable web tracing for the current user
    *
-   * @param sessionId - the tracing session to join, generated when omitted
+   * @param sessionId - the tracing session to join, generated when omitted: 1 to 128 characters among
+   * `A-Z a-z 0-9 . _ : -`
    * @returns the trace token to send as `X-Webda-Trace` and its expiration
    * @throws WebdaError.Forbidden when the caller is not allowed
+   * @throws WebdaError.BadRequest when the session id is not valid
    */
   @Operation({
     id: "Otel.EnableWebTracing",
@@ -371,6 +400,10 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
     const ctx = useContext();
     if (!(await this.canEnableWebTracing(ctx))) {
       throw new WebdaError.Forbidden("Web tracing is not allowed");
+    }
+    // The operation input schema cannot carry constraints on a method argument: checked here
+    if (sessionId !== undefined && sessionId !== "" && !SESSION_ID_PATTERN.test(sessionId)) {
+      throw new WebdaError.BadRequest("Invalid sessionId");
     }
     sessionId = sessionId || randomUUID();
     const duration = this.parameters.webTracing?.duration ?? 900;
@@ -390,7 +423,8 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
   async verifyTraceToken(token: string): Promise<{ sid: string; uid: string } | undefined> {
     try {
       const claims = await useCrypto().jwtVerify(token, { audience: TRACE_TOKEN_AUDIENCE });
-      if (typeof claims?.sid !== "string") {
+      // A token without a session cannot trace anything
+      if (typeof claims?.sid !== "string" || claims.sid === "") {
         return undefined;
       }
       return { sid: claims.sid, uid: claims.uid };

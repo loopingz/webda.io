@@ -419,6 +419,46 @@ class RequestTracerTest extends WebdaApplicationTest {
 
   @test
   @timeout(30000)
+  async durationHistogramBucketsAndErrorType() {
+    this.createOtel();
+    await this.run({ headers: {} }, 503);
+    await this.run({ headers: {} }, 200);
+    const { resourceMetrics } = await TestOtelService.reader.collect();
+    const all = resourceMetrics.scopeMetrics.flatMap(s => s.metrics);
+    const httpMetric = all.find(m => m.descriptor.name === "http.server.request.duration") as HistogramMetricData;
+    assert.ok(httpMetric);
+    // Seconds-scale buckets of the semantic conventions, not the default milliseconds ones
+    for (const point of httpMetric.dataPoints) {
+      assert.deepStrictEqual(
+        point.value.buckets.boundaries,
+        [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10]
+      );
+    }
+    const failed = httpMetric.dataPoints.find(p => p.attributes["http.response.status_code"] === 503);
+    assert.strictEqual(failed?.attributes["error.type"], "503");
+    const ok = httpMetric.dataPoints.find(p => p.attributes["http.response.status_code"] === 200);
+    assert.strictEqual(ok?.attributes["error.type"], undefined);
+  }
+
+  @test
+  @timeout(30000)
+  async emptySidTokenIsIgnored() {
+    const service = this.createOtel();
+    const token = await this.token("");
+    assert.strictEqual(await service.verifyTraceToken(token), undefined);
+    const tracer = useRequestTracer() as OtelRequestTracer;
+    assert.deepStrictEqual(await tracer.decide({ protocol: "http", path: "/", headers: { "x-webda-trace": token } }), {
+      mode: "ignore"
+    });
+    // Even if the verification returned an empty sid, no token mode without a session
+    service.verifyTraceToken = async () => ({ sid: "", uid: "u1" });
+    assert.deepStrictEqual(await tracer.decide({ protocol: "http", path: "/", headers: { "x-webda-trace": token } }), {
+      mode: "ignore"
+    });
+  }
+
+  @test
+  @timeout(30000)
   async traceExporterDisabled() {
     const service = this.createOtel({ traceExporter: { type: "console", enable: false, sampling: 1 } }, OtelService);
     // @ts-ignore protected
@@ -505,6 +545,17 @@ class RequestTracerTest extends WebdaApplicationTest {
     assert.strictEqual(res.sessionId, "web-1");
     assert.ok(res.expiresAt > Date.now());
     assert.deepStrictEqual(await this.services[0].verifyTraceToken(res.token), { sid: "web-1", uid: "user-1" });
+    // A session id outside the allowed shape is a bad request
+    for (const sessionId of ["a,b", "x".repeat(129), "with space"]) {
+      await assert.rejects(
+        () =>
+          runWithContext(ctx, () =>
+            this.http({ method: "POST", url: "/otel/tracing", body: { sessionId }, context: ctx })
+          ),
+        (err: any) => err?.getResponseCode?.() === 400,
+        sessionId
+      );
+    }
   }
 
   /**

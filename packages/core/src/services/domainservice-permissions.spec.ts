@@ -890,6 +890,9 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
 
     // The sanitizer itself: no context is an unknown caller, never a privileged one
     assert.deepStrictEqual(sanitizeModelInput(Account, { name: "x", roles: ADMIN, owner: "o" }), { name: "x" });
+    // A model answering nothing protects nothing
+    const loose: any = { Metadata: metadata("WebdaDemo/Loose"), getProtectedAttributes: () => undefined };
+    assert.deepStrictEqual(sanitizeModelInput(loose, { name: "x", _b: 1 }), { name: "x" });
     const admin = new SimpleOperationContext();
     admin.newSession();
     admin.getSession().roles = ADMIN;

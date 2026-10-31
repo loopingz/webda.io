@@ -52,7 +52,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # mermaid 12 (through @docusaurus/theme-mermaid) needs Node 22.12 or newer
+          node-version: 22
 
       - name: Build v3 packages
         run: yarn install && yarn run build && (cd docs && yarn install)

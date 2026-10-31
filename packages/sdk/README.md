@@ -185,9 +185,8 @@ client.isWebTracing(); // false once expired
 client.disableWebTracing();
 ```
 
-The server only answers cross-origin calls with CORS headers when one of its CORS filters accepts the page origin
-(a service with the `cors-filter` capability, or `useRouter().registerCORSFilter()` checking the `Origin` header
-against an allow-list).
+The server only answers cross-origin calls with CORS headers when the page origin is accepted: list it in the server
+`website` parameter (`"website": ["https://app.example.com"]`), or accept it with another CORS filter.
 
 `expiresAt` is the server clock: the client compares it with its own clock, so a skewed client clock ends the tracing
 early or late (the server rejects an expired token anyway).

@@ -39,13 +39,14 @@ It also deploy the API as Stage named with the name of the deployment.
 
 ## CORS
 
-CORS response headers are emitted only for the origins accepted by a registered CORS filter: a service declaring the `cors-filter` capability, or a filter given to `useRouter().registerCORSFilter()`. Without any filter, no origin is accepted. For an accepted `Origin`, the Router answers with `Access-Control-Allow-Origin` (the origin is echoed, never `*`; `Origin: null` is never accepted), `Access-Control-Allow-Credentials: true` and `Vary: Origin`; a preflight `OPTIONS` also gets `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` and `Access-Control-Max-Age: 3600`. Other origins receive no `Access-Control-*` header. A service needing more request headers (for example tracing headers) calls `useRouter().addCorsAllowedHeaders("traceparent")`.
+CORS response headers are emitted only for the origins accepted by a CORS filter. The simplest is the `website` parameter (global `parameters.website` or the `Router` service), matched on the request `Origin` header:
 
-```typescript
-import { useRouter } from "@webda/core";
-
-const allowedOrigins = ["https://app.example.com"];
-useRouter().registerCORSFilter({
-  checkRequest: async context => allowedOrigins.includes(context.getHttpContext().getUniqueHeader("origin"))
-});
+```json
+{
+  "parameters": {
+    "website": ["https://app.example.com", "http://localhost:5173", "https://*.preview.example.com"]
+  }
+}
 ```
+
+Each entry is an exact origin (scheme, host and port; not a regular expression), `https://*.example.com` accepts the subdomains (not `example.com` itself) and `"*"` accepts any origin. Services declaring the `cors-filter` capability, or filters given to `useRouter().registerCORSFilter()`, can accept more origins; without `website` and without any filter, no origin is accepted. For an accepted `Origin`, the Router answers with `Access-Control-Allow-Origin` (the origin is echoed, never `*`; `Origin: null` is never accepted), `Access-Control-Allow-Credentials: true` and `Vary: Origin`; a preflight `OPTIONS` also gets `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` and `Access-Control-Max-Age: 3600`. Other origins receive no `Access-Control-*` header. A service needing more request headers (for example tracing headers) calls `useRouter().addCorsAllowedHeaders("traceparent")`.

@@ -92,17 +92,18 @@ The client address is the one `HttpServer` resolves through its `trustedProxies`
 outgoing calls; `traceparent`, `tracestate` and `baggage` are.
 
 The tracing headers (`traceparent`, `tracestate`, `baggage`, `X-Webda-Trace`) are added to the CORS allowed
-headers. CORS response headers are only emitted for the origins accepted by a registered CORS filter (a service with
-the `cors-filter` capability, or `useRouter().registerCORSFilter()`), for example:
+headers. CORS response headers are only emitted for the origins accepted by a CORS filter: list the UI origins in the
+`website` parameter (exact origins, `https://*.example.com` for subdomains, or `"*"`), for example:
 
-```typescript
-import { useRouter } from "@webda/core";
-
-const allowedOrigins = ["https://app.example.com"];
-useRouter().registerCORSFilter({
-  checkRequest: async context => allowedOrigins.includes(context.getHttpContext().getUniqueHeader("origin"))
-});
+```json
+{
+  "parameters": {
+    "website": ["https://app.example.com"]
+  }
+}
 ```
+
+Services with the `cors-filter` capability, or `useRouter().registerCORSFilter()`, can accept more origins.
 
 A `@grpc/grpc-js` server created by the application itself (not `GrpcService`) is still instrumented by the gRPC
 instrumentation, which honors any incoming trace context: do not expose such a server to untrusted callers, or
@@ -140,7 +141,8 @@ Behaviour changes for existing `@webda/otel` users:
   by the Webda SERVER span described above.
 - On Lambda, an `OPTIONS` request without an `Origin` header no longer gets `Access-Control-Max-Age` and
   `Access-Control-Allow-Headers`.
-- The Router now emits the CORS response headers itself, for the origins accepted by a CORS filter.
+- The Router now emits the CORS response headers itself, for the origins accepted by a CORS filter, and the
+  `website` parameter now registers one (matched on the request `Origin` header).
 
 ### Profiling
 

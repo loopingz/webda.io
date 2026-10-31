@@ -1020,8 +1020,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     // CORS response headers: only for an Origin accepted by the CORS filters
     const hasOrigin = !!httpContext.getUniqueHeader("origin");
     const corsAllowed = (hasOrigin || method === "OPTIONS") && (await this.checkCORSRequest(ctx));
-    if (corsAllowed && hasOrigin) {
-      this.setCorsHeaders(ctx);
+    if (hasOrigin) {
+      // The response depends on the Origin whether it is accepted or not
+      this.addVary(ctx, "Origin");
+      if (corsAllowed) {
+        this.setCorsHeaders(ctx);
+      }
     }
 
     // Handle CORS preflight
@@ -1029,7 +1033,9 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       const methods = this.getRouteMethodsFromUrl(url);
       if (methods.length > 0 && corsAllowed) {
         ctx.setHeader("Access-Control-Allow-Methods", methods.join(","));
-        ctx.setHeader("Access-Control-Allow-Headers", this.getCorsAllowedHeaders().join(", "));
+        // Keep what a server already allowed (e.g. echoed Access-Control-Request-Headers)
+        const existing = String(ctx.getResponseHeaders()["Access-Control-Allow-Headers"] ?? "");
+        ctx.setHeader("Access-Control-Allow-Headers", this.mergeHeaderNames(existing, this.getCorsAllowedHeaders()));
         ctx.writeHead(204);
         return;
       }
@@ -1132,7 +1138,31 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   protected setCorsHeaders(ctx: IWebContext): void {
     ctx.setHeader("Access-Control-Allow-Origin", ctx.getHttpContext().getUniqueHeader("origin"));
     ctx.setHeader("Access-Control-Allow-Credentials", "true");
-    ctx.setHeader("Vary", "Origin");
+  }
+
+  /**
+   * Merge header names case-insensitively, keeping the first spelling
+   * @param current - comma separated header names
+   * @param added - names to add
+   * @returns comma separated header names
+   */
+  mergeHeaderNames(current: string, added: string[]): string {
+    const result: string[] = [];
+    for (const name of [...current.split(","), ...added].map(n => n.trim()).filter(n => n)) {
+      if (!result.some(h => h.toLowerCase() === name.toLowerCase())) result.push(name);
+    }
+    return result.join(", ");
+  }
+
+  /**
+   * Add a value to the `Vary` response header, keeping the existing ones
+   *
+   * Note: a later `setHeader("Vary", ...)` replaces the whole value, the context has no hook to prevent it
+   * @param ctx - the operation context
+   * @param value - the header name to vary on
+   */
+  protected addVary(ctx: IWebContext, value: string): void {
+    ctx.setHeader("Vary", this.mergeHeaderNames(String(ctx.getResponseHeaders()["Vary"] ?? ""), [value]));
   }
 
   /**

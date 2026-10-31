@@ -205,6 +205,22 @@ class LambdaHandlerTest extends WebdaApplicationTest {
   }
 
   @test
+  async preflightEchoesRequestedHeadersAndRouterOnes() {
+    this.ensureGoodCSRF();
+    useRouter().addCorsAllowedHeaders("traceparent", "X-Webda-Trace");
+    this.evt.httpMethod = "OPTIONS";
+    this.evt.headers["Access-Control-Request-Headers"] = "X-Api-Key, traceparent";
+    const res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 204);
+    const allowed = String(res.headers["Access-Control-Allow-Headers"])
+      .split(",")
+      .map(h => h.trim().toLowerCase());
+    for (const h of ["x-api-key", "traceparent", "x-webda-trace", "content-type"]) assert.ok(allowed.includes(h), h);
+    assert.strictEqual(allowed.filter(h => h === "traceparent").length, 1);
+    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], "https://test.webda.io");
+  }
+
+  @test
   async handleRequestIdHeader() {
     this.ensureGoodCSRF();
     this.handler.getParameters().lambdaRequestHeader = "x-webda-request-id";

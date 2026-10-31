@@ -35,6 +35,8 @@ class RouterCorsTest extends WebdaApplicationTest {
    * @param origins - allowed origins or "*"
    */
   allow(origins: string[]) {
+    // Only the filter of this test
+    this.router["_requestCORSFilters"] = [];
     this.router.registerCORSFilter({
       checkRequest: async ctx => {
         const origin = ctx.getHttpContext().getUniqueHeader("origin");
@@ -109,5 +111,29 @@ class RouterCorsTest extends WebdaApplicationTest {
     this.allow(["*"]);
     const ctx = await this.request("GET", { Origin: "https://anything.example.org" });
     assert.strictEqual(ctx.getResponseHeaders()["Access-Control-Allow-Origin"], "https://anything.example.org");
+  }
+
+  @test
+  async varyOriginAlwaysAndPreserved() {
+    this.allow(["https://ui.example.com"]);
+    const denied = await this.request("GET", { Origin: "https://evil.example.com" });
+    assert.strictEqual(denied.getResponseHeaders()["Vary"], "Origin");
+    assert.deepStrictEqual(this.corsHeaders(denied), []);
+    assert.strictEqual((await this.request("GET", {})).getResponseHeaders()["Vary"], undefined);
+    // Pre-existing Vary is preserved, without duplicate
+    const ctx = new WebContext(
+      new HttpContext("api.example.com", "GET", "/test", "https", 443, { Origin: "https://ui.example.com" })
+    );
+    ctx.newSession();
+    ctx.setHeader("Vary", "Accept-Encoding");
+    await runWithContext(ctx, () => this.router.execute(ctx));
+    assert.strictEqual(ctx.getResponseHeaders()["Vary"], "Accept-Encoding, Origin");
+    const again = new WebContext(
+      new HttpContext("api.example.com", "GET", "/test", "https", 443, { Origin: "https://ui.example.com" })
+    );
+    again.newSession();
+    again.setHeader("Vary", "origin");
+    await runWithContext(again, () => this.router.execute(again));
+    assert.strictEqual(again.getResponseHeaders()["Vary"], "origin");
   }
 }

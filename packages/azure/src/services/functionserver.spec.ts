@@ -87,6 +87,8 @@ class FunctionServerTest extends AzureTest {
       arrayBuffer: async () => input
     } as any;
     runtime.execute.mockImplementationOnce(async context => {
+      // The Router sets the CORS headers
+      context.setHeader("Access-Control-Allow-Origin", context.getHttpContext().getUniqueHeader("origin"));
       expect(context.getHttpContext().getRelativeUri()).toBe("/path?q=1");
       expect(await context.getHttpContext().getRawBody()).toEqual(input);
       context.statusCode = 201;

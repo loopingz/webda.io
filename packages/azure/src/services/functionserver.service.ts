@@ -123,8 +123,7 @@ export class AzureFunctionServer extends Service<AzureFunctionServerParameters> 
         if (origin) {
           if (!(await useRouter()["checkCORSRequest"](context)))
             throw new WebdaError.Unauthorized("Origin not allowed");
-          context.setHeader("Access-Control-Allow-Origin", origin);
-          context.setHeader("Access-Control-Allow-Credentials", "true");
+          // Access-Control-Allow-Origin/-Credentials are set by the Router
         }
         if (url.protocol === "https:")
           context.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");

@@ -275,7 +275,15 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
         if (method === "OPTIONS") {
           // Might want to customize this one
           ctx.setHeader("Access-Control-Max-Age", 3600);
-          // Access-Control-Allow-Headers is set by the Router (see Router.getCorsAllowedHeaders)
+          // Echo the requested headers and add the Router ones (Router.getCorsAllowedHeaders)
+          const router = useRouter();
+          ctx.setHeader(
+            "Access-Control-Allow-Headers",
+            router.mergeHeaderNames(
+              headers["access-control-request-headers"] || headers["Access-Control-Request-Headers"] || "content-type",
+              router.getCorsAllowedHeaders()
+            )
+          );
         }
         await useRouter().execute(ctx);
       } catch (err) {

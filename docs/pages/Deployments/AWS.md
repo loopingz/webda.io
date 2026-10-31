@@ -20,8 +20,8 @@ To be able to deploy the deployment user must have at least :
 	]
 }
 ```
-This can be restrict more and should, need to update the documentation
 
+This can be restrict more and should, need to update the documentation
 
 ## Package
 
@@ -35,8 +35,17 @@ Once the package done, it will be upload as a Lambda function with the name spec
 
 It map all the routes from your application, if a **website** parameter is found on the parameters of deployment then it will enable CORS for you for this URL
 
+It also deploy the API as Stage named with the name of the deployment.
+
 ## CORS
 
-For any request carrying an `Origin` header that the CORS filters accept (the `website` parameter), the Router answers with `Access-Control-Allow-Origin` (the origin is echoed, never `*`), `Access-Control-Allow-Credentials: true` and `Vary: Origin`; a preflight `OPTIONS` also gets `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers`. Other origins receive no `Access-Control-*` header. A service needing more request headers (for example tracing headers) calls `useRouter().addCorsAllowedHeaders("traceparent")`.
+CORS response headers are emitted only for the origins accepted by a registered CORS filter: a service declaring the `cors-filter` capability, or a filter given to `useRouter().registerCORSFilter()`. Without any filter, no origin is accepted. For an accepted `Origin`, the Router answers with `Access-Control-Allow-Origin` (the origin is echoed, never `*`; `Origin: null` is never accepted), `Access-Control-Allow-Credentials: true` and `Vary: Origin`; a preflight `OPTIONS` also gets `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` and `Access-Control-Max-Age: 3600`. Other origins receive no `Access-Control-*` header. A service needing more request headers (for example tracing headers) calls `useRouter().addCorsAllowedHeaders("traceparent")`.
 
-It also deploy the API as Stage named with the name of the deployment.
+```typescript
+import { useRouter } from "@webda/core";
+
+const allowedOrigins = ["https://app.example.com"];
+useRouter().registerCORSFilter({
+  checkRequest: async context => allowedOrigins.includes(context.getHttpContext().getUniqueHeader("origin"))
+});
+```

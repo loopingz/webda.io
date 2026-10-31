@@ -93,15 +93,18 @@ API. It is never the `Registry` and only stores listed models.
 }
 ```
 
-| Parameter          | Type                                        | Default    | Description                                                                                                                                                                         |
-| ------------------ | ------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `schemaSync`       | `none` \| `create` \| `alter` \| `validate` | `create`   | What `init()` does with the schema: nothing, create the missing tables, also add the missing columns / indexes / foreign keys of existing tables (never destructive), or only check |
-| `columnNaming`     | `preserve` \| `snake_case`                  | `preserve` | Column names from the field names                                                                                                                                                   |
-| `extraColumn`      | string \| `false`                           | `_extra`   | JSONB column of the properties the schema does not declare                                                                                                                          |
-| `foreignKeys`      | boolean                                     | `true`     | Create the foreign key constraints                                                                                                                                                  |
-| `numericAsDecimal` | boolean                                     | `false`    | `NUMERIC` instead of `DOUBLE PRECISION` for JSON `number`                                                                                                                           |
+| Parameter            | Type                                        | Default    | Description                                                                                                                                                                         |
+| -------------------- | ------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaSync`         | `none` \| `create` \| `alter` \| `validate` | `create`   | What `init()` does with the schema: nothing, create the missing tables, also add the missing columns / indexes / foreign keys of existing tables (never destructive), or only check |
+| `columnNaming`       | `preserve` \| `snake_case`                  | `preserve` | Column names from the field names                                                                                                                                                   |
+| `extraColumn`        | string \| `false`                           | `_extra`   | JSONB column of the properties the schema does not declare                                                                                                                          |
+| `foreignKeys`        | boolean                                     | `true`     | Create the foreign key constraints                                                                                                                                                  |
+| `foreignKeysToJsonb` | boolean                                     | `false`    | Also a foreign key to the `uuid` of the JSONB table of a model served by a `PostgresStore` on the same server and database (table per model)                                        |
+| `numericAsDecimal`   | boolean                                     | `false`    | `NUMERIC` instead of `DOUBLE PRECISION` for JSON `number`                                                                                                                           |
 
-`webda postgres schema [--sql | --diff | --json]` prints the plan, its DDL or the differences with the database. See
+`webda postgres schema [--sql | --diff | --json]` prints the plan, its DDL or the differences with the database;
+`webda postgres import --models A,B --source Registry [--purge]` promotes models from a JSONB store. `@Index` /
+`@Unique` JSDoc tags on the model attributes become indexes. See
 [the documentation](https://webda.io/docs/Modules/postgres/PostgresRelationalStore) for the mapping, the schema
 lifecycle and the limitations.
 

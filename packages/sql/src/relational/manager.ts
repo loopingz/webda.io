@@ -1,5 +1,11 @@
 import { buildSchemaPlan } from "@webda/sql-schema";
-import type { RelationalSchemaOptions, RelationalSchemaPlan, SchemaModelMetadata, TablePlan } from "@webda/sql-schema";
+import type {
+  ReferencedTable,
+  RelationalSchemaOptions,
+  RelationalSchemaPlan,
+  SchemaModelMetadata,
+  TablePlan
+} from "@webda/sql-schema";
 import type { SQLClient } from "../dialect.js";
 import type { RelationalDialect, SchemaStep } from "./dialect.js";
 import { SchemaDriftError, describeStep, planSchemaChanges } from "./sync.js";
@@ -41,12 +47,17 @@ export class RelationalSchemaManager {
    * Build the plan of the models of the store
    * @param models - the models of the store, subclasses included
    * @param knownModels - every application model, to type the references to other stores
+   * @param referencedTables - the tables of other stores a foreign key may reference, by model identifier
    * @returns the plan
    * @throws SchemaBuildError when the models cannot share their tables
    */
-  build(models: Iterable<SchemaModelMetadata>, knownModels: Iterable<SchemaModelMetadata>): RelationalSchemaPlan {
+  build(
+    models: Iterable<SchemaModelMetadata>,
+    knownModels: Iterable<SchemaModelMetadata>,
+    referencedTables?: { [identifier: string]: ReferencedTable }
+  ): RelationalSchemaPlan {
     this.plan = undefined;
-    const plan = buildSchemaPlan(models, { ...this.options.layout, knownModels });
+    const plan = buildSchemaPlan(models, { ...this.options.layout, knownModels, referencedTables });
     for (const warning of plan.warnings) {
       const where = [warning.model, warning.attribute].filter(Boolean).join(".");
       this.options.log("WARN", `${warning.code} ${where}: ${warning.message}`);

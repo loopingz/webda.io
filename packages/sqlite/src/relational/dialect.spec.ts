@@ -186,7 +186,6 @@ export class SQLiteRelationalDialectTest {
     );
     assert.strictEqual(d.columnJsonRemoveItem("files", 1), `json_remove(COALESCE("files", '[]'), '$[1]')`);
     assert.strictEqual(d.columnJsonItemCondition("files", 1, "hash", 3), `"files" ->> '$[1].hash' = ?3`);
-    assert.strictEqual(d.columnJsonItemCondition("files", undefined, "hash", 3), `0 = ?3`);
     assert.throws(() => d.columnJsonText("m", ["a'b"]), /Invalid attribute/);
     assert.throws(() => d.columnJsonRemoveItem("files", -1), /Invalid index/);
   }
@@ -209,5 +208,32 @@ export class SQLiteRelationalDialectTest {
       }
     };
     assert.deepStrictEqual(await this.dialect.describeSchema(client, []), { tables: {} });
+  }
+
+  @test
+  timeTextAndUniqueViolation() {
+    const d = this.dialect;
+    assert.strictEqual(d.timeText('"d"', { kind: "date" }), '"d"');
+    const violation = (errcode: number, message: string) =>
+      d.uniqueViolation({ code: "ERR_SQLITE_ERROR", errcode, message });
+    assert.deepStrictEqual(violation(1555, "UNIQUE constraint failed: rel_post.uuid"), {
+      table: "rel_post",
+      columns: ["uuid"],
+      constraint: "rel_post_pkey",
+      primaryKey: true
+    });
+    assert.deepStrictEqual(violation(1555, "UNIQUE constraint failed: rel_post_tags.post, rel_post_tags.tag"), {
+      table: "rel_post_tags",
+      columns: ["post", "tag"],
+      constraint: "rel_post_tags_pkey",
+      primaryKey: true
+    });
+    assert.deepStrictEqual(violation(2067, "UNIQUE constraint failed: rel_user.email"), {
+      table: "rel_user",
+      columns: ["email"],
+      primaryKey: false
+    });
+    assert.deepStrictEqual(violation(2067, "something else"), { primaryKey: false });
+    assert.strictEqual(violation(787, "FOREIGN KEY constraint failed"), undefined);
   }
 }

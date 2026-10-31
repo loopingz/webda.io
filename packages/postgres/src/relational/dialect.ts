@@ -1,4 +1,4 @@
-import type { LiveSchema, RelationalDialect, SchemaStep, SQLClient } from "@webda/sql";
+import type { LiveSchema, RelationalDialect, SchemaStep, SQLClient, UniqueViolation } from "@webda/sql";
 import { sqlString } from "@webda/sql";
 import { constraintName } from "@webda/sql-schema";
 import type { ColumnPlan, ColumnType, TablePlan } from "@webda/sql-schema";
@@ -181,9 +181,16 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /** @override */
+  timeText(expr: string, type: ColumnType): string {
+    return type.kind === "date"
+      ? `to_char(${expr}, 'YYYY-MM-DD')`
+      : `to_char(${expr} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
+  }
+
+  /** @override */
   toJson(expr: string, type: ColumnType): string {
     if (type.kind === "timestamptz") {
-      return `to_jsonb(to_char(${expr} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))`;
+      return `to_jsonb(${this.timeText(expr, type)})`;
     }
     return `to_jsonb(${expr})`;
   }
@@ -241,7 +248,7 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /** @override */
-  columnJsonItemCondition(column: string, index: number | undefined, field: string, valueParam: number): string {
+  columnJsonItemCondition(column: string, index: number, field: string, valueParam: number): string {
     return `${this.quote(column)}#>>'{${index},${field}}' = $${valueParam}`;
   }
 
@@ -254,5 +261,17 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
       return { constraint: (err as any).constraint };
     }
     return undefined;
+  }
+
+  /**
+   * unique_violation: the primary key constraints are named `<table>_pkey`
+   * @override
+   */
+  uniqueViolation(err: unknown): UniqueViolation | undefined {
+    if (!this.isUniqueViolation(err)) {
+      return undefined;
+    }
+    const { table, constraint } = err as { table?: string; constraint?: string };
+    return { table, constraint, primaryKey: constraint === `${table}_pkey` };
   }
 }

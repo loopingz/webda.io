@@ -41,7 +41,7 @@ export class RelPost extends UuidModel {
 }
 
 /**
- * A comment: parent link to its post, link to a model of another store
+ * A comment: parent link to its post, link to a model of another store (the `Registry`)
  *
  * @WebdaIgnore
  */
@@ -230,7 +230,13 @@ export function relationalMetadata(): Record<string, any> {
     "Rel/User": metadata(
       "Rel/User",
       { uuid: string, name: string, email: { type: "string", maxLength: 100 } },
-      { relations: { queries: [{ attribute: "_posts", model: "Rel/Post", targetAttribute: "author" }] } }
+      {
+        relations: {
+          queries: [{ attribute: "_posts", model: "Rel/Post", targetAttribute: "author" }],
+          // `@Unique` on email
+          indexes: [{ attribute: "email", unique: true }]
+        }
+      }
     ),
     "Rel/Post": metadata(
       "Rel/Post",
@@ -260,6 +266,11 @@ export function relationalMetadata(): Record<string, any> {
             { attribute: "tags", model: "Rel/Tag", type: "LINKS_SIMPLE_ARRAY" },
             { attribute: "contributors", model: "Rel/User", type: "LINKS_ARRAY" },
             { attribute: "reviewers", model: "Rel/User", type: "LINKS_MAP" }
+          ],
+          // `@Index byAuthorDay` on author and day
+          indexes: [
+            { attribute: "author", name: "byAuthorDay" },
+            { attribute: "day", name: "byAuthorDay" }
           ]
         }
       }
@@ -270,7 +281,7 @@ export function relationalMetadata(): Record<string, any> {
       {
         relations: {
           parent: { attribute: "post", model: "Rel/Post" },
-          links: [{ attribute: "moderator", model: "Webda/User", type: "LINK" }]
+          links: [{ attribute: "moderator", model: "Webda/OwnerModel", type: "LINK" }]
         }
       }
     ),

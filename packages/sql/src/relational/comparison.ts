@@ -4,12 +4,26 @@ import type { ColumnType } from "@webda/sql-schema";
 import { sqlString } from "../dialect.js";
 import type { RelationalDialect } from "./dialect.js";
 
-const TEXT_KINDS = new Set<ColumnType["kind"]>(["text", "varchar", "uuid", "date", "timestamptz"]);
+const TEXT_KINDS = new Set<ColumnType["kind"]>(["text", "varchar", "uuid"]);
+const TIME_KINDS = new Set<ColumnType["kind"]>(["date", "timestamptz"]);
 const NUMBER_KINDS = new Set<ColumnType["kind"]>(["bigint", "double", "decimal"]);
 
 /**
- * Whether a WebdaQL value has the JavaScript type a column holds: strings and dates for the text and time kinds,
- * numbers for the numeric kinds, booleans for `boolean`
+ * Whether a value is a date or a date text an engine parses (`YYYY-MM-DD`, with or without a time): anything else
+ * compared to a time column must match nothing, never raise
+ * @param value - the compared value
+ * @returns true for a date value
+ */
+export function isTimeValue(value: unknown): boolean {
+  if (value instanceof Date) {
+    return !Number.isNaN(value.getTime());
+  }
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) && !Number.isNaN(Date.parse(value));
+}
+
+/**
+ * Whether a WebdaQL value has the JavaScript type a column holds: strings and dates for the text kinds, dates and
+ * date texts for the time kinds, numbers for the numeric kinds, booleans for `boolean`
  * @param value - the compared value
  * @param type - the column type
  * @returns true when the value can be compared natively
@@ -17,6 +31,9 @@ const NUMBER_KINDS = new Set<ColumnType["kind"]>(["bigint", "double", "decimal"]
 export function valueMatchesType(value: unknown, type: ColumnType): boolean {
   if (TEXT_KINDS.has(type.kind)) {
     return typeof value === "string" || value instanceof Date;
+  }
+  if (TIME_KINDS.has(type.kind)) {
+    return isTimeValue(value);
   }
   if (NUMBER_KINDS.has(type.kind)) {
     return typeof value === "number";
@@ -46,9 +63,10 @@ export function columnLiteral(value: unknown, type: ColumnType): string {
  * Keeps the in-memory semantics of `ComparisonExpression.eval`:
  * - a value of the column type compares natively (`"n" < 2`, `"d" > '2024-01-01'`);
  * - `=` / `!=` with a value of another type compare the text of the column, so the loose `n = '1'` still matches and
- *   `n = 'abc'` never raises a cast error; `!=` is null-safe;
+ *   `n = 'abc'` never raises a cast error; `!=` is null-safe; a time column reads as its ISO text, so a text that is
+ *   not a date (`_lastUpdate = 'abc'`) matches nothing instead of raising;
  * - an ordering comparison with a value of another type is `FALSE`, as comparing a number with a string is;
- * - `LIKE` works on the text of the column;
+ * - `LIKE` works on the text of the column (the ISO text of a time column);
  * - `CONTAINS` is for JSON columns only.
  */
 export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression {
@@ -80,9 +98,8 @@ export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression 
     if (this.operator === "CONTAINS") {
       throw new WebdaError.BadRequest(`CONTAINS needs a JSON column: ${column} is ${this.type.kind}`);
     }
-    const textual = TEXT_KINDS.has(this.type.kind) && this.type.kind !== "date" && this.type.kind !== "timestamptz";
     if (this.operator === "LIKE") {
-      return this.dialect.like(textual ? column : this.dialect.castText(column), String(this.value));
+      return this.dialect.like(this.text(column), String(this.value));
     }
     if (valueMatchesType(this.value, this.type)) {
       const literal = columnLiteral(this.value, this.type);
@@ -91,10 +108,22 @@ export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression 
         : `${column} ${this.operator} ${literal}`;
     }
     if (this.operator === "=" || this.operator === "!=") {
-      const text = textual ? column : this.dialect.castText(column);
+      const text = this.text(column);
       const literal = sqlString(String(this.value));
       return this.operator === "=" ? `${text} = ${literal}` : this.dialect.distinctFrom(text, literal);
     }
     return "FALSE";
+  }
+
+  /**
+   * @param column - the quoted column
+   * @returns the column as the text the model holds: itself for a text kind, the ISO form of a time kind, a cast
+   *   otherwise
+   */
+  protected text(column: string): string {
+    if (TEXT_KINDS.has(this.type.kind)) {
+      return column;
+    }
+    return TIME_KINDS.has(this.type.kind) ? this.dialect.timeText(column, this.type) : this.dialect.castText(column);
   }
 }

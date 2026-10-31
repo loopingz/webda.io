@@ -1,16 +1,49 @@
 import { DiagLogLevel, diag, trace } from "@opentelemetry/api";
 import { Logger as OtelLibLogger } from "@opentelemetry/api-logs";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
+import type { Instrumentation } from "@opentelemetry/instrumentation";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { BatchLogRecordProcessor, LogRecordExporter, LoggerProvider } from "@opentelemetry/sdk-logs";
-import { ConsoleMetricExporter, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import {
+  BatchLogRecordProcessor,
+  LogRecordExporter,
+  type LogRecordProcessor,
+  LoggerProvider
+} from "@opentelemetry/sdk-logs";
+import { ConsoleMetricExporter, type MetricReader, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
-import { SecretString, Service, ServiceParameters, WebContext, useApplication, useCore, useRouter } from "@webda/core";
+import {
+  type Context,
+  Operation,
+  SecretString,
+  Service,
+  ServiceParameters,
+  WebContext,
+  WebdaError,
+  registerRequestTracer,
+  useApplication,
+  useContext,
+  useCore,
+  useCrypto,
+  useRequestTracer,
+  useRouter
+} from "@webda/core";
+import { randomUUID } from "node:crypto";
 import { WorkerLogger, WorkerMessage, WorkerOutput } from "@webda/workout";
+import { ForceableRootSampler, OtelRequestTracer, SessionIdSpanProcessor } from "./request-tracer.js";
+
+/**
+ * Audience of the web tracing tokens: a token of another audience is never accepted
+ */
+const TRACE_TOKEN_AUDIENCE = "webda-trace";
+
+/**
+ * Accepted shape of a web tracing session id: it is propagated in the `baggage` header and set as a span attribute
+ */
+const SESSION_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
 /**
  * Forward WorkerOutput log messages to an OpenTelemetry logger
@@ -100,6 +133,29 @@ export class OtelServiceParameters extends ServiceParameters {
    * Service name reported to OpenTelemetry, default to the package name
    */
   name?: string;
+  /**
+   * On-demand web tracing: an authorized user gets a short-lived token, the browser sends it as
+   * `X-Webda-Trace` to have its `traceparent` and `baggage` honored
+   */
+  webTracing?: {
+    /**
+     * Emails allowed to enable web tracing, as regular expressions matching the whole email
+     * (`"*"` means any authenticated user). Empty or missing means nobody.
+     */
+    allowedEmails?: string[];
+    /**
+     * Token lifetime in seconds
+     *
+     * @default 900
+     */
+    duration?: number;
+  };
+  /**
+   * Sources (IP or CIDR) whose `traceparent` and `baggage` are always honored
+   *
+   * @default []
+   */
+  trustedTraceSources?: string[];
 
   /**
    * Apply default values
@@ -124,6 +180,10 @@ export class OtelServiceParameters extends ServiceParameters {
       url: "http://localhost:4317"
     };
     this.diagnostic ??= "NONE";
+    this.webTracing ??= {};
+    this.webTracing.allowedEmails ??= [];
+    this.webTracing.duration ??= 900;
+    this.trustedTraceSources ??= [];
     return this;
   }
 }
@@ -132,7 +192,7 @@ export class OtelServiceParameters extends ServiceParameters {
  * Otel Service
  *
  * Start the OpenTelemetry NodeSDK, forward the logs and add a span
- * for each request and each service method call
+ * for each request (see {@link OtelRequestTracer}) and each service method call
  *
  * @WebdaModda
  */
@@ -147,12 +207,19 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
   otelLogger: OtelLogger;
   loggerExporter: LogRecordExporter;
   loggerProvider: LoggerProvider;
+  requestTracer?: OtelRequestTracer;
+  instrumentations?: Instrumentation[];
 
   /**
    * Stop otlp
    */
   async stop() {
+    if (this.requestTracer && useRequestTracer() === this.requestTracer) {
+      registerRequestTracer(undefined);
+    }
     this.unpatch();
+    // The SDK shutdown leaves the instrumentations enabled
+    this.instrumentations?.forEach(instrumentation => instrumentation.disable());
     this.otelLogger?.close();
     await Promise.all([super.stop(), this.loggerProvider?.shutdown(), this.sdk?.shutdown()]);
   }
@@ -218,24 +285,152 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
       });
       this.otelLogger ??= new OtelLogger(this.loggerProvider.getLogger("webda"), useApplication().getWorkerOutput());
     }
+    // Webda starts the server spans itself, after deciding whether to trust the incoming trace context:
+    // the instrumentations that would extract an untrusted context from an incoming request are disabled
+    // (the outgoing HTTP requests are still instrumented, the Lambda server starts its own root span)
+    this.instrumentations ??= getNodeAutoInstrumentations({
+      "@opentelemetry/instrumentation-http": { disableIncomingRequestInstrumentation: true },
+      "@opentelemetry/instrumentation-aws-lambda": { enabled: false }
+    });
     this.sdk ??= new NodeSDK({
       resource,
-      traceExporter: this.getTraceExporter(),
-      metricReader:
-        this.parameters.metricExporter?.enable !== false
-          ? (new PeriodicExportingMetricReader({
-              exporter:
-                this.parameters.metricExporter?.type === "console"
-                  ? new ConsoleMetricExporter()
-                  : new OTLPMetricExporter()
-            }) as any)
-          : undefined,
-      instrumentations: [getNodeAutoInstrumentations()]
+      spanProcessors: this.getSpanProcessors(),
+      // Honor the sampling decision of a (verified) remote parent, sample the roots by ratio
+      // unless a trace token asks for the request to be recorded
+      sampler: new tracing.ParentBasedSampler({
+        root: new ForceableRootSampler(new tracing.TraceIdRatioBasedSampler(this.parameters.traceExporter.sampling))
+      }),
+      metricReaders: this.getMetricReaders(),
+      logRecordProcessors: this.getLogRecordProcessors(),
+      instrumentations: this.instrumentations
     });
 
     this.sdk.start();
+    this.requestTracer = new OtelRequestTracer(this);
+    registerRequestTracer(this.requestTracer);
+    useRouter()?.addCorsAllowedHeaders("traceparent", "tracestate", "baggage", "X-Webda-Trace");
     this.updatePatch();
     return this;
+  }
+
+  /**
+   * Span processors of the SDK: `session.id` attribute then export
+   * @returns the processors, empty when the trace exporter is disabled
+   */
+  protected getSpanProcessors(): tracing.SpanProcessor[] {
+    const exporter = this.getTraceExporter();
+    return exporter ? [new SessionIdSpanProcessor(), new tracing.BatchSpanProcessor(exporter)] : [];
+  }
+
+  /**
+   * Metric readers of the SDK
+   *
+   * An empty list, not undefined, when disabled: the SDK would otherwise read its exporters from the environment
+   * @returns the readers, empty when the metric exporter is disabled
+   */
+  protected getMetricReaders(): MetricReader[] {
+    if (this.parameters.metricExporter?.enable === false) {
+      return [];
+    }
+    return [
+      new PeriodicExportingMetricReader({
+        exporter:
+          this.parameters.metricExporter?.type === "console" ? new ConsoleMetricExporter() : new OTLPMetricExporter()
+      })
+    ];
+  }
+
+  /**
+   * Log record processors of the SDK global logger provider
+   *
+   * The Webda logs use their own provider ({@link loggerProvider}). When the logger exporter is disabled, the SDK
+   * gets an empty list so it does not read its exporters from the environment.
+   * @returns an empty list when the logger exporter is disabled, else undefined (SDK defaults)
+   */
+  protected getLogRecordProcessors(): LogRecordProcessor[] | undefined {
+    return this.parameters.loggerExporter?.enable === false ? [] : undefined;
+  }
+
+  /**
+   * Check whether the caller can enable web tracing
+   *
+   * Anonymous callers are refused. Override to change the policy.
+   * @param context - the caller context
+   * @returns true if allowed
+   */
+  protected async canEnableWebTracing(context: Context): Promise<boolean> {
+    const allowed = this.parameters.webTracing?.allowedEmails ?? [];
+    if (!allowed.length || !context.getCurrentUserId()) {
+      return false;
+    }
+    if (allowed.includes("*")) {
+      return true;
+    }
+    const email = (await context.getCurrentUser())?.getEmail?.();
+    if (!email) {
+      return false;
+    }
+    return allowed.some(pattern => {
+      try {
+        return new RegExp(`^(?:${pattern})$`, "i").test(email);
+      } catch {
+        this.log("WARN", `Invalid web tracing allowedEmails pattern ${pattern}`);
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Enable web tracing for the current user
+   *
+   * @param sessionId - the tracing session to join, generated when omitted: 1 to 128 characters among
+   * `A-Z a-z 0-9 . _ : -`
+   * @returns the trace token to send as `X-Webda-Trace` and its expiration
+   * @throws WebdaError.Forbidden when the caller is not allowed
+   * @throws WebdaError.BadRequest when the session id is not valid
+   */
+  @Operation({
+    id: "Otel.EnableWebTracing",
+    rest: { method: "post", path: "otel/tracing" },
+    graphql: false,
+    grpc: false,
+    mcp: false
+  })
+  async enableWebTracing(sessionId?: string): Promise<{ token: string; sessionId: string; expiresAt: number }> {
+    const ctx = useContext();
+    if (!(await this.canEnableWebTracing(ctx))) {
+      throw new WebdaError.Forbidden("Web tracing is not allowed");
+    }
+    // The operation input schema cannot carry constraints on a method argument: checked here
+    if (sessionId !== undefined && sessionId !== "" && !SESSION_ID_PATTERN.test(sessionId)) {
+      throw new WebdaError.BadRequest("Invalid sessionId");
+    }
+    sessionId = sessionId || randomUUID();
+    const duration = this.parameters.webTracing?.duration ?? 900;
+    // The uid claim is for logs only, never the session userId
+    const token = await useCrypto().jwtSign(
+      { sid: sessionId, uid: ctx.getCurrentUserId() },
+      { audience: TRACE_TOKEN_AUDIENCE, expiresIn: duration }
+    );
+    return { token, sessionId, expiresAt: Date.now() + duration * 1000 };
+  }
+
+  /**
+   * Verify a trace token
+   * @param token - the `X-Webda-Trace` value
+   * @returns the claims or undefined when the token is invalid, expired or not a trace token
+   */
+  async verifyTraceToken(token: string): Promise<{ sid: string; uid: string } | undefined> {
+    try {
+      const claims = await useCrypto().jwtVerify(token, { audience: TRACE_TOKEN_AUDIENCE });
+      // A token without a session cannot trace anything
+      if (typeof claims?.sid !== "string" || claims.sid === "") {
+        return undefined;
+      }
+      return { sid: claims.sid, uid: claims.uid };
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -308,29 +503,12 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
    */
   patch() {
     const tracer = trace.getTracer("webda");
-    const mod = Math.floor(1 / this.parameters.traceExporter.sampling);
-    let count = 0;
     const router = useRouter();
-    // Add a span around each request execution
+    // Expose the tracer to the request: its server span is started by the OtelRequestTracer
     this._wrap(router, "execute", (original: Function) => {
       return async (ctx: WebContext) => {
         ctx.setExtension("otel", tracer);
-        // Sampling logic
-        if (mod > 1) {
-          if (count++ % mod !== 0) {
-            return original(ctx);
-          } else {
-            count = 0;
-          }
-        }
-        const httpContext = ctx.getHttpContext();
-        return tracer.startActiveSpan(`${httpContext.getMethod()} ${httpContext.getPathName() || "/"}`, async span => {
-          try {
-            return await original(ctx);
-          } finally {
-            span.end();
-          }
-        });
+        return original(ctx);
       };
     });
     diag.debug(`Applying patch for each services`);

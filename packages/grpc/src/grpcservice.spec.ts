@@ -120,6 +120,7 @@ vi.mock("@webda/core", () => {
     runWithInstanceStorage: (_storage: any, fn: () => any) => fn(),
     runWithContext: (_ctx: any, fn: () => any) => fn(),
     emitCoreEvent: () => {},
+    traceRequest: (_request: any, fn: (handle: any) => Promise<any>) => fn({ setStatus: () => {} }),
     useRouter: () => ({ checkRequest: async () => true }),
     Command: () => () => {},
     BuildCommand: () => () => {}

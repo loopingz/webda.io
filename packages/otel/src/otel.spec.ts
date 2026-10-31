@@ -92,6 +92,36 @@ class OtelTest extends WebdaApplicationTest {
   }
 
   @test
+  @timeout(30000)
+  async disabledExportersDoNotFallBackToEnvironment() {
+    const service = this.createOtel({ traceExporter: { type: "otlp", enable: false } });
+    // @ts-ignore protected
+    assert.deepStrictEqual(service.getMetricReaders(), []);
+    // @ts-ignore protected
+    assert.deepStrictEqual(service.getLogRecordProcessors(), []);
+    // @ts-ignore private configuration of the SDK
+    assert.deepStrictEqual(service.sdk["_meterProviderConfig"].readers, []);
+    // @ts-ignore private configuration of the SDK
+    assert.deepStrictEqual(service.sdk["_loggerProviderConfig"].logRecordProcessors, []);
+    await service.stop();
+  }
+
+  @test
+  @timeout(30000)
+  async instrumentationsConfiguration() {
+    const service = this.createOtel({ traceExporter: { type: "otlp", enable: false } });
+    const names = service.instrumentations!.map(i => i.instrumentationName);
+    // The Lambda server starts the root span itself, after checking the incoming context
+    assert.ok(!names.includes("@opentelemetry/instrumentation-aws-lambda"), names.join(", "));
+    const http = service.instrumentations!.find(i => i.instrumentationName === "@opentelemetry/instrumentation-http");
+    assert.ok(http);
+    // Incoming requests are traced by Webda, outgoing ones by the instrumentation
+    assert.strictEqual((http.getConfig() as any).disableIncomingRequestInstrumentation, true);
+    assert.strictEqual((http.getConfig() as any).disableOutgoingRequestInstrumentation, undefined);
+    await service.stop();
+  }
+
+  @test
   async withLogger() {
     const service = this.createOtel({
       loggerExporter: { enable: true, type: "otlp", url: "http://localhost:4317" },

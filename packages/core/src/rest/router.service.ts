@@ -22,6 +22,7 @@ import { useInstanceStorage } from "../core/instancestorage.js";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import * as WebdaError from "../errors/errors.js";
 import { inputSchemaToOpenAPI } from "./binding.js";
+import { CorsOriginFilter } from "./originfilter.js";
 
 /** Mode used to serve an alias */
 export type RouteAliasMode = "rewrite" | "redirect";
@@ -172,6 +173,16 @@ export class RouterParameters extends ServiceParameters {
    * @example { "/me": "/users/${user.id}" }
    */
   aliases?: Record<string, string | RouteAliasDefinition>;
+  /**
+   * Origins allowed to call the API from a browser (CORS), matched on the request `Origin` header
+   *
+   * Exact origins (`https://ui.example.com`, `http://localhost:5173`), `https://*.example.com` for the
+   * subdomains, or `"*"` for any origin. Other CORS filters (services with the `cors-filter` capability) can
+   * allow more origins.
+   *
+   * {@link CorsOriginFilter}
+   */
+  website?: string | string[];
 
   /**
    * Load parameters and normalize aliases
@@ -180,6 +191,9 @@ export class RouterParameters extends ServiceParameters {
    */
   override load(params: any = {}): this {
     super.load(params);
+    if (typeof this.website === "string") {
+      this.website = [this.website];
+    }
     if (this.aliases) {
       const normalized: Record<string, RouteAliasDefinition> = {};
       for (const [key, val] of Object.entries(this.aliases)) {
@@ -226,6 +240,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Request filters to apply for CORS
    */
   private _requestCORSFilters: CORSFilter[] = [];
+  /**
+   * Request headers a browser is allowed to send cross-origin (`Access-Control-Allow-Headers`)
+   */
+  private _corsAllowedHeaders: string[] = ["Content-Type", "Authorization", "X-Requested-With"];
 
   /**
    * Registration of a model
@@ -255,6 +273,9 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       for (const [key, val] of Object.entries(this.parameters.aliases)) {
         this.aliases[key] = val as RouteAliasDefinition;
       }
+    }
+    if (this.parameters.website?.length) {
+      this.registerCORSFilter(new CorsOriginFilter([].concat(this.parameters.website)));
     }
     // Discover routes + filters once every service is resolved and initialized
     useCoreEvents("Webda.Init.Services", services => {
@@ -1013,11 +1034,32 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     // Routes are relative to the prefix (API Gateway stage, custom domain base path…)
     const url = httpContext.getRelativeUri();
 
+    // CORS response headers: only for an Origin accepted by the CORS filters
+    const origin = httpContext.getUniqueHeader("origin");
+    const hasOrigin = !!origin;
+    // An opaque origin (`Origin: null`: sandboxed iframe, file://, redirect) is never allowed: echoing it would
+    // allow every opaque origin at once
+    const corsAllowed = origin !== "null" && (hasOrigin || method === "OPTIONS") && (await this.checkCORSRequest(ctx));
+    if (hasOrigin) {
+      // The response depends on the Origin whether it is accepted or not
+      this.addVary(ctx, "Origin");
+      if (corsAllowed) {
+        this.setCorsHeaders(ctx);
+      }
+    }
+
     // Handle CORS preflight
     if (method === "OPTIONS") {
       const methods = this.getRouteMethodsFromUrl(url);
-      if (methods.length > 0 && (await this.checkCORSRequest(ctx))) {
+      if (methods.length > 0 && corsAllowed) {
         ctx.setHeader("Access-Control-Allow-Methods", methods.join(","));
+        // Keep what a server already allowed (e.g. echoed Access-Control-Request-Headers)
+        const existing = String(ctx.getResponseHeaders()["Access-Control-Allow-Headers"] ?? "");
+        ctx.setHeader("Access-Control-Allow-Headers", this.mergeHeaderNames(existing, this.getCorsAllowedHeaders()));
+        // Let the browser cache the preflight (same as the Lambda server), unless already set
+        if (ctx.getResponseHeaders()["Access-Control-Max-Age"] === undefined) {
+          ctx.setHeader("Access-Control-Max-Age", "3600");
+        }
         ctx.writeHead(204);
         return;
       }
@@ -1087,6 +1129,64 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       return true;
     }
     return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "AUTH")))).some(v => v);
+  }
+
+  /**
+   * Allow additional request headers on cross-origin requests
+   *
+   * They are listed in `Access-Control-Allow-Headers` of the preflight response
+   * @param names - header names to allow (already allowed ones are ignored)
+   */
+  addCorsAllowedHeaders(...names: string[]): void {
+    for (const name of names) {
+      if (!this._corsAllowedHeaders.some(h => h.toLowerCase() === name.toLowerCase())) {
+        this._corsAllowedHeaders.push(name);
+      }
+    }
+  }
+
+  /**
+   * Get the request headers allowed on cross-origin requests
+   * @returns a copy of the allowed header names
+   */
+  getCorsAllowedHeaders(): string[] {
+    return [...this._corsAllowedHeaders];
+  }
+
+  /**
+   * Set the CORS response headers for a request whose Origin was accepted
+   *
+   * The origin is always echoed (never `*`) as credentials are allowed
+   * @param ctx - the operation context
+   */
+  protected setCorsHeaders(ctx: IWebContext): void {
+    ctx.setHeader("Access-Control-Allow-Origin", ctx.getHttpContext().getUniqueHeader("origin"));
+    ctx.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+
+  /**
+   * Merge header names case-insensitively, keeping the first spelling
+   * @param current - comma separated header names
+   * @param added - names to add
+   * @returns comma separated header names
+   */
+  mergeHeaderNames(current: string, added: string[]): string {
+    const result: string[] = [];
+    for (const name of [...current.split(","), ...added].map(n => n.trim()).filter(n => n)) {
+      if (!result.some(h => h.toLowerCase() === name.toLowerCase())) result.push(name);
+    }
+    return result.join(", ");
+  }
+
+  /**
+   * Add a value to the `Vary` response header, keeping the existing ones
+   *
+   * Note: a later `setHeader("Vary", ...)` replaces the whole value, the context has no hook to prevent it
+   * @param ctx - the operation context
+   * @param value - the header name to vary on
+   */
+  protected addVary(ctx: IWebContext, value: string): void {
+    ctx.setHeader("Vary", this.mergeHeaderNames(String(ctx.getResponseHeaders()["Vary"] ?? ""), [value]));
   }
 
   /**

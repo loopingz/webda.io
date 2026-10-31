@@ -2013,6 +2013,20 @@
             "description": "Type of the service",
             "type": "string"
           },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "Origins allowed to call the API from a browser (CORS), matched on the request `Origin` header\n\nExact origins (`https://ui.example.com`, `http://localhost:5173`), `https://*.example.com` for the\nsubdomains, or `\"*\"` for any origin. Other CORS filters (services with the `cors-filter` capability) can\nallow more origins.\n\n{@link CorsOriginFilter}"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true

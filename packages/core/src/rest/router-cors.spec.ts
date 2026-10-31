@@ -5,6 +5,7 @@ import { Router, RouterParameters } from "./router.service.js";
 import { runWithContext } from "../contexts/execution.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
+import { CorsOriginFilter } from "./originfilter.js";
 
 /**
  * CORS response headers are sent for the allowed websites only
@@ -171,5 +172,71 @@ class RouterCorsTest extends WebdaApplicationTest {
       assert.deepStrictEqual(this.corsHeaders(ctx), [], method);
       assert.strictEqual(ctx.getResponseHeaders()["Vary"], "Origin");
     }
+  }
+
+  @test
+  async corsOriginFilterMatching() {
+    const filter = new CorsOriginFilter([
+      "https://ui.example.com",
+      "http://localhost:5173",
+      "https://*.apps.example.com"
+    ]);
+    // Exact origins: scheme, host and port must all match, host case-insensitively
+    assert.ok(filter.matches("https://ui.example.com"));
+    assert.ok(filter.matches("https://UI.Example.com"));
+    assert.ok(filter.matches("https://ui.example.com:443"));
+    assert.ok(filter.matches("http://localhost:5173"));
+    assert.ok(!filter.matches("http://ui.example.com"));
+    assert.ok(!filter.matches("https://ui.example.com:8443"));
+    assert.ok(!filter.matches("http://localhost:5174"));
+    // Not a regex: the dots are literal
+    assert.ok(!filter.matches("https://uiXexample.com"));
+    assert.ok(!filter.matches("https://ui.example.com.evil.io"));
+    assert.ok(!filter.matches("https://evilui.example.com"));
+    // Wildcard: subdomains only, any depth, never the apex
+    assert.ok(filter.matches("https://a.apps.example.com"));
+    assert.ok(filter.matches("https://a.b.apps.example.com"));
+    assert.ok(!filter.matches("https://apps.example.com"));
+    assert.ok(!filter.matches("https://a.apps.example.com.evil.io"));
+    assert.ok(!filter.matches("https://aapps.example.com"));
+    assert.ok(!filter.matches("http://a.apps.example.com"));
+    // Never: null, missing or malformed origins
+    assert.ok(!filter.matches("null"));
+    assert.ok(!filter.matches(undefined));
+    assert.ok(!filter.matches(""));
+    assert.ok(!filter.matches("not an origin"));
+    assert.ok(!filter.matches("https://ui.example.com/path"));
+    // "*" accepts any well-formed origin, still never null
+    const any = new CorsOriginFilter("*");
+    assert.ok(any.matches("https://whatever.io"));
+    assert.ok(!any.matches("null"));
+    assert.ok(!any.matches("garbage"));
+    // Malformed configuration entries are ignored, not fatal
+    const broken = new CorsOriginFilter(["::::", "https://ok.example.com"]);
+    assert.ok(broken.matches("https://ok.example.com"));
+  }
+
+  @test
+  async websiteParameterRegistersOriginFilter() {
+    const router = new Router("Router2", new RouterParameters().load({ website: ["https://ui.example.com"] }));
+    this.registerService(router);
+    router.resolve();
+    await router.init();
+    router.addRouteToRouter("/test", {
+      methods: ["GET"],
+      _method: async (ctx: WebContext) => ctx.write({ ok: true })
+    } as any);
+    const run = async (origin: string) => {
+      const ctx = new WebContext(new HttpContext("api.example.com", "GET", "/test", "https", 443, { Origin: origin }));
+      ctx.newSession();
+      await runWithContext(ctx, () => router.execute(ctx));
+      return ctx.getResponseHeaders();
+    };
+    assert.strictEqual((await run("https://ui.example.com"))["Access-Control-Allow-Origin"], "https://ui.example.com");
+    assert.strictEqual((await run("https://evil.example.com"))["Access-Control-Allow-Origin"], undefined);
+    // A string is accepted too
+    assert.deepStrictEqual(new RouterParameters().load({ website: "https://a.io" }).website, ["https://a.io"]);
+    // No website: no filter registered
+    assert.strictEqual(this.router["_requestCORSFilters"].filter(f => f instanceof CorsOriginFilter).length, 0);
   }
 }

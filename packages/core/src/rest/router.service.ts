@@ -22,6 +22,7 @@ import { useInstanceStorage } from "../core/instancestorage.js";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import * as WebdaError from "../errors/errors.js";
 import { inputSchemaToOpenAPI } from "./binding.js";
+import { CorsOriginFilter } from "./originfilter.js";
 
 /** Mode used to serve an alias */
 export type RouteAliasMode = "rewrite" | "redirect";
@@ -172,6 +173,16 @@ export class RouterParameters extends ServiceParameters {
    * @example { "/me": "/users/${user.id}" }
    */
   aliases?: Record<string, string | RouteAliasDefinition>;
+  /**
+   * Origins allowed to call the API from a browser (CORS), matched on the request `Origin` header
+   *
+   * Exact origins (`https://ui.example.com`, `http://localhost:5173`), `https://*.example.com` for the
+   * subdomains, or `"*"` for any origin. Other CORS filters (services with the `cors-filter` capability) can
+   * allow more origins.
+   *
+   * {@link CorsOriginFilter}
+   */
+  website?: string | string[];
 
   /**
    * Load parameters and normalize aliases
@@ -180,6 +191,9 @@ export class RouterParameters extends ServiceParameters {
    */
   override load(params: any = {}): this {
     super.load(params);
+    if (typeof this.website === "string") {
+      this.website = [this.website];
+    }
     if (this.aliases) {
       const normalized: Record<string, RouteAliasDefinition> = {};
       for (const [key, val] of Object.entries(this.aliases)) {
@@ -259,6 +273,9 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       for (const [key, val] of Object.entries(this.parameters.aliases)) {
         this.aliases[key] = val as RouteAliasDefinition;
       }
+    }
+    if (this.parameters.website?.length) {
+      this.registerCORSFilter(new CorsOriginFilter([].concat(this.parameters.website)));
     }
     // Discover routes + filters once every service is resolved and initialized
     useCoreEvents("Webda.Init.Services", services => {

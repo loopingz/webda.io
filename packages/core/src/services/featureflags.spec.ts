@@ -1,3 +1,6 @@
+import { useRouter } from "../rest/hooks.js";
+import { vi } from "vitest";
+import * as execution from "../contexts/execution.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as WebdaError from "../errors/errors.js";
@@ -96,6 +99,101 @@ class FeatureFlagsTest extends WebdaApplicationTest {
 
   async tweakApp(app: TestApplication): Promise<void> {
     app.addModda("Webda/FlagTestService", FlagTestService);
+  }
+
+  @test
+  async providerReplacementAndMappingRegistrationAreIdempotent() {
+    const provider = { isEnabled: () => true };
+    registerFeatureFlagProvider(provider, 10);
+    registerFeatureFlagProvider(provider, 20);
+    assert.strictEqual(useInstanceStorage().featureFlagProviders.filter(p => p.provider === provider).length, 1);
+    unregisterFeatureFlagProvider(provider);
+    unregisterFeatureFlagProvider(provider);
+    registerOperationFeatureFlag("Boundary.*", "boundary");
+    registerOperationFeatureFlag("Boundary.*", "boundary");
+    assert.deepStrictEqual(getOperationFeatureFlags("Boundary.Call", { featureFlag: true } as any), [
+      "Boundary.Call",
+      "boundary"
+    ]);
+    unregisterOperationFeatureFlag("Boundary.*", "boundary");
+    unregisterOperationFeatureFlag("Boundary.*", "boundary");
+    assert.deepStrictEqual(getOperationFeatureFlags("Boundary.Call", { featureFlag: "explicit" } as any), ["explicit"]);
+    const ambient = vi.spyOn(execution, "useContext").mockReturnValue(undefined);
+    try {
+      assert.strictEqual(await isFeatureEnabled("unknown"), false);
+    } finally {
+      ambient.mockRestore();
+    }
+  }
+
+  @test
+  async reloadsMappingsAndHandlesRolloutExtremes() {
+    const service = await this.addService(FeatureFlagsService, {}, "BoundaryFlags");
+    service.parameters.flags = { none: { percentage: 0 }, everyone: { percentage: 100 } };
+    service.parameters.operations = { "Boundary.*": "everyone" };
+    service.recompile();
+    assert.strictEqual(service.isEnabled("none", {}), false);
+    assert.strictEqual(service.isEnabled("everyone", {}), true);
+    assert.deepStrictEqual(getOperationFeatureFlags("Boundary.Call"), ["everyone"]);
+    service.parameters.operations = { "Boundary.Call": "none" };
+    service.recompile();
+    assert.deepStrictEqual(getOperationFeatureFlags("Boundary.Call"), ["none"]);
+    await service.stop();
+    assert.deepStrictEqual(getOperationFeatureFlags("Boundary.Call"), []);
+    service.parameters.defaultValue = undefined;
+    service.parameters.flags = undefined;
+    service.parameters.operations = undefined;
+    service.recompile();
+    assert.strictEqual(service.isEnabled("unknown", {}), false);
+  }
+
+  @test
+  async openApiIncludesMultipleFlags() {
+    registerOperation("Flagged.Op", {
+      service: "flagService",
+      method: "testAction",
+      input: "void",
+      featureFlag: "first-flag"
+    });
+    const info: any = { methods: ["POST"], executor: "flagService", openapi: { post: { operationId: "Flagged.Op" } } };
+    registerOperation("Plain.Op", { service: "flagService", method: "testAction", input: "void" });
+    const router = useRouter();
+    router.addRouteToRouter("/plain-op", {
+      methods: ["POST"],
+      executor: "flagService",
+      openapi: { post: { operationId: "Plain.Op" } }
+    } as any);
+    router.addRouteToRouter("/manual-op", { methods: ["POST"], executor: "flagService" } as any);
+    router.addRouteToRouter("/flagged-op", info);
+    const api: any = router.exportOpenAPI();
+    assert.strictEqual(api.paths["/flagged-op"].post["x-webda-feature-flag"], "first-flag");
+    assert.strictEqual(api.paths["/plain-op"].post["x-webda-feature-flag"], undefined);
+    assert.strictEqual(api.paths["/manual-op"].post["x-webda-feature-flag"], undefined);
+    registerOperationFeatureFlag("Flagged.*", "second-flag");
+    try {
+      const multiple: any = router.exportOpenAPI();
+      assert.deepStrictEqual(multiple.paths["/flagged-op"].post["x-webda-feature-flag"], ["first-flag", "second-flag"]);
+    } finally {
+      unregisterOperationFeatureFlag("Flagged.*", "second-flag");
+    }
+  }
+
+  @test
+  async enabledFlagsStillEnforcePermissions() {
+    registerOperation("Flagged.Private", {
+      service: "flagService",
+      method: "testAction",
+      input: "void",
+      featureFlag: "test-on",
+      permission: "userId = 'alice'"
+    });
+    const denied = new TestOpContext();
+    await assert.rejects(() => callOperation(denied, "Flagged.Private"), WebdaError.Forbidden);
+    const allowed = new TestOpContext();
+    allowed.setUserId("alice");
+    allowed.newSession().login("alice", "alice");
+    await callOperation(allowed, "Flagged.Private");
+    assert.deepStrictEqual(JSON.parse(allowed.getOutput()), { success: true });
   }
 
   @test

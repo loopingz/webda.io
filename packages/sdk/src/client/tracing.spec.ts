@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CallContext, Transport } from "./types.js";
 import { WebdaClient } from "./client.js";
 import { FakeServer, MODELS, OPERATIONS } from "./fixture.js";
+import { GraphQLTransport } from "./graphql/index.js";
 import { ModelClient } from "./model-client.js";
 import { SdkModel } from "./model.js";
 import { traceHeaders } from "./tracing.js";
@@ -173,9 +174,11 @@ describe("web tracing", () => {
     for (const ctx of cases) {
       await client.enableWebTracing("rec-1", { activeSpanContext: () => ctx });
       await client.call("Task.Get", { uuid: "t1" } as any);
-      const tp = last().traceparent;
-      expect(tp).toMatch(TRACEPARENT);
-      expect(tp).not.toContain(ctx.traceId);
+      const [, traceId, spanId] = last().traceparent.split("-");
+      expect(last().traceparent).toMatch(TRACEPARENT);
+      expect(traceId).not.toBe(ctx.traceId);
+      expect(traceId).not.toBe(ctx.traceId.toLowerCase());
+      expect(spanId).not.toBe(ctx.spanId);
     }
   });
 
@@ -211,6 +214,40 @@ describe("web tracing", () => {
         expect(h?.traceparent).toMatch(TRACEPARENT);
       }
     }
+  });
+
+  it("reaches the real GraphQL transport", async () => {
+    const requests: any[] = [];
+    const fetch = (async (_url: string, init: any) => {
+      requests.push(init);
+      return new Response(JSON.stringify({ data: { Task: { uuid: "t1" } } }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    }) as unknown as typeof globalThis.fetch;
+    const op = {
+      id: "Task.Get",
+      input: "uuidRequest",
+      output: "App/Task",
+      streaming: "none",
+      kind: "get",
+      graphql: { kind: "query", name: "Task", args: { uuid: "String" }, selection: { uuid: 1 }, keys: ["uuid"] }
+    } as any;
+    const enable: Transport = {
+      name: "enable",
+      supports: o => o.id === "Otel.EnableWebTracing",
+      call: async () => ({ token: "tok-1", sessionId: "rec-1", expiresAt: Date.now() + 9999 })
+    };
+    const client = new WebdaClient({
+      transports: [enable, new GraphQLTransport({ url: "http://api/graphql", fetch })],
+      operations: { ...TRACING_OPERATIONS, "Task.Get": op },
+      models: MODELS
+    });
+    await client.enableWebTracing("rec-1");
+    await client.call("Task.Get", { uuid: "t1" } as any);
+    expect(requests[0].headers["X-Webda-Trace"]).toBe("tok-1");
+    expect(requests[0].headers.baggage).toBe("session.id=rec-1");
+    expect(requests[0].headers.traceparent).toMatch(TRACEPARENT);
   });
 
   it("traceHeaders is empty without state or when expired", () => {

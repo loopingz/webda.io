@@ -1546,6 +1546,33 @@ class HttpServerTest extends WebdaApplicationTest {
   }
 
   @test
+  async noTracerNoOverhead() {
+    const server = this.replaceServer({});
+    registerRequestTracer(undefined);
+    let resolved = 0;
+    server.resolveClientIp = () => {
+      resolved++;
+      return "127.0.0.1";
+    };
+    let handled = 0;
+    (server as any).handleWebRequest = async () => {
+      handled++;
+    };
+    await server.handleRequest(this.fakeRequest("127.0.0.1", { "x-forwarded-for": "1.2.3.4" }), {} as any);
+    assert.strictEqual(handled, 1);
+    // No tracer: the traced request (headers copy, client address) is not built
+    assert.strictEqual(resolved, 0);
+    registerRequestTracer({ trace: (_request, fn) => fn({ setStatus: () => {} }) });
+    try {
+      await server.handleRequest(this.fakeRequest("127.0.0.1"), { statusCode: 200 } as any);
+      assert.strictEqual(handled, 2);
+      assert.strictEqual(resolved, 1);
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test
   async tracerSkipsInterceptedRequests() {
     const server = this.replaceServer({});
     server.registerRequestInterceptor(() => true);

@@ -14,7 +14,7 @@ import type { Http2Server } from "node:http2";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { AddressInfo, Socket } from "node:net";
 import { createSubnetChecker } from "./subnetchecker.js";
-import { traceRequest } from "./requesttracer.js";
+import { traceRequest, useRequestTracer } from "./requesttracer.js";
 import { useLog } from "@webda/workout";
 import { CancelablePromise, State } from "@webda/utils";
 import type { JSONed } from "@webda/models";
@@ -336,6 +336,11 @@ export class HttpServer<
     }
     this.inflight++;
     try {
+      if (!useRequestTracer()) {
+        // No tracer: no traced request to build
+        await this.handleWebRequest(req, res);
+        return;
+      }
       const headers = Object.fromEntries(Object.entries(req.headers).filter(([k]) => !k.startsWith(":")));
       const defaultScheme = this.isHttp2 ? "https" : "http";
       const forwarded = headers["x-forwarded-proto"];

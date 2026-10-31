@@ -105,4 +105,23 @@ class RequestTracerTest {
     assert.ok(check("192.168.1.1"));
     assert.ok(!check("192.168.1.2"));
   }
+
+  @test
+  subnetCheckerBareIpv6() {
+    // A bare IPv6 address is a /128: only itself
+    const check = createSubnetChecker(["fd00::5"]);
+    assert.ok(check("fd00::5"));
+    assert.ok(!check("fd00::abcd"));
+    assert.ok(!check("fd00::6"));
+  }
+
+  @test
+  subnetCheckerIpv4Mapped() {
+    // Node sockets report IPv4 clients of a dual-stack server as IPv4-mapped IPv6 addresses
+    const check = createSubnetChecker(["10.0.0.0/8", "192.168.1.1"]);
+    assert.ok(check("::ffff:10.0.0.1"));
+    assert.ok(check("::ffff:192.168.1.1"));
+    assert.ok(!check("::ffff:192.168.1.2"));
+    assert.ok(!check("::ffff:11.0.0.1"));
+  }
 }

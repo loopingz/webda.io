@@ -1018,8 +1018,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     const url = httpContext.getRelativeUri();
 
     // CORS response headers: only for an Origin accepted by the CORS filters
-    const hasOrigin = !!httpContext.getUniqueHeader("origin");
-    const corsAllowed = (hasOrigin || method === "OPTIONS") && (await this.checkCORSRequest(ctx));
+    const origin = httpContext.getUniqueHeader("origin");
+    const hasOrigin = !!origin;
+    // An opaque origin (`Origin: null`: sandboxed iframe, file://, redirect) is never allowed: echoing it would
+    // allow every opaque origin at once
+    const corsAllowed = origin !== "null" && (hasOrigin || method === "OPTIONS") && (await this.checkCORSRequest(ctx));
     if (hasOrigin) {
       // The response depends on the Origin whether it is accepted or not
       this.addVary(ctx, "Origin");
@@ -1036,6 +1039,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         // Keep what a server already allowed (e.g. echoed Access-Control-Request-Headers)
         const existing = String(ctx.getResponseHeaders()["Access-Control-Allow-Headers"] ?? "");
         ctx.setHeader("Access-Control-Allow-Headers", this.mergeHeaderNames(existing, this.getCorsAllowedHeaders()));
+        // Let the browser cache the preflight (same as the Lambda server), unless already set
+        if (ctx.getResponseHeaders()["Access-Control-Max-Age"] === undefined) {
+          ctx.setHeader("Access-Control-Max-Age", "3600");
+        }
         ctx.writeHead(204);
         return;
       }

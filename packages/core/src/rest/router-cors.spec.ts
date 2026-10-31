@@ -136,4 +136,40 @@ class RouterCorsTest extends WebdaApplicationTest {
     await runWithContext(again, () => this.router.execute(again));
     assert.strictEqual(again.getResponseHeaders()["Vary"], "origin");
   }
+
+  @test
+  async preflightMaxAge() {
+    this.allow(["https://ui.example.com"]);
+    const ctx = await this.request("OPTIONS", { Origin: "https://ui.example.com" });
+    assert.strictEqual(ctx.getResponseHeaders()["Access-Control-Max-Age"], "3600");
+    // An existing value is kept
+    const custom = new WebContext(
+      new HttpContext("api.example.com", "OPTIONS", "/test", "https", 443, { Origin: "https://ui.example.com" })
+    );
+    custom.newSession();
+    custom.setHeader("Access-Control-Max-Age", "60");
+    await runWithContext(custom, () => this.router.execute(custom));
+    assert.strictEqual(custom.getResponseHeaders()["Access-Control-Max-Age"], "60");
+    // Not on a refused preflight nor on a simple request
+    assert.strictEqual(
+      (await this.request("OPTIONS", { Origin: "https://evil.example.com" })).getResponseHeaders()[
+        "Access-Control-Max-Age"
+      ],
+      undefined
+    );
+    assert.strictEqual(
+      (await this.request("GET", { Origin: "https://ui.example.com" })).getResponseHeaders()["Access-Control-Max-Age"],
+      undefined
+    );
+  }
+
+  @test
+  async nullOriginNeverEchoed() {
+    this.allow(["*", "null"]);
+    for (const method of ["GET", "OPTIONS"] as HttpMethodType[]) {
+      const ctx = await this.request(method, { Origin: "null" });
+      assert.deepStrictEqual(this.corsHeaders(ctx), [], method);
+      assert.strictEqual(ctx.getResponseHeaders()["Vary"], "Origin");
+    }
+  }
 }

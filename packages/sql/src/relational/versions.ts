@@ -12,10 +12,10 @@ export const SCHEMA_VERSION_MODEL = "Webda/SchemaVersion";
 /**
  * @param data - a version as the repository returns it (an instance of the class the application registered, which
  *   may differ from this module's under a test alias)
- * @returns the version
+ * @returns the version, as an instance of this module's class
  */
 function asVersion(data: unknown): SchemaVersion {
-  return data instanceof SchemaVersion ? data : new SchemaVersion(data as Partial<SchemaVersion>);
+  return new SchemaVersion(data as Partial<SchemaVersion>);
 }
 
 /**
@@ -98,7 +98,7 @@ export class SchemaRegistryError extends WebdaError.CodeError {
   ) {
     super(
       "SCHEMA_REGISTRY_UNAVAILABLE",
-      `Cannot read the schema versions of ${store} from the Registry: ${(cause as Error)?.message ?? cause}`
+      `Cannot read the schema versions of ${store} from the Registry: ${cause instanceof Error ? cause.message : String(cause)}`
     );
   }
 }

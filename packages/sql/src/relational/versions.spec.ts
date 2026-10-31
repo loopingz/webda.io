@@ -5,7 +5,16 @@ import type { RelationalDialect, SchemaStep } from "./dialect.js";
 import { RelationalSchemaManager } from "./manager.js";
 import { SchemaVersion } from "./schemaversion.model.js";
 import { SchemaDriftError } from "./sync.js";
-import { SchemaIncompatibleError, SchemaRegistryError, describeChange, recipeFor } from "./versions.js";
+import {
+  SchemaIncompatibleError,
+  SchemaRegistryError,
+  SchemaVersionRegistry,
+  describeChange,
+  recipeFor
+} from "./versions.js";
+import { useApplication } from "@webda/core";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
 
 const post: SchemaModelMetadata = {
   Identifier: "App/Post",
@@ -138,6 +147,21 @@ describe("RelationalSchemaManager with the version hooks", () => {
     expect(
       logs.some(l => l.includes("create index idx_app_post_author failed online and is left out: duplicate key"))
     ).toBe(true);
+    // A failing validation has nothing to clean up
+    const invalid = client();
+    invalid.query = async (q: string) => {
+      invalid.statements.push(q);
+      if (q.startsWith("VALIDATE")) {
+        throw new Error("still invalid");
+      }
+      return { rows: [], rowCount: 0 };
+    };
+    logs.length = 0;
+    await m.sync(invalid, "alter", { live: [] });
+    expect(
+      logs.some(l => l.includes("add foreign key fk_app_post_author failed online and is left out: still invalid"))
+    ).toBe(true);
+    expect(invalid.statements.filter(q => q.startsWith("DROP"))).toEqual([]);
   });
 
   it("runs online steps inside the transaction when the dialect has no online rendering", async () => {
@@ -259,6 +283,27 @@ describe("RelationalSchemaManager with the version hooks", () => {
     await expect(m.backfill(client(), "app_post", "nope", "author")).rejects.toThrow("Column app_post.nope");
   });
 });
+
+@suite
+class SchemaVersionRegistryAppVersion extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return { version: 2, parameters: {}, services: {} } as any;
+  }
+
+  @test
+  appVersionFallsBackToThePackageThenZero() {
+    expect(SchemaVersionRegistry.appVersion("9.9.9")).toBe("9.9.9");
+    const app = useApplication();
+    expect(SchemaVersionRegistry.appVersion()).toBe(app.getPackageDescription().version);
+    const original = app.getPackageDescription;
+    app.getPackageDescription = () => ({}) as any;
+    try {
+      expect(SchemaVersionRegistry.appVersion()).toBe("0.0.0");
+    } finally {
+      app.getPackageDescription = original;
+    }
+  }
+}
 
 describe("SchemaIncompatibleError and SchemaVersion", () => {
   it("lists the changes with their recipe", () => {

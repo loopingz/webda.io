@@ -1,5 +1,5 @@
 import { ServiceParameters, WebdaError, useApplication, useCore, useModel, useRepository } from "@webda/core";
-import type { Application } from "@webda/core";
+import type { Application, Store } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { SchemaIncompatibleError, SchemaRegistryError, SchemaVersion, describeStep } from "@webda/sql";
 import {
@@ -355,6 +355,12 @@ export class PostgresSchemaVersionsTest extends WebdaApplicationTest {
     this.output = [];
     assert.strictEqual(await store.schemaCheck(), 0, "a version alone matches itself");
     assert.ok(this.output.some(line => line === "-- no change"));
+    // A command initializes the Registry when it is not running (resolved phase)
+    const registry = useCore().getService<Store>("Registry");
+    await registry.stop();
+    assert.notStrictEqual(registry.getState(), "running");
+    assert.strictEqual(await store.schemaCheck(), 0);
+    assert.strictEqual(registry.getState(), "running");
   }
 
   @test

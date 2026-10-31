@@ -173,6 +173,10 @@ export class RelationalStoreSupport {
     readonly dialect: RelationalDialect
   ) {
     const parameters = host.getParameters();
+    // The registry defaults, for a store whose parameters did not go through loadRelationalParameters
+    parameters.allowIncompatible ??= [];
+    parameters.versionHeartbeat ??= 60;
+    parameters.versionTtl ??= 600;
     const log = (level: "WARN" | "INFO" | "DEBUG", message: string) => host.log(level, message);
     this.manager = new RelationalSchemaManager({
       name: host.getName(),
@@ -188,7 +192,7 @@ export class RelationalStoreSupport {
     });
     this.versions = new SchemaVersionRegistry({
       store: host.getName(),
-      ttl: (parameters.versionTtl ?? 600) * 1000,
+      ttl: parameters.versionTtl! * 1000,
       log
     });
   }
@@ -255,7 +259,7 @@ export class RelationalStoreSupport {
       "INFO",
       `${this.host.getName()}: version ${this.version.appVersion} (${this.version.planHash.slice(0, 12)}) registered`
     );
-    const seconds = this.host.getParameters().versionHeartbeat ?? 60;
+    const seconds = this.host.getParameters().versionHeartbeat!;
     this.stop();
     if (seconds > 0) {
       this.heartbeat = setInterval(() => {
@@ -463,7 +467,7 @@ export class RelationalStoreSupport {
       console.log(`-- no version matches ${against}`);
       return 2;
     }
-    const allowed = this.host.getParameters().allowIncompatible ?? [];
+    const allowed = this.host.getParameters().allowIncompatible!;
     let changes = this.versions.compare(plan, versions, allowed);
     if (forceIncompatible) {
       changes = changes.map(c => (c.category === "BLOCK" ? { ...c, category: "WARN", forced: true } : c));

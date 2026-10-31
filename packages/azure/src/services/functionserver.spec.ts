@@ -121,7 +121,10 @@ class FunctionServerTest extends AzureTest {
       expect((await service.handleRequest(request, {} as any)).status).toBe(expected);
     }
     runtime.cors.mockResolvedValueOnce(false);
-    expect((await service.handleRequest(request, {} as any)).status).toBe(401);
+    const refused = await service.handleRequest(request, {} as any);
+    expect(refused.status).toBe(401);
+    expect(refused.headers).toMatchObject({ Vary: "Origin" });
+    expect(Object.keys(refused.headers).filter(h => h.toLowerCase().startsWith("access-control"))).toEqual([]);
     await service.handleEvent("servicebus", { event: true }, {} as any);
     expect(runtime.event).toHaveBeenCalledWith("servicebus", { event: true }, {});
     runtime.event.mockResolvedValueOnce(false);

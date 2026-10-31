@@ -221,6 +221,20 @@ class LambdaHandlerTest extends WebdaApplicationTest {
   }
 
   @test
+  async preflightDisallowedOriginHasNoCors() {
+    this.evt.headers.Origin = "https://evil.webda.io";
+    this.evt.httpMethod = "OPTIONS";
+    this.evt.headers["Access-Control-Request-Headers"] = "X-Api-Key";
+    const res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 401);
+    assert.deepStrictEqual(
+      Object.keys(res.headers).filter(h => h.toLowerCase().startsWith("access-control")),
+      []
+    );
+    assert.strictEqual(res.headers["Vary"], "Origin");
+  }
+
+  @test
   async handleRequestIdHeader() {
     this.ensureGoodCSRF();
     this.handler.getParameters().lambdaRequestHeader = "x-webda-request-id";

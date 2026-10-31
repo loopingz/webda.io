@@ -264,6 +264,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
             // Prevent CSRF
             this.log("INFO", "CSRF denied from", origin);
             ctx.statusCode = 401;
+            ctx.setHeader("Vary", "Origin");
             return;
           }
           // Access-Control-Allow-Origin/-Credentials are set by the Router
@@ -272,7 +273,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
           // Add the HSTS header
           ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
         }
-        if (method === "OPTIONS") {
+        if (method === "OPTIONS" && origin) {
           // Might want to customize this one
           ctx.setHeader("Access-Control-Max-Age", 3600);
           // Echo the requested headers and add the Router ones (Router.getCorsAllowedHeaders)

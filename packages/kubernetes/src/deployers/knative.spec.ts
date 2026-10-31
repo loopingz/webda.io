@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
-import { WebdaError } from "@webda/core";
+import { useApplication, WebdaError } from "@webda/core";
 import * as k8s from "@kubernetes/client-node";
 import * as assert from "node:assert";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -258,8 +258,8 @@ class KnativeDeployerTest extends WebdaApplicationTest {
     assert.strictEqual(spec.containers[0].envFrom, undefined);
     assert.strictEqual(spec.containers[0].readinessProbe, undefined);
     assert.deepStrictEqual(spec.containers[0].startupProbe, { httpGet: { path: "/healthz" } });
-    // The project is the namespace, unlimited concurrency is the Cloud Run default
-    const project = buildKnativeService(params({ platform: "cloudrun", namespace: "my-project" }));
+    // The project is the namespace, unlimited concurrency is the Cloud Run default, warnings are optional
+    const project = buildKnativeService(params({ platform: "cloudrun", namespace: "my-project", target: 10 }));
     assert.strictEqual(project.metadata.namespace, "my-project");
     assert.strictEqual(project.spec.template.spec.containerConcurrency, undefined);
     assert.strictEqual(project.metadata.annotations, undefined);
@@ -306,6 +306,15 @@ class KnativeDeployerTest extends WebdaApplicationTest {
     await relative.deployer.manifest("knative.yaml");
     assert.ok(existsSync(join(process.cwd(), "knative.yaml")));
     rmSync(join(process.cwd(), "knative.yaml"));
+    // Without an application path, the current folder is the base
+    const app = useApplication();
+    const applicationPath = app.applicationPath;
+    app.applicationPath = undefined;
+    try {
+      assert.strictEqual((relative.deployer.getManifest() as any).fake, true);
+    } finally {
+      app.applicationPath = applicationPath;
+    }
   }
 
   @test
@@ -376,6 +385,8 @@ class KnativeDeployerTest extends WebdaApplicationTest {
       (err: WebdaError.CodeError) =>
         err.getCode() === "KNATIVE_NOT_READY" && /RevisionFailed: image not found/.test(err.message)
     );
+    client.read.mockResolvedValueOnce(cluster({ status: "False" }));
+    await assert.rejects(() => deployer.waitReady(reference), /is not ready: Unknown: $/);
     // Timeout while unknown
     client.read.mockResolvedValueOnce(cluster({ status: "Unknown", reason: "Deploying" }));
     await assert.rejects(
@@ -383,6 +394,8 @@ class KnativeDeployerTest extends WebdaApplicationTest {
       (err: WebdaError.CodeError) =>
         err.getCode() === "KNATIVE_TIMEOUT" && /not ready after 0s: Deploying: $/.test(err.message)
     );
+    client.read.mockResolvedValueOnce(cluster({ status: "Unknown", message: "scheduling" }));
+    await assert.rejects(() => deployer.waitReady(reference), /not ready after 0s: Unknown: scheduling$/);
     // Timeout before the controller reports a status
     client.read.mockRejectedValueOnce(new k8s.ApiException(404, "not found", {}, {}));
     await assert.rejects(() => deployer.waitReady(reference), /not ready after 0s$/);
@@ -409,7 +422,8 @@ class KnativeDeployerTest extends WebdaApplicationTest {
           latestReadyRevisionName: "app-1",
           traffic: [
             { revisionName: "app-1", percent: 90 },
-            { latestRevision: true, percent: 10, tag: "next", url: "https://next-app.example.com" }
+            { latestRevision: true, percent: 10, tag: "next", url: "https://next-app.example.com" },
+            { revisionName: "app-0" }
           ]
         }
       )
@@ -423,12 +437,17 @@ class KnativeDeployerTest extends WebdaApplicationTest {
       "Latest ready revision: app-1",
       "Traffic:",
       "   90%  app-1",
-      "   10%  latest (next)  https://next-app.example.com"
+      "   10%  latest (next)  https://next-app.example.com",
+      "    0%  app-0"
     ]);
     outputs.lines = [];
     client.read.mockResolvedValueOnce(cluster());
     await deployer.status();
     assert.ok(outputs.lines[0].includes("URL: -\nReady: Unknown\n"));
+    outputs.lines = [];
+    client.read.mockResolvedValueOnce(cluster({ status: "True", reason: "Ready" }));
+    await deployer.status();
+    assert.ok(outputs.lines[0].includes("\nReady: True (Ready: )\n"));
     assert.strictEqual(getReadyCondition(cluster()), undefined);
   }
 

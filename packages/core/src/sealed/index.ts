@@ -9,7 +9,7 @@
  *   AES-256-GCM (keyring key) over JSON({ keys: { kid: pkcs8 }, active }); `kid` is the active key.
  *   AAD = "webda-keyring|" + userId + "|" + kid + "|" + fingerprint(active public JWK)   (keyringAad)
  *   fingerprint = b64u(SHA-256(raw uncompressed point)); kid = first 16 characters of it.
- * Escrow        EscrowBlob { v, kind, kdf, kdfParams, salt, iv, ct }
+ * Escrow        EscrowBlob { v, kind, kid, kdf, kdfParams, salt, iv, ct }   (`kid`: active key at creation, not in the AAD)
  *   KEK = Argon2id { m, t, p } or PBKDF2-SHA-256 { iterations } (selected by `kdf`) from the secret and `salt`;
  *   ct = AES-256-GCM(KEK) over the raw 32-byte keyring key, AAD = "webda-escrow|" + userId + "|" + kind (escrowAad).
  *   Platform KEKs use AES-KW (wrapKeyringKeyKw), no AAD.

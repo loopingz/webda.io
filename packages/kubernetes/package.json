@@ -28,7 +28,8 @@
     "@webda/async": "workspace:*",
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
-    "@webda/utils": "workspace:*"
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*"
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",

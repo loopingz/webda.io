@@ -671,8 +671,9 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
    *
    * A user with end-to-end encryption keys (`User.keys`) and a password escrow must send the escrow of the new
    * password with the change (412 otherwise): both are stored together, so the escrow always opens with the login
-   * password. The client builds it with `KeyVault.createPasswordEscrow` of `@webda/sealed-client`. A user whose keys
-   * have no password escrow may send one to create it.
+   * password. The client builds it with `KeyVault.createPasswordEscrow` of `@webda/sealed-client`; an escrow made for
+   * another key than the active one is refused (412) before the password changes. A user whose keys have no password
+   * escrow may send one to create it.
    * @param current - current password
    * @param next - new password
    * @param escrow - password escrow of the keyring key under the new password

@@ -1,10 +1,16 @@
 import { columnName, constraintName, identifier, mapScalar, typeToString, widestType } from "./columns.js";
 import type { DeclaredRelation, JSONSchemaLike, SchemaModelMetadata } from "./metadata.js";
-import { declaredRelations, referenceIdentifier, shortName } from "./metadata.js";
+import {
+  declaredRelations,
+  foreignKeyAction,
+  junctionForeignKeyAction,
+  referenceIdentifier,
+  shortName
+} from "./metadata.js";
 import type {
   ColumnPlan,
   ColumnType,
-  DeletePolicy,
+  ForeignKeyAction,
   ForeignKeyPlan,
   IndexPlan,
   ModelPlan,
@@ -649,7 +655,7 @@ class PlanBuilder {
       return;
     }
     const target = this.quietTarget(relation);
-    const onDelete: DeletePolicy = relation.kind === "parent" ? "CASCADE" : "NO ACTION";
+    const onDelete = foreignKeyAction(relation.onDelete);
     const foreignKey = this.constraintTo(draft.name, names, meta, relation, target, onDelete);
     const separator = columns.length > 1 ? this.separatorOf(target) : undefined;
     this.addRelation(
@@ -705,7 +711,7 @@ class PlanBuilder {
     meta: SchemaModelMetadata,
     relation: DeclaredRelation,
     target: SchemaModelMetadata | undefined,
-    onDelete: DeletePolicy
+    onDelete: ForeignKeyAction
   ): ForeignKeyPlan | undefined {
     if (!target) {
       return undefined;
@@ -748,7 +754,7 @@ class PlanBuilder {
     columns: string[],
     references: string,
     referenced: string[],
-    onDelete: DeletePolicy
+    onDelete: ForeignKeyAction
   ): ForeignKeyPlan {
     const name = constraintName("fk", table, columns);
     const foreignKey = this.foreignKeys.get(name) ?? {
@@ -872,12 +878,12 @@ class PlanBuilder {
       meta,
       relation,
       target,
-      "NO ACTION"
+      junctionForeignKeyAction(relation.onDelete)
     );
     if (targetForeignKey) {
       const recorded = this.relationKeys.get(`${draft.name}\0${relation.attribute}`)!;
       recorded.foreignKey = targetForeignKey.name;
-      recorded.onDelete = "NO ACTION";
+      recorded.onDelete = targetForeignKey.onDelete;
     }
     // Reverse lookups: the target columns do not start the primary key
     this.addIndex(

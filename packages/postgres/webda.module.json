@@ -2242,6 +2242,19 @@
             ],
             "type": "string"
           },
+          "allowIncompatible": {
+            "default": [],
+            "description": "Elements whose blocking changes against a live version are accepted (`<table>`, `<table>.<column>`, `<model>`\nor `<model>.<attribute>`): the `BLOCK` becomes a `WARN` and the version records it in `forced`",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "appVersion": {
+            "default": "the version of package.json",
+            "description": "Version of the application recorded in the `Webda/SchemaVersion` registry",
+            "type": "string"
+          },
           "autoCreateTable": {
             "default": true,
             "description": "Auto create tables if they do not exist",
@@ -2401,6 +2414,16 @@
             "description": "Use a shared pool of connections rather than a single client: required by `transaction: \"operation\"`",
             "type": "boolean"
           },
+          "versionHeartbeat": {
+            "default": 60,
+            "description": "Seconds between two heartbeats of the version in the registry, 0 for none",
+            "type": "number"
+          },
+          "versionTtl": {
+            "default": 600,
+            "description": "Seconds after its last heartbeat a version still counts as live",
+            "type": "number"
+          },
           "viewPrefix": {
             "default": "",
             "description": "View name prefix",
@@ -2457,7 +2480,7 @@
           },
           "phase": "initialized"
         },
-        "postgres schema": {
+        "postgres schema show": {
           "description": "Print the relational schema plan, its DDL or the diff with the database",
           "method": "schema",
           "args": {
@@ -2475,6 +2498,78 @@
               "type": "boolean",
               "default": false,
               "description": "Print the plan as JSON"
+            }
+          },
+          "phase": "resolved"
+        },
+        "postgres schema check": {
+          "description": "Compare the schema plan with the live application versions",
+          "method": "schemaCheck",
+          "args": {
+            "against": {
+              "type": "string",
+              "description": "Compare with one version (identifier, application version or plan hash)"
+            },
+            "forceIncompatible": {
+              "type": "boolean",
+              "default": false,
+              "description": "Downgrade every blocking change to a warning"
+            },
+            "json": {
+              "type": "boolean",
+              "default": false,
+              "description": "Print the changes as JSON"
+            }
+          },
+          "phase": "resolved"
+        },
+        "postgres schema contract": {
+          "description": "Drop what no live version uses, set NOT NULL where every live version requires it",
+          "method": "schemaContract",
+          "args": {
+            "dryRun": {
+              "type": "boolean",
+              "default": false,
+              "description": "Print the statements without running them"
+            }
+          },
+          "phase": "resolved"
+        },
+        "postgres schema retire": {
+          "description": "Retire an application version from the schema registry",
+          "method": "schemaRetire",
+          "args": {
+            "version": {
+              "type": "string",
+              "required": true,
+              "description": "Identifier, application version or plan hash of the version"
+            }
+          },
+          "phase": "resolved"
+        },
+        "postgres schema backfill": {
+          "description": "Copy a column into another one, by batches",
+          "method": "schemaBackfill",
+          "args": {
+            "table": {
+              "type": "string",
+              "required": true,
+              "description": "The table"
+            },
+            "from": {
+              "type": "string",
+              "required": true,
+              "description": "The source column"
+            },
+            "to": {
+              "type": "string",
+              "required": true,
+              "description": "The target column"
+            },
+            "batch": {
+              "type": "number",
+              "default": 1000,
+              "description": "Rows per statement"
             }
           },
           "phase": "resolved"

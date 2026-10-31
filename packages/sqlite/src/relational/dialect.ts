@@ -1,4 +1,4 @@
-import type { LiveSchema, RelationalDialect, SchemaStep, SQLClient, UniqueViolation } from "@webda/sql";
+import type { ContractStep, LiveSchema, RelationalDialect, SchemaStep, SQLClient, UniqueViolation } from "@webda/sql";
 import { sqlString } from "@webda/sql";
 import { constraintName } from "@webda/sql-schema";
 import type { ColumnPlan, ColumnType, ForeignKeyPlan, TablePlan } from "@webda/sql-schema";
@@ -96,6 +96,22 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
       }
       case "addForeignKey":
         // Never planned for this dialect (inlineForeignKeys): nothing to run
+        return [];
+    }
+  }
+
+  /**
+   * SQLite drops columns and tables; it cannot set `NOT NULL` on an existing column (reported, not applied) and has
+   * no constraint validation (foreign keys are declared inline)
+   * @override
+   */
+  renderContractStep(step: ContractStep): string[] {
+    switch (step.kind) {
+      case "dropColumn":
+        return [`ALTER TABLE ${this.quote(step.table)} DROP COLUMN ${this.quote(step.column)}`];
+      case "dropTable":
+        return [`DROP TABLE IF EXISTS ${this.quote(step.table)}`];
+      default:
         return [];
     }
   }

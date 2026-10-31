@@ -3,6 +3,438 @@
   "beans": {},
   "deployers": {},
   "moddas": {
+    "Webda/KnativeDeployer": {
+      "Import": "lib/deployers/knative.service:KnativeDeployer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Cluster": {
+            "additionalProperties": false,
+            "properties": {
+              "caFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Context": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "K8sConfiguration": {
+            "additionalProperties": false,
+            "description": "Kubernetes configuration as found in a kubeconfig file",
+            "properties": {
+              "clusters": {
+                "items": {
+                  "$ref": "#/definitions/Cluster"
+                },
+                "type": "array"
+              },
+              "contexts": {
+                "items": {
+                  "$ref": "#/definitions/Context"
+                },
+                "type": "array"
+              },
+              "currentContext": {
+                "type": "string"
+              },
+              "users": {
+                "items": {
+                  "$ref": "#/definitions/User"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "clusters",
+              "contexts",
+              "currentContext",
+              "users"
+            ],
+            "type": "object"
+          },
+          "KnativeEnvFromSource": {
+            "additionalProperties": false,
+            "description": "Environment variables loaded from a Secret or a ConfigMap",
+            "properties": {
+              "configMapRef": {
+                "$ref": "#/definitions/envFrom%5B%5D%24configMapRef%232",
+                "description": "ConfigMap to load"
+              },
+              "prefix": {
+                "description": "Prefix added to the keys",
+                "type": "string"
+              },
+              "secretRef": {
+                "$ref": "#/definitions/envFrom%5B%5D%24secretRef%232",
+                "description": "Secret to load"
+              }
+            },
+            "type": "object"
+          },
+          "KnativeResources": {
+            "additionalProperties": false,
+            "description": "Compute resources of the container",
+            "properties": {
+              "limits": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+                "description": "Maximum resources, like `{ \"cpu\": \"1\", \"memory\": \"512Mi\" }`"
+              },
+              "requests": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+                "description": "Requested resources, like `{ \"cpu\": \"100m\", \"memory\": \"128Mi\" }`"
+              }
+            },
+            "type": "object"
+          },
+          "KnativeTrafficTarget": {
+            "additionalProperties": false,
+            "description": "A traffic target of a Knative Service",
+            "properties": {
+              "latestRevision": {
+                "default": false,
+                "description": "Route to the latest ready revision",
+                "type": "boolean"
+              },
+              "percent": {
+                "description": "Percentage of the traffic, the sum of the targets must be 100",
+                "type": "number"
+              },
+              "revisionName": {
+                "description": "Name of the revision receiving the traffic, exclusive with `latestRevision`",
+                "type": "string"
+              },
+              "tag": {
+                "description": "Tag giving the target its own URL (`<tag>-<name>.<namespace>.<domain>`)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "percent"
+            ],
+            "type": "object"
+          },
+          "KnativeTrigger": {
+            "additionalProperties": false,
+            "description": "A Knative Eventing Trigger delivering the events of a Broker to the application",
+            "properties": {
+              "broker": {
+                "default": "default",
+                "description": "Broker the Trigger subscribes to",
+                "type": "string"
+              },
+              "filter": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+                "description": "Attributes the events must have, exact match: `{ \"type\": \"com.acme.order.created\" }`\n\nEvery event of the Broker is delivered when unset."
+              },
+              "filters": {
+                "description": "The `spec.filters` of the Trigger (`exact`, `prefix`, `suffix`, `all`, `any`, `not`, `cesql`), passed through\n\nNeeds the `new-trigger-filters` feature of Knative Eventing.",
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20unknown%3E"
+                },
+                "type": "array"
+              },
+              "name": {
+                "description": "Name of the Trigger, `<service>-<index>` by default, sanitized to a DNS-1123 label",
+                "type": "string"
+              },
+              "path": {
+                "default": "/cloudevents",
+                "description": "Path of the `Webda/CloudEventsReceiver` route the events are delivered to",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Record<string, any>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, string>": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, unknown>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "User": {
+            "additionalProperties": false,
+            "properties": {
+              "certFile": {
+                "type": "string"
+              },
+              "keyFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "envFrom[]$configMapRef#2": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "optional": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "envFrom[]$secretRef#2": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "optional": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the {@link KnativeDeployer}\n\nEvery string can use the deployment templates: `${package.version}`, `${git.short}`,\n`${deployment}`, `${deployer.name}`, `${env.MY_VAR}`, ...",
+        "properties": {
+          "annotations": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {},
+            "description": "Annotations of the revision template, added to the autoscaling ones"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/K8sConfiguration"
+              }
+            ],
+            "description": "Kubernetes configuration, the default kubeconfig when unset\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "users.token",
+              "users.password",
+              "users.keyData",
+              "users.authProvider"
+            ]
+          },
+          "containerConcurrency": {
+            "default": 0,
+            "description": "Hard limit of concurrent requests per replica, 0 for unlimited\n\nNode handles concurrency: do not set it to 1.",
+            "type": "number"
+          },
+          "containerDeployer": {
+            "description": "Name of a `Webda/ContainerDeployer` unit of the same deployment\n\nWhen set, `deploy` pushes the image with it first and deploys the pushed digest: the revision\nis pinned to the exact image.",
+            "type": "string"
+          },
+          "context": {
+            "description": "Context of the kubeconfig to use",
+            "type": "string"
+          },
+          "env": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {},
+            "description": "Environment variables of the container\n\n`WEBDA_HEALTH_PATH` is added with `healthPath`, so the application answers the readiness probe."
+          },
+          "envFrom": {
+            "default": [],
+            "description": "Secrets and ConfigMaps loaded as environment variables",
+            "items": {
+              "$ref": "#/definitions/KnativeEnvFromSource"
+            },
+            "type": "array"
+          },
+          "healthPath": {
+            "default": "/healthz",
+            "description": "Path of the readiness probe, answered by the HttpServer `healthPath`\n\nEmpty for no HTTP probe: Knative then probes the TCP port.",
+            "type": "string"
+          },
+          "image": {
+            "description": "Image of the container, like `ghcr.io/my-org/my-app:${git.version}`\n\nRequired unless `containerDeployer` provides it.",
+            "type": "string"
+          },
+          "labels": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {},
+            "description": "Labels of the revision template"
+          },
+          "maxScale": {
+            "description": "Maximum number of replicas, unlimited when unset",
+            "type": "number"
+          },
+          "minScale": {
+            "default": 0,
+            "description": "Minimum number of replicas, 0 scales to zero when idle\n\nUse 1 for latency-sensitive services: a cold start is the pod scheduling plus the application startup.",
+            "type": "number"
+          },
+          "name": {
+            "default": "${package.name}",
+            "description": "Name of the Service, sanitized to a DNS-1123 label",
+            "type": "string"
+          },
+          "namespace": {
+            "default": "default",
+            "description": "Namespace of the Service\n\nOn Cloud Run, the project id or number.",
+            "type": "string"
+          },
+          "output": {
+            "description": "File the manifest is written to, relative to the application\n\n`knative manifest` writes it instead of printing it, `deploy` writes it before applying it.",
+            "type": "string"
+          },
+          "platform": {
+            "default": "knative",
+            "description": "Platform the manifest targets: `cloudrun` adjusts the fields Cloud Run rejects or ignores\n\nCloud Run: no `namespace` (unless set to the project), `minScale`/`maxScale` annotations are camel-cased,\n`target` and `envFrom` are dropped, `containerConcurrency` is capped to 1000 (0 becomes the Cloud Run\ndefault), `timeoutSeconds` to 3600, the readiness probe becomes a startup probe and `visibility`\nbecomes the `run.googleapis.com/ingress` annotation.",
+            "enum": [
+              "knative",
+              "cloudrun"
+            ],
+            "type": "string"
+          },
+          "port": {
+            "default": 8080,
+            "description": "Port the application listens on: Knative injects it as `PORT`, which the HttpServer honors",
+            "type": "number"
+          },
+          "readyTimeout": {
+            "default": 300,
+            "description": "Seconds `deploy` waits for the Service to be Ready",
+            "type": "number"
+          },
+          "resources": {
+            "$ref": "#/definitions/KnativeResources",
+            "description": "Compute resources of the container"
+          },
+          "revisionSuffix": {
+            "default": "${git.short}",
+            "description": "Suffix of the revision name (`<name>-<suffix>`), empty to let Knative generate it\n\nA named revision is deterministic: deploying the same template twice creates no new revision, and\nthe suffix must change with the template (Knative refuses a different template under the same name).",
+            "type": "string"
+          },
+          "serviceAccountName": {
+            "description": "Service account of the pods",
+            "type": "string"
+          },
+          "target": {
+            "description": "Concurrent requests per replica the autoscaler aims for, the Knative default (100) when unset",
+            "type": "number"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/Record%3Cstring%2C%20any%3E"
+              }
+            ],
+            "description": "Overrides deep-merged on the generated Service: an object, or the path of a YAML/JSON file\nrelative to the application\n\nArrays replace the generated ones."
+          },
+          "timeout": {
+            "description": "Milliseconds before a request to the Kubernetes API is aborted, no timeout when unset",
+            "type": "number"
+          },
+          "timeoutSeconds": {
+            "default": 300,
+            "description": "Seconds a request can take before the revision times it out",
+            "type": "number"
+          },
+          "traffic": {
+            "default": [
+              {
+                "latestRevision": true,
+                "percent": 100
+              }
+            ],
+            "description": "Traffic split between the revisions",
+            "items": {
+              "$ref": "#/definitions/KnativeTrafficTarget"
+            },
+            "type": "array"
+          },
+          "triggers": {
+            "default": [],
+            "description": "Knative Eventing Triggers delivering the events of a Broker to the application\n\nEach one becomes an `eventing.knative.dev/v1` Trigger whose subscriber is the Service on `path`, the route\nof a `Webda/CloudEventsReceiver`. `knative manifest` prints them after the Service, `deploy` applies them once\nthe Service is Ready and `knative delete` removes them. Dropped on Cloud Run (use Eventarc).",
+            "items": {
+              "$ref": "#/definitions/KnativeTrigger"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "visibility": {
+            "default": "public",
+            "description": "`cluster-local` keeps the Service off the external ingress",
+            "enum": [
+              "public",
+              "cluster-local"
+            ],
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "KnativeDeployer"
+      },
+      "Configuration": "lib/deployers/knative.service:KnativeDeployerParameters",
+      "capabilities": [
+        "deployer"
+      ],
+      "commands": {
+        "knative manifest": {
+          "description": "Print the Knative Service and Trigger manifests of the application",
+          "method": "manifest",
+          "args": {
+            "output": {
+              "type": "string"
+            }
+          }
+        },
+        "deploy": {
+          "description": "Deploy the application as a Knative Service",
+          "method": "deploy",
+          "args": {}
+        },
+        "knative status": {
+          "description": "Print the status of the Knative Service",
+          "method": "status",
+          "args": {}
+        },
+        "knative delete": {
+          "description": "Delete the Knative Service and its Triggers, requires --yes",
+          "method": "delete",
+          "args": {
+            "yes": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
+    },
     "Webda/KubeRunner": {
       "Import": "lib/services/kuberunner.service:default",
       "Schema": {

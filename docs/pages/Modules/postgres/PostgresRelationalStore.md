@@ -48,6 +48,10 @@ Those of `PostgresStore` (`postgresqlServer`, `usePool`, `models`, `tables`), pl
 | `foreignKeys`        | `true`       | create the foreign key constraints                                                                                                                                                                                   |
 | `foreignKeysToJsonb` | `false`      | also create a foreign key to the `uuid` of the JSONB table of a model served by a `PostgresStore` (the `Registry`) on the same server and database with a table per model; that table is created at `init()`         |
 | `numericAsDecimal`   | `false`      | map JSON `number` to `NUMERIC` instead of `DOUBLE PRECISION`                                                                                                                                                         |
+| `appVersion`         | package.json | the application version recorded in the `Webda/SchemaVersion` registry                                                                                                                                               |
+| `allowIncompatible`  | `[]`         | elements (`<table>`, `<table>.<column>`, `<model>`, `<model>.<attribute>`) whose blocking changes against a live version are accepted (`BLOCK` becomes `WARN`, recorded in `forced`)                                 |
+| `versionHeartbeat`   | `60`         | seconds between two heartbeats of the version in the registry, `0` for none                                                                                                                                          |
+| `versionTtl`         | `600`        | seconds after its last heartbeat a version still counts as live                                                                                                                                                      |
 
 `table` (one shared table) is refused, `autoCreateTable` is replaced by `schemaSync`, `views` and `viewPrefix` do
 nothing (the tables are already typed). A `tables` override must be a lowercase identifier (`[a-z_][a-z0-9_]*`).
@@ -91,20 +95,74 @@ as the `YYYY-MM-DD` text, whatever the time zone of the server or the process, a
 
 ## Schema lifecycle
 
-At `init()` the store builds the plan, takes an advisory lock (`pg_advisory_xact_lock` on the store name) and applies
-`schemaSync` in one transaction. It is **never destructive**: no `DROP`, no type change, no `SET NOT NULL`, no rename.
-What `alter` cannot resolve (a column of another type, a column the plan does not know) is logged at `WARN`; `validate`
-throws `SchemaDriftError` (`SCHEMA_DRIFT`) for the same differences and for anything missing.
+At `init()` the store builds the plan, takes an advisory lock (`pg_advisory_xact_lock` on the store name) in a
+transaction, describes the database under it, reads the live application versions from the registry (see
+[below](#several-app-versions-on-the-same-database)), refuses an incompatible plan, applies `schemaSync`, records its
+own version and commits. It is **never destructive**: no `DROP`, no type change, no `SET NOT NULL`, no rename. What
+`alter` cannot resolve (a column of another type, a column no version knows) is logged at `WARN`; `validate` throws
+`SchemaDriftError` (`SCHEMA_DRIFT`) for the same differences and for anything missing. The columns of the other live
+versions are never drift.
+
+On a table that already has rows and traffic, `alter` keeps the heavy work out of the DDL transaction: an index is
+built `CONCURRENTLY` after it (a failed build, duplicates under a new unique index for example, is logged and the
+index dropped), a foreign key is added `NOT VALID` in the transaction and validated after it, so no `ACCESS EXCLUSIVE`
+lock outlives the catalog update.
 
 ```bash
-webda postgres schema            # one line per table with its columns
-webda postgres schema --sql      # the CREATE statements of the whole plan
-webda postgres schema --diff     # connect, print what `alter` would run, then `-- ` lines for the drift (exit 1)
-webda postgres schema --json     # the plan
+webda postgres schema show           # one line per table with its columns
+webda postgres schema show --sql     # the CREATE statements of the whole plan
+webda postgres schema show --diff    # connect, print what `alter` would run, then `-- ` lines for the drift (exit 1)
+webda postgres schema show --json    # the plan
+webda postgres schema check          # compare the plan with the live versions (exit 1 on a BLOCK)
+webda postgres schema contract --dry-run
+webda postgres schema retire --version 1.4.0
+webda postgres schema backfill --table post --from title --to headline
 ```
 
 Teams with their own migration pipeline run `schemaSync: "none"` or `"validate"` and apply `--sql` / `--diff` with
-their tooling.
+their tooling; the registry and `schema check` still protect them.
+
+## Several app versions on the same database
+
+Blue/green, canary and rolling deployments run **several versions of the application at the same time** against the
+same tables. The store makes that safe with the expand/contract pattern: the physical schema is the **union** of
+every live version, each version only reads and writes its own **projection**.
+
+- Every statement names its columns from the plan of its version (never `SELECT *`), `update()` only replaces the
+  columns of its own projection, `_extra` is merged (`_extra || $n`) so the keys of another version survive, unknown
+  columns are ignored on read and a `__type` only the newer version knows is skipped by the class filter.
+- A new `required` field is created **nullable**: `NOT NULL` waits for the contract phase, the application validates
+  until then.
+- **Registry.** Each running version is a `Webda/SchemaVersion` entry (`uuid` = `<store>:<appVersion>:<planHash>`,
+  the full plan, `status` `LIVE` | `RETIRED`, `firstSeen`, `lastHeartbeat`, the `instances` map, `forced`). Nobody
+  claims the model, so it lands in the `Registry` catch-all (JSONB, memory, Mongo...), never in a relational table.
+  Each instance heartbeats with a partial `patch()` every `versionHeartbeat` seconds; a version silent for longer
+  than `versionTtl` no longer counts. The flow at `init()` is lock → read live versions → check → DDL → upsert own
+  version → unlock. If the registry cannot be read or written, `init()` fails closed (`SCHEMA_REGISTRY_UNAVAILABLE`,
+  fatal, no DDL). A `MemoryStore` registry only knows the versions of its own process: a `WARN` says the checks are
+  limited to the process.
+- **Compatibility check**, on every startup whatever `schemaSync`: the plan is compared field by field with the plan
+  of every live version by `compareSchemaPlans` (`@webda/sql-schema`, a pure function). Additions, widenings, a field
+  becoming required or removed are `SAFE`; added enum values, a rename (remove + add) and a new unique index are
+  `WARN`; a property type change, a narrowing, removed enum values, a field becoming optional while the live version
+  requires it, a relation kind or target change, a delete policy change, a primary key, hierarchy or layout option
+  change are `BLOCK`. A `BLOCK` refuses to start with `SchemaIncompatibleError` (HTTP 409, `SCHEMA_INCOMPATIBLE_ERROR`,
+  wrapped in a `FatalInitError`) naming the table or column, the live version and the expand/contract recipe; the
+  database is untouched and the refused version is not registered. `allowIncompatible` (or
+  `schema check --force-incompatible`) downgrades a change you accept to a forced `WARN`, recorded in the version.
+- **`webda postgres schema check [--against <version>] [--json]`** prints the same table for CI (exit 1 on a `BLOCK`,
+  2 when `--against` matches nothing), so a pull request changing a property type fails before the deploy, not at
+  the canary's startup. Run it against the production registry, read-only.
+- **Contract phase**, never run by `init()`: `webda postgres schema contract [--dry-run]` computes the union of the
+  versions still live and proposes what is now safe: drop the columns and tables no live version uses (only what a
+  retired or expired version planned: a DBA's column is left alone), `SET NOT NULL` where every live version requires
+  the field (skipped when a row is null), validate the foreign keys still `NOT VALID`. `webda postgres schema retire
+--version <id | appVersion | planHash>` retires a version first.
+- **Renames and type changes** are expand / backfill / contract: add the new field (`headline`, `statusCode`),
+  `webda postgres schema backfill --table post --from title --to headline [--batch 1000]` copies the column by
+  batches where the target is null, switch the reads, retire the old version, contract.
+
+Per-version views, `schemaPerVersion` and the dual-write trigger of the design are not implemented.
 
 ## Reads and writes
 
@@ -140,6 +198,9 @@ their tooling.
 | `table` parameter                                                                                                                                                                             | `WebdaError.CodeError("RELATIONAL_SHARED_TABLE")`                               |
 | repository of a model not listed                                                                                                                                                              | `WebdaError.CodeError("MODEL_NOT_PLANNED")`                                     |
 | `schemaSync: "validate"` with a difference                                                                                                                                                    | `SchemaDriftError` (`SCHEMA_DRIFT`)                                             |
+| plan incompatible with a live application version                                                                                                                                             | `SchemaIncompatibleError` (409, fatal at `init()`)                              |
+| `Registry` unreachable at `init()`                                                                                                                                                            | `SchemaRegistryError` (`SCHEMA_REGISTRY_UNAVAILABLE`, fatal)                    |
+| `Webda/SchemaVersion` listed in the store models                                                                                                                                              | `WebdaError.CodeError("RELATIONAL_SCHEMA_VERSION_MODEL")`                       |
 | `importFromJsonb` from a relational store, or of a model whose JSONB table is the relational one                                                                                              | `WebdaError.CodeError("RELATIONAL_IMPORT_SOURCE" \| "RELATIONAL_IMPORT_TABLE")` |
 
 ## Promoting a model from the JSONB store
@@ -168,8 +229,8 @@ committed. The JSONB table and the relational table of a model must have differe
 - No `MigratableStore` raw access (there are no Webda 3 JSON rows in a typed table).
 - A JSON `null` stored in a JSONB column reads as an absent field.
 
-Follow-ups tracked in [#838](https://github.com/loopingz/webda.io/issues/838): the multi-version registry
-(`Webda/SchemaVersion`, `webda postgres schema check | contract | retire`) and the `ON DELETE` policies of #798.
+Follow-ups tracked in [#838](https://github.com/loopingz/webda.io/issues/838): per-version views and
+`schemaPerVersion` (#1016), filters on junction attributes and composite references (#1017).
 
 ## Other engines
 

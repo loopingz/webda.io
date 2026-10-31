@@ -40,6 +40,11 @@ export interface GeneratedDiagnostic {
   code: number;
   /** Human-readable message. */
   messageText: string;
+  /**
+   * An error by default. A warning is logged by the build without failing it (`EmitReport.warnings`); the editor
+   * protocol has no severity, so it shows every diagnostic the same way.
+   */
+  severity?: "error" | "warning";
 }
 
 /** All edits for one file, plus anything the generator wants to report. */

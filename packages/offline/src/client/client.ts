@@ -4,6 +4,7 @@ import { Collection } from "./collection.js";
 import { settleConflict, strategyResolutions } from "./conflicts.js";
 import { Emitter } from "./emitter.js";
 import { clone, deepEqual, type LocalRecord } from "./record.js";
+import type { SealedOptions } from "./sealed.js";
 import { SyncEngine } from "./sync.js";
 import type { StorageAdapter } from "./storage/storage.js";
 import type { Transport } from "./transport/transport.js";
@@ -46,6 +47,8 @@ export interface OfflineClientOptions {
   retry?: { base: number; max: number };
   /** Mutations per push request, at most the server `maxMutations` @default 100 */
   pushBatchSize?: number;
+  /** Sealed fields opened on read with an unlocked vault (`@webda/sealed-client`), kept sealed in the local storage */
+  sealed?: SealedOptions;
 }
 
 /**
@@ -58,7 +61,10 @@ export class OfflineClient extends Emitter<{
   error: unknown;
 }> {
   readonly storage: StorageAdapter;
-  readonly options: Required<Omit<OfflineClientOptions, "versioning">> & { versioning: VersioningConfig };
+  readonly options: Required<Omit<OfflineClientOptions, "versioning" | "sealed">> & {
+    versioning: VersioningConfig;
+    sealed?: SealedOptions;
+  };
   protected collections = new Map<string, Collection<any>>();
 
   /**
@@ -75,7 +81,8 @@ export class OfflineClient extends Emitter<{
       primaryKeys: options.primaryKeys ?? {},
       versioning: options.versioning ?? {},
       retry: options.retry ?? { base: 1000, max: 60000 },
-      pushBatchSize: options.pushBatchSize ?? 100
+      pushBatchSize: options.pushBatchSize ?? 100,
+      sealed: options.sealed
     };
     this.storage = options.storage;
   }
@@ -116,6 +123,14 @@ export class OfflineClient extends Emitter<{
    */
   notify(event: ChangeEvent): void {
     this.emit("change", event);
+  }
+
+  /**
+   * Emit an error event (used by collections: a sealed value that does not open)
+   * @param error - the error
+   */
+  fail(error: unknown): void {
+    this.emit("error", error);
   }
 
   protected engine = new SyncEngine(this);

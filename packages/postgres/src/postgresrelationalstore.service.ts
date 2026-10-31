@@ -64,6 +64,28 @@ export class PostgresRelationalParameters extends PostgresParameters implements 
   numericAsDecimal?: boolean;
 
   /**
+   * Version of the application recorded in the `Webda/SchemaVersion` registry
+   * @default the version of package.json
+   */
+  appVersion?: string;
+  /**
+   * Elements whose blocking changes against a live version are accepted (`<table>`, `<table>.<column>`, `<model>`
+   * or `<model>.<attribute>`): the `BLOCK` becomes a `WARN` and the version records it in `forced`
+   * @default []
+   */
+  allowIncompatible?: string[];
+  /**
+   * Seconds between two heartbeats of the version in the registry, 0 for none
+   * @default 60
+   */
+  versionHeartbeat?: number;
+  /**
+   * Seconds after its last heartbeat a version still counts as live
+   * @default 600
+   */
+  versionTtl?: number;
+
+  /**
    * @override
    * @param params - raw parameters
    * @returns this
@@ -188,7 +210,29 @@ export class PostgresRelationalStore<
   }
 
   /**
-   * Bring the database to the plan (`schemaSync`), once at init
+   * A schema refused by the live versions or an unreachable registry stops the application
+   * @override
+   */
+  async init(): Promise<this> {
+    try {
+      return await super.init();
+    } catch (err) {
+      throw this.relational.initError(err);
+    }
+  }
+
+  /**
+   * Stop the version heartbeat
+   * @override
+   */
+  async stop(): Promise<void> {
+    this.relational.stop();
+    await super.stop();
+  }
+
+  /**
+   * Bring the database to the plan (`schemaSync`), once at init: under the advisory lock, the live versions are read
+   * from the registry and checked, the DDL runs, this version is registered
    * @override
    */
   async checkTable(): Promise<void> {
@@ -321,7 +365,7 @@ export class PostgresRelationalStore<
    * @param json - print the plan as JSON
    * @returns 0, 1 when `diff` found differences the store cannot resolve
    */
-  @Command("postgres schema", {
+  @Command("postgres schema show", {
     description: "Print the relational schema plan, its DDL or the diff with the database",
     phase: "resolved"
   })
@@ -334,6 +378,93 @@ export class PostgresRelationalStore<
     json: boolean = false
   ): Promise<number> {
     return this.relational.schemaCommand(sql, diff, json, async () => {
+      const client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer as ClientConfig | PoolConfig));
+      await client.connect();
+      return { client, close: () => client.end() };
+    });
+  }
+  /**
+   * Compare the plan with the live versions of the registry (CI: fail before deploy, not at startup)
+   * @param against - compare with one version (identifier, application version or plan hash) instead of the live ones
+   * @param forceIncompatible - downgrade every blocking change to a warning
+   * @param json - print the changes as JSON
+   * @returns 0, 1 when a change blocks, 2 when `against` matches no version
+   */
+  @Command("postgres schema check", {
+    description: "Compare the schema plan with the live application versions",
+    phase: "resolved"
+  })
+  async schemaCheck(
+    /** @description Compare with one version (identifier, application version or plan hash) */
+    against?: string,
+    /** @description Downgrade every blocking change to a warning */
+    forceIncompatible: boolean = false,
+    /** @description Print the changes as JSON */
+    json: boolean = false
+  ): Promise<number> {
+    return this.relational.checkCommand(against, forceIncompatible, json);
+  }
+
+  /**
+   * Apply (or print) what no live version uses any more: drop the unused columns and tables, `SET NOT NULL` where
+   * every live version requires the field and no row is null, validate the foreign keys. Never run by `init()`
+   * @param dryRun - print the statements without running them
+   * @returns 0
+   */
+  @Command("postgres schema contract", {
+    description: "Drop what no live version uses, set NOT NULL where every live version requires it",
+    phase: "resolved"
+  })
+  async schemaContract(
+    /** @description Print the statements without running them */
+    dryRun: boolean = false
+  ): Promise<number> {
+    return this.relational.contractCommand(dryRun, async () => {
+      const client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer as ClientConfig | PoolConfig));
+      await client.connect();
+      return { client, close: () => client.end() };
+    });
+  }
+
+  /**
+   * Retire a version: it no longer counts for the compatibility checks and the contract phase
+   * @param version - its identifier, application version or plan hash
+   * @returns 0, 1 when no version matches
+   */
+  @Command("postgres schema retire", {
+    description: "Retire an application version from the schema registry",
+    phase: "resolved"
+  })
+  async schemaRetire(
+    /** @description Identifier, application version or plan hash of the version */
+    version: string
+  ): Promise<number> {
+    return this.relational.retireCommand(version);
+  }
+
+  /**
+   * Copy a column into another one where the target is null (the expand step of a rename or a type change)
+   * @param table - the table
+   * @param from - the source column
+   * @param to - the target column
+   * @param batch - rows per statement
+   * @returns 0
+   */
+  @Command("postgres schema backfill", {
+    description: "Copy a column into another one, by batches",
+    phase: "resolved"
+  })
+  async schemaBackfill(
+    /** @description The table */
+    table: string,
+    /** @description The source column */
+    from: string,
+    /** @description The target column */
+    to: string,
+    /** @description Rows per statement */
+    batch: number = 1000
+  ): Promise<number> {
+    return this.relational.backfillCommand(table, from, to, batch, async () => {
       const client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer as ClientConfig | PoolConfig));
       await client.connect();
       return { client, close: () => client.end() };

@@ -1162,6 +1162,10 @@
             "description": "Run this instance as an HTTP/2 cleartext (h2c) server rather than\nHTTP/1.1. The resulting port accepts only prior-knowledge HTTP/2\nclients (e.g. `grpcurl -plaintext`). To serve both REST (HTTP/1.1)\nand gRPC without TLS, configure a second HttpServer service with\n`h2c: true` on a separate port.",
             "type": "boolean"
           },
+          "healthPath": {
+            "description": "Path of the readiness and liveness probe, disabled when unset\n\nAnswered before the routing, without a context: `200 {\"status\":\"ok\"}` once Core is ready, `503` while\nit is starting (`{\"status\":\"starting\"}`) or the server is draining (`{\"status\":\"stopping\"}`).\nThe `WEBDA_HEALTH_PATH` environment variable enables it when not configured: the Knative deployer sets\nit for the readiness probe of its revisions.",
+            "type": "string"
+          },
           "http2": {
             "default": false,
             "description": "Enable HTTP/2 (default: true when key+cert provided)\nSet to false for HTTPS without HTTP/2",
@@ -1173,7 +1177,7 @@
           },
           "port": {
             "default": 18080,
-            "description": "Port to listen on",
+            "description": "Port to listen on\n\nWhen not set, the `PORT` environment variable is used (Knative, Cloud Run and most PaaS inject it),\nthen 18080. An explicit value always wins over the environment.",
             "type": "number"
           },
           "requestLimit": {
@@ -1184,6 +1188,11 @@
           "requestTimeout": {
             "default": 60000,
             "description": "Will not take more than this to read a request (unit: milliseconds)\n\nThis parameter can be overriden by a direct call to\ngetHttpContext().getRawBody(undefined, xxx)",
+            "type": "number"
+          },
+          "shutdownGracePeriod": {
+            "default": 10000,
+            "description": "Milliseconds the server waits for its in-flight requests when it stops, before closing their connections\n\nStopping first refuses new connections and answers `503` on `healthPath`, so a load balancer stops\nrouting to the instance. Keep it below the termination grace period of the pod (30s on Kubernetes).",
             "type": "number"
           },
           "trustedProxies": {
@@ -4068,7 +4077,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -4086,6 +4095,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -4107,6 +4120,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -4507,7 +4521,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -4525,6 +4539,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -4546,6 +4564,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -4950,7 +4969,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -4968,6 +4987,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -4989,6 +5012,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -5490,7 +5514,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -5508,6 +5532,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -5529,6 +5557,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -5917,7 +5946,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -5935,6 +5964,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -5956,6 +5989,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -6348,7 +6382,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -6366,6 +6400,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -6387,6 +6425,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -7329,7 +7368,7 @@
         },
         "EscrowBlob": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -7347,6 +7386,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -7368,6 +7411,7 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
@@ -7441,7 +7485,7 @@
       "definitions": {
         "EscrowBlob": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -7459,6 +7503,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -7480,6 +7528,7 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
@@ -7819,7 +7868,7 @@
         },
         "escrow": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -7837,6 +7886,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -7858,6 +7911,7 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
@@ -8067,7 +8121,7 @@
         },
         "EscrowBlob": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -8085,6 +8139,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -8106,6 +8164,7 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
@@ -8952,7 +9011,21 @@
             "method": "PUT"
           }
         }
-      }
+      },
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Policy of a SealedField attribute (`models.<Model>.behaviors.<attribute>` in the configuration)",
+        "properties": {
+          "maxSize": {
+            "description": "Upper bound of a client-sealed envelope stored with `set` (ciphertext `ct`, base64url characters, 1 MiB by\ndefault): the server cannot read the value, its size is the only check it can make.",
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "Configuration": "lib/models/sealed.model:SealedFieldParameters"
     }
   },
   "capabilities": {

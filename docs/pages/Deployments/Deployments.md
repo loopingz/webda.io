@@ -6,7 +6,8 @@ sidebar_position: 3
 
 Webda allow you to deploy your code in many differents way
 
-Deploy to [Azure Container Apps or Functions](./Azure.md), [AWS](./AWS.md), [Docker](./Docker.md), or [Kubernetes](./Kubernetes/Kubernetes.md).
+Deploy to [Azure Container Apps or Functions](./Azure.md), [AWS](./AWS.md), [Docker](./Docker.md),
+[Kubernetes](./Kubernetes/Kubernetes.md), or [Knative and Cloud Run](./Knative.md).
 
 ## Deployment files
 

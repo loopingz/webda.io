@@ -27,8 +27,10 @@ on `stop()`, like `MemoryStore`; with `persistence.path` it is a single durable 
 keys, junction tables, indexes) generated from the model metadata by `@webda/sql-schema`, on the relational layer of
 `@webda/sql` shared with `PostgresRelationalStore`: `@Index` / `@Unique` tags, `foreignKeysToJsonb`, `webda sqlite
 import` from the JSON store. Foreign keys are inline and enforced (`PRAGMA foreign_keys`),
-`schemaSync` (`none` | `create` | `alter` | `validate`) is additive only, `webda sqlite schema [--sql | --diff | --json]`
-prints the plan. It is never the `Registry` and only stores listed models. See
+`schemaSync` (`none` | `create` | `alter` | `validate`) is additive only and checked against the other application
+versions running on the database (`Webda/SchemaVersion` in the `Registry`, `SchemaIncompatibleError` on a blocking
+change), `webda sqlite schema show [--sql | --diff | --json]` prints the plan and `schema check | contract | retire |
+backfill` drive the expand/contract cycle. It is never the `Registry` and only stores listed models. See
 [the documentation](https://webda.io/docs/Modules/sqlite/SQLiteRelationalStore).
 
 ## Caveats

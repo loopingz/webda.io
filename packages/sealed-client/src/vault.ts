@@ -196,7 +196,7 @@ export class KeyVault {
     const pair = await generateUserKeyPair();
     const publicKey = { kid: pair.kid, jwk: pair.publicJwk };
     const keyringKey = await createKeyringKey();
-    const { escrows, recoveryCode } = await this.createEscrows(input, keyringKey);
+    const { escrows, recoveryCode } = await this.createEscrows(input, keyringKey, pair.kid);
     const device = await this.wrapForDevice(input.device, keyringKey);
     const pkcs8 = b64u.encode(new Uint8Array(await subtle().exportKey("pkcs8", pair.privateKey)));
     const keyring = await encryptKeyring({ keys: { [pair.kid]: pkcs8 }, active: pair.kid }, keyringKey, userId, [
@@ -382,7 +382,8 @@ export class KeyVault {
   /**
    * Build the password escrow of a new password without sending it: the keyring key is re-wrapped under the new
    * password, directly while unlocked, otherwise through the password escrow opened with the old password (a
-   * throttled `getEscrow`, checked against the pin).
+   * throttled `getEscrow`, checked against the pin). The escrow carries the active key id (`kid`): the server refuses
+   * it (412) when its active key changed meanwhile.
    *
    * For a host whose login password change takes the escrow with it (`Auth.Password.Change` of `@webda/auth` refuses
    * a change without it once a password escrow exists): send the blob as its `escrow` input, both are then stored
@@ -397,15 +398,18 @@ export class KeyVault {
    */
   async createPasswordEscrow(newPassword: string, opts: { oldPassword?: string } = {}): Promise<EscrowBlob> {
     let keyringKey = this.keyringKey;
+    let kid = this.activeKid;
     if (keyringKey) {
       await this.assertKeyringCurrent();
     } else {
       if (opts.oldPassword === undefined) {
         throw new VaultLockedError("Unlock the vault or give the old password to change the password escrow");
       }
-      keyringKey = (await this.openEscrow({ password: opts.oldPassword })).keyringKey;
+      const opened = await this.openEscrow({ password: opts.oldPassword });
+      keyringKey = opened.keyringKey;
+      kid = opened.keyring.kid;
     }
-    return createEscrowBlob("password", newPassword, keyringKey, this.options.userId);
+    return createEscrowBlob("password", newPassword, keyringKey, this.options.userId, kid!);
   }
 
   /**
@@ -434,7 +438,7 @@ export class KeyVault {
     const code = generateRecoveryCode();
     await this.options.api.setEscrow(
       "recovery",
-      await createEscrowBlob("recovery", code, keyringKey, this.options.userId)
+      await createEscrowBlob("recovery", code, keyringKey, this.options.userId, this.activeKid!)
     );
     return code;
   }
@@ -468,7 +472,7 @@ export class KeyVault {
     const pair = await generateUserKeyPair();
     const publicKey = { kid: pair.kid, jwk: pair.publicJwk };
     const keyringKey = await createKeyringKey();
-    const { escrows, recoveryCode } = await this.createEscrows(input, keyringKey);
+    const { escrows, recoveryCode } = await this.createEscrows(input, keyringKey, pair.kid);
     const device = await this.wrapForDevice(input.device, keyringKey);
     const pkcs8 = b64u.encode(new Uint8Array(await subtle().exportKey("pkcs8", pair.privateKey)));
     const keyring = await encryptKeyring({ keys: { [pair.kid]: pkcs8 }, active: pair.kid }, keyringKey, userId, [
@@ -484,9 +488,35 @@ export class KeyVault {
   }
 
   /**
+   * Fingerprint of the public key pinned on this device (base64url SHA-256 of the raw P-256 point, the `kid` is its
+   * first 16 characters), to show to the user: compared out of band with the fingerprint shown on another device, it
+   * tells a legitimate rotation or reset from a substituted key
+   * @returns the pinned fingerprint, undefined on a device without pin (trust on first use at the next unlock)
+   */
+  pinnedFingerprint(): Promise<string | undefined> {
+    return this.options.storage.get(this.pinKey);
+  }
+
+  /**
+   * Fingerprint of the active public key the server serves now, to compare with {@link KeyVault.pinnedFingerprint}
+   * before {@link KeyVault.forgetPin}: a device cut off by a reset shows both to the user, who checks the new one
+   * against the device that did the reset
+   * @returns the served active fingerprint
+   */
+  async servedFingerprint(): Promise<string> {
+    return fingerprint(activeKey((await this.options.api.getKeys()).publicKeys).jwk);
+  }
+
+  /**
    * Forget the public key pinned on this device and lock: the next {@link KeyVault.unlockWithEscrow} trusts the served
-   * key on first use, as on a new device. For the user to call explicitly after a {@link KeyVault.reset} done on
-   * another device, ideally once the new fingerprint was compared out of band
+   * key on first use, as on a new device.
+   *
+   * This drops the only protection against a substituted public key, so it is for the user to call explicitly, never
+   * automatically on a `KeyringPinError`: after a {@link KeyVault.reset} done on another device (its unlock fails with
+   * `KeyringPinError` and the new key is refused), show {@link KeyVault.pinnedFingerprint} and
+   * {@link KeyVault.servedFingerprint}, let the user compare the served one out of band with the device that did the
+   * reset, then call `forgetPin()` and add the device again with the new escrow. A served fingerprint the user does
+   * not recognise means a substituted key: keep the pin and stop
    */
   async forgetPin(): Promise<void> {
     this.lock();
@@ -522,12 +552,12 @@ export class KeyVault {
     const { keyring } = await decryptKeyring(blob.keyring, currentKey, userId, publicKeys);
     const replace = options.newKeyringKey;
     const keyringKey = replace ? await createKeyringKey() : currentKey;
-    const { escrows, recoveryCode } = replace
-      ? await this.createEscrows(replace, keyringKey)
-      : { escrows: undefined, recoveryCode: undefined };
-    const device = replace ? await this.wrapForDevice(replace.device, keyringKey) : undefined;
     const pair = await generateUserKeyPair();
     const publicKey = { kid: pair.kid, jwk: pair.publicJwk };
+    const { escrows, recoveryCode } = replace
+      ? await this.createEscrows(replace, keyringKey, pair.kid)
+      : { escrows: undefined, recoveryCode: undefined };
+    const device = replace ? await this.wrapForDevice(replace.device, keyringKey) : undefined;
     const pkcs8 = new Uint8Array(await subtle().exportKey("pkcs8", pair.privateKey));
     keyring.keys[pair.kid] = b64u.encode(pkcs8);
     keyring.active = pair.kid;
@@ -552,11 +582,13 @@ export class KeyVault {
    * Escrows of a keyring key
    * @param request - password and/or recovery code
    * @param keyringKey - key to escrow
+   * @param kid - active key id the keyring key encrypts the keyring for
    * @returns the escrows by kind and the recovery code
    */
   private async createEscrows(
     request: EscrowRequest,
-    keyringKey: CryptoKey
+    keyringKey: CryptoKey,
+    kid: string
   ): Promise<{ escrows: Partial<Record<EscrowKind, EscrowBlob>>; recoveryCode?: string }> {
     const { userId } = this.options;
     if (!request.password && !request.recovery) {
@@ -564,11 +596,11 @@ export class KeyVault {
     }
     const escrows: Partial<Record<EscrowKind, EscrowBlob>> = {};
     if (request.password) {
-      escrows.password = await createEscrowBlob("password", request.password, keyringKey, userId);
+      escrows.password = await createEscrowBlob("password", request.password, keyringKey, userId, kid);
     }
     const recoveryCode = request.recovery ? generateRecoveryCode() : undefined;
     if (recoveryCode) {
-      escrows.recovery = await createEscrowBlob("recovery", recoveryCode, keyringKey, userId);
+      escrows.recovery = await createEscrowBlob("recovery", recoveryCode, keyringKey, userId, kid);
     }
     return { escrows, recoveryCode };
   }

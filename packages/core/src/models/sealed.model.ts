@@ -1,5 +1,7 @@
 import { WEBDA_PRIMARY_KEY } from "@webda/models";
 import { useModelId } from "../application/hooks.js";
+import { useBehaviorParameters } from "../application/modelconfiguration.js";
+import { Parameters } from "../application/parameters.js";
 import { runAsSystem } from "../contexts/execution.js";
 import { useUserResolver } from "../core/hooks.js";
 import { BadRequest } from "../errors/errors.js";
@@ -33,6 +35,15 @@ export interface SealedRecipientResolver {
   getSealedRecipient(field: string): string | undefined | Promise<string | undefined>;
 }
 
+/** Policy of a SealedField attribute (`models.<Model>.behaviors.<attribute>` in the configuration) */
+export class SealedFieldParameters extends Parameters {
+  /**
+   * Upper bound of a client-sealed envelope stored with `set` (ciphertext `ct`, base64url characters, 1 MiB by
+   * default): the server cannot read the value, its size is the only check it can make. @minimum 1
+   */
+  maxSize: number = 1048576;
+}
+
 /**
  * A model field sealed end-to-end to a user public key
  *
@@ -61,9 +72,14 @@ export interface SealedRecipientResolver {
  * await note.content.seal({ title, body }); // sealed to the owner
  * await note.save();
  * ```
+ *
+ * The size of a client-sealed envelope is capped by {@link SealedFieldParameters.maxSize} (1 MiB by default),
+ * configured per attribute: `models.<Model>.behaviors.<attribute>.maxSize`.
  * @WebdaBehavior Webda/Sealed
  */
 export class SealedField<T = any> {
+  static Parameters = SealedFieldParameters;
+
   /** Envelope version */
   v?: 1;
   /** Recipient key id */
@@ -124,17 +140,18 @@ export class SealedField<T = any> {
    * Store an envelope sealed by a client (`KeyVault.seal`) and save this field only (a patch of the attribute)
    *
    * Exposed as `<Model>.<Field>.Set`, authorised by the model `canAct("<field>.set")`. The envelope must be well
-   * formed and sealed to the active key of the recipient (resolved as for {@link SealedField.seal}); the server cannot
-   * check that it opens, the AAD the client used (`modelType|uuid|field|kid`) is only verified by the recipient.
+   * formed, at most {@link SealedFieldParameters.maxSize} ciphertext characters, and sealed to the active key of the
+   * recipient (resolved as for {@link SealedField.seal}); the server cannot check that it opens, the AAD the client
+   * used (`modelType|uuid|field|kid`) is only verified by the recipient.
    * @param envelope - sealed envelope `{ v: 1, kid, epk, iv, ct }`
-   * @throws SealedFormatError when the envelope is malformed or not sealed to the recipient active key
+   * @throws SealedFormatError when the envelope is malformed, too large or not sealed to the recipient active key
    * @throws SealedKeyMissingError when the recipient is unknown or has no public key
    */
   @Action({ rest: { method: "PUT" } })
   async set(envelope: SealedEnvelope): Promise<void> {
     const { instance, attribute } = this.getParent();
     SealedField.primaryKeyOf(instance);
-    const checked = await SealedField.checkEnvelope(envelope);
+    const checked = await SealedField.checkEnvelope(envelope, this.getParameters().maxSize);
     const { key } = await SealedField.recipientKey(instance, attribute);
     if (checked.kid !== key.kid) {
       throw new SealedFormatError("The envelope is not sealed to the recipient active public key");
@@ -144,12 +161,24 @@ export class SealedField<T = any> {
   }
 
   /**
+   * Resolve the policy of this attribute; a detached behavior uses defaults
+   * @returns the parameters
+   */
+  getParameters(): SealedFieldParameters {
+    const parent = (this as any).parent;
+    return parent?.instance
+      ? useBehaviorParameters(parent.instance.constructor, parent.attribute, this.constructor as typeof SealedField)
+      : new SealedFieldParameters();
+  }
+
+  /**
    * Check the shape of a client envelope
    * @param envelope - submitted envelope
+   * @param maxSize - upper bound of the ciphertext, base64url characters
    * @returns the normalised envelope
-   * @throws SealedFormatError when it is malformed
+   * @throws SealedFormatError when it is malformed or too large
    */
-  protected static async checkEnvelope(envelope: unknown): Promise<SealedEnvelope> {
+  protected static async checkEnvelope(envelope: unknown, maxSize: number): Promise<SealedEnvelope> {
     if (!isObject(envelope) || envelope.v !== 1) {
       throw new SealedFormatError("Invalid sealed envelope: v must be 1");
     }
@@ -157,6 +186,9 @@ export class SealedField<T = any> {
       throw new SealedFormatError("Invalid sealed envelope: kid must be a string");
     }
     assertB64u(envelope.iv, "sealed envelope iv", 12);
+    if (typeof envelope.ct === "string" && envelope.ct.length > maxSize) {
+      throw new SealedFormatError(`Invalid sealed envelope ciphertext: larger than ${maxSize} characters`);
+    }
     // GCM tag (16 bytes) and the JSON value
     assertB64u(envelope.ct, "sealed envelope ciphertext", [16, Infinity]);
     const { jwk } = await checkPublicJwk(envelope.epk, "ephemeral public key");

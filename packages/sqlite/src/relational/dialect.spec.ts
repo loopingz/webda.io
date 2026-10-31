@@ -234,6 +234,7 @@ export class SQLiteRelationalDialectTest {
       primaryKey: false
     });
     assert.deepStrictEqual(violation(2067, "something else"), { primaryKey: false });
+    assert.deepStrictEqual(violation(2067, undefined as unknown as string), { primaryKey: false });
     assert.strictEqual(violation(787, "FOREIGN KEY constraint failed"), undefined);
   }
 }

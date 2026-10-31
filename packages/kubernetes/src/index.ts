@@ -17,6 +17,7 @@ export * from "./operator/controller.js";
 export * from "./operator/operator.service.js";
 export * from "./crd/rbac.js";
 export * from "./stores/watcher.js";
+export * from "./deployers/knative.service.js";
 
 // Refuse a second copy of the package, see registerWebdaPackage
 registerWebdaPackage("@webda/kubernetes", import.meta.url);

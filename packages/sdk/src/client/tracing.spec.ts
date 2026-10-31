@@ -256,6 +256,22 @@ describe("web tracing", () => {
     expect(decodeURIComponent(headers.baggage.split("=").slice(1).join("="))).toBe("a,b;c=d e%");
   });
 
+  it("traceHeaders falls back to random ids when the callback throws", () => {
+    const headers = traceHeaders(
+      {
+        token: "t",
+        sessionId: "s",
+        expiresAt: 10,
+        activeSpanContext: () => {
+          throw new Error("no tracer");
+        }
+      },
+      5
+    );
+    expect(headers["X-Webda-Trace"]).toBe("t");
+    expect(headers.traceparent).toMatch(/^00-(?!0{32})[0-9a-f]{32}-(?!0{16})[0-9a-f]{16}-01$/);
+  });
+
   it("traceHeaders is empty without state or when expired", () => {
     expect(traceHeaders(undefined)).toEqual({});
     expect(traceHeaders({ token: "t", sessionId: "s", expiresAt: 10 }, 10)).toEqual({});

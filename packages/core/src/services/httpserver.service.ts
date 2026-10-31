@@ -15,10 +15,11 @@ import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { AddressInfo, Socket } from "node:net";
 import { createChecker } from "is-in-subnet";
 import { useLog } from "@webda/workout";
-import { CancelablePromise } from "@webda/utils";
+import { CancelablePromise, State } from "@webda/utils";
 import type { JSONed } from "@webda/models";
 import { Writable } from "node:stream";
 import { useRouter } from "../rest/hooks.js";
+import { useCore } from "../core/hooks.js";
 import { runWithContext } from "../contexts/execution.js";
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -81,9 +82,32 @@ export class HttpServerParameters extends ServiceParameters {
   /**
    * Port to listen on
    *
+   * When not set, the `PORT` environment variable is used (Knative, Cloud Run and most PaaS inject it),
+   * then 18080. An explicit value always wins over the environment.
+   *
    * @default 18080
    */
   port?: number;
+
+  /**
+   * Path of the readiness and liveness probe, disabled when unset
+   *
+   * Answered before the routing, without a context: `200 {"status":"ok"}` once Core is ready, `503` while
+   * it is starting (`{"status":"starting"}`) or the server is draining (`{"status":"stopping"}`).
+   * The `WEBDA_HEALTH_PATH` environment variable enables it when not configured: the Knative deployer sets
+   * it for the readiness probe of its revisions.
+   */
+  healthPath?: string;
+
+  /**
+   * Milliseconds the server waits for its in-flight requests when it stops, before closing their connections
+   *
+   * Stopping first refuses new connections and answers `503` on `healthPath`, so a load balancer stops
+   * routing to the instance. Keep it below the termination grace period of the pod (30s on Kubernetes).
+   *
+   * @default 10000
+   */
+  shutdownGracePeriod?: number;
 
   /**
    * Run this instance as an HTTP/2 cleartext (h2c) server rather than
@@ -161,6 +185,8 @@ export class HttpServerParameters extends ServiceParameters {
     }
     this.clientAuth ??= this.clientCa ? "optional" : "none";
     this.clientCertHeaderFormat ??= "traefik";
+    this.healthPath ??= process.env.WEBDA_HEALTH_PATH || undefined;
+    this.shutdownGracePeriod ??= 10000;
     return this;
   }
 }
@@ -204,6 +230,19 @@ export class HttpServer<
    * Resolvers of the pending serve() promises, settled when the service stops
    */
   protected serving: Set<() => void> = new Set();
+  /**
+   * Set while the server drains: it refuses new connections and answers 503 on the health path
+   */
+  protected draining = false;
+  /**
+   * Open HTTP/2 sessions, closed when the server drains (they have no closeAllConnections)
+   */
+  protected sessions: Set<{ close(): void; destroy(): void }> = new Set();
+  /**
+   * Requests being handled by the web pipeline: the drain waits for them, not for the streams
+   * owned by the interceptors (gRPC) or kept open after their handler returned (SSE)
+   */
+  protected inflight = 0;
   /** In TLS mode, the server answering plain HTTP with a redirect */
   protected redirectServer?: Server;
   protected subnetChecker: (address: string) => boolean;
@@ -279,6 +318,11 @@ export class HttpServer<
    * @param res - the server response
    */
   async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    // Probes come first: they must not depend on the routing, the context or the authentication
+    if (this.parameters.healthPath && req.url?.split("?")[0] === this.parameters.healthPath) {
+      this.answerHealth(res);
+      return;
+    }
     // Alternate protocols (e.g. gRPC) get first crack at the request — they
     // return true to claim it, otherwise we fall through to the normal web
     // pipeline.
@@ -289,6 +333,21 @@ export class HttpServer<
         useLog("ERROR", "Request interceptor failed", err);
       }
     }
+    this.inflight++;
+    try {
+      await this.handleWebRequest(req, res);
+    } finally {
+      this.inflight--;
+    }
+  }
+
+  /**
+   * Run the web pipeline of a request: create the context, route, flush the response
+   *
+   * @param req - the incoming message
+   * @param res - the server response
+   */
+  protected async handleWebRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
       const ctx = await this.getContextFromRequest(req, res);
       if (!ctx) {
@@ -413,8 +472,9 @@ export class HttpServer<
   async start(bind?: string, port?: number): Promise<void> {
     this.parameters.with(params => {
       // `??`, not `||`: port 0 asks the OS for a free port
-      const listenPort = port ?? params.port ?? 18080;
+      const listenPort = this.getListenPort(port);
       useLog("INFO", `Starting HTTP server on ${bind ?? "0.0.0.0"}:${listenPort}`);
+      this.draining = false;
 
       // Node.js pipeline() emits ERR_STREAM_PREMATURE_CLOSE as uncaughtException
       // when piping to ServerResponse. Suppress this specific error.
@@ -481,6 +541,10 @@ export class HttpServer<
       } else {
         // Plain HTTP/1.1
         this.server = createServer((req, res) => this.handleRequest(req, res));
+      }
+
+      if (this.isHttp2) {
+        this.trackSessions(this.server as Http2Server);
       }
 
       // Ensure routes are mapped before accepting requests
@@ -590,23 +654,83 @@ export class HttpServer<
   }
 
   /**
-   * Close the HTTP server, dropping its open connections
+   * Port to listen on: the argument, then the `port` parameter, then the `PORT` environment variable, then 18080
+   * @param port - the port from the command line
+   * @returns the port
+   */
+  getListenPort(port?: number): number {
+    // `??`, not `||`: port 0 asks the OS for a free port
+    const envPort = /^\d+$/.test(process.env.PORT ?? "") ? parseInt(process.env.PORT) : undefined;
+    return port ?? this.parameters.port ?? envPort ?? 18080;
+  }
+
+  /**
+   * Readiness of the application: `ok` once Core is ready, `starting` before, `stopping` while the server drains
+   * @returns the status
+   */
+  getHealthStatus(): "ok" | "starting" | "stopping" {
+    if (this.draining) {
+      return "stopping";
+    }
+    return State.getCurrentState(useCore()) === "ready" ? "ok" : "starting";
+  }
+
+  /**
+   * Answer a readiness or liveness probe: 200 when the application is ready, 503 otherwise
+   * @param res - the response
+   */
+  protected answerHealth(res: ServerResponse): void {
+    const status = this.getHealthStatus();
+    res.writeHead(status === "ok" ? 200 : 503, { "content-type": "application/json", "cache-control": "no-store" });
+    res.end(JSON.stringify({ status }));
+  }
+
+  /**
+   * Keep track of the HTTP/2 sessions of a server, to close them when it drains
+   * @param server - the HTTP/2 server
+   */
+  protected trackSessions(server: Http2Server): void {
+    server.on("session", session => {
+      this.sessions.add(session);
+      session.on("close", () => this.sessions.delete(session));
+    });
+  }
+
+  /**
+   * Close the HTTP server: refuse new connections, wait for the in-flight requests up to
+   * `shutdownGracePeriod`, then close every connection
+   *
+   * Only the requests in the web pipeline hold the drain: the long-lived streams (gRPC through an
+   * interceptor, SSE kept open after the handler returned, idle keep-alive connections) are closed as
+   * soon as those requests are answered, so a stop never waits for a stream that would not end.
    * @returns a promise resolved once the server is closed
    */
   protected async closeServer(): Promise<void> {
+    this.draining = true;
     // Its connections never reach `server`: close them too (clients keep them alive)
     this.redirectServer?.closeAllConnections();
     const server = this.server as Server;
     if (!server?.listening) {
       return;
     }
-    await new Promise<void>(resolve => {
-      server.close(() => resolve());
-      // Keep-alive connections would hold close() until they time out
-      server.closeAllConnections?.();
-      // HTTP/2 sessions have no closeAllConnections: do not wait for them forever
-      setTimeout(resolve, 1000).unref();
-    });
+    // Stop accepting connections, tell the HTTP/2 clients to open no more streams
+    const closed = new Promise<void>(resolve => server.close(() => resolve()));
+    server.closeIdleConnections?.();
+    this.sessions.forEach(session => session.close());
+    const deadline = Date.now() + this.parameters.shutdownGracePeriod;
+    while (this.inflight > 0 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    if (this.inflight > 0) {
+      useLog(
+        "WARN",
+        `Closing ${this.inflight} requests still in flight after ${this.parameters.shutdownGracePeriod}ms`
+      );
+    }
+    server.closeAllConnections?.();
+    this.sessions.forEach(session => session.destroy());
+    // A TLS HTTP/2 server has no closeAllConnections for its HTTP/1 connections: do not wait for them forever
+    await Promise.race([closed, new Promise(resolve => setTimeout(resolve, 1000).unref())]);
   }
 
   /**

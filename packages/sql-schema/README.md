@@ -52,7 +52,7 @@ if (blockingChanges(changes).length) {
 | `ModelLinksSimpleArray`                         | junction `<table>_<attribute>` (owner key, target key, `_position`)                                                                |
 | `ModelLinksArray` / `ManyToMany` / `Contains`   | same junction + one column per link attribute (`attributes` json when none is declared)                                            |
 | `ModelLinksMap`                                 | junction keyed by (owner key, `key`)                                                                                               |
-| `ModelRelated` / `OneToMany` / `ModelsMapped`   | no storage                                                                                                                         |
+| `ModelRelated` / `OneToMany` / `ModelsMapped`   | no storage (a `map` relation keeps its link and attributes: the relational stores fill it on read)                                 |
 | reference to a model outside the plan           | column + index, no foreign key, `CROSS_STORE_REFERENCE` warning; a foreign key to the table `referencedTables` names for the model |
 | `@Index` / `@Unique` tags (`Relations.indexes`) | an index (unique with `@Unique`) on the attribute's column(s); attributes sharing a group name form one composite index            |
 | unknown properties                              | `_extra` json column (`extraColumn: false` to disable)                                                                             |

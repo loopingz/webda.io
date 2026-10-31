@@ -5,7 +5,7 @@ import { RELATIONAL_MODELS } from "./relational-models.js";
  * @returns the metadata of the fixture models a relational store lists, subclasses included
  */
 export function fixtureMetadata(): any[] {
-  return [...RELATIONAL_MODELS, "Rel/Dog"].map(id => useModelMetadata(useModel(id)));
+  return [...RELATIONAL_MODELS, "Rel/Dog", "Rel/Breeder", "Rel/Kitten"].map(id => useModelMetadata(useModel(id)));
 }
 
 /**

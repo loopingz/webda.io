@@ -1,14 +1,34 @@
-import { StoreNotFoundError, UpdateConditionFailError, WebdaError } from "@webda/core";
+import { StoreNotFoundError, UpdateConditionFailError, WebdaError, useApplication } from "@webda/core";
 import type { ModelClass } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
-import type { ColumnPlan, RelationPlan, RelationalSchemaPlan, TablePlan } from "@webda/sql-schema";
+import { KEY_COLUMN, referenceIdentifier } from "@webda/sql-schema";
+import type {
+  ColumnPlan,
+  ColumnType,
+  ModelReference,
+  RelationPlan,
+  RelationalSchemaPlan,
+  TablePlan
+} from "@webda/sql-schema";
+import { SQLComparisonExpression } from "../comparison.js";
+import { sqlString } from "../dialect.js";
 import type { SQLClient } from "../dialect.js";
 import { SQLRepository } from "../repository.js";
-import { SQLColumnComparisonExpression } from "./comparison.js";
+import { SQLColumnComparisonExpression, SQLConditionExpression } from "./comparison.js";
 import type { RelationalDialect, UniqueViolation } from "./dialect.js";
 import { TableMapping } from "./mapping.js";
-import type { AttributeTarget, JunctionWrite, RowWrite } from "./mapping.js";
+import type { AttributeTarget, JunctionWrite, MappedSource, RowWrite } from "./mapping.js";
 import type { Transact } from "./transaction.js";
+
+/**
+ * @param type - a model identifier
+ * @param model - another model identifier
+ * @returns whether the application declares the model as an ancestor of the type
+ */
+export function isSubclassOf(type: string, model: string): boolean {
+  const ancestors: ModelReference[] = (useApplication().getModels()[type] as any)?.Metadata?.Ancestors ?? [];
+  return ancestors.some(ancestor => referenceIdentifier(ancestor) === model);
+}
 
 /**
  * What a relational store gives a repository
@@ -56,7 +76,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
       options.table.root,
       options.dialect
     );
-    this.mapping = new TableMapping(options.plan, options.table);
+    this.mapping = new TableMapping(options.plan, options.table, (type, model) => isSubclassOf(type, model));
     this.transact = options.transact;
   }
 
@@ -101,7 +121,8 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
    * Where an attribute lives, refusing what no statement can reach
    * @param path - the validated attribute path
    * @returns the target: a column, a JSON path or the extra column path
-   * @throws WebdaError.BadRequest for a junction attribute, a composite reference or an unknown attribute
+   * @throws WebdaError.BadRequest for a junction attribute, a composite reference, a filled `ModelsMapped` or an
+   *   unknown attribute
    */
   protected target(
     path: string[]
@@ -117,7 +138,11 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
           `${this.attributeName(path)} is a link collection stored in ${target.table.name}: query the junction instead`
         );
       case "reference":
-        throw new WebdaError.BadRequest(`${this.attributeName(path)} references a composite key: not filterable`);
+        throw new WebdaError.BadRequest(`${this.attributeName(path)} references a composite key: compare it instead`);
+      case "mapped":
+        throw new WebdaError.BadRequest(
+          `${this.attributeName(path)} is read from ${target.source.relation.target}: query that model instead`
+        );
       default:
         throw new WebdaError.BadRequest(`${this.attributeName(path)} is not a stored field`);
     }
@@ -163,23 +188,255 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
-   * A comparison on a typed column renders for its type; everything else is the JSON translation
+   * A comparison on a typed column renders for its type, on a link collection as a sub-query on its junction, on a
+   * composite reference on its key parts; everything else is the JSON translation
    * @override
    */
   duplicateExpression(expression: WebdaQL.Expression): WebdaQL.Expression {
     if (expression instanceof WebdaQL.ComparisonExpression) {
-      const target = this.target(this.checkPath(expression.attribute));
+      const path = this.checkPath(expression.attribute);
+      const resolved = this.mapping.resolve(path);
+      if (resolved.kind === "junction") {
+        return this.junctionComparison(path, resolved, expression);
+      }
+      if (resolved.kind === "reference") {
+        return this.referenceComparison(path, resolved, expression);
+      }
+      const target = this.target(path);
       if (target.kind === "column") {
-        const column = this.q(target.column.name);
-        const compare = (operator: WebdaQL.ComparisonOperator, value: any) =>
-          new SQLColumnComparisonExpression(operator, column, value, target.column.type, this.sql);
-        if (expression.operator === "IN") {
-          return new WebdaQL.OrExpression((<any[]>expression.value).map(v => compare("=", v)));
-        }
-        return compare(expression.operator, expression.value);
+        return this.columnComparison(this.q(target.column.name), target.column.type, expression);
       }
     }
     return super.duplicateExpression(expression);
+  }
+
+  /**
+   * @param column - a quoted (qualified) column
+   * @param type - its type
+   * @param expression - the comparison
+   * @returns the comparison rendered for the column type, `IN` as `=` alternatives
+   */
+  protected columnComparison(
+    column: string,
+    type: ColumnType,
+    expression: WebdaQL.ComparisonExpression
+  ): WebdaQL.Expression {
+    const compare = (operator: WebdaQL.ComparisonOperator, value: any) =>
+      new SQLColumnComparisonExpression(operator, column, value, type, this.sql);
+    if (expression.operator === "IN") {
+      return new WebdaQL.OrExpression((<any[]>expression.value).map(v => compare("=", v)));
+    }
+    return compare(expression.operator, expression.value);
+  }
+
+  /**
+   * @param column - a JSON column
+   * @param path - the path inside it
+   * @param expression - the comparison
+   * @returns the JSON comparison, `IN` as `=` alternatives
+   */
+  protected jsonComparison(
+    column: string,
+    path: string[],
+    expression: WebdaQL.ComparisonExpression
+  ): WebdaQL.Expression {
+    const text = this.sql.columnJsonText(column, path);
+    const json = this.sql.columnJsonValue(column, path);
+    if (expression.operator === "IN") {
+      return new WebdaQL.OrExpression(
+        (<any[]>expression.value).map(v => new SQLComparisonExpression("=", text, v, this.dialect, json))
+      );
+    }
+    return new SQLComparisonExpression(expression.operator, text, expression.value, this.dialect, json);
+  }
+
+  /**
+   * A comparison on a link collection, as an `EXISTS` sub-query on its junction table:
+   * - `tags CONTAINS 't1'`: the collection links to the key (a composite key is split);
+   * - `contributors.role = 'editor'`: one item of the collection matches (a target key part, a link field or a path
+   *   in the link attributes);
+   * - on a map, the second segment is the key of the item: `reviewers.lead.since > 2020`, `reviewers.lead IS NULL`;
+   * - `IS NULL` on the collection itself is `FALSE`: a link collection reads as an empty array or map, never null.
+   * @param path - the attribute path
+   * @param target - the junction
+   * @param expression - the comparison
+   * @returns the condition
+   * @throws WebdaError.BadRequest for a comparison the junction cannot answer
+   */
+  protected junctionComparison(
+    path: string[],
+    target: Extract<AttributeTarget, { kind: "junction" }>,
+    expression: WebdaQL.ComparisonExpression
+  ): WebdaQL.Expression {
+    const { table, relation } = target;
+    const name = this.attributeName(path);
+    const unary = WebdaQL.UNARY_COMPARISON_OPERATORS.includes(expression.operator);
+    const conditions: string[] = [];
+    let rest = path.slice(1);
+    if (relation.kind === "linksMap" && rest.length) {
+      conditions.push(`${this.junctionColumn(table, KEY_COLUMN)} = ${sqlString(rest[0])}`);
+      rest = rest.slice(1);
+      if (!rest.length) {
+        if (!unary) {
+          throw new WebdaError.BadRequest(`${name}: compare an attribute of the item or use IS [NOT] NULL`);
+        }
+        return this.junctionExists(table, conditions, expression.operator === "IS NULL");
+      }
+    }
+    if (!rest.length) {
+      if (unary) {
+        return new WebdaQL.BooleanExpression(expression.operator === "IS NOT NULL");
+      }
+      if (expression.operator !== "CONTAINS") {
+        throw new WebdaError.BadRequest(
+          `${name} is a link collection: use CONTAINS or compare an attribute of its items`
+        );
+      }
+      conditions.push(this.targetKeyCondition(table, relation, expression.value));
+      return this.junctionExists(table, conditions);
+    }
+    if (relation.kind === "linksSimpleArray") {
+      throw new WebdaError.BadRequest(`${name}: the items of ${relation.attribute} are keys, use CONTAINS`);
+    }
+    conditions.push(`(${this.itemComparison(table, rest, expression, name).toString()})`);
+    return this.junctionExists(table, conditions);
+  }
+
+  /**
+   * @param table - a junction table
+   * @param column - one of its columns
+   * @returns the column qualified by its table
+   */
+  protected junctionColumn(table: TablePlan, column: string): string {
+    return `${this.q(table.name)}.${this.q(column)}`;
+  }
+
+  /**
+   * @param table - a junction table
+   * @param conditions - conditions on its rows
+   * @param negate - `NOT EXISTS`
+   * @returns the sub-query on the junction rows of the current row
+   */
+  protected junctionExists(table: TablePlan, conditions: string[], negate: boolean = false): WebdaQL.Expression {
+    const owner = table.columns
+      .filter(c => c.role === "owner")
+      .map(
+        c => `${this.junctionColumn(table, c.name)} = ${this.q(this.table)}.${this.q(this.columnOfField(c.keyPart!))}`
+      );
+    return new SQLConditionExpression(
+      `${negate ? "NOT " : ""}EXISTS (SELECT 1 FROM ${this.q(table.name)} WHERE ${[...owner, ...conditions].join(" AND ")})`
+    );
+  }
+
+  /**
+   * @param table - a junction table
+   * @param relation - its relation
+   * @param value - a target key, joined for a composite key
+   * @returns the condition on the target columns, `FALSE` when the key does not split into its parts
+   */
+  protected targetKeyCondition(table: TablePlan, relation: RelationPlan, value: unknown): string {
+    const targets = table.columns.filter(c => c.role === "target");
+    const key = String(value);
+    const parts = targets.length === 1 ? [key] : key.split(relation.keySeparator ?? "_");
+    if (parts.length !== targets.length) {
+      return "FALSE";
+    }
+    return targets.map((c, i) => `${this.junctionColumn(table, c.name)} = ${sqlString(parts[i])}`).join(" AND ");
+  }
+
+  /**
+   * @param table - a junction table
+   * @param path - the attribute path inside an item
+   * @param expression - the comparison
+   * @param name - the attribute, for messages
+   * @returns the comparison on a target key part, a link field or the link attributes
+   * @throws WebdaError.BadRequest for a path the items do not have
+   */
+  protected itemComparison(
+    table: TablePlan,
+    path: string[],
+    expression: WebdaQL.ComparisonExpression,
+    name: string
+  ): WebdaQL.Expression {
+    const [head, ...sub] = path;
+    const column =
+      table.columns.find(c => c.role === "target" && (c.keyPart ?? "uuid") === head) ??
+      table.columns.find(c => c.role === "field" && c.field === head);
+    if (column && column.type.kind !== "json") {
+      if (sub.length) {
+        throw new WebdaError.BadRequest(`${name}: ${head} is not a JSON attribute`);
+      }
+      return this.columnComparison(this.junctionColumn(table, column.name), column.type, expression);
+    }
+    if (column) {
+      return this.jsonComparison(column.name, sub, expression);
+    }
+    const attributes = table.columns.find(c => c.role === "attributes");
+    if (!attributes) {
+      throw new WebdaError.BadRequest(`${name} is not an attribute of the items`);
+    }
+    return this.jsonComparison(attributes.name, path, expression);
+  }
+
+  /**
+   * A comparison on a reference to a composite key, on its key parts: the value is split on the key separator for
+   * `=`, `!=` and `IN` (a value that does not split matches nothing, or everything for `!=`); `LIKE` and the
+   * ordering operators compare the joined text; `IS NULL` holds when every part is NULL
+   * @param path - the attribute path
+   * @param target - the reference
+   * @param expression - the comparison
+   * @returns the condition
+   * @throws WebdaError.BadRequest for `CONTAINS` or a path inside the reference
+   */
+  protected referenceComparison(
+    path: string[],
+    target: Extract<AttributeTarget, { kind: "reference" }>,
+    expression: WebdaQL.ComparisonExpression
+  ): WebdaQL.Expression {
+    const { columns, relation } = target;
+    const name = this.attributeName(path);
+    if (path.length > 1 || expression.operator === "CONTAINS") {
+      throw new WebdaError.BadRequest(`${name} references a composite key: compare the whole key`);
+    }
+    const separator = relation.keySeparator!;
+    const quoted = columns.map(c => this.q(c.name));
+    const parts = (value: unknown): string[] | undefined => {
+      const split = String(value).split(separator);
+      return split.length === columns.length ? split : undefined;
+    };
+    const equals = (value: unknown): WebdaQL.Expression => {
+      const values = parts(value);
+      return values
+        ? new WebdaQL.AndExpression(
+            columns.map((c, i) => new SQLColumnComparisonExpression("=", quoted[i], values[i], c.type, this.sql))
+          )
+        : new WebdaQL.BooleanExpression(false);
+    };
+    switch (expression.operator) {
+      case "IS NULL":
+        return new SQLConditionExpression(`(${quoted.map(c => `${c} IS NULL`).join(" AND ")})`);
+      case "IS NOT NULL":
+        return new SQLConditionExpression(`(${quoted.map(c => `${c} IS NOT NULL`).join(" OR ")})`);
+      case "=":
+        return equals(expression.value);
+      case "IN":
+        return new WebdaQL.OrExpression((<unknown[]>expression.value).map(equals));
+      case "!=": {
+        const values = parts(expression.value);
+        return values
+          ? new WebdaQL.OrExpression(
+              columns.map((c, i) => new SQLColumnComparisonExpression("!=", quoted[i], values[i], c.type, this.sql))
+            )
+          : new WebdaQL.BooleanExpression(true);
+      }
+    }
+    const text = `(${quoted.map(c => this.sql.castText(c)).join(` || ${sqlString(separator)} || `)})`;
+    if (expression.operator === "LIKE") {
+      return new SQLConditionExpression(this.dialect.like(text, String(expression.value)));
+    }
+    return new SQLConditionExpression(
+      typeof expression.value === "string" ? `${text} ${expression.operator} ${sqlString(expression.value)}` : "FALSE"
+    );
   }
 
   /**
@@ -270,11 +527,99 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * @param source - a filled `ModelsMapped`
+   * @returns the columns of the mapped rows (or of their junction rows) holding the owner key, and the owner columns
+   *   they match, in the same order
+   */
+  protected mappedKeys(source: MappedSource): { links: ColumnPlan[]; owner: string[] } {
+    const links =
+      source.link.kind === "columns" ? source.link.columns : source.link.table.columns.filter(c => c.role === "target");
+    return {
+      links,
+      // A link to a planned model always names the key part it holds
+      owner: links.map(c => this.columnOfField(c.keyPart!))
+    };
+  }
+
+  /**
+   * Read the items of a filled `ModelsMapped` for a page of rows: the rows of the mapped model linking to them,
+   * through their reference columns or the junction of their link collection, in primary key order
+   * @param rows - the rows
+   * @param source - the mapped attribute
+   * @returns the items (the mapped attributes and the `uuid` of the mapped row) by owner key
+   */
+  protected async loadMapped(
+    rows: Record<string, unknown>[],
+    source: MappedSource
+  ): Promise<Map<string, Record<string, unknown>[]>> {
+    const { table, mapping, link } = source;
+    const { links, owner } = this.mappedKeys(source);
+    const s = this.q("_s");
+    const from = link.kind === "columns" ? s : this.q("_j");
+    const linkColumns = links.map(c => `${from}.${this.q(c.name)}`);
+    const args: unknown[] = [];
+    const tuples = rows.map(
+      row => `(${owner.map(c => (args.push(row[c]), this.dialect.placeholder(args.length))).join(", ")})`
+    );
+    const select = [
+      ...table.columns.map(c => `${s}.${this.q(c.name)}`),
+      ...linkColumns.map((c, i) => `${c} AS ${this.q(`_o${i}`)}`)
+    ];
+    let q = `SELECT ${select.join(", ")} FROM ${this.q(table.name)} ${s}`;
+    if (link.kind === "junction") {
+      const on = link.table.columns
+        .filter(c => c.role === "owner")
+        .map(
+          c =>
+            `${from}.${this.q(c.name)} = ${s}.${this.q(table.columns.find(k => k.field === c.keyPart && k.role !== "extra")!.name)}`
+        );
+      q += ` JOIN ${this.q(link.table.name)} ${from} ON ${on.join(" AND ")}`;
+    }
+    const type = `${s}.${this.q(mapping.typeColumn)}`;
+    const typed = [
+      `${type} IN (${source.types.map(t => sqlString(t)).join(", ")})`,
+      ...(source.untyped ? [`${type} IS NULL`] : [])
+    ];
+    const keys = linkColumns.length === 1 ? linkColumns[0] : `(${linkColumns.join(", ")})`;
+    q += ` WHERE ${keys} IN (${tuples.join(", ")}) AND (${typed.join(" OR ")})`;
+    q += ` ORDER BY ${table.primaryKey.map(c => `${s}.${this.q(c)}`).join(", ")}`;
+    const res = await this.execute(q, args);
+    const decode = (v: unknown) => this.dialect.decode(v);
+    const attributes = source.relation.attributes ?? ["uuid"];
+    const byOwner = new Map<string, Record<string, unknown>[]>();
+    const seen = new Set<string>();
+    for (const row of res.rows) {
+      const ownerKey = links.map((_, i) => String(row[`_o${i}`])).join("\u0000");
+      const key = table.primaryKey.map(c => String(row[c])).join(table.primaryKeySeparator ?? "_");
+      // A map linking twice to the same owner (two keys) is one mapped row
+      if (seen.has(`${ownerKey}\u0000\u0000${key}`)) {
+        continue;
+      }
+      seen.add(`${ownerKey}\u0000\u0000${key}`);
+      const json = mapping.fromRow(row, new Map(), decode);
+      const item: Record<string, unknown> = { uuid: key };
+      for (const attribute of attributes) {
+        if (json[attribute] !== undefined) {
+          item[attribute] = json[attribute];
+        }
+      }
+      byOwner.set(ownerKey, [...(byOwner.get(ownerKey) ?? []), item]);
+    }
+    return byOwner;
+  }
+
+  /**
    * @param rows - rows of the table
-   * @returns the model instances, their junction attributes filled
+   * @returns the model instances, their junction and filled `ModelsMapped` attributes set
    */
   protected async toInstances(rows: Record<string, unknown>[]): Promise<InstanceType<T>[]> {
     const junctions = await this.loadJunctions(rows);
+    const mapped = new Map<string, Map<string, Record<string, unknown>[]>>();
+    if (rows.length) {
+      for (const [attribute, source] of this.mapping.mapped()) {
+        mapped.set(attribute, await this.loadMapped(rows, source));
+      }
+    }
     const decode = (v: unknown) => this.dialect.decode(v);
     return rows.map(row => {
       const junctionRows = new Map<string, Record<string, unknown>[]>();
@@ -284,7 +629,18 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
           .join("\u0000");
         junctionRows.set(relation.attribute, junctions.get(relation.attribute)?.get(key) ?? []);
       }
-      return this.fromJSON(this.mapping.fromRow(row, junctionRows, decode));
+      const json = this.mapping.fromRow(row, junctionRows, decode);
+      const type = (row[this.mapping.typeColumn] as string | null) ?? this.mapping.table.root;
+      for (const [attribute, source] of this.mapping.mapped()) {
+        if (type && !this.mapping.appliesTo(source.relation.model, type)) {
+          continue;
+        }
+        const key = this.mappedKeys(source)
+          .owner.map(c => String(row[c]))
+          .join("\u0000");
+        json[attribute] = mapped.get(attribute)!.get(key) ?? [];
+      }
+      return this.fromJSON(json);
     });
   }
 

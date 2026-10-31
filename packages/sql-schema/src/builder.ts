@@ -617,6 +617,7 @@ class PlanBuilder {
       kind: relation.kind,
       ...(target ? { target } : {}),
       ...(relation.targetAttribute ? { targetAttribute: relation.targetAttribute } : {}),
+      ...(relation.attributes ? { attributes: relation.attributes } : {}),
       ...(relation.unique ? { unique: true } : {}),
       ...details,
       storage

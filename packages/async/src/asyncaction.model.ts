@@ -1,8 +1,10 @@
 import {
   Action,
   CoreModel,
+  GlobalOperationContext,
   IOperationContext,
   OperationContext,
+  SimpleOperationContext,
   WebContext,
   WebdaError,
   useContext,
@@ -43,8 +45,7 @@ const JOB_HEADERS = ["X-Job-Hash", "X-Job-Time"];
  */
 function hasJobHeaders(context: IOperationContext): context is WebContext {
   return (
-    context instanceof WebContext &&
-    JOB_HEADERS.every(h => context.getHttpContext()?.getUniqueHeader(h) !== undefined)
+    context instanceof WebContext && JOB_HEADERS.every(h => context.getHttpContext()?.getUniqueHeader(h) !== undefined)
   );
 }
 
@@ -78,7 +79,7 @@ export default class AsyncAction extends CoreModel {
   /**
    * Current status
    */
-  public status: "RUNNING" | "SUCCESS" | "ERROR" | "QUEUED" | "STARTING" | "TIMEOUT" | "SCHEDULED";
+  public status!: "RUNNING" | "SUCCESS" | "ERROR" | "QUEUED" | "STARTING" | "TIMEOUT" | "SCHEDULED";
 
   /**
    * Timestamp when the action was scheduled
@@ -101,7 +102,7 @@ export default class AsyncAction extends CoreModel {
   /**
    * Last time the job was updated
    */
-  public _lastJobUpdate: number;
+  public _lastJobUpdate!: number;
   /**
    * Results from the job
    */
@@ -125,12 +126,12 @@ export default class AsyncAction extends CoreModel {
   /**
    * Current logs
    */
-  public logs: string[];
+  public logs!: string[];
 
   /**
    * Secret key to post feedback
    */
-  public __secretKey: string;
+  public __secretKey!: string;
 
   /**
    * Expected action for the job
@@ -171,7 +172,11 @@ export default class AsyncAction extends CoreModel {
    * @returns the absolute url of the status action
    */
   public getHookUrl(): string {
-    return `${useParameters().apiUrl ?? ""}${useRouter().getModelUrl(this)}/${this.uuid}/status`;
+    const uuid = this.uuid;
+    if (!uuid) throw new WebdaError.BadRequest("Async action has no identifier");
+    const route = useRouter().getModelUrl(this);
+    if (!route) throw new WebdaError.BadRequest("Async action route is unavailable");
+    return `${useParameters()?.apiUrl ?? ""}${route}/${uuid}/status`;
   }
 
   /**
@@ -180,7 +185,7 @@ export default class AsyncAction extends CoreModel {
    * @param time - the job time header
    * @returns this
    */
-  public async update(body: any, time: string = undefined) {
+  public async update(body: any, time?: string) {
     if (body.logs && Array.isArray(body.logs)) {
       this.logs ??= [];
       this.logs.push(...body.logs);
@@ -245,7 +250,7 @@ export default class AsyncAction extends CoreModel {
         await this.verifyJobRequest(context);
         return true;
       } catch (err) {
-        return err.message;
+        return err instanceof Error ? err.message : String(err);
       }
     }
     return "This model does not support any action: override canAct";
@@ -318,7 +323,7 @@ export class AsyncOperationAction extends AsyncAction {
   /**
    * Operation to call
    */
-  public operationId: string;
+  public operationId?: string;
   /**
    * Context to call the operation with
    */
@@ -327,6 +332,12 @@ export class AsyncOperationAction extends AsyncAction {
    * Log level to capture
    */
   public logLevel: WorkerLogLevel;
+  /**
+   * The operation is called as the system (`useSystem`), a cron for example
+   *
+   * The context is stored as data: the runner rebuilds a system context from this flag
+   */
+  public system?: boolean;
 
   /**
    * @param operationId operation to call or initial data
@@ -340,9 +351,10 @@ export class AsyncOperationAction extends AsyncAction {
   ) {
     super(typeof operationId === "object" ? <any>operationId : undefined);
     if (typeof operationId !== "object") {
-      this.operationId = operationId;
+      this.operationId = typeof operationId === "string" ? operationId : undefined;
       this.context = context;
       this.logLevel = logLevel;
+      this.system = context?.isGlobalContext?.() === true;
     }
     this.logLevel ??= "INFO";
   }
@@ -354,6 +366,24 @@ export class AsyncOperationAction extends AsyncAction {
   isInternal() {
     return true;
   }
+}
+
+/**
+ * Rebuild the operation context of an AsyncOperationAction loaded from a store or received from a status hook
+ * @param context - the stored context, an OperationContext when the action never left the process
+ * @param system - the action runs as the system (see {@link AsyncOperationAction.system})
+ * @returns an operation context
+ */
+export function getActionOperationContext(context: any, system: boolean = false): OperationContext {
+  if (context instanceof OperationContext) {
+    return context;
+  }
+  const input = context?.input;
+  // A stored system action (a cron) runs as the system again
+  const ctx = system ? new GlobalOperationContext() : new SimpleOperationContext();
+  return ctx.setInput(
+    Buffer.isBuffer(input) ? input : input?.type === "Buffer" ? Buffer.from(input.data) : Buffer.from("{}")
+  );
 }
 
 export { AsyncAction };

@@ -134,6 +134,52 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.11...graphql-v4.0.0-beta.12) (2026-10-22)
+
+
+### Features
+
+* opt-in total count for paginated queries (Repository.count, REST/GraphQL total) ([#967](https://github.com/loopingz/webda.io/issues/967)) ([b43e6d1](https://github.com/loopingz/webda.io/commit/b43e6d18820773d24a8b754013dc4dec4c57e1c7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/runtime bumped to 4.0.0-beta.12
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.10...graphql-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+    * @webda/runtime bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.9...graphql-v4.0.0-beta.10) (2026-10-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/runtime bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.8...graphql-v4.0.0-beta.9) (2026-10-14)
 
 

@@ -262,7 +262,7 @@ model.upsert...
 ## Methods
 
 `toJSON` method is used to serialize the object to JSON.
-`toDTO` method is used to serialize the object for external usage
+`toDTO` method is used to serialize the object for external usage: the operation transports answer a returned model with it, as the caller
 `toProxy` method is used to proxy the object, allowing to have a secure behavior based on context
 `deserialize` method is used to deserialize the object from JSON, it is used by the `load` method and autocompleted by the webda compiler.
 `fromDTO` method is used to deserialize the object for external usage

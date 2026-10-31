@@ -105,6 +105,64 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.11...async-v4.0.0-beta.12) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** instance actions declaring non-context parameters now receive them instead of the operation context. Take the context with a context-typed parameter or useContext().
+* **utils:** @webda/tsc-esm is no longer published. Import its types and helpers from @webda/utils, and createClassDecorator, createPropertyDecorator and createMethodDecorator from @webda/decorators.
+
+### Features
+
+* **core:** model actions receive their typed parameters ([#946](https://github.com/loopingz/webda.io/issues/946), phase 1) ([#955](https://github.com/loopingz/webda.io/issues/955)) ([7e8eebd](https://github.com/loopingz/webda.io/commit/7e8eebd47af7748936272c43869152bf1716b485))
+
+
+### Bug Fixes
+
+* enable strict mode in async and gcp ([#875](https://github.com/loopingz/webda.io/issues/875)) ([12a6206](https://github.com/loopingz/webda.io/commit/12a6206db1420c510ef96f14b40fce5c6430d850))
+
+
+### Code Refactoring
+
+* **utils:** merge @webda/tsc-esm into @webda/utils and remove it ([#942](https://github.com/loopingz/webda.io/issues/942)) ([efcf87c](https://github.com/loopingz/webda.io/commit/efcf87c5adb1b697c4cf433545efb09a51459837))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.10...async-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.9...async-v4.0.0-beta.10) (2026-10-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.8...async-v4.0.0-beta.9) (2026-10-14)
 
 

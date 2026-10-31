@@ -117,6 +117,64 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.11...gcp-v4.0.0-beta.12) (2026-10-22)
+
+
+### Features
+
+* **binary:** attach direct uploads on verified client completion ([#944](https://github.com/loopingz/webda.io/issues/944)) ([736942e](https://github.com/loopingz/webda.io/commit/736942eb194f66924ceeaefd14d8515c2d0b84d7))
+
+
+### Bug Fixes
+
+* **core:** Queue.consume waits between receives returning no message ([#920](https://github.com/loopingz/webda.io/issues/920)) ([7a41465](https://github.com/loopingz/webda.io/commit/7a41465f0afbc264e5409dfd491f3a3212408bf2))
+* enable strict mode in async and gcp ([#875](https://github.com/loopingz/webda.io/issues/875)) ([12a6206](https://github.com/loopingz/webda.io/commit/12a6206db1420c510ef96f14b40fce5c6430d850))
+* **gcp:** nack failed messages so GCPQueue and GCPPubSub redeliver them ([#919](https://github.com/loopingz/webda.io/issues/919)) ([25a7503](https://github.com/loopingz/webda.io/commit/25a75033742ca83bd27ef3b27ba66568485b3dcc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.12
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.10...gcp-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.11
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.9...gcp-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **bench:** benchmarks for Store, Queue, Pub/Sub and the blog-system application ([#914](https://github.com/loopingz/webda.io/issues/914)) ([#916](https://github.com/loopingz/webda.io/issues/916)) ([aed07ef](https://github.com/loopingz/webda.io/commit/aed07ef3efe25cfd6957eb007a3216e181be7681))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.10
+    * @webda/compiler bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.8...gcp-v4.0.0-beta.9) (2026-10-14)
 
 

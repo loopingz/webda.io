@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, watch as watchFiles, type FSWatcher } from "node:fs";
+import { existsSync, globSync, mkdirSync, readFileSync, watch as watchFiles, type FSWatcher } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FileUtils, listSharedImports } from "@webda/utils";
 import { useLog } from "@webda/workout";
@@ -90,6 +90,78 @@ export function getGeneratorVersions(
   return versions;
 }
 
+/** Sections of a `package.json` whose packages the application's types can come from. */
+const DEPENDENCY_SECTIONS = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
+
+/**
+ * Locate an installed package the way Node does: `node_modules/<name>` in the
+ * application root, then in each parent folder.
+ *
+ * Not `require.resolve`, as not every package exports `./package.json`.
+ * @param name - package name
+ * @param appRoot - application root
+ * @returns the package folder, or undefined when it is not installed
+ */
+function findPackage(name: string, appRoot: string): string | undefined {
+  let dir = appRoot;
+  while (true) {
+    const candidate = join(dir, "node_modules", name);
+    if (existsSync(join(candidate, "package.json"))) {
+      return candidate;
+    }
+    if (dirname(dir) === dir) {
+      return undefined;
+    }
+    dir = dirname(dir);
+  }
+}
+
+/**
+ * Digest of the dependencies the application's schemas can inherit from.
+ *
+ * The source digest only covers the application's own files, so a parameter
+ * class changed in `@webda/core` left every dependent `webda.module.json`
+ * stale (#923). Every declared dependency contributes its `package.json`,
+ * which catches upgrades; a Webda module — a package shipping a
+ * `webda.module.json` — also contributes that file and its declaration files,
+ * which change when a linked workspace dependency is rebuilt. Only the direct
+ * dependencies are read: a transitive change reaches the application through
+ * the declarations of the dependency that re-exports it.
+ * @param appRoot - application root
+ * @returns the MD5 hex digest
+ */
+export function getDependencyDigest(appRoot: string): string {
+  const hash = createHash("md5");
+  let pkg: Record<string, any> = {};
+  try {
+    pkg = JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8"));
+  } catch {
+    // No manifest, no dependencies
+  }
+  const names = new Set<string>(DEPENDENCY_SECTIONS.flatMap(section => Object.keys(pkg[section] ?? {})));
+  for (const name of [...names].sort()) {
+    hash.update(`${name}\0`);
+    const folder = findPackage(name, appRoot);
+    if (!folder) {
+      continue;
+    }
+    hash.update(readFileSync(join(folder, "package.json")));
+    if (!existsSync(join(folder, "webda.module.json"))) {
+      continue;
+    }
+    hash.update(readFileSync(join(folder, "webda.module.json")));
+    globSync("**/*.d.ts", { cwd: folder, withFileTypes: true, exclude: f => f.name === "node_modules" })
+      .filter(f => f.isFile())
+      .map(f => join(f.parentPath, f.name))
+      .sort()
+      .forEach(f => {
+        hash.update(f.substring(folder.length));
+        hash.update(readFileSync(f));
+      });
+  }
+  return hash.digest("hex");
+}
+
 /**
  * Compiler
  *
@@ -161,6 +233,7 @@ export class Compiler {
     const webdaCache: {
       sourceDigest?: string;
       moduleDigest?: string;
+      dependencyDigest?: string;
       generator?: Record<string, string>;
     } = FileUtils.load(f, "json");
     const generator = getGeneratorVersions(this.project.getAppPath(), this.resolveGenerator);
@@ -175,6 +248,10 @@ export class Compiler {
     }
     const currentDigest = this.project.getDigest();
     if (webdaCache.sourceDigest !== currentDigest) {
+      return true;
+    }
+    if (webdaCache.dependencyDigest !== getDependencyDigest(this.project.getAppPath())) {
+      useLog("INFO", "Dependencies changed, rebuilding");
       return true;
     }
     // Cross-check the on-disk webda.module.json: sources may be unchanged but
@@ -261,7 +338,7 @@ export class Compiler {
         sharedImports: this.sharedImports()
       });
     } catch (err) {
-      useLog("ERROR", err.message);
+      useLog("ERROR", err instanceof Error ? err.message : String(err));
       this.project.emit("compilationError");
       return false;
     }
@@ -306,19 +383,22 @@ export class Compiler {
   }
 
   /**
-   * Persist the build cache: source digest plus the generated module file's
-   * content hash, so {@link requireCompilation} can detect both source-file
-   * changes and external mutations of webda.module.json.
+   * Persist the build cache: source and dependency digests plus the generated
+   * module file's content hash, so {@link requireCompilation} can detect
+   * source-file changes, rebuilt or upgraded dependencies and external
+   * mutations of webda.module.json.
    */
   private updateCache(): void {
     const f = this.project.getAppPath(".webda/cache");
     const webdaCache: {
       sourceDigest?: string;
       moduleDigest?: string;
+      dependencyDigest?: string;
       generator?: Record<string, string>;
     } = existsSync(f) ? FileUtils.load(f, "json") : {};
     webdaCache.sourceDigest = this.project.getDigest();
     webdaCache.moduleDigest = this.fileDigest(this.project.getAppPath("webda.module.json"));
+    webdaCache.dependencyDigest = getDependencyDigest(this.project.getAppPath());
     webdaCache.generator = { ...getGeneratorVersions(this.project.getAppPath(), this.resolveGenerator) };
     FileUtils.save(webdaCache, f, "json");
   }

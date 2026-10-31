@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as WebdaQL from "@webda/ql";
+import { PostgresDialect } from "./dialect.js";
 import { PostgresRepository, SQLClient, SQLComparisonExpression } from "./sqlstore.js";
+import { Animal, Dog } from "@webda/sql/lib/test";
 
 /**
  * Translation tests: a fake SQL client captures the generated SQL, so no
@@ -36,11 +38,13 @@ async function where(query: string): Promise<string> {
 
 describe("SQLComparisonExpression", () => {
   it("doubles single quotes in string literals", () => {
-    expect(new SQLComparisonExpression("=", "a", "x' OR 1=1 --").toString()).toBe("a = 'x'' OR 1=1 --'");
+    expect(new SQLComparisonExpression("=", "a", "x' OR 1=1 --", new PostgresDialect()).toString()).toBe(
+      "a = 'x'' OR 1=1 --'"
+    );
   });
 
   it("keeps backslashes literal (standard_conforming_strings)", () => {
-    expect(new SQLComparisonExpression("=", "a", "c:\\dir").toString()).toBe("a = 'c:\\dir'");
+    expect(new SQLComparisonExpression("=", "a", "c:\\dir", new PostgresDialect()).toString()).toBe("a = 'c:\\dir'");
   });
 });
 
@@ -260,5 +264,173 @@ describe("PostgresRepository collection items with quotes (#670)", () => {
     expect(q).toContain("'{1}', $2::jsonb");
     expect(q).toMatch(/->>'hash'=\$3$/);
     expect(values).toEqual(["a", JSON.stringify(item), "it's"]);
+  });
+});
+
+/**
+ * Golden check for the @webda/sql extraction: every statement the repository issues, recorded through a fake
+ * client. The snapshot must stay byte-identical when PostgresRepository becomes SQLRepository + PostgresDialect.
+ */
+describe("PostgresRepository SQL snapshot", () => {
+  class Animal {
+    static Metadata = { Identifier: "Test/Animal", Subclasses: [] as any[] };
+    uuid!: string;
+    constructor(data?: any) {
+      Object.assign(this, data);
+    }
+  }
+  class Dog extends Animal {
+    static Metadata = { Identifier: "Test/Dog", Subclasses: [] as any[] };
+  }
+  Animal.Metadata.Subclasses.push(Dog);
+
+  function recorder() {
+    const statements: { q: string; values?: any[] }[] = [];
+    const client: SQLClient = {
+      query: async (q: string, values?: any[]) => {
+        statements.push({ q, values });
+        return { rows: [{ data: { uuid: "a", __type: "Test/Dog" }, uuid: "a" }], rowCount: 1 };
+      }
+    };
+    return { statements, client };
+  }
+
+  it("records every statement", async () => {
+    vi.useFakeTimers({ now: new Date("2026-01-01T00:00:00.000Z") });
+    try {
+      const { statements, client } = recorder();
+      const animals = new PostgresRepository(
+        Animal as any,
+        ["uuid"],
+        client,
+        "animals",
+        undefined,
+        undefined,
+        "Test/Animal"
+      );
+      const dogs = new PostgresRepository(Dog as any, ["uuid"], client, "animals", undefined, undefined, "Test/Animal");
+      const plain = new PostgresRepository(FakeModel as any, ["uuid"], client, "items");
+      await dogs.setupTable();
+      await dogs.get("a");
+      await dogs.exists("a");
+      await dogs.create(new Dog({ uuid: "a", n: 1 }));
+      await animals.update({ uuid: "a", n: 2 });
+      await animals.update(new Dog({ uuid: "a", n: 2 }), "n", 1);
+      await animals.patch("a", { n: 3, tags: ["x"] });
+      await animals.patch("a", { n: 3, __type: "Test/Dog" }, "n", 2);
+      await dogs.delete("a");
+      await dogs.delete("a", "n", 3);
+      await dogs.removeAttribute("a", "n");
+      await dogs.removeAttribute("a", "n", "n", 3);
+      await dogs.incrementAttributes("a", { count: 2, other: -1 } as any);
+      await dogs.incrementAttributes("a", ["count"] as any);
+      await dogs.upsertItemToCollection("a", "files" as any, { name: "l'été.png" } as any);
+      await dogs.upsertItemToCollection("a", "files" as any, { name: "x" } as any, 1, "hash", "h2");
+      await dogs.deleteItemFromCollection("a", "files" as any, 0);
+      await dogs.deleteItemFromCollection("a", "files" as any, 0, "hash", "h2");
+      await dogs.backfillTypes();
+      await animals.backfillTypes();
+      for (const query of [
+        "",
+        "n < 2",
+        "n = 1",
+        "n != 1",
+        "n = 'abc'",
+        "b = TRUE",
+        "b != TRUE",
+        "s = 'x'",
+        "s != 'x'",
+        "s LIKE 'a%'",
+        "s IS NULL",
+        "n IS NOT NULL",
+        "tags CONTAINS 'x'",
+        "n IN [1, 5]",
+        "n < 2 OR b = TRUE",
+        "a.b = 'x' ORDER BY a.b DESC, n ASC LIMIT 5 OFFSET '10'",
+        "name = 'x'' OR 1=1 --'"
+      ]) {
+        await dogs.query(query);
+        await plain.query(query);
+      }
+      await dogs.deleteMany("DELETE WHERE n < 2 LIMIT 2");
+      await plain.deleteMany("DELETE");
+      await dogs.updateMany(
+        "UPDATE SET name = 'even', profile.level = 3, profile.deep.flag = TRUE, list.1.v = 3 WHERE n = 1 LIMIT 1"
+      );
+      await plain.updateMany("UPDATE SET tags.0 = 'n'");
+      await dogs.aggregate({ metrics: { n: { count: "*" } } } as any);
+      await dogs.aggregate({
+        groupBy: ["team.name"],
+        metrics: {
+          n: { count: "*" },
+          d: { countDistinct: "kind" },
+          s: { sum: "points" },
+          a: { avg: "points" },
+          mn: { min: "points" },
+          mx: { max: "points" }
+        },
+        orderBy: [
+          { key: "mx", direction: "DESC" },
+          { key: "mn", direction: "ASC" }
+        ],
+        limit: 3
+      } as any);
+      await plain.aggregate({ filter: "n > 1", groupBy: ["kind"], metrics: { n: { count: "*" } } } as any);
+      await dogs.__clean();
+      expect(statements).toMatchSnapshot();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("PostgresRepository count", () => {
+  /**
+   * @param model - the model class
+   * @param n - the count the fake server returns
+   * @returns the repository and the captured statements
+   */
+  function counting(model: any, n: string) {
+    const queries: string[] = [];
+    const client: SQLClient = {
+      query: async (q: string) => {
+        queries.push(q);
+        return { rows: [{ n }], rowCount: 1 };
+      }
+    };
+    return { repo: new PostgresRepository(model, ["uuid"], client, "items"), queries };
+  }
+
+  it("runs one COUNT(*) for an exact count", async () => {
+    const { repo, queries } = counting(FakeModel, "42");
+    // pg returns COUNT(*) as a bigint string
+    expect(await repo.count("name = 'x' ORDER BY name ASC LIMIT 5")).toEqual({
+      value: 42,
+      relation: "eq",
+      native: true
+    });
+    expect(queries).toEqual([`SELECT COUNT(*) AS n FROM items WHERE (data#>>'{name}' = 'x')`]);
+  });
+
+  it("runs one capped sub-select for a count with max", async () => {
+    const { repo, queries } = counting(FakeModel, "11");
+    expect(await repo.count("", undefined, { max: 10 })).toEqual({ value: 10, relation: "gte", native: true });
+    expect(queries).toEqual([`SELECT COUNT(*) AS n FROM (SELECT 1 FROM items WHERE (TRUE) LIMIT 11) s`]);
+    const exact = counting(FakeModel, "10");
+    expect(await exact.repo.count("", undefined, { max: 10 })).toEqual({ value: 10, relation: "eq", native: true });
+  });
+
+  it("keeps the class condition", async () => {
+    const { repo, queries } = counting(Dog, "1");
+    await repo.count("kind = 'dog'");
+    await repo.count("kind = 'dog'", undefined, { max: 3 });
+    const classCondition = `(lower(data->>'__type') IN ('test/dog'))`;
+    expect(queries).toEqual([
+      `SELECT COUNT(*) AS n FROM items WHERE (data#>>'{kind}' = 'dog') AND ${classCondition}`,
+      `SELECT COUNT(*) AS n FROM (SELECT 1 FROM items WHERE (data#>>'{kind}' = 'dog') AND ${classCondition} LIMIT 4) s`
+    ]);
+    const parent = counting(Animal, "2");
+    await parent.repo.count();
+    expect(parent.queries[0]).toMatch(/IN \('test\/animal', 'test\/dog', 'test\/cat'\)/);
   });
 });

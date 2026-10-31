@@ -3,6 +3,53 @@
   "beans": {},
   "deployers": {},
   "moddas": {
+    "Webda/McpOAuthAuthenticator": {
+      "Import": "lib/oauth.service:McpOAuthAuthenticator",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "McpOAuthAuthenticator parameters",
+        "properties": {
+          "authorizationServers": {
+            "description": "Authorization servers advertised in the protected resource metadata; defaults to `publicUrl` when set, otherwise\nthe request origin (with the application prefix)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "publicUrl": {
+            "description": "Canonical public origin of the application (absolute, e.g. `https://mcp.example.com`): the token audience and the\nadvertised resource are derived from it instead of the request headers. Set it in production, notably behind a proxy",
+            "type": "string"
+          },
+          "resourceMetadataPath": {
+            "default": "/.well-known/oauth-protected-resource",
+            "description": "Path serving the RFC 9728 protected resource metadata",
+            "type": "string"
+          },
+          "scopesSupported": {
+            "description": "Scopes advertised in the protected resource metadata (`scopes_supported`); defaults to what the Webda authorization\nserver advertises: `*`, the top-level operation groups (`<Group>.*`) and `offline_access`",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "McpOAuthAuthenticator"
+      },
+      "Configuration": "lib/oauth.service:McpOAuthAuthenticatorParameters"
+    },
     "Webda/McpService": {
       "Import": "lib/mcpservice.service:McpService",
       "Schema": {
@@ -13,6 +60,10 @@
             "additionalProperties": false,
             "properties": {
               "models": {
+                "default": [
+                  "*"
+                ],
+                "description": "Models exposed as resources",
                 "items": {
                   "type": "string"
                 },
@@ -23,6 +74,7 @@
           },
           "stdio": {
             "additionalProperties": false,
+            "default": {},
             "description": "stdio defaults",
             "properties": {
               "user": {
@@ -58,6 +110,11 @@
           "authenticator": {
             "description": "Name of a service implementing McpAuthenticator; default uses the Webda session",
             "type": "string"
+          },
+          "listOutOfScopeTools": {
+            "default": false,
+            "description": "List the tools the token scope does not cover in tools/list; calling them still\nanswers insufficient_scope so the client can ask for a wider grant",
+            "type": "boolean"
           },
           "maxOutputBytes": {
             "default": 1048576,
@@ -111,6 +168,7 @@
           },
           "stdio": {
             "$ref": "#/definitions/stdio",
+            "default": {},
             "description": "stdio defaults"
           },
           "type": {

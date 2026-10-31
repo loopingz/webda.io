@@ -3,7 +3,7 @@ import { suite, test } from "@webda/test";
 import { getUuid } from "./uuid.js";
 
 @suite
-class UuidTest  {
+class UuidTest {
   @test
   normal() {
     let uuid = getUuid();

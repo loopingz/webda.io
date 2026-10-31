@@ -142,10 +142,16 @@ function selectFields(query: string): string | undefined {
  */
 export function referencedAttributes(query: string): string[] {
   const names = new Set<string>();
-  for (const match of query.matchAll(
-    /([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)(?:\s*(?:=|!=|<|>|<=|>=|IN|LIKE)|\s+IS\s+(?:NOT\s+)?NULL\b)/gi
-  )) {
-    const head = match[1].split(".")[0];
+  const identifier = /[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*/g;
+  const comparison = /^(?:=|!=|<|>|IN|LIKE)/i;
+  const nullComparison = /^IS\s+(?:NOT\s+)?NULL\b/i;
+  for (const match of query.matchAll(identifier)) {
+    const end = match.index! + match[0].length;
+    let cursor = end;
+    while (cursor < query.length && /\s/.test(query[cursor])) cursor++;
+    const suffix = query.slice(cursor);
+    if (!comparison.test(suffix) && !(cursor > end && nullComparison.test(suffix))) continue;
+    const head = match[0].split(".")[0];
     if (!/^(AND|OR|NOT|TRUE|FALSE|IN|LIKE|IS|NULL)$/i.test(head)) names.add(head);
   }
   for (const field of selectFields(query)?.split(",") ?? []) {

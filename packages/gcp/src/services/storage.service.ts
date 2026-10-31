@@ -5,14 +5,26 @@ import {
   BinaryMap,
   CloudBinary,
   CloudBinaryParameters,
+  ContentBody,
+  ContentCredentialNotFoundError,
+  ContentExistsError,
+  ContentGetOptions,
+  ContentInfo,
+  ContentNotFoundError,
+  ContentPutOptions,
   CoreModel,
+  lookupMimeType,
   OperationContext,
+  parseContentUrl,
+  SecretString,
+  toReadable,
   useModelId
 } from "@webda/core";
 import { StorageFinder, Throttler } from "@webda/utils";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream, Writable } from "node:stream";
+import { WebdaError } from "@webda/core";
 import { pipeline } from "node:stream/promises";
 
 export type StorageObject = {
@@ -56,11 +68,19 @@ export class StorageParameters extends CloudBinaryParameters {
   /**
    * Bucket to store binaries in
    */
-  bucket: string;
+  bucket!: string;
   /**
    * Specify endpoint for GCS
    */
   endpoint?: string;
+  /** Default service account credentials, otherwise application default credentials are used. */
+  credentials?: StorageOptions["credentials"];
+  /** Path to the default service account key file. */
+  keyFilename?: string;
+  /** Project used with the default credentials. */
+  projectId?: string;
+  /** Named credentials selectable through `?credential=<name>` in content URLs. */
+  credentialProfiles?: Record<string, Pick<StorageOptions, "credentials" | "keyFilename" | "projectId">>;
 }
 
 /**
@@ -77,20 +97,16 @@ export class GCSFinder implements StorageFinder {
 
   /**
    * Get info from url
-   * @param path - the gs:// url
+   * @param path - the gs:// or gcs:// url
    * @returns the bucket and key
    */
   getInfo(path: string): { bucket: string; key: string } {
-    const url = new URL(path);
-    if (url.protocol !== "gs:") {
+    const { scheme, bucket, key } = parseContentUrl(path);
+    if ((scheme !== "gs" && scheme !== "gcs") || !bucket) {
       throw new Error("Invalid protocol path should be gs://bucket/key");
     }
-    let key = url.pathname;
-    if (key.startsWith("/")) {
-      key = key.substring(1);
-    }
     return {
-      bucket: url.host,
+      bucket,
       key
     };
   }
@@ -110,13 +126,14 @@ export class GCSFinder implements StorageFinder {
     _depth?: number
   ): Promise<void> {
     const { bucket, key } = this.getInfo(path);
-    let pageToken;
+    let pageToken: string | undefined;
     do {
-      const res = await this._storage.bucket(bucket).getFiles(pageToken ? pageToken : { prefix: key });
+      const query = pageToken ? { prefix: key, pageToken } : { prefix: key };
+      const res = await this._storage.bucket(bucket).getFiles(query);
       for (const file of res[0]) {
         processor(`${path}${file.name}`);
       }
-      pageToken = res[1].pageToken;
+      pageToken = res[1]?.pageToken;
     } while (pageToken);
   }
 
@@ -133,7 +150,7 @@ export class GCSFinder implements StorageFinder {
       processor?: (filepath: string) => void;
     }
   ): Promise<string[]> {
-    const res = [];
+    const res: string[] = [];
     await this.walk(currentPath, f => {
       if (options?.filterPattern && !options.filterPattern.test(f)) {
         return;
@@ -174,14 +191,29 @@ export class GCSFinder implements StorageFinder {
  * @WebdaModda GoogleCloudStorage
  */
 export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
+  readonly schemes = ["gs", "gcs"];
   private _storage?: GCS;
+  private contentClients = new Map<string, GCS>();
+
+  /**
+   * Release URL-selected clients when the service stops.
+   */
+  async stop(): Promise<void> {
+    this.contentClients.clear();
+    await super.stop();
+  }
   /**
    * GCS client, created on first use
    * @returns the GCS client
    */
   private get storage(): GCS {
     if (!this._storage) {
-      this._storage = new GCS({ apiEndpoint: this.parameters.endpoint });
+      this._storage = new GCS({
+        apiEndpoint: this.parameters.endpoint,
+        credentials: SecretString.unwrap(this.parameters.credentials),
+        keyFilename: this.parameters.keyFilename,
+        projectId: this.parameters.projectId
+      });
     }
     return this._storage;
   }
@@ -192,8 +224,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    const key = this._getKey(info.hash);
-    return this.getContent({ key });
+    if (!info.hash) throw new WebdaError.BadRequest("Binary map has no hash");
+    return this.getContent(this.getContentUrl(this._getKey(info.hash)));
   }
 
   /**
@@ -204,6 +236,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the signed url
    */
   getSignedUrlFromMap(map: BinaryMap, expires: number, _context: OperationContext): Promise<string> {
+    if (!map.hash) throw new WebdaError.BadRequest("Binary map has no hash");
     return this.getSignedUrl({
       key: this._getKey(map.hash),
       expires,
@@ -212,19 +245,150 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
-   * Get object content as a stream
-   * @param params - the object to read
-   * @param params.bucket - the bucket, default to the one predefined
-   * @param params.key - the object key
-   * @returns the content stream
+   * Get content read stream from GCS
+   * @param urlOrObject - gs:// or gcs:// URL or legacy StorageObject
+   * @param options - range options
+   * @returns Readable stream
    */
-  async getContent({ bucket, key }: StorageObject): Promise<Readable> {
-    return this.getStorageBucket(bucket).file(key).createReadStream();
+  async getContent(urlOrObject: string | StorageObject, options?: ContentGetOptions): Promise<Readable> {
+    let targetBucket: string;
+    let targetKey: string;
+    let url: string;
+    let selectedEndpoint: string | undefined;
+    let selectedCredential: string | undefined;
+    if (typeof urlOrObject === "string") {
+      url = urlOrObject;
+      const { bucket, key, endpoint, credential } = parseContentUrl(urlOrObject, this.parameters.bucket);
+      targetBucket = bucket!;
+      targetKey = key;
+      selectedEndpoint = endpoint;
+      selectedCredential = credential;
+    } else {
+      targetBucket = urlOrObject.bucket || this.parameters.bucket;
+      targetKey = urlOrObject.key;
+      url = `gs://${targetBucket}/${targetKey}`;
+    }
+
+    const file = this.getStorageBucket(targetBucket, selectedEndpoint, selectedCredential).file(targetKey);
+    const [exists] = await file.exists();
+    if (!exists) {
+      throw new ContentNotFoundError(`Content not found: ${url}`);
+    }
+
+    const streamOpts: any = {};
+    if (options?.range) {
+      streamOpts.start = options.range.start;
+      if (options.range.end !== undefined) {
+        streamOpts.end = options.range.end;
+      }
+    }
+    if (this.metrics && (this.metrics as any).download) {
+      (this.metrics as any).download.inc();
+    }
+    return file.createReadStream(streamOpts);
+  }
+
+  /**
+   * Put content to GCS
+   * @param url - gs:// or gcs:// URL
+   * @param body - Readable stream, Buffer, or string
+   * @param options - write options
+   * @returns ContentInfo
+   */
+  async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket!;
+    const file = this.getStorageBucket(targetBucket, endpoint, credential).file(key);
+
+    if (options?.ifNotExists) {
+      const [exists] = await file.exists();
+      if (exists) {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+    }
+
+    const contentType = options?.contentType || lookupMimeType(key);
+    const readable = toReadable(body);
+    const writeOpts: any = {
+      contentType,
+      resumable: options?.contentLength === undefined || options.contentLength > 8 * 1024 * 1024
+    };
+    if (options?.metadata) {
+      writeOpts.metadata = { metadata: options.metadata };
+    }
+    if (options?.ifNotExists) {
+      writeOpts.preconditionOpts = { ifGenerationMatch: 0 };
+    }
+
+    try {
+      await pipeline(readable, file.createWriteStream(writeOpts));
+      if (this.metrics && (this.metrics as any).upload) {
+        (this.metrics as any).upload.inc();
+      }
+    } catch (err: any) {
+      if (err?.code === 412 || err?.name === "PreconditionFailed") {
+        throw new ContentExistsError(`Content already exists: ${url}`);
+      }
+      throw err;
+    }
+
+    const [metadata] = await file.getMetadata();
+    return {
+      url,
+      size: Number(metadata.size),
+      etag: metadata.etag,
+      contentType: metadata.contentType || contentType,
+      metadata: (metadata.metadata as Record<string, string>) || options?.metadata,
+      lastModified: metadata.updated ? new Date(metadata.updated) : undefined
+    };
+  }
+
+  /**
+   * Head content metadata from GCS
+   * @param url - gs:// or gcs:// URL
+   * @returns ContentInfo or undefined if not found
+   */
+  async headContent(url: string): Promise<ContentInfo | undefined> {
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket!;
+    const file = this.getStorageBucket(targetBucket, endpoint, credential).file(key);
+    try {
+      const [metadata] = await file.getMetadata();
+      return {
+        url,
+        size: Number(metadata.size),
+        etag: metadata.etag,
+        contentType: metadata.contentType,
+        metadata: metadata.metadata as Record<string, string>,
+        lastModified: metadata.updated ? new Date(metadata.updated) : undefined
+      };
+    } catch (err: any) {
+      if (err?.code === 404 || err?.status === 404 || err?.name === "NotFoundError") {
+        return undefined;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Delete content from GCS
+   * @param url - gs:// or gcs:// URL
+   */
+  async deleteContent(url: string): Promise<void> {
+    const { bucket, key, endpoint, credential } = parseContentUrl(url, this.parameters.bucket);
+    const targetBucket = bucket!;
+    try {
+      await this.getStorageBucket(targetBucket, endpoint, credential).file(key).delete({ ignoreNotFound: true });
+    } catch (err: any) {
+      if (err?.code !== 404 && err?.status !== 404) {
+        throw err;
+      }
+    }
   }
 
   /**
    * Upload a local file to GCS bucket destination
-   *
+   * @deprecated Use {@link putContent} instead.
    * @param key - key to add to
    * @param body - content of the object, a string is a local file path
    * @param metadata - to put along the object
@@ -246,7 +410,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       bufferStream.end(body);
       stream = bufferStream;
     } else {
-      contentType = mime.lookup(body, "application/octet-stream");
+      const detected = mime.lookup(String(body));
+      contentType = typeof detected === "string" ? detected : "application/octet-stream";
       stream = createReadStream(body);
     }
     await pipeline(stream, file.createWriteStream({ contentType, resumable: false }));
@@ -257,24 +422,67 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * Return the Google Bucket directly
    *
    * @param bucket - name of the bucket default to the one predefined
+   * @param endpoint - optional URL-selected API endpoint
+   * @param credential - optional configured credential profile
    * @returns the bucket
    */
-  getStorageBucket(bucket: string = this.parameters.bucket): Bucket {
-    return this.storage.bucket(bucket);
+  getStorageBucket(bucket: string = this.parameters.bucket, endpoint?: string, credential?: string): Bucket {
+    if (!endpoint && !credential) {
+      return this.storage.bucket(bucket);
+    }
+    const cacheKey = JSON.stringify([endpoint, credential]);
+    let storage = this.contentClients.get(cacheKey);
+    if (!storage) {
+      let authOptions: Pick<StorageOptions, "credentials" | "keyFilename" | "projectId"> = {
+        credentials: SecretString.unwrap(this.parameters.credentials),
+        keyFilename: this.parameters.keyFilename,
+        projectId: this.parameters.projectId
+      };
+      if (credential) {
+        if (!Object.prototype.hasOwnProperty.call(this.parameters.credentialProfiles ?? {}, credential)) {
+          throw new ContentCredentialNotFoundError(credential);
+        }
+        authOptions = SecretString.unwrap(this.parameters.credentialProfiles![credential]);
+        authOptions.projectId ??= this.parameters.projectId;
+      }
+      storage = new GCS({ ...authOptions, apiEndpoint: endpoint ?? this.parameters.endpoint });
+      // The SDK gives STORAGE_EMULATOR_HOST priority for baseUrl even when
+      // apiEndpoint is explicit. A URL-selected endpoint must win for this client.
+      if (endpoint) storage.baseUrl = `${endpoint}/storage/v1`;
+      this.contentClients.set(cacheKey, storage);
+    }
+    return storage.bucket(bucket);
   }
 
   /**
    * @inheritdoc
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param property - the object property
+   * @param property - the object property: only the exact usage marker of (model, property, uuid) is removed (see
+   * usageMarker)
+   * @param model - the model identifier of the object
    */
-  async _cleanUsage(hash: string, uuid: string, property?: string) {
-    const suffix = property ? `${property}_${uuid}` : `_${uuid}`;
+  async _cleanUsage(hash: string, uuid: string, property: string, model: string) {
+    if (!property || !model) {
+      // A suffix match would remove the usages of other owners (`my_<uuid>`): the marker must be named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute or model given`);
+      return;
+    }
+    const marker = this._getKey(hash, this.usageMarker(model, property, uuid));
+    const legacy = this._getKey(hash, this.legacyUsageMarker(property, uuid));
     let files: File[] = (await this.getStorageBucket().getFiles({ prefix: this._getKey(hash, "") }))[0];
-    await Promise.all(files.filter(f => f.name.endsWith(suffix)).map(f => f.delete()));
+    const removed = new Set([marker]);
+    // A legacy marker is shared by every model with this uuid and property: removed only when written for this model
+    const legacyFile = files.find(f => f.name === legacy);
+    if (legacyFile) {
+      const [meta] = await legacyFile.getMetadata();
+      if (meta?.metadata?.webdaModel === model) {
+        removed.add(legacy);
+      }
+    }
+    await Promise.all(files.filter(f => removed.has(f.name)).map(f => f.delete()));
     // If no more usage, delete the data
-    files = files.filter(f => !f.name.endsWith(suffix));
+    files = files.filter(f => !removed.has(f.name));
     if (files.length == 1) {
       await Promise.all(files.map(f => f.delete()));
     }
@@ -302,15 +510,23 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     this.checkMap(<any>object, property);
     await file.getHashes();
 
-    const [exists] = await this.getStorageBucket().file(this._getKey(file.hash)).exists();
+    const hash = file.hash;
+    if (!hash) throw new WebdaError.BadRequest("Binary file has no hash");
+    const [exists] = await this.getStorageBucket().file(this._getKey(hash)).exists();
     // If data already exist no need to upload
     if (!exists) {
-      await this.putObject(this._getKey(file.hash), await file.get(), {
-        ...file.metadata,
-        proof: file.challenge
+      const url = this.getContentUrl(this._getKey(hash));
+      await this.putContent(url, await file.get(), {
+        metadata: {
+          ...file.metadata,
+          proof: file.challenge!
+        },
+        contentLength: file.size,
+        contentType: file.mimetype
       });
     }
-    await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    const model = useModelId(object.constructor)!;
+    await this.putMarker(hash, this.usageMarker(model, property, object.getUUID()), model);
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 
@@ -352,8 +568,10 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     property: string,
     info?: BinaryFileInfo & { hash: string; challenge: string },
     context?: OperationContext<any>
-  ): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
-    const body = info ?? (await context.getInput());
+  ): Promise<{ url: string; method: string; headers: { [key: string]: string } } | undefined> {
+    if (!info && !context) throw new WebdaError.BadRequest("Upload information is required");
+    const body = info ?? (await context!.getInput());
+    if (!body.hash || !body.challenge) throw new WebdaError.BadRequest("Upload hash and challenge are required");
     this.checkMap(<any>object, property);
     const uuid = object.getUUID();
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
@@ -383,14 +601,22 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       // Attaching existing data needs the proof of possession: the matching challenge
       if (challenge !== undefined && challenge === body.challenge) {
         await this.uploadSuccess(<any>object, property, body);
-        await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+        await this.putMarker(
+          body.hash,
+          this.usageMarker(useModelId(object.constructor)!, property, uuid),
+          useModelId(object.constructor)!
+        );
         return;
       }
       // A hash alone never attaches: the client has to upload the content it claims to hold
     } else {
       // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
       await this.uploadSuccess(<any>object, property, body);
-      await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+      await this.putMarker(
+        body.hash,
+        this.usageMarker(useModelId(object.constructor)!, property, uuid),
+        useModelId(object.constructor)!
+      );
     }
     const url = await this.getSignedUrl(params);
     return {
@@ -456,8 +682,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   async getMeta({ bucket, key }: StorageObject): Promise<StorageObjectMeta> {
     const [metadata] = await this.getStorageBucket(bucket).file(key).getMetadata();
     return {
-      size: typeof metadata.size === "string" ? parseInt(metadata.size) : metadata.size,
-      contentType: metadata.contentType
+      size: Number(metadata.size ?? 0),
+      contentType: metadata.contentType ?? "application/octet-stream"
     };
   }
 
@@ -469,16 +695,16 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the total size and count of files
    */
   async getBucketSize(bucket?: string, prefix?: string, regex?: RegExp) {
-    let pageToken;
+    let pageToken: string | undefined;
     const throttler = new Throttler();
     bucket ??= this.parameters.bucket;
     let size = 0;
     let count = 0;
-    const dwl = f => {
+    const dwl = (f: File) => {
       return async () => {
         try {
-          const metadata = (await f.getMetadata()).shift();
-          size += Number.parseInt(metadata.size);
+          const metadata = (await f.getMetadata())[0];
+          size += Number.parseInt(String(metadata.size ?? "0"));
           count++;
         } catch {
           // Ignore files removed while computing
@@ -486,7 +712,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       };
     };
     do {
-      const [files, page] = await this.storage.bucket(bucket).getFiles({ maxResults: 1000, pageToken, prefix });
+      const [files, page] = await this.storage.bucket(bucket!).getFiles({ maxResults: 1000, pageToken, prefix });
       files.filter(f => (regex ? f.name.match(regex) : true)).forEach(f => throttler.queue(dwl(f)));
       await throttler.wait();
       pageToken = (<any>page)?.pageToken;
@@ -498,9 +724,47 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
+   * Encode a usage marker part: injective and key-safe. Bytes outside `[A-Za-z0-9.:@-]` (so `_`, `/` and `~` too)
+   * become `~XX`, so `_` only separates parts
+   * @param part - the raw value
+   * @returns the encoded part
+   */
+  protected encodeMarkerPart(part: string): string {
+    return [...Buffer.from(`${part}`)]
+      .map(b => {
+        const c = String.fromCharCode(b);
+        return /[A-Za-z0-9.:@-]/.test(c) ? c : `~${b.toString(16).toUpperCase().padStart(2, "0")}`;
+      })
+      .join("");
+  }
+
+  /**
+   * Name of the usage marker of an object attribute: `@<model>_<attribute>_<uuid>`, each part encoded so that `_`
+   * only separates parts (`@` is no identifier character: never a legacy name). The only place the name is built
+   * @param model - the model identifier of the object
+   * @param property - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the marker name
+   */
+  protected usageMarker(model: string, property: string, uuid: string): string {
+    return "@" + [model, property, uuid].map(p => this.encodeMarkerPart(p)).join("_");
+  }
+
+  /**
+   * Name of the usage markers written before the model was part of the name: `<attribute>_<uuid>`, the model only in
+   * the `webdaModel` metadata. Still counted as usages, removed only for their own model
+   * @param property - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the legacy marker name
+   */
+  protected legacyUsageMarker(property: string, uuid: string): string {
+    return `${property}_${uuid}`;
+  }
+
+  /**
    * Add a usage marker for a binary
    * @param hash - the binary hash
-   * @param uuid - the marker name: `${property}_${uuid}`
+   * @param uuid - the marker name (see usageMarker)
    * @param model - the model identifier of the object
    */
   async putMarker(hash: string, uuid: string, model: string) {

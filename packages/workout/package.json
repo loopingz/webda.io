@@ -1,6 +1,6 @@
 {
   "name": "@webda/workout",
-  "version": "4.0.0-beta.5",
+  "version": "4.0.0-beta.6",
   "description": "Abstraction to logging and user interaction",
   "keywords": [
     "terminal",
@@ -67,11 +67,6 @@
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
-  },
-  "nx": {
-    "implicitDependencies": [
-      "@webda/tsc-esm"
-    ]
   },
   "license": "LGPL-3.0-only",
   "optionalDependencies": {

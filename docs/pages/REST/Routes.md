@@ -53,6 +53,67 @@ To override the prefix you can use the `//` in your route definition, to define 
 /plop2 => /api/plop2
 ```
 
+## Aliases
+
+Route aliases map incoming URL patterns to another URL of the same application. The target can resolve variables from the request context (such as the authenticated user's ID).
+
+Aliases are evaluated in-process before normal route matching, allowing any existing route or `@Operation` to be exposed through convenient shortcuts (e.g. `/me` &rarr; `/users/${user.id}`) without modifying the underlying service.
+
+### Configuration
+
+Aliases can be configured statically in `webda.config.jsonc` under the `Router` service parameters:
+
+```jsonc
+// webda.config.jsonc
+{
+  "services": {
+    "Router": {
+      "type": "Webda/Router",
+      "aliases": {
+        "/me": "/users/${user.id}",
+        "/me/{+rest}": "/users/${user.id}/${params.rest}",
+        "/my/orders{?q*}": {
+          "target": "/orders?userId=${user.id}&${params.q*}",
+          "methods": ["GET"]
+        },
+        "/docs": {
+          "target": "/static/docs/index.html",
+          "mode": "redirect"
+        }
+      }
+    }
+  }
+}
+```
+
+Or registered programmatically at runtime:
+
+```typescript
+import { useRouter } from "@webda/core";
+
+useRouter().addAlias("/me", "/users/${user.id}");
+useRouter().removeAlias("/me");
+```
+
+### Supported Placeholders
+
+Target URLs support a strict, precompiled set of placeholders:
+
+| Placeholder | Value | When undefined |
+|---|---|---|
+| `${user.id}` | `ctx.getCurrentUserId()` | Throws `Unauthorized` (401) |
+| `${params.<name>}` | Parameter captured by `{name}`, `{+name}`, or `{?name}` | Empty string (`""`) |
+| `${params.<name>*}` | Catch-all query object serialized as `key=value&...` | Empty string (`""`) |
+
+### Rewrite vs Redirect
+
+* **Rewrite (default, `mode: "rewrite"`)**: The alias is resolved internally without an extra network round-trip. The matched route receives the resolved target and parameters, while `ctx.getHttpContext().getUrl()` preserves the original URL called by the client. The context extension `ctx.getExtension("routeAlias")` contains `{ alias, target }`.
+* **Redirect (`mode: "redirect"`)**: An HTTP redirect is issued immediately to `httpContext.getAbsoluteUrl(target)`. Status code defaults to `302` (configurable via `redirectCode: 301 | 302 | 307 | 308`). Redirect aliases are hidden from OpenAPI by default unless `openapi: true`.
+
+### Security Note
+
+Alias target placeholders are strictly evaluated without `eval` or dynamic code execution. All values are automatically URL-encoded (`encodeURIComponent`), with `{+rest}` path parameters encoding each path segment while preserving slashes. Resolved targets containing path traversal segments (`..`) are rejected with `BadRequest` (400). Unrecognized placeholders are rejected at configuration load time.
+
 # Conditional Routes
 
 When using the `@Route` annotation, you can still do conditional expose by overriding default behavior of `getUrl` method.

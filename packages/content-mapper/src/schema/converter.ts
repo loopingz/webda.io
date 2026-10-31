@@ -39,7 +39,7 @@ import type {
 import { ModifierFlags, SyntaxKind } from "typescript/unstable/ast";
 import type { Expression, Node } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
-import { applyDocs, SECRET_KEYWORD } from "./annotations.ts";
+import { applyDocs, SEALED_KEYWORD, SECRET_KEYWORD } from "./annotations.ts";
 import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
 
 export { SECRET_KEYWORD };
@@ -334,6 +334,10 @@ export class SchemaConverter {
     }
     if (type.isUnionType()) return this.union(type, definition, path, node, depth);
     if (type.isIntersectionType()) return this.intersection(type, definition, path, depth);
+    // ModelLinksAny has a numeric accessor for runtime references. Its JSON form contains writable identity
+    // fields instead: following the index signature would lose readonly model/key from input schemas.
+    if (type.getSymbol()?.name === "ModelLinksAny")
+      return this.objectLike(type, definition, path, typeName, node, depth);
     if (this.isArrayLike(type)) return this.array(type, definition, path, depth);
     if (type.isTypeParameter()) {
       // An unresolved type parameter constrains nothing at this point.
@@ -636,6 +640,8 @@ export class SchemaConverter {
     this.definitions[key] = { ...source };
     for (const existing of Object.keys(slot)) delete slot[existing];
     slot.$ref = `#/definitions/${encodeURIComponent(key)}`;
+    // The property is what a consumer inspects, not the shared definition behind the `$ref`
+    if (source[SEALED_KEYWORD]) slot[SEALED_KEYWORD] = true;
   }
 
   // ------------------------------------------------------------ dto modes --

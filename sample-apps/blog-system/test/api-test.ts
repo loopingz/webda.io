@@ -5,7 +5,8 @@ import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { listOperations } from "@webda/core/lib/core/operations.js";
 import { useRouter } from "@webda/core/lib/rest/hooks.js";
-import { useApplication } from "@webda/core/lib/application/hooks.js";
+import { useApplication, useModel } from "@webda/core/lib/application/hooks.js";
+import bcrypt from "bcryptjs";
 import { useService } from "@webda/core/lib/core/hooks.js";
 import { WebContext } from "@webda/core/lib/contexts/webcontext.js";
 import { HttpContext } from "@webda/core/lib/contexts/httpcontext.js";
@@ -57,6 +58,25 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     assert.ok(modelNames.includes("WebdaSample/Comment"), "Comment model should be registered");
     assert.ok(modelNames.includes("WebdaSample/PostTag"), "PostTag model should be registered");
     assert.ok(modelNames.includes("WebdaSample/UserFollow"), "UserFollow model should be registered");
+  }
+
+  @test
+  async userStoredForm() {
+    const User: any = useApplication().getModels()["WebdaSample/User"];
+    const user = new User();
+    user.username = "stored";
+    user.name = "Stored User";
+    user.__email = "stored@example.com";
+    user.__password = "hash";
+    user.createdAt = new Date("2026-01-02T03:04:05.000Z");
+    // What the stores write: every field, private ones included
+    const stored = JSON.parse(JSON.stringify(user));
+    assert.strictEqual(stored.__password, "hash");
+    assert.strictEqual(stored.__email, "stored@example.com");
+    assert.strictEqual(stored.createdAt, "2026-01-02T03:04:05.000Z");
+    // The email of the owner is derived for the viewer, never kept from a stored copy
+    user.email = "stored@example.com";
+    assert.strictEqual(JSON.parse(JSON.stringify(user)).email, undefined);
   }
 
   @test
@@ -121,7 +141,10 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     router.remapRoutes();
     const routePaths = Object.keys(router.routes);
     // Post publish action
-    assert.ok(routePaths.includes("/posts/{uuid}/publish"), "Should have /posts/{uuid}/publish action route");
+    assert.ok(
+      routePaths.includes("/posts/{slug}/publish"),
+      "Should have /posts/{slug}/publish using the Post primary key"
+    );
     // User follow/unfollow actions
     assert.ok(routePaths.includes("/users/{uuid}/follow"), "Should have /users/{uuid}/follow action route");
     assert.ok(routePaths.includes("/users/{uuid}/unfollow"), "Should have /users/{uuid}/unfollow action route");
@@ -570,6 +593,61 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
       body: { username: "direct", name: "Direct User" }
     });
     assert.strictEqual(direct.statusCode, 403, direct.body);
+  }
+
+  @test
+  async passwordHashes() {
+    const User: any = useModel("WebdaSample/User");
+    const user = new User();
+    await user.setPassword("a-strong-password");
+    assert.match(user.__password, /^scrypt\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/);
+    assert.strictEqual(await user.verifyPassword("a-strong-password"), true);
+    assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
+    const validHash = user.__password;
+    // Hashes written by previous versions (bcrypt) are still accepted
+    user.__password = bcrypt.hashSync("legacy-password", 4);
+    assert.strictEqual(await user.verifyPassword("legacy-password"), true);
+    assert.strictEqual(await user.verifyPassword("a-wrong-password"), false);
+    // Broken or missing hashes never match
+    for (const hash of [
+      "scrypt$",
+      "scrypt$c2FsdA==$",
+      `${validHash}$extra`,
+      validHash.replace(/^scrypt\$[^$]+/, "scrypt$not-base64"),
+      validHash.replace(/[^$]+$/, "c2hvcnQ="),
+      undefined
+    ]) {
+      user.__password = hash;
+      assert.strictEqual(await user.verifyPassword(""), false, String(hash));
+    }
+  }
+
+  @test
+  async loginDoesNotBlockTheEventLoop() {
+    const { email, password } = await this.register("dave");
+    const User: any = useModel("WebdaSample/User");
+    const user = await User.findByEmail(email);
+    // Check scheduling, not wall-clock latency: busy CI runners can pause timers
+    // for more than 40ms even while the password work runs in the thread pool.
+    let yielded = false;
+    const tick = setImmediate(() => {
+      yielded = true;
+    });
+    try {
+      assert.strictEqual(await user.verifyPassword(password), true);
+      assert.ok(yielded, "password verification must yield to the event loop");
+    } finally {
+      clearImmediate(tick);
+    }
+    const logins = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        this.routerHttp({ method: "PUT", url: "/users/login", body: { email, password } })
+      )
+    );
+    assert.deepStrictEqual(
+      logins.map(l => l.statusCode),
+      [200, 200, 200, 200, 200]
+    );
   }
 
   /** Users: public profile, private email and hash, owner-only changes */

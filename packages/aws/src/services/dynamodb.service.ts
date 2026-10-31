@@ -7,6 +7,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import {
+  Command,
   EventRepository,
   InstanceCache,
   MemoryRepository,
@@ -19,7 +20,7 @@ import {
   useModelMetadata,
   WebdaError
 } from "@webda/core";
-import type { ModelClass, Repository } from "@webda/core";
+import type { MigratableStore, ModelClass, RawPage, RawPatch, RawTable, Repository } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 import { WorkerOutput } from "@webda/workout";
 import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
@@ -175,6 +176,16 @@ export function cleanObject(object: any): any {
 }
 
 /**
+ * The `__type` stored in an item
+ * @param item - the DynamoDB item
+ * @returns the type, undefined for an untyped item
+ */
+function storedType(item: any): string | undefined {
+  const type = item?.[TYPE_ATTRIBUTE];
+  return typeof type === "string" && type !== "" ? type : undefined;
+}
+
+/**
  * DynamoDB-backed repository for a single model class
  *
  * Every object is stored as one item, keyed by the string primary key in the
@@ -247,20 +258,15 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
    */
   fromItem(item: any): InstanceType<T> {
     const data = { ...item };
-    let model: ModelClass = this.model;
     const type = data[TYPE_ATTRIBUTE];
     delete data[TYPE_ATTRIBUTE];
-    if (type && type !== (this.model as any).Metadata?.Identifier) {
-      try {
-        model = useModel(type) ?? this.model;
-      } catch {
-        model = this.model;
-      }
-    }
+    const typed = typeof type === "string" && type !== "";
+    // An item loads as the class its type resolves to (a Webda 3 form included): a subclass item as the subclass
+    const model: any = (typed && this.findModelClass(type)) || this.model;
     if (!this.pks.includes(KEY_ATTRIBUTE)) {
       delete data[KEY_ATTRIBUTE];
     }
-    const instance = new (model as any)({}) as InstanceType<T>;
+    const instance = new model({}) as InstanceType<T>;
     if (typeof (instance as any).load === "function") {
       (instance as any).load(data);
     } else {
@@ -268,7 +274,8 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
     }
     if (type) {
       Object.defineProperty(instance, TYPE_ATTRIBUTE, {
-        value: type,
+        // The current identifier of a legacy type, the stored value when it is unknown or ambiguous
+        value: typed ? this.currentTypeOf(instance, type) : type,
         enumerable: false,
         configurable: true,
         writable: true
@@ -416,14 +423,17 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
       UpdateExpression: "SET " + sets.join(", "),
       ConditionExpression: "attribute_exists(#k)",
       ExpressionAttributeValues,
-      ExpressionAttributeNames
+      ExpressionAttributeNames,
+      // The stored type, to rewrite a legacy one
+      ReturnValues: "ALL_NEW"
     };
     // The Write Condition checks the value before writing
     if (conditionField) {
       this.setWriteCondition(params, condition, conditionField);
     }
     try {
-      await this.client.update(params);
+      const res = await this.client.update(params);
+      await this.rewriteLegacyType(key, res.Attributes?.[TYPE_ATTRIBUTE]);
     } catch (err) {
       if (err instanceof ConditionalCheckFailedException) {
         if (!conditionField) {
@@ -432,6 +442,39 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
         throw new UpdateConditionFailError(key as any, conditionField, condition);
       }
       throw err;
+    }
+  }
+
+  /**
+   * Rewrite the stored type of an item to its current identifier when it is a legacy form of this model family
+   *
+   * DynamoDB cannot map a stored value in an update expression: the type returned by the update is rewritten by a
+   * second update, conditioned on the type it replaces. Untyped, current and unknown types are left as they are.
+   * @param key - the item key
+   * @param stored - the stored `__type`
+   */
+  protected async rewriteLegacyType(key: string, stored: unknown): Promise<void> {
+    if (typeof stored !== "string" || stored === "") {
+      return;
+    }
+    const current = this.legacyTypeRewrites()[stored.toLowerCase()];
+    if (!current || current === stored) {
+      return;
+    }
+    try {
+      await this.client.update({
+        TableName: this.table,
+        Key: { [KEY_ATTRIBUTE]: key },
+        UpdateExpression: "SET #t = :current",
+        ConditionExpression: "#t = :stored",
+        ExpressionAttributeNames: { "#t": TYPE_ATTRIBUTE },
+        ExpressionAttributeValues: { ":current": current, ":stored": stored }
+      });
+    } catch (err) {
+      // Rewritten or deleted meanwhile: nothing left to do
+      if (!(err instanceof ConditionalCheckFailedException)) {
+        throw err;
+      }
     }
   }
 
@@ -811,7 +854,8 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
       });
     }
     return {
-      results: result.Items.map(c => this.fromItem(c)),
+      // Restricted to this model from the stored type (Webda 3 forms included), before hydration
+      results: result.Items.filter(c => this.belongsToModel(storedType(c))).map(c => this.fromItem(c)),
       filter,
       continuationToken: result.LastEvaluatedKey
         ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
@@ -852,7 +896,6 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
     // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
     WebdaQL.assertFilterQuery(parsed);
     const limit = parsed.limit ?? 1000;
-    const ids = this.buildClassFilterIdentifiers();
     const results: InstanceType<T>[] = [];
     let continuationToken = parsed.continuationToken;
     do {
@@ -862,15 +905,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
         limit: limit - results.length,
         continuationToken
       } as WebdaQL.Query);
-      results.push(
-        ...page.results.filter(item => {
-          const type = (item as any)[TYPE_ATTRIBUTE];
-          if (ids && type && !ids.includes(type)) {
-            return false;
-          }
-          return page.filter.eval(item);
-        })
-      );
+      results.push(...page.results.filter(item => page.filter.eval(item)));
       continuationToken = page.continuationToken;
     } while (results.length < limit && continuationToken);
     return {
@@ -935,7 +970,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
  */
 export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters>
   extends Store<K>
-  implements CloudFormationContributor
+  implements CloudFormationContributor, MigratableStore
 {
   _client: DynamoDBDocument;
 
@@ -1028,7 +1063,130 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
     );
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).
-    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
+    // Untyped items of a shared table belong to the first model of the store stored in it
+    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator).setTableRoot(
+      this.tableRootOf(inner.getTable())
+    ) as unknown as Repository<T>;
+  }
+
+  /**
+   * The model owning the untyped items of a table: the first model of `models` stored in it
+   * @param table - the table name
+   * @returns the model, undefined when no configured model is stored in it
+   */
+  protected tableRootOf(table: string): ModelClass | undefined {
+    // StoreParameters.load always sets models
+    for (const identifier of this.parameters.models) {
+      let model: ModelClass | undefined;
+      try {
+        model = useModel(identifier);
+      } catch {
+        continue;
+      }
+      if (model && this.resolveTable(model) === table) {
+        return model;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Every table of the store (`table` and the `tables` overrides), each with the model owning its untyped items
+   * @override
+   */
+  getRawTables(): RawTable[] {
+    // DynamoStoreParameters.load refuses a store without table
+    const names = new Set<string>([this.parameters.table]);
+    for (const repo of this.getRepositories()) {
+      names.add(repo.getTable());
+    }
+    return [...names].map(name => ({ name, root: this.tableRootOf(name) }));
+  }
+
+  /**
+   * Refuse a table this store does not manage
+   * @param table - the table name
+   */
+  protected checkRawTable(table: string): void {
+    if (!this.getRawTables().some(t => t.name === table)) {
+      throw new Error(`Unknown table ${table} in store ${this.getName()}`);
+    }
+  }
+
+  /**
+   * One scan page, the token is the key of the last item: DynamoDB resumes a scan after it
+   * @override
+   */
+  async rawPages(table: string, batchSize: number, token?: string): Promise<RawPage> {
+    this.checkRawTable(table);
+    const res = await this._client.scan({
+      TableName: table,
+      Limit: batchSize,
+      ExclusiveStartKey: token === undefined ? undefined : { [KEY_ATTRIBUTE]: token }
+    });
+    const rows = (res.Items ?? []).map(data => ({ table, key: String(data[KEY_ATTRIBUTE]), data }));
+    return {
+      rows,
+      continuationToken: res.LastEvaluatedKey ? String(res.LastEvaluatedKey[KEY_ATTRIBUTE]) : undefined
+    };
+  }
+
+  /**
+   * Set top-level attributes of the item: one update, no read
+   * @override
+   */
+  async rawPatch(table: string, key: string, patch: RawPatch): Promise<void> {
+    this.checkRawTable(table);
+    const sets: string[] = [];
+    const ExpressionAttributeNames: Record<string, string> = { "#k": KEY_ATTRIBUTE };
+    const ExpressionAttributeValues: Record<string, any> = {};
+    Object.entries(patch)
+      .filter(([attr]) => attr !== KEY_ATTRIBUTE)
+      .forEach(([attr, value], i) => {
+        sets.push(`#a${i} = :v${i}`);
+        ExpressionAttributeNames[`#a${i}`] = attr;
+        ExpressionAttributeValues[`:v${i}`] = value;
+      });
+    if (!sets.length) {
+      return;
+    }
+    try {
+      await this._client.update({
+        TableName: table,
+        Key: { [KEY_ATTRIBUTE]: key },
+        UpdateExpression: `SET ${sets.join(", ")}`,
+        ConditionExpression: "attribute_exists(#k)",
+        ExpressionAttributeNames,
+        ExpressionAttributeValues
+      });
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) {
+        throw new Error(`Raw row not found: ${key}`);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Rewrite the Webda 3 types of the store to their Webda 4 identifiers
+   * @param dryRun - only count the rows to migrate, write nothing
+   * @param batch - rows per page
+   * @param allowUnknown - exit with 0 even when rows keep an unknown or ambiguous type
+   * @returns the exit code
+   */
+  @Command("migrate", {
+    description: "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+    phase: "initialized"
+  })
+  async migrate(
+    /** @description Only count the rows to migrate, write nothing */
+    dryRun: boolean = false,
+    /** @description Rows per page */
+    batch: number = 500,
+    /** @description Exit with 0 even when rows keep an unknown or ambiguous type */
+    allowUnknown: boolean = false
+  ): Promise<number> {
+    return this.migrateCommand(dryRun, batch, allowUnknown);
   }
 
   /**

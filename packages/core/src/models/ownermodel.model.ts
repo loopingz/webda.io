@@ -70,6 +70,15 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
   }
 
   /**
+   * Recipient of the sealed fields (`SealedField`): the owner by default, override to choose per field
+   * @param field - sealed attribute name
+   * @returns the recipient user id, undefined when there is no owner
+   */
+  getSealedRecipient(field: string): string | undefined | Promise<string | undefined> {
+    return this.getOwner()?.getPrimaryKey()?.toString();
+  }
+
+  /**
    * Check if the current user can perform the given action based on ownership
    * @param context - the execution context
    * @param action - the action to check

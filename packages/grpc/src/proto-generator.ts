@@ -18,7 +18,6 @@ export function generateProto(
 ): string {
   const lines: string[] = [];
   const messages = new Map<string, string>(); // messageName → proto definition
-  const fieldCounter = 0;
 
   lines.push('syntax = "proto3";');
   lines.push("");
@@ -81,7 +80,7 @@ export function generateProto(
   }
 
   // Generate messages for all referenced schemas
-  for (const [opId, op] of Object.entries(operations)) {
+  for (const op of Object.values(operations)) {
     if (op.hidden) continue;
     const inputRef = resolveSchemaRef(op.input);
     if (inputRef) {
@@ -108,7 +107,7 @@ export function generateProto(
   // Write services
   for (const [prefix, ops] of serviceGroups) {
     lines.push(`service ${prefix}Service {`);
-    for (const { opId, op, rpcName } of ops) {
+    for (const { op, rpcName } of ops) {
       const inputType = getInputType(op, schemas, messages);
       const outputType = getOutputType(op, schemas, messages);
       const streaming = op.streaming || (typeof op.grpc === "object" && op.grpc?.streaming) || "none";
@@ -153,11 +152,12 @@ function schemaToMessageName(schemaRef: string): string {
   // Sanitize anything left that proto3 doesn't accept in an identifier.
   // proto3 idents match `[A-Za-z_][A-Za-z0-9_]*`; splitting on every other
   // char and PascalCasing keeps the original word boundaries readable.
-  const cleaned = stripped
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
-    .join("") || "Empty";
+  const cleaned =
+    stripped
+      .split(/[^A-Za-z0-9]+/)
+      .filter(Boolean)
+      .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+      .join("") || "Empty";
   // proto3 identifiers must start with a letter or underscore; underscore
   // prefix the cleaned name when it begins with a digit (e.g. `1Metadata`
   // from a `&1$metadata` schema-generator artefact for unbound generics).
@@ -172,18 +172,15 @@ function schemaToMessageName(schemaRef: string): string {
  * @param messages - accumulator map of already-generated protobuf message definitions
  * @returns the protobuf type name to use as the RPC input type
  */
-function getInputType(
-  op: any,
-  schemas: Record<string, JSONSchema7>,
-  messages: Map<string, string>
-): string {
-  const ref = op.input && op.input !== "void"
-    ? (schemas[op.input]
+function getInputType(op: any, schemas: Record<string, JSONSchema7>, messages: Map<string, string>): string {
+  const ref =
+    op.input && op.input !== "void"
+      ? schemas[op.input]
         ? op.input
         : op.input.endsWith("?") && schemas[op.input.slice(0, -1)]
           ? op.input.slice(0, -1)
-          : undefined)
-    : undefined;
+          : undefined
+      : undefined;
   if (ref) {
     return schemaToMessageName(ref);
   }
@@ -197,11 +194,7 @@ function getInputType(
  * @param messages - accumulator map of already-generated protobuf message definitions
  * @returns the protobuf type name to use as the RPC output type
  */
-function getOutputType(
-  op: any,
-  schemas: Record<string, JSONSchema7>,
-  messages: Map<string, string>
-): string {
+function getOutputType(op: any, schemas: Record<string, JSONSchema7>, messages: Map<string, string>): string {
   if (op.output && op.output !== "void" && schemas[op.output]) {
     return schemaToMessageName(op.output);
   }
@@ -234,7 +227,10 @@ function jsonSchemaToMessage(
     for (const [propName, propSchema] of Object.entries(schema.properties)) {
       const prop = propSchema as JSONSchema7;
       const protoType = jsonTypeToProto(propName, prop, name, allSchemas, messages);
-      const fieldType = prop.type === "array" ? jsonTypeToProto(propName, (prop.items as JSONSchema7) || {}, name, allSchemas, messages) : protoType;
+      const fieldType =
+        prop.type === "array"
+          ? jsonTypeToProto(propName, (prop.items as JSONSchema7) || {}, name, allSchemas, messages)
+          : protoType;
       if (prop.type === "array") {
         lines.push(`  repeated ${fieldType} ${propName} = ${fieldNum};`);
       } else if (required.has(propName)) {
@@ -329,10 +325,5 @@ function jsonTypeToProto(
       return jsonTypeToProto(fieldName, (schema.items as JSONSchema7) || {}, parentName, allSchemas, messages);
     default:
       return "google.protobuf.Struct";
-  }
-
-  // Enum support
-  if (schema.enum) {
-    return "string"; // Map enums to strings for simplicity
   }
 }

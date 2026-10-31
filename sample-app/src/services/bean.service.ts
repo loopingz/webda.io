@@ -1,4 +1,4 @@
-import { Bean, Cron, OperationContext, Service, Operation } from "@webda/core";
+import { Bean, Cron, Service, Operation } from "@webda/core";
 
 /** Simple bean service for testing lifecycle and cron scheduling. */
 @Bean
@@ -7,6 +7,7 @@ export class BeanService extends Service {
   test() {}
 
   /** Cron job that runs every minute. */
+  @Operation()
   @Cron("* * * * *")
   async cron() {}
 }

@@ -1,4 +1,4 @@
-import type { ArrayElement } from "@webda/tsc-esm";
+import type { ArrayElement } from "@webda/utils";
 import type {
   AggregationResult,
   Query as WebdaQLQuery,
@@ -6,7 +6,15 @@ import type {
   WebdaQLStatement,
   WebdaQLString
 } from "@webda/ql";
-import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type {
+  AggregatedRow,
+  AggregationOptions,
+  AggregationSpec,
+  CountOptions,
+  CountResult,
+  MetricSpec
+} from "../aggregation.js";
+import type { QueryMonitorOptions } from "./monitoring.js";
 import type {
   PrimaryKey,
   PrimaryKeyType,
@@ -15,7 +23,7 @@ import type {
   ModelClass,
   PrimaryKeyAttributes
 } from "../storable.js";
-import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types.js";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType } from "../types.js";
 import type { ModelRefWithCreate } from "../relations.js";
 
 /** Symbol key for test utilities on a repository (e.g. `clear()`). */
@@ -160,10 +168,37 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
   ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>>;
 
   /**
+   * Count the objects matching a filter
+   *
+   * ```ts
+   * repo.count("status = 'open'", undefined, { max: 10000 }); // { value: 1234, relation: "eq", native: true }
+   * ```
+   * ORDER BY, LIMIT and OFFSET of the filter are ignored; DELETE, UPDATE and SELECT field lists are refused.
+   * Backends without a native count scan the matching objects in memory, under the aggregation fallback policy.
+   * Counts bypass the model permissions: see `countModelWithPermissions` in `@webda/core` for a client total.
+   * @param filter - the WebdaQL filter, optionally with `?` or `:name` placeholders; empty counts everything
+   * @param params - values for the placeholders: an array for `?`, an object for `:name`
+   * @param options - `max` stops counting after max objects (relation "gte")
+   * @returns the count, whether it is exact and whether the backend computed it natively
+   * @throws AggregationError AGGREGATION_NOT_NATIVE when the backend has no native count and the policy is deny
+   */
+  count(
+    filter?: WebdaQLString<InstanceType<T>>,
+    params?: QueryParameters,
+    options?: CountOptions
+  ): Promise<CountResult>;
+
+  /**
    * Configure the aggregation fallback policy, called by the owning store
    * @param options - options to override
    */
   configureAggregation(options: Partial<AggregationOptions>): void;
+
+  /**
+   * Configure the query monitoring policy, called by the owning store
+   * @param options - options to override
+   */
+  configureMonitoring?(options: Partial<QueryMonitorOptions>): void;
 
   /**
    * Delete every object matching a `DELETE [WHERE ...] [LIMIT n]` statement, in bulk

@@ -31,8 +31,18 @@ class JsonAdapterTest {
   forwardsCfgToDiffAndMerge3() {
     const cfg = { arrayId: { "/items": "id" } };
     const base = { items: [{ id: "1", v: 1 }] };
-    const ours = { items: [{ id: "1", v: 1 }, { id: "2", v: 2 }] };
-    const theirs = { items: [{ id: "1", v: 1 }, { id: "3", v: 3 }] };
+    const ours = {
+      items: [
+        { id: "1", v: 1 },
+        { id: "2", v: 2 }
+      ]
+    };
+    const theirs = {
+      items: [
+        { id: "1", v: 1 },
+        { id: "3", v: 3 }
+      ]
+    };
     const r = JsonAdapter.merge3(base, ours, theirs, cfg);
     expect(r.clean).toBe(true);
     expect((r.merged as { items: unknown[] }).items).toHaveLength(3);

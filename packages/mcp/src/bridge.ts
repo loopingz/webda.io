@@ -20,7 +20,10 @@ export function toRequest(ctx: WebContext, body?: string, origin?: URL): Request
   }
   const method = http.getMethod();
   const uri = http.getUrl();
-  const url = origin && !/^\w{1,10}:\/\//.test(uri) ? `${origin.origin}${uri.startsWith("/") ? "" : "/"}${uri}` : http.getAbsoluteUrl();
+  const url =
+    origin && !/^\w{1,10}:\/\//.test(uri)
+      ? `${origin.origin}${uri.startsWith("/") ? "" : "/"}${uri}`
+      : http.getAbsoluteUrl();
   return new Request(url, { method, headers, body: method === "POST" ? (body ?? "") : undefined });
 }
 
@@ -65,6 +68,27 @@ export async function writeResponse(ctx: WebContext, response: Response): Promis
  * @param message - error message
  */
 export function jsonRpcError(ctx: WebContext, status: number, code: number, message: string): void {
-  ctx.writeHead(status, { "content-type": "application/json" });
-  ctx.write(JSON.stringify({ jsonrpc: "2.0", error: { code, message }, id: null }));
+  jsonRpcErrorResponse(ctx, status, { code, message });
+}
+
+/**
+ * Answer with a JSON-RPC error body carrying data, a request id and extra headers
+ * @param ctx - the request context
+ * @param status - HTTP status
+ * @param error - JSON-RPC error
+ * @param error.code - JSON-RPC error code
+ * @param error.message - error message
+ * @param error.data - error data
+ * @param id - id of the request answered
+ * @param headers - extra response headers
+ */
+export function jsonRpcErrorResponse(
+  ctx: WebContext,
+  status: number,
+  error: { code: number; message: string; data?: unknown },
+  id: string | number | null = null,
+  headers: Record<string, string> = {}
+): void {
+  ctx.writeHead(status, { "content-type": "application/json", ...headers });
+  ctx.write(JSON.stringify({ jsonrpc: "2.0", error, id }));
 }

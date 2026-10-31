@@ -86,13 +86,11 @@ interface CreatePostOutput {
 @Bean
 export class PostService extends Service {
   @Route("/posts", ["POST"])
-  async createPost(
-    ctx: OperationContext<CreatePostInput, {}, CreatePostOutput>
-  ): Promise<void> {
-    const body = ctx.getBody();        // typed as CreatePostInput
+  async createPost(ctx: OperationContext<CreatePostInput, {}, CreatePostOutput>): Promise<void> {
+    const body = ctx.getBody(); // typed as CreatePostInput
     const post = await this.create(body);
     ctx.statusCode(201);
-    ctx.write(post);                   // typed as CreatePostOutput
+    ctx.write(post); // typed as CreatePostOutput
   }
 }
 ```
@@ -106,7 +104,7 @@ Sessions are managed by `SessionManager`. By default, Webda uses JWT tokens stor
 ```typescript
 const session = context.getSession();
 const customData = session["myCustomKey"];
-const userId = session["userId"];  // set by AuthenticationService
+const userId = session["userId"]; // set by AuthenticationService
 ```
 
 ### Writing session data
@@ -159,6 +157,18 @@ await runAsSystem(async () => {
   await Post.getRepository().query("status = 'published'");
 });
 ```
+
+Inside `runAsSystem()`, `useContext()` returns a new `GlobalOperationContext`. To call an operation as the system, outside a request (a cron, a worker), use `useSystem(input?)`: it returns a new `GlobalOperationContext` that `callOperation` accepts, so the call still gets input validation, the authorizers and the `Webda.BeforeOperation` / `Webda.OperationSuccess` / `Webda.OperationFailure` events:
+
+```typescript
+import { callOperation, useSystem } from "@webda/core";
+
+const ctx = useSystem({ full: true });
+await callOperation(ctx, "Reports.Generate");
+const result = JSON.parse(ctx.getOutput());
+```
+
+The system context has an empty session and `getCurrentUserId()` returns `"system"`. It passes the operation `permission` queries, the `maxMfaAge` check and the IAM policies; other `OperationAuthorizer`s still run. A `canAct` or an authorizer detects it with `context.isGlobalContext()`.
 
 ## Accessing context from model methods
 

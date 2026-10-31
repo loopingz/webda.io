@@ -9,9 +9,11 @@ import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel, useRepository } from "@webda/models";
-import { checkAggregation } from "../test/index.js";
+import { checkAggregation, checkCount } from "../test/index.js";
 import { useCore } from "../core/hooks.js";
+import { useApplication, useParameters } from "../application/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
+import { Counter, useMetric } from "../metrics/metrics.js";
 
 /**
  * Fake model that refuse the half of the items
@@ -857,6 +859,12 @@ class StoreAggregationTest extends WebdaApplicationTest {
   }
 
   @test
+  async countConformance() {
+    const store = new MemoryStore("count", { models: [] } as any);
+    await checkCount(store.getRepository(AggregationRow as any), { native: true });
+  }
+
+  @test
   async aggregationFallbackParameter() {
     const store = new MemoryStore("aggregationDeny", { models: [], aggregationFallback: "deny", maxGroups: 5 } as any);
     const repo: any = store.getRepository(AggregationRow as any);
@@ -875,6 +883,265 @@ class StoreAggregationTest extends WebdaApplicationTest {
         const repository: any = original(model);
         return new Proxy(repository, {
           get: (target, prop) => (prop === "configureAggregation" ? undefined : Reflect.get(target, prop))
+        });
+      });
+    });
+    try {
+      assert.doesNotThrow(() => Store.computeStores());
+    } finally {
+      stubs.forEach(s => s.restore());
+      Store.computeStores();
+    }
+  }
+}
+
+@suite
+class StoreSlowQueryTest extends WebdaApplicationTest {
+  @test
+  disabledMetricsAcceptLabeledQueries() {
+    const parameters = useParameters();
+    const previous = parameters.metrics;
+    parameters.metrics = false;
+    try {
+      const metric = useMetric(Counter, {
+        name: "disabled_query_test",
+        help: "Disabled query metric",
+        labelNames: ["operation", "model"]
+      });
+      const labeled = metric.labels({ operation: "query", model: "Post" });
+      assert.strictEqual(labeled, metric);
+      assert.doesNotThrow(() => labeled.inc());
+    } finally {
+      parameters.metrics = previous;
+    }
+  }
+
+  @test
+  async slowQueryLogIncludesSingleResultPaginationAndError() {
+    const store = new MemoryStore("detailsStore", { models: ["WebdaTest/AggregationRow"] } as any);
+    store.resolve();
+    await store.init();
+    const events: any[] = [];
+    store.on("Store.SlowQuery", event => events.push(event));
+    const logger = new MemoryLogger(useWorkerOutput());
+    try {
+      store.logSlowQuery({
+        operation: "query",
+        model: "WebdaTest/AggregationRow",
+        query: "uuid = 'one'",
+        duration: 12.5,
+        count: 1,
+        paginated: true,
+        error: new Error("backend timeout")
+      });
+      store.logSlowQuery({
+        operation: "query",
+        model: "WebdaTest/AggregationRow",
+        query: "uuid = 'two'",
+        duration: 15
+      });
+      store.parameters.slowQueryMaxLength = undefined;
+      store.parameters.slowQueryLogLevel = undefined;
+      store.logSlowQuery({
+        operation: "query",
+        model: "WebdaTest/AggregationRow",
+        query: "uuid = 'defaults'",
+        duration: 16
+      });
+    } finally {
+      logger.close();
+    }
+    assert.strictEqual(events.length, 3);
+    assert.strictEqual(events[0].query, "uuid = 'one'");
+    const messages = logger
+      .getLogs()
+      .filter(l => l.log?.level === "WARN")
+      .map(l => (l.log?.args ?? []).join(" "));
+    assert.ok(messages.some(message => message.includes("1 result, paginated, error: backend timeout")));
+    assert.ok(messages.some(message => message.includes("uuid = 'two'") && !message.includes("[")));
+    assert.ok(messages.some(message => message.includes("uuid = 'defaults'")));
+  }
+
+  @test
+  async slowQueryThresholdZeroDoesNotEmitEventOrLog() {
+    const store = new MemoryStore("zeroThreshold", {
+      models: ["WebdaTest/AggregationRow"],
+      slowQueryThreshold: 0
+    } as any);
+    store.resolve();
+    await store.init();
+    const repo: any = store.getRepository(AggregationRow as any);
+    repo.configureMonitoring(store.getQueryMonitorOptions());
+
+    let observedDuration: number | undefined;
+    const origLabels = store.metrics.queries.labels.bind(store.metrics.queries);
+    const stubLabels = stub(store.metrics.queries, "labels").callsFake((labels: any) => {
+      const bound = origLabels(labels);
+      return {
+        ...bound,
+        observe: (duration: number) => {
+          observedDuration = duration;
+          bound.observe(duration);
+        }
+      } as any;
+    });
+
+    let slowEvent: any;
+    store.on("Store.SlowQuery", evt => (slowEvent = evt));
+
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      await repo.query("uuid = 'test'");
+    } finally {
+      stubLabels.restore();
+      memoryLogger.close();
+    }
+
+    assert.ok(observedDuration !== undefined, "histogram should be observed");
+    assert.strictEqual(slowEvent, undefined, "Store.SlowQuery event should not fire");
+    const warnLogs = memoryLogger.getLogs().filter(l => l.log?.level === "WARN");
+    assert.strictEqual(warnLogs.length, 0, "No WARN log should be emitted");
+  }
+
+  @test
+  async thresholdBehaviorEmitsEventLogsAndIncrementsCounter() {
+    const store = new MemoryStore("thresholdStore", {
+      models: ["WebdaTest/AggregationRow"],
+      slowQueryThreshold: 50
+    } as any);
+    store.resolve();
+    await store.init();
+    const repo: any = store.getRepository(AggregationRow as any);
+    repo.configureMonitoring(store.getQueryMonitorOptions());
+
+    const slowEvents: any[] = [];
+    store.on("Store.SlowQuery", evt => slowEvents.push(evt));
+
+    let slowCounterInc = 0;
+    const origSlowLabels = store.metrics.slow_queries_total.labels.bind(store.metrics.slow_queries_total);
+    const stubSlowLabels = stub(store.metrics.slow_queries_total, "labels").callsFake((labels: any) => {
+      const bound = origSlowLabels(labels);
+      return {
+        ...bound,
+        inc: () => {
+          slowCounterInc++;
+          bound.inc();
+        }
+      } as any;
+    });
+
+    // 1. Below threshold (fast query)
+    await repo.query("uuid = 'fast'");
+    assert.strictEqual(slowEvents.length, 0);
+    assert.strictEqual(slowCounterInc, 0);
+
+    // 2. Above threshold (stub inner repo query with delay > 50ms)
+    const innerRepo = repo.repository;
+    const origQuery = innerRepo.query.bind(innerRepo);
+    const stubQuery = stub(innerRepo, "query").callsFake(async (q: any) => {
+      await new Promise(resolve => setTimeout(resolve, 60));
+      return origQuery(q);
+    });
+
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      await repo.query("uuid = 'slow'");
+    } finally {
+      stubQuery.restore();
+      stubSlowLabels.restore();
+      memoryLogger.close();
+    }
+
+    assert.strictEqual(slowEvents.length, 1);
+    assert.strictEqual(slowEvents[0].store, "thresholdStore");
+    assert.strictEqual(slowEvents[0].model, "WebdaTest/AggregationRow");
+    assert.strictEqual(slowEvents[0].query, "uuid = 'slow'");
+    assert.strictEqual(slowCounterInc, 1);
+
+    const warnLogs = memoryLogger
+      .getLogs()
+      .filter(l => l.log?.level === "WARN")
+      .map(l => (l.log?.args ?? []).join(" "));
+    assert.ok(
+      warnLogs.some(
+        log =>
+          log.includes("thresholdStore") && log.includes("WebdaTest/AggregationRow") && log.includes("uuid = 'slow'")
+      ),
+      `Expected slow query warning log, got: ${JSON.stringify(warnLogs)}`
+    );
+  }
+
+  @test
+  async truncatesLongQueriesInLogAndEvent() {
+    const store = new MemoryStore("truncStore", {
+      models: ["WebdaTest/AggregationRow"],
+      slowQueryThreshold: 10,
+      slowQueryMaxLength: 20
+    } as any);
+    store.resolve();
+    await store.init();
+    const repo: any = store.getRepository(AggregationRow as any);
+    repo.configureMonitoring(store.getQueryMonitorOptions());
+
+    const innerRepo = repo.repository;
+    const origQuery = innerRepo.query.bind(innerRepo);
+    const stubQuery = stub(innerRepo, "query").callsFake(async (q: any) => {
+      await new Promise(resolve => setTimeout(resolve, 15));
+      return origQuery(q);
+    });
+
+    let slowEvent: any;
+    store.on("Store.SlowQuery", evt => (slowEvent = evt));
+
+    const longQuery = "uuid = '123456789012345678901234567890'";
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      await repo.query(longQuery);
+    } finally {
+      stubQuery.restore();
+      memoryLogger.close();
+    }
+
+    assert.ok(slowEvent);
+    assert.strictEqual(slowEvent.query, longQuery.slice(0, 20) + "...");
+
+    const warnLogs = memoryLogger
+      .getLogs()
+      .filter(l => l.log?.level === "WARN")
+      .map(l => (l.log?.args ?? []).join(" "));
+    assert.ok(
+      warnLogs.some(log => log.includes(longQuery.slice(0, 20) + "...")),
+      `Expected truncated query in log, got: ${JSON.stringify(warnLogs)}`
+    );
+  }
+
+  @test
+  async computeStoresConfiguresMonitoringOnAllRepositories() {
+    Store.computeStores();
+    const app = useApplication();
+    const models = Object.values(app.getModels());
+    let checked = 0;
+    for (const model of models) {
+      if (!model?.Metadata?.PrimaryKey) continue;
+      const repo: any = useRepository(model);
+      assert.ok(
+        typeof repo.monitorOptions?.onQuery === "function",
+        `Repository for ${model.name} should have onQuery configured`
+      );
+      checked++;
+    }
+    assert.ok(checked > 0, "At least one model repository should be verified");
+  }
+
+  @test
+  async computeStoresToleratesRepositoriesWithoutMonitoring() {
+    const stores = Object.values(useCore().getServices()).filter(s => s instanceof Store) as Store[];
+    const stubs = stores.map(store => {
+      const original = store.getRepository.bind(store);
+      return stub(store, "getRepository").callsFake((model: any) => {
+        const repository: any = original(model);
+        return new Proxy(repository, {
+          get: (target, prop) => (prop === "configureMonitoring" ? undefined : Reflect.get(target, prop))
         });
       });
     });

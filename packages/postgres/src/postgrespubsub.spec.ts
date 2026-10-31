@@ -149,12 +149,9 @@ class PostgresPubSubTest {
     const sub = await this.makePeer("sub", channel);
 
     const received: Wrapped[] = [];
-    const handle = sub.consume(
-      async (msg: Wrapped) => {
-        received.push(msg);
-      },
-      Wrapped
-    );
+    const handle = sub.consume(async (msg: Wrapped) => {
+      received.push(msg);
+    }, Wrapped);
 
     await pub.sendMessage({ value: "hi" } as any);
     await waitFor(() => received.length >= 1);

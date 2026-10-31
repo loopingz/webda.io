@@ -1,6 +1,8 @@
 import { IOperationContext } from "../contexts/icontext.js";
 import { bind } from "@webda/ql";
 import { Password, V3_PASSWORD_MAPPED } from "./password.model.js";
+import { MFA } from "./mfa.model.js";
+import { UserKeys } from "./userkeys.model.js";
 import { type ModelClass, type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
@@ -13,6 +15,8 @@ export type UserEvents<T> = ModelEvents<T> & {
  * @WebdaModel
  */
 export class User extends UuidModel {
+  /** Default policy of the inherited login MFA attribute. */
+  static BehaviorParameters: Record<string, Record<string, unknown>> = { mfa: { purpose: "login" } };
   [WEBDA_EVENTS]: UserEvents<this>;
   /** Create a new User
    * @param data - initial data
@@ -26,12 +30,48 @@ export class User extends UuidModel {
     if (!(this.password instanceof Password)) {
       (this as any).__hydrateBehaviors?.({ password: mapped?.password ?? {} });
     }
+    if (!(this.mfa instanceof MFA)) {
+      (this as any).__hydrateBehaviors?.({ mfa: mapped?.mfa ?? {} });
+    }
+    if (!(this.keys instanceof UserKeys)) {
+      (this as any).__hydrateBehaviors?.({ keys: mapped?.keys ?? {} });
+    }
   }
 
   /**
    * Password credential
    */
   password?: Password;
+
+  /**
+   * Multi-Factor Authentication credentials
+   */
+  mfa?: MFA;
+
+  /**
+   * MFA attempts counted since last success
+   */
+  _mfaAttempts: number = 0;
+
+  /**
+   * Timestamp (ms) of the last counted MFA attempt
+   */
+  _lastMfaAttemptAt?: number;
+
+  /**
+   * End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices
+   */
+  keys?: UserKeys;
+
+  /**
+   * Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})
+   */
+  _escrowAttempts: number = 0;
+
+  /**
+   * Timestamp (ms) of the last counted escrow fetch
+   */
+  _lastEscrowAttemptAt?: number;
 
   /**
    * Map v3 records (`__password` string) onto the Password behavior shape

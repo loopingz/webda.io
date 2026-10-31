@@ -38,7 +38,7 @@
                 "type": "array"
               },
               "modules": {
-                "$ref": "#/definitions/package%24modules",
+                "$ref": "#/definitions/package%24modules%232",
                 "description": "Dependencies to add or remove from the application production dependencies"
               }
             },
@@ -84,7 +84,7 @@
             },
             "type": "object"
           },
-          "package$modules": {
+          "package$modules#2": {
             "additionalProperties": false,
             "properties": {
               "excludes": {
@@ -124,7 +124,8 @@
           },
           "credentials": {
             "$ref": "#/definitions/Record%3Cstring%2C%20RegistryCredentials%3E",
-            "description": "Credentials per registry host, they take precedence over `~/.docker/config.json`\n\nUse templates to read them from the environment: `{ \"ghcr.io\": { \"username\": \"${env.GHCR_USER}\", \"password\": \"${env.GHCR_TOKEN}\" } }`\n\n`password`, `identityToken` and `token` can be encrypted with `webda config encrypt`"
+            "default": "{}\n\nUse templates to read them from the environment: `{ \"ghcr.io\": { \"username\": \"${env.GHCR_USER}\", \"password\": \"${env.GHCR_TOKEN}\" } }`\n\n`password`, `identityToken` and `token` can be encrypted with `webda config encrypt`",
+            "description": "Credentials per registry host, they take precedence over `~/.docker/config.json`"
           },
           "entrypoint": {
             "default": [
@@ -159,6 +160,7 @@
             "type": "string"
           },
           "insecureRegistries": {
+            "default": [],
             "description": "Registries reached over plain http, `localhost` and `127.0.0.1` always are",
             "items": {
               "type": "string"
@@ -167,6 +169,7 @@
           },
           "labels": {
             "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {},
             "description": "Labels, added to the default OCI ones (version, revision, source, title)"
           },
           "mtime": {
@@ -181,6 +184,7 @@
           },
           "package": {
             "$ref": "#/definitions/PackageOptions",
+            "default": {},
             "description": "Options of the application packaging"
           },
           "platforms": {

@@ -19,8 +19,7 @@ export const SchemaAdapter = {
       diff: (a: unknown, b: unknown): Delta => coreDiff(a, b, cfg),
       patch: <T>(a: T, d: Delta): T => corePatch(a, d),
       reverse: (d: Delta): Delta => coreReverse(d),
-      merge3: <T>(base: T, ours: T, theirs: T): MergeResult<T> =>
-        coreMerge3(base, ours, theirs, cfg)
+      merge3: <T>(base: T, ours: T, theirs: T): MergeResult<T> => coreMerge3(base, ours, theirs, cfg)
     };
   }
 };

@@ -15,7 +15,7 @@ export interface ProviderInfo {
   /**
    * Provider type
    */
-  type: "password" | "oauth" | "passwordless";
+  type: "password" | "oauth" | "passwordless" | "certificate";
   /**
    * URL to start the authentication flow (oauth, passwordless)
    */
@@ -66,6 +66,12 @@ export interface ResolvedIdentity {
 export type AuthResult = ({ status: "ok"; user: any } & IssuedTokens) | { status: "mfa_required"; methods: string[] };
 
 /**
+ * Result of a second factor verified again on a logged session: tokens are only re-issued for first-party Bearer
+ * sessions, a cookie session is saved with the request
+ */
+export type StepUpResult = { status: "ok"; user: any; stepUp: true } & Partial<IssuedTokens>;
+
+/**
  * Authentication service interface
  */
 export interface IAuthenticationService extends Service {
@@ -74,6 +80,11 @@ export interface IAuthenticationService extends Service {
    * @param identity resolved by a provider
    */
   complete(identity: ResolvedIdentity): Promise<AuthResult>;
+  /**
+   * Record a verified second factor: completes the current pending session, or steps up a logged one
+   * @param amr authentication methods used (e.g. ["totp"], ["recovery"])
+   */
+  completeSecondFactor(amr: string[]): Promise<AuthResult | StepUpResult>;
   /**
    * Logout the current session
    */
@@ -191,6 +202,28 @@ export interface EventAuthenticationUnlinked<T extends User = User> extends Even
 }
 
 /**
+ * Emitted for MFA lifecycle events (enabled, disabled, verified, failed)
+ */
+export interface EventAuthenticationMfa<T extends User = User> extends EventWithContext {
+  /**
+   * User
+   */
+  user: T;
+  /**
+   * User identifier
+   */
+  userId?: string;
+  /**
+   * Factor method (e.g. "totp", "recovery")
+   */
+  method?: string;
+  /**
+   * MfaVerified only: the second factor was verified again on an already logged session (step-up)
+   */
+  stepUp?: boolean;
+}
+
+/**
  * Authentication events map
  */
 export type AuthenticationEvents = {
@@ -203,4 +236,8 @@ export type AuthenticationEvents = {
   "Authentication.LoginFailed": EventAuthenticationLoginFailed;
   "Authentication.Linked": EventAuthenticationLinked;
   "Authentication.Unlinked": EventAuthenticationUnlinked;
+  "Authentication.MfaEnabled": EventAuthenticationMfa;
+  "Authentication.MfaDisabled": EventAuthenticationMfa;
+  "Authentication.MfaVerified": EventAuthenticationMfa;
+  "Authentication.MfaFailed": EventAuthenticationMfa;
 };

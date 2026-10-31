@@ -2,6 +2,10 @@ import { defineWorkspace } from "vitest/config";
 
 export default defineWorkspace([
   {
+    extends: "packages/bench/vitest.config.ts",
+    test: { name: "bench", root: "packages/bench" }
+  },
+  {
     extends: "packages/cache/vitest.config.ts",
     test: { name: "cache", root: "packages/cache" }
   },
@@ -40,10 +44,6 @@ export default defineWorkspace([
   {
     extends: "packages/test/vitest.config.ts",
     test: { name: "test", root: "packages/test" }
-  },
-  {
-    extends: "packages/tsc-esm/vitest.config.ts",
-    test: { name: "tsc-esm", root: "packages/tsc-esm" }
   },
   {
     extends: "packages/utils/vitest.config.ts",

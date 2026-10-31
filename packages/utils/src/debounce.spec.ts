@@ -1,6 +1,6 @@
-
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import * as sinon from "sinon";
 import { debounce } from "./debounce.js";
 
 @suite
@@ -338,7 +338,8 @@ export class DebounceTest {
   }
 
   @test
-  async "should handle maxWait in tight loop"() {
+  "should handle maxWait in tight loop"() {
+    const clock = sinon.useFakeTimers({ now: 1000, toFake: ["Date", "setTimeout", "clearTimeout"] });
     let callCount = 0;
     const debouncedFunc = debounce(
       () => {
@@ -348,26 +349,27 @@ export class DebounceTest {
       { maxWait: 100 }
     );
 
-    // Call rapidly to trigger maxWait behavior
-    debouncedFunc();
-    await this.wait(25);
-    debouncedFunc();
-    await this.wait(25);
-    debouncedFunc();
-    await this.wait(25);
-    debouncedFunc();
+    try {
+      debouncedFunc();
+      for (let i = 0; i < 3; i++) {
+        clock.tick(25);
+        debouncedFunc();
+      }
+      clock.tick(24);
+      assert.strictEqual(callCount, 0);
+      clock.tick(1);
+      assert.strictEqual(callCount, 1);
 
-    // Wait enough time for maxWait to trigger
-    await this.wait(50);
-
-    // Should have been called once due to maxWait
-    assert.strictEqual(callCount, 1);
-
-    // Now stop calling and wait for trailing edge
-    await this.wait(100);
-
-    // Trailing edge should have fired
-    assert.ok(callCount >= 1);
+      // A call after maxWait starts a new trailing edge.
+      debouncedFunc();
+      clock.tick(49);
+      assert.strictEqual(callCount, 1);
+      clock.tick(1);
+      assert.strictEqual(callCount, 2);
+    } finally {
+      debouncedFunc.cancel();
+      clock.restore();
+    }
   }
 
   @test

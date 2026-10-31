@@ -6,12 +6,27 @@
  * declaration-order `required`, and `required` omitted entirely when empty.
  */
 
+import { OperationContext } from "./runtime.js";
+
 /**
  * Marks a method as a callable operation.
  * @returns the decorator
  */
-export function Action(): MethodDecorator {
+export function Action(_options?: any): MethodDecorator {
   return () => {};
+}
+
+/** @WebdaBehavior */
+export class RestDesk {
+  @Action({ rest: { method: "get", path: "tickets/{projectId}{?tags?,filters*}" } })
+  list(projectId: string, tags?: number[], filters?: { active?: boolean }, limit = 20): Promise<Ticket[]> {
+    return Promise.resolve([]);
+  }
+
+  @Action({ rest: { method: "post", path: "tickets/{projectId}{?notify?}", body: "ticket" } })
+  create(projectId: string, ticket: Ticket, notify?: boolean): Promise<Ticket> {
+    return Promise.resolve(ticket);
+  }
 }
 
 /**
@@ -86,6 +101,22 @@ export class Desk {
   @Action()
   async *relay(frames: AsyncIterable<Payload>): AsyncGenerator<Payload> {
     yield* frames;
+  }
+
+  /** Receives the operation context first: it is not part of the input. */
+  @Action()
+  reply(context: OperationContext, message: string, urgent?: boolean): void {
+    void context;
+    void message;
+    void urgent;
+  }
+
+  /** Receives the operation context between two input parameters. */
+  @Action()
+  note(text: string, context: OperationContext, tags: string[] = []): void {
+    void text;
+    void context;
+    void tags;
   }
 
   /** Not decorated, so it contributes nothing. */

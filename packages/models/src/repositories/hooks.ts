@@ -1,9 +1,9 @@
 import type { ModelRefWithCreate } from "../relations.js";
-import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable.js";
+import { SettablePrimaryKey, type ModelClass } from "../storable.js";
 import { Helpers, PropertyPaths } from "../types.js";
 import type { Repository } from "./repository.js";
 import type { AggregationResult, FindOptions, ModelFilter, QueryParameters, WebdaQLString } from "@webda/ql";
-import type { AggregatedRow, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type { AggregatedRow, AggregationSpec, CountOptions, CountResult, MetricSpec } from "../aggregation.js";
 
 /**
  * Global registry mapping ModelClass constructors to their Repository instances.
@@ -192,6 +192,28 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       params?: QueryParameters
     ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>> {
       return useRepository(this).aggregate(spec, params);
+    }
+
+    /**
+     * Count the objects matching a filter directly
+     *
+     * ```ts
+     * Task.count("status = ?", ["open"], { max: 10000 });
+     * ```
+     * No permission is checked: see `countModelWithPermissions` in `@webda/core` for a client total.
+     * @param this - the model class constructor
+     * @param filter - the WebdaQL filter; ORDER BY, LIMIT and OFFSET are ignored
+     * @param params - values for the placeholders of the filter
+     * @param options - `max` stops counting after max objects (relation "gte")
+     * @returns the count
+     */
+    static count<T extends ModelClass>(
+      this: T,
+      filter?: WebdaQLString<InstanceType<T>>,
+      params?: QueryParameters,
+      options?: CountOptions
+    ): Promise<CountResult> {
+      return useRepository(this).count(filter, params, options);
     }
 
     /**

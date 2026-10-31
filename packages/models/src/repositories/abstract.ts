@@ -1,20 +1,29 @@
-import type { PK, PrimaryKey, PrimaryKeyAttributes, PrimaryKeyType, ModelClass } from "../storable.js";
-import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types.js";
+import type { PK, PrimaryKey, PrimaryKeyType, ModelClass } from "../storable.js";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType } from "../types.js";
 import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.js";
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
-import type { ArrayElement } from "@webda/tsc-esm";
+import type { ArrayElement } from "@webda/utils";
 import {
   type AggregationQuery,
   type AggregationResult,
   type Assignment,
   type CompletionField,
+  type Expression,
   fieldsFromSchema,
   type Query as WebdaQLQuery,
   type QueryParameters
 } from "@webda/ql";
-import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type {
+  AggregatedRow,
+  AggregationOptions,
+  AggregationSpec,
+  CountOptions,
+  CountResult,
+  MetricSpec
+} from "../aggregation.js";
 import { ModelTypeResolver, useTypeResolver } from "../types-resolver.js";
+import type { QueryExecutionInfo, QueryMonitorOptions, QueryOperation } from "./monitoring.js";
 
 /**
  * Base repository implementation providing shared logic for key management,
@@ -31,6 +40,8 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
 
   /** Aggregation fallback policy, set by the owning store through configureAggregation */
   protected aggregationOptions: AggregationOptions = { fallback: "warn", maxGroups: 10000 };
+  /** Query monitoring options, set by the owning store through configureMonitoring */
+  protected monitorOptions: QueryMonitorOptions = {};
   /** Fallback shapes already warned about */
   protected warnedAggregations: Set<string> = new Set();
   /**
@@ -112,6 +123,62 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       return true;
     }
     return this.typeResolver().belongsToModel(this.model, stored, this.tableRoot);
+  }
+
+  /**
+   * Stored types naming a strict ancestor of the table root (e.g. `UuidModel` in a table of an application model),
+   * for stores filtering in their query language: such rows belong to the table root, like untyped rows
+   * @returns the types, empty when the table root is unknown or this model does not own the untyped rows
+   */
+  protected tableRootAncestorTypes(): string[] {
+    const root: any = this.tableRoot;
+    if (!root || !(this.model as any)?.Metadata?.Identifier) {
+      return [];
+    }
+    // Untyped rows belong to the table root and its ancestors only
+    if (root !== this.model && !(root.prototype instanceof (this.model as any))) {
+      return [];
+    }
+    const resolver = this.typeResolver();
+    const types: string[] = [];
+    for (let clazz = Object.getPrototypeOf(root); clazz && clazz !== Function.prototype;) {
+      if (Object.prototype.hasOwnProperty.call(clazz, "Metadata") && clazz.Metadata?.Identifier) {
+        // acceptedTypes lists the whole family of the ancestor: only the names resolving to the ancestor itself
+        const names = resolver.knows(clazz)
+          ? resolver.acceptedTypes(clazz).filter(name => resolver.resolveStoredType(name) === clazz)
+          : [clazz.Metadata.Identifier];
+        types.push(...names.filter(name => !types.includes(name)));
+      }
+      clazz = Object.getPrototypeOf(clazz);
+    }
+    return types;
+  }
+
+  /**
+   * Stored types a write of this model family rewrites, for stores updating rows in place: each form of a model
+   * (current, short, lower-case, alias) to its current identifier, and the ancestor types of the table root to the
+   * table root identifier
+   * @returns the current identifier by lower-cased stored type, empty when the model carries no Metadata
+   */
+  protected legacyTypeRewrites(): Record<string, string> {
+    if (!(this.model as any)?.Metadata?.Identifier) {
+      return {};
+    }
+    const resolver = this.typeResolver();
+    const rewrites: Record<string, string> = {};
+    const rootIdentifier = this.tableRoot
+      ? (resolver.getIdentifier(this.tableRoot) ?? (this.tableRoot as any).Metadata?.Identifier)
+      : undefined;
+    if (rootIdentifier) {
+      for (const name of this.tableRootAncestorTypes()) {
+        rewrites[name.toLowerCase()] = rootIdentifier;
+      }
+    }
+    // An accepted type always resolves to a class of the resolver, which has an identifier
+    for (const name of this.acceptedTypes()) {
+      rewrites[name.toLowerCase()] = resolver.getIdentifier(resolver.resolveStoredType(name)!)!;
+    }
+    return rewrites;
   }
 
   /**
@@ -355,7 +422,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     const meta: any = (this.model as any)?.Metadata;
     const completionFields = this.getCompletionFields();
     const fields = new Set<string>([
-      ...completionFields.map((f) => f.name),
+      ...completionFields.map(f => f.name),
       ...Object.keys(meta?.Reflection ?? {}),
       ...Object.keys(meta?.Schemas?.Stored?.properties ?? {}),
       ...Object.keys(meta?.Schemas?.Input?.properties ?? {}),
@@ -611,6 +678,77 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   /**
+   * Configure the query monitoring policy, called by the owning store
+   * @param options - options to override
+   */
+  configureMonitoring(options: Partial<QueryMonitorOptions>): void {
+    Object.assign(this.monitorOptions, options);
+  }
+
+  /**
+   * Safely invoke the onQuery callback without throwing into the caller
+   * @param info - query execution info
+   */
+  protected safeOnQuery(info: QueryExecutionInfo): void {
+    try {
+      this.monitorOptions?.onQuery?.(info);
+    } catch {
+      // onQuery must never throw into the caller
+    }
+  }
+
+  /**
+   * Helper that times a query operation, catches and rethrows errors, and calls onQuery safely
+   * @param operation - the query operation
+   * @param query - the query string
+   * @param fn - the async function to execute and time
+   * @param details - optional callback to extract result count or pagination details
+   * @returns the result of fn
+   */
+  protected async monitor<R>(
+    operation: QueryOperation,
+    query: string,
+    fn: () => Promise<R>,
+    details: ((r: R) => { count?: number; paginated?: boolean }) | ((r: R) => number)
+  ): Promise<R> {
+    const start = performance.now();
+    const model = (this.model as any).Metadata?.Identifier ?? this.model.name;
+    let result: R;
+    try {
+      result = await fn();
+    } catch (err: any) {
+      const duration = performance.now() - start;
+      this.safeOnQuery({
+        operation,
+        model,
+        query,
+        duration,
+        error: err
+      });
+      throw err;
+    }
+    const duration = performance.now() - start;
+    let count: number | undefined;
+    let paginated: boolean | undefined;
+    const d = details(result);
+    if (typeof d === "number") {
+      count = d;
+    } else {
+      count = d.count;
+      paginated = d.paginated;
+    }
+    this.safeOnQuery({
+      operation,
+      model,
+      query,
+      duration,
+      count,
+      paginated
+    });
+    return result;
+  }
+
+  /**
    * Keep the full generic signature here (not `spec: any`): concrete repositories are used
    * directly in code and tests, and must expose the typed rows.
    * @override
@@ -640,25 +778,73 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   /**
-   * Apply the fallback policy before aggregating in memory
-   * @param query - the aggregation
+   * Apply the fallback policy before aggregating or counting in memory
+   * @param query - the aggregation, undefined for a count
    * @param reason - why it cannot run natively
    * @throws AggregationError AGGREGATION_NOT_NATIVE when the policy is deny
    */
-  protected async checkAggregationFallback(query: AggregationQuery, reason: string): Promise<void> {
+  protected async checkAggregationFallback(query: AggregationQuery | undefined, reason: string): Promise<void> {
     const { fallback, warn } = this.aggregationOptions;
     if (fallback === "allow") return;
     const model = (this.model as any)?.Metadata?.Identifier ?? this.model?.name;
-    const message = `Aggregation on ${model} grouped by [${query.groupBy.join(", ")}] runs in memory: ${reason}`;
+    const operation = query ? `Aggregation on ${model} grouped by [${query.groupBy.join(", ")}]` : `Count on ${model}`;
+    const message = `${operation} runs in memory: ${reason}`;
     if (fallback === "deny") {
       const { AggregationError } = await import("@webda/ql");
       throw new AggregationError("AGGREGATION_NOT_NATIVE", message);
     }
-    const shape = `${query.groupBy.join(",")}|${reason}`;
+    const shape = `${query ? `group:${query.groupBy.join(",")}` : "count"}|${reason}`;
     if (!this.warnedAggregations.has(shape)) {
       this.warnedAggregations.add(shape);
       warn?.(message);
     }
+  }
+
+  /**
+   * Parse the filter, refuse statements, drop ORDER BY / LIMIT / OFFSET and run {@link executeCount}
+   * @override
+   * @throws Error when max is not a positive integer
+   */
+  async count(filter?: string, params?: QueryParameters, options?: CountOptions): Promise<CountResult> {
+    const max = options?.max;
+    if (max !== undefined && !(Number.isSafeInteger(max) && max > 0)) {
+      throw new Error(`Invalid count max '${max}': expected a positive integer`);
+    }
+    const WebdaQL = await import("@webda/ql");
+    const source = filter ?? "";
+    const parsed = WebdaQL.parse(params !== undefined ? WebdaQL.bind(source, params) : source);
+    // DELETE / UPDATE / SELECT statements are not filters
+    WebdaQL.assertFilterQuery(parsed);
+    return this.executeCount(parsed.filter, max);
+  }
+
+  /**
+   * Count the objects matching a validated filter
+   *
+   * Backends override it to count natively. The default scans iterate() in memory, under the fallback policy.
+   * It does not go through {@link executeAggregation}: an aggregation has no cap.
+   * @param filter - the filter, without ORDER BY, LIMIT or OFFSET
+   * @param max - stop after max objects, undefined for an exact count
+   * @returns the count
+   */
+  protected async executeCount(filter: Expression, max?: number): Promise<CountResult> {
+    await this.checkAggregationFallback(undefined, "the backend has no native count");
+    return { ...(await this.countInMemory(filter, max)), native: false };
+  }
+
+  /**
+   * Count by streaming the filtered items, stopping at max + 1
+   * @param filter - the filter
+   * @param max - stop after max objects, undefined for an exact count
+   * @returns the value and its relation
+   */
+  protected async countInMemory(filter: Expression, max?: number): Promise<Omit<CountResult, "native">> {
+    let n = 0;
+    for await (const _item of this.iterate(filter.toString())) {
+      // One past max proves the total is larger: closing the iterator stops the scan
+      if (++n > (max ?? Number.POSITIVE_INFINITY)) break;
+    }
+    return max !== undefined && n > max ? { value: max, relation: "gte" } : { value: n, relation: "eq" };
   }
 
   /**

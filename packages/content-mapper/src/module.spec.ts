@@ -18,6 +18,7 @@ import {
   getPlural,
   sortObject
 } from "./module.ts";
+import { buildRelations, polymorphicTargetTypes } from "./module-discovery.ts";
 import { actionNameOption, namespaceOf } from "./schema/project.ts";
 import { handle } from "./schema/worker.ts";
 
@@ -72,6 +73,19 @@ describe("module metadata on a fixture", () => {
   });
   afterAll(() => session?.dispose());
 
+  it("keeps model REST paths, methods and OpenAPI overrides alongside renamed handlers", () => {
+    const actions = buildModelActions(session.ctx, classOf(session, "actions.ts", "RestActions"));
+    expect(actions.assign).toEqual({
+      rest: { method: "post", path: "{uuid}/assign{?notify?}", body: "assignment" },
+      methods: ["POST"],
+      openapi: { post: { summary: "Assign" } },
+      handler: "assignAction"
+    });
+    expect(
+      buildBehaviorActions(session.ctx, classOf(session, "actions.ts", "RestActions"), "Fixture/Rest").assignAction
+    ).toMatchObject({ methods: ["POST"], openapi: { post: { summary: "Assign" } } });
+  });
+
   it("extracts @Command and @BuildCommand definitions", () => {
     const commands = buildCommands(session.ctx, classOf(session, "commands.service.ts", "Tooling"));
     expect(Object.keys(commands)).toEqual(["greet", "build", "nameless-phase"]);
@@ -112,8 +126,10 @@ describe("module metadata on a fixture", () => {
       bare: {}
     });
     const named = buildBehaviorActions(session.ctx, classOf(session, "behaviors.ts", "Named"), "Custom/Named");
-    expect(Object.keys(named)).toEqual(["own", "read", "write", "bare"]);
-    expect(named.own).toEqual({});
+    expect(Object.keys(named)).toEqual(["own", "flagged", "selfFlagged", "read", "write", "bare"]);
+    expect(named.own).toEqual({ maxMfaAge: "5m" });
+    expect(named.flagged).toEqual({ featureFlag: "named-flag" });
+    expect(named.selfFlagged).toEqual({ featureFlag: true });
   });
 
   it("records @Shared methods with their source and allowlisted imports", () => {
@@ -222,7 +238,13 @@ describe("module metadata on a fixture", () => {
       status: { description: "Report", handler: "statusAction" },
       run: {},
       same: {},
-      lookup: { global: true, handler: "find" }
+      lookup: { global: true, handler: "find" },
+      payout: { maxMfaAge: "10m" },
+      purge: { global: true, maxMfaAge: 600 },
+      computedAge: {},
+      report: { featureFlag: "beta-reports" },
+      rebuild: { global: true, featureFlag: true },
+      computedFlag: {}
     });
   });
 
@@ -279,7 +301,9 @@ describe("module metadata on a fixture", () => {
       Identifier: "Custom/Named",
       Import: "lib/behaviors:Named",
       Actions: {
-        own: {},
+        own: { maxMfaAge: "5m" },
+        flagged: { featureFlag: "named-flag" },
+        selfFlagged: { featureFlag: true },
         read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } },
         write: {},
         bare: {}
@@ -337,6 +361,149 @@ describe("module model aliases", () => {
   });
 });
 
+describe("module events under strict", () => {
+  it("lists the events of an optional [WEBDA_EVENTS]? member", () => {
+    // `strict: true` widens `[WEBDA_EVENTS]?: ModelEvents<this>` to `ModelEvents<this> | undefined`,
+    // whose union has no properties of its own: Events used to come out empty
+    const dir = join(here, "..", "test", "events-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const { module, errors } = generateWebdaModule(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Evt"
+      });
+      expect(errors).toEqual([]);
+      expect(module.models["Evt/Inherited"].Events).toEqual(["Created", "Deleted"]);
+      expect(module.models["Evt/Extended"].Events).toEqual(["Created", "Deleted", "Archived"]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
+describe("module relations", () => {
+  const dir = join(here, "..", "test", "relation-fixture");
+  let session: Session;
+  let result: ReturnType<typeof generateWebdaModule>;
+  beforeAll(() => {
+    session = openSession(join(dir, "tsconfig.json"), dir);
+    result = generateWebdaModule(session.ctx, {
+      appPath: dir,
+      rootDir: join(dir, "src"),
+      outDir: join(dir, "lib"),
+      namespace: "Rel"
+    });
+  }, 120_000);
+  afterAll(() => session?.dispose());
+
+  it("records polymorphic target constraints and reference schemas", () => {
+    const report = result.module.models["Rel/Report"];
+    expect(report.Relations.polymorphicLinks).toEqual([
+      { attribute: "links" },
+      { attribute: "bare" },
+      { attribute: "optional", models: ["Rel/Author"] },
+      { attribute: "restricted", models: ["Rel/Author", "Rel/Post"] }
+    ]);
+    expect(
+      buildRelations(session.ctx, undefined, classOf(session, "report.model.ts", "Report"), name => `Rel/${name}`)
+        .polymorphicLinks
+    ).toEqual(report.Relations.polymorphicLinks);
+    expect(result.module.models["Rel/GenericReport"].Relations.polymorphicLinks).toEqual([{ attribute: "links" }]);
+    const cls = classOf(session, "report.model.ts", "Report");
+    const type = session.ctx.checker.getDeclaredTypeOfSymbol(session.ctx.checker.getSymbolAtLocation(cls.name)!);
+    for (const name of ["uuid", "unrelated"]) {
+      expect(
+        polymorphicTargetTypes(session.ctx, session.ctx.checker.getPropertyOfType(type, name), cls)
+      ).toBeUndefined();
+    }
+    for (const schema of Object.values(report.Schemas)) {
+      const restricted: any = schema.properties!.restricted;
+      expect(restricted.items.properties.model.enum).toEqual(["Rel/Author", "Rel/Post"]);
+      expect(restricted.items.properties.rel).toEqual({ type: "string" });
+      expect(restricted.items.required).toEqual(expect.arrayContaining(["model", "key", "rel"]));
+      expect(JSON.stringify(restricted)).not.toContain("posts");
+    }
+  });
+
+  it("records the relation aliases as the relation type they resolve to", () => {
+    expect(result.module.models["Rel/Post"].Relations).toEqual({
+      parent: { attribute: "author", model: "Rel/Author" },
+      links: [
+        { attribute: "editor", model: "Rel/Author", type: "LINK" },
+        { attribute: "reviewer", model: "Rel/Author", type: "LINK" },
+        { attribute: "sponsor", model: "Rel/Author", type: "LINK" },
+        { attribute: "tags", model: "Rel/Tag", type: "LINKS_ARRAY" },
+        { attribute: "labels", model: "Rel/Tag", type: "LINKS_ARRAY" },
+        { attribute: "related", model: "Rel/Post", type: "LINKS_SIMPLE_ARRAY" }
+      ]
+    });
+    // The same in the discovery helper
+    const relations = buildRelations(
+      session.ctx,
+      undefined,
+      classOf(session, "blog.model.ts", "Post"),
+      name => `Rel/${name}`
+    );
+    expect(relations.parent).toEqual({ attribute: "author", model: "Rel/Author" });
+    expect(relations.links?.map(link => link.type)).toEqual([
+      "LINK",
+      "LINK",
+      "LINK",
+      "LINKS_ARRAY",
+      "LINKS_ARRAY",
+      "LINKS_SIMPLE_ARRAY"
+    ]);
+  });
+
+  it("binds a link declared on a generic base to the subclass type argument", () => {
+    expect(result.module.models["Rel/Owned"].Relations.links).toEqual([
+      { attribute: "owner", type: "LINK" },
+      { attribute: "reader", type: "LINK" }
+    ]);
+    expect(result.module.models["Rel/Draft"].Relations.links).toEqual([
+      { attribute: "owner", model: "Rel/Author", type: "LINK" },
+      { attribute: "reader", model: "Rel/Author", type: "LINK" }
+    ]);
+    // The same in the discovery helper
+    const resolve = (model: string) => (model === "Author" ? "Rel/Author" : undefined);
+    const linksOf = (name: string) =>
+      buildRelations(session.ctx, undefined, classOf(session, "owned.model.ts", name), resolve).links;
+    expect(linksOf("Owned")).toEqual([
+      { attribute: "owner", type: "LINK" },
+      { attribute: "reader", type: "LINK" }
+    ]);
+    expect(linksOf("Draft")).toEqual([
+      { attribute: "owner", model: "Rel/Author", type: "LINK" },
+      { attribute: "reader", model: "Rel/Author", type: "LINK" }
+    ]);
+  });
+
+  it("records the attribute a ModelRelated queries", () => {
+    expect(result.module.models["Rel/Author"].Relations.queries).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "author" }
+    ]);
+    expect(result.module.models["Rel/Tag"].Relations.queries).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
+      { attribute: "untargeted", model: "Rel/Post" }
+    ]);
+    expect(
+      buildRelations(session.ctx, undefined, classOf(session, "blog.model.ts", "Tag"), name => `Rel/${name}`).queries
+    ).toEqual([
+      { attribute: "posts", model: "Rel/Post", targetAttribute: "tags" },
+      { attribute: "untargeted", model: "Rel/Post" }
+    ]);
+  });
+
+  it("refuses a second parent", () => {
+    expect(result.errors).toEqual([
+      "Rel/Comment has two parents, post and thread: a model has one ModelParent (BelongTo) at most, use ModelLink " +
+        "(ManyToOne) for the other"
+    ]);
+  });
+});
+
 /**
  * Committed module of a package, when its dependencies are installed.
  * @param relative - repo-relative package directory
@@ -353,6 +520,27 @@ function committedModule(relative: string): any {
  * committed files are written by the TypeScript 6 generator, so matching them
  * is evidence for the port rather than a restatement of it.
  */
+describe("reverse relation attribute metadata", () => {
+  it("keeps explicit attributes and omits unspecified ones in the discovery helper", () => {
+    const dir = join(here, "..", "test", "parity-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const relations = buildRelations(
+        session.ctx,
+        undefined,
+        classOf(session, "book.model.ts", "Book"),
+        name => `Test/${name}`
+      );
+      expect(relations.queries).toEqual([
+        { attribute: "siblings", model: "Test/Book", targetAttribute: "author" },
+        { attribute: "related", model: "Test/Book" }
+      ]);
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
 describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])("module for %s", relative => {
   const root = join(repo, relative);
   const committed = committedModule(relative);
@@ -378,6 +566,17 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     }
   });
 
+  it("extracts targetAttribute from typeArguments[2] for ModelRelated", () => {
+    if (relative !== "packages/core" || !committed) return;
+    const userQueries = result!.module.models["Webda/SimpleUser"]?.Relations?.queries;
+    const identsQuery = userQueries?.find(q => q.attribute === "_idents");
+    expect(identsQuery).toEqual({
+      attribute: "_idents",
+      model: "Webda/Ident",
+      targetAttribute: "_user"
+    });
+  });
+
   it("matches service commands, capabilities and Configuration", () => {
     if (!committed) return;
     for (const section of ["moddas", "beans"] as const) {
@@ -396,11 +595,19 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     expect(result!.module.capabilities).toEqual(committed.capabilities);
   });
 
-  it("is byte-identical to the committed module", () => {
+  it("matches the committed module apart from newly recorded REST bindings", () => {
     if (!committed) return;
-    expect(JSON.stringify(result!.module, undefined, 2)).toBe(JSON.stringify(committed, undefined, 2));
+    const legacy = (key: string, value: unknown) => (key === "x-webda-rest" ? undefined : value);
+    expect(JSON.stringify(result!.module, legacy, 2)).toBe(JSON.stringify(committed, legacy, 2));
     expect(result!.errors).toEqual([]);
     expect(result!.namingViolations).toEqual([]);
+  });
+
+  it.runIf(relative === "packages/core")("binds a link declared on a generic base to the subclass argument", () => {
+    if (!committed) return;
+    const linksOf = (model: string) => result!.module.models[model].Relations.links;
+    expect(linksOf("Webda/AbstractOwnerModel")).toEqual([{ attribute: "_user", type: "LINK" }]);
+    expect(linksOf("Webda/OwnerModel")).toEqual([{ attribute: "_user", model: "Webda/User", type: "LINK" }]);
   });
 });
 
@@ -432,7 +639,10 @@ describe("model extending a dependency's model", () => {
 
   it("records relations inherited from the dependency's models", () => {
     if (!available) return;
-    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([{ attribute: "_user", type: "LINK" }]);
+    // `_user: ModelLink<T>` is declared on the generic base, `OwnerModel` binds `T` to `User`
+    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([
+      { attribute: "_user", model: "Webda/User", type: "LINK" }
+    ]);
   });
 });
 
@@ -457,7 +667,9 @@ describe("model action exposed under another name", () => {
 
   it("records the action under its name, with the method as handler", () => {
     if (!available) return;
-    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({ status: { handler: "statusAction" } });
+    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({
+      status: { openapi: { hidden: true }, handler: "statusAction" }
+    });
     expect(result!.errors).toEqual([]);
   });
 

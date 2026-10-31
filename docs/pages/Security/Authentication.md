@@ -101,7 +101,7 @@ Users, idents and refresh tokens are regular models; map them to a store like an
   "services": {
     "db": {
       "type": "MemoryStore",
-      "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken"]
+      "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"]
     }
   }
 }
@@ -110,6 +110,10 @@ Users, idents and refresh tokens are regular models; map them to a store like an
 A model mapped to no store falls back to the application registry store. That is acceptable for a single instance
 only: **multi-instance deployments must map `Webda/RefreshToken` (and the user and ident models) to a shared store**,
 otherwise a refresh token issued by one instance is unknown to the others and revocation does not reach them.
+Likewise map **`Webda/RevokedAccess`**, the denylist of revoked token families and users (see
+[`@webda/oauth`](../Modules/oauth/README.md#revocation)): on a per-instance store a revocation stays local to the
+instance that performed it. Other instances notice a shared revocation within `TokenService.revocationCacheTtl`
+seconds (default 10).
 
 `Webda/Ident` and `Webda/RefreshToken`, and any application subclass of them (for example a custom `identModel`), are
 never exposed by the `DomainService` (REST, GraphQL, model operations): their fields (`_user`, `verifiedAt`,
@@ -124,26 +128,33 @@ There is no `LegacyIdent` model: v3 ident records stored under the `"<uid>_<prov
 
 All operations are exposed through the REST API with the path shown (relative to the API root) and as operations by id.
 
-| Operation id                   | REST                               | Inputs                                    | Result / notes                                                                                        |
-| ------------------------------ | ---------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `Auth.Providers`               | `GET auth/providers`               | -                                         | list of `{ name, type, startUrl? }`                                                                   |
-| `Auth.Me`                      | `GET auth/me`                      | -                                         | public entry of the user, 404 when not logged in                                                      |
-| `Auth.Logout`                  | `POST auth/logout`                 | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA              |
-| `Auth.Refresh`                 | `POST auth/refresh`                | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                            |
-| `Auth.Idents`                  | `GET auth/idents`                  | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first             |
-| `Auth.Unlink`                  | `POST auth/idents/unlink`          | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no usable login method would remain (see below)                            |
-| `Auth.Email.Login`             | `POST auth/email/login`            | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`                   |
-| `Auth.Email.Register`          | `POST auth/email/register`         | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result                       |
-| `Auth.Email.StartVerification` | `POST auth/email/verification`     | `email`                                   | 204. Logged out: never reveals whether the email exists                                               |
-| `Auth.Email.Verify`            | `POST auth/email/verify`           | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                              |
-| (GET link)                     | `GET auth/email/verify?token=...`  | `token`                                   | 302 redirect, see below                                                                               |
-| (GET link)                     | `GET auth/email/recover?token=...` | `token`                                   | 302 to `redirects.recover?token=...` (token not consumed), invalid: `redirects.failure?reason=`       |
-| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`      | `email`                                   | always 204 (never reveals accounts)                                                                   |
-| `Auth.Password.Recover`        | `POST auth/password/recover`       | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in           |
-| `Auth.Password.Change`         | `POST auth/password/change`        | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`            |
-| `Auth.<Provider>.Token`        | `POST auth/<provider>/token`       | `token`                                   | OAuth providers, e.g. `Auth.Google.Token`: the login result (see [OAuth providers](#oauth-providers)) |
-| (GET link)                     | `GET <url>?redirect=...`           | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
-| (GET link)                     | `GET <url>/callback`               | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
+| Operation id                   | REST                                  | Inputs                                    | Result / notes                                                                                        |
+| ------------------------------ | ------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Auth.Providers`               | `GET auth/providers`                  | -                                         | list of `{ name, type, startUrl? }`                                                                   |
+| `Auth.Me`                      | `GET auth/me`                         | -                                         | public entry of the user, 404 when not logged in                                                      |
+| `Auth.Logout`                  | `POST auth/logout`                    | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA              |
+| `Auth.Refresh`                 | `POST auth/refresh`                   | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                            |
+| `Auth.Idents`                  | `GET auth/idents`                     | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first             |
+| `Auth.Unlink`                  | `POST auth/idents/unlink`             | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no usable login method would remain (see below)                            |
+| `Auth.Email.Login`             | `POST auth/email/login`               | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`                   |
+| `Auth.Email.Register`          | `POST auth/email/register`            | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result                       |
+| `Auth.Email.StartVerification` | `POST auth/email/verification`        | `email`                                   | 204. Logged out: never reveals whether the email exists                                               |
+| `Auth.Email.Verify`            | `POST auth/email/verify`              | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                              |
+| (GET link)                     | `GET auth/email/verify?token=...`     | `token`                                   | 302 redirect, see below                                                                               |
+| (GET link)                     | `GET auth/email/recover?token=...`    | `token`                                   | 302 to `redirects.recover?token=...` (token not consumed), invalid: `redirects.failure?reason=`       |
+| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`         | `email`                                   | always 204 (never reveals accounts)                                                                   |
+| `Auth.Password.Recover`        | `POST auth/password/recover`          | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in           |
+| `Auth.Password.Change`         | `POST auth/password/change`           | `current`, `next`, `escrow?`              | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`            |
+| `Auth.<Provider>.Token`        | `POST auth/<provider>/token`          | `token`                                   | OAuth providers, e.g. `Auth.Google.Token`: the login result (see [OAuth providers](#oauth-providers)) |
+| (GET link)                     | `GET <url>?redirect=...`              | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
+| (GET link)                     | `GET <url>/callback`                  | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
+| `User.Mfa.Enroll`              | `POST users/{uuid}/mfa.enroll`        | `method`, `input?`                        | `{ secret, uri }`: start TOTP enrollment (URI formatted for authenticator QR code)                    |
+| `User.Mfa.Challenge`           | `POST users/{uuid}/mfa.challenge`     | `method`                                  | `{ phone, expiresIn }`: send a code (SMS), also allowed on a pending session; phone masked            |
+| `User.Mfa.Confirm`             | `POST users/{uuid}/mfa.confirm`       | `method`, `code`                          | `{ recoveryCodes, ...tokens }`: confirm factor, issue recovery codes, re-issue the caller's tokens    |
+| `User.Mfa.Verify`              | `POST users/{uuid}/mfa.verify`        | `code`, `method?`                         | verify TOTP code on pending session, issue access/refresh tokens                                      |
+| `User.Mfa.Disable`             | `POST users/{uuid}/mfa.disable`       | `method`, `code`                          | disable TOTP method (requires current TOTP code or recovery code)                                     |
+| `User.Mfa.Recover`             | `POST users/{uuid}/mfa.recover`       | `code`                                    | login with a single-use recovery code on pending session                                              |
+| `User.Mfa.RecoveryCodes`       | `POST users/{uuid}/mfa.recoveryCodes` | `code`                                    | `{ recoveryCodes }`: regenerate recovery codes (requires factor code or recovery code)                |
 
 `Auth.Unlink` only counts the **usable** remaining login methods: idents of other providers, plus email idents when
 the user has a password (without one an email ident allows neither login nor recovery). It also refuses to remove the
@@ -296,7 +307,16 @@ is stored (server-only, never in an API output): the JSON value encrypted with t
 inside a JWT signed with that key, so tampering is detected. Values encrypted before a key rotation still decrypt
 while the old key is in the CryptoService registry. Declare it like any behavior: `secret: EncryptedField<MyType>;`.
 **Every instance must share the CryptoService keys** (the `Registry` store): an instance without the key cannot
-decrypt.
+decrypt. When the Registry is in the same database as the encrypted data, read the keys from a secret file with
+the CryptoService `keysFile` parameter, so a database dump does not contain them (see
+[CryptoService](../Concepts/Services/CryptoService.md#keys-file)).
+
+## Client certificates
+
+`CertificateProvider` (`Webda/CertificateProvider`, provider `certificate`) authenticates requests presenting a
+verified TLS client certificate, terminated by the `HttpServer` or by a trusted reverse proxy: each request gets a
+stateless session with `amr: ["mtls"]` by default. With `mode: "factor"`, it adds `mtls` only to an existing session
+for the certificate's linked user, for that request. See [Client certificates (mTLS)](./ClientCertificate.md).
 
 ## Tokens
 
@@ -304,8 +324,12 @@ decrypt.
   `Authorization: Bearer <token>`; the scheme is case-insensitive. An invalid Bearer token means anonymous: there is no
   fallback to the session cookie.
 - **Refresh token**: opaque, valid `refreshTtl` seconds (default 2592000, 30 days), stored as a SHA-256 hash. Each
-  `Auth.Refresh` rotates it. Presenting an already used token revokes the whole token family (reuse detection).
-  `TokenService.issue()` refuses a session whose MFA is pending, and the MFA state is persisted with the refresh token.
+  `Auth.Refresh` rotates it. Presenting an already used token revokes the whole token family (reuse detection), with
+  one grace: within `refreshGrace` seconds of the rotation (default 86400), while the token it was exchanged for was
+  never used, the replay is rotated once more and that unused replacement is retired. A client that lost the answer
+  of its refresh (laptop asleep, connection dropped) keeps its session this way; a retired token presented later (two
+  holders) revokes the family. `refreshGrace: 0` restores strict detection. `TokenService.issue()` refuses a session
+  whose MFA is pending, and the MFA state is persisted with the refresh token.
 - `Auth.Logout` revokes the family; access tokens already issued remain valid until they expire.
 
 ### Sessions and password changes
@@ -319,8 +343,185 @@ later than `authAt`. A failing read also yields an anonymous session. So:
 - `Auth.Password.Change` does the same for every other session; the calling cookie session is re-stamped and stays
   logged in. A Bearer caller must log in again (its refresh token is revoked too).
 
+A user with [end-to-end encryption keys](../Concepts/Models/SealedFields.md) and a password escrow must send the
+escrow of the new password as `escrow` (built by `KeyVault.createPasswordEscrow` of `@webda/sealed-client`): the
+change is refused with 412 without it, and the escrow is stored with the new password hash in the same write. A user
+whose keys have no password escrow may send one to create it; `escrow` without keys is a 400.
+
 Sessions without `authAt` (created before this check existed, or by custom code calling `session.login()`) are not
 checked.
+
+## Multi-Factor Authentication (MFA / TOTP)
+
+`@webda/auth` provides second-factor authentication built on top of RFC 6238 Time-based One-Time Passwords (TOTP),
+one-time codes sent by SMS (see [SMS second factor](#sms-second-factor)) and single-use recovery codes, with an
+extensible `SecondFactorService` base class for other factors (e.g. WebAuthn).
+
+The factors and recovery codes live in the `Webda/MFA` behavior of `@webda/core`. Each attribute has its own
+operations, secrets and recovery codes. `purpose: "login"` selects the User attribute used for login. The inherited `User.mfa` attribute has that purpose
+by default. Other attributes on the same User, or on other models, provide independent verification.
+An attribute can enable several methods (e.g. `totp` and `sms`); its verification accepts any enabled method unless
+restricted by the `method` input.
+
+### Configuration
+
+Add `Webda/TotpService` and expose the User model through a `Webda/DomainService` (or a transport that includes it).
+Configure each attribute under `models.<Model>.behaviors.<attribute>`, independently of the factor provider:
+
+```jsonc
+{
+  "models": {
+    "Webda/User": {
+      "behaviors": {
+        "mfa": { "purpose": "login", "methods": ["totp"], "reauthMaxAge": 300, "recoveryCodes": 10 }
+        // Declare paymentMfa: MFA on your User subclass before configuring it.
+        // "paymentMfa": { "purpose": "step-up", "methods": ["totp"], "verificationMaxAge": 60, "recoveryCodes": 0 }
+      }
+    }
+  },
+  "services": {
+    "Authentication": { "type": "Webda/Authentication" },
+    "DomainService": { "type": "Webda/DomainService", "models": ["Webda/User"] },
+    "totp": {
+      "type": "Webda/TotpService",
+      "issuer": "MyApplication", // name shown in authenticator apps (default: package name or "Webda")
+      "algorithm": "sha1", // "sha1" | "sha256" | "sha512" (default "sha1")
+      "digits": 6, // 6 | 8 (default 6)
+      "period": 30, // time step in seconds (default 30)
+      "window": 1, // accepted drift window in time steps (default 1)
+      "recoveryCodes": 10, // provider default; the behavior attribute can override it
+      "throttle": {
+        "failedBeforeDelay": 5, // failed verification attempts before lockout (the strictest enabled method applies)
+        "lockout": 900000 // lockout duration in ms (15 min)
+      }
+    }
+  }
+}
+```
+
+### Storage and Security Model
+
+- **Secret encryption at rest**: The Base32 TOTP secret is stored inside `user.mfa.totp`, an `EncryptedField<TotpSecret>`
+  (`Webda/Encrypted`), encrypted using `CryptoService` symmetric encryption. The plaintext secret is never serialized in
+  JSON outputs or API responses.
+- **Single-use step enforcement**: `totpLastStep` records the accepted time step. Replaying an identical or earlier time-step
+  code is rejected immediately to prevent replay attacks.
+- **Recovery codes**: Generated in human-friendly `xxxxx-xxxxx` format. Plaintext codes are displayed to the user only once
+  upon enrollment confirmation (or regeneration). They are stored hashed with SHA-256 in `user.mfa.__recoveryCodes`. Verification
+  uses constant-time comparison (`crypto.timingSafeEqual`) and deletes the code immediately upon use.
+- **Recovery codes cover every factor**: they are issued with the first enabled factor. Confirming another factor keeps
+  them and answers `recoveryCodes: []`; disabling the last factor drops them.
+- **Brute-force protection**: Failed attempts are atomically counted in `_mfaAttempts` and `_lastMfaAttemptAt` on the
+  model holding the behavior (`countAttempt`). Every operation that checks a code shares this counter: verify, recover,
+  confirm, disable and recovery-codes, whatever the method. When failures reach the strictest `failedBeforeDelay` of the
+  enabled methods, all of them are locked out (`THROTTLED`, 429) for `lockout` ms. A successful check clears the counter.
+
+### Authentication Flow
+
+1. **Enrollment**:
+   - `POST users/{uuid}/mfa.enroll` with `{ method: "totp" }` requires an active logged-in session (and requires reauthentication if the session is older than `reauthMaxAge`).
+   - Returns `{ secret, uri }` where `uri` is a standard `otpauth://totp/...` URI ready for QR code rendering.
+2. **Confirmation**:
+   - `POST users/{uuid}/mfa.confirm` with `{ method: "totp", code: "123456" }`.
+   - On success, marks TOTP enabled, issues recovery codes (first factor only), revokes every refresh token family of the user, and upgrades the current session to `mfa: "verified"`.
+   - Returns `{ recoveryCodes: ["...", ...], accessToken, refreshToken, expiresIn }`: the tokens replace the caller's revoked ones.
+3. **Login Gate**:
+   - When MFA is enabled, primary logins (e.g. `Auth.Email.Login`, `Auth.<Provider>.Token`, OAuth callbacks) answer:
+     `{ status: "mfa_required", methods: ["totp"] }`
+   - The session enters a pending state (`session.mfa = "pending"`). No access or refresh tokens are issued.
+4. **Verification**:
+   - `POST users/{uuid}/mfa.verify` with `{ code: "123456" }`.
+   - On success, marks `session.mfa = "verified"`, stamps `session.mfaAt`, appends `"totp"` to `session.amr` (`["pwd", "totp"]`), issues access/refresh tokens, and returns `{ status: "ok", accessToken, refreshToken, ... }`.
+   - On an already logged session it is a step-up, see [MFA freshness / step-up](#mfa-freshness--step-up).
+5. **Recovery**:
+   - If the user lost their authenticator, `POST users/{uuid}/mfa.recover` with `{ code: "xxxxx-xxxxx" }`.
+   - Consumes the recovery code, sets `session.amr = ["pwd", "recovery"]`, issues tokens, and completes login.
+6. **Disabling & Regeneration**:
+   - `POST users/{uuid}/mfa.disable` with `{ method: "totp", code: "..." }` disables TOTP (requires valid code or recovery code).
+   - `POST users/{uuid}/mfa.recoveryCodes` with `{ code: "..." }` regenerates a fresh set of recovery codes.
+
+### SMS second factor
+
+`Webda/SmsMfaService` sends one-time codes by SMS (`method: "sms"`). It only implements the factor hooks: throttling,
+lock-out, recovery codes, session upgrade and events are the shared `MFA` behavior and `Authentication` logic described
+above. Messages go through a pluggable `SmsSender` service (`send(to, message)`, interface exported by `@webda/core`):
+
+- `Webda/DebugSmsSender` (`@webda/core`) keeps the messages in memory (`sent`) and logs them: tests and local development.
+- `Webda/SnsSmsSender` (`@webda/aws`) publishes transactional SMS with Amazon SNS, see [SnsSmsSender](../Modules/aws/SnsSmsSender.md).
+- Other providers only need a service implementing `SmsSender`.
+
+```jsonc
+{
+  "services": {
+    "SmsSender": { "type": "Webda/SnsSmsSender", "region": "us-east-1" }, // or "Webda/DebugSmsSender"
+    "sms": {
+      "type": "Webda/SmsMfaService",
+      "sender": "SmsSender", // name of the SmsSender service (default "SmsSender")
+      "digits": 6, // code length, 4 to 10 (default 6)
+      "ttl": "5m", // code lifetime (default "5m")
+      "resendDelay": "60s", // minimum delay between two codes of a factor (default "60s")
+      "message": "{code} is your {app} verification code", // template (default)
+      "app": "MyApplication", // {app} value (default: package name or "Webda")
+      "throttle": { "failedBeforeDelay": 5, "lockout": 900000 }
+    }
+  }
+}
+```
+
+Flow, with the operations of the attribute (`User.Mfa.*` for login):
+
+1. **Enroll**: `User.Mfa.Enroll` with `{ method: "sms", input: { phone: "+1 555 010 0089" } }`. The phone is normalised to
+   E.164 (separators removed, the `+` country code is required, otherwise `INVALID_PHONE`), stored pending, and a first
+   code is sent. Answers `{ phone: "+1********89", expiresIn: 300 }`. Enrolling again before confirming replaces the phone.
+2. **Confirm**: `User.Mfa.Confirm` with `{ method: "sms", code }`. This is the phone verification: on success the factor
+   is enabled and, when the owner model declares a `phoneVerifiedAt` attribute, it is set (no core schema change).
+3. **Login**: the primary login answers `{ status: "mfa_required", methods: ["sms"] }`. The pending session calls
+   `User.Mfa.Challenge` with `{ method: "sms" }` to receive a code, then `User.Mfa.Verify` with `{ method: "sms", code }`.
+   A pending session can only challenge a confirmed factor. A logged session can challenge too (step-up, disable,
+   recovery codes regeneration, resending a code during enrollment).
+
+Every new code replaces the previous one. `Challenge` (and a new `Enroll`) before `resendDelay` answers `THROTTLED`
+(429) without sending anything; a failing sender error is returned to the caller and nothing is saved.
+
+Security notes:
+
+- SMS is a weak factor (SIM swap, SS7 interception, phishing relays): do not recommend it as the only second factor,
+  offer TOTP alongside it (`methods: ["totp", "sms"]`) and keep recovery codes.
+- The phone is never output: it is stored in the encrypted factor data (`EncryptedField`, `CryptoService`) and answered
+  masked. Logs of `DebugSmsSender` contain the phone and the code: do not use it in production.
+- Codes come from `crypto.randomInt`, are stored as SHA-256 hashes inside the encrypted factor data, compared in
+  constant time, expire after `ttl` and are single use (cleared on success).
+- Wrong codes count in the same `_mfaAttempts` lock-out as TOTP; `resendDelay` limits the SMS sent per factor.
+
+### Extending SecondFactorService
+
+Custom MFA factors (WebAuthn, email codes...) can be implemented by extending `SecondFactorService<P>`. The service is
+the `SecondFactorProvider` of its method, registered on resolve: the `MFA` behavior of every model uses it. The owner is
+a user or any object holding the behavior.
+
+```typescript
+export class EmailCodeService extends SecondFactorService<EmailCodeParameters> {
+  readonly method = "email";
+
+  async startEnrollment(mfa: MFA, owner: any, input?: any): Promise<any> {
+    // Store the factor data in mfa.getFactor("email").data, send the first code; the caller saves the owner
+  }
+
+  // Optional: methods delivering codes implement challenge, exposed as <Model>.<Attribute>.Challenge
+  async challenge(mfa: MFA, owner: any): Promise<any> {
+    // Send a new code; the caller saves the owner
+  }
+
+  async check(mfa: MFA, code: string): Promise<boolean> {
+    // Validate the code
+  }
+}
+```
+
+The `MFA` behavior handles throttling, recovery codes, saving the owner and public actions. Factor services register
+providers by `method`; they do not register `Auth.*` operations. The Authentication service applies reauthentication,
+event emission, session upgrade and token revocation to its configured login attribute. Recovery codes belong to
+one attribute and can be regenerated with any of that attribute's enabled factors.
 
 ### Pending MFA sessions
 
@@ -333,6 +534,122 @@ A session whose MFA is pending is not logged in: `ctx.getCurrentUserId()` and `c
 `ctx.getSession().userId`.
 
 `TokenService` parameters: `accessTtl`, `refreshTtl`.
+
+### MFA on other models
+
+Any model can hold the behavior to protect itself, e.g. a vault whose sensitive operations need a second factor. It
+declares the behavior and the attempts counters:
+
+```typescript
+export class Vault extends Model {
+  mfa: MFA;
+  _mfaAttempts: number = 0;
+  _lastMfaAttemptAt?: number;
+}
+```
+
+The domain service exposes the behavior actions of every such model, allowed by its `canAct(context, "mfa.<action>")`:
+
+| Operation                 | REST                                   | Input             | Output                                           |
+| ------------------------- | -------------------------------------- | ----------------- | ------------------------------------------------ |
+| `Vault.Mfa.Enroll`        | `POST vaults/{uuid}/mfa.enroll`        | `method`          | the factor enrollment data (TOTP: `secret, uri`) |
+| `Vault.Mfa.Challenge`     | `POST vaults/{uuid}/mfa.challenge`     | `method`          | the challenge data (SMS: `phone, expiresIn`)     |
+| `Vault.Mfa.Confirm`       | `POST vaults/{uuid}/mfa.confirm`       | `method`, `code`  | `{ recoveryCodes }` (first factor only)          |
+| `Vault.Mfa.Verify`        | `POST vaults/{uuid}/mfa.verify`        | `code`, `method?` | `{ method, proof, expiresIn }`                   |
+| `Vault.Mfa.Disable`       | `POST vaults/{uuid}/mfa.disable`       | `method`, `code`  | -                                                |
+| `Vault.Mfa.RecoveryCodes` | `POST vaults/{uuid}/mfa.recoveryCodes` | `code`            | `{ recoveryCodes }`                              |
+
+`Verify` checks the code against the given method, or every enabled method then the recovery codes (`method:
+"recovery"` for a recovery code only). It answers a step-up proof signed by `CryptoService`, valid 5 minutes, bound to
+the object and to the caller. The operation that needs the second factor checks it:
+
+```typescript
+const method = await verifyMfaProof(input.proof, vault, "mfa"); // the method that verified, undefined when not valid
+if (!method) throw new WebdaError.Forbidden("Second factor required");
+```
+
+The attribute argument is required: a proof for `mfa` cannot authorize an operation requiring `paymentMfa`.
+A fourth argument requires a more recent proof (`verifyMfaProof(proof, vault, "mfa", 60)`, in seconds).
+
+### Multiple MFA attributes and session status
+
+For a User with `mfa: MFA` and `paymentMfa: MFA`, the operations are `User.Mfa.*` and `User.PaymentMfa.*`.
+Policies can restrict allowed `methods`, override `recoveryCodes` (0 disables them), set the proof lifetime with
+`verificationMaxAge` (seconds), and set login enrollment `reauthMaxAge` (seconds; 0 disables the limit).
+
+Both attributes can use `method: "totp"` with separate secrets and recovery codes. Only the attribute configured with
+`purpose: "login"` completes a pending login. More than one login attribute is a configuration error. Pending sessions can access only their own login attribute;
+all other behavior actions retain the model's normal read and action permission checks.
+
+Successful `Confirm`, `Verify` and `Recover` actions record their server-derived operation name in the session:
+
+```typescript
+session.mfaVerifications = {
+  "User.Mfa.Verify": { method: "totp", verifiedAt: 1720000000000, owner: "Webda/User/user-123" },
+  "User.PaymentMfa.Verify": { method: "totp", verifiedAt: 1720000005000, owner: "Webda/User/user-123" }
+};
+```
+
+Sensitive operations must check their required operation entry, owner and age (`verifiedAt` is milliseconds).
+Each entry records the latest owner verified through that operation; it never authorizes a different object.
+A failed verification does not create or refresh an entry. Disabling a factor clears this attribute's entries for
+that owner. Login and logout clear previous verification entries. Cookies and issued access/refresh tokens preserve
+entries, and token refresh preserves their original timestamps. A bearer request's session changes alone do not
+replace its token: use the returned scoped proof for object step-up, or issue a new token from the updated session
+(the login attribute does it, see [MFA freshness / step-up](#mfa-freshness--step-up)).
+
+For example, a recent payment verification can be required with:
+
+```typescript
+const verified = ctx.getSession().mfaVerifications?.["User.PaymentMfa.Verify"];
+if (!verified || verified.owner !== `Webda/User/${user.getUUID()}` || Date.now() - verified.verifiedAt > 60000) {
+  throw new WebdaError.Forbidden("Recent payment MFA required");
+}
+```
+
+### MFA freshness / step-up
+
+The session records when its second factor was verified: `session.mfaAt` (ms), carried by cookies, by the `mfaAt`
+access token claim and by the refresh token. It is a proof time, not a token time: `Auth.Refresh` never advances it, so
+a session verified once stays "verified" for the refresh family lifetime but grows older. It is stamped when:
+
+- a pending login completes with the login attribute `Verify` or `Recover`;
+- a provider login already carries one of the user's MFA methods in its `amr`;
+- the login attribute `Confirm` enables a factor;
+- a logged session verifies the login attribute again (step-up).
+
+`session.mfaAge()` answers the milliseconds since that verification, `Infinity` when it never was (sessions and tokens
+issued before `mfaAt` existed are therefore never fresh).
+
+A sensitive operation requires a recent second factor with `maxMfaAge` (a `Duration`: seconds or `"10m"`), on
+`@Operation` as on model and behavior `@Action` (use a string or number literal: the compiler reads it):
+
+```ts
+@Operation({ id: "Account.Delete", maxMfaAge: "10m", rest: { method: "delete", path: "account" } })
+async deleteAccount() {}
+```
+
+It is checked after the `permission` query, before the operation authorizers, for every transport (REST, GraphQL, gRPC,
+MCP) and by `canCallOperation()` listings, which answer `false` when refused:
+
+| Session                                | Refusal                                                 |
+| -------------------------------------- | ------------------------------------------------------- |
+| anonymous, or second factor pending    | `UNAUTHORIZED` (401)                                    |
+| logged, no second factor (`mfa: none`) | `MFA_REQUIRED` (403): `maxMfaAge` makes MFA mandatory   |
+| verified more than `maxMfaAge` ago     | `MFA_STEP_UP_REQUIRED` (401), `details: { maxAge }` (s) |
+
+On `MFA_STEP_UP_REQUIRED` the client prompts for a code, calls `User.Mfa.Verify` (or `User.Mfa.Recover`) on its logged
+session, then retries. The step-up keeps the login (`authAt`, ident, refresh family), stamps `mfaAt`, emits
+`Authentication.MfaVerified` with `stepUp: true` and answers `{ status: "ok", stepUp: true, user, method, proof }`:
+
+- a Bearer session also receives new `accessToken` / `refreshToken` in its **same refresh family**, carrying the new
+  `mfaAt`; the previous tokens keep the old one;
+- a cookie session is saved with the request, no token is issued;
+- a delegated OAuth token (issued to a client) is not re-issued: it keeps its client restrictions.
+
+`maxMfaAge` reads the session only (no I/O). Since WebdaQL has `NOW()`, a permission query can express the same
+freshness (`permission: "mfa = 'verified' AND mfaAt > NOW('-10m')"`), but it refuses with a plain 403: `maxMfaAge`
+gives clients the dedicated `MFA_STEP_UP_REQUIRED` answer and the `maxAge` to request.
 
 ## Linking policy
 
@@ -368,6 +685,10 @@ Listen on the `Authentication` service. All payloads include `context`.
 | `Authentication.PasswordUpdate` | `user`, `password`                                                                                                                             |
 | `Authentication.Linked`         | `user`, `ident`                                                                                                                                |
 | `Authentication.Unlinked`       | `user`, `ident` (projection: `uuid`, `provider`, `providerUid`, `email`, `verifiedAt`, `lastUsedAt`, `userId`; no provider tokens nor profile) |
+| `Authentication.MfaEnabled`     | `user`, `userId`, `method`                                                                                                                     |
+| `Authentication.MfaDisabled`    | `user`, `userId`, `method`                                                                                                                     |
+| `Authentication.MfaVerified`    | `user`, `userId`, `method`, `stepUp` (true when a logged session verified again)                                                               |
+| `Authentication.MfaFailed`      | `user`, `userId`, `method`                                                                                                                     |
 
 The `identity` of `Authentication.Register` and `Authentication.Login` never carries the provider `tokens` (see
 [OAuth providers](#oauth-providers)). `Authentication.Register` is emitted before the new user is saved: it can still
@@ -376,24 +697,31 @@ carries `{ context, user }` only (`user` is undefined for an unknown email).
 
 ## Errors
 
-| Code                       | HTTP | Meaning                                                          |
-| -------------------------- | ---- | ---------------------------------------------------------------- |
-| `ACCOUNT_EXISTS`           | 409  | An account owns this email, log in to link                       |
-| `IDENT_LINKED_ELSEWHERE`   | 409  | The ident belongs to another user                                |
-| `IDENT_CONFLICT`           | 409  | A v3 ident upgrades onto a key another user holds                |
-| `LAST_LOGIN_METHOD`        | 409  | The last login method cannot be removed                          |
-| `INVALID_CREDENTIALS`      | 403  | Wrong email or password                                          |
-| `REGISTRATION_DISABLED`    | 403  | Automatic registration is off                                    |
-| `EMAIL_DOMAIN_NOT_ALLOWED` | 403  | The provider policy refuses this email (domain, or not verified) |
-| `TOKEN_INVALID`            | 403  | Malformed, wrong purpose, revoked or reused token                |
-| `TOKEN_EXPIRED`            | 410  | Expired emailed token                                            |
-| `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently               |
-| `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                         |
-| `INVALID_IDENT`            | 400  | Malformed ident                                                  |
-| `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body               |
-| `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered   |
+| Code                       | HTTP | Meaning                                                              |
+| -------------------------- | ---- | -------------------------------------------------------------------- |
+| `ACCOUNT_EXISTS`           | 409  | An account owns this email, log in to link                           |
+| `IDENT_LINKED_ELSEWHERE`   | 409  | The ident belongs to another user                                    |
+| `IDENT_CONFLICT`           | 409  | A v3 ident upgrades onto a key another user holds                    |
+| `LAST_LOGIN_METHOD`        | 409  | The last login method cannot be removed                              |
+| `INVALID_CREDENTIALS`      | 403  | Wrong email or password                                              |
+| `REGISTRATION_DISABLED`    | 403  | Automatic registration is off                                        |
+| `EMAIL_DOMAIN_NOT_ALLOWED` | 403  | The provider policy refuses this email (domain, or not verified)     |
+| `TOKEN_INVALID`            | 403  | Malformed, wrong purpose, revoked or reused token                    |
+| `TOKEN_EXPIRED`            | 410  | Expired emailed token                                                |
+| `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently                   |
+| `INVALID_MFA_CODE`         | 401  | Invalid, replayed, or unrecognised MFA verification or recovery code |
+| `MFA_NOT_ENABLED`          | 400  | MFA (or specific method) is not enabled for the user                 |
+| `MFA_ALREADY_ENABLED`      | 409  | Factor method is already enabled for the user                        |
+| `MFA_NOT_PENDING`          | 401  | Session is neither logged in nor pending second factor verification  |
+| `MFA_REQUIRED`             | 403  | The operation has `maxMfaAge` and the user has no second factor      |
+| `MFA_STEP_UP_REQUIRED`     | 401  | Second factor older than `maxMfaAge`, `details.maxAge` in seconds    |
+| `INVALID_PHONE`            | 400  | The SMS enrollment phone is not an E.164 number (`+` country code)   |
+| `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                             |
+| `INVALID_IDENT`            | 400  | Malformed ident                                                      |
+| `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body                   |
+| `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered       |
 
-Importable from `@webda/auth` (`AccountExists`, `Throttled`, ...).
+Importable from `@webda/auth` (`AccountExists`, `Throttled`, `InvalidMfaCode`, `MfaNotEnabled`, ...).
 
 ## Password policy
 

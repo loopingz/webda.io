@@ -17,12 +17,17 @@
  *
  * A streamed parameter (`AsyncIterable<T>`, only parameter) or return
  * (`AsyncGenerator<T>`) is described by `T` and marked `x-webda-stream`.
+ *
+ * A parameter typed as an operation context is not part of `.input`: it
+ * receives the context. Its position is recorded with `x-webda-arguments`
+ * and `x-webda-context`.
  */
 import { SignatureKind, SymbolFlags } from "typescript/unstable/sync";
 import type { Checker, Project, Symbol as TsSymbol, Type } from "typescript/unstable/sync";
 import type { MethodDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { SchemaConverter } from "./converter.ts";
+import { derivesFrom } from "./service.ts";
 import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
 
 /** What is needed to convert an action. */
@@ -35,6 +40,25 @@ export interface ActionSchemaOptions {
 
 /** Keyword marking a `.input`/`.output` schema whose side of the operation is a stream of that schema. */
 export const STREAM_KEYWORD = "x-webda-stream";
+
+/** Keyword listing every parameter name of an action in declaration order, context parameters included. */
+export const ARGUMENTS_KEYWORD = "x-webda-arguments";
+
+/** Keyword listing the parameters of an action that receive the operation context. */
+export const CONTEXT_KEYWORD = "x-webda-context";
+
+/** Classes whose instances, and subclasses, are operation contexts. */
+const CONTEXT_TYPES = ["IOperationContext", "OperationContext"];
+
+/**
+ * Whether a parameter type is an operation context.
+ * @param type - the parameter type
+ * @param checker - the resident checker
+ * @returns true for `IOperationContext`, `OperationContext` and their subclasses
+ */
+export function isContextType(type: Type, checker: Checker): boolean {
+  return CONTEXT_TYPES.some(name => derivesFrom(type, name, checker));
+}
 
 /** Generic interfaces whose first type argument is the element of a stream. */
 const STREAM_TYPES = new Set(["AsyncIterable", "AsyncIterableIterator", "AsyncGenerator"]);
@@ -63,10 +87,10 @@ function markStream(schema: JSONSchema7): JSONSchema7 {
 /**
  * Schema for an action's arguments.
  *
- * Every parameter is included — there is no filter for `context` / `ctx`, so
- * an `OperationContext` argument is expanded in full. That is odd for
- * something called an operation *input*, and it is what the committed
- * artefact contains, so it is reproduced rather than improved here.
+ * Every parameter is included except the ones typed as an operation context:
+ * they receive the context, so the schema records their position instead
+ * (`x-webda-arguments`, `x-webda-context`). Without a context parameter the
+ * argument order is the order of `properties`.
  * @param method - the decorated method
  * @param options - project and checker
  * @returns the arguments schema
@@ -99,10 +123,15 @@ export function generateActionInput(method: MethodDeclaration, options: ActionSc
   // `$schema` and keeps its keys in declaration order.
   const schema: JSONSchema7 = { type: "object", properties: {} };
   const required: string[] = [];
+  const contexts: string[] = [];
 
   for (const parameter of parameters) {
-    const converter = new SchemaConverter({ project, checker, mode: "input" });
     const parameterType = checker.getTypeOfSymbolAtLocation(parameter, method.parent);
+    if (isContextType(parameterType, checker)) {
+      contexts.push(parameter.name);
+      continue;
+    }
+    const converter = new SchemaConverter({ project, checker, mode: "input" });
     const parameterSchema = converter.fromType(parameterType, method.parent);
     delete parameterSchema.$schema;
     schema.properties![parameter.name] = parameterSchema;
@@ -113,6 +142,11 @@ export function generateActionInput(method: MethodDeclaration, options: ActionSc
   // Omitted entirely when empty, and in declaration order rather than sorted
   // — unlike every `required` the converter itself produces.
   if (required.length > 0) schema.required = required;
+  if (contexts.length > 0) {
+    const keywords = schema as Record<string, unknown>;
+    keywords[ARGUMENTS_KEYWORD] = parameters.map(parameter => parameter.name);
+    keywords[CONTEXT_KEYWORD] = contexts;
+  }
   return normalizeDefinitions(schema);
 }
 
@@ -229,7 +263,7 @@ export function normalizeDefinitions<T>(schema: T): T {
   const resolvable = (ref: string): boolean => {
     if (!ref.startsWith("#/definitions/")) return true;
     const raw = ref.slice("#/definitions/".length);
-    let decoded = raw;
+    let decoded: string;
     try {
       decoded = decodeURIComponent(raw);
     } catch {

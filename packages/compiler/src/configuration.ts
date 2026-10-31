@@ -1,6 +1,151 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
-import { relative, dirname } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, sep, resolve, isAbsolute } from "node:path";
+
+/**
+ * File extensions of configuration and deployment files
+ */
+const CONFIGURATION_EXTENSIONS = [".json", ".jsonc", ".yaml", ".yml"];
+
+/**
+ * Schema references written by previous versions of webda, they are considered managed by webda
+ */
+const LEGACY_SCHEMA_REFERENCES = [".webda-config-schema.json", ".webda-deployment-schema.json"];
+
+/**
+ * YAML modeline understood by the YAML language server (VSCode, IntelliJ, ...)
+ *
+ * YAML has no `$schema` keyword, so the reference is written as a comment
+ */
+const YAML_MODELINE = /^#\s*yaml-language-server:\s*\$schema=(\S*).*$/m;
+
+/**
+ * First `$schema` property of a JSON/JSONC document, webda keeps it as first property of the root
+ */
+const JSON_SCHEMA_PROPERTY = /("\$schema"\s*:\s*)"(?:[^"\\]|\\.)*"/;
+
+/**
+ * Check if a schema reference is managed by webda and can be updated
+ *
+ * A reference is managed if it targets the generated schema or a legacy webda schema,
+ * any other reference (remote url, custom schema) is left untouched.
+ *
+ * @param current - the current reference
+ * @param schemaFile - the generated schema file
+ * @returns true if the reference can be replaced
+ */
+function isManagedSchemaReference(current: string, schemaFile: string): boolean {
+  const name = basename(current);
+  return name === basename(schemaFile) || LEGACY_SCHEMA_REFERENCES.includes(name);
+}
+
+/**
+ * Ensure a configuration or deployment file references its JSON schema
+ *
+ * - JSON/JSONC: the `$schema` property is added as first property, formatting and comments are kept
+ * - YAML: a `# yaml-language-server: $schema=...` modeline is added on the first line
+ *
+ * The reference is relative to the file. An existing reference is only replaced if it is
+ * managed by webda (stale path or legacy name), custom references are kept.
+ *
+ * @param file - the configuration or deployment file
+ * @param schemaFile - the schema file to reference
+ * @returns true if the file was updated
+ */
+export function ensureSchemaReference(file: string, schemaFile: string): boolean {
+  const reference = relative(dirname(file), schemaFile).split(sep).join("/");
+  if (/\.ya?ml$/.test(file)) {
+    const content = readFileSync(file, "utf-8");
+    const match = YAML_MODELINE.exec(content);
+    if (!match) {
+      writeFileSync(file, `# yaml-language-server: $schema=${reference}\n${content}`);
+      return true;
+    }
+    if (match[1] === reference || !isManagedSchemaReference(match[1], schemaFile)) {
+      return false;
+    }
+    writeFileSync(file, content.replace(YAML_MODELINE, `# yaml-language-server: $schema=${reference}`));
+    return true;
+  }
+  const content = readFileSync(file, "utf-8");
+  let parsed: any;
+  try {
+    parsed = JSONUtils.parse(content);
+  } catch {
+    return false;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || parsed.$schema === reference) {
+    return false;
+  }
+  if (parsed.$schema !== undefined) {
+    if (typeof parsed.$schema !== "string" || !isManagedSchemaReference(parsed.$schema, schemaFile)) {
+      return false;
+    }
+    writeFileSync(file, content.replace(JSON_SCHEMA_PROPERTY, `$1${JSON.stringify(reference)}`));
+    return true;
+  }
+  writeFileSync(file, insertSchemaProperty(content, reference));
+  return true;
+}
+
+/**
+ * Insert a `$schema` property as first property of a JSON/JSONC document
+ *
+ * The document is edited as text, so formatting and comments are kept as is
+ *
+ * @param content - the JSON/JSONC document, its root must be an object
+ * @param reference - the schema reference
+ * @returns the updated document
+ */
+function insertSchemaProperty(content: string, reference: string): string {
+  // Skip leading whitespaces and comments to find the root object
+  let start = 0;
+  while (start < content.length) {
+    if (/\s/.test(content[start])) {
+      start++;
+    } else if (content.startsWith("//", start)) {
+      const end = content.indexOf("\n", start + 2);
+      start = end + 1;
+    } else if (content.startsWith("/*", start)) {
+      const end = content.indexOf("*/", start + 2);
+      start = end + 2;
+    } else {
+      // ensureSchemaReference has already parsed and validated the root object.
+      start++;
+      break;
+    }
+  }
+  const after = content.substring(start);
+  const property = `"$schema": ${JSON.stringify(reference)}`;
+  // Empty object
+  if (/^\s*}/.test(after)) {
+    return `${content.substring(0, start)} ${property} ${after.trimStart()}`;
+  }
+  // Multiline object: reuse the indentation of the first property
+  const multiline = /^[ \t]*\r?\n(\s*?)([ \t]*)\S/.exec(after);
+  if (multiline) {
+    const eol = after.includes("\r\n") ? "\r\n" : "\n";
+    return `${content.substring(0, start)}${eol}${multiline[2]}${property},${after}`;
+  }
+  return `${content.substring(0, start)}${property},${after}`;
+}
+
+/**
+ * List the deployment files of a deployments folder
+ *
+ * @param deploymentsDir - the `deployments` folder
+ * @returns the deployment files, empty if the folder does not exist
+ */
+export function listDeploymentFiles(deploymentsDir: string): string[] {
+  if (!existsSync(deploymentsDir)) {
+    return [];
+  }
+  return readdirSync(deploymentsDir, { withFileTypes: true })
+    .filter(entry => entry.isFile() && CONFIGURATION_EXTENSIONS.some(ext => entry.name.endsWith(ext)))
+    .map(entry => join(deploymentsDir, entry.name))
+    .sort();
+}
 
 /**
  * Interface for the application methods needed by configuration schema generation
@@ -10,7 +155,7 @@ export interface ConfigSchemaApplication {
   getSchema(type: string): JSONSchema7;
   getDeployers(): { [key: string]: any };
   getConfiguration(): { services: { [key: string]: any } };
-  getModules(): { beans?: { [key: string]: any } };
+  getModules(): { beans?: { [key: string]: any }; models?: Record<string, any>; behaviors?: Record<string, any> };
   completeNamespace(name: string): string;
 }
 
@@ -36,16 +181,26 @@ function getServiceTypePattern(app: ConfigSchemaApplication, type: string): stri
  * @param deploymentFilename to save deployment schema to
  * @param full to keep all required
  * @param configFile - optional config file path to update $schema reference
+ * @param deploymentsDir - optional deployments folder, each deployment file gets its $schema reference
  */
 export function generateConfigurationSchemas(
   app: ConfigSchemaApplication,
   filename: string = ".webda/config.schema.json",
   deploymentFilename: string = ".webda/deployment.schema.json",
   full: boolean = false,
-  configFile?: string
+  configFile?: string,
+  deploymentsDir?: string
 ): void {
+  const projectDir = configFile ? dirname(resolve(configFile)) : process.cwd();
+  const absFilename = isAbsolute(filename) ? filename : resolve(projectDir, filename);
+  const absDeploymentFilename = isAbsolute(deploymentFilename)
+    ? deploymentFilename
+    : resolve(projectDir, deploymentFilename);
   // Build the base configuration schema structure
-  let res: JSONSchema7 = {
+  let res: JSONSchema7 & {
+    properties: NonNullable<JSONSchema7["properties"]>;
+    definitions: NonNullable<JSONSchema7["definitions"]>;
+  } = {
     type: "object",
     properties: {
       $schema: { type: "string" },
@@ -78,7 +233,7 @@ export function generateConfigurationSchemas(
     enum: Object.keys(app.getModdas() || {})
   };
   const addServiceSchema = (type: "ServiceType" | "BeanType") => {
-    return serviceType => {
+    return (serviceType: string) => {
       const key = `${type}$${serviceType.replace(/\//g, "$")}`;
       const definition: JSONSchema7 = (res.definitions[key] = app.getSchema(serviceType));
       /* should try to mock the getSchema */
@@ -90,10 +245,10 @@ export function generateConfigurationSchemas(
       if (definition.properties?.type) {
         (<JSONSchema7>definition.properties.type).pattern = getServiceTypePattern(app, serviceType);
       }
-      (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
+      ((<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf ??= []).push({
         $ref: `#/definitions/${key}`
       });
-      delete res.definitions[key]["$schema"];
+      delete definition["$schema"];
       // Flatten definition (might not be the best idea)
       for (const def in definition.definitions) {
         res.definitions[def] ??= definition.definitions[def];
@@ -101,33 +256,76 @@ export function generateConfigurationSchemas(
       delete definition.definitions;
       // Remove mandatory depending on option
       if (!full) {
-        res.definitions[key]["required"] = ["type"];
+        definition.required = ["type"];
       }
       // Predefine beans
       if (type === "BeanType") {
-        (<JSONSchema7>res.properties.services).properties ??= {};
-        res.properties.services[definition.title] = {
+        const services = <JSONSchema7>res.properties.services;
+        services.properties ??= {};
+        services.properties[definition.title ?? serviceType] = {
           $ref: `#/definitions/${key}`
         };
-        (<JSONSchema7>res.definitions[key]).required ??= [];
-        (<JSONSchema7>res.definitions[key]).required = (<JSONSchema7>res.definitions[key]).required.filter(
-          p => p !== "type"
-        );
+        definition.required = (definition.required ?? []).filter(p => p !== "type");
       }
     };
   };
   Object.keys(app.getModdas()).forEach(addServiceSchema("ServiceType"));
   Object.keys(app.getModules().beans || {}).forEach(addServiceSchema("BeanType"));
-  FileUtils.save(res, filename);
+  // Model and behavior policies use their own parameter schemas, never instance input schemas.
+  const modelSchemas: JSONSchema7 & { properties: NonNullable<JSONSchema7["properties"]> } = {
+    type: "object",
+    additionalProperties: false,
+    properties: {}
+  };
+  const parameterSchema = (id: string, source?: JSONSchema7): JSONSchema7 => {
+    if (!source) return { type: "object", additionalProperties: true };
+    const prefix = `Parameters$${Buffer.from(id).toString("hex")}$`;
+    const schema: JSONSchema7 = JSON.parse(
+      JSON.stringify(source).replaceAll("#/definitions/", `#/definitions/${prefix}`)
+    );
+    for (const [name, definition] of Object.entries(schema.definitions ?? {})) {
+      res.definitions[prefix + name] = definition;
+    }
+    delete schema.definitions;
+    if (!full) delete schema.required;
+    return schema;
+  };
+  const modules = app.getModules();
+  for (const [id, metadata] of Object.entries(modules.models ?? {})) {
+    const behaviors: JSONSchema7 & { properties: NonNullable<JSONSchema7["properties"]> } = {
+      type: "object",
+      additionalProperties: false,
+      properties: {}
+    };
+    for (const relation of metadata.Relations?.behaviors ?? []) {
+      behaviors.properties[relation.attribute] = parameterSchema(
+        `${id}/${relation.attribute}`,
+        modules.behaviors?.[relation.behavior]?.Schema
+      );
+    }
+    modelSchemas.properties[id] = {
+      type: "object",
+      additionalProperties: false,
+      properties: { parameters: parameterSchema(id, metadata.Schema), behaviors }
+    };
+  }
+  res.properties.models = modelSchemas;
+  if (!existsSync(dirname(absFilename))) {
+    mkdirSync(dirname(absFilename), { recursive: true });
+  }
+  FileUtils.save(res, absFilename);
   // Build the deployment schema
   // Ensure builtin deployers are there
   const definitions = JSONUtils.duplicate(res.definitions);
   res = {
+    type: "object",
     properties: {
+      $schema: { type: "string" },
       parameters: {
         type: "object",
         additionalProperties: true
       },
+      models: modelSchemas,
       resources: {
         type: "object",
         additionalProperties: true
@@ -150,7 +348,7 @@ export function generateConfigurationSchemas(
       return;
     }
     const key = `Service$${k}`;
-    (<JSONSchema7>res.properties.services).properties[k] = {
+    ((<JSONSchema7>res.properties.services).properties ??= {})[k] = {
       type: "object",
       oneOf: [
         { $ref: `#/definitions/${key}` },
@@ -170,7 +368,7 @@ export function generateConfigurationSchemas(
     if (definition.properties?.type) {
       (<JSONSchema7>definition.properties.type).pattern = getServiceTypePattern(app, serviceType);
     }
-    (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({
+    ((<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf ??= []).push({
       $ref: `#/definitions/${key}`
     });
     delete definition["$schema"];
@@ -179,15 +377,24 @@ export function generateConfigurationSchemas(
       definition["required"] = ["type"];
     }
   });
-  FileUtils.save(res, deploymentFilename);
+  if (!existsSync(dirname(absDeploymentFilename))) {
+    mkdirSync(dirname(absDeploymentFilename), { recursive: true });
+  }
+  FileUtils.save(res, absDeploymentFilename);
 
-  // Ensure $schema is set in the configuration file
   if (configFile) {
-    const config = FileUtils.load(configFile);
-    const schemaRef = relative(dirname(configFile), filename);
-    if (config.$schema !== schemaRef) {
-      config.$schema = schemaRef;
-      FileUtils.save(config, configFile);
-    }
+    ensureSchemaReference(configFile, absFilename);
+  }
+  const targetDeploymentsDir = deploymentsDir
+    ? resolve(projectDir, deploymentsDir)
+    : configFile
+      ? join(projectDir, "deployments")
+      : undefined;
+  if (targetDeploymentsDir && existsSync(targetDeploymentsDir)) {
+    FileUtils.walkSync(targetDeploymentsDir, filePath => {
+      if (CONFIGURATION_EXTENSIONS.some(ext => filePath.endsWith(ext))) {
+        ensureSchemaReference(filePath, absDeploymentFilename);
+      }
+    });
   }
 }

@@ -1,4 +1,3 @@
-
 const COMMENTS = Symbol("comments");
 
 /** Base class for all nodes in a JSONC abstract syntax tree, carrying associated comment metadata. */
@@ -46,7 +45,7 @@ abstract class JSONCNode {
    * @param node - the source node to copy comments from
    */
   cloneComments(node: JSONCNode) {
-    Object.keys(this[COMMENTS]).forEach(key => {
+    (Object.keys(this[COMMENTS]) as (keyof JSONCNode[typeof COMMENTS])[]).forEach(key => {
       this[COMMENTS][key] = node[COMMENTS][key];
     });
   }
@@ -99,7 +98,7 @@ class JSONCObject extends JSONCNode {
       if (this.properties[ind][COMMENTS].endOfLine.includes("\n")) {
         this.multiline = true;
       }
-      const uncommented = stripComments(this.properties[ind].key[COMMENTS].prefix).split("\n").pop().length;
+      const uncommented = stripComments(this.properties[ind].key[COMMENTS].prefix).split("\n").at(-1)?.length ?? 0;
       if (currentCount === -1) {
         currentCount = uncommented;
       } else if (currentCount !== uncommented) {
@@ -109,7 +108,7 @@ class JSONCObject extends JSONCNode {
     }
     // By default use current object indentation + 2
     if (currentCount === -2) {
-      this.indentation = 2 + stripComments(this[COMMENTS].prefix.split("\n").pop()).length;
+      this.indentation = 2 + stripComments(this[COMMENTS].prefix.split("\n").at(-1) ?? "").length;
     } else {
       this.indentation = currentCount;
     }
@@ -156,7 +155,7 @@ class JSONCObject extends JSONCNode {
    *
    * @returns a proxy object
    */
-  toProxy() {
+  toProxy(): Record<string | symbol, any> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     return new Proxy(this.toJSON(), {
@@ -189,7 +188,7 @@ class JSONCObject extends JSONCNode {
           self.addProperty(new JSONCProperty(new JSONCKey(prop as string), newValue));
         }
         // Keep the snapshot target in sync so the proxy invariants hold for the traps below
-        target[prop] = newValue.toJSON();
+        Reflect.set(target, prop, newValue.toJSON());
         return true;
       },
       deleteProperty: (target, prop) => {
@@ -197,7 +196,7 @@ class JSONCObject extends JSONCNode {
         if (index !== -1) {
           self.properties.splice(index, 1);
         }
-        delete target[prop];
+        Reflect.deleteProperty(target, prop);
         return true;
       },
       // Enumerate the JSONC tree, not the snapshot taken when the proxy was created,
@@ -219,7 +218,7 @@ class JSONCObject extends JSONCNode {
    *
    * @returns the plain object
    */
-  toJSON() {
+  toJSON(): Record<string, any> {
     const obj: any = {};
     this.properties.forEach(prop => {
       obj[prop.key.name] = prop.value.toJSON();
@@ -261,7 +260,7 @@ class JSONCValue extends JSONCNode {
    *
    * @returns the raw value
    */
-  toProxy() {
+  toProxy(): any {
     return this.value;
   }
 
@@ -270,7 +269,7 @@ class JSONCValue extends JSONCNode {
    *
    * @returns the raw value
    */
-  toJSON() {
+  toJSON(): any {
     return this.value;
   }
 }
@@ -298,7 +297,13 @@ class JSONCProperty extends JSONCNode {
    */
   toString(separator: string = "") {
     return (
-      this[COMMENTS].prefix + this.key.toString() + ":" + this.value.toString() + this[COMMENTS].suffix + separator + this[COMMENTS].endOfLine
+      this[COMMENTS].prefix +
+      this.key.toString() +
+      ":" +
+      this.value.toString() +
+      this[COMMENTS].suffix +
+      separator +
+      this[COMMENTS].endOfLine
     );
   }
 }
@@ -434,7 +439,7 @@ class JSONCArray extends JSONCNode {
   computeFormatting() {
     // Keep with the default formatting
     if (this.elements.length === 0) {
-      this.indentation = stripComments(this[COMMENTS].prefix.split("\n").pop()).length + 2;
+      this.indentation = stripComments(this[COMMENTS].prefix.split("\n").at(-1) ?? "").length + 2;
       return;
     }
     // Check if the properties are sorted
@@ -444,7 +449,7 @@ class JSONCArray extends JSONCNode {
       if (this.elements[ind][COMMENTS].endOfLine.includes("\n")) {
         this.multiline = true;
       }
-      const uncommented = stripComments(this.elements[ind][COMMENTS].prefix).split("\n").pop().length;
+      const uncommented = stripComments(this.elements[ind][COMMENTS].prefix).split("\n").at(-1)?.length ?? 0;
       if (currentCount === -1) {
         currentCount = uncommented;
       } else if (currentCount !== uncommented) {
@@ -454,7 +459,7 @@ class JSONCArray extends JSONCNode {
     }
     // By default use current object indentation + 2
     if (currentCount === -2) {
-      this.indentation = 2 + stripComments(this[COMMENTS].prefix.split("\n").pop()).length;
+      this.indentation = 2 + stripComments(this[COMMENTS].prefix.split("\n").at(-1) ?? "").length;
     } else {
       this.indentation = currentCount;
     }
@@ -495,7 +500,7 @@ class JSONCArray extends JSONCNode {
    *
    * @returns the proxy array
    */
-  toProxy() {
+  toProxy(): JSONCArrayProxy {
     return new JSONCArrayProxy(this);
   }
 
@@ -504,7 +509,7 @@ class JSONCArray extends JSONCNode {
    *
    * @returns the plain array
    */
-  toJSON() {
+  toJSON(): any[] {
     return this.elements.map(el => el.toJSON());
   }
 }
@@ -525,11 +530,11 @@ function parseJsoncToTree(jsoncString: string): any {
    *
    * @returns the parsed JSONC node
    */
-  function parseValue(): JSONCValue | JSONCObject | JSONCArray | null {
+  function parseValue(): JSONCValue | JSONCObject | JSONCArray {
     const first = i == 0;
     const prefix = skipWhitespace();
     const char = jsoncString[i];
-    let value: JSONCValue | JSONCObject | JSONCArray | null = null;
+    let value: JSONCValue | JSONCObject | JSONCArray;
 
     if (char === "{") {
       value = parseObject();
@@ -620,7 +625,7 @@ function parseJsoncToTree(jsoncString: string): any {
     while (i < jsoncString.length && jsoncString[i] !== "]") {
       const value = parseValue();
       value[COMMENTS].prefix = whitespace;
-      arr.elements.push(value!);
+      arr.elements.push(value);
 
       whitespace = skipWhitespace();
       value[COMMENTS].suffix = whitespace;
@@ -702,22 +707,38 @@ function parseJsoncToTree(jsoncString: string): any {
   }
 
   /**
-   * Parse a numeric literal (integer, optionally negative).
+   * Parse a numeric literal: optional minus, integer part, optional fraction and exponent (JSON number grammar).
    *
    * @returns the parsed number value
    */
   function parseNumber(): JSONCValue {
-    let numStr = "";
+    const start = i;
+    const skipDigits = () => {
+      const from = i;
+      while (i < jsoncString.length && jsoncString[i] >= "0" && jsoncString[i] <= "9") {
+        i++;
+      }
+      return i > from;
+    };
     if (jsoncString[i] === "-") {
-      numStr += "-";
       i++;
     }
-    while (i < jsoncString.length && jsoncString[i] >= "0" && jsoncString[i] <= "9") {
-      numStr += jsoncString[i];
+    let valid = skipDigits();
+    if (valid && jsoncString[i] === ".") {
       i++;
+      valid = skipDigits();
     }
-    // Handle decimals and exponents if needed
-    return new JSONCValue(parseFloat(numStr));
+    if (valid && (jsoncString[i] === "e" || jsoncString[i] === "E")) {
+      i++;
+      if (jsoncString[i] === "+" || jsoncString[i] === "-") {
+        i++;
+      }
+      valid = skipDigits();
+    }
+    if (!valid) {
+      throw new Error(`Invalid number at position ${start}`);
+    }
+    return new JSONCValue(Number(jsoncString.substring(start, i)));
   }
 
   /**

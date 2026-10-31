@@ -25,8 +25,7 @@ function resolutionToValue(c: Conflict, res: Resolution): unknown {
     // 'text' resolution is meant for `kind: "line"` conflicts. We also allow it
     // when both ours and theirs are strings (e.g., "replace"-strategy string
     // conflict), but not when only one side happens to be a string.
-    const isStringConflict =
-      c.kind === "line" || (typeof c.ours === "string" && typeof c.theirs === "string");
+    const isStringConflict = c.kind === "line" || (typeof c.ours === "string" && typeof c.theirs === "string");
     if (!isStringConflict) {
       throw new VersioningError(
         "RESOLUTION_TYPE_MISMATCH",
@@ -36,11 +35,7 @@ function resolutionToValue(c: Conflict, res: Resolution): unknown {
     }
     return res.text;
   }
-  throw new VersioningError(
-    "INVALID_RESOLUTION",
-    `resolve: invalid Resolution at ${c.path}`,
-    c.path
-  );
+  throw new VersioningError("INVALID_RESOLUTION", `resolve: invalid Resolution at ${c.path}`, c.path);
 }
 
 /**
@@ -50,10 +45,7 @@ function resolutionToValue(c: Conflict, res: Resolution): unknown {
  * @param resolutions - a map from conflict path to resolution instruction
  * @returns a new `MergeResult` with resolved conflicts applied and remaining conflicts listed
  */
-export function resolve<T>(
-  result: MergeResult<T>,
-  resolutions: Map<Path, Resolution>
-): MergeResult<T> {
+export function resolve<T>(result: MergeResult<T>, resolutions: Map<Path, Resolution>): MergeResult<T> {
   // setAtPointer performs its own clone per call, so no upfront clone is needed.
   let merged: unknown = result.merged;
   const remaining: Conflict[] = [];

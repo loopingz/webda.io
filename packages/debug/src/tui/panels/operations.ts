@@ -200,7 +200,9 @@ export class OperationsPanel extends ScrollablePanel {
     // Implementor
     if (op.implementor) {
       const impl = op.implementor;
-      add(`  ${impl.type === "model" ? "Model" : "Service"}: ${impl.name}${impl.method ? "." + impl.method + "()" : ""}`);
+      add(
+        `  ${impl.type === "model" ? "Model" : "Service"}: ${impl.name}${impl.method ? "." + impl.method + "()" : ""}`
+      );
       add("");
 
       // Code

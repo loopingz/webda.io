@@ -1,0 +1,82 @@
+import { NotEnumerable } from "@webda/utils";
+import { useLog } from "@webda/workout";
+
+/**
+ * Typed configuration parameters shared by services, models and behaviors
+ */
+export class Parameters {
+  /**
+   * Watch for changes on the parameters and call watchers when a parameter is changed
+   */
+  @NotEnumerable
+  private watchers: {
+    props: string[];
+    callback: (params: any) => void;
+  }[] = [];
+
+  /**
+   * Load raw parameters by assigning them onto this instance
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
+  load(params: any = {}): this {
+    Object.assign(this, params);
+    return this;
+  }
+
+  /**
+   * Update parameters and call watchers if a parameter was changed
+   * @param params - the service parameters
+   * @param delta - the delta
+   * @returns this for chaining
+   */
+  update(params: any = {}, delta: any): this {
+    this.load(params);
+    // Check delta to call watchers
+    for (const watcher of this.watchers) {
+      if (watcher.props.some(p => p in delta)) {
+        const watchers = [];
+        const proxy = new Proxy(this, {
+          get: (target, prop) => {
+            if (!watchers.includes(prop)) {
+              watchers.push(prop);
+            }
+            return target[prop as keyof this];
+          }
+        });
+        // We need to call the watcher with another proxy
+        watcher.callback(proxy);
+        // Update the watcher props if they accessed new properties
+        if (watchers.length) {
+          watcher.props = Array.from(new Set([...watcher.props, ...watchers]));
+        }
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Watch for changes on the parameters and call watchers when a parameter is changed
+   * @param callback - the callback function
+   * @returns this for chaining
+   */
+  with(callback: (params: this) => void): this {
+    const watchers = [];
+    const proxy = new Proxy(this, {
+      get: (target, prop) => {
+        if (!watchers.includes(prop)) {
+          watchers.push(prop);
+        }
+        return target[prop as keyof this];
+      }
+    });
+    callback(proxy);
+    // If properties were accessed, add the watcher
+    if (watchers.length) {
+      this.watchers.push({ props: watchers, callback });
+    } else {
+      useLog("WARN", "Parameters.with: No properties accessed in callback");
+    }
+    return this;
+  }
+}

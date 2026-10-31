@@ -1,4 +1,4 @@
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -58,8 +58,25 @@ fs.readdirSync("../packages")
       const readme = linkSafeReadme(packageName);
       // The packages build with TypeScript 7, which typedoc does not support yet: it compiles with its own
       // TypeScript 5, whose diagnostics can differ. Type checking is the build's job, not the docs'.
-      execSync(
-        `pnpm exec typedoc  --plugin typedoc-plugin-markdown --out typedoc/${packageName} --exclude "**/*+(index|.spec|.e2e).ts" --excludePrivate --hideBreadcrumbs --skipErrorChecking${readme ? ` --readme ${readme}` : ""} --tsconfig ../packages/${packageName}/tsconfig.json ../packages/${packageName}/src/index.ts`,
+      const typedocBin = path.join(path.dirname(require.resolve("typedoc/package.json")), "bin", "typedoc");
+      execFileSync(
+        process.execPath,
+        [
+          typedocBin,
+          "--plugin",
+          "typedoc-plugin-markdown",
+          "--out",
+          `typedoc/${packageName}`,
+          "--exclude",
+          "**/*+(index|.spec|.e2e).ts",
+          "--excludePrivate",
+          "--hideBreadcrumbs",
+          "--skipErrorChecking",
+          ...(readme ? ["--readme", readme] : []),
+          "--tsconfig",
+          `../packages/${packageName}/tsconfig.json`,
+          `../packages/${packageName}/src/index.ts`
+        ],
         { stdio: "inherit" }
       );
     } catch (e) {
@@ -106,8 +123,18 @@ fs.readdirSync("../packages")
 
 // Need to replace ${ in all files but for now handle a case by case
 ["typedoc/core/interfaces/KeysRegistry.md"].forEach(file => {
-  if (!fs.existsSync(file)) return;
-  let content = fs.readFileSync(file, "utf8").toString();
-  content = content.replace(/\$\{/g, "$\\{");
-  fs.writeFileSync(file, content);
+  let fd;
+  try {
+    fd = fs.openSync(file, fs.constants.O_RDWR | fs.constants.O_NOFOLLOW);
+  } catch (err) {
+    if (err.code === "ENOENT") return;
+    throw err;
+  }
+  try {
+    const content = fs.readFileSync(fd, "utf8").replace(/\$\{/g, "$\\{");
+    fs.ftruncateSync(fd, 0);
+    fs.writeSync(fd, content, 0, "utf8");
+  } finally {
+    fs.closeSync(fd);
+  }
 });

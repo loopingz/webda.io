@@ -182,7 +182,7 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
   async cleanNonExisting() {
     const binary = <FileBinary>await this.getBinary();
     binary._cleanHash("plop");
-    binary._cleanUsage("plop", "l");
+    await binary._cleanUsage("plop", "l", "attr", "Store");
   }
 
   @test

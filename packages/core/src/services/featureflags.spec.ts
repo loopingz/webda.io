@@ -25,9 +25,7 @@ import {
   unregisterOperationFeatureFlag,
   getOperationFeatureFlags,
   isFeatureEnabled,
-  isOperationEnabled,
-  FeatureFlagProvider,
-  FeatureFlagContext
+  FeatureFlagProvider
 } from "./featureflags.js";
 import { FeatureFlagsService } from "./featureflags.service.js";
 
@@ -364,11 +362,14 @@ class FeatureFlagsTest extends WebdaApplicationTest {
     service.recompile();
 
     // invalid condition throws at resolve
-    const broken = new FeatureFlagsService("broken", new ServiceParameters().load({
-      flags: {
-        brokenFlag: { condition: "INVALID <<< CONDITION" }
-      }
-    }) as any);
+    const broken = new FeatureFlagsService(
+      "broken",
+      new ServiceParameters().load({
+        flags: {
+          brokenFlag: { condition: "INVALID <<< CONDITION" }
+        }
+      }) as any
+    );
     assert.throws(() => broken.resolve(), /INVALID/);
   }
 

@@ -59,7 +59,7 @@ class OptionsTest {
 
   @test
   rejectsInvalidValuesListingValidOnes() {
-    assert.throws(() => parseCliArgs(["a", "--store", "mysql"]), /memory, file, mongodb, postgres/);
+    assert.throws(() => parseCliArgs(["a", "--store", "mysql"]), /memory, file, sqlite, mongodb, postgres/);
     assert.throws(() => parseCliArgs(["a", "--transports", "rest,soap"]), /rest, graphql, grpc, mcp/);
     assert.throws(() => parseCliArgs(["a", "--pm", "bun"]), /pnpm, npm, yarn/);
     assert.throws(() => parseCliArgs(["a", "--namespace", "my-app"]), /namespace/);
@@ -85,6 +85,8 @@ class OptionsTest {
     assert.strictEqual(toPackageName("My_App"), "my_app");
     assert.strictEqual(toPackageName("..weird//name.."), "weird-name");
     assert.strictEqual(toPackageName("!!!"), "webda-app");
+    assert.strictEqual(toPackageName(".".repeat(100_000)), "webda-app");
+    assert.strictEqual(toPackageName(".".repeat(100_000) + "app" + "_".repeat(100_000)), "app");
   }
 
   @test

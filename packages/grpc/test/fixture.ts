@@ -161,6 +161,12 @@ export function registerGrpcFixture(): void {
   op("Fixture.Ticks", "ticks", { input: "Fixture.Ticks.input", output: "Fixture.Tick" });
   op("Fixture.Sum", "sum", { input: "Fixture.Value", output: "Fixture.Total" });
   op("Fixture.Connect", "connect", { input: "Fixture.Frame", output: "Fixture.FrameOut" });
+  // Gated by a feature flag nobody enables: in the proto, NOT_FOUND on call
+  op("Fixture.Hidden", "echo", {
+    input: "Fixture.Echo.input",
+    output: "Fixture.Echo.output",
+    featureFlag: "grpc-hidden"
+  });
 }
 
 export const GRPC_FIXTURE_SERVICES = { Fixture: { type: "Webda/GrpcFixtureService" } };

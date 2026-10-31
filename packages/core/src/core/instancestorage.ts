@@ -1,10 +1,11 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { Configuration } from "../application/iconfiguration.js";
-import { OperationDefinitionInfo, ICore } from "./icore.js";
+import { OperationDefinitionInfo } from "./icore.js";
 import { ContextProvider } from "../contexts/icontext.js";
 import { IRouter } from "../rest/irest.js";
 import type { Application } from "../application/application.js";
 import type { Core } from "./core.js";
+import type { LoginMfaPolicy, SecondFactorProvider } from "../models/mfa.model.js";
+import type { CronDefinition } from "../services/cron.service.js";
 
 export type InstanceStorage = Partial<{
   // Used to store the application
@@ -23,6 +24,15 @@ export type InstanceStorage = Partial<{
   interruptables: Set<{ cancel: () => Promise<void> }>;
   // Awaited operation authorizers (see registerOperationAuthorizer)
   operationAuthorizers: Set<(...args: any[]) => Promise<any>>;
+  // Protected resource servers (see registerProtectedResource)
+  protectedResources: { path: string; uri?: string }[];
+  // Transaction participants of the operations (see registerOperationTransactionParticipant)
+  operationTransactionParticipants: Set<any>;
+  // Second factor methods available to the MFA behavior (see registerSecondFactor)
+  secondFactors: Map<string, SecondFactorProvider>;
+  loginMfa: LoginMfaPolicy;
+  // Crons registered from other sources than @Cron (see CronService.register)
+  crons: CronDefinition[];
   // Feature flag providers (see registerFeatureFlagProvider)
   featureFlagProviders: { provider: any; priority: number }[];
   // Feature flags pattern mappings (see registerOperationFeatureFlag)
@@ -120,4 +130,3 @@ export function registerInteruptableProcess(process: { cancel: () => Promise<voi
 export function unregisterInteruptableProcess(process: { cancel: () => Promise<void> }) {
   useInstanceStorage().interruptables.delete(process);
 }
-

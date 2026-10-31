@@ -1,5 +1,8 @@
 import { Action, Operation } from "./decorators.js";
 
+const dynamicAge = "1h";
+const dynamicName = "dynamic";
+
 // Not a model (nothing here extends @webda/models): only read by
 // buildModelActions directly, to check the `@Action({ name })` option.
 export class Jobs {
@@ -16,9 +19,27 @@ export class Jobs {
 
   @Action({ name: "lookup" })
   static find() {}
-}
 
-const dynamicName = "dynamic";
+  // Second factor freshness: a Duration string or seconds; anything else is ignored
+  @Action({ maxMfaAge: "10m" })
+  payout() {}
+
+  @Action({ maxMfaAge: 600 })
+  static purge() {}
+
+  @Action({ maxMfaAge: dynamicAge })
+  computedAge() {}
+
+  // Feature flag: a string literal names the flag, `true` means the operation id; anything else is ignored
+  @Action({ featureFlag: "beta-reports" })
+  report() {}
+
+  @Action({ featureFlag: true })
+  static rebuild() {}
+
+  @Action({ featureFlag: dynamicName })
+  computedFlag() {}
+}
 
 /**
  * A decorator used without a call
@@ -65,4 +86,9 @@ export class ActionNames {
   undecorated() {}
 
   async modifierOnly() {}
+}
+
+export class RestActions {
+  @Action({ name: "assign", rest: { method: "post", path: "{uuid}/assign{?notify?}", body: "assignment" }, methods: ["POST"], openapi: { post: { summary: "Assign" } } })
+  assignAction(assignment: { userId: string }, notify?: boolean) {}
 }

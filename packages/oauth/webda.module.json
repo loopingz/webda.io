@@ -1,0 +1,1727 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/OAuthServer": {
+      "Import": "lib/oauthserver.service:OAuthServer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, Omit<OAuthClient, \"id\"> | null>": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "const": null,
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/definitions/clients%24%5Bkey%3A%20string%5D%232"
+                }
+              ]
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "clients$[key: string]#2": {
+            "additionalProperties": false,
+            "description": "Construct a type with the properties of T except for those in type K.",
+            "properties": {
+              "allowedScopes": {
+                "description": "Maximum scope ever granted",
+                "type": "string"
+              },
+              "client_uri": {
+                "description": "Home page",
+                "type": "string"
+              },
+              "defaultResource": {
+                "description": "Resource the tokens are bound to when the request names none (RFC 8707): the absolute URI of a registered\nprotected resource",
+                "type": "string"
+              },
+              "defaultScope": {
+                "description": "Scope when the request has none",
+                "type": "string"
+              },
+              "deviceFlow": {
+                "default": false,
+                "description": "Device authorization grant allowed",
+                "type": "boolean"
+              },
+              "logo": {
+                "description": "Logo URL",
+                "type": "string"
+              },
+              "metadataDocument": {
+                "default": false,
+                "description": "Loaded from a Client ID Metadata Document",
+                "type": "boolean"
+              },
+              "name": {
+                "description": "Display name",
+                "type": "string"
+              },
+              "redirect_uris": {
+                "description": "Allowed redirect URIs; loopback http URIs match any port",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "registered": {
+                "default": false,
+                "description": "Registered dynamically (RFC 7591)",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "redirect_uris"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "OAuthServer parameters",
+        "properties": {
+          "accessTtl": {
+            "description": "Access token lifetime (s); defaults to TokenService",
+            "type": "number"
+          },
+          "clientMetadataCacheTtl": {
+            "default": 3600,
+            "type": "number"
+          },
+          "clientMetadataDocuments": {
+            "default": true,
+            "type": "boolean"
+          },
+          "clientMetadataHosts": {
+            "description": "Hosts allowed to serve Client ID Metadata Documents.\nEmpty (default): any public host is accepted. Non-empty: only these hosts are accepted, and they bypass the\nprivate address check (so internal hosts can be listed)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "clientMetadataTimeout": {
+            "default": 5,
+            "type": "number"
+          },
+          "clients": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20Omit%3COAuthClient%2C%20%22id%22%3E%20%7C%20null%3E",
+            "description": "Static clients by id; `null` removes a built-in client"
+          },
+          "codeTtl": {
+            "default": 60,
+            "type": "number"
+          },
+          "consentUrl": {
+            "description": "Consent UI; defaults to the built-in page",
+            "type": "string"
+          },
+          "deviceCodeTtl": {
+            "default": 600,
+            "type": "number"
+          },
+          "devicePollInterval": {
+            "default": 5,
+            "type": "number"
+          },
+          "deviceUrl": {
+            "description": "Device code entry UI; defaults to the built-in page",
+            "type": "string"
+          },
+          "issuer": {
+            "description": "Issuer; defaults to the request origin. When set, the access tokens carry it as `iss` with the RFC 9068\n`at+jwt` type, so another application can verify them (see `resources`)",
+            "type": "string"
+          },
+          "loginUrl": {
+            "description": "Application login page, receives `?redirect=`",
+            "type": "string"
+          },
+          "refreshTtl": {
+            "description": "Refresh token lifetime (s); defaults to TokenService",
+            "type": "number"
+          },
+          "registration": {
+            "description": "Dynamic client registration (RFC 7591); defaults to `open` when a protected resource is registered, else `off`",
+            "enum": [
+              "open",
+              "off"
+            ],
+            "type": "string"
+          },
+          "registrationIdleTtl": {
+            "default": 7776000,
+            "description": "Lifetime of a registered client since its last use (s)",
+            "type": "number"
+          },
+          "registrationRateLimit": {
+            "default": 20,
+            "description": "Registrations allowed per client IP in the window",
+            "type": "number"
+          },
+          "registrationRateWindow": {
+            "default": 3600,
+            "description": "Window of the registration rate limit (s)",
+            "type": "number"
+          },
+          "registrationRedirectPatterns": {
+            "description": "Globs every redirect URI of a registration must match one of",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "registrationUnusedTtl": {
+            "default": 86400,
+            "description": "Lifetime of a registered client never used (s)",
+            "type": "number"
+          },
+          "rememberConsent": {
+            "default": true,
+            "type": "boolean"
+          },
+          "rememberConsentTtl": {
+            "default": 7776000,
+            "type": "number"
+          },
+          "resources": {
+            "default": [],
+            "description": "Protected resources served by other applications (absolute URIs, RFC 8707): accepted as a `resource` or a client\n`defaultResource`, never chosen by default. Their tokens are verified from the issuer keys, so they require\n`issuer`, an asymmetric `CryptoService` algorithm and its published JWKS (`url`)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resultUrl": {
+            "description": "Result UI; defaults to the built-in page",
+            "type": "string"
+          },
+          "scopesSupported": {
+            "description": "Advertised scopes; defaults to the top-level operation groups",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/oauth",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "clientMetadataHosts",
+          "clients",
+          "loginUrl",
+          "type"
+        ],
+        "type": "object",
+        "title": "OAuthServer"
+      },
+      "Configuration": "lib/parameters:OAuthServerParameters"
+    }
+  },
+  "models": {
+    "Webda/OAuthCode": {
+      "Plural": "OAuthCodes",
+      "Import": "lib/models.model:OAuthCode",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "hash": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "redirectUri": {
+          "type": "string"
+        },
+        "codeChallenge": {
+          "type": "string"
+        },
+        "identity": {
+          "type": "GrantIdentity"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "usedAt": {
+          "type": "number"
+        },
+        "family": {
+          "type": "string"
+        },
+        "reusedAt": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Authorization code (hashed), single use",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "codeChallenge": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family issued from the code",
+              "type": "string"
+            },
+            "hash": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirectUri": {
+              "type": "string"
+            },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
+              "type": "string"
+            },
+            "reusedAt": {
+              "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "usedAt": {
+              "description": "Set when exchanged",
+              "type": "number"
+            }
+          },
+          "required": [
+            "clientId",
+            "codeChallenge",
+            "expiresAt",
+            "hash",
+            "identity",
+            "redirectUri",
+            "scope"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Authorization code (hashed), single use",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "codeChallenge": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family issued from the code",
+              "type": "string"
+            },
+            "hash": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirectUri": {
+              "type": "string"
+            },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
+              "type": "string"
+            },
+            "reusedAt": {
+              "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "usedAt": {
+              "description": "Set when exchanged",
+              "type": "number"
+            }
+          },
+          "required": [
+            "clientId",
+            "codeChallenge",
+            "expiresAt",
+            "hash",
+            "identity",
+            "redirectUri",
+            "scope"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Authorization code (hashed), single use",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "codeChallenge": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family issued from the code",
+              "type": "string"
+            },
+            "hash": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirectUri": {
+              "type": "string"
+            },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
+              "type": "string"
+            },
+            "reusedAt": {
+              "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "usedAt": {
+              "description": "Set when exchanged",
+              "type": "number"
+            }
+          },
+          "required": [
+            "clientId",
+            "codeChallenge",
+            "expiresAt",
+            "hash",
+            "identity",
+            "redirectUri",
+            "scope"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "hash"
+      ],
+      "Identifier": "Webda/OAuthCode"
+    },
+    "Webda/OAuthDeviceCode": {
+      "Plural": "OAuthDeviceCodes",
+      "Import": "lib/models.model:OAuthDeviceCode",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "userCode": {
+          "type": "string"
+        },
+        "secretHash": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "requestedScope": {
+          "type": "string"
+        },
+        "status": {
+          "type": "\"pending\" | \"approved\" | \"denied\" | \"consumed\""
+        },
+        "identity": {
+          "type": "GrantIdentity"
+        },
+        "grantedScope": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "hostname": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "lastPolledAt": {
+          "type": "number"
+        },
+        "interval": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Pending device authorization",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "grantedScope": {
+              "type": "string"
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "interval": {
+              "description": "Current polling interval (s), raised by slow_down",
+              "type": "number"
+            },
+            "lastPolledAt": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requestedScope": {
+              "type": "string"
+            },
+            "secretHash": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "denied",
+                "consumed"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "expiresAt",
+            "interval",
+            "requestedScope",
+            "secretHash",
+            "status",
+            "userCode"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Pending device authorization",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "grantedScope": {
+              "type": "string"
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "interval": {
+              "description": "Current polling interval (s), raised by slow_down",
+              "type": "number"
+            },
+            "lastPolledAt": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requestedScope": {
+              "type": "string"
+            },
+            "secretHash": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "denied",
+                "consumed"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "expiresAt",
+            "interval",
+            "requestedScope",
+            "secretHash",
+            "status",
+            "userCode"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "GrantIdentity": {
+              "additionalProperties": false,
+              "description": "Identity captured at consent time",
+              "properties": {
+                "amr": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "identId": {
+                  "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA progress of a session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amr",
+                "identId",
+                "mfa",
+                "userId"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Pending device authorization",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "grantedScope": {
+              "type": "string"
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/definitions/GrantIdentity"
+            },
+            "interval": {
+              "description": "Current polling interval (s), raised by slow_down",
+              "type": "number"
+            },
+            "lastPolledAt": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requestedScope": {
+              "type": "string"
+            },
+            "secretHash": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "denied",
+                "consumed"
+              ],
+              "type": "string"
+            },
+            "userCode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "expiresAt",
+            "interval",
+            "requestedScope",
+            "secretHash",
+            "status",
+            "userCode"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "userCode"
+      ],
+      "Identifier": "Webda/OAuthDeviceCode"
+    },
+    "Webda/OAuthGrant": {
+      "Plural": "OAuthGrants",
+      "Import": "lib/models.model:OAuthGrant",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "lastUsedAt": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Remembered consent of a user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "`<userId>:<clientId>`",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope",
+            "userId",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Remembered consent of a user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "`<userId>:<clientId>`",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope",
+            "userId",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Remembered consent of a user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "`<userId>:<clientId>`",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope",
+            "userId",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/OAuthGrant"
+    },
+    "Webda/OAuthRegisteredClient": {
+      "Plural": "OAuthRegisteredClients",
+      "Import": "lib/models.model:OAuthRegisteredClient",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "clientUri": {
+          "type": "string"
+        },
+        "logoUri": {
+          "type": "string"
+        },
+        "redirect_uris": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "lastUsedAt": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "ip": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/OAuthRegisteredClient"
+    }
+  },
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    },
+    "OAuthServer.consentGet.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "OAuthServer.consentGet.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "Consent request shown to the user",
+      "properties": {
+        "client": {
+          "$ref": "#/definitions/client",
+          "description": "Requesting client"
+        },
+        "csrf": {
+          "description": "CSRF token to send back with the decision",
+          "type": "string"
+        },
+        "flow": {
+          "description": "Authorization code or device flow",
+          "enum": [
+            "code",
+            "device"
+          ],
+          "type": "string"
+        },
+        "hostname": {
+          "description": "Hostname of the device requesting access",
+          "type": "string"
+        },
+        "offlineAccess": {
+          "default": false,
+          "description": "A refresh token is requested",
+          "type": "boolean"
+        },
+        "operations": {
+          "description": "Requested operations the user can call, by first segment",
+          "items": {
+            "$ref": "#/definitions/operations%5B%5D"
+          },
+          "type": "array"
+        },
+        "rememberable": {
+          "default": false,
+          "description": "The decision can be remembered",
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/user",
+          "description": "Signed-in user"
+        }
+      },
+      "required": [
+        "client",
+        "csrf",
+        "flow",
+        "operations",
+        "user"
+      ],
+      "type": "object",
+      "definitions": {
+        "client": {
+          "additionalProperties": false,
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "logo": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uri": {
+              "type": "string"
+            },
+            "verified": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "operations[]": {
+          "additionalProperties": false,
+          "properties": {
+            "group": {
+              "type": "string"
+            },
+            "ids": {
+              "items": {
+                "$ref": "#/definitions/operations%5B%5D%24ids%5B%5D"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "group",
+            "ids"
+          ],
+          "type": "object"
+        },
+        "operations[]$ids[]": {
+          "additionalProperties": false,
+          "properties": {
+            "alreadyAllowed": {
+              "default": false,
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            },
+            "preselected": {
+              "default": false,
+              "type": "boolean"
+            },
+            "summary": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "user": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "OAuthServer.consentDecide.input": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "type": "boolean"
+        },
+        "operations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "csrf": {
+          "type": "string"
+        },
+        "remember": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "allow",
+        "operations",
+        "csrf"
+      ]
+    },
+    "OAuthServer.consentDecide.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "redirect": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "redirect"
+      ],
+      "type": "object"
+    },
+    "OAuthServer.sessions.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "OAuthServer.sessions.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/ConnectedSession"
+      },
+      "type": "array",
+      "definitions": {
+        "ConnectedSession": {
+          "additionalProperties": false,
+          "description": "Live refresh family of a connected app",
+          "properties": {
+            "clientId": {
+              "description": "Client the family was issued to",
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Creation, ms since epoch, when known",
+              "type": "number"
+            },
+            "family": {
+              "description": "Refresh family",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last refresh, ms since epoch",
+              "type": "number"
+            },
+            "name": {
+              "description": "Display name, e.g. \"Webda CLI on remi-mbp\"",
+              "type": "string"
+            },
+            "scope": {
+              "description": "Granted scope",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "family"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "OAuthServer.grants.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "OAuthServer.grants.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/RememberedGrant"
+      },
+      "type": "array",
+      "definitions": {
+        "RememberedGrant": {
+          "additionalProperties": false,
+          "description": "Remembered consent of the user for a client",
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "type": "number"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "createdAt",
+            "expiresAt",
+            "lastUsedAt",
+            "scope"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "OAuthServer.revokeSession.input": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        }
+      }
+    },
+    "OAuthServer.revokeSession.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "OAuthServer.forget.input": {
+      "type": "object",
+      "properties": {
+        "clientId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "clientId"
+      ]
+    },
+    "OAuthServer.forget.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "OAuthServer.deviceLookup.input": {
+      "type": "object",
+      "properties": {
+        "userCode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "userCode"
+      ]
+    },
+    "OAuthServer.deviceLookup.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "redirect": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "redirect"
+      ],
+      "type": "object"
+    }
+  },
+  "behaviors": {}
+}

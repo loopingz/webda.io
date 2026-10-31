@@ -80,6 +80,8 @@ export type ModelGraph = {
    * current model.
    */
   links?: ModelRelation[];
+  /** Polymorphic references; absent models means any registered target. No cascade is implied. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   /**
    * Target other models with a new query
    * This is usually our foreign keys
@@ -99,7 +101,7 @@ export type ModelGraph = {
     /**
      * Targeted model attribute
      */
-    targetAttribute: string;
+    targetAttribute?: string;
   }[];
   /**
    * Maps are deduplication of data in your model
@@ -147,6 +149,10 @@ export type ModelGraph = {
 };
 
 export interface ModelMetadata {
+  /** Typed runtime parameter schema, separate from instance schemas. */
+  Schema?: JSONSchema7;
+  /** Export of the model's Parameters class. */
+  Configuration?: string;
   /**
    * Model identifier
    */
@@ -248,12 +254,17 @@ export interface ModelMetadata {
       description?: string;
       summary?: string;
       /**
+       * Require the second factor to be verified within this duration (Duration syntax), see
+       * `OperationDefinition.maxMfaAge`
+       */
+      maxMfaAge?: number | string;
+      /**
        * If true, the action is global (static method) rather than per-instance
        */
       global?: boolean;
       /**
-       * Behavior-only: per-action REST hint that overrides the default
-       * `{prefix}/{uuid}/{attribute}.{actionName}` PUT mapping.
+       * REST hint relative to the model collection (or behavior attribute).
+       * Instance primary key placeholders are added automatically; `method` defaults to `PUT`.
        *
        * - `route === "."` → URL is the bare attribute path
        *   `{prefix}/{uuid}/{attribute}`.
@@ -263,12 +274,16 @@ export interface ModelMetadata {
        *   the router treats them as path variables.
        * - `route === undefined` → URL falls back to the dot-notation default.
        *
-       * `method` defaults to `"PUT"`.
+       * `path` is the URI template; `body` names a parameter receiving the whole JSON body.
        */
       rest?: {
+        path?: string;
+        body?: string;
         route?: string;
         method?: string;
       };
+      methods?: string[];
+      openapi?: any;
       /**
        * Feature flag gating the action
        */
@@ -309,6 +324,10 @@ export interface SharedMethodMetadata {
  * Compile-time metadata for a class marked with `@Behavior()`.
  */
 export interface BehaviorMetadata {
+  /** Typed runtime parameter schema. */
+  Schema?: JSONSchema7;
+  /** Export of the behavior's Parameters class. */
+  Configuration?: string;
   /** Identifier of the Behavior (e.g. "Webda/MFA"). */
   Identifier: string;
   /** Module-relative path used at runtime to import the class. */
@@ -518,6 +537,96 @@ export interface WebdaModule {
    * Merged from dependencies at build/load time; project-level values override.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * Workflows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`)
+   *
+   * `@webda/workflow` registers each one at startup.
+   */
+  flows?: {
+    [id: string]: FlowMetadata;
+  };
+}
+
+/**
+ * A flow compiled from a `.flow.ts` method: a `@webda/workflow` `FlowDefinition` plus its `@Cron`s
+ */
+export interface FlowMetadata {
+  /**
+   * Flow id `<Class>.<Method>`
+   */
+  id: string;
+  /**
+   * Hash of the params and the body
+   */
+  version: string;
+  /**
+   * Names of the flow parameters, in order
+   */
+  params: string[];
+  /**
+   * JSON schema of the input
+   */
+  input: JSONSchema7;
+  /**
+   * The statements of the flow (`@webda/workflow` `Stmt[]`); a typed operation call holds
+   * `target: { class, method }`, resolved at startup to the configured service
+   */
+  body: any[];
+  source: "code";
+  /**
+   * Launch schedules, from `@Cron` on the method
+   */
+  crons?: { cron: string; description?: string; input?: Record<string, any> }[];
+}
+
+/**
+ * The application command-line, the `webda.cli` section of package.json
+ *
+ * @example
+ * ```json
+ * "webda": {
+ *   "cli": {
+ *     "name": "my-runner",
+ *     "defaultCommand": "serve",
+ *     "exclude": ["Webda/HttpServer:serve", "openapi"]
+ *   }
+ * }
+ * ```
+ */
+export interface WebdaCliDescriptor {
+  /**
+   * Program name shown in `--help`, instead of `webda`; also names the generated executable
+   * (`bin/<name>.mjs`). Applied when the CLI runs through `runCli` (the generated executable).
+   */
+  name?: string;
+  /**
+   * Command run when the arguments name none, e.g. `"serve"`. Applied when the CLI runs through `runCli`
+   * (the generated executable), not by `webda`.
+   */
+  defaultCommand?: string;
+  /**
+   * Path of the executable `webdac build` generates, relative to the package root
+   *
+   * @default "bin/<name>.mjs"
+   */
+  bin?: string;
+  /**
+   * Commands available, applied before `exclude`: a command name keeps it with its subcommands
+   * (`"config"` keeps `config encrypt`). Absent: every command.
+   *
+   * Operation commands are selected too: the operation `Task.Get` is the command `task get`, so
+   * `"task"` keeps the whole group and `"task get"` one operation (in any case). A group not listed is
+   * hidden and cannot be run.
+   */
+  include?: string[];
+  /**
+   * Commands or command providers removed, applied to `webda` too:
+   * - `"Type:command"` drops one provider (`"Webda/HttpServer:serve"`), e.g. to let a subclass serve instead;
+   *   it never matches an operation
+   * - `"command"` drops the command with its subcommands (`"openapi"`, `"config"`), or an operation group
+   *   (`"task"`) or operation (`"task get"`)
+   */
+  exclude?: string[];
 }
 
 /**
@@ -550,6 +659,11 @@ export interface WebdaPackageDescriptor {
    * Maps capability names to service type names.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * The application command-line: program name, default command, generated executable and
+   * the commands it offers
+   */
+  cli?: WebdaCliDescriptor;
   /**
    * Information on the workspace
    */
@@ -810,12 +924,13 @@ export class WebdaProject {
       throw new Error(`Invalid folder ${folder}`);
     }
     this.packageDescription = JSON.parse(readFileSync(join(folder, "package.json")).toString());
-    this.namespace = this.packageDescription.webda?.namespace;
-    if (!this.namespace && this.packageDescription.name.startsWith("@")) {
-      this.namespace = this.packageDescription.name.split("/")[0].substring(1);
-      this.namespace = this.namespace.charAt(0).toUpperCase() + this.namespace.slice(1);
+    const name = this.packageDescription.name ?? "";
+    let namespace = this.packageDescription.webda?.namespace;
+    if (!namespace && name.startsWith("@")) {
+      namespace = name.split("/")[0].substring(1);
+      namespace = namespace.charAt(0).toUpperCase() + namespace.slice(1);
     }
-    this.namespace ??= "Webda";
+    this.namespace = namespace ?? "Webda";
   }
 
   /**

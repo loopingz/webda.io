@@ -8,14 +8,13 @@ import { Model, type ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 import { Store } from "../stores/store.js";
 import { Logger } from "../loggers/ilogger.js";
-import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
+import { getUuid, State, StateOptions, CustomConstructor } from "@webda/utils";
 import { ICore, AbstractService, OperationDefinitionInfo } from "./icore.js";
 import { emitCoreEvent } from "../events/events.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel, useModelId } from "../application/hooks.js";
 import { Modda } from "../services/iservice.js";
 import { InstanceCache } from "../cache/cache.js";
-import { CustomConstructor } from "@webda/tsc-esm";
 import { AsyncLocalStorage } from "node:async_hooks";
 import * as jsondiffpatch from "jsondiffpatch";
 import { ConfigurationService } from "../configurations/configuration.service.js";
@@ -171,14 +170,14 @@ export class Core implements ICore {
    * registered by the loaded modules.
    */
   protected async decryptConfiguration() {
-    // Only the services and parameters can hold secrets, not the cached modules
-    const { services, parameters } = this.applicationConfiguration;
-    const decrypted = await CryptoService.decryptConfiguration({ services, parameters }, [], {
+    // Runtime configuration may hold secrets; cached module metadata must not.
+    const { services, parameters, models } = this.applicationConfiguration;
+    const decrypted = await CryptoService.decryptConfiguration({ services, parameters, models }, [], {
       settings: parameters?.configurationEncryption,
       appPath: this.application.getPath()
     });
     // Keep the configuration untouched when nothing was encrypted
-    if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters })) {
+    if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters, models })) {
       return;
     }
     this.applicationConfiguration = { ...this.applicationConfiguration, ...decrypted };
@@ -339,6 +338,8 @@ export class Core implements ICore {
     } catch (err) {
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
+      // The application must not start without it
+      if (err instanceof WebdaError.FatalInitError) throw err;
     }
   }
 

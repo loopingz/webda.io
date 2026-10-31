@@ -44,16 +44,36 @@ class DiffTest {
 
   @test({ name: "honors array identity via arrayId config" })
   honorsArrayIdentityViaArrayIdConfig() {
-    const a = { items: [{ id: "1", n: 1 }, { id: "2", n: 2 }] };
-    const b = { items: [{ id: "2", n: 2 }, { id: "1", n: 1 }] };
+    const a = {
+      items: [
+        { id: "1", n: 1 },
+        { id: "2", n: 2 }
+      ]
+    };
+    const b = {
+      items: [
+        { id: "2", n: 2 },
+        { id: "1", n: 1 }
+      ]
+    };
     const d = diff(a, b, { arrayId: { "/items": "id" } });
     expect(d.ops).toBeDefined();
   }
 
   @test({ name: "accepts numeric array-id values" })
   acceptsNumericArrayIdValues() {
-    const a = { items: [{ id: 1, n: 1 }, { id: 2, n: 2 }] };
-    const b = { items: [{ id: 2, n: 2 }, { id: 1, n: 1 }] };
+    const a = {
+      items: [
+        { id: 1, n: 1 },
+        { id: 2, n: 2 }
+      ]
+    };
+    const b = {
+      items: [
+        { id: 2, n: 2 },
+        { id: 1, n: 1 }
+      ]
+    };
     const d = diff(a, b, { arrayId: { "/items": "id" } });
     expect(d.ops).toBeDefined();
   }

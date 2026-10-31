@@ -1,3 +1,4 @@
+import { SchemaConverter } from "./schema/converter.ts";
 /**
  * The whole `webda.module.json`, generated on the TypeScript 7.1 API.
  *
@@ -29,20 +30,26 @@ import {
   dependencyModelName,
   discoverWebdaObjects,
   exportedName,
+  instantiatedLinkTarget,
+  polymorphicTargetTypes,
   outputTarget,
   packageOf,
   reflectAttributes,
+  relationTypeOf,
   type DiscoveredObject,
   type DiscoveryOptions,
   type ReflectedAttribute,
   type Section
 } from "./module-discovery.ts";
+import { compileFlows, formatFlowError } from "./flows/compile.ts";
+import type { CompiledFlow } from "./flows/types.ts";
 import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order, ts6PropertyOrder } from "./property-order.ts";
 import { generateModelSchemas } from "./schema/model.ts";
 import { generateTopLevelSchemas } from "./schema/project.ts";
-import { findParametersNode, generateServiceSchema } from "./schema/service.ts";
+import { findParametersNode, findStaticParametersDeclaration, generateServiceSchema } from "./schema/service.ts";
 import type { JSONSchema7 } from "./schema/types.ts";
+import { literalOption } from "./schema/rest.ts";
 
 /** Value of `$schema` in every generated module. */
 export const WEBDA_MODULE_SCHEMA = "https://webda.io/schemas/webda.module.v4.json";
@@ -79,6 +86,8 @@ export interface ServiceEntry {
 export interface ModuleRelations {
   parent?: { attribute: string; model?: string };
   links?: { attribute: string; model?: string; type: string }[];
+  /** Polymorphic references, optionally constrained to exact model identifiers. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   queries?: { attribute: string; model?: string; targetAttribute?: string }[];
   maps?: {
     attribute: string;
@@ -139,6 +148,10 @@ export interface WebdaModuleJson {
   schemas: Record<string, JSONSchema7>;
   behaviors: Record<string, BehaviorEntry>;
   capabilities?: Record<string, string>;
+  /**
+   * Flows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`): present only when there is one
+   */
+  flows?: Record<string, CompiledFlow>;
 }
 
 /** A Webda class declared in a file that does not follow the naming convention. */
@@ -190,7 +203,7 @@ export interface ModuleResult {
 }
 
 /** Suffixes the content mapper is registered for. */
-const MAPPED_SUFFIXES = [".model.ts", ".service.ts"];
+const MAPPED_SUFFIXES = [".model.ts", ".service.ts", ".flow.ts"];
 
 /** Suffix suggested for a section when a file has none of {@link MAPPED_SUFFIXES}. */
 const SECTION_SUFFIX: Record<string, string> = {
@@ -350,7 +363,7 @@ function webdaTags(node: Node): Record<string, string> {
     const name: string = tag.tagName.text;
     if (name.startsWith("Webda")) {
       tags[name] =
-        (getTextOfJSDocComment(tag.comment) ?? "").trim().replace("\n", " ").split(" ").shift() ||
+        (getTextOfJSDocComment(tag.comment) ?? "").trim().replace(/\s+/g, " ").split(" ").shift() ||
         (node as any).name?.text;
     } else if (name.startsWith("Schema")) {
       tags[name] = (getTextOfJSDocComment(tag.comment) ?? "").trim();
@@ -453,15 +466,20 @@ function propertiesOf(ctx: AnalysisContext, cls: ClassDeclaration): readonly TsS
 /**
  * Names of the properties of a symbol-keyed member's type — the `Events` of
  * `[WEBDA_EVENTS]` or the declarative `Actions` of `[WEBDA_ACTIONS]`.
+ *
+ * The member is usually optional (`[WEBDA_EVENTS]?: ModelEvents<this>`): under
+ * `strictNullChecks` its type is `ModelEvents<this> | undefined`, a union with no
+ * properties of its own, so `null`/`undefined` are stripped before reading keys.
  * @param ctx - analysis context
  * @param property - the member
  * @returns property names in declaration order
  */
 function memberTypeKeys(ctx: AnalysisContext, property: TsSymbol): string[] {
   const location = valueDeclarationOf(ctx, property);
-  const type = location
+  const declared = location
     ? ctx.checker.getTypeOfSymbolAtLocation(property, location)
     : ctx.checker.getTypeOfSymbol(property);
+  const type = ctx.checker.getNonNullableType(declared);
   const keys: Record<string, true> = {};
   for (const member of ts6PropertyOrder(ctx, type, ctx.checker.getPropertiesOfType(type))) keys[member.name] = true;
   return Object.keys(keys);
@@ -488,6 +506,21 @@ function forEachOperationOption(
   for (const property of (argument as any).properties) {
     if (!is.isPropertyAssignment(property) || !is.isIdentifier((property as any).name)) continue;
     onProperty((property as any).name.text, (property as any).initializer);
+  }
+}
+
+/**
+ * Record the `maxMfaAge` option (second factor freshness) when it is a Duration string or a number of seconds.
+ * @param key - option name
+ * @param initializer - option value
+ * @param meta - action metadata to complete
+ */
+function readMaxMfaAge(key: string, initializer: any, meta: Record<string, unknown>): void {
+  if (key !== "maxMfaAge") return;
+  if (is.isStringLiteral(initializer)) {
+    meta.maxMfaAge = initializer.text;
+  } else if (is.isNumericLiteral(initializer)) {
+    meta.maxMfaAge = Number(initializer.text);
   }
 }
 
@@ -547,6 +580,11 @@ export function buildModelActions(
     forEachOperationOption(ctx, method, (key, initializer) => {
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
+      }
+      readMaxMfaAge(key, initializer, meta);
+      if (["rest", "methods", "openapi"].includes(key)) {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
       }
       // `@Action({ name })` exposes the action under another name than the method
       if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
@@ -1140,9 +1178,14 @@ export function buildBehaviorActions(
       if (key === "global") {
         throw new Error(`Behavior ${identifier}: @Action({ global: true }) is not allowed (method "${methodName}").`);
       }
+      if (key === "methods" || key === "openapi") {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
+      }
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
+      readMaxMfaAge(key, initializer, meta);
       if (key === "rest" && is.isObjectLiteralExpression(initializer)) {
         const rest: Record<string, string> = {};
         for (const restProperty of initializer.properties) {
@@ -1152,7 +1195,8 @@ export function buildBehaviorActions(
             is.isStringLiteral((restProperty as any).initializer)
           ) {
             const restKey = (restProperty as any).name.text;
-            if (restKey === "route" || restKey === "method") rest[restKey] = (restProperty as any).initializer.text;
+            if (["route", "method", "path", "body"].includes(restKey))
+              rest[restKey] = (restProperty as any).initializer.text;
           }
         }
         if (Object.keys(rest).length > 0) meta.rest = rest;
@@ -1249,6 +1293,12 @@ function processModels(
       return undefined;
     }
   };
+  // `_user: ModelLink<T>` declared on a generic base: the model's own view of the
+  // property carries the type argument its class tree bound to `T`
+  const instantiatedModelOf = (property: TsSymbol, declaration: ClassDeclaration): string | undefined => {
+    const target = instantiatedLinkTarget(ctx, property, declaration);
+    return target && (byTypeId.get(declaredId(ctx, target)) ?? dependencyModelOf(ctx, target, appPath));
+  };
 
   const entries: Record<string, ModelEntry> = {};
   for (const { object, declaration } of models) {
@@ -1274,15 +1324,25 @@ function processModels(
 
       const attribute = property.name;
       const typeArguments: any[] = (typeNode as any).typeArguments ?? [];
-      const typeName = text(ctx, (typeNode as any).typeName);
+      const typeName = relationTypeOf(text(ctx, (typeNode as any).typeName));
       const addLink = (type: string) => {
         relations.links ??= [];
-        relations.links.push({ attribute, model: modelOf(typeArguments[0]), type });
+        relations.links.push({
+          attribute,
+          model: modelOf(typeArguments[0]) ?? instantiatedModelOf(property, declaration),
+          type
+        });
       };
       switch (typeName) {
         case "ModelParent": {
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find parent model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          if (relations.parent) {
+            errors.push(
+              `${name} has two parents, ${relations.parent.attribute} and ${attribute}: a model has one ModelParent ` +
+                `(BelongTo) at most, use ModelLink (ManyToOne) for the other`
+            );
+          }
           relations.parent = { attribute, model };
           break;
         }
@@ -1290,10 +1350,11 @@ function processModels(
           relations.queries ??= [];
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find query model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          const targetAttribute = typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined;
           relations.queries.push({
             attribute,
             model,
-            targetAttribute: typeArguments[1] ? text(ctx, typeArguments[1]).replace(/"/g, "") : undefined
+            ...(targetAttribute !== undefined ? { targetAttribute } : {})
           });
           break;
         }
@@ -1313,6 +1374,20 @@ function processModels(
           };
           if (!map.targetAttributes.includes("uuid")) map.targetAttributes.push("uuid");
           relations.maps.push(map);
+          break;
+        }
+        case "ModelLinksAny": {
+          const targets = polymorphicTargetTypes(ctx, property, declaration);
+          const resolved = targets?.map(
+            target => byTypeId.get(declaredId(ctx, target)) ?? dependencyModelOf(ctx, target, appPath)
+          );
+          if (resolved?.some(model => !model))
+            errors.push(`Cannot resolve polymorphic targets for ${name}.${attribute}`);
+          relations.polymorphicLinks ??= [];
+          relations.polymorphicLinks.push({
+            attribute,
+            ...(resolved?.length ? { models: [...new Set(resolved.filter(Boolean) as string[])].sort() } : {})
+          });
           break;
         }
         case "ModelLink":
@@ -1493,7 +1568,10 @@ function configurationOf(
   base: string,
   options: DiscoveryOptions
 ): string | undefined {
-  const node = findParametersNode(declaration, ctx.checker, ctx.project, base);
+  const node =
+    base === "Parameters"
+      ? findStaticParametersDeclaration(declaration, ctx.checker, ctx.project)
+      : findParametersNode(declaration, ctx.checker, ctx.project, base);
   if (!node) return undefined;
   const type = ctx.checker.getTypeAtLocation(node);
   const target: any = valueDeclarationOf(ctx, type.getSymbol());
@@ -1504,6 +1582,26 @@ function configurationOf(
     throw new Error(`Cannot find exported name for ${target.name?.text}, check that the class is exported`);
   }
   return `${jsTarget(sf.fileName, options)}:${exportName}`;
+}
+
+/**
+ * Metadata for runtime configuration declared through static Parameters.
+ * @param ctx - analysis context
+ * @param declaration - configurable class
+ * @param options - module discovery options
+ * @returns configuration schema and parameter export
+ */
+function runtimeConfigurationOf(
+  ctx: AnalysisContext,
+  declaration: ClassDeclaration,
+  options: DiscoveryOptions
+): { Schema?: any; Configuration?: string } {
+  const parameters = findStaticParametersDeclaration(declaration, ctx.checker, ctx.project);
+  if (!parameters) return {};
+  return {
+    Schema: new SchemaConverter({ project: ctx.project, checker: ctx.checker, mode: "input" }).fromNode(parameters),
+    Configuration: configurationOf(ctx, declaration, "Parameters", options)
+  };
 }
 
 /**
@@ -1627,6 +1725,28 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
       if (!entry) continue;
       try {
         entry.Schemas = generateModelSchemas(declaration, { project: ctx.project, checker: ctx.checker }) as any;
+        // Specialize each property rather than mutating shared generic schema definitions.
+        for (const link of entry.Relations.polymorphicLinks ?? []) {
+          for (const schema of Object.values(entry.Schemas)) {
+            const field: any = schema.properties?.[link.attribute];
+            if (!field) continue;
+            const dereference = (value: any): any =>
+              value?.$ref?.startsWith("#/definitions/")
+                ? (schema.definitions?.[decodeURIComponent(value.$ref.slice("#/definitions/".length))] ??
+                  schema.definitions?.[value.$ref.slice("#/definitions/".length)] ??
+                  value)
+                : value;
+            const array = dereference(field);
+            const item = dereference(array.items);
+            if (item?.properties?.model && link.models) {
+              schema.properties![link.attribute] = {
+                ...array,
+                items: { ...item, properties: { ...item.properties, model: { type: "string", enum: link.models } } }
+              };
+            }
+          }
+        }
+        Object.assign(entry, runtimeConfigurationOf(ctx, declaration, discovery));
       } catch (error) {
         errors.push(`${object.name}: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -1654,7 +1774,10 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     }
   }
   try {
-    Object.assign(module.schemas, generateTopLevelSchemas(ctx, discovery));
+    const primaryKeys = Object.fromEntries(
+      models.map(({ object, declaration }) => [object.name, buildModelPrimaryKey(ctx, declaration) ?? ["uuid"]])
+    );
+    Object.assign(module.schemas, generateTopLevelSchemas(ctx, { ...discovery, primaryKeys }));
   } catch (error) {
     errors.push(`schemas: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -1679,7 +1802,8 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
       module.behaviors[identifier] = {
         Identifier: identifier,
         Import: `${outputTarget(sf.fileName, discovery)}:${exportName}`,
-        Actions: buildBehaviorActions(ctx, declaration, identifier)
+        Actions: buildBehaviorActions(ctx, declaration, identifier),
+        ...runtimeConfigurationOf(ctx, declaration, discovery)
       };
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));
@@ -1708,6 +1832,11 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     const aliases = buildModelAliases(declaration, namespace).filter(alias => alias !== object.name);
     if (aliases.length) entry.Aliases = aliases;
   }
+
+  // Flows: a forbidden construct fails the build, as it is a diagnostic in the editor
+  const flows = compileFlows(ctx);
+  if (Object.keys(flows.flows).length) module.flows = flows.flows;
+  errors.push(...flows.errors.map(error => formatFlowError(ctx, error)));
 
   // An alias naming another model would make its rows ambiguous: the build fails instead
   for (const [name, entry] of Object.entries(module.models)) {

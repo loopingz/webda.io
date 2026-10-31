@@ -61,9 +61,12 @@ export function looksLikeText(buffer: Buffer, sample: number = 1024): boolean {
     }
     // High-bit byte: must begin a valid UTF-8 multibyte sequence
     let extra = 0;
-    if (byte >= 0xc2 && byte <= 0xdf) extra = 1; // 2-byte sequence
-    else if (byte >= 0xe0 && byte <= 0xef) extra = 2; // 3-byte sequence
-    else if (byte >= 0xf0 && byte <= 0xf4) extra = 3; // 4-byte sequence
+    if (byte >= 0xc2 && byte <= 0xdf)
+      extra = 1; // 2-byte sequence
+    else if (byte >= 0xe0 && byte <= 0xef)
+      extra = 2; // 3-byte sequence
+    else if (byte >= 0xf0 && byte <= 0xf4)
+      extra = 3; // 4-byte sequence
     else return false;
 
     if (i + extra >= limit) {

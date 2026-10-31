@@ -13,6 +13,7 @@ import { runWithContext } from "../contexts/execution.js";
 import { useDynamicService, useModelMetadata } from "../core/hooks.js";
 import { Ident } from "../models/ident.model.js";
 import { RefreshToken } from "../models/refreshtoken.model.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 
 /**
  * Fake operation context that allows setting custom input for testing
@@ -76,6 +77,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       "Classroom.Delete",
       "Classroom.Get",
       "Classroom.Patch",
+      "Classroom.Rename",
       "Classroom.Test",
       "Classroom.Update",
       "Classrooms.Query",
@@ -99,6 +101,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       "Computers.Query",
       "Contact.Avatar.Attach",
       "Contact.Avatar.AttachChallenge",
+      "Contact.Avatar.Complete",
       "Contact.Avatar.Delete",
       "Contact.Avatar.Download",
       "Contact.Avatar.DownloadUrl",
@@ -109,6 +112,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       "Contact.Patch",
       "Contact.Photos.Attach",
       "Contact.Photos.AttachChallenge",
+      "Contact.Photos.Complete",
       "Contact.Photos.DeleteAt",
       "Contact.Photos.Get",
       "Contact.Photos.GetUrl",
@@ -128,6 +132,13 @@ class DomainServiceTest extends WebdaApplicationTest {
       "Hardware.Patch",
       "Hardware.Update",
       "Hardwares.Query",
+      "Note.Content.Set",
+      "Note.Create",
+      "Note.Delete",
+      "Note.Get",
+      "Note.Patch",
+      "Note.Update",
+      "Notes.Query",
       "Project.Create",
       "Project.Delete",
       "Project.Get",
@@ -167,14 +178,31 @@ class DomainServiceTest extends WebdaApplicationTest {
       "User.Get",
       "User.Images.Attach",
       "User.Images.AttachChallenge",
+      "User.Images.Complete",
       "User.Images.DeleteAt",
       "User.Images.Get",
       "User.Images.GetUrl",
       "User.Images.SetMetadata",
+      "User.Keys.GetEscrow",
+      "User.Keys.GetKeyring",
+      "User.Keys.RegisterDevice",
+      "User.Keys.RemoveEscrow",
+      "User.Keys.RevokeDevice",
+      "User.Keys.Rotate",
+      "User.Keys.SetEscrow",
+      "User.Keys.Setup",
+      "User.Mfa.Challenge",
+      "User.Mfa.Confirm",
+      "User.Mfa.Disable",
+      "User.Mfa.Enroll",
+      "User.Mfa.Recover",
+      "User.Mfa.RecoveryCodes",
+      "User.Mfa.Verify",
       "User.Password.Change",
       "User.Patch",
       "User.ProfilePicture.Attach",
       "User.ProfilePicture.AttachChallenge",
+      "User.ProfilePicture.Complete",
       "User.ProfilePicture.Delete",
       "User.ProfilePicture.Download",
       "User.ProfilePicture.DownloadUrl",
@@ -369,10 +397,14 @@ class DomainServiceTest extends WebdaApplicationTest {
 
   /**
    * Run handlers against the sample-app User declared with a Behavior-typed `password` attribute
-   * @param fn - the test body, given a runner executing a DomainService call in an operation context
+   * @param fn - the test body, given a runner executing a DomainService call in an operation context with a body
    */
   private async withPasswordBehavior(
-    fn: (run: (call: (s: DomainService) => Promise<any>) => Promise<any>, User: any, uuid: string) => Promise<void>
+    fn: (
+      run: (body: any, call: (s: DomainService) => Promise<any>) => Promise<any>,
+      User: any,
+      uuid: string
+    ) => Promise<void>
   ) {
     const User = useModel<any>("User");
     registerRepository(User, new MemoryRepository(User, ["uuid"]));
@@ -383,9 +415,10 @@ class DomainServiceTest extends WebdaApplicationTest {
     });
     const uuid = "550e8400-e29b-41d4-a716-446655440077";
     const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
-    const run = async (call: (s: DomainService) => Promise<any>) => {
+    const run = async (body: any, call: (s: DomainService) => Promise<any>) => {
       const ctx = new FakeOpContext();
       await ctx.init();
+      ctx.setInput(JSON.stringify(body));
       ctx.setExtension("operationContext", { model: User });
       ctx.setParameters({ uuid });
       return runWithContext(ctx, () => call(service));
@@ -419,8 +452,8 @@ class DomainServiceTest extends WebdaApplicationTest {
   @test
   async behaviorAttributesNotClientWritablePatch() {
     await this.withPasswordBehavior(async (run, User, uuid) => {
-      await run(s =>
-        s.modelPatch({ uuid, displayName: "Patched", __foo: "x", password: { changedAt: 1, __hash: "h" } })
+      await run({ uuid, displayName: "Patched", __foo: "x", password: { changedAt: 1, __hash: "h" } }, s =>
+        s.modelPatch()
       );
       const stored = await this.assertPasswordIntact(User, uuid);
       assert.strictEqual(stored.displayName, "Patched");
@@ -431,11 +464,11 @@ class DomainServiceTest extends WebdaApplicationTest {
   async behaviorAttributesNotClientWritableUpdate() {
     await this.withPasswordBehavior(async (run, User, uuid) => {
       // No password in the PUT
-      let updated = await run(s => s.modelUpdate({ uuid, displayName: "Put1" }));
+      let updated = await run({ uuid, displayName: "Put1" }, s => s.modelUpdate());
       assert.strictEqual(updated.displayName, "Put1");
       assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
       // Password in the PUT is ignored
-      updated = await run(s => s.modelUpdate({ uuid, displayName: "Put2", password: { changedAt: 1 } }));
+      updated = await run({ uuid, displayName: "Put2", password: { changedAt: 1 } }, s => s.modelUpdate());
       assert.strictEqual(updated.displayName, "Put2");
       assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
       assert.strictEqual(updated.password.changedAt, 1);
@@ -446,8 +479,8 @@ class DomainServiceTest extends WebdaApplicationTest {
   @test
   async behaviorAttributesNotClientWritableCreate() {
     await this.withPasswordBehavior(async (run, User) => {
-      const created = await run(s =>
-        s.modelCreate({ uuid: "created-1", displayName: "New", password: { __hash: "x" } })
+      const created = await run({ uuid: "created-1", displayName: "New", password: { __hash: "x" } }, s =>
+        s.modelCreate()
       );
       assert.strictEqual(created.displayName, "New");
       assert.strictEqual(created.password?.__hash, undefined);
@@ -543,29 +576,18 @@ class DomainServiceTest extends WebdaApplicationTest {
 
   @test
   async modelActionGlobal() {
-    // Hardware.GlobalAction is a global static action
-    // The action schemas have broken $ref that cause AJV errors,
-    // so we remove the input schema registration to test the action path itself
-    const { Hardware } = this.setupClassroomRepos();
-    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
-    const op = getStorage().operations["Hardware.GlobalAction"];
-    const savedInput = op.input;
-    op.input = "void";
-    try {
-      // Hardware only lets the "test" user act, static actions included
-      const anonymous = new FakeOpContext();
-      await anonymous.init();
-      await assert.rejects(() => callOperation(anonymous, "Hardware.GlobalAction"), WebdaError.Forbidden);
-      const ctx = new FakeOpContext();
-      await ctx.init();
-      ctx.newSession().login("test", "test");
-      await callOperation(ctx, "Hardware.GlobalAction");
-      // The globalAction writes {} to context
-      const output = ctx.getOutput();
-      assert.ok(output !== undefined);
-    } finally {
-      op.input = savedInput;
-    }
+    // Hardware.GlobalAction is a global static action receiving the context: `globalAction(context)`
+    this.setupClassroomRepos();
+    // Hardware only lets the "test" user act, static actions included
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    await assert.rejects(() => callOperation(anonymous, "Hardware.GlobalAction"), WebdaError.Forbidden);
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.newSession().login("test", "test");
+    await callOperation(ctx, "Hardware.GlobalAction");
+    // The globalAction writes {} to the context it received
+    assert.strictEqual(ctx.getOutput(), "{}");
   }
 
   @test
@@ -588,6 +610,157 @@ class DomainServiceTest extends WebdaApplicationTest {
     await callOperation(ctx, "Classroom.Test");
     const output = ctx.getOutput();
     assert.ok(output !== undefined);
+  }
+
+  @test
+  async modelActionInstanceReceivesTypedArguments() {
+    // `rename(name: string, force: boolean = false)` gets its parameters, its return value is the output
+    const { Classroom } = this.setupClassroomRepos();
+    const uuid = "550e8400-e29b-41d4-a716-446655440010";
+    await Classroom.create({ uuid, name: "Room201" } as any);
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.newSession().login("test", "test");
+    ctx.setParameters({ uuid });
+    ctx.setInput(JSON.stringify({ name: "Room202" }));
+    await callOperation(ctx, "Classroom.Rename");
+    assert.deepStrictEqual(JSON.parse(ctx.getOutput()), { name: "Room202", force: false });
+  }
+
+  @test
+  async modelActionInstanceValidatesItsInput() {
+    const { Classroom } = this.setupClassroomRepos();
+    const uuid = "550e8400-e29b-41d4-a716-446655440011";
+    await Classroom.create({ uuid, name: "Room203" } as any);
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.newSession().login("test", "test");
+    ctx.setParameters({ uuid });
+    ctx.setInput(JSON.stringify({}));
+    await assert.rejects(
+      () => callOperation(ctx, "Classroom.Rename"),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/name")
+    );
+  }
+
+  @test
+  async modelActionInstanceRegistersARequestSchema() {
+    this.setupClassroomRepos();
+    const op: any = listOperations()["Classroom.Rename"];
+    assert.strictEqual(op.input, "WebdaDemo/Classroom.rename.request");
+    const schema: any = useApplication().getSchema(op.input);
+    assert.deepStrictEqual(schema.required, ["uuid", "name"]);
+    assert.deepStrictEqual(schema["x-webda-arguments"], ["uuid", "name", "force"]);
+  }
+
+  @test
+  async modelActionParameterNamedLikeThePrimaryKeyIsRejected() {
+    const service: any = useDynamicService<DomainService>("DomainService");
+    assert.throws(
+      () =>
+        service.actionRequestSchema("WebdaDemo/Classroom", "link", {
+          type: "object",
+          properties: { uuid: { type: "number" } },
+          required: ["uuid"]
+        }),
+      /WebdaDemo\/Classroom\.link: parameter "uuid" conflicts with the object primary key/
+    );
+  }
+
+  @test
+  async modelActionFromAnOldModuleStillGetsTheContext() {
+    // A webda.module.json built before x-webda-context expanded the OperationContext parameter into .input
+    const { Classroom } = this.setupClassroomRepos();
+    const schemas = useApplication().getSchemas();
+    const name = "WebdaDemo/Classroom.test.input";
+    const saved = schemas[name];
+    schemas[name] = {
+      type: "object",
+      properties: {
+        context: {
+          type: "object",
+          description: "OperationContext is used when call to an operation",
+          properties: { _promises: { type: "array" }, caches: {}, parameters: {} },
+          required: ["_promises", "caches", "parameters"]
+        }
+      },
+      required: ["context"]
+    } as any;
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      assert.strictEqual((listOperations()["Classroom.Test"] as any).input, "WebdaDemo/Classroom.primaryKey");
+      const uuid = "550e8400-e29b-41d4-a716-446655440012";
+      await Classroom.create({ uuid, name: "Room204" } as any);
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.newSession().login("test", "test");
+      ctx.setParameters({ uuid });
+      await callOperation(ctx, "Classroom.Test");
+      assert.strictEqual(ctx.getOutput(), "{}");
+    } finally {
+      schemas[name] = saved;
+      useDynamicService<DomainService>("DomainService").initOperations();
+    }
+  }
+
+  @test
+  async staticActionFromAnOldModuleStillGetsTheContext() {
+    this.setupClassroomRepos();
+    const schemas = useApplication().getSchemas();
+    const name = "WebdaDemo/Hardware.globalAction.input";
+    const saved = schemas[name];
+    schemas[name] = {
+      type: "object",
+      properties: {
+        context: { type: "object", properties: { _promises: { type: "array" } }, required: ["_promises"] }
+      },
+      required: ["context"]
+    } as any;
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.newSession().login("test", "test");
+      await callOperation(ctx, "Hardware.GlobalAction");
+      assert.strictEqual(ctx.getOutput(), "{}");
+    } finally {
+      schemas[name] = saved;
+      useDynamicService<DomainService>("DomainService").initOperations();
+    }
+  }
+
+  @test
+  async staticActionReceivesTypedArguments() {
+    // A static action with parameters gets them positionally, without uuid
+    const { Hardware } = this.setupClassroomRepos();
+    const metadata = useModelMetadata(Hardware);
+    const schemas = useApplication().getSchemas();
+    const name = "WebdaDemo/Hardware.countTest.input";
+    (Hardware as any).countTest = async function countTest(prefix: string, limit: number = 10) {
+      return { prefix, limit };
+    };
+    metadata.Actions["countTest"] = { global: true } as any;
+    schemas[name] = {
+      type: "object",
+      properties: { prefix: { type: "string" }, limit: { type: "number" } },
+      required: ["prefix"]
+    } as any;
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      assert.strictEqual((listOperations()["Hardware.CountTest"] as any).input, name);
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.newSession().login("test", "test");
+      ctx.setInput(JSON.stringify({ prefix: "a" }));
+      await callOperation(ctx, "Hardware.CountTest");
+      assert.deepStrictEqual(JSON.parse(ctx.getOutput()), { prefix: "a", limit: 10 });
+    } finally {
+      delete (Hardware as any).countTest;
+      delete metadata.Actions["countTest"];
+      delete schemas[name];
+      delete getStorage().operations["Hardware.CountTest"];
+    }
   }
 
   @test
@@ -768,7 +941,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ namespace: "ns-1", slug: "my-brand" });
     ctx.setInput(JSON.stringify({ name: "Updated" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(() => service.modelUpdate({ name: "Updated" }), WebdaError.NotFound);
+      await assert.rejects(() => service.modelUpdate(), WebdaError.NotFound);
     });
   }
 
@@ -786,14 +959,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ slug: "does-not-exist" });
     ctx.setInput(JSON.stringify({ name: "NopePatched" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(() => service.modelPatch({ name: "NopePatched" }), WebdaError.NotFound);
+      await assert.rejects(() => service.modelPatch(), WebdaError.NotFound);
     });
   }
 
   @test
-  async modelCreateRejectsScalarInputByReadingContext() {
-    // When the first arg is a scalar, modelCreate detects it isn't an object
-    // and falls back to context.getInput().
+  async modelCreateReadsContextInput() {
+    // modelCreate takes no argument: the model data is always the context body
     const { Brand } = this.setupBrandRepo();
     const service = new (await import("./domainservice.service.js")).DomainService(
       "DomainService",
@@ -802,14 +974,99 @@ class DomainServiceTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setExtension("operationContext", { model: Brand });
-    ctx.setInput(JSON.stringify({ name: "ScalarFallback" }));
+    ctx.setInput(JSON.stringify({ name: "FromContext" }));
     let created: any;
     await runWithContext(ctx, async () => {
-      // Pass a scalar string — typeof "scalar" !== "object", so the code
-      // re-reads the body from context.getInput().
-      created = await service.modelCreate("a-scalar-pk-value");
+      created = await service.modelCreate();
     });
-    assert.strictEqual(created.name, "ScalarFallback");
+    assert.strictEqual(created.name, "FromContext");
+  }
+
+  /**
+   * Run the test with Brand's CRUD operations taking an input schema listing `first` as its first (sorted) property,
+   * so resolveArguments passes that property value as the first positional argument of the CRUD methods (#911)
+   * @param first - the property schema to prepend
+   * @param fn - the test body
+   */
+  private async withFirstInputProperty(first: Record<string, any>, fn: () => Promise<void>) {
+    const operations = useInstanceStorage().operations;
+    const schemas = useApplication().getSchemas();
+    const name = `Test911/Brand${Object.keys(first)[0]}`;
+    const base: any = useApplication().getSchema(operations["Brand.Create"].input.replace(/\?$/, ""));
+    schemas[name] = { ...base, properties: { ...first, ...base.properties } };
+    const previous: Record<string, string> = {};
+    for (const id of ["Brand.Create", "Brand.Update", "Brand.Patch"]) {
+      previous[id] = operations[id].input;
+      operations[id].input = name + (previous[id].endsWith("?") ? "?" : "");
+    }
+    try {
+      await fn();
+    } finally {
+      for (const id in previous) {
+        operations[id].input = previous[id];
+      }
+      delete schemas[name];
+    }
+  }
+
+  @test
+  async crudUsesFullBodyWhenFirstPropertyIsArrayOrObject() {
+    const { Brand, repo } = this.setupBrandRepo();
+    for (const first of [{ _linkKeys: { type: "array", items: { type: "string" } } }, { author: { type: "object" } }]) {
+      await this.withFirstInputProperty(first, async () => {
+        const extra = first._linkKeys ? { _linkKeys: ["x"] } : { author: { name: "a" } };
+        // Create
+        let ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setInput(JSON.stringify({ ...extra, name: "Created" }));
+        await callOperation(ctx, "Brand.Create");
+        const created = JSON.parse(ctx.getOutput());
+        assert.strictEqual(created.name, "Created");
+        assert.strictEqual(created["0"], undefined);
+        const uuid = created.uuid;
+        // Update
+        ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setParameters({ uuid });
+        ctx.setInput(JSON.stringify({ ...extra, uuid, name: "Updated" }));
+        await callOperation(ctx, "Brand.Update");
+        assert.strictEqual(((await repo.get(uuid)) as any).name, "Updated");
+        // Patch
+        ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setParameters({ uuid });
+        ctx.setInput(JSON.stringify({ ...extra, uuid, name: "Patched" }));
+        await callOperation(ctx, "Brand.Patch");
+        const stored: any = await repo.get(uuid);
+        assert.strictEqual(stored.name, "Patched");
+        assert.strictEqual(stored["0"], undefined);
+      });
+    }
+  }
+
+  @test
+  async crudRejectsNonObjectInput() {
+    const { Brand, repo } = this.setupBrandRepo();
+    const uuid = "550e8400-e29b-41d4-a716-446655440911";
+    await Brand.create({ uuid, name: "Original" } as any);
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    for (const body of [["x"], "x", 1, true, null]) {
+      for (const method of ["modelCreate", "modelUpdate", "modelPatch"]) {
+        const ctx = new FakeOpContext();
+        await ctx.init();
+        ctx.setExtension("operationContext", { model: Brand });
+        ctx.setParameters({ uuid });
+        ctx.setInput(JSON.stringify(body));
+        const label = `${method}(${JSON.stringify(body)})`;
+        await runWithContext(ctx, async () => {
+          // A body that is not an object is refused
+          await assert.rejects(() => service[method](), WebdaError.BadRequest, label);
+        });
+      }
+    }
+    const stored: any = await repo.get(uuid);
+    assert.strictEqual(stored.name, "Original");
+    assert.strictEqual(stored["0"], undefined);
   }
 
   @test

@@ -661,10 +661,38 @@ export interface ModelRelations {
    * base class — the link is still real and is recorded without it.
    */
   links?: { attribute: string; model?: string; type: string }[];
+  /** Polymorphic references, optionally constrained to exact model identifiers. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   /** Reverse lookups, from `ModelRelated<T, U, "attr">`. */
-  queries?: { attribute: string; model: string; targetAttribute: string }[];
+  queries?: { attribute: string; model: string; targetAttribute?: string }[];
   /** Behaviour-typed attributes. */
   behaviors?: { attribute: string; behavior: string }[];
+}
+
+/**
+ * Relation type aliases of `@webda/models` and the relation type each one is.
+ *
+ * Relations are recognised by the written type name, so an alias has to be
+ * mapped to the type it resolves to. `ManyToMany<T, K = object>` always
+ * resolves to `ModelLinksArray` (`object extends object`), and `Contains<T>`
+ * is `ManyToMany<T>`.
+ */
+export const RELATION_TYPE_ALIASES: Record<string, string> = {
+  BelongTo: "ModelParent",
+  RelateTo: "ModelLink",
+  ManyToOne: "ModelLink",
+  OneToOne: "ModelLink",
+  OneToMany: "ModelRelated",
+  ManyToMany: "ModelLinksArray",
+  Contains: "ModelLinksArray"
+};
+
+/**
+ * @param typeName - a written type name
+ * @returns the relation type it is: the alias target, or the name itself
+ */
+export function relationTypeOf(typeName: string): string {
+  return RELATION_TYPE_ALIASES[typeName] ?? typeName;
 }
 
 /** `ModelLink*` type names and the link kind each records. */
@@ -679,7 +707,8 @@ const LINK_KINDS: Record<string, string> = {
  * Build a model's `Relations` entry.
  *
  * Relation kinds are recognised by the written type name — `ModelParent`,
- * `ModelRelated`, the `ModelLink*` family — and the referenced model is
+ * `ModelRelated`, the `ModelLink*` family and their aliases (`BelongTo`,
+ * `ManyToMany`, ... see {@link RELATION_TYPE_ALIASES}) — and the referenced model is
  * resolved to its namespaced identifier so the graph is expressed in module
  * terms rather than class names.
  * @param ctx - analysis context
@@ -708,26 +737,43 @@ export function buildRelations(
     const typeNode = (member as any).type;
     if (!typeNode || !is.isTypeReferenceNode(typeNode)) continue;
 
-    const typeName = ctx.textOf(owner, (typeNode as any).typeName);
+    const typeName = relationTypeOf(ctx.textOf(owner, (typeNode as any).typeName));
     const typeArguments = (typeNode as any).typeArguments ?? [];
+    if (typeName === "ModelLinksAny") {
+      const targets = polymorphicTargetTypes(ctx, property, cls);
+      const models = targets?.map(target => resolveModelId(target.getSymbol?.()?.name)).filter(Boolean) as
+        string[] | undefined;
+      relations.polymorphicLinks ??= [];
+      relations.polymorphicLinks.push({
+        attribute,
+        ...(models?.length ? { models: [...new Set(models)].sort() } : {})
+      });
+      continue;
+    }
     if (!typeArguments.length) continue;
 
     const targetName = symbolNameOfTypeNode(ctx, typeArguments[0]);
-    const model = targetName ? resolveModelId(targetName) : undefined;
+    let model = targetName ? resolveModelId(targetName) : undefined;
+    if (!model && LINK_KINDS[typeName]) {
+      // Declared on a generic base: the subclass binds the parameter
+      const target = instantiatedLinkTarget(ctx, property, cls);
+      model = target ? resolveModelId(target.getSymbol().name) : undefined;
+    }
 
-    // `ModelLink<T>` on a generic base has no resolvable target. The relation
-    // still exists and is recorded, simply without a `model` — dropping it
-    // loses the link entirely.
+    // `ModelLink<T>` on the generic base itself has no resolvable target. The
+    // relation still exists and is recorded, simply without a `model` —
+    // dropping it loses the link entirely.
     if (typeName === "ModelParent") {
       if (!model) continue;
       relations.parent = { attribute, model };
     } else if (typeName === "ModelRelated") {
       if (!model) continue;
       relations.queries ??= [];
+      const targetAttribute = typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : undefined;
       relations.queries.push({
         attribute,
         model,
-        targetAttribute: ctx.textOf(owner, typeArguments[1]).replace(/"/g, "")
+        ...(targetAttribute !== undefined ? { targetAttribute } : {})
       });
     } else if (LINK_KINDS[typeName]) {
       relations.links ??= [];
@@ -740,6 +786,23 @@ export function buildRelations(
   }
 
   return relations;
+}
+
+/**
+ * Target of a relation property, as the class sees it: `_user: ModelLink<T>`
+ * inherited by `OwnerModel extends AbstractOwnerModel<User>` is a
+ * `ModelLink<User>` there.
+ * @param ctx - analysis context
+ * @param property - the property symbol
+ * @param cls - the class declaration
+ * @returns the first type argument, undefined while it is still a type parameter
+ */
+export function instantiatedLinkTarget(ctx: AnalysisContext, property: any, cls: any): any {
+  const type: any = ctx.checker.getTypeOfSymbolAtLocation(property, cls);
+  // An optional property is `ModelLink<User> | undefined`
+  const reference = (type.isUnionType() ? type.getTypes() : [type]).find((member: any) => member.isTypeReference());
+  const target = ctx.checker.getTypeArguments(reference)[0];
+  return target.isTypeParameter() ? undefined : target;
 }
 
 /**
@@ -759,4 +822,20 @@ function symbolNameOfTypeNode(ctx: AnalysisContext, typeNode: any): string | und
   const declaration = symbol.valueDeclaration ?? symbol.declarations?.[0];
   const node = declaration?.resolve(ctx.project);
   return (node as any)?.name?.text ?? name;
+}
+
+/**
+ * Concrete second generic argument of a polymorphic relation in its owning class.
+ * @param ctx - analysis context
+ * @param property - relation property
+ * @param cls - owning class, including inherited substitutions
+ * @returns target types, or undefined for the unconstrained/default Storable target
+ */
+export function polymorphicTargetTypes(ctx: AnalysisContext, property: any, cls: any): any[] | undefined {
+  const type = ctx.checker.getTypeOfSymbolAtLocation(property, cls);
+  const reference = (type.isUnionType() ? type.getTypes() : [type]).find((member: any) => member.isTypeReference());
+  if (!reference) return undefined;
+  const target = ctx.checker.getTypeArguments(reference as any)[1];
+  if (!target || target.isTypeParameter() || target.getSymbol?.()?.name === "Storable") return undefined;
+  return target.isUnionType() ? [...target.getTypes()] : [target];
 }

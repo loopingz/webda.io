@@ -24,6 +24,50 @@ OperationCall is
 
 A `@Route` can be seen as an Operation
 
+## REST input binding
+
+Method parameters define the input schema; the return type defines the output (`Promise<T>` is described as `T`).
+An operation receives its arguments in declaration order, including `undefined` for omitted optional parameters so
+JavaScript defaults apply. Use `useContext()` or a parameter typed as `OperationContext` to access the caller.
+
+```ts
+@Operation({ rest: { method: "get", path: "projects/{projectId}/tasks{?status,limit?,offset?}" } })
+async listTasks(projectId: string, status: string, limit = 20, offset?: number): Promise<Task[]> {
+  // ...
+}
+```
+
+The URI template determines where each parameter comes from:
+
+- `{name}` binds a required path parameter.
+- `{?a,b}` binds required query parameters; `{?a?,b?}` makes them optional.
+- `{?filters*}` collects the remaining query keys into an object parameter. Its values must be scalars.
+- POST, PUT and PATCH read the other parameters from a JSON object body.
+- GET and DELETE automatically add the other scalar parameters to the query template, preserving their required
+  or optional status. Objects and arrays need a body; scalar arrays can be explicitly bound in the query template.
+
+Only URL values are converted before validation: numbers must be finite, booleans accept `true`, `false`, `1` and
+`0`, and scalar arrays accept repeated keys (`?tag=a&tag=b`) or comma-separated values. Catch-all values are converted
+according to their property schemas. JSON body values remain strict: `"20"` is invalid for a number. A body cannot
+replace a conflicting URL parameter.
+
+For a single object or array that should occupy the whole JSON body, name its parameter explicitly:
+
+```ts
+@Operation({ rest: { method: "post", path: "projects/{projectId}/tasks", body: "task" } })
+async createTask(projectId: string, task: TaskInput): Promise<Task> {
+  // POST /projects/p1/tasks with { "title": "Review" } passes that object as task
+}
+```
+
+Without `rest.body`, that example requires `{ "task": { "title": "Review" } }`. The whole-body parameter must be the
+only parameter left after path and query binding.
+
+`webdac build` rejects template names that do not match method parameters and unsupported object/array URL bindings.
+The input schema records the binding as `x-webda-rest` in `webda.module.json`. OpenAPI uses the same mapping for typed
+`parameters` and `requestBody`; GET/DELETE have no request body. Other transports continue passing named input fields.
+When migrating a hand-written REST client, move GET/DELETE arguments from JSON bodies into the query string.
+
 ## Streaming operations
 
 An operation streams when its signature says so: an `async *` method (or one returning `AsyncGenerator<T>` /
@@ -156,6 +200,39 @@ subscription {
 }
 ```
 
+## Operation lifecycle and transactions
+
+`callOperation` runs every operation through the same steps, whatever the transport:
+
+1. Permission (`permission` query), input validation and operation authorizers (`registerOperationAuthorizer`)
+2. **Transaction begin**: every registered transaction participant is begun
+3. `Webda.BeforeOperation`
+4. The method; a streamed result is fully written to the client before the next step
+5. **Transaction commit**, participants in registration order
+6. `Webda.OperationSuccess`: audit and IAM listeners only ever see committed data
+
+On any failure (a check, `begin`, the method, the stream or a `commit`), the participants not committed yet are
+**rolled back** and then `Webda.OperationFailure` is emitted; the original error is rethrown. An error thrown by a
+rollback is logged and never hides it.
+
+A transaction participant implements `OperationTransactionParticipant` (`begin`, `commit`, `rollback`) and is
+registered with `registerOperationTransactionParticipant`. Without registered participants nothing changes. The SQL
+stores (`PostgresStore`, `SQLiteStore`) are participants when configured with `transaction: "operation"`, see
+[PostgreSQL transactions](../Modules/postgres/PostgresStore.md#transactions).
+
+- The transaction follows the async call chain of the operation, not the execution context: code running inside the
+  operation under `runAsSystem` or in a nested `callOperation` takes part in it. `useOperationTransaction()` returns it.
+- Nested operations join the transaction of the outermost operation: only the outermost one begins and finishes it
+  (no savepoints).
+- `transaction: false` on an operation (`@Operation({ transaction: false })` or `registerOperation`) asks the
+  participants to stay out, e.g. for a long streaming read that should not hold a database connection.
+- `runWithTransaction(fn)` runs code outside an operation (CLI, queue workers, tests) in a transaction of the
+  registered participants, or joins the current one.
+- Participants commit one after the other: when the commit of a second participant fails after the first one
+  committed, the first one stays committed (no two-phase commit).
+- Repository events (`Created`, `Updated`...) are emitted when the statement runs, before the commit: a listener may
+  see data that is later rolled back.
+
 ## Feature flags
 
 Operations can be gated by a named feature flag. When a flag evaluates to off for the caller, the operation behaves as if it did not exist: transports omit it from listings (`canCallOperation()` returns `false`) and direct invocations fail with `404 NotFound` (`"<id> Unknown"`), hiding validation schemas and permissions.
@@ -205,10 +282,14 @@ If an operation has both a code flag and a configuration mapping, **all** flags 
 ### NotFound semantics and transport gating
 
 - **Fail closed**: By default, if no provider recognizes a flag, the flag is off.
-- **REST**: Routes remain registered, but invocations return `404 NotFound`. WebSocket upgrade requests return `404` when gated by an inactive flag. The OpenAPI specification retains the operation and annotates it with `x-webda-feature-flag: <flag>`.
+- **REST**: Routes remain registered, but invocations return `404 NotFound`. WebSocket upgrade requests return `404` when gated by an inactive flag. The OpenAPI specification is static: a flagged operation stays in it, annotated with `x-webda-feature-flag: <flag>` (an array when several flags apply).
 - **MCP**: Disabled operations are omitted from `listTools` for callers who do not satisfy the flag.
-- **GraphQL**: Disabled operations fail subscriptions with `NOT_FOUND`.
+- **GraphQL**: Disabled operations fail subscriptions with `NOT_FOUND`; the schema stays static.
+- **gRPC**: a call to a disabled operation ends with the `NOT_FOUND` status.
+- **Async jobs**: a disabled operation cannot be scheduled (`NotFound`) and is left out of the listing. The flag is evaluated again when the job runs, so a job queued while the flag was on fails with `NotFound` once it is turned off.
 - **Audit / Events**: When a disabled operation is called, `Webda.OperationDisabled` is emitted (`{ context, operationId, flag }`) and `operation_disabled_total` is incremented. Neither `Webda.BeforeOperation` nor `Webda.OperationFailure` is emitted.
+
+The flags themselves are evaluated by the registered `FeatureFlagProvider`s: see [Feature flags](../Modules/core/FeatureFlags.md) for the configuration-backed `Webda/FeatureFlags` service and how to plug an external provider.
 
 ### Programmatic flag evaluation
 

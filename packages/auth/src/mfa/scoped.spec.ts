@@ -1,0 +1,210 @@
+import { suite, test } from "@webda/test";
+import * as assert from "node:assert";
+import {
+  hotp,
+  totpStep,
+  listOperations,
+  runAsSystem,
+  useModelMetadata,
+  useCore,
+  useLoginMfa,
+  useService,
+  verifyMfaProof,
+  WebdaError
+} from "@webda/core";
+import type { TestApplication } from "@webda/core/lib/test/objects.js";
+import { AuthTest } from "../test/authtest.js";
+import { User } from "@webda/core/lib/models/user.model.js";
+
+import { MfaUser } from "../test/mfauser.fixture.model.js";
+import { Authentication } from "../authentication.service.js";
+import { EmailPasswordProvider } from "../email/emailpassword.service.js";
+import { TotpService } from "./totp.service.js";
+
+@suite
+class ScopedMfaTest extends AuthTest {
+  getTestConfiguration() {
+    return {
+      parameters: { ignoreBeans: true },
+      models: {
+        "Webda/MfaUser": {
+          behaviors: {
+            mfa: { purpose: "step-up" },
+            loginMfa: { purpose: "login" },
+            paymentMfa: { methods: ["totp"], verificationMaxAge: 60, recoveryCodes: 2 }
+          }
+        }
+      },
+      services: {
+        DomainService: { type: "Webda/DomainService", models: ["Webda/MfaUser"] },
+        AuthStore: {
+          type: "Webda/MemoryStore",
+          models: ["Webda/MfaUser", "Webda/Ident", "Webda/RefreshToken", "Webda/RevokedAccess"]
+        },
+        DefinedMailer: { type: "WebdaTest/Mailer" },
+        Authentication: { type: "Webda/Authentication", userModel: "Webda/MfaUser" },
+        TokenService: { type: "Webda/TokenService" },
+        totp: { type: "Webda/TotpService" },
+        email: { type: "Webda/EmailPasswordProvider", mailer: "DefinedMailer", verification: "none" }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    app.getNamespace = () => "Webda";
+    app.addModel("Webda/MfaUser", MfaUser, {
+      ...useModelMetadata(User),
+      Identifier: "Webda/MfaUser",
+      Plural: "MfaUsers",
+      Subclasses: [],
+      Relations: {
+        behaviors: [
+          { attribute: "password", behavior: "Webda/Password" },
+          { attribute: "mfa", behavior: "Webda/MFA" },
+          { attribute: "loginMfa", behavior: "Webda/MFA" },
+          { attribute: "paymentMfa", behavior: "Webda/MFA" }
+        ]
+      }
+    } as any);
+    MfaUser.registerSerializer(true, "Webda/MfaUser");
+    app.addModda("Webda/Authentication", Authentication as any);
+    app.addModda("Webda/EmailPasswordProvider", EmailPasswordProvider as any);
+    app.addModda("Webda/TotpService", TotpService as any);
+  }
+
+  @test
+  loginPurposeIsUniqueAndCanBeDisabled() {
+    const auth = useService("Authentication" as any) as Authentication;
+    const policies = useCore().applicationConfiguration.models!["Webda/MfaUser"].behaviors!;
+    try {
+      policies.paymentMfa.purpose = "login";
+      assert.throws(() => auth.resolve(), /more than one login MFA/);
+      policies.paymentMfa.purpose = "step-up";
+      policies.loginMfa.purpose = "step-up";
+      auth.resolve();
+      assert.strictEqual(useLoginMfa("Webda/MfaUser", "loginMfa"), undefined);
+      assert.deepStrictEqual((auth as any).mfaMethods(undefined), []);
+      const metadata = (MfaUser as any).Metadata;
+      (MfaUser as any).Metadata = { ...metadata, Relations: undefined };
+      try {
+        auth.resolve();
+        assert.strictEqual(useLoginMfa("Webda/MfaUser", "loginMfa"), undefined);
+      } finally {
+        (MfaUser as any).Metadata = metadata;
+      }
+    } finally {
+      delete policies.paymentMfa.purpose;
+      policies.loginMfa.purpose = "login";
+      auth.resolve();
+    }
+  }
+
+  @test
+  async independentAttributesAndScopedProofs() {
+    const ctx = await this.ctx();
+    const email = "two-mfa@example.com";
+    const password = "password123";
+    await this.op("Auth.Email.Register", { email, password }, ctx);
+    const uuid = ctx.getSession().userId;
+    const ops = listOperations();
+    assert.ok(ops["MfaUser.LoginMfa.Verify"]);
+    assert.ok(ops["MfaUser.PaymentMfa.Verify"]);
+    assert.strictEqual(ops["Auth.Totp.Verify"], undefined);
+    // Login MFA can identify its owner through the session; ordinary behavior actions still require a key.
+    const login = await this.op("MfaUser.LoginMfa.Enroll", { method: "totp" }, ctx);
+    await assert.rejects(() => this.op("MfaUser.PaymentMfa.Enroll", { method: "totp" }, ctx), /InvalidInput.*uuid/);
+    const payment = await this.op("MfaUser.PaymentMfa.Enroll", { uuid, method: "totp" }, ctx);
+    assert.notStrictEqual(login.secret, payment.secret);
+    const paymentConfirmed = await this.op(
+      "MfaUser.PaymentMfa.Confirm",
+      {
+        uuid,
+        method: "totp",
+        code: hotp(payment.secret, totpStep())
+      },
+      ctx
+    );
+    assert.strictEqual(paymentConfirmed.recoveryCodes.length, 2);
+    assert.strictEqual(paymentConfirmed.accessToken, undefined);
+    assert.strictEqual(ctx.getSession().mfa, "none");
+    const loginConfirmed = await this.op(
+      "MfaUser.LoginMfa.Confirm",
+      {
+        uuid,
+        method: "totp",
+        code: hotp(login.secret, totpStep())
+      },
+      ctx
+    );
+    assert.ok(loginConfirmed.accessToken);
+    assert.notDeepStrictEqual(loginConfirmed.recoveryCodes, paymentConfirmed.recoveryCodes);
+    await this.op("Auth.Logout", {}, ctx);
+    const pending = await this.op("Auth.Email.Login", { email, password }, ctx);
+    assert.strictEqual(pending.status, "mfa_required");
+    // A pending login cannot verify another attribute or another user's login factor.
+    await assert.rejects(
+      () =>
+        this.op(
+          "MfaUser.PaymentMfa.Verify",
+          {
+            uuid,
+            code: hotp(payment.secret, totpStep() + 1)
+          },
+          ctx
+        ),
+      WebdaError.NotFound
+    );
+    await assert.rejects(
+      () =>
+        this.op(
+          "MfaUser.LoginMfa.Verify",
+          {
+            uuid: "another-user",
+            code: hotp(login.secret, totpStep() + 1)
+          },
+          ctx
+        ),
+      WebdaError.Unauthorized
+    );
+    await assert.rejects(
+      () => this.op("MfaUser.LoginMfa.Enroll", { uuid, method: "totp" }, ctx),
+      WebdaError.Unauthorized
+    );
+    assert.deepStrictEqual(ctx.getSession().mfaVerifications, {});
+    await this.op("MfaUser.LoginMfa.Verify", { uuid, code: hotp(login.secret, totpStep() + 1) }, ctx);
+    const loginStatus = ctx.getSession().mfaVerifications["MfaUser.LoginMfa.Verify"];
+    assert.ok(loginStatus);
+    assert.strictEqual(ctx.getSession().mfaVerifications["MfaUser.PaymentMfa.Verify"], undefined);
+    const proof = await this.op(
+      "MfaUser.PaymentMfa.Verify",
+      {
+        uuid,
+        code: hotp(payment.secret, totpStep() + 1),
+        operation: "MfaUser.LoginMfa.Verify"
+      },
+      ctx
+    );
+    assert.strictEqual(proof.expiresIn, 60);
+    const user = await runAsSystem(() => MfaUser.ref(uuid).get());
+    await this.inContext(ctx, async () => {
+      assert.strictEqual(await verifyMfaProof(proof.proof, user, "paymentMfa"), "totp");
+      assert.strictEqual(await verifyMfaProof(proof.proof, user, "loginMfa"), undefined);
+    });
+    assert.deepStrictEqual(ctx.getSession().mfaVerifications["MfaUser.LoginMfa.Verify"], loginStatus);
+    assert.strictEqual(ctx.getSession().mfaVerifications["MfaUser.PaymentMfa.Verify"].method, "totp");
+    // Disabling this field clears only its own verification entries and leaves the login factor intact.
+    await this.op(
+      "MfaUser.PaymentMfa.Disable",
+      {
+        uuid,
+        method: "totp",
+        code: paymentConfirmed.recoveryCodes[0]
+      },
+      ctx
+    );
+    assert.strictEqual(ctx.getSession().mfaVerifications["MfaUser.PaymentMfa.Verify"], undefined);
+    assert.deepStrictEqual(ctx.getSession().mfaVerifications["MfaUser.LoginMfa.Verify"], loginStatus);
+    assert.strictEqual((await runAsSystem(() => MfaUser.ref(uuid).get())).loginMfa.isEnabled(), true);
+  }
+}

@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from "openapi-types";
-import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
+import type { ProjectInformation, WebdaModule } from "@webda/compiler";
 import type { PkiEncrypterOptions } from "../services/pki.encrypter.js";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
@@ -63,6 +63,12 @@ export type ServiceGroup = {
   parameters: any;
 };
 
+/** Runtime policies for a model and its behavior attributes, separate from persisted instance data. */
+export interface ModelConfiguration {
+  parameters?: Record<string, any>;
+  behaviors?: Record<string, Record<string, any>>;
+}
+
 export type UnpackedConfiguration = {
   version: 4;
   /**
@@ -95,6 +101,8 @@ export type UnpackedConfiguration = {
    * Services configuration
    */
   services?: Record<string, any>;
+  /** Model configuration keyed by fully qualified model identifier. */
+  models?: Record<string, ModelConfiguration>;
   /**
    * Global parameters
    *
@@ -163,7 +171,33 @@ export type Configuration = UnpackedConfiguration & {
    * Parameters will be set
    */
   parameters: UnpackedConfiguration["parameters"];
+  /**
+   * Packaged marker written by `webda package --config-only`: the configuration has its deployment
+   * applied and its modules cached, the CLI loads it without the deployment files nor a modules scan
+   */
+  $packaged?: PackagedInformation;
 };
+
+/**
+ * Description of a packaged application, in `.webda/packaged.json` or inline as `$packaged`
+ */
+export interface PackagedInformation {
+  /**
+   * Deployment applied on the configuration, empty when none was selected
+   */
+  deployment: string;
+  /**
+   * Packaged application
+   */
+  package: {
+    name: string;
+    version: string;
+  };
+  /**
+   * Git information baked when packaging
+   */
+  git?: GitInformation;
+}
 
 /**
  * Return the gather information from the repository

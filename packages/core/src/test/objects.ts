@@ -395,10 +395,11 @@ export class TestIdent extends LegacyIdentFixture {
 
   /**
    * Always allow actions
-   * @param action - the action to check
+   * @param _context - the operation context
+   * @param _action - the action to check
    * @returns the result
    */
-  async canAct(action) {
+  async canAct(_context: IOperationContext, _action: string): Promise<boolean> {
     return true;
   }
 

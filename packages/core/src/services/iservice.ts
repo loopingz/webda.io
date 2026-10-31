@@ -1,19 +1,11 @@
-import type { CustomConstructor } from "@webda/tsc-esm";
-import type { DeepPartial, Attributes } from "@webda/tsc-esm";
+import type { CustomConstructor, DeepPartial, Attributes } from "@webda/utils";
 import type { JSONed } from "@webda/models";
 import { State, StateOptions } from "@webda/utils";
 import { AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter.js";
 import { ServiceParameters } from "./serviceparameters.js";
 
 export type ServiceStates =
-  | "initial"
-  | "resolving"
-  | "resolved"
-  | "errored"
-  | "initializing"
-  | "running"
-  | "stopping"
-  | "stopped";
+  "initial" | "resolving" | "resolved" | "errored" | "initializing" | "running" | "stopping" | "stopped";
 
 /**
  * Define the service state for the application
@@ -29,7 +21,6 @@ export type ServicePartialParameters<T extends ServiceParameters> = DeepPartial<
  */
 export abstract class AbstractService<
   T extends ServiceParameters = ServiceParameters,
-   
   E extends AsyncEventUnknown = {}
 > extends AsyncEventEmitterImpl<E> {
   public readonly name: string;

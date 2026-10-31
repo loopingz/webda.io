@@ -5,7 +5,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import pkg from "fs-extra";
 import * as sinon from "sinon";
-import { CoreModel, Store, StoreNotFoundError, UpdateConditionFailError, User } from "@webda/core";
+import { CoreModel, StoreNotFoundError, UpdateConditionFailError, User } from "@webda/core";
 import { StoreTest, IdentTest, UserTest } from "@webda/core/lib/stores/store.spec";
 import { FileStore } from "./filestore.service.js";
 const { removeSync } = pkg;

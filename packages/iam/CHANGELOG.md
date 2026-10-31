@@ -1,5 +1,56 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/iam-v4.0.0-beta.11...iam-v4.0.0-beta.12) (2026-10-22)
+
+
+### Bug Fixes
+
+* **content-mapper:** list Events of an optional [WEBDA_EVENTS]? member under strict ([#978](https://github.com/loopingz/webda.io/issues/978)) ([c303962](https://github.com/loopingz/webda.io/commit/c30396298c8545f9c1ff5d8c4839191afbd7609f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/models bumped to 4.0.0-beta.12
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/iam-v4.0.0-beta.10...iam-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+    * @webda/models bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/iam-v4.0.0-beta.9...iam-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+* **oidc:** @webda/oidc workload identity and trust between applications ([#832](https://github.com/loopingz/webda.io/issues/832)) ([#896](https://github.com/loopingz/webda.io/issues/896)) ([51719bf](https://github.com/loopingz/webda.io/commit/51719bf07b9abcc798c9191c385c4e11365561d4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/models bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/iam-v4.0.0-beta.8...iam-v4.0.0-beta.9) (2026-10-14)
 
 

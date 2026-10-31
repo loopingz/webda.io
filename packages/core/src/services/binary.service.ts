@@ -5,15 +5,15 @@ import * as path from "path";
 import { Readable } from "stream";
 import * as WebdaError from "../errors/errors.js";
 import { Service } from "./service.js";
-import { NotEnumerable } from "@webda/tsc-esm";
+import { NotEnumerable, streamToBuffer, FileSize } from "@webda/utils";
 import { useCore, useModelMetadata } from "../core/hooks.js";
+import { useApplication, useModelId } from "../application/hooks.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { Counter } from "../metrics/metrics.js";
 import { IOperationContext } from "../contexts/icontext.js";
 import { IStore } from "../core/icore.js";
 import { MappingService } from "../stores/istore.js";
-import { type Model, type Storable, WEBDA_STORAGE } from "@webda/models";
-import { streamToBuffer, FileSize } from "@webda/utils";
+import { type Model, type Storable, WEBDA_STORAGE, useRepository } from "@webda/models";
 import { Action } from "../models/decorator.js";
 import { useContext } from "../contexts/execution.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
@@ -191,30 +191,37 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
   abstract get(): Promise<Readable>;
 
   /**
-   * Create hashes
-   * @param buffer - the buffer
+   * Compute the hashes from the content, whatever hash or challenge is already set
+   *
+   * The hash is the md5 of the bytes, the challenge the md5 of "WEBDA" followed by the bytes
+   * @returns the computed hash and challenge
+   */
+  public async computeHashes(): Promise<{ hash: string; challenge: string }> {
+    // Using MD5 as S3 content verification use md5
+    const hash = crypto.createHash("md5");
+    const challenge = crypto.createHash("md5").update("WEBDA");
+    const stream = await this.get();
+    await new Promise<void>((resolve, reject) => {
+      stream.on("error", err => reject(err));
+      stream.on("end", () => resolve());
+      stream.on("data", chunk => {
+        const buffer = Buffer.from(chunk);
+        hash.update(buffer as crypto.BinaryLike);
+        challenge.update(buffer as crypto.BinaryLike);
+      });
+    });
+    return { hash: hash.digest("hex"), challenge: challenge.digest("hex") };
+  }
+
+  /**
+   * Create hashes, computed from the content unless a hash is already set
    * @returns the result
    */
   public async getHashes(): Promise<{ hash: string; challenge: string }> {
     if (!this.hash) {
-      // Using MD5 as S3 content verification use md5
-      const hash = crypto.createHash("md5");
-      const challenge = crypto.createHash("md5");
-      const stream = await this.get();
-      challenge.update("WEBDA");
-      await new Promise<void>((resolve, reject) => {
-        stream.on("error", err => reject(err));
-        stream.on("end", () => {
-          this.hash = hash.digest("hex");
-          this.challenge = challenge.digest("hex");
-          resolve();
-        });
-        stream.on("data", chunk => {
-          const buffer = Buffer.from(chunk);
-          hash.update(buffer as crypto.BinaryLike);
-          challenge.update(buffer as crypto.BinaryLike);
-        });
-      });
+      const { hash, challenge } = await this.computeHashes();
+      this.hash = hash;
+      this.challenge = challenge;
     }
     return {
       hash: this.hash,
@@ -573,9 +580,11 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (body === undefined) {
       body = await context.getInput();
     }
+    body = normalizeHashes(body);
     if (this.hash === body.hash) {
       return; // already linked
     }
+    checkUploadSize(service, body);
     const url = await service.putRedirectUrl(parent.instance, parent.attribute, body, context);
     const md5 = Buffer.from(body.hash, "hex").toString("base64");
     return {
@@ -583,6 +592,27 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
       done: url === undefined,
       md5
     };
+  }
+
+  /**
+   * Declare a direct upload finished.
+   *
+   * `POST /<plural>/{uuid}/<attribute>/complete/{hash}` — after the client PUT the bytes to the URL returned by
+   * {@link attachChallenge}, the BinaryService verifies the uploaded object and only then attaches it. A no-op when
+   * the hash is already linked.
+   * @param hash - the hash announced in the challenge
+   */
+  @Action({ rest: { route: "complete/{hash}", method: "POST" } })
+  async complete(hash: string): Promise<void> {
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binary parent not yet wired — cannot complete");
+    }
+    hash = normalizeHash(hash);
+    if (this.hash === hash) {
+      return; // already linked
+    }
+    await this.getService().completeUpload(<any>parent.instance, parent.attribute, hash);
   }
 
   /**
@@ -606,7 +636,11 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (!this.hash) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
-    const url = await service.getRedirectUrlFromObject(this as unknown as BinaryMap, context);
+    const url = await service.getRedirectUrlFromObject(
+      this as unknown as BinaryMap,
+      context,
+      service.parameters?.urlExpiry
+    );
     if (url === null) {
       // No redirect — stream directly through the response.
       context.writeHead(200, {
@@ -641,7 +675,11 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (!this.hash) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
-    const url = await service.getRedirectUrlFromObject(this as unknown as BinaryMap, context);
+    const url = await service.getRedirectUrlFromObject(
+      this as unknown as BinaryMap,
+      context,
+      service.parameters?.urlExpiry
+    );
     if (url === null) {
       // No service-level signed URL: fall back to the same URL minus `/url`.
       if (context instanceof WebContext) {
@@ -921,9 +959,11 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     if (body === undefined) {
       body = await context.getInput();
     }
+    body = normalizeHashes(body);
     if (this.find(item => item.hash === body.hash)) {
       return; // dedup
     }
+    checkUploadSize(service, body);
     const url = await service.putRedirectUrl(parent.instance, parent.attribute, body, context);
     const md5 = Buffer.from(body.hash, "hex").toString("base64");
     return {
@@ -931,6 +971,26 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
       done: url === undefined,
       md5
     };
+  }
+
+  /**
+   * Declare a direct upload of a new item finished.
+   *
+   * `POST /<plural>/{uuid}/<attribute>/complete/{hash}` — the BinaryService verifies the uploaded object, then
+   * appends it. A no-op when the hash is already in the collection.
+   * @param hash - the hash announced in the challenge
+   */
+  @Action({ rest: { route: "complete/{hash}", method: "POST" } })
+  async complete(hash: string): Promise<void> {
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot complete");
+    }
+    hash = normalizeHash(hash);
+    if (this.find(item => item.hash === hash)) {
+      return; // already linked
+    }
+    await this.getService().completeUpload(<any>parent.instance, parent.attribute, hash);
   }
 
   /**
@@ -951,7 +1011,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
     const file = this[idx];
-    const url = await service.getRedirectUrlFromObject(file, context);
+    const url = await service.getRedirectUrlFromObject(file, context, service.parameters?.urlExpiry);
     if (url === null) {
       context.writeHead(200, {
         "Content-Type": file.mimetype === undefined ? "application/octet-stream" : file.mimetype,
@@ -988,7 +1048,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
     const file = this[idx];
-    const url = await service.getRedirectUrlFromObject(file, context);
+    const url = await service.getRedirectUrlFromObject(file, context, service.parameters?.urlExpiry);
     if (url === null) {
       if (context instanceof WebContext) {
         return {
@@ -1095,12 +1155,67 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
  */
 export type Binaries<T extends object = {}> = BinariesImpl<T>;
 
+/**
+ * Normalise a hexadecimal hash or challenge to lower case, so the same content is never named by two keys
+ * @param hash - the hash as sent by a client
+ * @returns the lower-case hash, or the value unchanged when it is not a string
+ */
+export function normalizeHash<T>(hash: T): T {
+  return (typeof hash === "string" ? hash.toLowerCase() : hash) as T;
+}
+
+/**
+ * Copy of a challenge body with its hash and challenge normalised to lower case
+ * @param body - the challenge body
+ * @returns the normalised copy
+ */
+export function normalizeHashes<T extends { hash?: string; challenge?: string }>(body: T | undefined): T | undefined {
+  if (!body || typeof body !== "object") {
+    return body;
+  }
+  return { ...body, hash: normalizeHash(body.hash), challenge: normalizeHash(body.challenge) } as T;
+}
+
+/**
+ * Reject a direct-upload challenge with an invalid size (not a finite non-negative number) or one exceeding
+ * `maxUploadSize`. When a limit is set the client must declare the size.
+ * @param service - the binary service
+ * @param service.parameters - its parameters
+ * @param service.parameters.maxUploadSize - the size limit, if any
+ * @param body - the challenge body
+ * @param body.size - the declared size
+ */
+function checkUploadSize(service: { parameters?: { maxUploadSize?: number } }, body: { size?: number }) {
+  const max = service.parameters?.maxUploadSize;
+  if (body.size !== undefined && body.size !== null) {
+    if (typeof body.size !== "number" || !Number.isFinite(body.size) || body.size < 0) {
+      throw new WebdaError.BadRequest("Invalid size");
+    }
+  }
+  if (max === undefined) {
+    return;
+  }
+  if (typeof body.size !== "number") {
+    throw new WebdaError.BadRequest("size is required");
+  }
+  if (body.size > max) {
+    throw new WebdaError.BadRequest("File too big");
+  }
+}
+
 /** Parameters for BinaryService, defining model mappings and max upload size */
 export class BinaryParameters extends ServiceParameters {
   /**
    * max file size
    */
   protected _maxFileSize: number;
+  protected _maxUploadSize?: number;
+  /**
+   * Lifetime in seconds of the signed URLs
+   *
+   * @default 30
+   */
+  urlExpiry: number;
   /**
    * Define the map of models
    * * indicates all models
@@ -1118,6 +1233,20 @@ export class BinaryParameters extends ServiceParameters {
   set maxFileSize(value: number | string) {
     this._maxFileSize = new FileSize(value).valueOf();
   }
+  /**
+   * Maximum size accepted for a direct-to-bucket upload, undefined means no limit
+   * @returns the limit in bytes or undefined
+   */
+  get maxUploadSize(): number | undefined {
+    return this._maxUploadSize;
+  }
+  /**
+   * Maximum size accepted for a direct-to-bucket upload, undefined means no limit
+   */
+  set maxUploadSize(value: number | string | undefined) {
+    this._maxUploadSize = value === undefined ? undefined : new FileSize(value).valueOf();
+  }
+
   /**
    * Get the max file size in bytes
    * @returns the result number
@@ -1138,6 +1267,8 @@ export class BinaryParameters extends ServiceParameters {
       "*": ["*"]
     };
     this.maxFileSize = new FileSize(params.maxFileSize ?? "10 MB").valueOf();
+    this.maxUploadSize = params.maxUploadSize;
+    this.urlExpiry ??= 30;
     return this;
   }
 }
@@ -1382,6 +1513,150 @@ export abstract class BinaryService<
   }
 
   /**
+   * Binaries of a deleted object, kept between the `Delete` (before) and `Deleted` (after) events of its repository
+   */
+  @NotEnumerable
+  protected pendingDeletes: Map<
+    string,
+    { uuid: string; model: string; infos: { info: BinaryMap; attribute: string }[] }
+  > = new Map();
+
+  /**
+   * Identifiers of the models whose deletion is already followed, so a second `init()` does not cascade twice
+   */
+  @NotEnumerable
+  protected hookedModels: Set<string> = new Set();
+
+  /**
+   * Listen to the deletion of every model owning a binary attribute that this service stores
+   *
+   * Exactly one service owns an attribute: the one `getBinaryStore` resolves, so several binary services never
+   * cascade the same attribute twice.
+   * @returns this
+   */
+  async init(): Promise<this> {
+    await super.init();
+    let models: any[];
+    try {
+      models = Object.values(useApplication().getModels());
+    } catch {
+      // Standalone service, outside of an application: no model to follow
+      return this;
+    }
+    for (const model of models) {
+      const behaviors: Array<{ attribute: string }> = (<any>model)?.Metadata?.Relations?.behaviors ?? [];
+      const attributes = behaviors.map(b => b.attribute).filter(attribute => this.ownsAttribute(model, attribute));
+      const identifier = model?.Metadata?.Identifier;
+      if (attributes.length && !this.hookedModels.has(identifier)) {
+        try {
+          this.hookDelete(<any>model, attributes);
+          // Only once hooked, so a failed hook is retried by a later init()
+          this.hookedModels.add(identifier);
+        } catch (err) {
+          this.log("WARN", `Cannot cascade the deletion of ${model.Metadata.Identifier} binaries`, err);
+        }
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Whether this service is the one storing the binaries of a model attribute
+   * @param model - the model class
+   * @param attribute - the attribute name
+   * @returns true if owned
+   */
+  protected ownsAttribute(model: any, attribute: string): boolean {
+    const identifier = model?.Metadata?.Identifier;
+    if (!identifier || this.handleBinary(identifier, attribute) === -1) {
+      return false;
+    }
+    try {
+      return useCore().getBinaryStore(identifier, attribute) === this;
+    } catch {
+      // No service resolves it (this one is not registered): nothing to cascade
+      return false;
+    }
+  }
+
+  /**
+   * Get the event emitting repository of a model
+   * @param model - the model class
+   * @returns the repository
+   */
+  protected getRepository(model: any): any {
+    return useRepository(model);
+  }
+
+  /**
+   * Cascade the deletion of a model to its binaries
+   *
+   * `Delete` runs before the repository deletion: the object is loaded and its binaries are kept aside. `Deleted`
+   * only fires once the deletion succeeded, so a failed delete leaves the binaries untouched.
+   * @param model - the model class
+   * @param attributes - the candidate behavior attributes
+   */
+  protected hookDelete(model: any, attributes: string[]): void {
+    const repo: any = this.getRepository(model);
+    const key = (id: unknown) => `${model.Metadata.Identifier}#${JSON.stringify(id)}`;
+    repo.on("Delete", async ({ object_id }: { object_id: unknown }) => {
+      this.pendingDeletes.delete(key(object_id));
+      let object: any;
+      try {
+        object = await repo.get(object_id);
+      } catch (err) {
+        // Repositories signal a miss with untyped errors: ask them whether the object exists instead
+        let exists = true;
+        try {
+          exists = await repo.exists(object_id);
+        } catch {
+          // Undecidable: treated as existing so the failure is reported
+        }
+        if (exists) {
+          this.log("WARN", `Cannot load ${key(object_id)} before its deletion: its binaries will be kept`, err);
+        }
+        return;
+      }
+      // Each binary keeps its attribute: the cascade removes the exact usage marker of (model, attribute, uuid)
+      const infos: { info: BinaryMap; attribute: string }[] = [];
+      for (const attribute of attributes) {
+        const value = object?.[attribute];
+        if (value instanceof BinariesImpl || this.isCollection(object, attribute)) {
+          infos.push(...(Array.from(value ?? []) as BinaryMap[]).map(info => ({ info, attribute })));
+        } else if (value instanceof Binary && value.hash) {
+          infos.push({ info: value as unknown as BinaryMap, attribute });
+        }
+      }
+      if (infos.length) {
+        // The usage markers are named after the object model id and `getUUID()`, as written on upload
+        let modelId: string | undefined;
+        try {
+          modelId = useModelId(object.constructor);
+        } catch {
+          // No application model registry: the hooked model's identifier
+        }
+        this.pendingDeletes.set(key(object_id), {
+          uuid: object.getUUID?.() ?? String(object_id),
+          model: modelId ?? model.Metadata.Identifier,
+          infos
+        });
+      }
+    });
+    repo.on("Deleted", async ({ object_id }: { object_id: unknown }) => {
+      const pending = this.pendingDeletes.get(key(object_id));
+      this.pendingDeletes.delete(key(object_id));
+      // The object is gone: a failing cascade must neither reject the delete nor stop the other binaries
+      for (const { info, attribute } of pending?.infos ?? []) {
+        try {
+          await this.cascadeDelete(info, pending.uuid, attribute, pending.model);
+        } catch (err) {
+          this.log("WARN", `Cannot delete binary ${info.hash} of ${key(object_id)}`, err);
+        }
+      }
+    });
+  }
+
+  /**
    * Check if a map is defined
    *
    * @param name - the name to use
@@ -1394,6 +1669,86 @@ export abstract class BinaryService<
       return;
     }
     throw new Error("Unknown mapping");
+  }
+
+  /**
+   * Whether the binary attribute is a collection (`BinariesImpl` or a subclass) rather than a single `Binary`
+   *
+   * Models are hydrated by the compiled `__hydrateBehaviors` (store deserialization, `load`, `patch`), which always
+   * instantiates the behavior class, even for an unset attribute: `instanceof BinariesImpl` therefore covers
+   * subclasses. The relation id comparison is the fallback for objects that were never hydrated.
+   *
+   * @param object - the target object
+   * @param property - the property name
+   * @returns true if the attribute holds several binaries
+   */
+  protected isCollection(object: CoreModelWithBinary, property: string): boolean {
+    if (object?.[property] instanceof BinariesImpl) {
+      return true;
+    }
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
+      ?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
+    return beh?.behavior === "Webda/BinariesImpl";
+  }
+
+  /**
+   * Hashes of a file to store, computed from its bytes: a hash or challenge set on the file is never trusted
+   *
+   * A preset hash that differs from the content is rejected; the file then carries the computed values
+   * @param file - the file to store
+   * @returns the computed hash and challenge
+   */
+  protected async verifiedHashes(file: BinaryFile): Promise<{ hash: string; challenge: string }> {
+    const computed = await file.computeHashes();
+    if (file.hash && normalizeHash(file.hash) !== computed.hash) {
+      throw new WebdaError.BadRequest("Hash does not match the content");
+    }
+    file.hash = computed.hash;
+    file.challenge = computed.challenge;
+    return computed;
+  }
+
+  /**
+   * Whether the hash is already linked to the object attribute (a collection item or the single binary)
+   * @param object - the target object
+   * @param property - the property name
+   * @param hash - the binary hash
+   * @param value - the attribute value to check, default to the object's
+   * @returns true if linked
+   */
+  protected isLinked(
+    object: CoreModelWithBinary,
+    property: string,
+    hash: string,
+    value: any = object?.[property]
+  ): boolean {
+    if (this.isCollection(object, property)) {
+      return Array.isArray(value) && value.some(i => i?.hash === hash);
+    }
+    return value?.hash !== undefined && value.hash === hash;
+  }
+
+  /**
+   * The attribute value as stored: the object is re-loaded from its repository so a link made by a concurrent
+   * request (another instance of the same object) is seen. Objects without a stored copy keep their own value.
+   * @param object - the target object
+   * @param property - the property name
+   * @returns the attribute value
+   */
+  protected async getStoredValue(object: CoreModelWithBinary, property: string): Promise<any> {
+    if (typeof (object as any)?.ref !== "function") {
+      return object?.[property];
+    }
+    try {
+      const fresh = await (object as any).ref().get();
+      if (fresh) {
+        return fresh[property];
+      }
+    } catch {
+      // Not stored (yet): the in-memory value is the reference
+    }
+    return object?.[property];
   }
 
   /**
@@ -1431,23 +1786,16 @@ export abstract class BinaryService<
     // object would learn it and could attach the binary to their own objects)
     const { challenge: _challenge, ...stored } = file;
     file = stored;
-    // Persist the BinaryFileInfo on the parent model. After the
-    // Binary→Behavior migration the cardinality lives on
-    // `Metadata.Relations.behaviors[]` (no more `Relations.binaries[]`).
-    // `Webda/BinariesImpl` ⇒ MANY (append), anything else (`Webda/Binary`)
-    // ⇒ ONE (replace).
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
-      ?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
-    const isCollection = beh?.behavior === "Webda/BinariesImpl";
-
-    if (isCollection) {
-      const current: BinaryFileInfo[] = Array.isArray(object[property])
-        ? [...(object[property] as BinaryFileInfo[])]
-        : [];
-      // Idempotent push — already-linked check (preserves the previous
-      // behaviour of the now-deleted early-return guard above).
-      if (!current.some(i => i.hash === file.hash)) {
+    // Persist the BinaryFileInfo on the parent model: collections (`BinariesImpl` and subclasses) append,
+    // a single `Binary` is replaced.
+    // The dedup runs on the stored value, re-loaded here: two concurrent uploads of the same hash on the same object
+    // both re-loading before either patched remain the residual window (no conditional update on the attribute)
+    const storedValue = await this.getStoredValue(object, property);
+    const linked = this.isLinked(object, property, file.hash, storedValue);
+    if (this.isCollection(object, property)) {
+      const current: BinaryFileInfo[] = Array.isArray(storedValue) ? [...(storedValue as BinaryFileInfo[])] : [];
+      // Idempotent push: an already linked hash is not appended again
+      if (!linked) {
         current.push(file);
       }
       await object.patch(<any>{ [property]: current });
@@ -1455,15 +1803,21 @@ export abstract class BinaryService<
       await object.patch(<any>{ [property]: file });
     }
     this.metrics.upload.inc();
+    if (!linked) {
+      await this.emit("Binary.UploadSuccess", { object: file, service: this, target: object });
+    }
   }
 
   /**
-   * Cascade delete the object
+   * Cascade the deletion of an object to one of its binaries: only the usage of (model, attribute, uuid) is
+   * removed, never the usage of another object sharing the deduplicated data
    *
    * @param info of the map
    * @param uuid of the object
+   * @param attribute - the binary attribute holding the map
+   * @param model - the model identifier of the object
    */
-  abstract cascadeDelete(info: BinaryMap, uuid: string): Promise<void>;
+  abstract cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void>;
 
   /**
    *
@@ -1474,14 +1828,7 @@ export abstract class BinaryService<
    * @returns the result
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
-    // Cardinality lives on `Metadata.Relations.behaviors[]` after the
-    // Binary→Behavior migration. `Webda/BinariesImpl` ⇒ MANY (splice),
-    // anything else (`Webda/Binary`) ⇒ ONE (clear). Mirrors the lookup in
-    // `uploadSuccess`.
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
-      ?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
-    const isCollection = beh?.behavior === "Webda/BinariesImpl";
+    const isCollection = this.isCollection(object, property);
 
     const info: BinaryMap = <BinaryMap>(
       (isCollection && index !== undefined ? object[property][index] : object[property])
@@ -1518,17 +1865,16 @@ export abstract class BinaryService<
       throw new WebdaError.BadRequest("File too big");
     }
     const file = await req.getRawInput(size ?? this.parameters.maxFileSize);
+    const buffer = Buffer.from(file);
     mimetype ??= "application/octet-stream";
     name ??= "data.bin";
-    return new MemoryBinaryFile(Buffer.from(file), {
+    return new MemoryBinaryFile(buffer, {
       mimetype,
       size,
       name: name,
-      hash: crypto.createHash("md5").update(file).digest("hex"),
-      challenge: crypto
-        .createHash("md5")
-        .update("WEBDA" + file)
-        .digest("hex")
+      hash: crypto.createHash("md5").update(buffer).digest("hex"),
+      // md5("WEBDA" || bytes): the bytes are hashed as is, not decoded as a string
+      challenge: crypto.createHash("md5").update("WEBDA").update(buffer).digest("hex")
     });
   }
 
@@ -1552,6 +1898,19 @@ export abstract class BinaryService<
     }
     // TODO: Refactor
     return null; //<IStore>useCore().getModelStore(useModel(ctx.parameter("model")));
+  }
+
+  /**
+   * Attach a direct upload once the client declares it finished, after verifying the uploaded object
+   *
+   * By default no pending upload is managed so throws 404
+   *
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the hash announced in the challenge
+   */
+  async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    throw new WebdaError.NotFound("No pending upload");
   }
 
   /**

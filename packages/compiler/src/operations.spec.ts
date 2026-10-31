@@ -1,10 +1,173 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { generateOperations, OperationsExportFormat } from "./operations.js";
+import { generateOperations } from "./operations.js";
 import { WebdaModule } from "./definition.js";
 
 @suite
 class OperationsTest {
+  @test
+  carriesFeatureFlagsOfModelAndBehaviorActions() {
+    const mod = {
+      models: {
+        "App/Task": {
+          Relations: { behaviors: [{ attribute: "approval", behavior: "App/Approval" }] },
+          Actions: { archive: { featureFlag: "archive-v2" }, export: { global: true, featureFlag: true }, plain: {} }
+        }
+      },
+      behaviors: { "App/Approval": { Actions: { set: { featureFlag: "approvals" }, clear: {} } } },
+      schemas: {}
+    } as any as WebdaModule;
+    const result = generateOperations(mod);
+    assert.strictEqual(result.operations["Task.Archive"].featureFlag, "archive-v2");
+    assert.strictEqual(result.operations["Task.Export"].featureFlag, true);
+    assert.strictEqual(result.operations["Task.Plain"].featureFlag, undefined);
+    assert.strictEqual(result.operations["Task.Approval.Set"].featureFlag, "approvals");
+    assert.strictEqual(result.operations["Task.Approval.Clear"].featureFlag, undefined);
+  }
+
+  @test
+  exportsDefaultQueriesAndBehaviorRouteVariants() {
+    const mod = {
+      models: {
+        "App/Task": {
+          Relations: { behaviors: [{ attribute: "approval", behavior: "App/Approval" }] },
+          Actions: { list: { global: true, methods: ["GET"], rest: { path: "{category}/list" } } }
+        }
+      },
+      behaviors: {
+        "App/Approval": {
+          Actions: {
+            read: { rest: { route: ".", method: "get" } },
+            clear: {},
+            set: { rest: { method: "post", body: "payload" } }
+          }
+        }
+      },
+      schemas: {
+        "App/Task.list.input": {
+          properties: { category: { type: "string" }, limit: { type: "number" }, offset: { type: "number" } },
+          required: ["limit"]
+        },
+        "App/Approval.read.output": { type: "boolean" },
+        "App/Approval.set.input": {
+          properties: { payload: { type: "object" } },
+          "x-webda-arguments": ["context", "payload"],
+          "x-webda-context": ["context"]
+        }
+      }
+    } as any as WebdaModule;
+    const result = generateOperations(mod);
+    assert.deepStrictEqual(result.operations["Task.List"].rest, {
+      method: "get",
+      path: "{category}/list{?limit,offset?}"
+    });
+    assert.deepStrictEqual(result.operations["Task.Approval.Read"].rest, {
+      method: "get",
+      path: "{uuid}/approval"
+    });
+    assert.strictEqual(result.operations["Task.Approval.Read"].output, "App/Approval.read.output");
+    assert.strictEqual(result.operations["Task.Approval.Clear"].rest.path, "{uuid}/approval.clear");
+    assert.deepStrictEqual(result.operations["Task.Approval.Set"].rest, {
+      method: "post",
+      path: "{uuid}/approval.set",
+      body: "payload"
+    });
+    assert.deepStrictEqual((result.schemas["App/Task.approval.set.request"] as any)["x-webda-arguments"], [
+      "uuid",
+      "context",
+      "payload"
+    ]);
+  }
+
+  @test
+  async exportsCompositeActionsBehaviorRequestsAndRestBindings() {
+    const mod = {
+      models: {
+        "MyApp/Task": {
+          PrimaryKey: ["tenant", "slug"],
+          Relations: { behaviors: [{ attribute: "approval", behavior: "MyApp/Approval" }] },
+          Actions: { rename: { rest: { method: "post", path: "rename{?force?}" } } }
+        }
+      },
+      behaviors: {
+        "MyApp/Approval": { Actions: { verify: { rest: { method: "post", path: "verify{?remember?}" } } } }
+      },
+      schemas: {
+        "MyApp/Task.rename.input": {
+          type: "object",
+          properties: { name: { type: "string" }, force: { type: "boolean" } },
+          required: ["name"]
+        },
+        "MyApp/Approval.verify.input": {
+          type: "object",
+          properties: { code: { type: "string" }, remember: { type: "boolean" } },
+          required: ["code"]
+        },
+        "TaskService.list.input": {
+          type: "object",
+          properties: { projectId: { type: "string" }, status: { type: "string" }, limit: { type: "number" } },
+          "x-webda-rest": {
+            method: "get",
+            template: "projects/{projectId}/tasks{?status}",
+            path: ["projectId"],
+            query: [
+              { name: "status", required: true },
+              { name: "limit", required: false }
+            ],
+            body: []
+          }
+        }
+      },
+      beans: { "MyApp/TaskService": {} }
+    } as any as WebdaModule;
+    const result = generateOperations(mod);
+    assert.deepStrictEqual(result.operations["Task.Rename"].rest, {
+      method: "post",
+      path: "{tenant}/{slug}/rename{?force?}"
+    });
+    const rename: any = result.schemas[result.operations["Task.Rename"].input];
+    assert.deepStrictEqual(rename.required, ["tenant", "slug", "name"]);
+    assert.deepStrictEqual(rename["x-webda-arguments"], ["tenant", "slug", "name", "force"]);
+    const verify = result.operations["Task.Approval.Verify"];
+    assert.deepStrictEqual(verify.rest, { method: "post", path: "{tenant}/{slug}/approval/verify{?remember?}" });
+    assert.deepStrictEqual(result.schemas[verify.input].required, ["tenant", "slug", "code"]);
+    assert.deepStrictEqual(result.operations["TaskService.List"].rest, {
+      method: "get",
+      path: "projects/{projectId}/tasks{?status,limit?}"
+    });
+  }
+
+  @test
+  async rejectsAnActionParameterNamedLikeThePrimaryKey() {
+    const mod: WebdaModule = {
+      beans: {},
+      deployers: {},
+      moddas: {},
+      models: {
+        "MyApp/Task": {
+          Identifier: "MyApp/Task",
+          Import: "lib/task:Task",
+          Plural: "Tasks",
+          Relations: {},
+          Ancestors: [],
+          Subclasses: [],
+          PrimaryKey: ["uuid"],
+          Events: [],
+          Reflection: {},
+          Schemas: {},
+          Actions: { link: {} }
+        }
+      },
+      schemas: {
+        "MyApp/Task.link.input": { type: "object", properties: { uuid: { type: "string" } }, required: ["uuid"] }
+      }
+    } as any;
+    assert.throws(
+      () => generateOperations(mod),
+      /MyApp\/Task\.link: parameter "uuid" conflicts with the object primary key/
+    );
+  }
+
   @test
   async generateFromModels() {
     const mod: WebdaModule = {
@@ -32,6 +195,7 @@ class OperationsTest {
             get: {},
             query: {},
             archive: {},
+            reopen: {},
             publish: { global: true, description: "Publish all tasks" }
           }
         }
@@ -68,9 +232,17 @@ class OperationsTest {
     assert.notStrictEqual(result.operations["Tasks.Query"], undefined, "Query operation should exist");
     assert.strictEqual(result.operations["Tasks.Query"].input, "searchRequest");
 
-    // Custom action (instance)
+    // Custom action (instance): the object uuid then the action parameters
     assert.notStrictEqual(result.operations["Task.Archive"], undefined, "Archive operation should exist");
-    assert.strictEqual(result.operations["Task.Archive"].input, "uuidRequest");
+    assert.strictEqual(result.operations["Task.Archive"].input, "MyApp/Task.archive.request");
+    assert.deepStrictEqual(result.schemas["MyApp/Task.archive.request"], {
+      type: "object",
+      properties: { uuid: { type: "string" }, reason: { type: "string" } },
+      required: ["uuid"],
+      "x-webda-arguments": ["uuid", "reason"]
+    });
+    // Instance action without input schema: only the uuid
+    assert.strictEqual(result.operations["Task.Reopen"].input, "MyApp/Task.primaryKey");
     assert.strictEqual(result.operations["Task.Archive"].output, "MyApp/Task.archive.output");
 
     // Custom action (global/static)
@@ -79,8 +251,12 @@ class OperationsTest {
     assert.strictEqual(result.operations["Task.Publish"].output, "MyApp/Task.publish.output");
 
     // Schemas should include referenced schemas
-    // Instance action schemas are not referenced (input is "uuidRequest"), so they are not included
-    assert.strictEqual(result.schemas["MyApp/Task.archive.input"], undefined, "Instance action input schema not referenced");
+    // Instance action input schemas are wrapped in their request schema, so they are not referenced
+    assert.strictEqual(
+      result.schemas["MyApp/Task.archive.input"],
+      undefined,
+      "Instance action input schema not referenced"
+    );
     assert.notStrictEqual(result.schemas["MyApp/Task.archive.output"], undefined);
     assert.notStrictEqual(result.schemas["MyApp/Task.publish.input"], undefined);
     assert.notStrictEqual(result.schemas["MyApp/Task"], undefined, "Model input schema should be included");
@@ -114,11 +290,7 @@ class OperationsTest {
     const result = generateOperations(mod);
 
     // Bean operation
-    assert.notStrictEqual(
-      result.operations["NotificationService.SendAlert"],
-      undefined,
-      "Bean operation should exist"
-    );
+    assert.notStrictEqual(result.operations["NotificationService.SendAlert"], undefined, "Bean operation should exist");
     assert.strictEqual(result.operations["NotificationService.SendAlert"].input, "NotificationService.sendAlert.input");
     assert.strictEqual(
       result.operations["NotificationService.SendAlert"].output,
@@ -194,7 +366,11 @@ class OperationsTest {
 
     // Model custom action (global)
     assert.notStrictEqual(result.operations["User.Login"], undefined);
-    assert.strictEqual(result.operations["User.Login"].input, "MyApp/User.login.input", "Global action should use its own input schema");
+    assert.strictEqual(
+      result.operations["User.Login"].input,
+      "MyApp/User.login.input",
+      "Global action should use its own input schema"
+    );
 
     // Bean operation
     assert.notStrictEqual(result.operations["Mailer.Send"], undefined);

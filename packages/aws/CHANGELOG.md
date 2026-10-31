@@ -186,6 +186,68 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.11...aws-v4.0.0-beta.12) (2026-10-22)
+
+
+### Features
+
+* **auth:** add an SMS second factor with a pluggable SmsSender ([#979](https://github.com/loopingz/webda.io/issues/979)) ([05a9bf2](https://github.com/loopingz/webda.io/commit/05a9bf2b825add2a24ff3164cf17bba274912de1)), closes [#61](https://github.com/loopingz/webda.io/issues/61)
+* **binary:** attach direct uploads on verified client completion ([#944](https://github.com/loopingz/webda.io/issues/944)) ([736942e](https://github.com/loopingz/webda.io/commit/736942eb194f66924ceeaefd14d8515c2d0b84d7))
+
+
+### Bug Fixes
+
+* **core:** Queue.consume waits between receives returning no message ([#920](https://github.com/loopingz/webda.io/issues/920)) ([7a41465](https://github.com/loopingz/webda.io/commit/7a41465f0afbc264e5409dfd491f3a3212408bf2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.12
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.12
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.10...aws-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.11
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.11
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.9...aws-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+* **bench:** benchmarks for Store, Queue, Pub/Sub and the blog-system application ([#914](https://github.com/loopingz/webda.io/issues/914)) ([#916](https://github.com/loopingz/webda.io/issues/916)) ([aed07ef](https://github.com/loopingz/webda.io/commit/aed07ef3efe25cfd6957eb007a3216e181be7681))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.10
+    * @webda/core bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.10
+    * @webda/compiler bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.8...aws-v4.0.0-beta.9) (2026-10-14)
 
 

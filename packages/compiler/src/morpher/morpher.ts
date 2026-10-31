@@ -3,17 +3,14 @@ import { updateImports } from "./imports.js";
 import { removeFilterRegistrations } from "./capabilities.js";
 import { useLog, useWorkerOutput } from "@webda/workout";
 import { diffLines } from "diff";
-import { EventEmitter } from "stream";
 
 // Replace all imports
 // Specify after a : the exported name to replace
 const replacePackages = {
-  // Move to tsc-esm
-  "@webda/core:DeepPartial,NotEnumerable,FilterAttributes": "@webda/tsc-esm",
   // Move to @webda/fs
   "@webda/core:FileStore,FileBinary,FileQueue,FileQueueParameters": "@webda/fs",
   // Move to @webda/utils
-  "@webda/core:Throttler,NDJSONStream,NDJSonReader,BufferWritableStream,GunzipConditional,StorageFinder,YAMLUtils,TransformCase,TransformCaseType,getCommonJS,JSONUtils,FileUtils,WaitFor,WaitLinearDelay,WaitDelayer,sleep,WaitExponentialDelay,WaitDelayerFactory,WaitDelayerDefinition,WaitDelayerFactories,CancelablePromise,CancelableLoopPromise":
+  "@webda/core:DeepPartial,NotEnumerable,FilterAttributes,Throttler,NDJSONStream,NDJSonReader,BufferWritableStream,GunzipConditional,StorageFinder,YAMLUtils,TransformCase,TransformCaseType,getCommonJS,JSONUtils,FileUtils,WaitFor,WaitLinearDelay,WaitDelayer,sleep,WaitExponentialDelay,WaitDelayerFactory,WaitDelayerDefinition,WaitDelayerFactories,CancelablePromise,CancelableLoopPromise":
     "@webda/utils",
   // Move to @webda/test
   "@testdeck/mocha": "@webda/test",
@@ -106,7 +103,7 @@ export class WebdaMorpher {
     const sourceFile = typeof input === "string" ? this.project.addSourceFileAtPath(input) : input;
 
     for (const key in this.modules) {
-      if (this.options.modules.includes(key)) {
+      if (this.options.modules?.includes(key)) {
         this.modules[key](sourceFile);
       }
     }

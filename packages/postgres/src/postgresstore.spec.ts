@@ -2,73 +2,18 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
 import { AndExpression, escape, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
-import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
-import { EventRepository, MemoryRepository, useModel } from "@webda/core";
+import {
+  checkAggregation,
+  checkCount,
+  checkCountClassFilter,
+  checkCreateWithoutPrimaryKey,
+  WebdaApplicationTest
+} from "@webda/core/lib/test";
+import { EventRepository, MemoryRepository, UpdateConditionFailError, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
 
-/** A model without metadata */
-class Row {
-  uuid: string;
-  [key: string]: any;
-  /**
-   * @param data - initial data
-   */
-  constructor(data?: any) {
-    Object.assign(this, data);
-  }
-}
-
-/** Parent and child models sharing one table */
-class Animal extends Row {
-  static Metadata = { Identifier: "Test/Animal", Subclasses: [] as any[] };
-}
-class Dog extends Animal {
-  static Metadata = { Identifier: "Test/Dog", Subclasses: [] as any[] };
-}
-class Cat extends Animal {
-  static Metadata = { Identifier: "Test/Cat", Subclasses: [] as any[] };
-}
-Animal.Metadata.Subclasses.push(Dog, Cat);
-
-/** Two unrelated models sharing a table */
-class AggA extends Row {
-  static Metadata = { Identifier: "Test/AggA", Subclasses: [] as any[] };
-}
-class AggB extends Row {
-  static Metadata = { Identifier: "Test/AggB", Subclasses: [] as any[] };
-}
-
-/** Rows covering numbers, booleans, strings, missing fields, nulls and type mismatches */
-export const PARITY_ROWS = [
-  { uuid: "r1", n: 1, s: "x", b: true, tags: ["x", 1] },
-  { uuid: "r2", n: 5, s: "abc", b: false, tags: ["y"] },
-  { uuid: "r3" },
-  { uuid: "r4", n: "abc", s: 1, b: "true", tags: "x" },
-  { uuid: "r5", s: null }
-];
-/** Queries whose results must be the same on every store */
-export const PARITY_QUERIES = [
-  "n < 2",
-  "n <= 1",
-  "n = 1",
-  "n != 1",
-  "n > 1",
-  "n >= 5",
-  "n IN [1, 5]",
-  "n = 'abc'",
-  "b = TRUE",
-  "b = FALSE",
-  "b != TRUE",
-  "s = 'x'",
-  "s != 'x'",
-  "s = 1",
-  "s LIKE 'a%'",
-  "s IS NULL",
-  "n IS NOT NULL",
-  "tags CONTAINS 'x'",
-  "n < 2 OR b = TRUE"
-];
+import { AggA, AggB, Animal, Cat, Dog, PARITY_QUERIES, PARITY_ROWS, Row } from "@webda/sql/lib/test";
 
 const params = {
   postgresqlServer: {
@@ -238,6 +183,28 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
   }
 
   /**
+   * A write condition on an absent field (`patch(key, data, field, undefined)`, a compare-and-set that writes the field
+   * once) must match the missing key: rendered as `= NULL` it never matched
+   */
+  @test
+  async writeConditionOnAbsentField() {
+    const repo = this.store!.getRepositories().find(r => r instanceof PostgresRepository)!;
+    await this.store!.getClient().query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, [
+      "a",
+      JSON.stringify({ uuid: "a" })
+    ]);
+    await repo.patch("a", { usedAt: 1 }, "usedAt", undefined);
+    assert.strictEqual((await repo.get("a")).usedAt, 1);
+    // The field is now set: the same compare-and-set fails
+    await assert.rejects(() => repo.patch("a", { usedAt: 2 }, "usedAt", undefined), UpdateConditionFailError);
+    assert.strictEqual((await repo.get("a")).usedAt, 1);
+    await repo.patch("a", { usedAt: 3 }, "usedAt", 1);
+    assert.strictEqual((await repo.get("a")).usedAt, 3);
+    await repo.delete("a", "missing", undefined);
+    assert.strictEqual(await repo.exists("a"), false);
+  }
+
+  /**
    * #670: an apostrophe in a value (e.g. a file named l'été.png) must not break the SQL
    */
   @test
@@ -350,6 +317,29 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     } finally {
       await client.query("DROP TABLE IF EXISTS agg_rows");
     }
+  }
+
+  @test
+  async countConformance() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS count_rows");
+    try {
+      const repo = new PostgresRepository<any>(Row as any, ["uuid"], client, "count_rows");
+      await repo.setupTable();
+      await checkCount(repo as any, { native: true });
+    } finally {
+      await client.query("DROP TABLE IF EXISTS count_rows");
+    }
+  }
+
+  @test
+  async countStaysInTheModelHierarchy() {
+    const client = this.store!.getClient();
+    await checkCountClassFilter(
+      new PostgresRepository<any>(Animal as any, ["uuid"], client, "smoke_idents") as any,
+      new PostgresRepository<any>(Dog as any, ["uuid"], client, "smoke_idents") as any,
+      async (repo: any, uuid) => void (await repo.create(new (repo.getRootModel())({ uuid })))
+    );
   }
 
   @test

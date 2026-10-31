@@ -1,4 +1,4 @@
-import { Attributes, FilterAttributes, FilterOutAttributes, Merge } from "@webda/tsc-esm";
+import { Attributes, FilterAttributes, Merge } from "@webda/utils";
 
 /** Any function signature. */
 type AnyMethod = (...args: any[]) => any;
@@ -198,9 +198,8 @@ type _NonFunctionPropertyPaths<T> = {
 type _FilteredPropertyPaths<T, Filter> = {
   [K in Extract<keyof T, string>]: T[K] extends Function
     ? never
-    :
-        | (T[K] extends Filter ? K : never)
-        | (T[K] extends object ? `${K}.${_FilteredPropertyPaths<T[K], Filter>}` : never);
+    : | (T[K] extends Filter ? K : never)
+      | (T[K] extends object ? `${K}.${_FilteredPropertyPaths<T[K], Filter>}` : never);
 }[Extract<keyof T, string>];
 /**
  * Return dot-notated paths for non-function properties, recursing into sub-objects.
@@ -257,8 +256,7 @@ export type PartialModelParameters<T extends { load: (data: any) => any }> = Par
  * Parameters for `Model.load`, with required keys enforced.
  */
 export type ModelParameters<T extends { load: (data: any) => any }, K extends keyof T = RequiredAttributes<T>> =
-  | Required<Pick<PartialModelParameters<T>, K>>
-  | Partial<Omit<PartialModelParameters<T>, K>>;
+  Required<Pick<PartialModelParameters<T>, K>> | Partial<Omit<PartialModelParameters<T>, K>>;
 
 /**
  * Map type to only numeric properties.

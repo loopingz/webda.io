@@ -43,7 +43,35 @@ export class QueueParameters extends ServiceParameters {
    * @default 10
    */
   maxConsumers: number = 10;
+  /**
+   * Delayer between two receives of the main consumer while the queue returns no message
+   *
+   * Queues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight
+   * loop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive
+   * is deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down.
+   *
+   * @default { "type": "exponential", "interval": 50 }
+   */
+  idleDelayer?: WaitDelayerDefinition;
+  /**
+   * Maximum delay between two receives while the queue stays empty, in milliseconds
+   *
+   * It bounds the extra latency of the first message after an idle period, and the polling rate of an idle
+   * consumer (4 receives per second at 250ms).
+   *
+   * @default 250
+   */
+  maxIdleDelay?: number;
 }
+
+/**
+ * Default delayer between two receives returning no message
+ */
+const DEFAULT_IDLE_DELAYER: WaitDelayerDefinition = { type: "exponential", interval: 50 };
+/**
+ * Default maximum delay between two receives returning no message, in milliseconds
+ */
+const DEFAULT_MAX_IDLE_DELAY = 250;
 
 /**
  * AbstractQueue implements the worker system
@@ -70,6 +98,10 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    * Delayer
    */
   protected delayer: WaitDelayer;
+  /**
+   * Delayer between two receives returning no message
+   */
+  protected idleDelayer: WaitDelayer;
   eventPrototype: new () => T;
 
   /**
@@ -90,6 +122,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   public resolve(): this {
     super.resolve();
     this.delayer = WaitDelayerFactories.get(this.parameters.workerDelayer);
+    this.idleDelayer = WaitDelayerFactories.get(this.parameters.idleDelayer ?? DEFAULT_IDLE_DELAYER);
     return this;
   }
 
@@ -142,6 +175,17 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   }
 
   /**
+   * Delay before the next receive after consecutive receives returned no message, before the `maxIdleDelay` cap
+   *
+   * @param emptyReceives - number of consecutive empty receives, starting at 1
+   * @returns the delay in milliseconds
+   */
+  getIdleDelay(emptyReceives: number): number {
+    this.idleDelayer ??= WaitDelayerFactories.get(this.parameters.idleDelayer ?? DEFAULT_IDLE_DELAYER);
+    return this.idleDelayer(emptyReceives);
+  }
+
+  /**
    * Return the max consumers for the queue
    *
    * It is overridable so if a queue can retrieve several message at once
@@ -167,6 +211,15 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     this.callback = callback;
     this.eventPrototype = eventPrototype;
     const consumers = new Set<CancelableLoopPromise>();
+    let emptyReceives = 0;
+    let cancelled = false;
+    let idle: { timer: NodeJS.Timeout; resolve: () => void } | undefined;
+    const idleWait = (ms: number) =>
+      new Promise<void>(resolve => {
+        idle = { timer: setTimeout(resolve, ms), resolve };
+      }).finally(() => {
+        idle = undefined;
+      });
     const childQueueCallback = async (canceller: () => Promise<void>) => {
       const res = await this.consumerReceiveMessage();
       // If an error occured or no results found, stop the child
@@ -176,6 +229,17 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     };
     const parentQueueCallback = async (_canceller: () => Promise<void>) => {
       const res = await this.consumerReceiveMessage();
+      if (res.items === 0) {
+        // Do not poll an empty queue in a tight loop: wait, minus the time the receive already waited
+        emptyReceives++;
+        const wait = Math.min(this.parameters.maxIdleDelay ?? DEFAULT_MAX_IDLE_DELAY, this.getIdleDelay(emptyReceives));
+        // A receive interrupted by cancel() ends the loop right away
+        if (wait - res.speed > 0 && !cancelled) {
+          await idleWait(wait - res.speed);
+        }
+        return;
+      }
+      emptyReceives = 0;
       if (res.items > 0 && res.speed < 3000 && consumers.size < this.getMaxConsumers() - 1) {
         this.log("TRACE", `Launching a new queue consumer for ${this.getName()}`);
         const consumer = new CancelableLoopPromise(childQueueCallback);
@@ -188,6 +252,12 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
       }
     };
     return new CancelableLoopPromise(parentQueueCallback, async () => {
+      // Stop waiting for the next receive
+      cancelled = true;
+      if (idle) {
+        clearTimeout(idle.timer);
+        idle.resolve();
+      }
       await Promise.all(Array.from(consumers).map(c => c.cancel()));
     });
   }

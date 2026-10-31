@@ -77,9 +77,15 @@ export function validateModelSchema(
  * Register a schema
  * @param name - the name to use
  * @param schema - the schema object
+ * @param replace - replace a previously registered schema and invalidate its cached validators
  */
-export function registerSchema(name: string, schema: object): void {
+export function registerSchema(name: string, schema: object, replace: boolean = false): void {
   const ajv = getAjv();
+  if (replace) {
+    ajv.removeSchema(name);
+    ajv.removeSchema(name + "?");
+    delete ajv.rawSchema[name + "?"];
+  }
   ajv.addSchema(schema, name);
   ajv.rawSchema[name] = schema;
 }
@@ -134,6 +140,18 @@ export function validateSchema(
     return true;
   }
   throw new ValidationError(ajv.errors);
+}
+
+/**
+ * Validate typed runtime configuration against a module's parameter schema.
+ * @param schema - parameter schema
+ * @param object - resolved parameters including defaults
+ */
+export function validateSchemaDefinition(schema: JSONSchema7, object: any): void {
+  const ajv = getAjv();
+  if (!ajv.validate(schema, object)) {
+    throw new ValidationError(ajv.errors);
+  }
 }
 
 /**

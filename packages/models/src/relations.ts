@@ -1,4 +1,4 @@
-import { FilterAttributes, ArrayElement } from "@webda/tsc-esm";
+import { FilterAttributes, ArrayElement } from "@webda/utils";
 import {
   isStorable,
   PrimaryKeyType,

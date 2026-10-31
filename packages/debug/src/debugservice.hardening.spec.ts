@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { vi } from "vitest";
-import { request as httpRequest, createServer, Server } from "node:http";
+import { request as httpRequest, createServer } from "node:http";
 import { WebSocket } from "ws";
 import { WS_PROTOCOL, WS_TOKEN_PREFIX, buildDebugUrl, isAllowedOrigin, allowedOrigins } from "./security.js";
 
@@ -88,6 +88,28 @@ function wsStatus(url: string, protocols: string[], headers: Record<string, stri
   });
 }
 
+/** Reserve IPv6 only after checking that the same port is available on IPv4. */
+async function occupyIpv6Port() {
+  for (;;) {
+    const squatter = createServer(() => {});
+    await new Promise<void>(resolve => squatter.listen(0, "::1", () => resolve()));
+    const port = (squatter.address() as any).port;
+    const probe = createServer();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        probe.once("error", reject);
+        probe.listen(port, "127.0.0.1", () => resolve());
+      });
+    } catch (error) {
+      await new Promise<void>(resolve => squatter.close(() => resolve()));
+      if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") continue;
+      throw error;
+    }
+    await new Promise<void>(resolve => probe.close(() => resolve()));
+    return { squatter, port };
+  }
+}
+
 @suite
 class DualLoopbackBindTest {
   @test
@@ -112,9 +134,7 @@ class DualLoopbackBindTest {
   @test
   async failsWhenTheIpv6PortIsTaken() {
     // A squatter on [::1]:port must not be tolerated silently
-    const squatter = createServer(() => {});
-    await new Promise<void>(resolve => squatter.listen(0, "::1", () => resolve()));
-    const port = (squatter.address() as any).port;
+    const { squatter, port } = await occupyIpv6Port();
     const service = new DebugService();
     service.resolve();
     try {
@@ -127,9 +147,7 @@ class DualLoopbackBindTest {
 
   @test
   async theDebugCommandRejectsWhenTheIpv6PortIsTaken() {
-    const squatter = createServer(() => {});
-    await new Promise<void>(resolve => squatter.listen(0, "::1", () => resolve()));
-    const port = (squatter.address() as any).port;
+    const { squatter, port } = await occupyIpv6Port();
     mockHttpServer = undefined;
     const service = new DebugService();
     (service as any).openBrowser = () => {};

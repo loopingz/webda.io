@@ -1,12 +1,11 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { DirtyModelMixin, ExceptPartial, Model, UuidModel, WEBDA_DELETED } from "./model.model.js";
+import { ExceptPartial, Model, UuidModel } from "./model.model.js";
 import { isStorable, isModelClass, PrimaryKeyEquals, ModelClass, WEBDA_PRIMARY_KEY } from "./storable";
 import { MemoryRepository } from "./repositories/memory";
 import { DTO, SelfDTO, SelfJSONed, WebdaFieldsMixIn } from "./types";
 import { registerRepository } from "./repositories/hooks";
-import { Merge } from "@webda/tsc-esm";
-import { track } from "@webda/utils";
+import { Merge, track } from "@webda/utils";
 import { hasSerializer, serializeRaw, unregisterSerializer } from "@webda/serialize";
 import { supportsAtomicOperations, supportsCollectionOperations } from "./repositories/repository";
 
@@ -82,6 +81,16 @@ export class SubClassModel extends UuidModel {
 }
 
 SubClassModel.registerSerializer();
+
+/**
+ * The instance canAct keeps the (context, action) order: swapping them is a compile error
+ */
+export class SwappedCanActModel extends UuidModel {
+  // @ts-expect-error - the context comes first, the action second
+  async canAct(action: string, _context?: unknown): Promise<string | boolean> {
+    return action === "get";
+  }
+}
 
 @suite
 class ModelTest {
@@ -392,6 +401,13 @@ class ModelTest {
    * The framework asks the static `canAct(context, action, object?)`: the base implementation delegates to an
    * instance `canAct(context, action)` when the object defines one, and denies in every other case
    */
+  @test
+  async instanceCanActDeniesByDefault() {
+    const ctx = { getCurrentUserId: () => "u1" };
+    assert.strictEqual(await new UuidModel().canAct(ctx, "get"), false);
+    assert.strictEqual(await new TestModel().canAct(ctx, "create"), false);
+  }
+
   @test
   async staticCanActDeniesByDefaultAndDelegatesToTheInstance() {
     const ctx: any = { getCurrentUserId: () => "u1" };

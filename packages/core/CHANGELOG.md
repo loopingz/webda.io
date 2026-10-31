@@ -3,6 +3,112 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.11...core-v4.0.0-beta.12) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* Webda/Mailer moved to @webda/mailer
+* **core:** instance actions declaring non-context parameters now receive them instead of the operation context. Take the context with a context-typed parameter or useContext().
+* **core:** instance canAct overrides must match canAct(context: CanActContext, action: string).
+* **utils:** @webda/tsc-esm is no longer published. Import its types and helpers from @webda/utils, and createClassDecorator, createPropertyDecorator and createMethodDecorator from @webda/decorators.
+
+### Features
+
+* @webda/templates and @webda/mailer, keep only mailer contracts in core ([#58](https://github.com/loopingz/webda.io/issues/58)) ([#984](https://github.com/loopingz/webda.io/issues/984)) ([58e6ee6](https://github.com/loopingz/webda.io/commit/58e6ee6cddf42f58776d18a4c94fc2528846d6e2))
+* **auth:** add an SMS second factor with a pluggable SmsSender ([#979](https://github.com/loopingz/webda.io/issues/979)) ([05a9bf2](https://github.com/loopingz/webda.io/commit/05a9bf2b825add2a24ff3164cf17bba274912de1)), closes [#61](https://github.com/loopingz/webda.io/issues/61)
+* **auth:** track MFA verification time and enforce step-up freshness (maxMfaAge) ([#963](https://github.com/loopingz/webda.io/issues/963)) ([86cda56](https://github.com/loopingz/webda.io/commit/86cda56d06e3812c3e80a34d2b93488b2254a934))
+* **binary:** attach direct uploads on verified client completion ([#944](https://github.com/loopingz/webda.io/issues/944)) ([736942e](https://github.com/loopingz/webda.io/commit/736942eb194f66924ceeaefd14d8515c2d0b84d7))
+* **core:** list model plural aliases in GET /operations ([#943](https://github.com/loopingz/webda.io/issues/943)) ([417a3ec](https://github.com/loopingz/webda.io/commit/417a3ec644c55cf8f51e4e53fa1972615856e647))
+* **core:** make `package --config-only` output runnable with an inline $packaged marker ([#962](https://github.com/loopingz/webda.io/issues/962)) ([b0d8450](https://github.com/loopingz/webda.io/commit/b0d8450664082fa8c58256b9b9e572bacfbc2899)), closes [#871](https://github.com/loopingz/webda.io/issues/871)
+* **core:** model actions receive their typed parameters ([#946](https://github.com/loopingz/webda.io/issues/946), phase 1) ([#955](https://github.com/loopingz/webda.io/issues/955)) ([7e8eebd](https://github.com/loopingz/webda.io/commit/7e8eebd47af7748936272c43869152bf1716b485))
+* **core:** read CryptoService keys from a file instead of the registry ([#961](https://github.com/loopingz/webda.io/issues/961)) ([08f3636](https://github.com/loopingz/webda.io/commit/08f36361098db3ea03e8552fc9fd7a97dc699c5d)), closes [#892](https://github.com/loopingz/webda.io/issues/892)
+* end-to-end encrypted model fields (SealedField, UserKeys, @webda/sealed-client) ([#941](https://github.com/loopingz/webda.io/issues/941)) ([fbc5bd2](https://github.com/loopingz/webda.io/commit/fbc5bd24b1f60c87c53c33f9d1650634834c894e))
+* **mcp,oauth:** dynamic client registration, resource-bound tokens and insufficient_scope ([#901](https://github.com/loopingz/webda.io/issues/901)) ([#988](https://github.com/loopingz/webda.io/issues/988)) ([f75c854](https://github.com/loopingz/webda.io/commit/f75c8548791ef77a81bca304e4f5e5f84094b807))
+* opt-in total count for paginated queries (Repository.count, REST/GraphQL total) ([#967](https://github.com/loopingz/webda.io/issues/967)) ([b43e6d1](https://github.com/loopingz/webda.io/commit/b43e6d18820773d24a8b754013dc4dec4c57e1c7))
+* **postgres,amqp:** push-based queue consumption (LISTEN/NOTIFY, basic.consume) ([#966](https://github.com/loopingz/webda.io/issues/966)) ([a416c0f](https://github.com/loopingz/webda.io/commit/a416c0f99c685d27d8483f83e2d92b328dd2093b))
+* **sql-schema:** relational schema plan built from model metadata ([#937](https://github.com/loopingz/webda.io/issues/937)) ([6f50192](https://github.com/loopingz/webda.io/commit/6f5019210a7a3f84bddad061db931c31d98f4524))
+
+
+### Bug Fixes
+
+* **content-mapper:** record relation aliases, the ModelRelated attribute and [@enum](https://github.com/enum) values ([#940](https://github.com/loopingz/webda.io/issues/940)) ([6e7e701](https://github.com/loopingz/webda.io/commit/6e7e7018343671a1e4a11de0b447bb4a959a997b))
+* **core:** body cannot override path params ([#947](https://github.com/loopingz/webda.io/issues/947)); feat(models)!: typed instance canAct ([#948](https://github.com/loopingz/webda.io/issues/948)) ([30d534b](https://github.com/loopingz/webda.io/commit/30d534bddb85ae60389209dbfe465b8a27ed71f6))
+* **core:** Queue.consume waits between receives returning no message ([#920](https://github.com/loopingz/webda.io/issues/920)) ([7a41465](https://github.com/loopingz/webda.io/commit/7a41465f0afbc264e5409dfd491f3a3212408bf2))
+* **core:** read the full body for DomainService create/update/patch ([#970](https://github.com/loopingz/webda.io/issues/970)) ([2212135](https://github.com/loopingz/webda.io/commit/22121359680de0650d60a5b6b35c7a60ac18d38e))
+
+
+### Performance Improvements
+
+* **core:** enable the Node compile cache in the webda launcher ([#975](https://github.com/loopingz/webda.io/issues/975)) ([cd48c82](https://github.com/loopingz/webda.io/commit/cd48c82687fa63507b53419a901bd5a4f2e65e23))
+* **core:** import sanitize-html on use ([#960](https://github.com/loopingz/webda.io/issues/960)) ([4418f51](https://github.com/loopingz/webda.io/commit/4418f51c376aa63f8f6583d585f936537fd42405))
+* **models:** index MemoryStore storage by stored type ([#977](https://github.com/loopingz/webda.io/issues/977)) ([d4f2ddb](https://github.com/loopingz/webda.io/commit/d4f2ddb5827759ef216bd24fe62a4ebefdfcd0e2)), closes [#922](https://github.com/loopingz/webda.io/issues/922)
+
+
+### Code Refactoring
+
+* **utils:** merge @webda/tsc-esm into @webda/utils and remove it ([#942](https://github.com/loopingz/webda.io/issues/942)) ([efcf87c](https://github.com/loopingz/webda.io/commit/efcf87c5adb1b697c4cf433545efb09a51459837))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.12
+    * @webda/models bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/content-mapper bumped to 4.0.0-beta.10
+    * @webda/test bumped to 4.0.0-beta.8
+  * peerDependencies
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.10...core-v4.0.0-beta.11) (2026-10-16)
+
+
+### Features
+
+* **core:** apply webda.cli include/exclude to operation commands ([#931](https://github.com/loopingz/webda.io/issues/931)) ([7907541](https://github.com/loopingz/webda.io/commit/7907541c29b4c78c76ff1255a79974ca7e610d62))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.11
+    * @webda/models bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.9...core-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+* **auth:** TLS client certificate (mTLS) authentication ([#834](https://github.com/loopingz/webda.io/issues/834)) ([#899](https://github.com/loopingz/webda.io/issues/899)) ([5bf7996](https://github.com/loopingz/webda.io/commit/5bf7996fb9ac76506f8d1f2311f7e4453159e54e))
+* **core:** add slow query logger for WebdaQL ([#244](https://github.com/loopingz/webda.io/issues/244)) ([#903](https://github.com/loopingz/webda.io/issues/903)) ([827781d](https://github.com/loopingz/webda.io/commit/827781d30c843e9e0871416f780730eb8ae0ca5d))
+* **core:** route aliases in Router ([#684](https://github.com/loopingz/webda.io/issues/684)) ([#908](https://github.com/loopingz/webda.io/issues/908)) ([b5f48f9](https://github.com/loopingz/webda.io/commit/b5f48f98f2ca05846653b1042ffcb930070d7981))
+* **core:** URL-addressed getContent / putContent with Readable in and out ([#377](https://github.com/loopingz/webda.io/issues/377)) ([#904](https://github.com/loopingz/webda.io/issues/904)) ([2323103](https://github.com/loopingz/webda.io/commit/2323103b21e5c6b6d3dd31de0398302e9be4ea15))
+* delegated OAuth 2.1 tokens with operation-level consent ([#928](https://github.com/loopingz/webda.io/issues/928)) ([44709d6](https://github.com/loopingz/webda.io/commit/44709d6adea6a7e346ada3bb7bd309ef3d9a54e0))
+* **oidc:** @webda/oidc workload identity and trust between applications ([#832](https://github.com/loopingz/webda.io/issues/832)) ([#896](https://github.com/loopingz/webda.io/issues/896)) ([51719bf](https://github.com/loopingz/webda.io/commit/51719bf07b9abcc798c9191c385c4e11365561d4))
+* webda.cli in package.json — command selection, runCli and a generated app executable ([#927](https://github.com/loopingz/webda.io/issues/927)) ([10f68c6](https://github.com/loopingz/webda.io/commit/10f68c658f417cc102cab45f235ca82aa8d6d345))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.10
+    * @webda/models bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+    * @webda/content-mapper bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.8...core-v4.0.0-beta.9) (2026-10-14)
 
 

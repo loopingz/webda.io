@@ -1,4 +1,4 @@
-import { CharStreams, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
+import { CharStreams, CommonTokenStream, RecognitionException, Recognizer } from "antlr4ts";
 import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree/index.js";
 import { WebdaQLLexer } from "./WebdaQLLexer.js";
 import {
@@ -981,23 +981,20 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * @returns compiled RegExp
    */
   static likeToRegex(like: string): RegExp {
-    return new RegExp(
-      like
-        // Prevent common regexp chars
-        .replace(/\?/g, "\\?")
-        .replace(/\[/g, "\\[")
-        .replace(/\{/g, "\\{")
-        .replace(/\(/g, "\\(")
-        // Update % and _ to match regex version
-        .replace(/([^\\])_/g, "$1.{1}")
-        .replace(/^_/g, ".{1}")
-        .replace(/\\_/g, "_")
-        .replace(/([^\\])%/g, "$1.*")
-        .replace(/^%/g, ".*")
-        .replace(/\\%/g, "%")
-        // Replace backslash aswell
-        .replace(/\\([^?[{(])/g, "\\\\")
-    );
+    let pattern = "";
+    for (let i = 0; i < like.length; i++) {
+      const char = like[i];
+      if (char === "\\" && i + 1 < like.length && (like[i + 1] === "%" || like[i + 1] === "_")) {
+        pattern += like[++i];
+      } else if (char === "%") {
+        pattern += ".*";
+      } else if (char === "_") {
+        pattern += ".{1}";
+      } else {
+        pattern += "\\^$.*+?()[]{}|".includes(char) ? "\\" + char : char;
+      }
+    }
+    return new RegExp(pattern);
   }
 
   /**

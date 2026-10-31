@@ -1,0 +1,182 @@
+import { suite, test } from "@webda/test";
+import { installConfigurationFactories, useService, type UnpackedConfiguration } from "@webda/core";
+import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
+import type { TestApplication } from "@webda/core/lib/test/objects.js";
+import * as assert from "assert";
+import { vi } from "vitest";
+import { TemplateService, TemplateServiceParameters, registerTemplateEngine } from "./index.js";
+
+const configure = vi.fn();
+let configured = false;
+registerTemplateEngine("async-ok", {
+  extensions: ["aok"],
+  configure: async () => {
+    await new Promise(r => setTimeout(r, 20));
+    configured = true;
+  },
+  compile: () => () => ""
+});
+registerTemplateEngine("async-fail", {
+  extensions: ["afail"],
+  configure: async () => {
+    throw new Error("configure failed");
+  },
+  compile: () => () => ""
+});
+registerTemplateEngine("service-fake", { extensions: ["sfake"], configure, compile: () => () => "" });
+
+/**
+ * Run the TemplateService from the sources rather than the compiled module
+ */
+class TemplateServiceTestBase extends WebdaApplicationTest {
+  /**
+   * Register the TemplateService from sources, with the compiled parameters schema
+   * @param app - the test application
+   */
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    installConfigurationFactories(TemplateService, TemplateServiceParameters, app.getSchema("Webda/TemplateService"));
+    app.addModda("Webda/TemplateService", TemplateService);
+  }
+}
+
+@suite
+class TemplateServiceTest extends TemplateServiceTestBase {
+  folders = ["test/templates-a", "test/templates-b"];
+
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: { ignoreBeans: true },
+      services: {
+        TemplateService: {
+          type: "Webda/TemplateService",
+          folders: this.folders,
+          engines: { "service-fake": { x: 1 } }
+        }
+      }
+    };
+  }
+
+  @test
+  availableByName() {
+    assert.ok(useService("TemplateService") instanceof TemplateService);
+  }
+
+  @test
+  async delegates() {
+    const svc = useService("TemplateService");
+    assert.strictEqual((await svc.renderAll("WELCOME", { name: "a" }, { locale: "fr" })).subject, "Bienvenue a");
+    assert.ok(await svc.has("single"));
+    assert.ok(await svc.has("WELCOME"));
+    assert.ok((await svc.list()).includes("single"));
+    assert.strictEqual(await svc.render("single", { name: "a" }), "Single A a");
+    assert.strictEqual(await svc.renderString("Hi {{n}}", { n: "x" }), "Hi x");
+    assert.ok(svc.getRenderer());
+    assert.ok(TemplateService.getEngine("mustache"));
+  }
+
+  @test
+  configureCalled() {
+    assert.deepStrictEqual(configure.mock.calls[0][0], { x: 1 });
+  }
+
+  @test
+  async asyncConfigureAwaitedByInit() {
+    const svc = useService("TemplateService");
+    Reflect.get(svc, "parameters").engines["async-ok"] = {};
+    configured = false;
+    svc.resolve();
+    assert.strictEqual(configured, false);
+    await svc.init();
+    assert.strictEqual(configured, true);
+  }
+
+  @test
+  async rejectingConfigureFailsInit() {
+    const svc = useService("TemplateService");
+    Reflect.get(svc, "parameters").engines["async-fail"] = {};
+    svc.resolve();
+    await assert.rejects(() => svc.init(), /configure failed/);
+  }
+
+  @test
+  async rejectingConfigureNotUnhandled() {
+    const svc = useService("TemplateService");
+    Reflect.get(svc, "parameters").engines["async-fail"] = {};
+    const unhandled: any[] = [];
+    const listener = (reason: any) => unhandled.push(reason);
+    process.on("unhandledRejection", listener);
+    try {
+      // resolve() without init(): the failed configuration must not be an unhandled rejection
+      svc.resolve();
+      await new Promise(r => setTimeout(r, 50));
+      assert.deepStrictEqual(unhandled, []);
+    } finally {
+      process.off("unhandledRejection", listener);
+      Reflect.get(svc, "configuring").length = 0;
+    }
+  }
+
+  @test
+  staticEngineHelpers() {
+    const engine = { extensions: ["static"], compile: () => () => "STATIC" };
+    TemplateService.registerEngine("service-static", engine);
+    assert.strictEqual(TemplateService.getEngine("service-static"), engine);
+  }
+
+  @test
+  loadParameters() {
+    const params = useService<TemplateService>("TemplateService").loadParameters({ folders: ["x"] });
+    assert.ok(params instanceof TemplateServiceParameters);
+    assert.deepStrictEqual(params.folders, ["x"]);
+    assert.strictEqual(params.engine, "mustache");
+  }
+
+  @test
+  resolveWithoutEngineOptions() {
+    const svc = useService<TemplateService>("TemplateService");
+    svc.getParameters().engines = undefined;
+    configure.mockClear();
+    svc.resolve();
+    assert.strictEqual(configure.mock.calls.length, 0);
+  }
+
+  @test
+  async metrics() {
+    const svc = useService("TemplateService");
+    const metrics = Reflect.get(svc, "metrics");
+    const total = async (name: string) =>
+      (await metrics[name].get()).values.reduce((a: number, v: any) => a + v.value, 0);
+    const mustache = async () =>
+      (await metrics.render.get()).values
+        .filter((v: any) => v.labels.engine === "mustache")
+        .reduce((a: number, v: any) => a + v.value, 0);
+    const mustacheBefore = await mustache();
+    const renders = await total("render");
+    const errors = await total("errors");
+    await svc.render("single", { name: "a" });
+    assert.strictEqual((await total("render")) - renders, 1);
+    assert.strictEqual((await mustache()) - mustacheBefore, 1);
+    assert.strictEqual((await total("errors")) - errors, 0);
+    await assert.rejects(() => svc.render("nope"), { code: "TEMPLATE_NOT_FOUND" });
+    assert.strictEqual((await total("errors")) - errors, 1);
+  }
+}
+
+@suite
+class TemplateServiceMissingFolderTest extends TemplateServiceTestBase {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: { ignoreBeans: true },
+      services: { TemplateService: { type: "Webda/TemplateService", folders: ["test/none"] } }
+    };
+  }
+
+  @test
+  async missingFolderWarns() {
+    const svc = useService("TemplateService");
+    const log = vi.spyOn(svc, "log");
+    await svc.init();
+    assert.ok(log.mock.calls.some(([level, message]) => level === "WARN" && String(message).includes("test/none")));
+  }
+}

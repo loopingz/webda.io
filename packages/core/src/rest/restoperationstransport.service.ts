@@ -14,17 +14,19 @@ import { useCore, useModelMetadata } from "../core/hooks.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { callOperation, canCallOperation, getOperationStreaming } from "../core/operations.js";
 import { isOperationEnabled } from "../services/featureflags.js";
+import { runOperation } from "./streaming.js";
 import { AsyncQueue } from "../core/asyncqueue.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
-import { RestStreamingOperationContext, type RestStreamFormat } from "../contexts/restcontext.js";
-import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
+import { QUERY_TOTAL_SCHEMA } from "../models/permissions.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
 import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
+import { bindRestInput, resolveInputSchema, inputSchemaToOpenAPI } from "./binding.js";
 
 /**
  * @param data - a raw WebSocket message
@@ -430,7 +432,7 @@ export class RESTOperationsTransport<
    */
   protected exposeServiceOperations(operations: Record<string, OperationDefinition>): void {
     for (const [opId, op] of Object.entries(operations)) {
-      if (op.hidden) continue;
+      if (op.hidden || op.rest === false) continue;
       // A client stream cannot be carried by a plain HTTP request: reachable over gRPC only
       if (getOperationStreaming(op) === "client") continue;
       // Skip if this operation was already handled by model tree walk
@@ -448,6 +450,12 @@ export class RESTOperationsTransport<
         path = `${this.parameters.url}${opId.toLowerCase().replace(/\./g, "/")}`;
         methods = ["PUT"];
       }
+      path = bindRestInput(
+        path,
+        methods[0],
+        useApplication().getSchema(op.input),
+        (op.rest && op.rest.body) || undefined
+      ).path;
 
       if (getOperationStreaming(op) === "bidi") {
         // Served as a WebSocket upgrade on this path; a plain request cannot carry a bidirectional stream
@@ -469,10 +477,7 @@ export class RESTOperationsTransport<
 
       const openapi: OpenAPIWebdaDefinition = {
         [methods[0].toLowerCase()]: {
-          tags: op.tags || [],
-          summary: op.summary || opId,
-          operationId: opId,
-          ...(getOperationStreaming(op) === "server" ? { responses: this.streamedResponses() } : {})
+          ...this.operationOpenAPI(op, path, methods[0])
         }
       };
       this.addRoute(
@@ -484,6 +489,74 @@ export class RESTOperationsTransport<
         openapi
       );
     }
+  }
+
+  /**
+   * Document URL values and just the JSON body fields from the same binding the route executes.
+   * @param op - registered operation
+   * @param path - complete URI template
+   * @param method - HTTP verb
+   * @returns OpenAPI operation fields
+   */
+  protected operationOpenAPI(op: OperationDefinition, path: string, method: string): any {
+    const app = useApplication();
+    const input: any = app.getSchema(op.input);
+    const { binding } = bindRestInput(path, method, input, (op.rest && op.rest.body) || undefined);
+    const publicSchema = inputSchemaToOpenAPI;
+    const parameters: any[] = binding.path.map(name => ({
+      name,
+      in: "path",
+      required: true,
+      schema: publicSchema(input?.properties?.[name] ?? { type: "string" })
+    }));
+    parameters.push(
+      ...binding.query.map(query => {
+        const schema = resolveInputSchema(input?.properties?.[query.name], input);
+        return {
+          name: query.name,
+          in: "query",
+          required: query.required,
+          schema: publicSchema(input?.properties?.[query.name] ?? { type: "string" }),
+          ...(query.catchAll || schema?.type === "array" ? { style: "form", explode: true } : {})
+        };
+      })
+    );
+    const result: any = {
+      tags: op.tags || [],
+      summary: op.summary || op.id,
+      description: op.description,
+      operationId: op.id,
+      parameters
+    };
+    if (binding.body.length) {
+      const required = (input.required ?? []).filter((name: string) => binding.body.includes(name));
+      const schema = binding.bodyParameter
+        ? input.properties[binding.bodyParameter]
+        : {
+            type: "object",
+            properties: Object.fromEntries(binding.body.map(name => [name, input.properties[name]])),
+            ...(required.length ? { required } : {})
+          };
+      result.requestBody = {
+        required: binding.bodyParameter ? required.includes(binding.bodyParameter) : required.length > 0,
+        content: { "application/json": { schema: publicSchema(schema) } }
+      };
+    }
+    if (getOperationStreaming(op) === "server") result.responses = this.streamedResponses();
+    else if (op.output !== "void" && hasSchema(op.output)) {
+      result.responses = {
+        "200": {
+          description: "Operation success",
+          content: {
+            "application/json": {
+              schema: { $ref: `#/components/schemas/${op.output.replace(/~/g, "~0").replace(/\//g, "~1")}` }
+            }
+          }
+        }
+      };
+    }
+    if (op.rest && op.rest.responses) result.responses = { ...result.responses, ...op.rest.responses };
+    return result;
   }
 
   /**
@@ -513,74 +586,7 @@ export class RESTOperationsTransport<
    * @returns a promise settled once the operation is done (a stream: once the response is over)
    */
   protected async runOperation(context: WebContext, operationId: string): Promise<void> {
-    const response = context._stream as any;
-    if (
-      getOperationStreaming(useInstanceStorage().operations?.[operationId]) !== "server" ||
-      typeof response?.writeHead !== "function"
-    ) {
-      return callOperation(context, operationId);
-    }
-    return this.streamOperation(context, operationId, response);
-  }
-
-  /**
-   * Stream a server-streaming operation: NDJSON, or server-sent events when the client accepts them
-   *
-   * The streaming context is built here, from the request's context, rather than by the HttpServer: only these routes
-   * need it, and permissions, validation and events still go through `callOperation` on the request's input. Until the
-   * first chunk an error is a normal HTTP error (thrown to the HttpServer); after it, the error is the last event or
-   * line of the stream.
-   * @param context - the request context
-   * @param operationId - the operation
-   * @param response - the HTTP response
-   * @returns a promise settled once the response is over
-   */
-  protected async streamOperation(context: WebContext, operationId: string, response: ServerResponse): Promise<void> {
-    const accept = context.getHttpContext().getUniqueHeader("accept", "") ?? "";
-    const format: RestStreamFormat = accept.includes("text/event-stream") ? "sse" : "ndjson";
-    const stream = new RestStreamingOperationContext(
-      context.getHttpContext(),
-      response,
-      format,
-      context.getSession(),
-      this.parameters.streamKeepAliveInterval,
-      context.getResponseHeaders(),
-      context.getSetCookieHeaders()
-    );
-    await stream.init();
-    stream.setParameters(context.getParameters());
-    stream.startKeepAlive();
-    try {
-      await callOperation(stream, operationId);
-    } catch (err: any) {
-      stream.stopKeepAlive();
-      // The client went away: nothing to tell
-      if (stream.isCancelled || stream.disconnected) return stream.finish();
-      // Nothing sent yet: a normal HTTP error response
-      if (!stream.hasStarted) {
-        stream.abortBeforeStart();
-        throw err;
-      }
-      const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
-      const clientError = status >= 400 && status < 500;
-      if (!clientError) useLog("ERROR", `[REST ${operationId}] streamed operation threw:`, err);
-      await stream.writeError(clientError ? String(err.message ?? "Error") : "Internal server error", status || 500);
-      return stream.finish();
-    }
-    stream.stopKeepAlive();
-    if (stream.isCancelled) return stream.finish();
-    if (!stream.getExtension("operationStreaming")) {
-      // Not a generator after all: a normal response, with the status and headers the operation set
-      if (stream.statusCode && stream.statusCode !== 204) context.statusCode = stream.statusCode;
-      for (const [name, value] of Object.entries(stream.getResponseHeaders())) context.setHeader(name, <any>value);
-      const output = stream.getOutput();
-      if (output !== undefined) {
-        context.setHeader("Content-type", "application/json");
-        context.write(output);
-      }
-      return;
-    }
-    return stream.finish(true);
+    return runOperation(context, operationId, this.parameters.streamKeepAliveInterval);
   }
 
   /**
@@ -683,6 +689,10 @@ export class RESTOperationsTransport<
                       properties: {
                         q: {
                           type: "string"
+                        },
+                        count: {
+                          type: "boolean",
+                          description: "Also return the total of the query (first page only)"
                         }
                       }
                     }
@@ -698,6 +708,14 @@ export class RESTOperationsTransport<
                   description: "Query to execute",
                   schema: {
                     type: "string"
+                  }
+                },
+                {
+                  name: "count",
+                  in: "query",
+                  description: "Also return the total of the query (first page only)",
+                  schema: {
+                    type: "boolean"
                   }
                 }
               ]
@@ -717,6 +735,11 @@ export class RESTOperationsTransport<
                       items: {
                         $ref: `#/components/schemas/${identifier}`
                       }
+                    },
+                    total: {
+                      ...structuredClone(QUERY_TOTAL_SCHEMA),
+                      description:
+                        "Total of the query, when asked with count and allowed by the model: with relation gte, the total is at least value"
                     }
                   }
                 }
@@ -734,10 +757,11 @@ export class RESTOperationsTransport<
     };
 
     this.addRoute(
-      `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
+      `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?,count?}" : ""}`,
       [this.parameters.queryMethod],
       async (context: WebContext) => {
         let queryString = "";
+        let count: unknown;
         const parentId = `pid.${depth - 1}`;
         if (context.getHttpContext().getMethod() === "PUT") {
           const input = await context.getInput();
@@ -751,9 +775,15 @@ export class RESTOperationsTransport<
             throw new WebdaError.BadRequest("Query body must be a JSON object");
           }
           queryString = input?.q ?? "";
+          count = input?.count;
           context.clearInput();
+          if (count !== undefined && typeof count !== "boolean") {
+            throw new WebdaError.BadRequest("count must be a boolean");
+          }
         } else {
           queryString = context.parameter("q", "");
+          // "true" / "1" are coerced by the operation input schema, other values are refused
+          count = context.parameter("count");
         }
         if (typeof queryString !== "string") {
           throw new WebdaError.BadRequest("Query must be a string");
@@ -771,6 +801,9 @@ export class RESTOperationsTransport<
           query.merge(bind(`${injectAttribute} = ?`, [context.parameter(parentId)]));
         }
         context.getParameters().query = query.toString();
+        if (count !== undefined) {
+          context.getParameters().count = count;
+        }
         return callOperation(context, operationId);
       },
       openapi
@@ -1106,70 +1139,39 @@ export class RESTOperationsTransport<
   ): void {
     const actionOperationName = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
     const operationId = `${shortId}.${actionOperationName}`;
-    const openapi: OpenAPIWebdaDefinition = {
-      ...action.openapi
-    };
-    (action.methods || ["PUT"]).forEach((method, index) => {
+    const op = useInstanceStorage().operations?.[operationId];
+    if (!op || op.hidden || op.rest === false) return;
+    const hint = op.rest;
+    const methods = (action.rest?.method ? [action.rest.method] : action.methods || [hint?.method || "PUT"]).map(
+      method => method.toUpperCase() as HttpMethodType
+    );
+    const relativePath = op.context?.restPath ?? hint?.path ?? (action.global ? actionName : `{uuid}/${actionName}`);
+    methods.forEach((method, index) => {
+      const path = bindRestInput(
+        `${prefix}/${relativePath}`,
+        method,
+        useApplication().getSchema(op.input),
+        hint?.body
+      ).path;
+      const openapi: OpenAPIWebdaDefinition = { ...action.openapi };
       openapi[method.toLowerCase()] = {
-        tags: [shortId],
-        // operationIds must be unique: when an action accepts several methods,
-        // the first one carries the operation the route dispatches to
-        ...(index === 0 ? { operationId } : {}),
+        ...this.operationOpenAPI(op, path, method),
         ...(action.openapi?.[method.toLowerCase()] ?? {})
       };
+      if (index > 0) delete openapi[method.toLowerCase()].operationId;
+      this.addRoute(
+        path,
+        [method],
+        async (context: WebContext) => {
+          if (injectAttribute) {
+            context.getParameters()[injectAttribute] = context.parameter(`pid.${depth - 1}`);
+            this.clearParentParameters(context);
+          }
+          await this.runOperation(context, operationId);
+        },
+        openapi
+      );
     });
-    if (getOperationStreaming(useInstanceStorage().operations?.[operationId]) === "server") {
-      Object.keys(openapi)
-        .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
-        .forEach(k => {
-          openapi[k].responses = { ...this.streamedResponses(), ...openapi[k].responses };
-        });
-    }
-    if (hasSchema(`${identifier}.${actionName}.input`)) {
-      Object.keys(openapi)
-        .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
-        .forEach(k => {
-          openapi[k].requestBody = {
-            content: {
-              "application/json": {
-                schema: {
-                  $ref: `#/components/schemas/${identifier}.${actionName}.input`
-                }
-              }
-            }
-          };
-        });
-    }
-    if (
-      hasSchema(`${identifier}.${actionName}.output`) &&
-      getOperationStreaming(useInstanceStorage().operations?.[operationId]) !== "server"
-    ) {
-      Object.keys(openapi)
-        .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
-        .forEach(k => {
-          openapi[k].responses ??= {};
-          openapi[k].responses["200"] ??= {};
-          openapi[k].responses["200"].content = {
-            "application/json": {
-              schema: {
-                $ref: `#/components/schemas/${identifier}.${actionName}.output`
-              }
-            }
-          };
-        });
-    }
-    this.addRoute(
-      action.global ? `${prefix}/${actionName}` : `${prefix}/{uuid}/${actionName}`,
-      action.methods || ["PUT"],
-      async (context: WebContext) => {
-        if (injectAttribute) {
-          context.getParameters()[injectAttribute] = context.parameter(`pid.${depth - 1}`);
-          context.getParameters()[`pid.${depth - 1}`] = undefined;
-        }
-        await this.runOperation(context, operationId);
-      },
-      openapi
-    );
   }
 
   /**
@@ -1225,55 +1227,33 @@ export class RESTOperationsTransport<
       // any) and writes the final method+path here, so we just mirror it.
       const op = ops?.[operationId];
       const restHint = op?.rest && typeof op.rest === "object" ? op.rest : undefined;
-      const httpMethod = ((restHint?.method ?? "put") as string).toUpperCase() as HttpMethodType;
-      const methodKey = httpMethod.toLowerCase();
-      // `rest.path` is relative to the model prefix and starts with `{uuid}/`.
-      const relativePath = restHint?.path ?? `{uuid}/${behavior.attribute}.${actionName}`;
-      const fullPath = `${prefix}/${relativePath}`;
-
-      const openapi: OpenAPIWebdaDefinition = {
-        [methodKey]: {
-          tags: [shortId],
-          summary: `${actionCap} on ${shortId}.${behavior.attribute}`,
-          operationId
-        }
-      };
-      const inputSchema = `${behavior.behavior}.${actionName}.input`;
-      const outputSchema = `${behavior.behavior}.${actionName}.output`;
-      if (hasSchema(inputSchema)) {
-        openapi[methodKey].requestBody = {
-          content: {
-            "application/json": {
-              schema: {
-                $ref: `#/components/schemas/${inputSchema}`
-              }
-            }
-          }
+      if (!op || op.hidden || op.rest === false) return;
+      const metadata = behaviorMeta.Actions[actionName];
+      const methods = metadata.rest?.method
+        ? [metadata.rest.method]
+        : (metadata.methods ?? [restHint?.method ?? "put"]);
+      const relativePath = op.context?.restPath ?? restHint?.path ?? `{uuid}/${behavior.attribute}.${actionName}`;
+      methods.forEach((method, index) => {
+        const httpMethod = method.toUpperCase() as HttpMethodType;
+        const methodKey = method.toLowerCase();
+        const fullPath = bindRestInput(
+          `${prefix}/${relativePath}`,
+          method,
+          app.getSchema(op.input),
+          restHint?.body
+        ).path;
+        const openapi: OpenAPIWebdaDefinition = {
+          ...metadata.openapi,
+          [methodKey]: { ...this.operationOpenAPI(op, fullPath, httpMethod), ...metadata.openapi?.[methodKey] }
         };
-      }
-      if (getOperationStreaming(op) === "server") {
-        openapi[methodKey].responses = this.streamedResponses();
-      } else if (hasSchema(outputSchema)) {
-        openapi[methodKey].responses = {
-          "200": {
-            description: "Operation success",
-            content: {
-              "application/json": {
-                schema: {
-                  $ref: `#/components/schemas/${outputSchema}`
-                }
-              }
-            }
-          }
-        };
-      }
-
-      this.addRoute(
-        fullPath,
-        [httpMethod],
-        async (context: WebContext) => this.runOperation(context, operationId),
-        openapi
-      );
+        if (index > 0) delete openapi[methodKey].operationId;
+        this.addRoute(
+          fullPath,
+          [httpMethod],
+          async (context: WebContext) => this.runOperation(context, operationId),
+          openapi
+        );
+      });
     });
   }
 

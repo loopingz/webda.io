@@ -53,6 +53,7 @@ Plug-and-play persistence backends — swap them via configuration without touch
 | [elasticsearch](./elasticsearch/README.md) | Elasticsearch store for full-text search and analytics workloads. |
 | [aws](./aws/README.md) | AWS integrations including **DynamoStore** (DynamoDB), **S3Binary**, and CloudFormation/Lambda deployers. |
 | [gcp](./gcp/README.md) | Google Cloud integrations including **FireStore** persistence and GCP deployer. |
+| [azure](./azure/README.md) | Blob binaries, Cosmos DB, Service Bus, Key Vault, Monitor logs, Container Apps and Functions deployers. |
 
 ---
 
@@ -65,6 +66,7 @@ Decouple background work and fan-out events with these messaging adapters.
 | [amqp](./amqp/README.md) | AMQP 0-9-1 queue adapter (RabbitMQ-compatible) for `QueueService`. |
 | [async](./async/README.md) | Async Action runner — executes model actions in background workers via any queue backend. |
 | [cloudevents](./cloudevents/README.md) | CloudEvents publisher/subscriber adapter for cross-service event delivery. |
+| [workflow](./workflow/README.md) | Durable workflows: operations chained with control flow, that survive restarts, retry, sleep and run as their launcher. |
 
 ---
 
@@ -74,6 +76,7 @@ Decouple background work and fan-out events with these messaging adapters.
 |---------|-------------|
 | [google-auth](./google-auth/README.md) | Google OAuth 2.0 provider for `@webda/authentication`. |
 | [hawk](./hawk/README.md) | Hawk HMAC authentication middleware for machine-to-machine API calls. |
+| [oauth](./oauth/README.md) | OAuth 2.1 authorization server: delegated, operation-scoped tokens with consent, device flow and revocation. |
 | [iam](./iam/README.md) | AWS-IAM-like allow/deny policies on operations, with conditions, evaluated with Casbin. |
 
 ---
@@ -121,7 +124,6 @@ Deployers package your application for cloud execution environments.
 
 | Package | Description |
 |---------|-------------|
-| [tsc-esm](./tsc-esm/README.md) | Post-compile helper that rewrites TypeScript output to proper ESM `.js` extension specifiers. |
 | [compiler](./compiler/README.md) | See **Foundational** above — `webdac` drives both the build pipeline and module-manifest generation. |
 
 ---
@@ -130,7 +132,7 @@ Deployers package your application for cloud execution environments.
 
 | Package | Description |
 |---------|-------------|
-| [utils](./utils/README.md) | Shared helpers: deep-merge, retry, stream utilities, and path manipulation. |
+| [utils](./utils/README.md) | Shared helpers: deep-merge, retry, stream utilities, path manipulation, and TypeScript utility types. |
 | [serialize](./serialize/README.md) | JSON serializers and deserializers with support for `Date`, `Buffer`, `Map`, `Set`, and circular references. |
 | [versioning](./versioning/README.md) | Object-level patch and diff library — compute and apply JSON-Patch-compatible deltas between model versions. |
 | [offline](./offline/README.md) | Offline replicas of models — scoped sync, revision-checked pushes, and 3-way merge conflicts on the client. |

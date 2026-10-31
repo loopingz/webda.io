@@ -2,8 +2,8 @@
 import { Writable } from "node:stream";
 
 import { HttpContext } from "./httpcontext.js";
-import { NotEnumerable } from "@webda/tsc-esm";
-import { pipeline, PipelineOptions } from "node:stream/promises";
+import { NotEnumerable } from "@webda/utils";
+import { PipelineOptions } from "node:stream/promises";
 
 /**
  * Context is the object that will be passed to the services
@@ -156,9 +156,10 @@ export abstract class Context {
     const output = await this.getOutputStream();
     // Use pipe() instead of stream/promises.pipeline() to avoid
     // ERR_STREAM_PREMATURE_CLOSE unhandled rejections with ServerResponse
-    const allStreams: NodeJS.ReadWriteStream[] = item !== undefined && !isPipelineOptions(item)
-      ? [...(<Array<NodeJS.ReadWriteStream>>streams), item as NodeJS.ReadWriteStream]
-      : <Array<NodeJS.ReadWriteStream>>streams;
+    const allStreams: NodeJS.ReadWriteStream[] =
+      item !== undefined && !isPipelineOptions(item)
+        ? [...(<Array<NodeJS.ReadWriteStream>>streams), item as NodeJS.ReadWriteStream]
+        : <Array<NodeJS.ReadWriteStream>>streams;
     return new Promise<void>((resolve, reject) => {
       let current: NodeJS.ReadableStream = stream1;
       for (const transform of allStreams) {

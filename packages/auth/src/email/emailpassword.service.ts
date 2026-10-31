@@ -1,7 +1,7 @@
 import {
   type AuthResult,
   Ident,
-  type Mailer,
+  type AbstractMailer,
   Operation,
   Password,
   Route,
@@ -13,7 +13,9 @@ import {
   useContext,
   useDynamicService,
   useModelMetadata,
+  type EscrowBlob,
   type User,
+  type UserKeys,
   type WebContext,
   WebdaError
 } from "@webda/core";
@@ -22,7 +24,7 @@ import type { AuthProvider } from "../provider.js";
 import { useAuthentication } from "../provider.js";
 import { AccountExists, IdentLinkedElsewhere, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
 import { signEmailToken, verifyEmailToken } from "./tokens.js";
-import { canSend, isLocked, markSent } from "../throttle.js";
+import { canSend, countAttempt, markSent } from "../throttle.js";
 
 /** When the email is verified relative to account creation */
 export type VerificationMode = "before" | "after" | "none";
@@ -236,12 +238,12 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     token: string
   ): Promise<void> {
     const ctx = useContext<any>();
-    await useDynamicService<Mailer>(this.parameters.mailer).send({
+    await useDynamicService<AbstractMailer>(this.parameters.mailer).send({
       to,
       locale: ctx?.getLocale?.(),
       template,
       replacements: { url, token, to }
-    } as any);
+    });
   }
 
   /**
@@ -261,22 +263,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
    * @returns true when this attempt must be refused without checking the password
    */
   protected async countAttempt(ident: Ident): Promise<boolean> {
-    const { failedBeforeDelay, lockout } = this.parameters.throttle;
-    const now = Date.now();
-    // A lock whose last attempt is older than the lockout is over: attempts restart a window. A count without any
-    // timestamp (v3 `_failedLogin` upgraded without `_lastFailedLogin`) is an expired lock too: v4 always stamps an
-    // attempt it verifies, so only such data reaches the threshold unstamped
-    const expired =
-      (ident._loginAttempts ?? 0) >= failedBeforeDelay &&
-      (!ident._lastLoginAttemptAt || !isLocked(ident, failedBeforeDelay, lockout, now));
-    const ref = ident.ref();
-    const updated = await runAsSystem(() => ref.incrementAttribute("_loginAttempts"));
-    const attempts = (updated as any)?.["_loginAttempts"] ?? (await runAsSystem(() => ref.get()))._loginAttempts;
-    const locked = !expired && attempts - 1 >= failedBeforeDelay;
-    if (!locked) {
-      await runAsSystem(() => ref.setAttribute("_lastLoginAttemptAt", now));
-    }
-    return locked;
+    return countAttempt(ident.ref(), "_loginAttempts", "_lastLoginAttemptAt", this.parameters.throttle, ident);
   }
 
   /**
@@ -680,21 +667,37 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
 
   /**
    * Change the current user's password: revokes the refresh tokens and ends the other sessions of the user, the
-   * calling cookie session is re-stamped and stays logged in
+   * calling cookie session is re-stamped and stays logged in.
+   *
+   * A user with end-to-end encryption keys (`User.keys`) and a password escrow must send the escrow of the new
+   * password with the change (412 otherwise): both are stored together, so the escrow always opens with the login
+   * password. The client builds it with `KeyVault.createPasswordEscrow` of `@webda/sealed-client`. A user whose keys
+   * have no password escrow may send one to create it.
    * @param current - current password
    * @param next - new password
+   * @param escrow - password escrow of the keyring key under the new password
    */
   @Operation({
     id: "Auth.Password.Change",
     input: "EmailPasswordProvider.changePassword.input",
     rest: { method: "post", path: "auth/password/change" }
   })
-  async changePassword(current: string, next: string): Promise<void> {
+  async changePassword(current: string, next: string, escrow?: EscrowBlob): Promise<void> {
     const ctx = useContext<any>();
     if (!ctx.getSession()?.isLogged()) {
       throw new WebdaError.Unauthorized("Login required");
     }
     const user: User | undefined = await ctx.getCurrentUser();
+    const keys: UserKeys | undefined = (user as any).keys;
+    if (escrow) {
+      if (!keys?.isSetup()) {
+        throw new WebdaError.BadRequest("No encryption keys to escrow");
+      }
+      // Validated now, stored with the new password hash by the change below
+      keys.replaceEscrow("password", escrow);
+    } else if (keys?.isSetup() && keys.hasEscrow("password")) {
+      throw new WebdaError.PreconditionFailed("The password escrow of the new password is required");
+    }
     await runAsSystem(() => (user as any).password.change(current, next));
     // Every session authenticated before the change ends, except this one (a Bearer caller logs in again)
     ctx.getSession().authAt = Date.now();

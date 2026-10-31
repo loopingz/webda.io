@@ -20,7 +20,7 @@ flowchart BT
 import { Core, CoreEvents, ModelAction, ModelsTree, Service } from "@webda/core";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { JSONSchema7 } from "json-schema";
-import { Constructor } from "@webda/tsc-esm";
+import { Constructor } from "@webda/utils";
 
 /**
  * Abstract diagram with the common replacement methods

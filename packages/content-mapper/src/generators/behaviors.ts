@@ -17,7 +17,6 @@
  * replaced.
  */
 import type { SourceFile } from "typescript/unstable/ast";
-import { SymbolFlags } from "typescript/unstable/sync";
 import * as is from "typescript/unstable/ast/is";
 import { classesOf, isStatic, memberName } from "../context.ts";
 import { ValueImports } from "./imports.ts";
@@ -82,25 +81,6 @@ function resolveBehaviorClass(ctx: AnalysisContext, sf: SourceFile, typeNode: an
   // `ValueImports`, which promotes or adds the import or refuses.
   void sf;
   return name;
-}
-
-/**
- * Whether a name reaches this file only through a type-only import.
- * @param sf - the file that will contain the generated reference
- * @param name - identifier to be used as a value
- * @returns true when the name is imported for types only
- */
-function isTypeOnlyImport(sf: SourceFile, name: string): boolean {
-  for (const statement of sf.statements) {
-    if (!is.isImportDeclaration(statement)) continue;
-    const clause: any = (statement as any).importClause;
-    const elements = clause?.namedBindings?.elements;
-    if (!elements) continue;
-    for (const element of elements) {
-      if (element.name?.text === name && (clause.isTypeOnly || element.isTypeOnly)) return true;
-    }
-  }
-  return false;
 }
 
 /**
@@ -295,12 +275,18 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
           }
           if (!blocks.length) continue;
 
+          // A subclass adds its own behaviors without dropping its base's password/MFA attributes.
+          const base = ctx.baseNames(sf, cls)[0];
+          const inherited = base
+            ? `${memberIndent}  (${base}.prototype as any).__hydrateBehaviors?.call(this, rawData);\n`
+            : "";
           needsStorage = true;
           edits.push({
             start: closePos,
             end: closePos,
             text:
               `${memberIndent}protected __hydrateBehaviors(rawData?: any): void {\n` +
+              inherited +
               `${blocks.join("\n")}\n` +
               `${memberIndent}}\n`,
             source: "behaviors"

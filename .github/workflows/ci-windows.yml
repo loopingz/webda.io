@@ -6,10 +6,14 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: ["**"]
+  schedule:
+    - cron: "17 6 * * *" # Daily run on the older Node version, UTC
+  # On demand, e.g. before a release
+  workflow_dispatch:
 
 concurrency:
-  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  group: "${{ github.workflow }} @ ${{ github.event_name }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -18,10 +22,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["22", "26"]
+        # Pull requests and pushes test the latest Node, the daily and on demand runs the older one
+        node: ${{ fromJSON((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '["22"]' || '["26"]') }}
     name: Build with NodeJS v${{ matrix.node }} on Windows
     env:
       FORCE_COLOR: 1
+      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
     steps:
       # Keep LF line endings: tests compare generated files with fixtures
@@ -30,6 +36,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
@@ -52,17 +60,6 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        run: >-
-          pnpm --no-bail
-          --filter @webda/utils
-          --filter @webda/tsc-esm
-          --filter @webda/workout
-          --filter @webda/serialize
-          --filter @webda/ql
-          --filter @webda/models
-          --filter @webda/content-mapper
-          --filter @webda/compiler
-          --filter @webda/core
-          run test
+        run: node scripts/run-affected-tests.mjs test "$env:PR_BASE_SHA" --windows
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"

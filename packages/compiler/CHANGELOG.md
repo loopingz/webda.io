@@ -1,5 +1,65 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.11...compiler-v4.0.0-beta.12) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** instance actions declaring non-context parameters now receive them instead of the operation context. Take the context with a context-typed parameter or useContext().
+* **utils:** @webda/tsc-esm is no longer published. Import its types and helpers from @webda/utils, and createClassDecorator, createPropertyDecorator and createMethodDecorator from @webda/decorators.
+
+### Features
+
+* **auth:** track MFA verification time and enforce step-up freshness (maxMfaAge) ([#963](https://github.com/loopingz/webda.io/issues/963)) ([86cda56](https://github.com/loopingz/webda.io/commit/86cda56d06e3812c3e80a34d2b93488b2254a934))
+* **compiler:** auto add $schema to deployment files ([#847](https://github.com/loopingz/webda.io/issues/847)) ([cd103be](https://github.com/loopingz/webda.io/commit/cd103bedc36acf4bd6c1dde894d9276bb76021cd))
+* **core:** model actions receive their typed parameters ([#946](https://github.com/loopingz/webda.io/issues/946), phase 1) ([#955](https://github.com/loopingz/webda.io/issues/955)) ([7e8eebd](https://github.com/loopingz/webda.io/commit/7e8eebd47af7748936272c43869152bf1716b485))
+
+
+### Bug Fixes
+
+* **compiler:** rebuild when a dependency changes ([#959](https://github.com/loopingz/webda.io/issues/959)) ([d543fb2](https://github.com/loopingz/webda.io/commit/d543fb262cc4a9f52ccf80befda5e36eedda30fb))
+* enable strict mode in utils and compiler ([#986](https://github.com/loopingz/webda.io/issues/986)) ([887e421](https://github.com/loopingz/webda.io/commit/887e421e273d70e5e22e41a920101d9a1f97eb0a))
+
+
+### Code Refactoring
+
+* **utils:** merge @webda/tsc-esm into @webda/utils and remove it ([#942](https://github.com/loopingz/webda.io/issues/942)) ([efcf87c](https://github.com/loopingz/webda.io/commit/efcf87c5adb1b697c4cf433545efb09a51459837))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.10...compiler-v4.0.0-beta.11) (2026-10-16)
+
+
+### Features
+
+* **core:** apply webda.cli include/exclude to operation commands ([#931](https://github.com/loopingz/webda.io/issues/931)) ([7907541](https://github.com/loopingz/webda.io/commit/7907541c29b4c78c76ff1255a79974ca7e610d62))
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.9...compiler-v4.0.0-beta.10) (2026-10-15)
+
+
+### Features
+
+* **auth:** add model-scoped MFA with typed behavior configuration ([#888](https://github.com/loopingz/webda.io/issues/888)) ([ee068e8](https://github.com/loopingz/webda.io/commit/ee068e879ba3b49ccfcd103c3cbb9b72a9a9a9e5))
+* **compiler:** auto add schema to config and deployment files ([#551](https://github.com/loopingz/webda.io/issues/551)) ([#906](https://github.com/loopingz/webda.io/issues/906)) ([4d96ba8](https://github.com/loopingz/webda.io/commit/4d96ba85bb443f4ab888a12df77579c26cdfb427))
+* webda.cli in package.json — command selection, runCli and a generated app executable ([#927](https://github.com/loopingz/webda.io/issues/927)) ([10f68c6](https://github.com/loopingz/webda.io/commit/10f68c658f417cc102cab45f235ca82aa8d6d345))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.8...compiler-v4.0.0-beta.9) (2026-10-14)
 
 

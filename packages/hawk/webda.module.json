@@ -19,6 +19,7 @@
             "type": "string"
           },
           "redirectUris": {
+            "default": [],
             "description": "Allowed redirection with CSRF",
             "items": {
               "type": "string"
@@ -59,6 +60,7 @@
         "links": [
           {
             "attribute": "_user",
+            "model": "Webda/User",
             "type": "LINK"
           }
         ]
@@ -73,7 +75,10 @@
           "type": "string"
         },
         "permissions": {
-          "type": "{\n    GET: string[];\n    PUT: string[];\n    DELETE: string[];\n    POST: string[];\n  }"
+          "type": "Partial",
+          "typeParameters": [
+            "Record<\"DELETE\" | \"GET\" | \"OPTIONS\" | \"POST\" | \"PUT\", string[]>"
+          ]
         },
         "algorithm": {
           "type": "string"
@@ -106,9 +111,9 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "definitions": {
-            "permissions": {
+            "Partial<Record<\"DELETE\" | \"GET\" | \"OPTIONS\" | \"POST\" | \"PUT\", string[]>>": {
               "additionalProperties": false,
-              "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used",
+              "description": "Make all properties in T optional",
               "properties": {
                 "DELETE": {
                   "items": {
@@ -117,6 +122,12 @@
                   "type": "array"
                 },
                 "GET": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "OPTIONS": {
                   "items": {
                     "type": "string"
                   },
@@ -135,12 +146,6 @@
                   "type": "array"
                 }
               },
-              "required": [
-                "DELETE",
-                "GET",
-                "POST",
-                "PUT"
-              ],
               "type": "object"
             }
           },
@@ -171,7 +176,7 @@
               "type": "array"
             },
             "permissions": {
-              "$ref": "#/definitions/permissions",
+              "$ref": "#/definitions/Partial%3CRecord%3C%22DELETE%22%20%7C%20%22GET%22%20%7C%20%22OPTIONS%22%20%7C%20%22POST%22%20%7C%20%22PUT%22%2C%20string%5B%5D%3E%3E",
               "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used"
             },
             "public": {
@@ -206,9 +211,9 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "definitions": {
-            "permissions": {
+            "Partial<Record<\"DELETE\" | \"GET\" | \"OPTIONS\" | \"POST\" | \"PUT\", string[]>>": {
               "additionalProperties": false,
-              "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used",
+              "description": "Make all properties in T optional",
               "properties": {
                 "DELETE": {
                   "items": {
@@ -217,6 +222,12 @@
                   "type": "array"
                 },
                 "GET": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "OPTIONS": {
                   "items": {
                     "type": "string"
                   },
@@ -235,12 +246,6 @@
                   "type": "array"
                 }
               },
-              "required": [
-                "DELETE",
-                "GET",
-                "POST",
-                "PUT"
-              ],
               "type": "object"
             }
           },
@@ -288,7 +293,7 @@
               "type": "array"
             },
             "permissions": {
-              "$ref": "#/definitions/permissions",
+              "$ref": "#/definitions/Partial%3CRecord%3C%22DELETE%22%20%7C%20%22GET%22%20%7C%20%22OPTIONS%22%20%7C%20%22POST%22%20%7C%20%22PUT%22%2C%20string%5B%5D%3E%3E",
               "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used"
             },
             "public": {

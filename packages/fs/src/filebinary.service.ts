@@ -1,24 +1,32 @@
 import * as fs from "fs";
-import { join } from "path";
+import { join, resolve, sep } from "path";
 import { Readable } from "stream";
 import {
   BinaryFile,
   BinaryFileInfo,
   BinaryMap,
   BinaryNotFoundError,
-  BinaryService,
   CloudBinary,
   CloudBinaryParameters,
+  ContentBody,
+  ContentGetOptions,
+  ContentInfo,
+  ContentNotFoundError,
+  ContentPutOptions,
   CoreModel,
   CoreModelWithBinary,
   CryptoService,
+  defaultFileContentStorage,
   Inject,
   MemoryBinaryFile,
+  normalizeHashes,
   OperationContext,
+  parseContentUrl,
+  useModel,
+  useModelId,
   WebContext,
   WebdaError
 } from "@webda/core";
-import { useModel, useModelId } from "@webda/core";
 
 /**
  * What an upload token attaches once the content is stored and verified: the object, its binary attribute and the
@@ -84,10 +92,11 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  * The structure used for now is
  * /folder/{hash}/data
  * /folder/{hash}/{model}_{attribute}_{uuid}   usage markers
- * /folder/{hash}/proof_{challenge}           proof of possession, written by the service on upload
+ * /folder/{hash}/vproof_{challenge}          proof of possession, written by the service from the bytes it read
  *
- * Before 4.0.0-beta.5 the proof was `_{challenge}` and the challenge was sent to clients: those markers are ignored
- * (a leaked value attaches nothing), the content is uploaded once more to get a `proof_` marker.
+ * Legacy proofs are ignored (a leaked value attaches nothing): `_{challenge}` (before 4.0.0-beta.5, the challenge
+ * was sent to clients) and `proof_{challenge}` (written before every proof was computed by the service). The content
+ * is uploaded once more to get a `vproof_` marker.
  *
  * It takes one parameter
  *  folder: "path"
@@ -97,6 +106,7 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  * @WebdaModda
  */
 export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends CloudBinary<T> {
+  readonly schemes = ["file"];
   /**
    * Used for hmac
    */
@@ -113,10 +123,97 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
+   * Validate that url is safe and under folder
+   * @param url - URL to validate
+   * @returns resolved absolute path
+   */
+  private checkPath(url: string): string {
+    const { key } = parseContentUrl(url);
+    const absPath = resolve(key);
+    const absFolder = resolve(this.parameters.folder);
+
+    if (key.includes("..")) {
+      const folderWithSep = absFolder.endsWith(sep) ? absFolder : absFolder + sep;
+      if (!absPath.startsWith(folderWithSep) && absPath !== absFolder) {
+        throw new ContentNotFoundError(`Path traversal rejected: ${url}`);
+      }
+    }
+    return absPath;
+  }
+
+  /**
+   * Helper that builds file:// URL under this.parameters.folder
+   * @param key - relative key
+   * @returns file:// URL
+   */
+  protected getContentUrl(key: string): string {
+    const folder = this.parameters.folder.endsWith("/") ? this.parameters.folder : `${this.parameters.folder}/`;
+    const cleanKey = key.replace(/^\/+/, "");
+    return `file://${folder}${cleanKey}`;
+  }
+
+  /**
+   * Get content read stream
+   * @param url - content URL
+   * @param options - get options
+   * @returns Readable stream
+   */
+  async getContent(url: string, options?: ContentGetOptions): Promise<Readable> {
+    const path = this.checkPath(url);
+    return defaultFileContentStorage.getContent(path, options);
+  }
+
+  /**
+   * Put content to filesystem
+   * @param url - content URL
+   * @param body - content body
+   * @param options - put options
+   * @returns Content info
+   */
+  async putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo> {
+    const path = this.checkPath(url);
+    const res = await defaultFileContentStorage.putContent(path, body, options);
+    if (this.metrics && (this.metrics as any).upload) {
+      (this.metrics as any).upload.inc();
+    }
+    return {
+      ...res,
+      url
+    };
+  }
+
+  /**
+   * Head content metadata
+   * @param url - content URL
+   * @returns Content info or undefined
+   */
+  async headContent(url: string): Promise<ContentInfo | undefined> {
+    const path = this.checkPath(url);
+    const res = await defaultFileContentStorage.headContent(path);
+    if (!res) return undefined;
+    return {
+      ...res,
+      url
+    };
+  }
+
+  /**
+   * Delete content
+   * @param url - content URL
+   */
+  async deleteContent(url: string): Promise<void> {
+    const path = this.checkPath(url);
+    await defaultFileContentStorage.deleteContent(path);
+  }
+
+  /**
    * Create the storage folder if needed
    */
   computeParameters() {
     super.computeParameters();
+    if (this.parameters.folder && !this.parameters.folder.endsWith("/")) {
+      this.parameters.folder += "/";
+    }
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder, { recursive: true });
     }
@@ -216,11 +313,15 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async _get(info: BinaryMap): Promise<Readable> {
     const hash = info.hash;
     if (!hash) throw new WebdaError.BadRequest("Missing binary hash");
-    const path = this._getPath(hash, "data");
-    if (!fs.existsSync(path)) {
-      throw new BinaryNotFoundError(hash, this.getName());
+    const url = this.getContentUrl(this._getKey(hash, "data"));
+    try {
+      return await this.getContent(url);
+    } catch (err: any) {
+      if (err instanceof ContentNotFoundError) {
+        throw new BinaryNotFoundError(hash, this.getName());
+      }
+      throw err;
     }
-    return fs.createReadStream(path);
   }
 
   /**
@@ -370,6 +471,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     context?: OperationContext<BinaryFile>
   ): Promise<{ url: string; method: string } | undefined> {
     info ??= await context?.getInput();
+    // One folder per content: the hash and the challenge are lower-case hexadecimal
+    info = normalizeHashes(info);
     if (!info?.hash) throw new WebdaError.BadRequest("Missing binary hash");
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
@@ -428,8 +531,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       throw new WebdaError.PreconditionFailed("No folder for hash " + result.hash);
     }
     const path = this._getPath(result.hash, "data");
-    if (!fs.existsSync(path)) {
-      fs.writeFileSync(path, body as any);
+    try {
+      // Exclusive creation cannot follow a symlink or overwrite a concurrent upload.
+      fs.writeFileSync(path, body as any, { flag: "wx" });
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
     }
     this._touch(this._getPath(result.hash, this.proofMarker(result.challenge)));
     if (dt.target) {
@@ -443,6 +549,20 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       if (object && !object.isDeleted?.()) {
         await this.attach(object, dt.target, result);
       }
+    }
+  }
+
+  /**
+   * The upload attaches the binary ({@link storeBinary}): completing only checks it happened
+   *
+   * @override
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param hash - the hash announced in the challenge
+   */
+  async completeUpload(object: CoreModelWithBinary, property: string, hash: string): Promise<void> {
+    if (!this.isLinked(object, property, hash)) {
+      throw new WebdaError.PreconditionFailed("Upload not complete");
     }
   }
 
@@ -471,14 +591,20 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @override
    */
-  async _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void> {
+  async _cleanUsage(hash: string, uuid: string, attribute: string, model?: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
-    // A marker ends with `_<attribute>_<uuid>` (see usageMarker)
-    const key = this.safeName(uuid);
-    this.usageMarkers(hash)
-      .filter(f => f.endsWith(attribute ? `_${this.safeName(attribute)}_${key}` : `_${key}`))
-      .forEach(f => fs.unlinkSync(this._getPath(hash, f)));
+    if (!attribute || !model) {
+      // A suffix match would remove the usages of other owners (`my_<uuid>`, another model): the marker must be
+      // named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute or model given`);
+      return;
+    }
+    // The exact marker written on attach (see usageMarker)
+    const marker = this._getPath(hash, this.usageMarker({ model, attribute, uuid }));
+    if (fs.existsSync(marker)) {
+      fs.unlinkSync(marker);
+    }
     if (this.usageMarkers(hash).length === 0) {
       await this._cleanHash(hash);
     }
@@ -494,17 +620,20 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const hash = map.hash;
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
+    const model = useModelId(object.constructor);
+    if (!model) throw new WebdaError.BadRequest("Missing model identifier");
     await this.deleteSuccess(<any>object, property, index);
-    await this._cleanUsage(hash, uuid, property);
+    await this._cleanUsage(hash, uuid, property, model);
   }
 
   /**
-   * Name of the proof marker of a challenge (legacy `_<challenge>` markers are not proofs)
-   * @param challenge - the challenge
+   * Name of the proof marker of a challenge computed by the service (legacy `_<challenge>` and `proof_<challenge>`
+   * markers are not proofs)
+   * @param challenge - the server computed challenge
    * @returns the marker file name
    */
   protected proofMarker(challenge: string): string {
-    return `proof_${this.safeName(challenge)}`;
+    return `vproof_${this.safeName(challenge)}`;
   }
 
   /**
@@ -522,7 +651,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * Usage markers of a hash folder: every file but the data and the proof markers (legacy `_` ones included)
+   * Usage markers of a hash folder: every file but the data and the proof markers (legacy `_` and `proof_` included)
    * @param hash - the content hash
    * @returns the marker names
    */
@@ -531,15 +660,17 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     if (!fs.existsSync(path)) {
       return [];
     }
-    return fs.readdirSync(path).filter(f => f !== "data" && !f.startsWith("_") && !f.startsWith("proof_"));
+    return fs
+      .readdirSync(path)
+      .filter(f => f !== "data" && !f.startsWith("_") && !f.startsWith("proof_") && !f.startsWith("vproof_"));
   }
 
   /**
    * @override
    */
-  async cascadeDelete(info: BinaryMap, uuid: string) {
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string) {
     if (!info.hash) throw new WebdaError.BadRequest("Missing binary hash");
-    return this._cleanUsage(info.hash, uuid);
+    return this._cleanUsage(info.hash, uuid, attribute, model);
   }
 
   /**
@@ -550,12 +681,14 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param attribute - the binary attribute name
    */
   async _store(file: BinaryFile, object: CoreModel, attribute: string) {
-    const { hash, challenge } = await file.getHashes();
+    // Computed from the bytes: a preset hash that does not match is rejected, a preset challenge is replaced
+    const { hash, challenge } = await this.verifiedHashes(file);
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
     const model = useModelId(object.constructor);
     if (!model) throw new WebdaError.BadRequest("Missing model identifier");
-    fs.mkdirSync(this._getPath(hash));
+    // The folder may exist already: created by a challenge waiting for its upload
+    fs.mkdirSync(this._getPath(hash), { recursive: true });
     const map = await file.get();
     await new Promise((resolve, reject) => {
       map
@@ -572,14 +705,17 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @override
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<any> {
-    const { hash } = await file.getHashes();
+    // Computed from the bytes: a preset hash that does not match is rejected, a preset challenge is replaced
+    const { hash, challenge } = await this.verifiedHashes(file);
     const uuid = object.getUUID();
     if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
     const storeName = useModelId(object.constructor);
     if (!storeName) throw new WebdaError.BadRequest("Missing model identifier");
     const fileInfo = file.toBinaryFileInfo();
     this.checkMap(<any>object, property);
-    if (fs.existsSync(this._getPath(hash))) {
+    // The data may be missing although the folder exists (a challenge waiting for its upload)
+    if (fs.existsSync(this._getPath(hash, "data"))) {
+      this._touch(this._getPath(hash, this.proofMarker(challenge)));
       this._touch(this._getPath(hash, this.usageMarker({ model: storeName, attribute: property, uuid })));
       await this.uploadSuccess(<any>object, property, fileInfo);
       return;

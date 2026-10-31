@@ -2,11 +2,13 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import jwt from "jsonwebtoken";
 import * as jose from "jose";
-import * as sinon from "sinon";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
-import { JSONUtils, sleep } from "@webda/utils";
-import { createCipheriv, createHash, randomBytes } from "node:crypto";
+import { JSONUtils } from "@webda/utils";
+import { createCipheriv, createHash, generateKeyPairSync, randomBytes } from "node:crypto";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
 import * as util from "node:util";
 import {
   CryptoService,
@@ -18,6 +20,8 @@ import {
 import { getMachineId } from "../core/hooks.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { useRegistry } from "../models/registry.model.js";
+import { CryptoServiceParameters } from "./icryptoservice.js";
+import { useApplication } from "../application/hooks.js";
 
 /**
  *
@@ -38,6 +42,21 @@ class CryptoServiceTest extends WebdaApplicationTest {
     const encrypted = await useCrypto().encrypt({ test: "plop" });
     const decrypted = await useCrypto().decrypt(encrypted);
     assert.strictEqual(decrypted.test, "plop");
+  }
+
+  @test
+  async encryptionWithAsymmetricJwtDefault() {
+    const crypto = useCrypto();
+    const jwt = crypto.getParameters().jwt;
+    // The symmetric key signs the encrypted payload whatever the default algorithm of the tokens
+    crypto.getParameters().jwt = { ...jwt, algorithm: "RS256" };
+    try {
+      const encrypted = await crypto.encrypt({ test: "plop" });
+      assert.strictEqual(crypto.getJWTHeader(encrypted).alg, "HS256");
+      assert.strictEqual((await crypto.decrypt(encrypted)).test, "plop");
+    } finally {
+      crypto.getParameters().jwt = jwt;
+    }
   }
 
   @test
@@ -221,6 +240,199 @@ class CryptoServiceTest extends WebdaApplicationTest {
   async cov() {
     useCrypto().keys = undefined;
     await assert.rejects(() => useCrypto().getCurrentKeys(), /not initialized/);
+  }
+}
+
+/**
+ * Generate a key set in the keys file format
+ * @returns the key definition
+ */
+function newKeySet() {
+  const { publicKey, privateKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" }
+  });
+  return { publicKey, privateKey, symetric: randomBytes(32).toString("base64") };
+}
+
+/**
+ * CryptoService reading its keys from a file (a Kubernetes secret) instead of the registry
+ */
+@suite
+class CryptoServiceKeysFileTest extends WebdaApplicationTest {
+  dir: string;
+  file: string;
+  self: any;
+
+  async beforeEach() {
+    await super.beforeEach();
+    this.dir = mkdtempSync(join(tmpdir(), "webda-crypto-keys-"));
+    this.file = join(this.dir, "keys.json");
+    // A keys file service must never use the registry
+    for (const method of ["get", "put", "patch", "exists", "setAttribute", "removeAttribute"]) {
+      this.stub(useRegistry(), <any>method).callsFake(() => {
+        throw new Error(`Registry ${method} called`);
+      });
+    }
+    this.self = CryptoService.getEncrypter("self");
+  }
+
+  async afterEach() {
+    CryptoService.registerEncrypter("self", this.self);
+    await super.afterEach();
+    rmSync(this.dir, { recursive: true, force: true });
+  }
+
+  /**
+   * Write the keys file, with a new modification time so the change is detected
+   */
+  writeKeys(content: any, mtime: number = Date.now() / 1000) {
+    writeFileSync(this.file, typeof content === "string" ? content : JSON.stringify(content));
+    utimesSync(this.file, mtime, mtime);
+  }
+
+  /**
+   * Create and init a CryptoService using the keys file
+   */
+  async newService(params: any = {}): Promise<CryptoService> {
+    const service = new CryptoService(
+      "FileCrypto",
+      new CryptoServiceParameters().load({ type: "Webda/CryptoService", keysFile: this.file, ...params })
+    );
+    await service.resolve();
+    return service.init();
+  }
+
+  @test
+  async nominal() {
+    const old = newKeySet();
+    const current = newKeySet();
+    this.writeKeys({ current: "k1", key_k1: old }, 1000);
+    const crypto = await this.newService({ autoCreate: true });
+    // Data written under the first key
+    const oldEncrypted = await crypto.encrypt({ test: "old" });
+    const oldHmac = await crypto.hmac({ test: "old" });
+    const oldToken = await crypto.jwtSign({ sub: "old" }, { algorithm: "RS256" });
+    // Rotation: add a key, switch current, keep the old one
+    this.writeKeys({ current: "k2", key_k1: old, key_k2: current }, 2000);
+    const encrypted = await crypto.encrypt({ test: "plop" });
+    assert.strictEqual(crypto.current, "k2");
+    assert.strictEqual(crypto.getJWTHeader(encrypted).kid, "Sk2");
+    assert.strictEqual((await crypto.decrypt(encrypted)).test, "plop");
+    assert.strictEqual((await crypto.decrypt(oldEncrypted)).test, "old");
+    // HMAC
+    const hmac = await crypto.hmac({ test: "plop" });
+    assert.ok(hmac.startsWith("k2."));
+    assert.ok(await crypto.hmacVerify({ test: "plop" }, hmac));
+    assert.ok(await crypto.hmacVerify({ test: "old" }, oldHmac));
+    assert.ok(!(await crypto.hmacVerify({ test: "other" }, hmac)));
+    // JWT symmetric and asymmetric
+    for (const algorithm of ["HS256", "RS256", "PS256"] as const) {
+      const token = await crypto.jwtSign({ sub: algorithm }, { algorithm });
+      assert.strictEqual((await crypto.jwtVerify(token)).sub, algorithm);
+    }
+    assert.strictEqual((await crypto.jwtVerify(oldToken)).sub, "old");
+    // Both public keys are published
+    assert.deepStrictEqual(
+      crypto
+        .getJWKS()
+        .keys.map(k => k.kid)
+        .sort(),
+      ["Ak1", "Ak2"]
+    );
+    // Removing a key from the file makes its data unreadable
+    this.writeKeys({ current: "k2", key_k2: current }, 3000);
+    await assert.rejects(() => crypto.jwtVerify(oldToken), /Unknown key/);
+  }
+
+  @test
+  async noRotation() {
+    this.writeKeys({ current: "k1", key_k1: newKeySet() });
+    const crypto = await this.newService({ autoCreate: true, autoRotate: 1 });
+    await assert.rejects(() => crypto.rotate(), /keysFile/);
+    assert.strictEqual(crypto.current, "k1");
+    assert.deepStrictEqual(Object.keys(crypto.keys), ["k1"]);
+  }
+
+  @test
+  async reloadOnUnknownKey() {
+    const k1 = newKeySet();
+    const k2 = newKeySet();
+    this.writeKeys({ current: "k1", key_k1: k1 }, 1000);
+    const crypto = await this.newService();
+    // Another instance already uses the updated secret
+    writeFileSync(join(this.dir, "other.json"), JSON.stringify({ current: "k2", key_k1: k1, key_k2: k2 }));
+    const other = await this.newService({ keysFile: join(this.dir, "other.json") });
+    const token = await other.jwtSign({ sub: "new" });
+    const encrypted = await other.encrypt({ test: "new" });
+    // Unchanged file: the unknown key is refused without parsing the file again
+    const read = this.stub(<any>crypto, "readKeysFile").callThrough();
+    await assert.rejects(() => crypto.jwtVerify(token), /Unknown key/);
+    assert.ok(!(await crypto.hmacVerify("data", "constructor.abc")));
+    assert.strictEqual(read.callCount, 0);
+    this.writeKeys({ current: "k2", key_k1: k1, key_k2: k2 }, 2000);
+    assert.strictEqual((await crypto.jwtVerify(token)).sub, "new");
+    assert.strictEqual((await crypto.decrypt(encrypted)).test, "new");
+    assert.strictEqual(read.callCount, 1);
+  }
+
+  @test
+  async invalidUpdateKeepsKeys() {
+    this.writeKeys({ current: "k1", key_k1: newKeySet() }, 1000);
+    const crypto = await this.newService();
+    // A broken secret update does not break the running service
+    this.writeKeys("{ not json", 2000);
+    assert.strictEqual((await crypto.decrypt(await crypto.encrypt({ test: "plop" }))).test, "plop");
+    this.writeKeys({ current: "k3" }, 3000);
+    assert.strictEqual((await crypto.decrypt(await crypto.encrypt({ test: "plop" }))).test, "plop");
+    assert.strictEqual(crypto.current, "k1");
+  }
+
+  @test
+  async initErrors() {
+    // Missing file, even with autoCreate
+    await assert.rejects(() => this.newService({ autoCreate: true }), /keysFile .*keys\.json/);
+    const cases: [any, RegExp][] = [
+      ["{ not json", /keysFile .*JSON/],
+      [[], /keysFile .*object/],
+      [{ key_k1: newKeySet() }, /keysFile .*current/],
+      [{ current: "k2", key_k1: newKeySet() }, /keysFile .*key_k2/],
+      [{ current: "k1", key_k1: { publicKey: "a", privateKey: "b" } }, /keysFile .*key_k1\.symetric/],
+      [{ current: "k1", key_k1: { ...newKeySet(), publicKey: 12 } }, /keysFile .*key_k1\.publicKey/]
+    ];
+    for (const [content, error] of cases) {
+      this.writeKeys(typeof content === "string" ? content : JSON.stringify(content));
+      await assert.rejects(() => this.newService(), error);
+    }
+  }
+
+  @test
+  async relativePath() {
+    this.writeKeys({ current: "k1", key_k1: newKeySet() });
+    // Relative to the application path
+    const crypto = await this.newService({ keysFile: relative(useApplication().getPath(), this.file) });
+    assert.strictEqual(crypto.current, "k1");
+  }
+
+  @test
+  async generateKeys() {
+    const out = join(this.dir, "generated.json");
+    assert.strictEqual(await CryptoService.cryptoGenerateKeys(out), out);
+    // Windows has no POSIX permission bits
+    if (process.platform !== "win32") {
+      assert.strictEqual(statSync(out).mode & 0o777, 0o600);
+    }
+    const content = JSON.parse(readFileSync(out, "utf-8"));
+    assert.ok(content.current);
+    assert.deepStrictEqual(Object.keys(content), ["current", `key_${content.current}`]);
+    // Never overwrite an existing secret
+    await assert.rejects(() => CryptoService.cryptoGenerateKeys(out), /already exists/);
+    // The generated file is usable as is
+    const crypto = await this.newService({ keysFile: out });
+    assert.strictEqual((await crypto.decrypt(await crypto.encrypt({ test: "plop" }))).test, "plop");
+    assert.strictEqual(await crypto.jwtVerify(await crypto.jwtSign("plop", { algorithm: "RS256" })), "plop");
+    assert.ok(existsSync(out));
   }
 }
 

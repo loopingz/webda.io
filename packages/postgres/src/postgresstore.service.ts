@@ -1,26 +1,9 @@
-import {
-  Command,
-  EventRepository,
-  InstanceCache,
-  SecretString,
-  UNREADABLE,
-  UNTYPED,
-  useApplication,
-  useCore,
-  useModel,
-  useModelMetadata
-} from "@webda/core";
-import type {
-  MigratableStore,
-  ModelClass,
-  RawPage,
-  RawPatch,
-  RawTable,
-  Repository,
-  StoredTypeCounts
-} from "@webda/core";
+import { Command, SecretString, useApplication, useCore, useModelMetadata, WebdaError } from "@webda/core";
+import type { MigratableStore, ModelClass } from "@webda/core";
+import type { SQLDialect, SQLTransactionConnection } from "@webda/sql";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
+import { PostgresDialect } from "./dialect.js";
 import { acquirePool, releasePool } from "./pgpool.js";
 import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js";
 
@@ -36,10 +19,18 @@ import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js"
  */
 
 /**
+ * Isolation levels of a PostgreSQL transaction (READ UNCOMMITTED behaves as READ COMMITTED in PostgreSQL)
+ */
+export type PostgresIsolationLevel = "READ COMMITTED" | "REPEATABLE READ" | "SERIALIZABLE";
+
+const ISOLATION_LEVELS: PostgresIsolationLevel[] = ["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"];
+
+/**
  *
  */
 export class PostgresParameters extends SQLStoreParameters {
   /**
+   * Use a shared pool of connections rather than a single client: required by `transaction: "operation"`
    * @default false
    */
   usePool?: boolean;
@@ -50,11 +41,6 @@ export class PostgresParameters extends SQLStoreParameters {
    * @secret password,connectionString
    */
   postgresqlServer?: ClientConfig | PoolConfig;
-  /**
-   * Auto create table if not exists
-   * @default true
-   */
-  autoCreateTable?: boolean;
   /**
    * View name prefix
    * @default ""
@@ -70,14 +56,11 @@ export class PostgresParameters extends SQLStoreParameters {
    * @default [".*"]
    */
   views?: string[];
-
   /**
-   * Per-model table name overrides.
-   * Maps a model identifier (e.g. "Webda/User") to a custom table name.
-   * When not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier
-   * lowercased with "/" → "_".
+   * Isolation level of the transactions (`transaction: "operation"` and `withTransaction`)
+   * @default "READ COMMITTED"
    */
-  tables?: { [modelIdentifier: string]: string };
+  transactionIsolation?: PostgresIsolationLevel;
 
   /**
    * @override
@@ -86,11 +69,10 @@ export class PostgresParameters extends SQLStoreParameters {
    */
   load(params: any): this {
     super.load(params);
-    this.autoCreateTable ??= true;
     this.usePool ??= false;
+    this.transactionIsolation ??= "READ COMMITTED";
     this.viewPrefix ??= "";
     this.views ??= [".*"];
-    this.tables ??= {};
     return this;
   }
 }
@@ -121,16 +103,107 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
    * Tracked so {@link stop} only releases pools it took a refcount on.
    */
   protected ownsPool = false;
+
   /**
-   * Pending or completed `CREATE TABLE IF NOT EXISTS` per table name, so each table is
-   * created once even when several repositories share it or statements run concurrently.
+   * @override
    */
-  protected tablesReady = new Map<string, Promise<void>>();
+  protected createDialect(): SQLDialect {
+    return new PostgresDialect();
+  }
+
+  /**
+   * @override
+   */
+  protected createRepository<T extends ModelClass>(
+    model: T,
+    table: string,
+    tableModel: string | undefined
+  ): PostgresRepository<T> {
+    const meta = useModelMetadata(model);
+    const repo: PostgresRepository<T> = new PostgresRepository<T>(
+      model,
+      meta.PrimaryKey,
+      () => this.client,
+      table,
+      meta.PrimaryKeySeparator,
+      () => this.ensureTable(repo),
+      tableModel,
+      () => this.getTransactionClient()
+    );
+    return repo;
+  }
+
+  /**
+   * A transaction needs a connection of its own: a single shared client cannot run concurrent transactions
+   * @override
+   */
+  protected checkTransactionSupport(): void {
+    if (!this.parameters.usePool) {
+      throw new WebdaError.CodeError(
+        "POSTGRES_TRANSACTION_REQUIRES_POOL",
+        `PostgresStore ${this.getName()}: transactions need "usePool": true, a single client cannot hold concurrent transactions`
+      );
+    }
+  }
+
+  /**
+   * Check a pool connection out and BEGIN on it
+   * @override
+   */
+  protected async openTransaction(): Promise<SQLTransactionConnection> {
+    this.checkTransactionSupport();
+    const client = await (this.client as pg.Pool).connect();
+    // The pool only listens to the errors of its idle clients: without a listener, a connection lost while checked out
+    // (server restart, terminated backend) would crash the process. The pending statement fails with it anyway.
+    const onError = (err: Error) => this.log("WARN", "Transaction connection lost", err.message);
+    client.on("error", onError);
+    const release = (error?: unknown) => {
+      client.off("error", onError);
+      // An error destroys the connection rather than giving a possibly broken one back to the pool
+      client.release(error ? (error instanceof Error ? error : true) : undefined);
+    };
+    try {
+      await client.query(`BEGIN ISOLATION LEVEL ${this.getIsolationLevel()}`);
+    } catch (err) {
+      release(err);
+      throw err;
+    }
+    this.log("TRACE", "Transaction begun", this.getIsolationLevel());
+    return {
+      client,
+      commit: async () => {
+        await client.query("COMMIT");
+      },
+      rollback: async () => {
+        await client.query("ROLLBACK");
+      },
+      release
+    };
+  }
+
+  /**
+   * @returns the isolation level of the transactions, checked: it is written in the BEGIN statement
+   * @throws WebdaError.CodeError for an unknown level
+   */
+  protected getIsolationLevel(): PostgresIsolationLevel {
+    const level = this.parameters.transactionIsolation ?? "READ COMMITTED";
+    if (!ISOLATION_LEVELS.includes(level)) {
+      throw new WebdaError.CodeError(
+        "POSTGRES_INVALID_PARAMETER",
+        `Invalid transactionIsolation ${level}: one of ${ISOLATION_LEVELS.join(", ")}`
+      );
+    }
+    return level;
+  }
 
   /**
    * @override
    */
   async init(): Promise<this> {
+    this.getIsolationLevel();
+    if (this.parameters.transaction === "operation") {
+      this.checkTransactionSupport();
+    }
     if (this.parameters.usePool) {
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
@@ -156,122 +229,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
       });
     }
     this.client = undefined as any;
-    this.tablesReady.clear();
     await super.stop();
-  }
-
-  /**
-   * Resolve the table name for a given model class.
-   *
-   * Resolution order:
-   * 1. `parameters.tables[meta.Identifier]` — explicit per-model override
-   * 2. `parameters.table` — the table of every model of the store, subclasses and models routed to this store as
-   *    fallback included: the rows stay where Webda 3 wrote them
-   * 3. Default — model identifier lowercased with "/" replaced by "_"
-   *
-   * @param model - the model class to resolve the table for
-   * @returns the table name
-   */
-  resolveTable(model: ModelClass): string {
-    const meta = useModelMetadata(model);
-    if (!meta) {
-      return this.parameters.table;
-    }
-    // Explicit per-model override
-    if (this.parameters.tables?.[meta.Identifier]) {
-      return this.parameters.tables[meta.Identifier];
-    }
-    if (this.parameters.table) {
-      return this.parameters.table;
-    }
-    // Default derivation
-    return meta.Identifier.toLowerCase().replace(/\//g, "_");
-  }
-
-  /**
-   * The model a table was declared for, owner of the rows written before `__type` stamping: the first model of
-   * `models` stored in the same table, otherwise the model itself (its own table)
-   * @param model - the model class
-   * @returns the model identifier
-   */
-  resolveTableModel(model: ModelClass): string | undefined {
-    const meta = useModelMetadata(model);
-    if (!meta) {
-      return undefined;
-    }
-    return this.tableRootOf(this.resolveTable(model))?.Metadata?.Identifier ?? meta.Identifier;
-  }
-
-  /**
-   * The first model of `models` stored in a table
-   * @param table - the table name
-   * @returns the model, undefined when no configured model is stored in it
-   */
-  protected tableRootOf(table: string): any {
-    for (const identifier of this.parameters.models ?? []) {
-      let model: any;
-      try {
-        model = useModel(identifier);
-      } catch {
-        continue;
-      }
-      if (model && this.resolveTable(model) === table) {
-        return model;
-      }
-    }
-    return undefined;
-  }
-
-  /**
-   * Stamp `__type` on the rows written before stamping, with the model each table was declared for
-   *
-   * Idempotent: run it once after upgrading, before relying on the class filter of shared tables (rows without
-   * `__type` are read as the table model until then).
-   * @returns the number of rows stamped
-   */
-  async backfillTypes(): Promise<number> {
-    let count = 0;
-    for (const repo of this.getRepositories()) {
-      count += await repo.backfillTypes();
-    }
-    return count;
-  }
-
-  /**
-   * Ensure all managed model tables exist (one per model in the hierarchy).
-   * When `autoCreateTable` is false, this is a no-op.
-   */
-  async checkTable() {
-    if (!this.parameters.autoCreateTable) {
-      return;
-    }
-    // Delegate the per-model DDL to each PostgresRepository.setupTable().
-    // ensureTable deduplicates by table name so shared-table models don't issue redundant DDL.
-    for (const repo of this.getRepositories()) {
-      await this.ensureTable(repo);
-    }
-  }
-
-  /**
-   * Ensure the table backing a repository exists, once per table name.
-   * Repositories await it before their first statement, so models routed to this store
-   * after init (e.g. Registry fallback in Store.computeStores) get their table too.
-   * When `autoCreateTable` is false, this is a no-op.
-   * @param repo - the repository whose table to create
-   */
-  async ensureTable(repo: PostgresRepository<any>): Promise<void> {
-    if (!this.parameters.autoCreateTable) {
-      return;
-    }
-    const table = repo.getTable();
-    let ready = this.tablesReady.get(table);
-    if (!ready) {
-      ready = repo.setupTable();
-      this.tablesReady.set(table, ready);
-      // Allow a retry after a failed creation
-      ready.catch(() => this.tablesReady.get(table) === ready && this.tablesReady.delete(table));
-    }
-    await ready;
   }
 
   /**
@@ -283,149 +241,12 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
   }
 
   /**
-   * Build and return a PostgresRepository for the given model, using the
-   * per-model table name resolved by `resolveTable`. The repository ensures its
-   * table exists (see {@link ensureTable}) before its first statement.
-   *
-   * The result is cached per model class via `@InstanceCache`, and may be requested before {@link init}
-   * (Store.computeStores runs from the first store to initialize): the repository reads the client on each
-   * statement, so it follows the one connected by `init()` and the reconnection after a `stop()`.
-   * @param model - the model class
-   * @returns a repository backed by this store's pg connection
-   */
-  @InstanceCache()
-  getRepository<T extends ModelClass>(model: T): Repository<T> {
-    const meta = useModelMetadata(model);
-    const table = this.resolveTable(model);
-    const inner: PostgresRepository<T> = new PostgresRepository<T>(
-      model,
-      meta.PrimaryKey,
-      () => this.client,
-      table,
-      meta.PrimaryKeySeparator,
-      () => this.ensureTable(inner),
-      this.resolveTableModel(model)
-    );
-    // Wrap in EventRepository so typed CRUD events fire; consumers reach them
-    // via useRepository(model).on(...).
-    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
-  }
-
-  /**
    * Return the underlying PostgresRepository for each model this store manages,
    * unwrapping the EventRepository produced by {@link getRepository}.
    * @returns the per-model PostgresRepository instances
    */
   getRepositories(): PostgresRepository<any>[] {
-    const repos: PostgresRepository<any>[] = [];
-    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
-      let model: ModelClass | undefined;
-      try {
-        model = useModel(modelId);
-      } catch {
-        continue;
-      }
-      if (!model) {
-        continue;
-      }
-      const repo: any = this.getRepository(model);
-      repos.push((repo.repository ?? repo) as PostgresRepository<any>);
-    }
-    return repos;
-  }
-
-  /**
-   * Every table of the store, each with the model owning its untyped rows
-   * @override
-   */
-  getRawTables(): RawTable[] {
-    const names = new Set<string>();
-    if (this.parameters.table) {
-      names.add(this.parameters.table);
-    }
-    for (const repo of this.getRepositories()) {
-      names.add(repo.getTable());
-    }
-    return [...names].map(name => ({
-      name,
-      root:
-        this.tableRootOf(name) ??
-        this.getRepositories().find(repo => repo.getTable() === name)?.["model"] ??
-        this.getTableRoot()
-    }));
-  }
-
-  /**
-   * Refuse a table this store does not manage: the name is written in the statements
-   * @param table - the table name
-   */
-  protected checkRawTable(table: string): void {
-    if (!this.getRawTables().some(t => t.name === table)) {
-      throw new Error(`Unknown table ${table} in store ${this.getName()}`);
-    }
-  }
-
-  /**
-   * Rows ordered by key, the token is the last key of the page
-   * @override
-   */
-  async rawPages(table: string, batchSize: number, token?: string): Promise<RawPage> {
-    this.checkRawTable(table);
-    // The key is compared in the column own type (Webda 3 created some `uuid` columns as uuid), with its index
-    const res =
-      token === undefined
-        ? await this.client.query(`SELECT uuid, data FROM ${table} ORDER BY uuid LIMIT $1`, [batchSize + 1])
-        : await this.client.query(`SELECT uuid, data FROM ${table} WHERE uuid > $1 ORDER BY uuid LIMIT $2`, [
-            token,
-            batchSize + 1
-          ]);
-    const rows = res.rows.slice(0, batchSize).map(row => {
-      const data = row.data;
-      return data && typeof data === "object" && !Array.isArray(data)
-        ? { table, key: row.uuid, data }
-        : { table, key: row.uuid, data: {}, unreadable: true };
-    });
-    return {
-      rows,
-      continuationToken: res.rows.length > batchSize ? rows[rows.length - 1].key : undefined
-    };
-  }
-
-  /**
-   * Merge the fields into the row: one statement, no read
-   * @override
-   */
-  async rawPatch(table: string, key: string, patch: RawPatch): Promise<void> {
-    this.checkRawTable(table);
-    const res = await this.client.query(
-      `UPDATE ${table} SET data = data || $1::jsonb WHERE uuid = $2 AND jsonb_typeof(data) = 'object'`,
-      [JSON.stringify(patch), key]
-    );
-    if (res.rowCount === 0) {
-      throw new Error(`Raw row not found or not a JSON object: ${key}`);
-    }
-  }
-
-  /**
-   * Exact counts with one `GROUP BY` per table: never truncated
-   * @override
-   */
-  async countStoredTypes(_maxRows: number): Promise<StoredTypeCounts> {
-    const result: StoredTypeCounts = { tables: {}, truncated: false };
-    for (const { name } of this.getRawTables()) {
-      const counts: Record<string, number> = {};
-      const res = await this.client.query(
-        `SELECT CASE WHEN jsonb_typeof(data) IS DISTINCT FROM 'object' THEN $1
-          WHEN jsonb_typeof(data->'__type') = 'string' AND data->>'__type' <> '' THEN data->>'__type'
-          ELSE $2 END AS type, count(*)::int AS n FROM ${name} GROUP BY 1`,
-        [UNREADABLE, UNTYPED]
-      );
-      for (const row of res.rows) {
-        counts[row.type] = row.n;
-      }
-      result.tables[name] = counts;
-    }
-    return result;
+    return super.getRepositories() as PostgresRepository<any>[];
   }
 
   /**
@@ -516,26 +337,6 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
       } catch (err) {
         this.log("ERROR", err);
       }
-    }
-  }
-
-  /**
-   * Delete all rows from all managed tables (used in tests).
-   */
-  async __clean(): Promise<void> {
-    const tables = new Set<string>([this.parameters.table]);
-    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
-      try {
-        const model = useModel(modelId);
-        if (model) {
-          tables.add(this.resolveTable(model));
-        }
-      } catch {
-        // skip unreachable models
-      }
-    }
-    for (const table of tables) {
-      await this.client.query(`DELETE FROM ${table}`);
     }
   }
 }

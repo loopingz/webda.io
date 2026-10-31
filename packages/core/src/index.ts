@@ -1,3 +1,4 @@
+import { registerWebdaPackage } from "@webda/utils";
 export * from "./metrics/metrics.js";
 import * as WebdaError from "./errors/errors.js";
 export { WebdaError };
@@ -14,12 +15,15 @@ export * from "./contexts/icontext.js";
 export * from "./contexts/execution.js";
 export * from "./contexts/webcontext.js";
 export * from "./contexts/httpcontext.js";
+export * from "./contexts/clientcertificate.js";
 export * from "./contexts/streamingcontext.js";
 export * from "./contexts/websocketcontext.js";
 export * from "./contexts/globalcontext.js";
+export * from "./contexts/globaloperationcontext.js";
 export * from "./core/icore.js";
 export * from "./core/instancestorage.js";
 export * from "./core/operations.js";
+export * from "./core/transactions.js";
 export * from "./core/asyncqueue.js";
 export * from "./core/core.js";
 export * from "./core/hooks.js";
@@ -39,7 +43,14 @@ export {
   acceptedTypes,
   belongsToModel
 } from "@webda/models";
-export type { ModelClass, Repository, TypeResolution, TypeResolutionStatus } from "@webda/models";
+export type {
+  CountOptions,
+  CountResult,
+  ModelClass,
+  Repository,
+  TypeResolution,
+  TypeResolutionStatus
+} from "@webda/models";
 export * from "./stores/store.js";
 export * from "./stores/migration.js";
 export * from "./stores/capability.js";
@@ -48,10 +59,20 @@ export * from "./models/simpleuser.model.js";
 export * from "./models/ident.model.js";
 export * from "./models/aclmodel.js";
 export * from "./models/permissions.js";
+export * from "./models/polymorphic.js";
+export { ModelLinksAny, ModelAnyRef, modelLinkIdentity, sameModelLink } from "@webda/models";
+export type { ModelLinkData, ModelAnyRefWithData, PolymorphicKey } from "@webda/models";
 export * from "./models/registry.model.js";
 export * from "./models/user.model.js";
 export * from "./models/password.model.js";
 export * from "./models/encrypted.model.js";
+export * from "./models/sealed.model.js";
+export * from "./models/mfa.model.js";
+export * from "./models/userkeys.model.js";
+export * from "./utils/totp.js";
+export * from "./utils/throttle.js";
+export * from "./errors/mfa.js";
+export * from "./errors/sealed.js";
 export * from "./models/coremodel.model.js";
 export * from "./models/ownermodel.model.js";
 export * from "./models/rolemodel.model.js";
@@ -69,15 +90,20 @@ export * from "./application/model-types.js";
 export * from "./deployers/deployer.js";
 export * from "./deployers/git.js";
 export * from "./deployers/packager.js";
+export * from "./deployers/zip.js";
 export * from "./deployers/packager.service.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";
-export * from "./services/mailer.service.js";
+export * from "./services/abstractmailer.js";
 export * from "./configurations/kubernetesconfiguration.service.js";
 export * from "./services/iauthentication.js";
 export * from "./services/domainservice.service.js";
 export * from "./services/imailer.js";
+export * from "./services/ismssender.js";
+export * from "./services/debugsmssender.service.js";
 export * from "./services/notificationservice.service.js";
+export { InsufficientScope, scopeAuthorizer } from "./services/scopeauthorizer.js";
+export * from "./services/protectedresources.js";
 export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";
 export * from "./services/resource.service.js";
@@ -86,6 +112,7 @@ export * from "./services/secretscheck.js";
 export * from "./services/pki.encrypter.js";
 export * from "./services/token.service.js";
 export * from "./models/refreshtoken.model.js";
+export * from "./models/revokedaccess.model.js";
 export * from "./services/serviceparameters.js";
 export * from "./services/cron.service.js";
 export * from "./services/command.js";
@@ -94,10 +121,14 @@ export * from "./services/icryptoservice.js";
 export * from "./configurations/fileconfiguration.service.js";
 export * from "./services/audit.model.js";
 export * from "./services/service.js";
+export * from "./services/clientcertificatefilter.service.js";
+export * from "./services/cluster.service.js";
+export * from "./services/storecluster.service.js";
 export * from "./services/binary.service.js";
 export * from "./configurations/configuration.service.js";
 export * from "./rest/irest.js";
 export * from "./rest/restoperationstransport.service.js";
+export * from "./rest/operationstransport.service.js";
 export * from "./services/operationstransport.js";
 export * from "./rest/router.service.js";
 export * from "./rest/hooks.js";
@@ -105,6 +136,7 @@ export * from "./rest/originfilter.js";
 export * from "./session/manager.model.js";
 export * from "./session/cookie.js";
 export * from "./session/session.js";
+export * from "./session/scope.js";
 export * from "./templates/templates.js";
 
 export * from "./services/iservice.js";
@@ -116,3 +148,37 @@ export * from "./services/featureflags.js";
 export * from "./services/featureflags.service.js";
 export { escape, WebdaQLError } from "@webda/ql";
 export type { WebdaQLStatement, WebdaQLString } from "@webda/ql";
+
+export * from "./application/parameters.js";
+export * from "./application/modelconfiguration.js";
+export {
+  getContent,
+  putContent,
+  parseContentUrl,
+  lookupMimeType,
+  toReadable,
+  ContentStorages,
+  FileContentStorage,
+  defaultFileContentStorage,
+  MemoryContentStorage,
+  ContentNotFoundError,
+  ContentExistsError,
+  ContentCredentialNotFoundError,
+  ContentStorageNotFoundError
+} from "@webda/utils";
+export type { ContentBody, ContentPutOptions, ContentGetOptions, ContentInfo, ContentStorage } from "@webda/utils";
+// Sealed fields: only types and errors are re-exported from the root. The WebCrypto helpers live in
+// `src/sealed/index.ts` (generic names such as `concat`/`utf8` stay out of the root namespace).
+// The root `SealedFormatError` is the HTTP one (400, `errors/sealed.ts`); the isomorphic error of the same name stays
+// in `src/sealed/` and is mapped to it by `SealedField`.
+export {
+  KeyringPinError,
+  type EscrowBlob,
+  type Keyring,
+  type KeyringBlob,
+  type PublicKeyEntry,
+  type SealedEnvelope
+} from "./sealed/index.js";
+
+// Refuse a second copy of the package, see registerWebdaPackage
+registerWebdaPackage("@webda/core", import.meta.url);

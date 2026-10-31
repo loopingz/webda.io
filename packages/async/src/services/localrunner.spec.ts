@@ -44,6 +44,21 @@ class LocalRunnerTest extends AsyncTest {
     return new LocalRunner("runner", new LocalRunnerParameters().load(params));
   }
 
+  @test
+  async spawnsWithDefaultAndExplicitOptions() {
+    const runner = await this.addService(LocalRunner, {});
+    for (const options of [undefined, { stdio: "ignore" as const }]) {
+      const child = runner.spawn(process.execPath, ["-e", "process.exit(0)"], options);
+      assert.strictEqual(
+        await new Promise((resolve, reject) => {
+          child.once("error", reject);
+          child.once("exit", resolve);
+        }),
+        0
+      );
+    }
+  }
+
   /**
    * Create a stored action
    * @returns the action

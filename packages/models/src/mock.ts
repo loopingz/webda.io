@@ -10,10 +10,28 @@
 const MOCK_META = "webda:mock";
 
 export type MockKind =
-  | "uuid" | "email" | "firstName" | "lastName" | "fullName" | "phone" | "url"
-  | "avatar" | "lorem" | "word" | "integer" | "float" | "percentage"
-  | "pastDate" | "futureDate" | "recentDate" | "pick" | "custom" | "ai"
-  | "count" | "linkExisting" | "linkNew"
+  | "uuid"
+  | "email"
+  | "firstName"
+  | "lastName"
+  | "fullName"
+  | "phone"
+  | "url"
+  | "avatar"
+  | "lorem"
+  | "word"
+  | "integer"
+  | "float"
+  | "percentage"
+  | "pastDate"
+  | "futureDate"
+  | "recentDate"
+  | "pick"
+  | "custom"
+  | "ai"
+  | "count"
+  | "linkExisting"
+  | "linkNew"
   | (string & {}); // forward-compat escape via @Mock({ kind, … })
 
 export type MockMeta = {
@@ -98,7 +116,8 @@ export const Mock: {
     pick: <T>(values: readonly T[]) => mark("pick", { values: values as readonly unknown[] }),
     custom: (fn: (ctx: unknown) => unknown) => mark("custom", { fn }),
     ai: (opts: { prompt: string; maxTokens?: number }) => mark("ai", opts),
-    count: (nOrRange: number | { min?: number; max?: number }) => mark("count", typeof nOrRange === "number" ? { n: nOrRange } : nOrRange)
+    count: (nOrRange: number | { min?: number; max?: number }) =>
+      mark("count", typeof nOrRange === "number" ? { n: nOrRange } : nOrRange)
   }
 );
 

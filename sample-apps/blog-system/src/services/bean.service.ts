@@ -1,15 +1,34 @@
-import { Bean, InstanceCache, Operation, RestParameters, Service, ServiceName, useApplication, useLog, useRepository } from "@webda/core";
+import {
+  Bean,
+  InstanceCache,
+  Operation,
+  RestParameters,
+  Service,
+  ServiceName,
+  useApplication,
+  useLog,
+  useRepository
+} from "@webda/core";
 import { User } from "../models/User.model.js";
 import { UserFollow } from "../models/UserFollow.model.js";
 import { getCompletions, fieldsFromSchema, type CompletionField, type CompletionResult } from "@webda/ql";
 
+/**
+ * Parameters for the TestBean service
+ */
 export class TestBeanParameters extends Service.Parameters {
   service: ServiceName;
 }
 
+/**
+ * Sample bean exposing demo operations
+ */
 @Bean
 export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends Service<T> {
-
+  /**
+   * Get the application package name, cached per instance
+   * @returns the package name
+   */
   @InstanceCache
   getVersion(): string {
     return useApplication().getPackageDescription().name;
@@ -19,11 +38,20 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
    * Get the version of the application
    * @returns version of the application
    */
-  @Operation<RestParameters>({ id: "Version.Get", rest: { method: "get", path: "/version" }, description: "Get the version of the application" })
-  async version() : Promise<string> {
+  @Operation<RestParameters>({
+    id: "Version.Get",
+    rest: { method: "get", path: "/version" },
+    description: "Get the version of the application"
+  })
+  async version(): Promise<string> {
     return this.getVersion();
   }
 
+  /**
+   * Demo operation that logs the counter
+   * @param counter value to log and convert
+   * @returns the counter in hexadecimal
+   */
   @Operation
   async testOperation(counter: number): Promise<string> {
     useLog("INFO", `Test operation called with counter: ${counter}`);
@@ -32,6 +60,7 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
 
   /**
    * Log what the type system infers for primary keys, relations and queries
+   * @returns a success marker
    */
   @Operation
   async demonstrateTypeSafety(): Promise<{ ok: true }> {
@@ -88,6 +117,10 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
 
   /**
    * Get WebdaQL code completion suggestions for a given query and caret offset
+   * @param query WebdaQL query being typed
+   * @param caret caret offset in the query, defaults to its end
+   * @param model model identifier whose fields are suggested
+   * @returns the completion suggestions
    */
   @Operation<RestParameters>({
     id: "QL.Complete",

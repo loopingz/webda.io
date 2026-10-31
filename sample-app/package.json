@@ -46,7 +46,7 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
-    "@webda/tsc-esm": "workspace:*",
+    "@webda/utils": "workspace:*",
     "jscodeshift": "^17.3.0",
     "skott": "^0.35.8",
     "tsx": "^4.21.0",

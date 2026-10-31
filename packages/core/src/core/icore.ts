@@ -5,7 +5,7 @@ import type { Model, ModelClass } from "@webda/models";
 import type { Service } from "../services/service.js";
 import type { Store } from "../stores/store.js";
 import type CryptoService from "../services/cryptoservice.service.js";
-import { CustomConstructor } from "@webda/tsc-esm";
+import { CustomConstructor } from "@webda/utils";
 export { AbstractService };
 /**
  * Registry interface augmented at build time by `.webda/session-types.d.ts`
@@ -27,6 +27,8 @@ export interface RestParameters {
     | {
         method: "get" | "post" | "put" | "delete" | "patch";
         path: string;
+        /** Method parameter receiving the whole JSON body. */
+        body?: string;
         responses?: {
           [statusCode: string]: {
             description?: string;
@@ -110,6 +112,13 @@ export interface OperationDefinition {
    * operation is available to user
    */
   permission?: WebdaQLString<WebdaSessionRegistry["session"]>;
+  /**
+   * Require the second factor to be verified within this duration (Duration syntax: `600`, `"10m"`)
+   *
+   * Implies a logged session with a verified second factor: refused with `MFA_REQUIRED` (403) when the user has no
+   * second factor, `MFA_STEP_UP_REQUIRED` (401, `details.maxAge` in seconds) when it was verified too long ago
+   */
+  maxMfaAge?: number | string;
   /**
    * Service implementing the operation
    *
@@ -195,6 +204,14 @@ export interface OperationDefinition {
    */
   generator?: boolean;
   /**
+   * Run the operation in a transaction of the registered participants (e.g. a SQL store with
+   * `transaction: "operation"`)
+   *
+   * `false` opts the operation out, e.g. a long streaming read that should not hold a connection; undefined lets the
+   * participants decide. A nested operation always joins the transaction of the outermost one.
+   */
+  transaction?: boolean;
+  /**
    * Additional transport hints for future extensibility
    */
   extensions?: Record<string, unknown>;
@@ -231,6 +248,10 @@ export interface OperationDefinitionInfo extends OperationDefinition {
    * Contains the parse permission query
    */
   permissionQuery?: QueryValidator;
+  /**
+   * Contains the parsed `maxMfaAge`, in seconds
+   */
+  maxMfaAgeSeconds?: number;
 }
 
 /**

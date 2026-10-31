@@ -1,0 +1,9 @@
+coverage:
+  status:
+    project: off
+    patch:
+      default:
+        target: 100%
+
+comment:
+  hide_project_coverage: true

@@ -21,13 +21,14 @@ export default defineConfig({
       GCS_API_ENDPOINT: process.env.GCS_API_ENDPOINT ?? "http://localhost:4443",
       PUBSUB_EMULATOR_HOST: process.env.PUBSUB_EMULATOR_HOST ?? "127.0.0.1:8085",
       FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8289",
-      GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS ?? resolve(__dirname, "webda-test.json")
+      GOOGLE_APPLICATION_CREDENTIALS:
+        process.env.GOOGLE_APPLICATION_CREDENTIALS ?? resolve(__dirname, "webda-test.json")
     },
     coverage: {
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      exclude: ["src/**/*.spec.ts", "src/**/*.bench.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

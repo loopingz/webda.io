@@ -11,19 +11,13 @@ import jwt from "jsonwebtoken";
 import * as util from "util";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { deepmerge } from "deepmerge-ts";
 
 import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice.js";
 import { AuthenticatedEncryption } from "./authenticatedencryption.js";
-import {
-  checkKid,
-  parsePkiValue,
-  PKI_DEFAULT_PUBLIC_KEYS,
-  PKI_MIN_BITS,
-  PkiKeyring,
-  pkiEncrypter
-} from "./pki.encrypter.js";
+import { checkKid, parsePkiValue, PKI_MIN_BITS, PkiKeyring, pkiEncrypter } from "./pki.encrypter.js";
 import type { ConfigurationEncryption } from "../application/iconfiguration.js";
 import { CodeError } from "../errors/errors.js";
 import { getMachineId, useCore, useService } from "../core/hooks.js";
@@ -472,6 +466,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   jwks: {
     [key: string]: JsonWebKey | null;
   } = {};
+  /**
+   * Modification time, size and inode of the keys file last read, to reload it only when it changes
+   */
+  protected keysFileSignature?: string;
 
   /**
    * @override
@@ -480,7 +478,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     await super.init();
     CryptoService.encrypters["self"] = this;
     // Load keys
-    if (this.parameters.autoCreate && !(await this.load())) {
+    if (this.parameters.keysFile) {
+      // Fail now rather than with "No keys" at first use
+      await this.refreshKeysFile();
+    } else if (this.parameters.autoCreate && !(await this.load())) {
       await this.rotate();
     }
     return this;
@@ -560,10 +561,13 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
 
   /**
-   * Load keys from registry
+   * Load keys from registry, or from the keys file if `keysFile` is set
    * @returns true if the condition is met
    */
   async load(): Promise<boolean> {
+    if (this.parameters.keysFile) {
+      return this.refreshKeysFile();
+    }
     let load;
     try {
       load = await useRegistry().get<KeysRegistry>("keys");
@@ -571,6 +575,88 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     if (!load || !load.current) {
       return false;
     }
+    this.setKeys(load);
+    return true;
+  }
+
+  /**
+   * Absolute path of the keys file
+   * @returns the path or undefined when the keys are in the registry
+   */
+  getKeysFile(): string | undefined {
+    return this.parameters.keysFile ? resolve(getAppPath(), this.parameters.keysFile) : undefined;
+  }
+
+  /**
+   * Read the keys file if it changed since the last read
+   *
+   * A file that cannot be read or is invalid fails when no keys are loaded yet. Afterwards it is logged and the
+   * current keys are kept, so a broken secret update does not break the running service.
+   * @returns true once the keys are loaded
+   */
+  protected async refreshKeysFile(): Promise<boolean> {
+    const file = this.getKeysFile();
+    let signature: string;
+    try {
+      // Checking the file metadata is cheap: an unknown key id in a token does not reparse the file
+      const info = await stat(file);
+      signature = `${info.mtimeMs}:${info.size}:${info.ino}`;
+      if (signature === this.keysFileSignature) {
+        return true;
+      }
+      this.setKeys(await this.readKeysFile(file));
+      // Public keys of a key id can change with the file
+      this.jwks = {};
+    } catch (err) {
+      const error = err.message.startsWith("keysFile")
+        ? err
+        : new Error(`Cannot read keysFile ${file}: ${err.message}`);
+      if (!this.keys) {
+        throw error;
+      }
+      this.log("WARN", `${error.message}, keeping the previous keys`);
+    }
+    // Do not retry an invalid file until it changes again
+    this.keysFileSignature = signature;
+    return true;
+  }
+
+  /**
+   * Read and validate the keys file
+   * @param file - the absolute path
+   * @returns the keys
+   */
+  protected async readKeysFile(file: string): Promise<KeysRegistry> {
+    let content: KeysRegistry;
+    try {
+      content = JSON.parse(await readFile(file, "utf-8"));
+    } catch (err) {
+      throw new Error(`keysFile ${file} is not valid JSON: ${err.message}`);
+    }
+    if (!content || typeof content !== "object" || Array.isArray(content)) {
+      throw new Error(`keysFile ${file} must contain a JSON object`);
+    }
+    if (!content.current || typeof content.current !== "string") {
+      throw new Error(`keysFile ${file} has no 'current' key id`);
+    }
+    if (!content[`key_${content.current}`]) {
+      throw new Error(`keysFile ${file} has no 'key_${content.current}' for the current key`);
+    }
+    for (const id of Object.keys(content).filter(k => k.startsWith("key_"))) {
+      for (const field of ["publicKey", "privateKey", "symetric"]) {
+        if (typeof content[id]?.[field] !== "string") {
+          throw new Error(`keysFile ${file}: ${id}.${field} must be a string`);
+        }
+      }
+    }
+    return content;
+  }
+
+  /**
+   * Set the keys from their registry format
+   * @param load - the keys
+   */
+  protected setKeys(load: KeysRegistry) {
     this.keys = {};
     Object.keys(load)
       .filter(k => k.startsWith("key_"))
@@ -579,7 +665,6 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       });
     this.current = load.current.startsWith("init-") ? undefined : load.current;
     this.age = parseInt(this.current, 36);
-    return true;
   }
 
   /**
@@ -609,6 +694,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @returns the result
    */
   async getCurrentKeys(): Promise<{ id: string; keys: KeysDefinition }> {
+    if (this.parameters.keysFile) {
+      // Pick up a new current key from an updated secret
+      await this.refreshKeysFile();
+    }
     if (!this.keys || !this.current || !this.keys[this.current]) {
       let msg = "";
       if (!this.keys) {
@@ -687,6 +776,11 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @returns true if the condition is met
    */
   async checkKey(keyId: string): Promise<boolean> {
+    if (this.parameters.keysFile) {
+      // The file is the source of truth: a key removed from it is not accepted anymore
+      await this.refreshKeysFile();
+      return Object.hasOwn(this.keys, keyId);
+    }
     if (!this.keys[keyId]) {
       // Key is more recent than current one so try to reload
       if (parseInt(keyId, 36) > this.age) {
@@ -769,7 +863,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     const encrypted = Buffer.concat([new Uint8Array(iv), new Uint8Array(updated), new Uint8Array(final)]).toString(
       "base64"
     );
+    // Signed with the symmetric key: never the default algorithm, which may be asymmetric (published JWKS)
     return this.jwtSign(encrypted, {
+      algorithm: "HS256",
       keyid: `S${key.id}`,
       secretOrPublicKey: key.keys.symetric
     });
@@ -1372,6 +1468,53 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
 
   /**
+   * Generate a keys file for the `keysFile` parameter
+   *
+   * The keys use the default algorithms: RSA 2048 bits and a 256 bits symmetric key.
+   *
+   * @param out - the keys file to write
+   * @returns the written file
+   */
+  @Command("crypto generate-keys", {
+    description: "Generate a keys file for the CryptoService keysFile parameter",
+    // No Core: never reads nor writes the registry
+    phase: "application"
+  })
+  static async cryptoGenerateKeys(
+    /** @description Keys file to write */
+    out: string = "keys.json"
+  ): Promise<string> {
+    const file = resolve(getAppPath(), out);
+    const params = new CryptoServiceParameters().load({});
+    const { publicKey, privateKey } = generateKeyPairSync(
+      // @ts-ignore
+      params.asymetricType,
+      params.asymetricOptions
+    );
+    // Same id format as the registry rotation
+    const id = Math.floor(Date.now() / 1000).toString(36);
+    const keys = {
+      current: id,
+      [`key_${id}`]: {
+        publicKey,
+        privateKey,
+        symetric: randomBytes(params.symetricKeyLength / 8).toString("base64")
+      }
+    };
+    try {
+      writeFileSync(file, JSON.stringify(keys, undefined, 2), { mode: 0o600, flag: "wx" });
+    } catch (err) {
+      throw err.code === "EEXIST" ? new Error(`${file} already exists`) : err;
+    }
+    useLog("INFO", `Keys written to ${file}, never commit it`);
+    useLog(
+      "INFO",
+      `Store it in the runtime, then delete the local file:\n  kubectl create secret generic webda-crypto-keys --from-file=keys.json=${file}`
+    );
+    return file;
+  }
+
+  /**
    * Decrypt data
    * @param token - the token
    * @returns the result
@@ -1402,6 +1545,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Rotate keys
    */
   async rotate() {
+    if (this.parameters.keysFile) {
+      throw new Error(`Cannot rotate keys read from keysFile ${this.getKeysFile()}: update the file instead`);
+    }
     const { age, id } = this.getNextId();
     const registry = useRegistry();
     const next: KeysRegistry = {

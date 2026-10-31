@@ -1,25 +1,28 @@
 #!/usr/bin/env node
 import yargs, { type Argv, type Options } from "yargs";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { JSONSchema7 } from "json-schema";
-import { isMainModule } from "@webda/tsc-esm";
 import { Application, installConfigurationFactories } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import {
   collectServiceCommands,
+  getCliConfiguration,
   executeServiceCommand,
+  selectOperations,
   type ServiceCommandInfo,
   type ServiceCommandTarget
 } from "../services/servicecommands.js";
 import { getDeploymentUnitServices, mergeDeploymentUnits } from "../application/deployment.js";
 import { DEPLOYER_CAPABILITY } from "../deployers/deployer.js";
+import { PACKAGED_INLINE_KEY, PACKAGED_MARKER } from "../deployers/packager.js";
 import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
 import { STORE_CAPABILITY } from "../stores/capability.js";
 import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
-import { CancelablePromise, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
+import { CancelablePromise, FileUtils, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
 import {
   ConsoleLogger,
   type ConsoleLogStream,
@@ -72,25 +75,46 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
   },
   searchRequest: {
     options: {
-      query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" }
+      query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" },
+      count: { type: "boolean", describe: "Also return the total of the query" }
     }
   }
 };
 
 /**
+ * The well-known parameter mapping of an operation input
+ *
+ * An instance action's request schema (`x-webda-arguments` starting with `uuid`) takes the object
+ * uuid as positional and its other properties as options, like `uuidRequest` plus a body.
+ * @param op - the operation
+ * @param ops - the operations file
+ * @returns the positional/options mapping, `request: true` for an instance action request schema
+ */
+function paramDefOf(
+  op: OperationEntry,
+  ops: OperationsFile
+): { positional?: string; options?: Record<string, Options>; request?: boolean } | undefined {
+  if (!op.input || op.input === "void") return undefined;
+  if (KNOWN_PARAMS[op.input]) return KNOWN_PARAMS[op.input];
+  if ((ops.schemas[op.input] as any)?.["x-webda-arguments"]?.[0] === "uuid") {
+    return { positional: "uuid", request: true };
+  }
+  return undefined;
+}
+
+/**
  * Convert a JSON Schema's properties into yargs option definitions.
  *
+ * Options stay optional here because input can also come from --json/--file; the assembled input is validated later.
  * @param schema - JSON Schema describing an object with properties
- * @param skipRequired - When true, all options are marked optional (useful when input can also come from --json/--file)
  * @returns Map of property names to yargs {@link Options} definitions
  */
-function schemaToOptions(schema: JSONSchema7, skipRequired?: boolean): Record<string, Options> {
+function schemaToOptions(schema: JSONSchema7): Record<string, Options> {
   if (schema.type !== "object" || !schema.properties) return {};
   const opts: Record<string, Options> = {};
-  const required = new Set(schema.required || []);
   for (const [name, prop] of Object.entries(schema.properties)) {
     if (typeof prop === "boolean") continue;
-    const o: Options = { describe: prop.description || name, demandOption: skipRequired ? false : required.has(name) };
+    const o: Options = { describe: prop.description || name, demandOption: false };
     if (prop.type === "number" || prop.type === "integer") o.type = "number";
     else if (prop.type === "boolean") o.type = "boolean";
     else if (prop.type === "array") o.type = "array";
@@ -141,7 +165,7 @@ function groupOperations(operations: Record<string, OperationEntry>): Map<string
  */
 function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): Argv {
   const hasInput = op.input && op.input !== "void";
-  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+  const paramDef = paramDefOf(op, ops);
 
   // Add well-known parameter options (e.g., uuidRequest -> positional uuid)
   if (paramDef?.options) {
@@ -151,11 +175,13 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
   }
 
   // Add custom input options from schema
-  if (hasInput && !paramDef && ops.schemas[op.input]) {
+  if (hasInput && (!paramDef || paramDef.request) && ops.schemas[op.input]) {
     // Offer both raw JSON/file and per-property CLI options
     y.option("json", { type: "string", describe: "JSON input (inline)" });
     y.option("file", { type: "string", alias: "f", describe: "JSON input from file" });
-    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input], true))) {
+    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input]))) {
+      // The positional is not an option
+      if (name === paramDef?.positional) continue;
       y.option(name, opt);
     }
   }
@@ -173,8 +199,7 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
  */
 function extractParameters(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): Record<string, any> {
   const params: Record<string, any> = {};
-  const hasInput = op.input && op.input !== "void";
-  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+  const paramDef = paramDefOf(op, ops);
 
   if (paramDef?.positional && args[paramDef.positional] !== undefined) {
     params[paramDef.positional] = args[paramDef.positional];
@@ -212,8 +237,9 @@ function extractInput(args: Record<string, any>, op: OperationEntry, ops: Operat
   // Build input from individual CLI options matching the input schema properties
   if (hasInput && ops.schemas[op.input]?.properties) {
     const input: Record<string, any> = {};
+    const positional = paramDefOf(op, ops)?.positional;
     for (const name of Object.keys(ops.schemas[op.input].properties)) {
-      if (args[name] !== undefined) input[name] = args[name];
+      if (name !== positional && args[name] !== undefined) input[name] = args[name];
     }
     if (Object.keys(input).length > 0) return input;
   }
@@ -258,7 +284,7 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
       for (const op of operations) {
         const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
         const hasInput = op.input && op.input !== "void";
-        const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+        const paramDef = paramDefOf(op, ops);
 
         // Build command string with positional if needed
         const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
@@ -498,14 +524,6 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
   }
 }
 
-/**
- * Default handler: prints the operation call as JSON
- * @param call - the function to call
- */
-async function defaultHandler(call: OperationCall): Promise<void> {
-  useOutput(JSON.stringify(call, undefined, 2));
-}
-
 /** Values accepted by the `--log-stream` option */
 const LOG_STREAM_CHOICES = ["auto", "stdout", "stderr"] as const;
 
@@ -563,9 +581,10 @@ const OPTIONAL_COMMANDS: Record<string, string[]> = {
  *
  * @param command - the command typed
  * @param available - top-level commands of the application
+ * @param program - the program name
  * @returns the message, with the package to install when the command ships in one
  */
-export function unknownCommandMessage(command: string, available: string[]): string {
+export function unknownCommandMessage(command: string, available: string[], program: string = "webda"): string {
   const lines = [`Unknown command '${command}'.`];
   const packages = OPTIONAL_COMMANDS[command];
   if (packages) {
@@ -573,20 +592,91 @@ export function unknownCommandMessage(command: string, available: string[]): str
       `'webda ${command}' is provided by ${packages.join(" or ")}: add it to your dependencies (pnpm add -D ${packages[0]}).`
     );
   }
-  lines.push(`Available commands: ${[...new Set(available)].sort().join(", ")}`, "Run 'webda --help' for details.");
+  lines.push(
+    `Available commands: ${[...new Set(available)].sort().join(", ")}`,
+    `Run '${program} --help' for details.`
+  );
   return lines.join("\n");
 }
 
 /**
- * Load the Application from a path, choosing packaged or unpacked mode based on the presence of `.webda/packaged.json`.
+ * Extensions of the configuration file, in the order {@link FileUtils.getConfigurationFile} picks them
+ */
+const CONFIGURATION_EXTENSIONS = ["yaml", "yml", "jsonc", "json"];
+
+/**
+ * Whether a configuration file carries the {@link PACKAGED_INLINE_KEY} marker
+ * @param file - the configuration file
+ * @returns true if its top-level `$packaged` entry is set
+ */
+function hasInlineMarker(file: string): boolean {
+  try {
+    // Only parse the files mentioning the marker, the configuration is parsed again by the Application
+    return readFileSync(file, "utf-8").includes(PACKAGED_INLINE_KEY) && !!FileUtils.load(file)?.[PACKAGED_INLINE_KEY];
+  } catch {
+    // An invalid file is reported by the Application
+    return false;
+  }
+}
+
+/**
+ * Configuration file of the application carrying the inline packaged marker
+ *
+ * A packaged file shadowed by another `webda.config.*` taking precedence is ignored, with a warning.
+ *
+ * @param appPath - the application folder
+ * @returns the configuration file, undefined if the configuration has no inline marker
+ */
+function getInlineMarkerFile(appPath: string): string | undefined {
+  let file: string;
+  try {
+    file = FileUtils.getConfigurationFile(join(appPath, "webda.config"));
+  } catch {
+    return undefined;
+  }
+  if (hasInlineMarker(file)) {
+    return file;
+  }
+  for (const extension of CONFIGURATION_EXTENSIONS) {
+    const shadowed = join(appPath, `webda.config.${extension}`);
+    if (shadowed !== file && existsSync(shadowed) && hasInlineMarker(shadowed)) {
+      useLog(
+        "WARN",
+        `${shadowed} is packaged (${PACKAGED_INLINE_KEY}) but ${file} takes precedence: loading the application unpacked`
+      );
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Whether the application is packaged: loaded from its configuration only, without deployment files nor modules scan
+ *
+ * It is packaged with the `.webda/packaged.json` marker of `webda package`, or when its configuration file has the
+ * `$packaged` entry of `webda package --config-only`.
+ *
+ * @param appPath - the application folder
+ * @returns true if the application is packaged
+ */
+export function isPackagedApplication(appPath: string): boolean {
+  return existsSync(join(appPath, PACKAGED_MARKER)) || getInlineMarkerFile(appPath) !== undefined;
+}
+
+/**
+ * Load the Application from a path, packaged or unpacked, see {@link isPackagedApplication}
  *
  * @param appPath - Absolute or relative path to the application root directory
  * @returns An {@link Application} (packaged) or {@link UnpackedApplication} instance
  */
-function loadApplication(appPath: string): Application {
-  if (!existsSync(join(appPath, ".webda", "packaged.json"))) {
+export function loadApplication(appPath: string): Application {
+  if (existsSync(join(appPath, PACKAGED_MARKER))) {
+    return new Application(appPath);
+  }
+  const inline = getInlineMarkerFile(appPath);
+  if (!inline) {
     return new UnpackedApplication(appPath);
   }
+  useLog("INFO", `Loading the packaged configuration ${inline} (${PACKAGED_INLINE_KEY})`);
   return new Application(appPath);
 }
 
@@ -987,20 +1077,132 @@ async function runWithWatch(
   await new Promise(() => {});
 }
 
-// Main entry point when run directly
-const isMain = isMainModule(import.meta);
-if (isMain) {
-  const appPath = resolve(process.env.WEBDA_APP_PATH || ".");
+/**
+ * Options of {@link runCli}
+ */
+export interface RunCliOptions {
+  /**
+   * Application folder, the one containing `package.json` and `webda.module.json`
+   *
+   * @default process.env.WEBDA_APP_PATH, then the current directory
+   */
+  appPath?: string;
+  /**
+   * Command-line arguments, without the node executable and the script
+   *
+   * @default process.argv.slice(2)
+   */
+  argv?: string[];
+  /**
+   * Command to run when the arguments name none (no argument, or only options), e.g. `"serve"`
+   *
+   * `--help` and `--version` alone keep showing the global help and version.
+   *
+   * @default webda.cli.defaultCommand of the application package.json
+   */
+  defaultCommand?: string;
+  /**
+   * Program name shown in `--help`
+   *
+   * @default webda.cli.name of the application package.json, then "webda"
+   */
+  name?: string;
+}
+
+/**
+ * Options that print something instead of running a command: no default command is added before them
+ */
+const NO_DEFAULT_COMMAND_OPTIONS = ["--help", "--version"];
+
+/**
+ * Insert the default command when the arguments name none
+ *
+ * A bare word is the command, unless it follows an option taking a value: a global one
+ * (`--service <names>`), or any option when `commands` is given and the word is not one of them
+ * (`--port 3000`). Without `commands`, only arguments that are all options get the default command.
+ *
+ * @param argv - the CLI arguments, the deployment option already extracted
+ * @param defaultCommand - the command to insert, space-separated for a subcommand
+ * @param commands - the top-level commands available, to tell an option value from a command
+ * @returns the arguments to parse
+ */
+export function applyDefaultCommand(argv: string[], defaultCommand?: string, commands?: string[]): string[] {
+  if (!defaultCommand) {
+    return argv;
+  }
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--") {
+      break;
+    }
+    if (NO_DEFAULT_COMMAND_OPTIONS.includes(arg)) {
+      return argv;
+    }
+    if (arg.startsWith("-")) {
+      continue;
+    }
+    if (commands?.includes(arg)) {
+      return argv;
+    }
+    const previous = argv[i - 1];
+    const optionValue =
+      previous?.startsWith("-") &&
+      !previous.includes("=") &&
+      (GLOBAL_OPTIONS_WITH_VALUE.includes(previous) || commands !== undefined);
+    if (!optionValue) {
+      // A command, even an unknown one: let the CLI report it
+      return argv;
+    }
+  }
+  return [...defaultCommand.split(" ").filter(word => word), ...argv];
+}
+
+/**
+ * Run the Webda CLI: load the application, parse the arguments and run the command
+ *
+ * This is what the executable generated by `webdac build` from the `webda.cli` section of the
+ * application package.json runs:
+ *
+ * ```js
+ * #!/usr/bin/env node
+ * import { fileURLToPath } from "node:url";
+ * import { runCli } from "@webda/core/lib/bin/cli.js";
+ * await runCli({ appPath: fileURLToPath(new URL("..", import.meta.url)) });
+ * ```
+ *
+ * The program name and default command come from `webda.cli` (`name`, `defaultCommand`) unless given
+ * in `options`. The command selection of `webda.cli` (`include`, `exclude`) applies to the `webda`
+ * command as well, to the service commands and the operation commands alike, see
+ * {@link collectServiceCommands} and {@link selectOperations}.
+ *
+ * The process exits once the command completes (or fails, or is interrupted by SIGINT/SIGTERM).
+ *
+ * @param options - application folder, arguments, default command and program name
+ * @returns once the command is parsed and started (the process exits when it completes)
+ */
+export async function runCli(options: RunCliOptions = {}): Promise<void> {
+  return runCommandLine(options, true);
+}
+
+/**
+ * Run the CLI
+ *
+ * @param options - application folder, arguments, default command and program name
+ * @param applicationCli - use the program name and default command of the application `webda.cli`
+ *   configuration: true through {@link runCli}, false for the `webda` command
+ */
+async function runCommandLine(options: RunCliOptions, applicationCli: boolean): Promise<void> {
+  const appPath = resolve(options.appPath ?? (process.env.WEBDA_APP_PATH || "."));
+  const rawArgv = options.argv ?? process.argv.slice(2);
   await runWithInstanceStorage({}, async () => {
     // Ensure console output is available before anything else
-    const rawArgv = process.argv.slice(2);
     new ConsoleLogger(useWorkerOutput(), undefined, undefined, resolveLogStream(rawArgv, !!process.stdout.isTTY));
     if (shouldPatchConsole(rawArgv)) {
       patchConsole();
     }
     try {
       // The deployment is applied when loading the application
-      const { deployment, argv: cliArgv } = extractDeploymentArgument(rawArgv);
+      const { deployment, argv: extractedArgv } = extractDeploymentArgument(rawArgv);
       const app = loadApplication(appPath);
       if (deployment) {
         app.setCurrentDeployment(deployment);
@@ -1008,8 +1210,23 @@ if (isMain) {
       useInstanceStorage().application = app;
       await app.load();
 
+      // Operation commands, if operations.json exists, selected by webda.cli like the service commands
+      const opsPath = join(appPath, ".webda", "operations.json");
+      let ops: OperationsFile | undefined = existsSync(opsPath)
+        ? JSON.parse(readFileSync(opsPath, "utf-8"))
+        : undefined;
+      const selection = getCliConfiguration(app);
+      const operationIds = ops ? Object.values(ops.operations).map(op => op.id) : [];
+
       // Collect service commands from webda.module.json
-      const serviceCommands = collectServiceCommands(app);
+      const serviceCommands = collectServiceCommands(app, selection, operationIds);
+      if (ops) {
+        const selected = new Set(selectOperations(operationIds, selection));
+        ops = {
+          ...ops,
+          operations: Object.fromEntries(Object.entries(ops.operations).filter(([, op]) => selected.has(op.id)))
+        };
+      }
 
       // Track which command was matched so we know whether to boot Core
       let matchedCommand:
@@ -1020,14 +1237,25 @@ if (isMain) {
       // Detect if @webda/compiler is available for --watch support
       let hasCompiler = false;
       try {
-        createRequire(join(resolve(appPath), "package.json")).resolve("@webda/compiler");
+        createRequire(join(appPath, "package.json")).resolve("@webda/compiler");
         hasCompiler = true;
       } catch {
         // @webda/compiler not installed
       }
 
+      const available = [
+        ...Object.keys(serviceCommands).map(name => name.split(" ")[0]),
+        ...(ops ? [...groupOperations(ops.operations).keys()].map(group => group.toLowerCase()) : [])
+      ];
+      const cliConfiguration = applicationCli ? selection : undefined;
+      const cliArgv = applyDefaultCommand(extractedArgv, options.defaultCommand ?? cliConfiguration?.defaultCommand, [
+        ...available,
+        "completion"
+      ]);
+
       // Build the CLI with operations (if available) and service commands
-      const cli = yargs(cliArgv).scriptName("webda").usage("$0 <command> [options]");
+      const program = options.name ?? cliConfiguration?.name ?? "webda";
+      const cli = yargs(cliArgv).scriptName(program).usage("$0 <command> [options]");
 
       // Extracted from raw argv before loading the application; declared here for --help
       cli.option("deployment", {
@@ -1062,18 +1290,15 @@ if (isMain) {
         matchedCommand = { type: "service", name: cmdName, args };
       });
 
-      // Add operation commands if operations.json exists
-      const opsPath = join(resolve(appPath), ".webda", "operations.json");
-      let ops: OperationsFile | undefined;
-      if (existsSync(opsPath)) {
-        ops = JSON.parse(readFileSync(opsPath, "utf-8"));
+      // Add operation commands
+      if (ops) {
         const groups = groupOperations(ops.operations);
         for (const [group, operations] of groups) {
           cli.command(group.toLowerCase(), `${group} operations`, groupY => {
             for (const op of operations) {
               const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
               const hasInput = op.input && op.input !== "void";
-              const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
+              const paramDef = paramDefOf(op, ops!);
               const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
               groupY.command(
                 cmd,
@@ -1106,12 +1331,8 @@ if (isMain) {
       if (!matchedCommand) {
         // yargs reports a missing command or action itself, but accepts an unknown command silently
         const command = String(parsed._[0] ?? "");
-        const available = [
-          ...Object.keys(serviceCommands).map(name => name.split(" ")[0]),
-          ...(ops ? [...groupOperations(ops.operations).keys()].map(group => group.toLowerCase()) : [])
-        ];
         if (command && !available.includes(command)) {
-          console.error(unknownCommandMessage(command, available));
+          console.error(unknownCommandMessage(command, available, program));
         }
         process.exit(1);
       }
@@ -1216,4 +1437,23 @@ if (isMain) {
       process.exit(1);
     }
   });
+}
+
+/**
+ * Whether this module is the script node started, rather than imported by an application executable
+ *
+ * @returns true when run as `node lib/bin/cli.js` (or through the launcher)
+ */
+function isRunDirectly(): boolean {
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    // No script path (node -e, REPL): imported
+    return false;
+  }
+}
+
+// Main entry point when run directly
+if (isRunDirectly()) {
+  await runCommandLine({}, false);
 }

@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 
-export type Store = "memory" | "file" | "mongodb" | "postgres";
-export const STORES: Store[] = ["memory", "file", "mongodb", "postgres"];
+export type Store = "memory" | "file" | "sqlite" | "mongodb" | "postgres";
+export const STORES: Store[] = ["memory", "file", "sqlite", "mongodb", "postgres"];
 export type Transport = "rest" | "graphql" | "grpc" | "mcp";
 export const TRANSPORTS: Transport[] = ["rest", "graphql", "grpc", "mcp"];
 export type PackageManager = "pnpm" | "npm" | "yarn";
@@ -155,9 +155,12 @@ export function toPackageName(name: string): string {
   const cleaned = name
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^[._-]+|[._-]+$/g, "");
-  return cleaned || "webda-app";
+    .replace(/-+/g, "-");
+  let start = 0;
+  let end = cleaned.length;
+  while (start < end && "._-".includes(cleaned[start])) start++;
+  while (end > start && "._-".includes(cleaned[end - 1])) end--;
+  return cleaned.slice(start, end) || "webda-app";
 }
 
 /**

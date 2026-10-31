@@ -4,7 +4,7 @@ import chalk from "yoctocolors";
 import { stdin } from "mock-stdin";
 import { nextTick } from "process";
 import * as sinon from "sinon";
-import { WorkerLogLevelEnum, WorkerMessage, WorkerOutput, WorkerProgress, WorkerInputType } from "../core.js";
+import { WorkerMessage, WorkerOutput, WorkerProgress } from "../core.js";
 import { Terminal } from "./terminal.js";
 
 // This is needed to trigger stdin within github-actions

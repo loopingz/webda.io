@@ -1,6 +1,6 @@
 {
   "name": "@webda/utils",
-  "version": "4.0.0-beta.9",
+  "version": "4.0.0-beta.11",
   "description": "Utils function for NodeJS projects",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
@@ -34,6 +34,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@webda/decorators": "workspace:*",
     "@webda/workout": "workspace:*",
     "yaml": "^2.8.3"
   },

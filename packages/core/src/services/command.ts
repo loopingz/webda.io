@@ -1,4 +1,4 @@
-import { createMethodDecorator } from "@webda/tsc-esm";
+import { createMethodDecorator } from "@webda/decorators";
 
 /**
  * Options for the @Command decorator
@@ -50,6 +50,15 @@ export interface CommandOptions {
  *
  * Multiple services can declare the same command name — they all run in
  * dependency-graph order. Use `--service=ServiceName` to filter at invocation.
+ * The CLI accepts the union of their parameters and calls every handler with the
+ * same positional values, in the merged order: declare shared parameters in the
+ * same order and type (a warning is logged otherwise).
+ *
+ * A subclass inherits the commands of its parent class. Redeclaring the command
+ * on a subclass adds a provider, it does not replace the parent's: the application
+ * selects the providers with the `webda.cli` section of its package.json —
+ * `"exclude": ["Webda/HttpServer:serve"]` lets a `RunnerHttpServer extends HttpServer`
+ * serve alone, with its own parameters.
  *
  * Subcommands use space-separated names. The service owns its subtree:
  * `@Command("aws s3")` handles everything under `webda aws s3`.
@@ -96,12 +105,7 @@ export interface CommandOptions {
  * ```
  */
 export const Command = createMethodDecorator(
-  (
-    value: any,
-    context: ClassMethodDecoratorContext,
-    name: string,
-    options: CommandOptions = { description: "" }
-  ) => {
+  (value: any, context: ClassMethodDecoratorContext, name: string, options: CommandOptions = { description: "" }) => {
     context.metadata["webda.commands"] ??= [];
     (context.metadata["webda.commands"] as any[]).push({
       name,

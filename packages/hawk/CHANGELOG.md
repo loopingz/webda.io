@@ -144,6 +144,50 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.11...hawk-v4.0.0-beta.12) (2026-10-22)
+
+
+### Features
+
+* end-to-end encrypted model fields (SealedField, UserKeys, @webda/sealed-client) ([#941](https://github.com/loopingz/webda.io/issues/941)) ([fbc5bd2](https://github.com/loopingz/webda.io/commit/fbc5bd24b1f60c87c53c33f9d1650634834c894e))
+
+
+### Bug Fixes
+
+* **content-mapper:** list Events of an optional [WEBDA_EVENTS]? member under strict ([#978](https://github.com/loopingz/webda.io/issues/978)) ([c303962](https://github.com/loopingz/webda.io/commit/c30396298c8545f9c1ff5d8c4839191afbd7609f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.10...hawk-v4.0.0-beta.11) (2026-10-16)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.11
+
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.9...hawk-v4.0.0-beta.10) (2026-10-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.10
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.8...hawk-v4.0.0-beta.9) (2026-10-14)
 
 

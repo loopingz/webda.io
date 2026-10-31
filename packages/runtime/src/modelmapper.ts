@@ -187,7 +187,7 @@ export class ModelMapper extends Service {
    * @returns promise resolving when the update is handled (or void if no mapped attribute changed)
    */
   async handlePartialEvent(modelName: string, evt: ModelEvents["PartialUpdate"]) {
-    let uuid = evt.object_id;
+    const uuid = evt.object_id;
     // Only use in Store.PartialUpdated
     const attributes = [];
     if (evt.partial_update.increments) {
@@ -199,7 +199,6 @@ export class ModelMapper extends Service {
     if (evt.partial_update.patch) {
       attributes.push(...Object.keys(evt.partial_update.patch));
     }
-    uuid = evt.object_id;
 
     for (const mapper of this.mappers[modelName]) {
       this.log("TRACE", "Should update a mapper based on Store.PartialUpdated", evt);

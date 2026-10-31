@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-Modules/postgres/PostgresRelationalStore" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">PostgresRelationalStore | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/docs/Modules/postgres/PostgresRelationalStore"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="PostgresRelationalStore | Webda.io"><meta data-rh="true" name="description" content="Webda/PostgresRelationalStore stores models in typed tables: one column per field, primary and foreign keys,"><meta data-rh="true" property="og:description" content="Webda/PostgresRelationalStore stores models in typed tables: one column per field, primary and foreign keys,"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/docs/Modules/postgres/PostgresRelationalStore"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Modules/postgres/PostgresRelationalStore" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Modules/postgres/PostgresRelationalStore" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Modules","item":"https://webda.io/docs/Modules/"},{"@type":"ListItem","position":2,"name":"@webda/postgres","item":"https://webda.io/docs/Modules/postgres/"},{"@type":"ListItem","position":3,"name":"PostgresRelationalStore","item":"https://webda.io/docs/Modules/postgres/PostgresRelationalStore"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml">
+
+
+
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.948a536f.css">
+<script src="/assets/js/runtime~main.473aa947.js" defer="defer"></script>
+<script src="/assets/js/main.1e4c262a.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_MWLN" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_N8Rr themedComponent--light_yU4_"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_N8Rr themedComponent--dark_cCOV"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a class="navbar__item navbar__link" href="/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a href="/debug/" target="_self" rel="noopener noreferrer" class="navbar__item navbar__link" title="My Application — debug dashboard">My Application</a><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><div class="navbar__item dropdown dropdown--hoverable dropdown--right"><a href="#" aria-haspopup="true" aria-expanded="false" role="button" class="navbar__link">Docs: latest</a><ul class="dropdown__menu"><li><a href="https://webda.io/" target="_blank" rel="noopener noreferrer" class="dropdown__link">latest (v4 HEAD)<svg width="12" height="12" aria-label="(opens in new tab)" class="iconExternalLink_FTz2"><use href="#theme-svg-external-link"></use></svg></a></li><li><a href="https://webda.io/v4/" target="_blank" rel="noopener noreferrer" class="dropdown__link">v4<svg width="12" height="12" aria-label="(opens in new tab)" class="iconExternalLink_FTz2"><use href="#theme-svg-external-link"></use></svg></a></li><li><a href="https://webda.io/v3/" target="_blank" rel="noopener noreferrer" class="dropdown__link">v3<svg width="12" height="12" aria-label="(opens in new tab)" class="iconExternalLink_FTz2"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link header-github-link" aria-label="GitHub repository"></a><div class="navbar-search-centered navbarSearchContainer_iIFX"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div><div class="toggle_noWv colorModeToggle_oozF"><button class="clean-btn toggleButton_pFnF toggleButtonDisabled_kNkN" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU lightToggleIcon_bBiL"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU darkToggleIcon_pGW8"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g0zU systemToggleIcon_zcqz"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_UUZP"><div class="docsWrapper_nU0q"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_LFjF" type="button"></button><div class="docRoot_zh1L"><aside class="theme-doc-sidebar-container docSidebarContainer_Pr5l"><div class="sidebarViewport_UJlQ"><div class="sidebar_SBgp"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_iyWm"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/QuickStart/"><span class="categoryLinkLabel_6V4C">Quick Start</span></a><button aria-label="Expand sidebar category &#x27;Quick Start&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Glossary"><span class="linkLabel_N6h3">Glossary</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Concepts/"><span class="categoryLinkLabel_6V4C">Concepts</span></a><button aria-label="Expand sidebar category &#x27;Concepts&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/REST/"><span class="categoryLinkLabel_6V4C">REST</span></a><button aria-label="Expand sidebar category &#x27;REST&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--active" href="/docs/Modules/"><span class="categoryLinkLabel_6V4C">Modules</span></a><button aria-label="Collapse sidebar category &#x27;Modules&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/amqp/"><span class="linkLabel_N6h3">@webda/amqp</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/async/"><span class="categoryLinkLabel_6V4C">@webda/async</span></a><button aria-label="Expand sidebar category &#x27;@webda/async&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/auth/"><span class="linkLabel_N6h3">@webda/auth</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/aws/"><span class="categoryLinkLabel_6V4C">@webda/aws</span></a><button aria-label="Expand sidebar category &#x27;@webda/aws&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/azure/"><span class="linkLabel_N6h3">@webda/azure</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/bench/"><span class="linkLabel_N6h3">@webda/bench</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/cache/"><span class="linkLabel_N6h3">@webda/cache</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/cloudevents/"><span class="linkLabel_N6h3">@webda/cloudevents</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/compiler/"><span class="categoryLinkLabel_6V4C">@webda/compiler</span></a><button aria-label="Expand sidebar category &#x27;@webda/compiler&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/content-mapper/"><span class="linkLabel_N6h3">@webda/content-mapper</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/core/"><span class="categoryLinkLabel_6V4C">@webda/core</span></a><button aria-label="Expand sidebar category &#x27;@webda/core&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/create/"><span class="linkLabel_N6h3">@webda/create</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/debug/"><span class="linkLabel_N6h3">@webda/debug</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/decorators/"><span class="categoryLinkLabel_6V4C">@webda/decorators</span></a><button aria-label="Expand sidebar category &#x27;@webda/decorators&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/elasticsearch/"><span class="linkLabel_N6h3">@webda/elasticsearch</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/fs/"><span class="linkLabel_N6h3">@webda/fs</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/gcp/"><span class="linkLabel_N6h3">@webda/gcp</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/google-auth/"><span class="linkLabel_N6h3">@webda/google-auth</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/graphql/"><span class="categoryLinkLabel_6V4C">@webda/graphql</span></a><button aria-label="Expand sidebar category &#x27;@webda/graphql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/grpc/"><span class="linkLabel_N6h3">@webda/grpc</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/hawk/"><span class="linkLabel_N6h3">@webda/hawk</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/iam/"><span class="linkLabel_N6h3">@webda/iam</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/kubernetes/"><span class="categoryLinkLabel_6V4C">@webda/kubernetes</span></a><button aria-label="Expand sidebar category &#x27;@webda/kubernetes&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/mailer/"><span class="linkLabel_N6h3">@webda/mailer</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/mcp/"><span class="categoryLinkLabel_6V4C">@webda/mcp</span></a><button aria-label="Expand sidebar category &#x27;@webda/mcp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/mock/"><span class="linkLabel_N6h3">@webda/mock</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/models/"><span class="categoryLinkLabel_6V4C">@webda/models</span></a><button aria-label="Expand sidebar category &#x27;@webda/models&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/mongodb/"><span class="linkLabel_N6h3">@webda/mongodb</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/oauth/"><span class="linkLabel_N6h3">@webda/oauth</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/oci/"><span class="linkLabel_N6h3">@webda/oci</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/offline/"><span class="linkLabel_N6h3">@webda/offline</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/oidc/"><span class="linkLabel_N6h3">@webda/oidc</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/otel/"><span class="linkLabel_N6h3">@webda/otel</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--active" tabindex="0" href="/docs/Modules/postgres/"><span class="categoryLinkLabel_6V4C">@webda/postgres</span></a><button aria-label="Collapse sidebar category &#x27;@webda/postgres&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/docs/Modules/postgres/PostgresRelationalStore"><span class="linkLabel_N6h3">PostgresRelationalStore</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/postgres/PostgresStore"><span class="linkLabel_N6h3">PostgresSQL Store</span></a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/ql/"><span class="categoryLinkLabel_6V4C">@webda/ql</span></a><button aria-label="Expand sidebar category &#x27;@webda/ql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/react-email/"><span class="linkLabel_N6h3">@webda/react-email</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/runtime/"><span class="linkLabel_N6h3">@webda/runtime</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/sdk/"><span class="linkLabel_N6h3">@webda/sdk</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/sealed-client/"><span class="linkLabel_N6h3">@webda/sealed-client</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/serialize/"><span class="linkLabel_N6h3">@webda/serialize</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/sql/"><span class="linkLabel_N6h3">@webda/sql</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/sql-schema/"><span class="linkLabel_N6h3">@webda/sql-schema</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/sqlite/"><span class="categoryLinkLabel_6V4C">@webda/sqlite</span></a><button aria-label="Expand sidebar category &#x27;@webda/sqlite&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/templates/"><span class="linkLabel_N6h3">@webda/templates</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/test/"><span class="linkLabel_N6h3">@webda/test</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/utils/"><span class="linkLabel_N6h3">@webda/utils</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/versioning/"><span class="linkLabel_N6h3">@webda/versioning</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" tabindex="0" href="/docs/Modules/workflow/"><span class="categoryLinkLabel_6V4C">@webda/workflow</span></a><button aria-label="Expand sidebar category &#x27;@webda/workflow&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Modules/workout/"><span class="linkLabel_N6h3">@webda/workout</span></a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Deployments/"><span class="categoryLinkLabel_6V4C">Deployments</span></a><button aria-label="Expand sidebar category &#x27;Deployments&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Security/"><span class="categoryLinkLabel_6V4C">Security</span></a><button aria-label="Expand sidebar category &#x27;Security&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Monitoring/"><span class="categoryLinkLabel_6V4C">Monitoring</span></a><button aria-label="Expand sidebar category &#x27;Monitoring&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Application/"><span class="linkLabel_N6h3">Application</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Benchmarks"><span class="linkLabel_N6h3">Benchmarks</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/CommonIssues/"><span class="categoryLinkLabel_6V4C">Common Issues</span></a><button aria-label="Expand sidebar category &#x27;Common Issues&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/docs/Debug/DebugDashboard"><span class="categoryLinkLabel_6V4C">Debug</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Docs"><span class="linkLabel_N6h3">Documentation versions</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Intro"><span class="linkLabel_N6h3">Webda</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Lifecycle"><span class="linkLabel_N6h3">Lifecycle</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_PKN_ menu__link menu__link--sublist" href="/docs/Migration/"><span class="categoryLinkLabel_6V4C">Migration</span></a><button aria-label="Expand sidebar category &#x27;Migration&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Testing"><span class="linkLabel_N6h3">Testing your application</span></a></li></ul></nav></div></div></aside><main class="docMainContainer_qpv5"><div class="container padding-top--md padding-bottom--lg"><div class="wrapper_xJ_b"><canvas aria-hidden="true" class="network_l8Fo band_NwgC band_TnFH"></canvas><canvas aria-hidden="true" class="network_l8Fo bandArea_R8Vj band_TnFH"></canvas><div class="row"><div class="col docItemCol_NWVy"><div class="docItemContainer_dtc9"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_zWSF" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_v8bk"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/docs/Modules/"><span>Modules</span></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/docs/Modules/postgres/"><span>@webda/postgres</span></a></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">PostgresRelationalStore</span></li></ul></nav><div class="tocCollapsible_Kr7U theme-doc-toc-mobile tocMobile_A93Z"><button type="button" class="clean-btn tocCollapsibleButton_C54N">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>PostgresRelationalStore</h1></header>
+<p><code>Webda/PostgresRelationalStore</code> stores models in <strong>typed tables</strong>: one column per field, primary and foreign keys,
+junction tables for the link collections, indexes. The schema is generated from the compiled model metadata by
+<a class="" href="/docs/Modules/sql-schema/"><code>@webda/sql-schema</code></a>; the models, the <code>Repository&lt;T&gt;</code> API, WebdaQL and the repository events
+are the same as with the JSONB <a class="" href="/docs/Modules/postgres/PostgresStore"><code>PostgresStore</code></a>.</p>
+<div class="language-json codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-json codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token property" style="color:#36acaa">&quot;services&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token property" style="color:#36acaa">&quot;Registry&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Webda/PostgresStore&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;postgresqlServer&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;host&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;localhost&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;database&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;webda&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token property" style="color:#36acaa">&quot;domain&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Webda/PostgresRelationalStore&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;models&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;MyApp/User&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;MyApp/Post&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;MyApp/Comment&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;MyApp/Tag&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;postgresqlServer&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;host&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;localhost&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;database&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;webda&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;usePool&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token boolean" style="color:#36acaa">true</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;schemaSync&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;alter&quot;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="jsonb-or-relational">JSONB or relational?<a href="#jsonb-or-relational" class="hash-link" aria-label="Direct link to JSONB or relational?" title="Direct link to JSONB or relational?" translate="no">​</a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th><code>PostgresStore</code> (JSONB)</th><th><code>PostgresRelationalStore</code></th></tr></thead><tbody><tr><td>Table layout</td><td><code>uuid</code>, <code>data jsonb</code></td><td>one typed column per field</td></tr><tr><td>Schema changes</td><td>none needed</td><td>additive, at <code>init()</code> or by hand</td></tr><tr><td>Unknown properties</td><td>kept in <code>data</code></td><td>kept in the <code>_extra</code> JSONB column</td></tr><tr><td>Links</td><td>a key inside <code>data</code></td><td>a column with a foreign key</td></tr><tr><td>Link collections</td><td>an array inside <code>data</code></td><td>a junction table</td></tr><tr><td>Can be the <code>Registry</code></td><td>yes</td><td><strong>no</strong> (<code>init()</code> fails)</td></tr><tr><td>Models</td><td>listed or fallback</td><td><strong>listed only</strong></td></tr></tbody></table>
+<p>Keep the JSONB store as <code>Registry</code> (it accepts every model, configuration and internal state) and use the relational
+store for the domain models whose shape is stable. Both can share one <code>postgresqlServer</code> (pools are shared by
+configuration).</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h2>
+<p>Those of <code>PostgresStore</code> (<code>postgresqlServer</code>, <code>usePool</code>, <code>models</code>, <code>tables</code>), plus:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>schemaSync</code></td><td><code>&quot;create&quot;</code></td><td><code>none</code>, <code>create</code> (missing tables, with their indexes and foreign keys), <code>alter</code> (<code>create</code> plus the missing columns, indexes and foreign keys of existing tables), <code>validate</code> (write nothing, fail on any difference)</td></tr><tr><td><code>columnNaming</code></td><td><code>&quot;preserve&quot;</code></td><td><code>preserve</code> keeps the field names (quoted camelCase), <code>snake_case</code> converts them</td></tr><tr><td><code>extraColumn</code></td><td><code>&quot;_extra&quot;</code></td><td>JSONB column of the properties the model schema does not declare, <code>false</code> to refuse them</td></tr><tr><td><code>foreignKeys</code></td><td><code>true</code></td><td>create the foreign key constraints</td></tr><tr><td><code>foreignKeysToJsonb</code></td><td><code>false</code></td><td>also create a foreign key to the <code>uuid</code> of the JSONB table of a model served by a <code>PostgresStore</code> (the <code>Registry</code>) on the same server and database with a table per model; that table is created at <code>init()</code></td></tr><tr><td><code>numericAsDecimal</code></td><td><code>false</code></td><td>map JSON <code>number</code> to <code>NUMERIC</code> instead of <code>DOUBLE PRECISION</code></td></tr><tr><td><code>appVersion</code></td><td>package.json</td><td>the application version recorded in the <code>Webda/SchemaVersion</code> registry</td></tr><tr><td><code>allowIncompatible</code></td><td><code>[]</code></td><td>elements (<code>&lt;table&gt;</code>, <code>&lt;table&gt;.&lt;column&gt;</code>, <code>&lt;model&gt;</code>, <code>&lt;model&gt;.&lt;attribute&gt;</code>) whose blocking changes against a live version are accepted (<code>BLOCK</code> becomes <code>WARN</code>, recorded in <code>forced</code>)</td></tr><tr><td><code>versionHeartbeat</code></td><td><code>60</code></td><td>seconds between two heartbeats of the version in the registry, <code>0</code> for none</td></tr><tr><td><code>versionTtl</code></td><td><code>600</code></td><td>seconds after its last heartbeat a version still counts as live</td></tr></tbody></table>
+<p><code>table</code> (one shared table) is refused, <code>autoCreateTable</code> is replaced by <code>schemaSync</code>, <code>views</code> and <code>viewPrefix</code> do
+nothing (the tables are already typed). A <code>tables</code> override must be a lowercase identifier (<code>[a-z_][a-z0-9_]*</code>).</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="mapping">Mapping<a href="#mapping" class="hash-link" aria-label="Direct link to Mapping" title="Direct link to Mapping" translate="no">​</a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Model</th><th>Table</th></tr></thead><tbody><tr><td><code>string</code> (<code>maxLength</code>, <code>format</code>)</td><td><code>TEXT</code>, <code>VARCHAR(n)</code>, <code>TIMESTAMPTZ</code> (<code>date-time</code> or <code>Date</code>), <code>DATE</code>; <code>enum</code> adds a <code>CHECK</code></td></tr><tr><td><code>integer</code> / <code>number</code> / <code>boolean</code></td><td><code>BIGINT</code> / <code>DOUBLE PRECISION</code> / <code>BOOLEAN</code></td></tr><tr><td>objects, arrays, unions, untyped</td><td><code>JSONB</code>; nested paths stay queryable (<code>meta.a = 1</code>)</td></tr><tr><td>primary key</td><td><code>TEXT</code> column(s) and the primary key constraint (composite keys supported)</td></tr><tr><td><code>ModelParent</code> / <code>BelongTo</code></td><td>key column(s) + <code>FOREIGN KEY ... ON DELETE CASCADE</code></td></tr><tr><td><code>ModelLink</code> / <code>ManyToOne</code> / <code>OneToOne</code></td><td>key column(s) + <code>FOREIGN KEY ... ON DELETE NO ACTION</code>, indexed (<code>OneToOne</code>: unique)</td></tr><tr><td><code>ModelLinksSimpleArray</code> / <code>ManyToMany</code> / <code>ModelLinksMap</code></td><td>junction table <code>&lt;table&gt;_&lt;attribute&gt;</code> (owner key, target key, <code>_position</code> or <code>key</code>, link attributes or <code>attributes</code> JSONB)</td></tr><tr><td><code>ModelRelated</code> / <code>OneToMany</code> / <code>ModelsMapped</code></td><td>no storage; a <code>ModelsMapped</code> is filled on read from the rows of its model (see <a href="#mapped-attributes" class="">Mapped attributes</a>)</td></tr><tr><td>a link to a model of another store</td><td>column + index, no foreign key, one <code>WARN</code> at init; with <code>foreignKeysToJsonb</code>, a foreign key to the <code>uuid</code> of its JSONB table</td></tr><tr><td><code>@Index</code> / <code>@Unique</code> JSDoc tag on an attribute</td><td>an index (unique with <code>@Unique</code>) on its column(s); <code>@Index &lt;name&gt;</code> on several attributes builds one composite index</td></tr><tr><td>subclasses</td><td>the table of their closest listed ancestor, with an indexed <code>__type</code> column; <code>useRepository(Dog).query(&quot;&quot;)</code> filters on it</td></tr><tr><td>unknown properties</td><td>the <code>_extra</code> JSONB column, merged under the typed columns on read</td></tr></tbody></table>
+<p>Every column is created <strong>nullable</strong> (the model schema validates <code>required</code>); foreign keys are <code>DEFERRABLE INITIALLY DEFERRED</code>, so self references and cycles insert in one transaction.</p>
+<div class="language-ts codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-ts codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">class</span><span class="token plain"> </span><span class="token class-name">User</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">extends</span><span class="token plain"> </span><span class="token class-name">UuidModel</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token doc-comment comment" style="color:#999988;font-style:italic">/** @Unique */</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  email</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token doc-comment comment" style="color:#999988;font-style:italic">/** @Index byNameDay */</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  name</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token doc-comment comment" style="color:#999988;font-style:italic">/** @Index byNameDay */</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  day</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p><strong><code>DATE</code> columns and time zones.</strong> A <code>DATE</code> column holds a calendar day, never an instant: the store writes the first
+ten characters of the value, i.e. the written day of a <code>YYYY-MM-DD</code> or ISO date-time string (whatever its offset) and
+the <strong>UTC</strong> day of a <code>Date</code> object (<code>new Date(&quot;2024-03-04T23:30:00-05:00&quot;)</code> is stored as <code>2024-03-05</code>). It reads back
+as the <code>YYYY-MM-DD</code> text, whatever the time zone of the server or the process, and compares as that text
+(<code>day &gt;= &#x27;2024-02-01&#x27;</code>). A <code>TIMESTAMPTZ</code> column holds an instant and reads back as its ISO 8601 UTC text.</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="schema-lifecycle">Schema lifecycle<a href="#schema-lifecycle" class="hash-link" aria-label="Direct link to Schema lifecycle" title="Direct link to Schema lifecycle" translate="no">​</a></h2>
+<p>At <code>init()</code> the store builds the plan, takes an advisory lock (<code>pg_advisory_xact_lock</code> on the store name) in a
+transaction, describes the database under it, reads the live application versions from the registry (see
+<a href="#several-app-versions-on-the-same-database" class="">below</a>), refuses an incompatible plan, applies <code>schemaSync</code>, records its
+own version and commits. It is <strong>never destructive</strong>: no <code>DROP</code>, no type change, no <code>SET NOT NULL</code>, no rename. What
+<code>alter</code> cannot resolve (a column of another type, a column no version knows) is logged at <code>WARN</code>; <code>validate</code> throws
+<code>SchemaDriftError</code> (<code>SCHEMA_DRIFT</code>) for the same differences and for anything missing. The columns of the other live
+versions are never drift.</p>
+<p>On a table that already has rows and traffic, <code>alter</code> keeps the heavy work out of the DDL transaction: an index is
+built <code>CONCURRENTLY</code> after it (a failed build, duplicates under a new unique index for example, is logged and the
+index dropped), a foreign key is added <code>NOT VALID</code> in the transaction and validated after it, so no <code>ACCESS EXCLUSIVE</code>
+lock outlives the catalog update.</p>
+<div class="language-bash codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-bash codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema show           # one line per table with its columns</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema show --sql     # the CREATE statements of the whole plan</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema show --diff    # connect, print what `alter` would run, then `-- ` lines for the drift (exit 1)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema show --json    # the plan</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema check          # compare the plan with the live versions (exit 1 on a BLOCK)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema contract --dry-run</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema retire --version 1.4.0</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres schema backfill --table post --from title --to headline</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
+<p>Teams with their own migration pipeline run <code>schemaSync: &quot;none&quot;</code> or <code>&quot;validate&quot;</code> and apply <code>--sql</code> / <code>--diff</code> with
+their tooling; the registry and <code>schema check</code> still protect them.</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="several-app-versions-on-the-same-database">Several app versions on the same database<a href="#several-app-versions-on-the-same-database" class="hash-link" aria-label="Direct link to Several app versions on the same database" title="Direct link to Several app versions on the same database" translate="no">​</a></h2>
+<p>Blue/green, canary and rolling deployments run <strong>several versions of the application at the same time</strong> against the
+same tables. The store makes that safe with the expand/contract pattern: the physical schema is the <strong>union</strong> of
+every live version, each version only reads and writes its own <strong>projection</strong>.</p>
+<ul>
+<li class="">Every statement names its columns from the plan of its version (never <code>SELECT *</code>), <code>update()</code> only replaces the
+columns of its own projection, <code>_extra</code> is merged (<code>_extra || $n</code>) so the keys of another version survive, unknown
+columns are ignored on read and a <code>__type</code> only the newer version knows is skipped by the class filter.</li>
+<li class="">A new <code>required</code> field is created <strong>nullable</strong>: <code>NOT NULL</code> waits for the contract phase, the application validates
+until then.</li>
+<li class=""><strong>Registry.</strong> Each running version is a <code>Webda/SchemaVersion</code> entry (<code>uuid</code> = <code>&lt;store&gt;:&lt;appVersion&gt;:&lt;planHash&gt;</code>,
+the full plan, <code>status</code> <code>LIVE</code> | <code>RETIRED</code>, <code>firstSeen</code>, <code>lastHeartbeat</code>, the <code>instances</code> map, <code>forced</code>). Nobody
+claims the model, so it lands in the <code>Registry</code> catch-all (JSONB, memory, Mongo...), never in a relational table.
+Each instance heartbeats with a partial <code>patch()</code> every <code>versionHeartbeat</code> seconds; a version silent for longer
+than <code>versionTtl</code> no longer counts. The flow at <code>init()</code> is lock → read live versions → check → DDL → upsert own
+version → unlock. If the registry cannot be read or written, <code>init()</code> fails closed (<code>SCHEMA_REGISTRY_UNAVAILABLE</code>,
+fatal, no DDL). A <code>MemoryStore</code> registry only knows the versions of its own process: a <code>WARN</code> says the checks are
+limited to the process.</li>
+<li class=""><strong>Compatibility check</strong>, on every startup whatever <code>schemaSync</code>: the plan is compared field by field with the plan
+of every live version by <code>compareSchemaPlans</code> (<code>@webda/sql-schema</code>, a pure function). Additions, widenings, a field
+becoming required or removed are <code>SAFE</code>; added enum values, a rename (remove + add) and a new unique index are
+<code>WARN</code>; a property type change, a narrowing, removed enum values, a field becoming optional while the live version
+requires it, a relation kind or target change, a delete policy change, a primary key, hierarchy or layout option
+change are <code>BLOCK</code>. A <code>BLOCK</code> refuses to start with <code>SchemaIncompatibleError</code> (HTTP 409, <code>SCHEMA_INCOMPATIBLE_ERROR</code>,
+wrapped in a <code>FatalInitError</code>) naming the table or column, the live version and the expand/contract recipe; the
+database is untouched and the refused version is not registered. <code>allowIncompatible</code> (or
+<code>schema check --force-incompatible</code>) downgrades a change you accept to a forced <code>WARN</code>, recorded in the version.</li>
+<li class=""><strong><code>webda postgres schema check [--against &lt;version&gt;] [--json]</code></strong> prints the same table for CI (exit 1 on a <code>BLOCK</code>,
+2 when <code>--against</code> matches nothing), so a pull request changing a property type fails before the deploy, not at
+the canary&#x27;s startup. Run it against the production registry, read-only.</li>
+<li class=""><strong>Contract phase</strong>, never run by <code>init()</code>: <code>webda postgres schema contract [--dry-run]</code> computes the union of the
+versions still live and proposes what is now safe: drop the columns and tables no live version uses (only what a
+retired or expired version planned: a DBA&#x27;s column is left alone), <code>SET NOT NULL</code> where every live version requires
+the field (skipped when a row is null), validate the foreign keys still <code>NOT VALID</code>. <code>webda postgres schema retire --version &lt;id | appVersion | planHash&gt;</code> retires a version first.</li>
+<li class=""><strong>Renames and type changes</strong> are expand / backfill / contract: add the new field (<code>headline</code>, <code>statusCode</code>),
+<code>webda postgres schema backfill --table post --from title --to headline [--batch 1000]</code> copies the column by
+batches where the target is null, switch the reads, retire the old version, contract.</li>
+</ul>
+<p>Per-version views, <code>schemaPerVersion</code> and the dual-write trigger of the design are not implemented.</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="reads-and-writes">Reads and writes<a href="#reads-and-writes" class="hash-link" aria-label="Direct link to Reads and writes" title="Direct link to Reads and writes" translate="no">​</a></h2>
+<ul>
+<li class="">Every statement names its columns from the plan: a row written by an older application version keeps the columns
+this version does not know, <code>update()</code> only replaces the columns of its own projection and merges <code>_extra</code>.</li>
+<li class="">Junction rows are written in the same transaction as the owner row and read with one statement per junction per
+page. With <code>usePool</code> each transaction takes its own connection; on a single client every statement of the store
+goes through one lock, so a plain write never runs inside another caller&#x27;s transaction.</li>
+<li class="">With <code>&quot;transaction&quot;: &quot;operation&quot;</code> (see <a class="" href="/docs/Modules/postgres/PostgresStore#transactions">PostgresStore</a>), every statement of an
+operation runs in the operation transaction: the owner row and its junctions join it instead of opening their own.</li>
+<li class="">WebdaQL: <code>=, !=, &lt;, &lt;=, &gt;, &gt;=, LIKE, IN, IS NULL, IS NOT NULL, ORDER BY, LIMIT/OFFSET</code> on columns and JSONB paths,
+<code>CONTAINS</code> on JSONB arrays, with the in-memory semantics (<code>views = &#x27;1&#x27;</code> matches a <code>BIGINT</code>, <code>views = &#x27;abc&#x27;</code> matches
+nothing, <code>!=</code> matches <code>NULL</code>). A time column compares natively with a date or a date text and reads as its ISO text
+otherwise: <code>_lastUpdate = &#x27;abc&#x27;</code> matches nothing, <code>_lastUpdate LIKE &#x27;2024-05%&#x27;</code> and <code>day LIKE &#x27;2024-05%&#x27;</code> match the
+ISO form the models store. <code>NULL</code> sorts first ascending, last descending.</li>
+<li class="">WebdaQL on link collections, as an <code>EXISTS</code> sub-query on the junction: <code>tags CONTAINS &#x27;t1&#x27;</code> (the collection links
+to the key; a composite key is split), <code>contributors.role = &#x27;editor&#x27;</code> (<strong>one item</strong> matches: a target key part such
+as <code>contributors.uuid</code>, a typed link field or a path in the <code>attributes</code> column), on a map the second segment is the
+item key (<code>reviewers.lead.since &gt; 2020</code>, <code>reviewers.lead IS NULL</code>). A link collection reads as an array or a map,
+never null: <code>tags IS NULL</code> is <code>FALSE</code>. These comparisons work in every statement (<code>query</code>, <code>count</code>, <code>updateMany</code>,
+<code>deleteMany</code>, aggregations); the in-memory stores do not match item attributes this way.</li>
+<li class="">WebdaQL on a reference to a composite key compares its key parts: <code>pair = &#x27;x_y&#x27;</code>, <code>pair != &#x27;x_y&#x27;</code> and <code>IN</code> split
+the value on the key separator (a value that does not split matches nothing, everything for <code>!=</code>), <code>LIKE</code> and the
+ordering operators compare the joined text, <code>IS NULL</code> holds when every part is <code>NULL</code>.</li>
+<li class=""><code>incrementAttributes</code> works on numeric columns; <code>upsertItemToCollection</code> / <code>deleteItemFromCollection</code> work on JSONB
+arrays and on simple link arrays (by position); <code>updateMany</code> assigns columns and JSONB paths (one assignment per
+JSONB column); <code>deleteMany</code> is one <code>DELETE</code>.</li>
+<li class="">Aggregations and <code>count</code> run in SQL (<code>native: true</code>).</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_jLmG" id="errors">Errors<a href="#errors" class="hash-link" aria-label="Direct link to Errors" title="Direct link to Errors" translate="no">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Situation</th><th>Error</th></tr></thead><tbody><tr><td>duplicate primary key on <code>create</code></td><td><code>Error(&quot;Already exists: &lt;key&gt;&quot;)</code></td></tr><tr><td>a key listed twice in a link collection (<code>tags: [&quot;t1&quot;, &quot;t1&quot;]</code>) on <code>create</code>, <code>update</code> or <code>patch</code></td><td><code>WebdaError.BadRequest</code> naming the attribute</td></tr><tr><td>collision on a unique index (<code>@Unique</code>, <code>OneToOne</code>) on <code>create</code>, <code>update</code> or <code>patch</code></td><td><code>WebdaError.Conflict</code> naming the fields</td></tr><tr><td>foreign key violation on insert or update (unknown link target)</td><td><code>WebdaError.BadRequest</code> naming the relation</td></tr><tr><td>delete of a row still referenced (<code>NO ACTION</code>)</td><td><code>WebdaError.Conflict</code></td></tr><tr><td>duplicate key appended to a simple link array</td><td><code>WebdaError.Conflict</code></td></tr><tr><td><code>ORDER BY</code> on a junction attribute or a composite reference; a comparison a junction cannot answer (<code>tags = &#x27;t1&#x27;</code>); a filter on a filled <code>ModelsMapped</code> or on an unknown field without <code>_extra</code>; collection operation on a scalar; <code>incrementAttributes</code> on a non-numeric column</td><td><code>WebdaError.BadRequest</code></td></tr><tr><td>service named <code>Registry</code></td><td><code>WebdaError.CodeError(&quot;RELATIONAL_STORE_AS_REGISTRY&quot;)</code></td></tr><tr><td><code>table</code> parameter</td><td><code>WebdaError.CodeError(&quot;RELATIONAL_SHARED_TABLE&quot;)</code></td></tr><tr><td>repository of a model not listed</td><td><code>WebdaError.CodeError(&quot;MODEL_NOT_PLANNED&quot;)</code></td></tr><tr><td><code>schemaSync: &quot;validate&quot;</code> with a difference</td><td><code>SchemaDriftError</code> (<code>SCHEMA_DRIFT</code>)</td></tr><tr><td>plan incompatible with a live application version</td><td><code>SchemaIncompatibleError</code> (409, fatal at <code>init()</code>)</td></tr><tr><td><code>Registry</code> unreachable at <code>init()</code></td><td><code>SchemaRegistryError</code> (<code>SCHEMA_REGISTRY_UNAVAILABLE</code>, fatal)</td></tr><tr><td><code>Webda/SchemaVersion</code> listed in the store models</td><td><code>WebdaError.CodeError(&quot;RELATIONAL_SCHEMA_VERSION_MODEL&quot;)</code></td></tr><tr><td><code>importFromJsonb</code> from a relational store, or of a model whose JSONB table is the relational one</td><td><code>WebdaError.CodeError(&quot;RELATIONAL_IMPORT_SOURCE&quot; | &quot;RELATIONAL_IMPORT_TABLE&quot;)</code></td></tr></tbody></table>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="mapped-attributes">Mapped attributes<a href="#mapped-attributes" class="hash-link" aria-label="Direct link to Mapped attributes" title="Direct link to Mapped attributes" translate="no">​</a></h2>
+<p>A <code>ModelsMapped&lt;Post, &quot;author&quot;, &quot;title&quot;&gt;</code> is a denormalized copy kept by a <code>ModelMapper</code> on the document stores. When
+the mapped model (<code>Post</code>) is listed in the same relational store and its link (<code>author</code>, a reference or a link
+collection) targets this model, the store <strong>fills the attribute on read</strong> instead: one statement per attribute and per
+page of rows selects the rows of the mapped model (and of its subclasses) linking to each owner, in primary key order,
+and each item holds the mapped attributes and the <code>uuid</code> of the row (a composite key is joined). The attribute is
+never written (a value given on <code>create</code> / <code>patch</code> is ignored) and cannot be filtered: query the mapped model instead.
+Do not attach a <code>ModelMapper</code> to these models. A link collection of the mapped model is not copied into the items. A
+<code>ModelsMapped</code> whose model is served by another store keeps the previous behaviour (stored in <code>_extra</code>).</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="promoting-a-model-from-the-jsonb-store">Promoting a model from the JSONB store<a href="#promoting-a-model-from-the-jsonb-store" class="hash-link" aria-label="Direct link to Promoting a model from the JSONB store" title="Direct link to Promoting a model from the JSONB store" translate="no">​</a></h2>
+<p>A model served by the <code>Registry</code> (or any <code>PostgresStore</code>) moves to the relational store in three steps: list it in
+<code>models</code>, start the application (<code>schemaSync</code> creates its typed table), then import its rows:</p>
+<div class="language-bash codeBlockContainer_BE0R theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_fy2P"><pre tabindex="0" class="prism-code language-bash codeBlock_vuUB thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_aaS4"><div class="token-line" style="color:#393A34"><span class="token plain">webda postgres import --models MyApp/Post,MyApp/Tag --source Registry --purge</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
+<p><code>importFromJsonb(source, { models, purge })</code> reads the rows through the JSONB repository of the source and writes them
+through the relational repositories in <strong>one transaction</strong>: the links between the imported rows can point in any
+direction (deferred foreign keys), a row whose key is already in the relational table is skipped, and a failure
+(an unknown link target, a duplicate) rolls everything back. With <code>purge</code>, the rows are deleted from the source once
+committed. The JSONB table and the relational table of a model must have different names: name one of them with
+<code>tables</code> (the default name is the same on both stores). On a single client the import runs on its own transaction; with
+<code>usePool</code> it joins <code>withTransaction()</code>.</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="limitations">Limitations<a href="#limitations" class="hash-link" aria-label="Direct link to Limitations" title="Direct link to Limitations" translate="no">​</a></h2>
+<ul>
+<li class="">No <code>ORDER BY</code> on a junction attribute or on a reference to a composite key.</li>
+<li class="">A <code>ModelsMapped</code> is only filled when its model is in the same store.</li>
+<li class="">No <code>MigratableStore</code> raw access (there are no Webda 3 JSON rows in a typed table).</li>
+<li class="">A JSON <code>null</code> stored in a JSONB column reads as an absent field.</li>
+</ul>
+<p>Follow-ups tracked in <a href="https://github.com/loopingz/webda.io/issues/838" target="_blank" rel="noopener noreferrer" class="">#838</a>: per-version views and
+<code>schemaPerVersion</code> (#1016).</p>
+<h2 class="anchor anchorTargetStickyNavbar_jLmG" id="other-engines">Other engines<a href="#other-engines" class="hash-link" aria-label="Direct link to Other engines" title="Direct link to Other engines" translate="no">​</a></h2>
+<p>The same layer renders on SQLite with <a class="" href="/docs/Modules/sqlite/SQLiteRelationalStore"><code>SQLiteRelationalStore</code></a>. MySQL / MariaDB
+(<a href="https://github.com/loopingz/webda.io/issues/1010" target="_blank" rel="noopener noreferrer" class="">#1010</a>) and SQL Server
+(<a href="https://github.com/loopingz/webda.io/issues/1011" target="_blank" rel="noopener noreferrer" class="">#1011</a>) are not implemented: each is one <code>RelationalDialect</code> and one
+store. Please upvote and comment on those issues if you need them.</p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_ikyx"><a href="https://github.com/loopingz/webda.io/tree/docs/pages/Modules/postgres/PostgresRelationalStore.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_mkLG" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_ArRQ"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/Modules/postgres/"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">@webda/postgres</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/Modules/postgres/PostgresStore"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">PostgresSQL Store</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_S27E thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#jsonb-or-relational" class="table-of-contents__link toc-highlight">JSONB or relational?</a></li><li><a href="#parameters" class="table-of-contents__link toc-highlight">Parameters</a></li><li><a href="#mapping" class="table-of-contents__link toc-highlight">Mapping</a></li><li><a href="#schema-lifecycle" class="table-of-contents__link toc-highlight">Schema lifecycle</a></li><li><a href="#several-app-versions-on-the-same-database" class="table-of-contents__link toc-highlight">Several app versions on the same database</a></li><li><a href="#reads-and-writes" class="table-of-contents__link toc-highlight">Reads and writes</a><ul><li><a href="#errors" class="table-of-contents__link toc-highlight">Errors</a></li></ul></li><li><a href="#mapped-attributes" class="table-of-contents__link toc-highlight">Mapped attributes</a></li><li><a href="#promoting-a-model-from-the-jsonb-store" class="table-of-contents__link toc-highlight">Promoting a model from the JSONB store</a></li><li><a href="#limitations" class="table-of-contents__link toc-highlight">Limitations</a></li><li><a href="#other-engines" class="table-of-contents__link toc-highlight">Other engines</a></li></ul></div></div></div></div></div></main></div></div></div></div>
+</body>
+</html>

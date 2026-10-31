@@ -9,6 +9,7 @@ import {
   ModelLink,
   ModelLinksArray,
   ModelLinksMap,
+  MemoryStore,
   ModelLinksSimpleArray,
   ModelParent,
   ModelRelated,
@@ -18,7 +19,7 @@ import {
   createModelLinksMap
 } from "..";
 import { Task } from "../../test/models/task";
-import { WebdaTest } from "../test";
+import { TestApplication, WebdaTest } from "../test";
 
 @Expose()
 class TestMask extends CoreModel {
@@ -449,5 +450,153 @@ class CoreModelTest extends WebdaTest {
     await test2.refresh();
     assert.strictEqual(test.counter, undefined);
     assert.strictEqual(test2.counter, undefined);
+  }
+}
+
+/**
+ * Model restricting the write of `roles` to admins, owners can update their own record
+ */
+class Account extends CoreModel {
+  roles: string[];
+  name: string;
+
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
+    // Internal callers load without a context
+    if (!context) {
+      return value;
+    }
+    if (key === "roles" && mode === "WRITE" && !context.getSession()?.roles?.includes("admin")) {
+      return undefined;
+    }
+    return super.attributePermission(key, value, mode, context);
+  }
+
+  async canAct(ctx: OperationContext, action: string): Promise<string | boolean> {
+    if (action === "create" || action === "update") {
+      return this.getUuid() === `account_${ctx.getCurrentUserId()}` || "Not the owner";
+    }
+    return true;
+  }
+}
+
+@suite
+class AttributePermissionContextTest extends WebdaTest {
+  public async tweakApp(app: TestApplication): Promise<void> {
+    app.addModel("WebdaTest/Account", Account);
+    await super.tweakApp(app);
+  }
+
+  protected async buildWebda(): Promise<void> {
+    await super.buildWebda();
+    await this.registerService(
+      new MemoryStore(this.webda, "Accounts", {
+        model: "WebdaTest/Account",
+        expose: { url: "/accounts" }
+      })
+    )
+      .resolve()
+      .init();
+  }
+
+  async getContext(userId: string, roles?: string[]) {
+    const ctx = await this.newContext();
+    ctx.getSession().login(userId, "fake_ident");
+    ctx.getSession().roles = roles;
+    return ctx;
+  }
+
+  @test
+  async loadWithContext() {
+    const ctx = await this.getContext("alice");
+    // Request context: per-caller rule and default _ filtering both apply
+    let account = new Account().setContext(ctx).load(<any>{ roles: ["admin"], name: "Alice", _internal: "x" });
+    assert.strictEqual(account.roles, undefined);
+    assert.strictEqual(account.name, "Alice");
+    assert.strictEqual(account["_internal"], undefined);
+    account = Account.factory({ roles: ["admin"], name: "Alice" }, ctx);
+    assert.strictEqual(account.roles, undefined);
+    // Admin caller
+    account = new Account().setContext(await this.getContext("root", ["admin"])).load({ roles: ["admin"] });
+    assert.deepStrictEqual(account.roles, ["admin"]);
+    // Internal callers without a context keep working
+    account = new Account().load({ roles: ["admin"], name: "Alice" });
+    assert.deepStrictEqual(account.roles, ["admin"]);
+    account = Account.factory({ roles: ["admin"] });
+    assert.deepStrictEqual(account.roles, ["admin"]);
+  }
+
+  @test
+  async httpUpdateAsOwner() {
+    const store = this.webda.getService<MemoryStore<Account>>("Accounts");
+    await store.save({ uuid: "account_alice", roles: ["user"], name: "Alice" });
+    const ctx = await this.getContext("alice");
+
+    await this.execute(ctx, "test.webda.io", "PATCH", "/accounts/account_alice", {
+      roles: ["admin"],
+      name: "Alice 2",
+      _internal: "should not be written by client"
+    });
+    let account = await store.get("account_alice");
+    assert.deepStrictEqual(account.roles, ["user"]);
+    assert.strictEqual(account.name, "Alice 2");
+    assert.strictEqual(account["_internal"], undefined);
+
+    ctx.resetResponse();
+    await this.execute(ctx, "test.webda.io", "PUT", "/accounts/account_alice", {
+      roles: ["admin"],
+      name: "Alice 3",
+      _internal: "should not be written by client"
+    });
+    account = await store.get("account_alice");
+    // Attributes the caller cannot write are kept from the stored object
+    assert.deepStrictEqual(account.roles, ["user"]);
+    assert.strictEqual(account.name, "Alice 3");
+    assert.strictEqual(account["_internal"], undefined);
+
+    // Not the owner
+    const bob = await this.getContext("bob");
+    await assert.rejects(
+      () => this.execute(bob, "test.webda.io", "PATCH", "/accounts/account_alice", { name: "Bob" }),
+      WebdaError.Forbidden
+    );
+  }
+
+  @test
+  async httpUpdateAsAdmin() {
+    const store = this.webda.getService<MemoryStore<Account>>("Accounts");
+    await store.save({ uuid: "account_root", roles: ["user"], name: "Root" });
+    const ctx = await this.getContext("root", ["admin"]);
+    await this.execute(ctx, "test.webda.io", "PATCH", "/accounts/account_root", { roles: ["admin"] });
+    let account = await store.get("account_root");
+    assert.deepStrictEqual(account.roles, ["admin"]);
+    ctx.resetResponse();
+    await this.execute(ctx, "test.webda.io", "PUT", "/accounts/account_root", {
+      roles: ["user", "admin"],
+      name: "Root"
+    });
+    account = await store.get("account_root");
+    assert.deepStrictEqual(account.roles, ["user", "admin"]);
+  }
+
+  @test
+  async httpCreate() {
+    const store = this.webda.getService<MemoryStore<Account>>("Accounts");
+    await this.execute(await this.getContext("bob"), "test.webda.io", "POST", "/accounts", {
+      uuid: "account_bob",
+      roles: ["admin"],
+      name: "Bob",
+      _internal: "should not be written by client"
+    });
+    let account = await store.get("account_bob");
+    assert.strictEqual(account.roles, undefined);
+    assert.strictEqual(account.name, "Bob");
+    assert.strictEqual(account["_internal"], undefined);
+
+    await this.execute(await this.getContext("root", ["admin"]), "test.webda.io", "POST", "/accounts", {
+      uuid: "account_root",
+      roles: ["admin"]
+    });
+    account = await store.get("account_root");
+    assert.deepStrictEqual(account.roles, ["admin"]);
   }
 }

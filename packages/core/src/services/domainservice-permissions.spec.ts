@@ -180,6 +180,34 @@ class Slugged extends Model {
 }
 
 /**
+ * Per-caller field write rule: `roles` is protected unless the caller session holds the "admin" role; the owner
+ * (and an admin) may update the record
+ */
+class Account extends UuidModel {
+  owner: string;
+  name: string;
+  roles?: string[];
+
+  static getProtectedAttributes(context?: IOperationContext): string[] {
+    // An unknown caller (no context) is not an admin
+    return Account.isAdmin(context) ? ["owner"] : ["owner", "roles"];
+  }
+
+  static isAdmin(context?: IOperationContext): boolean {
+    return context?.getSession()?.roles?.includes("admin") === true;
+  }
+
+  prepareCreate(context: IOperationContext): void {
+    this.owner = context.getCurrentUserId();
+  }
+
+  async canAct(context: IOperationContext): Promise<string | boolean> {
+    if (!context.getCurrentUserId()) return "login required";
+    return context.getCurrentUserId() === this.owner || Account.isAdmin(context);
+  }
+}
+
+/**
  * Repository paging like Postgres or Firestore: the token is `offset + limit`, counted over the matching rows
  */
 class OffsetRepository extends MemoryRepository<any> {
@@ -200,6 +228,7 @@ class OffsetRepository extends MemoryRepository<any> {
 }
 
 Slugged.registerSerializer();
+Account.registerSerializer();
 PublicNote.registerSerializer();
 Report.registerSerializer();
 PermSubTask.registerSerializer();
@@ -340,6 +369,7 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       PrimaryKey: ["slug"],
       Plural: "Slugged"
     });
+    app.addModel("WebdaDemo/Account", Account, metadata("WebdaDemo/Account"));
     const router = new Router("Router", new RouterParameters().load({}));
     this.registerService(router);
     router.resolve();
@@ -378,6 +408,7 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     registerRepository(AclDoc, new MemoryRepository(AclDoc, ["uuid"]));
     registerRepository(PermSubTask, new MemoryRepository(PermSubTask, ["uuid"]));
     registerRepository(Slugged as any, new MemoryRepository(Slugged as any, ["slug"]) as any);
+    registerRepository(Account, new MemoryRepository(Account, ["uuid"]));
     registerRepository(PermUser as any, new MemoryRepository(PermUser as any, ["uuid"]) as any);
     await PermTask.create({ uuid: "task-a", title: "A private", _user: USER_A } as any);
     await PermTask.create({ uuid: "task-b", title: "B private", _user: USER_B } as any);
@@ -390,13 +421,15 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
    * @param method - HTTP method
    * @param url - URL
    * @param body - request body
+   * @param roles - session roles of the caller
    * @returns the status code and the parsed body
    */
   async request(
     user: string | undefined,
     method: HttpMethodType,
     url: string,
-    body?: any
+    body?: any,
+    roles?: string[]
   ): Promise<{ status: number; body: any }> {
     const httpContext = new HttpContext("test.webda.io", method, url, "http", 80, {});
     if (body !== undefined) {
@@ -407,6 +440,9 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     ctx.newSession();
     if (user) {
       ctx.getSession().login(user, user);
+    }
+    if (roles) {
+      ctx.getSession().roles = roles;
     }
     let status = 0;
     await runWithContext(ctx, async () => {
@@ -797,6 +833,70 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     );
     assert.strictEqual((await PublicNote.ref(uuid).get()).stamp, "server");
     assert.deepStrictEqual(sanitizeModelInput(PublicNote as any, { text: "a", stamp: "b" }), { text: "a" });
+  }
+
+  /**
+   * Per-caller field write rules (#1007): `getProtectedAttributes(context)` drops `roles` from the input of every
+   * caller without the admin role, on create, patch and update, through the real REST path
+   */
+  @test
+  async perCallerFieldWriteRules() {
+    const ADMIN = ["admin"];
+    // The owner creates the account: `roles` (and `owner`) are not taken from the client
+    const created = await this.request(USER_A, "POST", "/perm/accounts", {
+      name: "A",
+      roles: ["admin"],
+      owner: USER_B
+    });
+    assert.strictEqual(created.status, 200, JSON.stringify(created.body));
+    const uuid = created.body.uuid;
+    let account = await Account.ref(uuid).get();
+    assert.strictEqual(account.owner, USER_A);
+    assert.strictEqual(account.roles, undefined);
+    await Account.ref(uuid).patch({ roles: ["user"] });
+
+    // The owner may update the record, not its roles: the request succeeds without them
+    let res = await this.request(USER_A, "PATCH", `/perm/accounts/${uuid}`, { name: "A2", roles: ["admin"] });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    account = await Account.ref(uuid).get();
+    assert.strictEqual(account.name, "A2");
+    assert.deepStrictEqual(account.roles, ["user"]);
+    res = await this.request(USER_A, "PUT", `/perm/accounts/${uuid}`, { name: "A3", roles: ["admin"], owner: USER_A });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    account = await Account.ref(uuid).get();
+    assert.strictEqual(account.name, "A3");
+    assert.deepStrictEqual(account.roles, ["user"]);
+    // The owner role claim is in the session, not in the body
+    res = await this.request(USER_A, "PATCH", `/perm/accounts/${uuid}`, { roles: ["admin"], __proto__: { x: 1 } });
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual((await Account.ref(uuid).get()).roles, ["user"]);
+
+    // Another user cannot even see the account
+    assert.strictEqual((await this.request(USER_B, "PATCH", `/perm/accounts/${uuid}`, { roles: ADMIN })).status, 404);
+
+    // An admin may write the roles, on patch and on update
+    res = await this.request(USER_B, "PATCH", `/perm/accounts/${uuid}`, { roles: ["user", "admin"] }, ADMIN);
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual((await Account.ref(uuid).get()).roles, ["user", "admin"]);
+    res = await this.request(USER_B, "PUT", `/perm/accounts/${uuid}`, { name: "A4", roles: ["admin"] }, ADMIN);
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    account = await Account.ref(uuid).get();
+    assert.strictEqual(account.name, "A4");
+    assert.deepStrictEqual(account.roles, ["admin"]);
+    // and set them on create
+    const adminCreated = await this.request(USER_B, "POST", "/perm/accounts", { name: "B", roles: ADMIN }, ADMIN);
+    assert.strictEqual(adminCreated.status, 200, JSON.stringify(adminCreated.body));
+    assert.deepStrictEqual((await Account.ref(adminCreated.body.uuid).get()).roles, ADMIN);
+
+    // The sanitizer itself: no context is an unknown caller, never a privileged one
+    assert.deepStrictEqual(sanitizeModelInput(Account, { name: "x", roles: ADMIN, owner: "o" }), { name: "x" });
+    const admin = new SimpleOperationContext();
+    admin.newSession();
+    admin.getSession().roles = ADMIN;
+    assert.deepStrictEqual(sanitizeModelInput(Account, { name: "x", roles: ADMIN, owner: "o" }, admin), {
+      name: "x",
+      roles: ADMIN
+    });
   }
 
   @test

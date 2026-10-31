@@ -121,7 +121,7 @@ export function isInputAttribute(attribute: string, graph?: ModelGraph, writable
  */
 export async function createFromInput(model: any, input: any, context: any): Promise<any> {
   // Same input rules as the REST create: sanitized, parent link kept, client uuid ignored for UuidModels
-  const data: any = prepareCreateInput(model, input ?? {});
+  const data: any = prepareCreateInput(model, input ?? {}, context);
   const object = new model();
   object.load(data);
   // The parent must exist and be readable: an unreadable parent answers like a missing one
@@ -166,7 +166,7 @@ function primaryKeyFields(model: any): string[] {
  * @throws GraphQLError PERMISSION_DENIED when the object refuses the update
  */
 export async function updateFromInput(model: any, uuid: string, input: any, context: any): Promise<any> {
-  input = sanitizeModelInput(model, input ?? {});
+  input = sanitizeModelInput(model, input ?? {}, context);
   // The key comes from the arguments: a body carrying another key would write over that other object
   for (const field of primaryKeyFields(model)) {
     if (input[field] !== undefined && String(input[field]) !== String(uuid)) {

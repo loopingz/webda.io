@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CallContext, Transport } from "./types.js";
 import { WebdaClient } from "./client.js";
 import { FakeServer, MODELS, OPERATIONS } from "./fixture.js";
 import { ModelClient } from "./model-client.js";
@@ -145,6 +146,71 @@ describe("web tracing", () => {
     expect(client.isWebTracing()).toBe(false);
     await client.call("Task.Get", { uuid: "t1" } as any);
     expect(last()["X-Webda-Trace"]).toBeUndefined();
+  });
+
+  it("lets a caller header win whatever its case", async () => {
+    const { client, last } = setup();
+    await client.enableWebTracing("rec-1");
+    const tp = "00-" + "a".repeat(32) + "-" + "b".repeat(16) + "-01";
+    await client.call("Task.Get", { uuid: "t1" } as any, { headers: { Traceparent: tp, "x-webda-trace": "mine" } });
+    const h = last();
+    expect(h.Traceparent).toBe(tp);
+    expect(h["x-webda-trace"]).toBe("mine");
+    expect(h.traceparent).toBeUndefined();
+    expect(h["X-Webda-Trace"]).toBeUndefined();
+    expect(h.baggage).toBe("session.id=rec-1");
+  });
+
+  it("ignores malformed span contexts from the callback", async () => {
+    const { client, last } = setup();
+    const good = "0123456789abcdef";
+    const cases = [
+      { traceId: "A".repeat(32), spanId: good },
+      { traceId: "ab", spanId: good },
+      { traceId: "1".repeat(32), spanId: "short" },
+      { traceId: "bad", spanId: good }
+    ];
+    for (const ctx of cases) {
+      await client.enableWebTracing("rec-1", { activeSpanContext: () => ctx });
+      await client.call("Task.Get", { uuid: "t1" } as any);
+      const tp = last().traceparent;
+      expect(tp).toMatch(TRACEPARENT);
+      expect(tp).not.toContain(ctx.traceId);
+    }
+  });
+
+  it("reaches every transport and call kind", async () => {
+    const seen: Record<string, CallContext | undefined> = {};
+    const stub = (name: string): Transport => ({
+      name,
+      supports: () => true,
+      call: async (op, _i, ctx) => {
+        seen[name + ".call"] = ctx;
+        return op.id === "Otel.EnableWebTracing"
+          ? { token: "tok-1", sessionId: "rec-1", expiresAt: Date.now() + 9999 }
+          : {};
+      },
+      async *stream(_op, _i, ctx) {
+        seen[name + ".stream"] = ctx;
+      },
+      connect: (_op, ctx) => {
+        seen[name + ".connect"] = ctx;
+        return {} as any;
+      }
+    });
+    for (const name of ["graphql", "grpc"]) {
+      const client = new WebdaClient({ transports: [stub(name)], operations: TRACING_OPERATIONS, models: MODELS });
+      await client.enableWebTracing("rec-1");
+      await client.call("Task.Get", { uuid: "t1" } as any);
+      for await (const _ of client.stream("Task.Get", { uuid: "t1" } as any)) void _;
+      client.connect("Task.Get");
+      for (const kind of ["call", "stream", "connect"]) {
+        const h = seen[`${name}.${kind}`]?.headers;
+        expect(h?.["X-Webda-Trace"], `${name}.${kind}`).toBe("tok-1");
+        expect(h?.baggage).toBe("session.id=rec-1");
+        expect(h?.traceparent).toMatch(TRACEPARENT);
+      }
+    }
   });
 
   it("traceHeaders is empty without state or when expired", () => {

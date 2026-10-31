@@ -123,7 +123,7 @@ export class PostgresRelationalStore<
    * @param model - the model
    * @returns the table, undefined when no foreign key can reference it
    */
-  jsonTableOf(store: Store, model: ModelClass): string | undefined {
+  jsonTableOf(store: Store | undefined, model: ModelClass): string | undefined {
     if (!(store instanceof PostgresStore) || store instanceof PostgresRelationalStore) {
       return undefined;
     }

@@ -291,6 +291,7 @@ export class PostgresRelationalStoreTest extends WebdaApplicationTest {
     await dropRelationalTables(this.admin);
     const empty = await this.another("empty", { models: undefined });
     assert.deepStrictEqual(empty.getSchemaPlan().tables, []);
+    assert.deepStrictEqual(await empty.importFromJsonb(useCore().getService("Registry") as any), []);
     assert.deepStrictEqual(await this.columns("rel_post"), []);
     await empty.stop();
   }

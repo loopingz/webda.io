@@ -408,6 +408,11 @@ describe("RelationalSchemaBuilder", () => {
     ).toThrow(/@Index on Tagged\/Bad.tags: not a column/);
     expect(() =>
       buildSchemaPlan([
+        model("Tagged/Bad", { uuid }, { Relations: { indexes: [{ attribute: "nope", unique: true }] } })
+      ])
+    ).toThrow(/@Unique on Tagged\/Bad.nope: not a column/);
+    expect(() =>
+      buildSchemaPlan([
         model(
           "Tagged/Bad",
           { uuid, a: uuid, b: uuid },

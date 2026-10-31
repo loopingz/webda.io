@@ -838,6 +838,11 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
     await posts.create({ uuid: "p1", title: "T", tags: ["t1"] });
     await assert.rejects(() => posts.patch("p1", { tags: ["t2", "t2"] }), WebdaError.BadRequest);
     assert.deepStrictEqual(((await posts.get("p1")) as any).tags, ["t1"]);
+    // Any other junction failure is reported as is
+    (posts as any).writeJunction = async () => {
+      throw new Error("boom");
+    };
+    await assert.rejects(() => posts.patch("p1", { tags: ["t2"] }), /boom/);
   }
 
   @test

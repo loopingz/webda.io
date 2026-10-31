@@ -332,15 +332,14 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
     const index = this.mapping.plan.indexes.find(
       i =>
         i.name === violation.constraint ||
-        (violation.columns !== undefined &&
-          i.table === (violation.table ?? this.table) &&
-          same(i.columns, violation.columns))
+        (violation.columns !== undefined && i.table === violation.table && same(i.columns, violation.columns))
     );
     if (!index) {
-      return `unique constraint ${violation.constraint ?? violation.columns?.join(", ") ?? "(unnamed)"} violated`;
+      // What the engine reported: the constraint name (Postgres) or the columns (SQLite)
+      const what = [violation.constraint, ...(violation.columns ?? [])].filter(Boolean).join(", ");
+      return `unique constraint ${what} violated`;
     }
-    const fields = index.columns.map(c => this.mapping.table.columns.find(col => col.name === c)?.field || c);
-    return `${fields.join(", ")} must be unique`;
+    return `${index.columns.map(c => this.fieldOf(c)).join(", ")} must be unique`;
   }
 
   /**

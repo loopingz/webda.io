@@ -115,11 +115,11 @@ export interface RelationalStoreHost {
   /**
    * The JSON table of a model served by a JSON store of the same engine on the same database, with a table per
    * model (`foreignKeysToJsonb`)
-   * @param store - the store serving the model
+   * @param store - the store serving the model, undefined without a `Registry`
    * @param model - the model
    * @returns the table name, undefined when no foreign key can reference it
    */
-  jsonTableOf?(store: Store, model: ModelClass): string | undefined;
+  jsonTableOf?(store: Store | undefined, model: ModelClass): string | undefined;
 }
 
 /**
@@ -220,8 +220,7 @@ export class RelationalStoreSupport {
         continue;
       }
       const model = useModel(meta.Identifier);
-      const store = Store.storeOf(model);
-      const table = store ? this.host.jsonTableOf(store, model) : undefined;
+      const table = this.host.jsonTableOf(Store.storeOf(model), model);
       if (table) {
         tables[meta.Identifier] = { table, columns: ["uuid"] };
       }
@@ -299,15 +298,19 @@ export class RelationalStoreSupport {
       }
       return { identifier, model, order: plan.tables.indexOf(table) };
     });
+    if (!targets.length) {
+      return [];
+    }
     // Referenced tables first: the import then reads naturally in the logs, the transaction allows any order
     targets.sort((a, b) => a.order - b.order);
     const reports: ImportReport[] = [];
-    let last: RelationalRepository<any> | undefined;
+    // Maps the error of a deferred foreign key failing at COMMIT like the statement's (the plan is shared)
+    const mapper = options.repository(targets[0].model);
     await options
       .transact(async tx => {
         for (const { identifier, model } of targets) {
           const report: ImportReport = { model: identifier, imported: 0, skipped: 0 };
-          const target = (last = options.repository(model, tx));
+          const target = options.repository(model, tx);
           for await (const item of source.getRepository(model).iterate("")) {
             if (await target.exists(item)) {
               report.skipped++;
@@ -324,8 +327,7 @@ export class RelationalStoreSupport {
         }
       })
       .catch(err => {
-        // A deferred foreign key fails at COMMIT: mapped like the statement's
-        throw last ? last.mapError("INSERT", err) : err;
+        throw mapper.mapError("INSERT", err);
       });
     if (options.purge) {
       for (const { identifier, model } of targets) {

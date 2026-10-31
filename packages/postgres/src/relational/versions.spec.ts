@@ -331,6 +331,13 @@ export class PostgresSchemaVersionsTest extends WebdaApplicationTest {
 
   @test
   async heartbeatRunsOnAnInterval() {
+    // Nothing registered yet: nothing to compare with
+    const unregistered = this.store("relational-first", { appVersion: "0.9.0" });
+    assert.strictEqual(await unregistered.schemaCheck(), 0);
+    assert.ok(
+      this.output.some(line => line.endsWith("against no live version")),
+      this.output.join("\n")
+    );
     const store = await this.start("relational", { appVersion: "1.0.0", versionHeartbeat: 0.01 });
     const registered = (store as any).relational.version as SchemaVersion;
     const first = registered.lastHeartbeat.getTime();
@@ -352,6 +359,8 @@ export class PostgresSchemaVersionsTest extends WebdaApplicationTest {
     }
     await store.stop();
     assert.strictEqual((store as any).relational.heartbeat, undefined);
+    const silent = await this.start("relational-silent", { appVersion: "1.0.0", versionHeartbeat: 0 });
+    assert.strictEqual((silent as any).relational.heartbeat, undefined, "versionHeartbeat 0 starts no interval");
     this.output = [];
     assert.strictEqual(await store.schemaCheck(), 0, "a version alone matches itself");
     assert.ok(this.output.some(line => line === "-- no change"));

@@ -28,6 +28,7 @@ import * as http2 from "node:http2";
 import { X509Certificate } from "node:crypto";
 import { afterAll, vi } from "vitest";
 import { State } from "@webda/utils";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { createTestCertificates } from "../test/certificates.js";
 import type { ClientCertificate } from "../contexts/clientcertificate.js";
 
@@ -1502,6 +1503,12 @@ class HttpServerTest extends WebdaApplicationTest {
     assert.strictEqual(server.resolveClientIp(req("10.1.1.1", "[::1]:80")), "[::1]:80");
     assert.strictEqual(server.resolveClientIp(req(undefined)), undefined);
     assert.strictEqual(server.resolveClientIp(req(undefined, "1.2.3.4")), undefined);
+    // Repeated headers as an array: one list of hops
+    const repeated = req("10.1.1.1");
+    repeated.headers["x-forwarded-for"] = ["203.0.113.9, 10.0.0.6", "10.0.0.5"];
+    assert.strictEqual(server.resolveClientIp(repeated), "203.0.113.9");
+    // Only separators: no hop, the peer is the client
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1", " , ,")), "10.1.1.1");
   }
 
   @test
@@ -1570,6 +1577,46 @@ class HttpServerTest extends WebdaApplicationTest {
     } finally {
       registerRequestTracer(undefined);
     }
+  }
+
+  @test
+  async tracedRequestFallbacks() {
+    const server = this.replaceServer({});
+    const traced: any[] = [];
+    registerRequestTracer({
+      trace: (request, fn) => {
+        traced.push(request);
+        return fn({ setStatus: () => {} });
+      }
+    });
+    let handled = 0;
+    (server as any).handleWebRequest = async () => {
+      handled++;
+    };
+    server.resolveClientIp = () => {
+      throw new Error("no address");
+    };
+    // An HTTP/2 secure server defaults to https
+    (server as any).isHttp2 = true;
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      const req = this.fakeRequest("127.0.0.1", { ":path": "/x" });
+      req.url = undefined;
+      await server.handleRequest(req, { statusCode: 200 } as any);
+    } finally {
+      memoryLogger.close();
+      registerRequestTracer(undefined);
+    }
+    // The request is still served and traced, without client address
+    assert.strictEqual(handled, 1);
+    assert.strictEqual(traced.length, 1);
+    assert.strictEqual(traced[0].scheme, "https");
+    assert.strictEqual(traced[0].path, "");
+    assert.strictEqual(traced[0].clientIp, undefined);
+    assert.strictEqual(traced[0].headers[":path"], undefined);
+    assert.ok(
+      memoryLogger.getLogs().some(m => m.log?.level === "WARN" && m.log.args[0] === "Cannot resolve the client address")
+    );
   }
 
   @test

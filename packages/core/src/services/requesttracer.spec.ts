@@ -99,6 +99,31 @@ class RequestTracerTest {
   }
 
   @test
+  async tracerFailingWhileFnRuns() {
+    let release: () => void = () => {};
+    const pending = new Promise<void>(resolve => (release = resolve));
+    // The tracer starts fn without waiting for it, then fails: fn has no outcome yet
+    registerRequestTracer({
+      trace: async (_req, fn) => {
+        fn({ setStatus: () => {} }).catch(() => {});
+        throw new Error("tracer");
+      }
+    });
+    let calls = 0;
+    await assert.rejects(
+      traceRequest(request, async () => {
+        calls++;
+        await pending;
+        return "late";
+      }),
+      /tracer/
+    );
+    // Never re-run
+    assert.strictEqual(calls, 1);
+    release();
+  }
+
+  @test
   subnetChecker() {
     const check = createSubnetChecker(["10.0.0.0/8", "192.168.1.1"]);
     assert.ok(check("10.2.3.4"));

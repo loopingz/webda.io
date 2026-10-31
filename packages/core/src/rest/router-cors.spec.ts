@@ -6,6 +6,7 @@ import { runWithContext } from "../contexts/execution.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { CorsOriginFilter } from "./originfilter.js";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
 /**
  * CORS response headers are sent for the allowed websites only
@@ -214,6 +215,26 @@ class RouterCorsTest extends WebdaApplicationTest {
     // Malformed configuration entries are ignored, not fatal
     const broken = new CorsOriginFilter(["::::", "https://ok.example.com"]);
     assert.ok(broken.matches("https://ok.example.com"));
+    // Opaque origins (non-special schemes) are never accepted, even by "*"
+    assert.ok(!any.matches("foo://bar"));
+    assert.ok(!any.matches("file:///etc/passwd"));
+    // nor configurable: ignored with a warning
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    let opaque: CorsOriginFilter;
+    try {
+      opaque = new CorsOriginFilter(["file:///tmp", "foo://bar"]);
+    } finally {
+      memoryLogger.close();
+    }
+    assert.ok(!opaque.matches("foo://bar"));
+    assert.ok(!opaque.matches("file:///tmp"));
+    assert.deepStrictEqual(
+      memoryLogger
+        .getLogs()
+        .filter(m => m.log?.level === "WARN")
+        .map(m => m.log!.args[0]),
+      ["Ignoring invalid CORS origin 'file:///tmp'", "Ignoring invalid CORS origin 'foo://bar'"]
+    );
   }
 
   @test

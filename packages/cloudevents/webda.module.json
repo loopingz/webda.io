@@ -1,13 +1,235 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
-  "moddas": {},
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
+  "moddas": {
+    "Webda/CloudEventsReceiver": {
+      "Import": "lib/services/cloudeventsreceiver.service:CloudEventsReceiver",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "CloudEventFilterDefinition": {
+            "additionalProperties": false,
+            "description": "A filter in the CloudEvents Subscriptions dialects: one key, the dialect, with its expression\n\nDeclared without the recursion of {@link Filter} so the configuration schema stays finite: the\nnested filters of `all`, `any` and `not` are the same objects.",
+            "properties": {
+              "all": {
+                "description": "Filters that must all match",
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20unknown%3E"
+                },
+                "type": "array"
+              },
+              "any": {
+                "description": "Filters of which one must match",
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20unknown%3E"
+                },
+                "type": "array"
+              },
+              "exact": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+                "description": "Attributes that must equal the values: `{ \"type\": \"com.acme.order.created\" }`"
+              },
+              "not": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20unknown%3E",
+                "description": "A filter that must not match"
+              },
+              "prefix": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+                "description": "Attributes that must start with the values"
+              },
+              "sql": {
+                "description": "A CloudEvents SQL expression: `type = 'com.acme.order.created' AND subject LIKE 'eu-%'`",
+                "type": "string"
+              },
+              "suffix": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+                "description": "Attributes that must end with the values"
+              }
+            },
+            "type": "object"
+          },
+          "Record<string, string>": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, unknown>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the {@link CloudEventsReceiver}",
+        "properties": {
+          "dedupe": {
+            "default": false,
+            "description": "Acknowledge an event already handled with the same `source` and `id` without dispatching it again\n\nDelivery is at-least-once: the sender retries an event it did not get a 2xx for, so a handler that\nsucceeded but whose response was lost runs twice. The cache is in memory and per replica: it only\ncovers the retries reaching the same replica, keep the handlers idempotent.",
+            "type": "boolean"
+          },
+          "dedupeSize": {
+            "default": 10000,
+            "description": "Entries the `dedupe` cache keeps, the oldest are evicted first",
+            "type": "number"
+          },
+          "dedupeTtl": {
+            "default": 3600000,
+            "description": "Milliseconds a handled `source` + `id` is remembered by `dedupe`",
+            "type": "number"
+          },
+          "filters": {
+            "description": "Filters every event must match to be dispatched, in the CloudEvents Subscriptions dialects:\n`exact`, `prefix`, `suffix`, `all`, `any` and `sql` (CESQL)\n\nAn event not matching is acknowledged (202) without reaching the handlers.",
+            "example": [
+              {
+                "prefix": {
+                  "type": "com.acme."
+                }
+              },
+              [
+                {
+                  "sql": "type = 'com.acme.order.created' AND subject LIKE 'eu-%'"
+                }
+              ]
+            ],
+            "items": {
+              "$ref": "#/definitions/CloudEventFilterDefinition"
+            },
+            "type": "array"
+          },
+          "strict": {
+            "default": false,
+            "description": "Strict validation of the received events: `specversion` must be `1.0`, the required attributes\nnon-empty and the optional ones well-formed (`time` RFC3339), on top of the SDK validation\n\nLoose by default: the required attributes (`specversion`, `type`, `source`, `id`) must be strings.",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/cloudevents",
+            "description": "Path of the `POST` route receiving the events",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "CloudEventsReceiver"
+      },
+      "Configuration": "lib/services/cloudeventsreceiver.service:CloudEventsReceiverParameters"
+    },
+    "Webda/KnativeBrokerPubSub": {
+      "Import": "lib/services/knativebrokerpubsub.service:KnativeBrokerPubSub",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, string>": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the {@link KnativeBrokerPubSub}",
+        "properties": {
+          "broker": {
+            "default": "default",
+            "description": "Name of the Broker, for the default `brokerUrl`",
+            "type": "string"
+          },
+          "brokerUrl": {
+            "default": "http://broker-ingress.knative-eventing.svc.cluster.local/${namespace}/${broker}",
+            "description": "URL of the Broker ingress the events are posted to",
+            "type": "string"
+          },
+          "headers": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {},
+            "description": "Headers added to the requests to the Broker, like an `Authorization`"
+          },
+          "namespace": {
+            "default": "default",
+            "description": "Namespace of the Broker, for the default `brokerUrl`",
+            "type": "string"
+          },
+          "receiver": {
+            "default": "CloudEventsReceiver",
+            "description": "Name of the `Webda/CloudEventsReceiver` service the consumers register on\n\nA Knative `Trigger` on the Broker must deliver to its route (the `Webda/KnativeDeployer`\n`triggers` parameter creates it).",
+            "type": "string"
+          },
+          "timeout": {
+            "default": 30000,
+            "description": "Milliseconds before a request to the Broker is aborted",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "KnativeBrokerPubSub"
+      },
+      "Configuration": "lib/services/knativebrokerpubsub.service:KnativeBrokerPubSubParameters"
+    }
   },
-  "schemas": {}
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {}
 }

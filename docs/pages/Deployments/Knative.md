@@ -178,6 +178,89 @@ first request.
 - `maxScale` bounds the burst; `target` (default 100 concurrent requests per replica) decides when a replica
   is added, `containerConcurrency` is a hard limit the queue proxy enforces.
 
+## Eventing
+
+[Knative Eventing](https://knative.dev/docs/eventing/) delivers CloudEvents from a `Broker` to the services a
+`Trigger` selects, over HTTP. `@webda/cloudevents` provides both ends:
+
+- `Webda/CloudEventsReceiver` is the sink: a `POST` route (`url`, `/cloudevents`) accepting the binary
+  (`ce-*` headers), structured (`application/cloudevents+json`) and batch (`application/cloudevents-batch+json`)
+  content modes, dispatching every event to the handlers registered on its exact `type` or a predicate.
+- `Webda/KnativeBrokerPubSub` is a `PubSubService`: `sendMessage` posts a CloudEvent to the Broker ingress,
+  `consume` registers on the receiver (Knative pushes, nothing polls) and `size()` is unsupported (0).
+- The deployer `triggers` parameter generates the `Trigger`s delivering the Broker events to the receiver.
+
+```jsonc title="webda.config.jsonc"
+{
+  "services": {
+    "CloudEventsReceiver": { "type": "Webda/CloudEventsReceiver", "url": "/cloudevents", "dedupe": true },
+    "Events": { "type": "Webda/KnativeBrokerPubSub", "namespace": "apps", "broker": "default" }
+  }
+}
+```
+
+```jsonc title="deployments/production.jsonc"
+{
+  "name": "knative",
+  "type": "Webda/KnativeDeployer",
+  "namespace": "apps",
+  "triggers": [
+    { "broker": "default", "filter": { "type": "com.acme.order.created" } },
+    { "name": "returns", "broker": "default", "filters": [{ "cesql": "type LIKE 'com.acme.return.%'" }] }
+  ]
+}
+```
+
+`knative manifest` prints the Triggers after the Service (one YAML document each), `deploy` applies them once
+the Service is Ready (server-side apply, like the Service) and `knative delete --yes` removes them first. A
+Trigger subscribes to `broker` (`default`) and delivers the events matching `filter` (exact attributes) or
+`filters` (the `new-trigger-filters` feature: `exact`, `prefix`, `suffix`, `all`, `any`, `not`, `cesql`) to the
+Service on `path` (`/cloudevents`), so the receiver `url` and the Trigger `path` must match. Cloud Run has no
+Knative Eventing: `triggers` are dropped with a warning, use Eventarc.
+
+```ts
+import { CloudEventHandler, CloudEventsReceiver, KnativeBrokerPubSub } from "@webda/cloudevents";
+import { Service, useService } from "@webda/core";
+import { CloudEvent } from "cloudevents";
+
+class Orders extends Service {
+  // Discovered by the receiver when it initializes, like @Route by the Router
+  @CloudEventHandler("com.acme.order.created")
+  async onCreated(event: CloudEvent<Order>) {
+    await Order.ref(event.data.id).patch({ status: "received" });
+    // Optional reply, sent back in the response (the Broker delivers it like any event)
+    return new CloudEvent({ type: "com.acme.order.received", source: "/orders", data: { id: event.data.id } });
+  }
+}
+
+// Or at runtime, by type or predicate; the returned function unsubscribes
+const receiver = useService<CloudEventsReceiver>("CloudEventsReceiver");
+receiver.subscribe(event => event.type.startsWith("com.acme."), async event => { ... });
+await useService<KnativeBrokerPubSub>("Events").sendMessage(new CloudEvent({ type: "com.acme.order.created", source: "/orders", data: order }));
+```
+
+### Delivery contract
+
+| Answer                  | When                                                                | Knative                       |
+| ----------------------- | ------------------------------------------------------------------- | ----------------------------- |
+| `202`                   | Every handler succeeded (also: no handler, filtered out, duplicate) | Acknowledged                  |
+| `200` with a CloudEvent | A handler returned a reply (binary mode, a batch in batch mode)     | Acknowledged, reply delivered |
+| `400`                   | Not a CloudEvent, or an invalid one (`strict` adds the SDK schema)  | Not retried                   |
+| `500`                   | A handler threw (a `WebdaError.HttpError` keeps its own status)     | Retried, then dead-lettered   |
+
+A batch is acknowledged as a whole: one failing handler refuses the batch and the sender redelivers it. Delivery
+is **at-least-once**: a retry after a lost acknowledgement runs the handler again, so handlers must be idempotent.
+`dedupe: true` acknowledges an event already handled with the same `source` and `id` without dispatching it
+(`dedupeTtl` 1h, `dedupeSize` 10000 entries); the cache is in memory and per replica, it only catches the
+retries reaching the same replica and a failed delivery is never remembered. `filters` (CloudEvents Subscriptions
+dialects, CESQL included) acknowledges the events not matching without dispatching them: prefer a Trigger filter,
+which keeps them off the network. Configure the Broker delivery (`spec.delivery` on the Broker or Trigger:
+`retry`, `backoffPolicy`, `deadLetterSink`) for the retries, Webda does not retry itself.
+
+A `consume` callback of `Webda/KnativeBrokerPubSub` runs in the request of the Trigger with the same contract:
+its error answers `500` and the Broker retries. `sendMessage` fails (`KNATIVE_BROKER_REJECTED`) when the Broker
+ingress does not answer 2xx, unlike the SDK `httpTransport` which ignores the status.
+
 ## Stateless rules
 
 Knative starts and stops replicas at any time: every replica must be disposable.

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "parameters": {
+    "apiUrl": "http://localhost:18080"
+  },
+  "services": {}
+}

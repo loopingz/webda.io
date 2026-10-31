@@ -98,13 +98,16 @@ webda -d production knative delete --yes
 | `traffic`                          | array            | latest 100%         | Traffic split between revisions                                                                    |
 | `revisionSuffix`                   | string           | `${git.short}`      | Deterministic revision names                                                                       |
 | `platform`                         | string           | `knative`           | `cloudrun` adjusts the manifest for `gcloud run services replace`                                  |
+| `triggers`                         | array            | `[]`                | Knative Eventing `Trigger`s delivering a Broker to the `Webda/CloudEventsReceiver` route (`path`)  |
 | `template` / `output`              | object \| string | —                   | Deep-merged overrides, file the manifest is written to                                             |
 | `config` / `context` / `timeout`   |                  | kubeconfig          | Cluster access, as the other services                                                              |
 
 The application needs no Knative-specific configuration: the `HttpServer` listens on `$PORT`, answers the
-readiness probe on `healthPath` and drains its in-flight requests on `SIGTERM`. See the
-[Knative deployment guide](https://webda.io/docs/Deployments/Knative) for the Cloud Run differences, the
-cold-start guidance and the stateless rules.
+readiness probe on `healthPath` and drains its in-flight requests on `SIGTERM`. With `triggers`, `knative manifest`
+prints an `eventing.knative.dev/v1` Trigger per entry after the Service (multi-document YAML), `deploy` applies them
+once the Service is Ready and `knative delete` removes them; the events reach the `Webda/CloudEventsReceiver` of
+`@webda/cloudevents`. See the [Knative deployment guide](https://webda.io/docs/Deployments/Knative) for the Cloud
+Run differences, the cold-start guidance, the stateless rules and the Eventing contract.
 
 ## Usage
 

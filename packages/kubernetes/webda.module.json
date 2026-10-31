@@ -117,6 +117,38 @@
             ],
             "type": "object"
           },
+          "KnativeTrigger": {
+            "additionalProperties": false,
+            "description": "A Knative Eventing Trigger delivering the events of a Broker to the application",
+            "properties": {
+              "broker": {
+                "default": "default",
+                "description": "Broker the Trigger subscribes to",
+                "type": "string"
+              },
+              "filter": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+                "description": "Attributes the events must have, exact match: `{ \"type\": \"com.acme.order.created\" }`\n\nEvery event of the Broker is delivered when unset."
+              },
+              "filters": {
+                "description": "The `spec.filters` of the Trigger (`exact`, `prefix`, `suffix`, `all`, `any`, `not`, `cesql`), passed through\n\nNeeds the `new-trigger-filters` feature of Knative Eventing.",
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20unknown%3E"
+                },
+                "type": "array"
+              },
+              "name": {
+                "description": "Name of the Trigger, `<service>-<index>` by default, sanitized to a DNS-1123 label",
+                "type": "string"
+              },
+              "path": {
+                "default": "/cloudevents",
+                "description": "Path of the `Webda/CloudEventsReceiver` route the events are delivered to",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "Record<string, any>": {
             "additionalProperties": {},
             "description": "Construct a type with a set of properties K of type T",
@@ -126,6 +158,11 @@
             "additionalProperties": {
               "type": "string"
             },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, unknown>": {
+            "additionalProperties": {},
             "description": "Construct a type with a set of properties K of type T",
             "type": "object"
           },
@@ -330,6 +367,14 @@
             },
             "type": "array"
           },
+          "triggers": {
+            "default": [],
+            "description": "Knative Eventing Triggers delivering the events of a Broker to the application\n\nEach one becomes an `eventing.knative.dev/v1` Trigger whose subscriber is the Service on `path`, the route\nof a `Webda/CloudEventsReceiver`. `knative manifest` prints them after the Service, `deploy` applies them once\nthe Service is Ready and `knative delete` removes them. Dropped on Cloud Run (use Eventarc).",
+            "items": {
+              "$ref": "#/definitions/KnativeTrigger"
+            },
+            "type": "array"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"
@@ -360,7 +405,7 @@
       ],
       "commands": {
         "knative manifest": {
-          "description": "Print the Knative Service manifest of the application",
+          "description": "Print the Knative Service and Trigger manifests of the application",
           "method": "manifest",
           "args": {
             "output": {
@@ -379,7 +424,7 @@
           "args": {}
         },
         "knative delete": {
-          "description": "Delete the Knative Service, requires --yes",
+          "description": "Delete the Knative Service and its Triggers, requires --yes",
           "method": "delete",
           "args": {
             "yes": {

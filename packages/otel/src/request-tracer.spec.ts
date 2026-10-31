@@ -19,7 +19,7 @@ import * as assert from "node:assert";
 import * as http from "node:http";
 import * as http2 from "node:http2";
 import { OtelService, OtelServiceParameters } from "./otel.service.js";
-import { OtelRequestTracer, SessionIdSpanProcessor } from "./request-tracer.js";
+import { ForceableRootSampler, OtelRequestTracer, SessionIdSpanProcessor } from "./request-tracer.js";
 
 const TRACE_ID = "0af7651916cd43dd8448eb211c80319c";
 const SPAN_ID = "b7ad6b7169203331";
@@ -556,6 +556,181 @@ class RequestTracerTest extends WebdaApplicationTest {
         sessionId
       );
     }
+  }
+
+  /**
+   * Capture the WARN logs of a service
+   * @param service - the service
+   * @returns the logged arguments
+   */
+  captureWarnings(service: OtelService): any[][] {
+    const warnings: any[][] = [];
+    const log = service.log.bind(service);
+    service.log = (level: any, ...args: any[]) => {
+      if (level === "WARN") warnings.push(args);
+      return log(level, ...args);
+    };
+    return warnings;
+  }
+
+  @test
+  async samplerDescription() {
+    assert.strictEqual(
+      new ForceableRootSampler(new tracing.AlwaysOffSampler()).toString(),
+      "ForceableRootSampler{AlwaysOffSampler}"
+    );
+  }
+
+  @test
+  async unloadedParametersTrustNobody() {
+    // Parameters not loaded through OtelServiceParameters.load: no trustedTraceSources at all
+    const tracer = new OtelRequestTracer(<any>{ getParameters: () => ({}) });
+    assert.deepStrictEqual(await tracer.decide({ protocol: "http", path: "/", headers: {}, clientIp: "10.0.0.1" }), {
+      mode: "ignore"
+    });
+  }
+
+  @test
+  @timeout(30000)
+  async unknownMethodAndEmptyPath() {
+    this.createOtel();
+    const headers = { traceparent: SAMPLED, "x-webda-trace": await this.token() };
+    let { spans } = await this.run({ headers, method: undefined, path: "" });
+    let root = this.span(spans, "_OTHER /");
+    assert.strictEqual(root.attributes["http.request.method"], "_OTHER");
+    TestOtelService.exporter.reset();
+    ({ spans } = await this.run({ headers, method: "brew" }));
+    root = this.span(spans, "_OTHER /path");
+    assert.strictEqual(root.attributes["http.request.method"], "_OTHER");
+  }
+
+  @test
+  @timeout(30000)
+  async grpcMethodWithoutService() {
+    this.createOtel();
+    const { spans } = await this.run(
+      { protocol: "grpc", path: "/Method", headers: { traceparent: SAMPLED, "x-webda-trace": await this.token() } },
+      0
+    );
+    const root = this.span(spans, "Method");
+    assert.strictEqual(root.attributes["rpc.service"], "");
+    assert.strictEqual(root.attributes["rpc.method"], "Method");
+  }
+
+  @test
+  @timeout(30000)
+  async noStatusReported() {
+    this.createOtel();
+    const headers = { traceparent: SAMPLED, "x-webda-trace": await this.token() };
+    assert.strictEqual(
+      await useRequestTracer()!.trace({ protocol: "http", method: "GET", path: "/silent", headers }, async () => 1),
+      1
+    );
+    const root = this.span(await TestOtelService.finishedSpans(), "GET /silent");
+    assert.strictEqual(root.attributes["http.response.status_code"], undefined);
+    assert.strictEqual(root.attributes["error.type"], undefined);
+    assert.strictEqual(root.status.code, SpanStatusCode.UNSET);
+  }
+
+  @test
+  @timeout(30000)
+  async nonErrorThrows() {
+    this.createOtel();
+    const headers = { traceparent: SAMPLED, "x-webda-trace": await this.token() };
+    const tracer = useRequestTracer()!;
+    const anonymous = new (class {})();
+    for (const [path, thrown] of [
+      ["/string", "plain failure"],
+      ["/anonymous", anonymous],
+      ["/undefined", undefined]
+    ] as [string, unknown][]) {
+      await assert.rejects(
+        tracer.trace({ protocol: "http", method: "GET", path, headers }, async () => {
+          throw thrown;
+        }),
+        (err: unknown) => err === thrown
+      );
+    }
+    const spans = await TestOtelService.finishedSpans();
+    const str = this.span(spans, "GET /string");
+    assert.strictEqual(str.attributes["error.type"], "String");
+    assert.strictEqual(str.status.code, SpanStatusCode.ERROR);
+    assert.strictEqual(str.status.message, undefined);
+    assert.strictEqual(str.events[0]?.attributes?.["exception.message"], "plain failure");
+    // No constructor name: the semantic conventions fallback
+    assert.strictEqual(this.span(spans, "GET /anonymous").attributes["error.type"], "_OTHER");
+    // A thrown undefined is still an error
+    const undef = this.span(spans, "GET /undefined");
+    assert.strictEqual(undef.attributes["error.type"], "Error");
+    assert.strictEqual(undef.status.message, "Unknown error");
+  }
+
+  @test
+  @timeout(30000)
+  async spanStartFailureStillServes() {
+    const service = this.createOtel();
+    const warnings = this.captureWarnings(service);
+    const tracer = useRequestTracer() as OtelRequestTracer;
+    // @ts-ignore protected
+    tracer.tracer = {
+      startSpan: () => {
+        throw new Error("no span");
+      }
+    };
+    let calls = 0;
+    const result = await tracer.trace(
+      { protocol: "http", method: "GET", path: "/", headers: { "x-webda-trace": await this.token() } },
+      async handle => {
+        calls++;
+        // Runs outside any span
+        assert.strictEqual(trace.getActiveSpan(), undefined);
+        handle.setStatus(200);
+        return "served";
+      }
+    );
+    assert.strictEqual(result, "served");
+    assert.strictEqual(calls, 1);
+    assert.deepStrictEqual(
+      warnings.map(w => w[0]),
+      ["Cannot start the request span"]
+    );
+    // The duration is recorded even without a span
+    const { resourceMetrics } = await TestOtelService.reader.collect();
+    const httpMetric = resourceMetrics.scopeMetrics
+      .flatMap(s => s.metrics)
+      .find(m => m.descriptor.name === "http.server.request.duration") as HistogramMetricData;
+    assert.strictEqual(httpMetric.dataPoints[0].value.count, 1);
+  }
+
+  @test
+  @timeout(30000)
+  async recordFailureStillServes() {
+    const service = this.createOtel();
+    const warnings = this.captureWarnings(service);
+    const tracer = useRequestTracer() as OtelRequestTracer;
+    // @ts-ignore protected
+    tracer.httpDuration = {
+      record: () => {
+        throw new Error("no metric");
+      }
+    };
+    assert.strictEqual(
+      await tracer.trace({ protocol: "http", method: "GET", path: "/", headers: {} }, async () => "served"),
+      "served"
+    );
+    await assert.rejects(
+      tracer.trace({ protocol: "http", method: "GET", path: "/", headers: {} }, async () => {
+        throw new Error("request failure");
+      }),
+      /request failure/
+    );
+    assert.deepStrictEqual(
+      warnings.map(w => [w[0], w[1].message]),
+      [
+        ["Cannot record the request span", "no metric"],
+        ["Cannot record the request span", "no metric"]
+      ]
+    );
   }
 
   /**

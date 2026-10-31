@@ -1,4 +1,6 @@
 import { SpanKind, TraceFlags, context, trace } from "@opentelemetry/api";
+import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
+import { ConsoleMetricExporter, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { tracing } from "@opentelemetry/sdk-node";
 import { suite, test, timeout } from "@webda/test";
 import { Context, HttpContext, WebContext, WebdaError, runWithContext, useCrypto } from "@webda/core";
@@ -189,5 +191,65 @@ class WebTracingTest extends WebdaApplicationTest {
     });
     const child = sampler.shouldSample(parent, traceId, "child", SpanKind.SERVER, {}, []);
     assert.strictEqual(child.decision, tracing.SamplingDecision.RECORD_AND_SAMPLED);
+  }
+
+  @test
+  @timeout(30000)
+  async userWithoutEmail() {
+    const service = this.createOtel({ webTracing: { allowedEmails: [".*"] } });
+    const ctx = await this.userContext("a@b.c");
+    ctx.getCurrentUser = async () => <any>{ getUUID: () => "user-1" };
+    await assert.rejects(() => runWithContext(ctx, () => service.enableWebTracing()), WebdaError.Forbidden);
+    ctx.getCurrentUser = async () => <any>{ getEmail: () => "", getUUID: () => "user-1" };
+    await assert.rejects(() => runWithContext(ctx, () => service.enableWebTracing()), WebdaError.Forbidden);
+    ctx.getCurrentUser = async () => undefined;
+    await assert.rejects(() => runWithContext(ctx, () => service.enableWebTracing()), WebdaError.Forbidden);
+  }
+
+  @test
+  @timeout(30000)
+  async invalidEmailPattern() {
+    const service = this.createOtel({ webTracing: { allowedEmails: ["(unclosed", "a@b\\.c"] } });
+    const warnings: any[] = [];
+    service.log = (level: any, ...args: any[]) => {
+      if (level === "WARN") warnings.push(args[0]);
+    };
+    // The invalid pattern matches nobody, the other ones still apply
+    assert.ok((await this.enable(service, "a@b.c")).token);
+    await assert.rejects(() => this.enable(service, "x@y.z"), WebdaError.Forbidden);
+    assert.deepStrictEqual(warnings, [
+      "Invalid web tracing allowedEmails pattern (unclosed",
+      "Invalid web tracing allowedEmails pattern (unclosed"
+    ]);
+  }
+
+  @test
+  @timeout(30000)
+  async unloadedWebTracingParameters() {
+    const service = this.createOtel();
+    // Parameters replaced without OtelServiceParameters.load defaults
+    service.getParameters().webTracing = undefined;
+    await assert.rejects(() => this.enable(service, "a@b.c"), WebdaError.Forbidden);
+    service.getParameters().webTracing = { allowedEmails: ["*"] };
+    const res = await this.enable(service, "a@b.c");
+    assert.ok(Math.abs(res.expiresAt - (Date.now() + 900000)) < 5000);
+  }
+
+  @test
+  async metricReaders() {
+    const reader = (metricExporter: any) =>
+      // @ts-ignore protected
+      new OtelService("otel", new OtelServiceParameters().load({ metricExporter })).getMetricReaders();
+    assert.deepStrictEqual(reader({ type: "otlp", enable: false }), []);
+    for (const [type, clazz] of [
+      ["console", ConsoleMetricExporter],
+      ["otlp", OTLPMetricExporter]
+    ] as const) {
+      const readers = reader({ type });
+      assert.strictEqual(readers.length, 1);
+      assert.ok(readers[0] instanceof PeriodicExportingMetricReader);
+      // @ts-ignore private
+      assert.ok(readers[0]._exporter instanceof clazz, type);
+    }
   }
 }

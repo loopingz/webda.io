@@ -13,7 +13,8 @@ import { createSecureServer, createServer as createHttp2Server, Http2SecureServe
 import type { Http2Server } from "node:http2";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { AddressInfo, Socket } from "node:net";
-import { createChecker } from "is-in-subnet";
+import { createSubnetChecker } from "./subnetchecker.js";
+import { traceRequest } from "./requesttracer.js";
 import { useLog } from "@webda/workout";
 import { CancelablePromise, State } from "@webda/utils";
 import type { JSONed } from "@webda/models";
@@ -335,7 +336,27 @@ export class HttpServer<
     }
     this.inflight++;
     try {
-      await this.handleWebRequest(req, res);
+      const headers = Object.fromEntries(Object.entries(req.headers).filter(([k]) => !k.startsWith(":")));
+      const forwardedProto = headers["x-forwarded-proto"];
+      await traceRequest(
+        {
+          protocol: "http",
+          method: req.method,
+          path: (req.url ?? "").split("?")[0],
+          scheme: <"http" | "https">(
+            ((typeof forwardedProto === "string" && this.isProxyTrusted(req.socket?.remoteAddress)
+              ? forwardedProto
+              : undefined) ?? (this.isHttp2 ? "https" : "http"))
+          ),
+          protocolVersion: req.httpVersion,
+          headers,
+          clientIp: this.resolveClientIp(req)
+        },
+        async handle => {
+          await this.handleWebRequest(req, res);
+          handle.setStatus(res.statusCode);
+        }
+      );
     } finally {
       this.inflight--;
     }
@@ -563,9 +584,7 @@ export class HttpServer<
 
     // Set up trusted proxy checker
     this.parameters.with(params => {
-      this.subnetChecker = createChecker(
-        params.trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n.trim()}/32` : n.trim()))
-      );
+      this.subnetChecker = createSubnetChecker(params.trustedProxies);
     });
 
     const server = this.server;
@@ -913,6 +932,30 @@ export class HttpServer<
       httpContext.setBody(req);
     }
     return this.newContext({ http: httpContext, stream: <Writable>res });
+  }
+
+  /**
+   * Resolve the address of the client of a request
+   *
+   * The `X-Forwarded-For` header is walked from the right, skipping the trusted proxies, and only read when the
+   * socket peer is itself a trusted proxy. When every hop is trusted, the leftmost one is returned.
+   * @param req - the incoming message
+   * @returns the client address, undefined when unknown
+   */
+  resolveClientIp(req: IncomingMessage): string | undefined {
+    const peer = req.socket?.remoteAddress;
+    const header = req.headers["x-forwarded-for"];
+    if (!header || !this.isProxyTrusted(peer)) {
+      return peer;
+    }
+    const hops = (Array.isArray(header) ? header.join(",") : header)
+      .split(",")
+      .map(h => h.trim())
+      .filter(h => h !== "");
+    for (let i = hops.length - 1; i >= 0; i--) {
+      if (!this.isProxyTrusted(hops[i])) return hops[i];
+    }
+    return hops[0] ?? peer;
   }
 
   /**

@@ -16,6 +16,7 @@ import { Router, RouterParameters } from "../rest/router.service.js";
 import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../rest/restoperationstransport.service.js";
 import { HttpContext } from "../contexts/httpcontext.js";
 import { createChecker } from "is-in-subnet";
+import { registerRequestTracer } from "./requesttracer.js";
 import { Session } from "../session/session.js";
 import { Context } from "../contexts/icontext.js";
 import { Service } from "./service.js";
@@ -1438,6 +1439,70 @@ class HttpServerTest extends WebdaApplicationTest {
       } else {
         process.env.PORT = env;
       }
+    }
+  }
+
+  @test
+  async resolveClientIpWalksForwardedFor() {
+    const server = this.replaceServer({ trustedProxies: ["10.0.0.0/8"] });
+    (server as any).subnetChecker = createChecker(["10.0.0.0/8"]);
+    const req = (remote: string, xff?: string) => this.fakeRequest(remote, xff ? { "x-forwarded-for": xff } : {});
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1", "10.0.0.5, 203.0.113.9")), "203.0.113.9");
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1", "203.0.113.9, 10.2.2.2")), "203.0.113.9");
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1")), "10.1.1.1");
+    assert.strictEqual(server.resolveClientIp(req("10.1.1.1", "10.0.0.5, 10.2.2.2")), "10.0.0.5");
+    // Untrusted peer: the header is not honoured
+    assert.strictEqual(server.resolveClientIp(req("198.51.100.1", "1.2.3.4")), "198.51.100.1");
+  }
+
+  @test
+  async tracerCalledForWebRequests() {
+    this.replaceServer({ healthPath: "/healthz" });
+    const traced: any[] = [];
+    const statuses: number[] = [];
+    registerRequestTracer({
+      trace: (request, fn) => {
+        traced.push(request);
+        return fn({ setStatus: code => statuses.push(code) });
+      }
+    });
+    try {
+      const port = await this.startServer();
+      const call = (path: string) =>
+        httpRequest({ hostname: "127.0.0.1", port, path, method: "GET", headers: { "X-Custom": "Value" } });
+      assert.strictEqual((await call("/healthz")).statusCode, 200);
+      assert.strictEqual(traced.length, 0);
+      assert.strictEqual((await call("/does-not-exist?a=b")).statusCode, 404);
+      assert.strictEqual(traced.length, 1);
+      assert.strictEqual(traced[0].protocol, "http");
+      assert.strictEqual(traced[0].method, "GET");
+      assert.strictEqual(traced[0].path, "/does-not-exist");
+      assert.strictEqual(traced[0].protocolVersion, "1.1");
+      assert.strictEqual(traced[0].scheme, "http");
+      assert.strictEqual(traced[0].headers["x-custom"], "Value");
+      assert.ok(traced[0].clientIp);
+      assert.deepStrictEqual(statuses, [404]);
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test
+  async tracerSkipsInterceptedRequests() {
+    const server = this.replaceServer({});
+    server.registerRequestInterceptor(() => true);
+    let traced = 0;
+    registerRequestTracer({
+      trace: (_request, fn) => {
+        traced++;
+        return fn({ setStatus: () => {} });
+      }
+    });
+    try {
+      await server.handleRequest(this.fakeRequest("127.0.0.1"), {} as any);
+      assert.strictEqual(traced, 0);
+    } finally {
+      registerRequestTracer(undefined);
     }
   }
 

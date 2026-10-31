@@ -266,8 +266,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
             ctx.statusCode = 401;
             return;
           }
-          ctx.setHeader("Access-Control-Allow-Origin", origin);
-          ctx.setHeader("Access-Control-Allow-Credentials", "true");
+          // Access-Control-Allow-Origin/-Credentials are set by the Router
         }
         if (protocol === "https") {
           // Add the HSTS header
@@ -276,10 +275,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
         if (method === "OPTIONS") {
           // Might want to customize this one
           ctx.setHeader("Access-Control-Max-Age", 3600);
-          ctx.setHeader(
-            "Access-Control-Allow-Headers",
-            headers["access-control-request-headers"] || headers["Access-Control-Request-Headers"] || "content-type"
-          );
+          // Access-Control-Allow-Headers is set by the Router (see Router.getCorsAllowedHeaders)
         }
         await useRouter().execute(ctx);
       } catch (err) {

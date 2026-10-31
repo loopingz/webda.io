@@ -226,6 +226,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Request filters to apply for CORS
    */
   private _requestCORSFilters: CORSFilter[] = [];
+  /**
+   * Request headers a browser is allowed to send cross-origin (`Access-Control-Allow-Headers`)
+   */
+  private _corsAllowedHeaders: string[] = ["Content-Type", "Authorization", "X-Requested-With"];
 
   /**
    * Registration of a model
@@ -1013,11 +1017,19 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     // Routes are relative to the prefix (API Gateway stage, custom domain base path…)
     const url = httpContext.getRelativeUri();
 
+    // CORS response headers: only for an Origin accepted by the CORS filters
+    const hasOrigin = !!httpContext.getUniqueHeader("origin");
+    const corsAllowed = (hasOrigin || method === "OPTIONS") && (await this.checkCORSRequest(ctx));
+    if (corsAllowed && hasOrigin) {
+      this.setCorsHeaders(ctx);
+    }
+
     // Handle CORS preflight
     if (method === "OPTIONS") {
       const methods = this.getRouteMethodsFromUrl(url);
-      if (methods.length > 0 && (await this.checkCORSRequest(ctx))) {
+      if (methods.length > 0 && corsAllowed) {
         ctx.setHeader("Access-Control-Allow-Methods", methods.join(","));
+        ctx.setHeader("Access-Control-Allow-Headers", this.getCorsAllowedHeaders().join(", "));
         ctx.writeHead(204);
         return;
       }
@@ -1087,6 +1099,40 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       return true;
     }
     return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "AUTH")))).some(v => v);
+  }
+
+  /**
+   * Allow additional request headers on cross-origin requests
+   *
+   * They are listed in `Access-Control-Allow-Headers` of the preflight response
+   * @param names - header names to allow (already allowed ones are ignored)
+   */
+  addCorsAllowedHeaders(...names: string[]): void {
+    for (const name of names) {
+      if (!this._corsAllowedHeaders.some(h => h.toLowerCase() === name.toLowerCase())) {
+        this._corsAllowedHeaders.push(name);
+      }
+    }
+  }
+
+  /**
+   * Get the request headers allowed on cross-origin requests
+   * @returns a copy of the allowed header names
+   */
+  getCorsAllowedHeaders(): string[] {
+    return [...this._corsAllowedHeaders];
+  }
+
+  /**
+   * Set the CORS response headers for a request whose Origin was accepted
+   *
+   * The origin is always echoed (never `*`) as credentials are allowed
+   * @param ctx - the operation context
+   */
+  protected setCorsHeaders(ctx: IWebContext): void {
+    ctx.setHeader("Access-Control-Allow-Origin", ctx.getHttpContext().getUniqueHeader("origin"));
+    ctx.setHeader("Access-Control-Allow-Credentials", "true");
+    ctx.setHeader("Vary", "Origin");
   }
 
   /**

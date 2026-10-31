@@ -49,6 +49,7 @@ export default defineConfig({
       "src/rest/operationstransport.spec.ts",
       "src/rest/rest-behaviors.spec.ts",
       "src/rest/router-alias.spec.ts",
+      "src/rest/router-cors.spec.ts",
       "src/rest/router-prefix.spec.ts",
       "src/rest/websocket.spec.ts",
       "src/rest/reststream.spec.ts",

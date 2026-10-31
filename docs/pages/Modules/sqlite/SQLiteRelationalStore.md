@@ -28,7 +28,8 @@ Both stores can share one database file (one handle per file, reference counted)
 
 Those of `SQLiteStore` (`persistence`, `database`, `busyTimeout`, `pragmas`, `models`, `tables`), plus the relational
 ones: `schemaSync` (`none` | `create` | `alter` | `validate`, default `create`), `columnNaming`, `extraColumn`,
-`foreignKeys`, `numericAsDecimal`. `table` is refused and a `tables` override must be a lowercase identifier.
+`foreignKeys`, `numericAsDecimal`, and those of the version registry (`appVersion`, `allowIncompatible`,
+`versionHeartbeat`, `versionTtl`). `table` is refused and a `tables` override must be a lowercase identifier.
 
 ## SQLite specifics
 
@@ -49,7 +50,22 @@ ones: `schemaSync` (`none` | `create` | `alter` | `validate`, default `create`),
   instead of opening their own, and the stores sharing the handle share the transaction.
 - **Foreign key violations carry no constraint name**: the `WebdaError.BadRequest` (insert, update) or
   `WebdaError.Conflict` (delete) says "a foreign key".
-- `webda sqlite schema [--sql | --diff | --json]` prints the plan, its DDL or the differences with the database file.
+- `webda sqlite schema show [--sql | --diff | --json]` prints the plan, its DDL or the differences with the database
+  file.
+
+## Several app versions on the same database
+
+The [multi-version registry](../postgres/PostgresRelationalStore.md#several-app-versions-on-the-same-database) of
+the relational layer applies as is: every version is a `Webda/SchemaVersion` of the `Registry`, the plan is checked
+against the live versions at every `init()` (`SchemaIncompatibleError`, `allowIncompatible`), `webda sqlite schema
+check | contract | retire | backfill` work the same. SQLite specifics:
+
+- The registry may be a `SQLiteStore` on the same database file: it is read and written outside the mutex of the
+  handle, around the DDL.
+- There is no online DDL: an index on an existing table is created in the DDL transaction (one writer anyway), a
+  foreign key cannot be added to an existing table (reported, as before).
+- `schema contract` drops columns (`ALTER TABLE ... DROP COLUMN`, SQLite 3.35) and tables; `SET NOT NULL` and the
+  validation of a foreign key are reported as not supported by the engine, never applied.
 
 ## Other engines
 

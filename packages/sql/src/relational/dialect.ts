@@ -1,5 +1,6 @@
 import type { ColumnPlan, ColumnType, ForeignKeyPlan, IndexPlan, TablePlan } from "@webda/sql-schema";
 import type { SQLClient, SQLDialect } from "../dialect.js";
+import type { ContractStep } from "./contract.js";
 
 /**
  * One additive change bringing a database closer to a {@link RelationalSchemaPlan}
@@ -7,8 +8,19 @@ import type { SQLClient, SQLDialect } from "../dialect.js";
 export type SchemaStep =
   | { kind: "createTable"; table: TablePlan; foreignKeys: ForeignKeyPlan[] }
   | { kind: "addColumn"; table: string; column: ColumnPlan }
-  | { kind: "createIndex"; index: IndexPlan }
-  | { kind: "addForeignKey"; foreignKey: ForeignKeyPlan };
+  | { kind: "createIndex"; index: IndexPlan; online?: boolean }
+  | { kind: "addForeignKey"; foreignKey: ForeignKeyPlan; online?: boolean };
+
+/**
+ * How an `online` step (on a table that exists, with rows and traffic) runs: `inside` the DDL transaction under the
+ * schema lock, `after` it on its own (`CREATE INDEX CONCURRENTLY`, `VALIDATE CONSTRAINT`), `onFailure` when an
+ * `after` statement fails (drop the invalid index)
+ */
+export interface OnlineStatements {
+  inside: string[];
+  after: string[];
+  onFailure?: string[];
+}
 
 /**
  * A column as the database describes it
@@ -38,6 +50,10 @@ export interface LiveTable {
    * Names of the constraints of the table
    */
   constraints: Set<string>;
+  /**
+   * Names of the foreign keys added `NOT VALID` and not validated yet (the contract phase validates them)
+   */
+  unvalidated?: Set<string>;
 }
 
 /**
@@ -73,6 +89,18 @@ export interface RelationalDialect extends SQLDialect {
    * @returns the idempotent statements applying it
    */
   renderStep(step: SchemaStep): string[];
+  /**
+   * Statements of an `online` step (a table with rows and traffic): the engine may keep the heavy work out of the
+   * DDL transaction. Without it, {@link renderStep} runs inside the transaction
+   * @param step - a schema change flagged `online`
+   * @returns the statements, split
+   */
+  renderOnlineStep?(step: SchemaStep): OnlineStatements;
+  /**
+   * @param step - a contract step
+   * @returns the statements applying it, empty when the engine cannot (reported, never failed)
+   */
+  renderContractStep?(step: ContractStep): string[];
   /**
    * Describe the tables as the database holds them
    * @param client - the client

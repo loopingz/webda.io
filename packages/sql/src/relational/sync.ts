@@ -80,7 +80,8 @@ export function compatibleType(live: ColumnType, plan: ColumnType): boolean {
  * @param mode - `create` or `alter`
  * @param options - planner options
  * @param options.inlineForeignKeys - the engine declares the foreign keys inside `CREATE TABLE` and cannot add one later
- * @returns the steps in application order (tables, columns, indexes, foreign keys) and the drift
+ * @returns the steps in application order (tables, columns, indexes, foreign keys), the ones on an existing table
+ *   flagged `online`, and the drift
  */
 export function planSchemaChanges(
   plan: RelationalSchemaPlan,
@@ -144,7 +145,7 @@ export function planSchemaChanges(
     if (created.has(index.table)) {
       steps.push({ kind: "createIndex", index });
     } else if (!live.tables[index.table]?.indexes.has(index.name)) {
-      onExisting(index.table, { kind: "createIndex", index });
+      onExisting(index.table, { kind: "createIndex", index, online: true });
     }
   }
   for (const foreignKey of plan.foreignKeys) {
@@ -159,7 +160,7 @@ export function planSchemaChanges(
           message: `foreign key ${foreignKey.name} cannot be added to ${foreignKey.table}: recreate the table`
         });
       } else {
-        onExisting(foreignKey.table, { kind: "addForeignKey", foreignKey });
+        onExisting(foreignKey.table, { kind: "addForeignKey", foreignKey, online: true });
       }
     }
   }

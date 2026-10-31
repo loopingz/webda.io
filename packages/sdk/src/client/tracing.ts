@@ -2,7 +2,10 @@
 export interface WebTracingState {
   token: string;
   sessionId: string;
-  /** Epoch ms */
+  /**
+   * Epoch ms, from the server clock: compared with the local clock, so a skewed client clock ends the tracing early or
+   * late (the server rejects an expired token anyway)
+   */
   expiresAt: number;
   activeSpanContext?: () => { traceId: string; spanId: string } | undefined;
 }
@@ -52,7 +55,8 @@ export function traceHeaders(state: WebTracingState | undefined, now: number = D
   const spanId = valid ? span!.spanId : randomHex(8);
   return {
     "X-Webda-Trace": state.token,
-    baggage: `session.id=${state.sessionId}`,
+    // W3C baggage values are percent-encoded (`,`, `;`, `=` and spaces would break the header)
+    baggage: `session.id=${encodeURIComponent(state.sessionId)}`,
     traceparent: `00-${traceId}-${spanId}-01`
   };
 }

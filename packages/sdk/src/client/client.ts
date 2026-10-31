@@ -198,7 +198,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
    * @param options - enabling options
    * @param options.operationId - id of the enabling operation
    * @param options.activeSpanContext - span context to join the trace of the current span
-   * @returns the session id and the expiry (epoch ms)
+   * @returns the session id and the expiry (epoch ms of the server clock, compared with the local clock)
    */
   async enableWebTracing(
     sessionId?: string,

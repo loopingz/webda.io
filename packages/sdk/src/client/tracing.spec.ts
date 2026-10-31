@@ -250,6 +250,12 @@ describe("web tracing", () => {
     expect(requests[0].headers.traceparent).toMatch(TRACEPARENT);
   });
 
+  it("traceHeaders percent-encodes the baggage value", () => {
+    const headers = traceHeaders({ token: "t", sessionId: "a,b;c=d e%", expiresAt: 10 }, 5);
+    expect(headers.baggage).toBe("session.id=a%2Cb%3Bc%3Dd%20e%25");
+    expect(decodeURIComponent(headers.baggage.split("=").slice(1).join("="))).toBe("a,b;c=d e%");
+  });
+
   it("traceHeaders is empty without state or when expired", () => {
     expect(traceHeaders(undefined)).toEqual({});
     expect(traceHeaders({ token: "t", sessionId: "s", expiresAt: 10 }, 10)).toEqual({});

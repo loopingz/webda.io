@@ -185,6 +185,13 @@ client.isWebTracing(); // false once expired
 client.disableWebTracing();
 ```
 
+The server only answers cross-origin calls with CORS headers when one of its CORS filters accepts the page origin
+(a service with the `cors-filter` capability, or `useRouter().registerCORSFilter()` checking the `Origin` header
+against an allow-list).
+
+`expiresAt` is the server clock: the client compares it with its own clock, so a skewed client clock ends the tracing
+early or late (the server rejects an expired token anyway).
+
 Without more, each call gets a random trace id. To make a user action and its requests one trace, give the client the
 active span of your browser OpenTelemetry setup (`@webda/sdk/client` does not depend on `@opentelemetry/api`):
 

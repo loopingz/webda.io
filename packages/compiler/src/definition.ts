@@ -2,6 +2,7 @@ import { FileUtils } from "@webda/utils";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { BinaryLike, createHash, Hash } from "crypto";
 import { existsSync, globSync, readFileSync } from "fs";
+import type { DeletePolicy } from "@webda/content-mapper";
 import type { JSONSchema7 } from "json-schema";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -55,10 +56,39 @@ export type ModelGraphBehaviorDefinition = {
   behavior: string;
 };
 
+/**
+ * What happens to the dependents of a model when it is deleted: `DeletePolicy` of `@webda/models`, validated by the
+ * content mapper when it reads the `@OnDelete` tags
+ */
+export type { DeletePolicy } from "@webda/content-mapper";
+
 export type ModelRelation = {
   attribute: string;
   model: string;
   type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
+  /**
+   * Policy applied to this model when the target is deleted, omitted for the default `NONE`
+   *
+   * With `ownership: "CONTAINS"` it is applied to the listed models when this model is deleted instead.
+   */
+  onDelete?: DeletePolicy;
+  /**
+   * `CONTAINS` for a `Contains<T>`: this model owns the models it lists
+   */
+  ownership?: "CONTAINS";
+};
+
+/**
+ * A relation targeting a model, with the policy applied to its declaring model when the target is deleted
+ */
+export type ModelRelationDependent = {
+  /**
+   * Model declaring the relation
+   */
+  model: string;
+  attribute: string;
+  type: ModelRelation["type"] | "PARENT";
+  onDelete: DeletePolicy;
 };
 
 /**
@@ -71,8 +101,10 @@ export type ModelGraph = {
   ancestors?: string[];
   /**
    * If the model has a parent
+   *
+   * `onDelete` is the policy applied to this model when the parent is deleted: `CASCADE` when omitted
    */
-  parent?: Omit<ModelRelation, "type">;
+  parent?: Omit<ModelRelation, "type" | "ownership">;
   /**
    * This contains links to other models.
    * These links are low cardinality as ids and
@@ -124,7 +156,8 @@ export type ModelGraph = {
     targetAttributes: string[];
     targetLink: string;
     /**
-     *
+     * `@CascadeDelete` (or `@OnDelete CASCADE`): deleting this model deletes the mapped models, the ones whose
+     * `targetLink` targets it
      */
     cascadeDelete: boolean;
   }[];
@@ -133,6 +166,13 @@ export type ModelGraph = {
    * as a parent
    */
   children?: string[];
+  /**
+   * Reverse index: every relation targeting this model whose policy is not `NONE`
+   *
+   * Computed at build time for the models of the same module. `Contains` relations are not listed: their owner
+   * applies them to the models it lists.
+   */
+  dependents?: ModelRelationDependent[];
   /**
    * Binaries attribute, in the model you can declare
    * attributes as Binary, so users can upload binaries that

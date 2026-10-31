@@ -3,6 +3,7 @@ import {
   CronDefinition,
   CronService,
   registerOperation,
+  registerRequestTracer,
   Service,
   ServiceParameters,
   useContext,
@@ -74,6 +75,59 @@ class FunctionServerTest extends AzureTest {
       await expect(service.handleCron(CronService.getExportId(cron))).rejects.toThrow("cron failure");
     } finally {
       crons.mockRestore();
+    }
+  }
+
+  @test async tracesHttpRequests() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    const traced: { request: any; statuses: number[] }[] = [];
+    registerRequestTracer({
+      trace: async (request, fn) => {
+        const entry = { request, statuses: [] as number[] };
+        traced.push(entry);
+        return fn({ setStatus: code => entry.statuses.push(code) });
+      }
+    });
+    try {
+      const request = (forwarded?: string) =>
+        ({
+          url: "https://example.test/path?q=1",
+          method: "GET",
+          headers: new Headers({ "X-Custom": "A", ...(forwarded ? { "X-Forwarded-For": forwarded } : {}) }),
+          arrayBuffer: async () => new ArrayBuffer(0)
+        }) as any;
+      runtime.execute.mockImplementationOnce(async context => {
+        context.statusCode = 202;
+      });
+      const response = await service.handleRequest(request("10.0.0.1, 203.0.113.9:51234"), {} as any);
+      expect(response.status).toBe(202);
+      expect(traced).toHaveLength(1);
+      expect(traced[0].request).toMatchObject({
+        protocol: "http",
+        method: "GET",
+        path: "/path",
+        scheme: "https",
+        clientIp: "203.0.113.9"
+      });
+      expect(traced[0].request.headers["x-custom"]).toBe("A");
+      expect(traced[0].statuses).toEqual([202]);
+      // IPv6 forms and garbage never throw
+      await service.handleRequest(request("[2001:db8::1]:443"), {} as any);
+      expect(traced[1].request.clientIp).toBe("2001:db8::1");
+      await service.handleRequest(request("2001:db8::2"), {} as any);
+      expect(traced[2].request.clientIp).toBe("2001:db8::2");
+      await service.handleRequest(request("garbage"), {} as any);
+      expect(traced[3].request.clientIp).toBeUndefined();
+      await service.handleRequest(request(), {} as any);
+      expect(traced[4].request.clientIp).toBeUndefined();
+      // Refused origin is traced with 401
+      runtime.cors.mockResolvedValueOnce(false);
+      const refused = request();
+      refused.headers.set("origin", "https://evil.test");
+      expect((await service.handleRequest(refused, {} as any)).status).toBe(401);
+      expect(traced[5].statuses).toEqual([401]);
+    } finally {
+      registerRequestTracer(undefined);
     }
   }
 

@@ -1,5 +1,7 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { isIP } from "node:net";
 import { Writable } from "node:stream";
+import { useLog } from "@webda/workout";
 import {
   CronService,
   emitCoreEvent,
@@ -8,6 +10,7 @@ import {
   runWithContext,
   Service,
   ServiceParameters,
+  traceRequest,
   useCore,
   useRouter,
   WebContext,
@@ -114,72 +117,114 @@ export class AzureFunctionServer extends Service<AzureFunctionServerParameters> 
     const context = new AzureFunctionContext(http);
     await context.init();
     await emitCoreEvent("Webda.NewContext", { context, info: { http } });
-    return runWithContext(context, async () => {
-      try {
-        await emitCoreEvent("Webda.Request", { context });
-        if (this.parameters.requestIdHeader)
-          context.setHeader(this.parameters.requestIdHeader, invocation.invocationId);
-        const origin = headers.origin;
-        if (origin) {
-          if (!(await useRouter()["checkCORSRequest"](context))) {
-            // No Access-Control-* for a refused origin, but the answer still depends on it
-            context.setHeader("Vary", "Origin");
-            throw new WebdaError.Unauthorized("Origin not allowed");
+    return traceRequest(
+      {
+        protocol: "http",
+        method: request.method,
+        path: url.pathname,
+        scheme: url.protocol === "http:" ? "http" : "https",
+        headers: Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])),
+        clientIp: this.getClientIp(headers)
+      },
+      async handle => {
+        const result = await runWithContext(context, async () => {
+          try {
+            await emitCoreEvent("Webda.Request", { context });
+            if (this.parameters.requestIdHeader)
+              context.setHeader(this.parameters.requestIdHeader, invocation.invocationId);
+            const origin = headers.origin;
+            if (origin) {
+              if (!(await useRouter()["checkCORSRequest"](context))) {
+                // No Access-Control-* for a refused origin, but the answer still depends on it
+                context.setHeader("Vary", "Origin");
+                throw new WebdaError.Unauthorized("Origin not allowed");
+              }
+              // Access-Control-Allow-Origin/-Credentials are set by the Router
+            }
+            if (url.protocol === "https:")
+              context.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+            await useRouter().execute(context);
+          } catch (error) {
+            if (error instanceof WebdaError.HttpError) {
+              context.statusCode = error.getResponseCode();
+              if (error instanceof WebdaError.Redirect) context.setHeader("Location", error.location);
+            } else if (typeof error === "number") context.statusCode = error;
+            else {
+              context.statusCode = 500;
+              this.log("ERROR", "Azure Function request failed");
+            }
           }
-          // Access-Control-Allow-Origin/-Credentials are set by the Router
+          await emitCoreEvent("Webda.Result", { context });
+          const responseHeaders = { ...context.getResponseHeaders() };
+          await context.end();
+          const merged = { ...responseHeaders, ...context.getResponseHeaders() };
+          const resultHeaders = Object.fromEntries(
+            Object.entries(merged)
+              .filter(
+                ([name, value]) =>
+                  value !== undefined &&
+                  (name.toLowerCase() !== "set-cookie" || !Object.keys(context.getResponseCookies() ?? {}).length)
+              )
+              .map(([key, value]) => [key, Array.isArray(value) ? value.join(", ") : String(value)])
+          );
+          const cookies = Object.values(context.getResponseCookies() ?? {}).map(cookie => {
+            const options = cookie.options ?? {};
+            const sameSite = options.sameSite === true ? "strict" : options.sameSite;
+            return {
+              name: cookie.name,
+              value: cookie.value,
+              domain: options.domain,
+              path: options.path,
+              secure: options.secure,
+              httpOnly: options.httpOnly,
+              expires: options.expires,
+              maxAge: options.maxAge,
+              sameSite:
+                typeof sameSite === "string"
+                  ? ((sameSite[0].toUpperCase() + sameSite.slice(1).toLowerCase()) as "Strict" | "Lax" | "None")
+                  : undefined
+            };
+          });
+          const body = Buffer.concat(context.chunks);
+          return {
+            status: context.getResponseCode(),
+            headers: resultHeaders,
+            cookies,
+            body: request.method === "HEAD" || body.length === 0 ? undefined : body
+          };
+        });
+        try {
+          handle.setStatus(result.status);
+        } catch (err) {
+          useLog("WARN", "Request tracer failed to record the status", err);
         }
-        if (url.protocol === "https:")
-          context.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-        await useRouter().execute(context);
-      } catch (error) {
-        if (error instanceof WebdaError.HttpError) {
-          context.statusCode = error.getResponseCode();
-          if (error instanceof WebdaError.Redirect) context.setHeader("Location", error.location);
-        } else if (typeof error === "number") context.statusCode = error;
-        else {
-          context.statusCode = 500;
-          this.log("ERROR", "Azure Function request failed");
-        }
+        return result;
       }
-      await emitCoreEvent("Webda.Result", { context });
-      const responseHeaders = { ...context.getResponseHeaders() };
-      await context.end();
-      const merged = { ...responseHeaders, ...context.getResponseHeaders() };
-      const resultHeaders = Object.fromEntries(
-        Object.entries(merged)
-          .filter(
-            ([name, value]) =>
-              value !== undefined &&
-              (name.toLowerCase() !== "set-cookie" || !Object.keys(context.getResponseCookies() ?? {}).length)
-          )
-          .map(([key, value]) => [key, Array.isArray(value) ? value.join(", ") : String(value)])
-      );
-      const cookies = Object.values(context.getResponseCookies() ?? {}).map(cookie => {
-        const options = cookie.options ?? {};
-        const sameSite = options.sameSite === true ? "strict" : options.sameSite;
-        return {
-          name: cookie.name,
-          value: cookie.value,
-          domain: options.domain,
-          path: options.path,
-          secure: options.secure,
-          httpOnly: options.httpOnly,
-          expires: options.expires,
-          maxAge: options.maxAge,
-          sameSite:
-            typeof sameSite === "string"
-              ? ((sameSite[0].toUpperCase() + sameSite.slice(1).toLowerCase()) as "Strict" | "Lax" | "None")
-              : undefined
-        };
-      });
-      const body = Buffer.concat(context.chunks);
-      return {
-        status: context.getResponseCode(),
-        headers: resultHeaders,
-        cookies,
-        body: request.method === "HEAD" || body.length === 0 ? undefined : body
-      };
-    });
+    );
+  }
+
+  /**
+   * Resolve the client address from the rightmost X-Forwarded-For entry, without any port. Never throws.
+   * @param headers - the request headers
+   * @returns the address, undefined if unknown or invalid
+   */
+  protected getClientIp(headers: Record<string, string>): string | undefined {
+    try {
+      let last = Object.entries(headers)
+        .find(([name]) => name.toLowerCase() === "x-forwarded-for")?.[1]
+        ?.split(",")
+        .pop()
+        ?.trim();
+      if (!last) return undefined;
+      // [v6]:port, v4:port (a bare v6 contains several colons and is kept as is)
+      const bracketed = last.match(/^\[([^\]]+)\](?::\d+)?$/);
+      if (bracketed) last = bracketed[1];
+      else if (last.split(":").length === 2) last = last.split(":")[0];
+      return isIP(last) ? last : undefined;
+    } catch (err) {
+      useLog("WARN", "Cannot resolve the client address", err);
+      return undefined;
+    }
   }
 
   /**

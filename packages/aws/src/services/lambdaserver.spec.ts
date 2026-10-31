@@ -1,4 +1,14 @@
-import { HttpContext, Route, Service, useRouter, WebContext, WebdaError } from "@webda/core";
+import {
+  HttpContext,
+  registerRequestTracer,
+  Route,
+  Service,
+  useRouter,
+  WebContext,
+  WebdaError,
+  type RequestTracer,
+  type TracedRequest
+} from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/index.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -449,5 +459,86 @@ class LambdaHandlerTest extends WebdaApplicationTest {
     );
     assert.strictEqual(httpContext.getRelativeUri(), "/static1234/test/subfolder/index.html");
     assert.strictEqual(httpContext.prefix, "/prefix");
+  }
+
+  /**
+   * Register a recording tracer
+   * @returns the recorded traces
+   */
+  recordTraces(): { request: TracedRequest; statuses: number[] }[] {
+    const traced: { request: TracedRequest; statuses: number[] }[] = [];
+    registerRequestTracer({
+      trace: async (request, fn) => {
+        const entry = { request, statuses: [] as number[] };
+        traced.push(entry);
+        return fn({ setStatus: code => entry.statuses.push(code) });
+      }
+    } as RequestTracer);
+    return traced;
+  }
+
+  @test
+  async traceRequestSourceIp() {
+    const traced = this.recordTraces();
+    try {
+      this.evt.requestContext.identity.sourceIp = "198.51.100.7";
+      this.evt.headers["X-Forwarded-For"] = "10.0.0.1, 203.0.113.9";
+      this.evt.queryStringParameters = { test: "Plop" };
+      const res = await this.handler.handleRequest(this.evt, this.context);
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(traced.length, 1);
+      assert.strictEqual(traced[0].request.protocol, "http");
+      assert.strictEqual(traced[0].request.method, "GET");
+      assert.strictEqual(traced[0].request.path, "/prefix/route/string");
+      assert.strictEqual(traced[0].request.clientIp, "198.51.100.7");
+      assert.strictEqual(traced[0].request.headers["x-forwarded-for"], "10.0.0.1, 203.0.113.9");
+      assert.strictEqual(traced[0].request.headers["x-forwarded-port"], "443");
+      assert.strictEqual(traced[0].request.headers["X-Forwarded-For"], undefined);
+      assert.deepStrictEqual(traced[0].statuses, [200]);
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test
+  async traceRequestForwardedFor() {
+    const traced = this.recordTraces();
+    try {
+      this.evt.headers["X-Forwarded-For"] = "10.0.0.1, 203.0.113.9";
+      await this.handler.handleRequest(this.evt, this.context);
+      assert.strictEqual(traced[0].request.clientIp, "203.0.113.9");
+      // Garbage never throws
+      this.evt.headers["X-Forwarded-For"] = "not an ip";
+      const res = await this.handler.handleRequest(this.evt, this.context);
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(traced[1].request.clientIp, undefined);
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test
+  async traceRequestRefusedOrigin() {
+    const traced = this.recordTraces();
+    try {
+      this.evt.headers.Origin = "https://evil.example";
+      const res = await this.handler.handleRequest(this.evt, this.context);
+      assert.strictEqual(res.statusCode, 401);
+      assert.deepStrictEqual(traced[0].statuses, [401]);
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test
+  async traceRequestSkipsNonHttpEvents() {
+    const traced = this.recordTraces();
+    try {
+      await this.handler.handleRequest({ command: "launch", service: "unknown", method: "x" }, this.context);
+      await this.handler.handleRequest({ awslogs: {} }, this.context);
+      assert.strictEqual(traced.length, 0);
+    } finally {
+      registerRequestTracer(undefined);
+    }
   }
 }

@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunk_webda_docs||=[]).push([[13192],{13192(e,c,r){r.d(c,{createArchitectureServices:()=>s.S});var s=r(84549);r(80184)}}]);

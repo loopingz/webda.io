@@ -128,6 +128,47 @@ export class RelCycleB extends UuidModel {
 }
 
 /**
+ * An owner of pets: its `pets` are mapped from the pets linking to it (a links map)
+ *
+ * @WebdaIgnore
+ */
+export class RelOwner extends UuidModel {
+  name?: string;
+  pets?: any[];
+}
+
+/**
+ * A breeder, sharing the table of {@link RelOwner}: its `litter` is mapped from the kittens it bred
+ *
+ * @WebdaIgnore
+ */
+export class RelBreeder extends RelOwner {
+  litter?: any[];
+}
+
+/**
+ * A pet: a links map to its owners (typed link fields), a simple array of composite keys, a links array to a model
+ * no store plans
+ *
+ * @WebdaIgnore
+ */
+export class RelPet extends UuidModel {
+  name?: string;
+  owners?: Record<string, any>;
+  pairs?: string[];
+  friends?: any[];
+}
+
+/**
+ * A kitten, sharing the table of {@link RelPet}: a link to its breeder
+ *
+ * @WebdaIgnore
+ */
+export class RelKitten extends RelPet {
+  breeder?: string;
+}
+
+/**
  * The aggregation conformance dataset: typed scalars, JSON fields (`points` and `mixed` hold several types)
  *
  * @WebdaIgnore
@@ -155,11 +196,18 @@ export const RELATIONAL_MODELS = [
   "Rel/Node",
   "Rel/CycleA",
   "Rel/CycleB",
-  "Rel/AggRow"
+  "Rel/AggRow",
+  "Rel/Owner",
+  "Rel/Pet"
 ];
 
 /** Every table and junction of the fixtures, for cleanup */
 export const RELATIONAL_TABLES = [
+  "rel_pet_owners",
+  "rel_pet_pairs",
+  "rel_pet_friends",
+  "rel_pet",
+  "rel_owner",
   "rel_post_tags",
   "rel_post_contributors",
   "rel_post_reviewers",
@@ -220,6 +268,32 @@ function metadata(
     Aliases: []
   };
 }
+
+/** `Rel/Owner.pets`, inherited by `Rel/Breeder` */
+const PETS_MAP = { attribute: "pets", model: "Rel/Pet", targetLink: "owners", targetAttributes: ["name", "uuid"] };
+
+/** The stored properties of a pet: the owners map items declare typed link fields */
+const PET_PROPERTIES = {
+  uuid: string,
+  name: string,
+  owners: {
+    type: "object",
+    additionalProperties: {
+      type: "object",
+      properties: { uuid: string, since: { type: "integer" }, meta: { type: "object" } }
+    }
+  },
+  pairs: { type: "array", items: string },
+  friends: { type: "array", items: { type: "object" } }
+};
+
+/** The links of a pet */
+const PET_LINKS = [
+  { attribute: "owners", model: "Rel/Owner", type: "LINKS_MAP" },
+  { attribute: "pairs", model: "Rel/Pair", type: "LINKS_SIMPLE_ARRAY" },
+  // A model no store plans: its key column has no key part
+  { attribute: "friends", model: "Rel/Ghost", type: "LINKS_ARRAY" }
+];
 
 /**
  * The metadata of every fixture model, by identifier
@@ -285,7 +359,22 @@ export function relationalMetadata(): Record<string, any> {
         }
       }
     ),
-    "Rel/Tag": metadata("Rel/Tag", { uuid: string, label: string }),
+    "Rel/Tag": metadata(
+      "Rel/Tag",
+      { uuid: string, label: string },
+      {
+        relations: {
+          maps: [
+            // Compiled before targetAttributes existed: the items are the keys
+            { attribute: "posts", model: "Rel/Post", targetLink: "tags" },
+            // Not filled: author does not link to a tag, the model is not planned, no model
+            { attribute: "unlinked", model: "Rel/Post", targetLink: "author", targetAttributes: ["uuid"] },
+            { attribute: "elsewhere", model: "Webda/OwnerModel", targetLink: "owner", targetAttributes: ["uuid"] },
+            { attribute: "untargeted", targetLink: "owner", targetAttributes: ["uuid"] }
+          ]
+        }
+      }
+    ),
     "Rel/Animal": metadata("Rel/Animal", { uuid: string, kind: string }, { subclasses: [RelDog] }),
     "Rel/Dog": metadata(
       "Rel/Dog",
@@ -299,7 +388,10 @@ export function relationalMetadata(): Record<string, any> {
         required: ["a", "b"],
         primaryKey: ["a", "b"],
         separator: "_",
-        relations: { links: [{ attribute: "tags", model: "Rel/Tag", type: "LINKS_SIMPLE_ARRAY" }] }
+        relations: {
+          links: [{ attribute: "tags", model: "Rel/Tag", type: "LINKS_SIMPLE_ARRAY" }],
+          maps: [{ attribute: "refs", model: "Rel/PairRef", targetLink: "pair", targetAttributes: ["uuid"] }]
+        }
       }
     ),
     "Rel/PairRef": metadata(
@@ -310,7 +402,12 @@ export function relationalMetadata(): Record<string, any> {
     "Rel/Node": metadata(
       "Rel/Node",
       { uuid: string, parentNode: string },
-      { relations: { links: [{ attribute: "parentNode", model: "Rel/Node", type: "LINK" }] } }
+      {
+        relations: {
+          links: [{ attribute: "parentNode", model: "Rel/Node", type: "LINK" }],
+          maps: [{ attribute: "children", model: "Rel/Node", targetLink: "parentNode", targetAttributes: ["uuid"] }]
+        }
+      }
     ),
     "Rel/CycleA": metadata(
       "Rel/CycleA",
@@ -321,6 +418,33 @@ export function relationalMetadata(): Record<string, any> {
       "Rel/CycleB",
       { uuid: string, other: string },
       { relations: { links: [{ attribute: "other", model: "Rel/CycleA", type: "LINK" }] } }
+    ),
+    "Rel/Owner": metadata(
+      "Rel/Owner",
+      { uuid: string, name: string },
+      { relations: { maps: [PETS_MAP] }, subclasses: [RelBreeder] }
+    ),
+    "Rel/Breeder": metadata(
+      "Rel/Breeder",
+      { uuid: string, name: string },
+      {
+        ancestors: ["Rel/Owner"],
+        relations: {
+          maps: [
+            PETS_MAP,
+            { attribute: "litter", model: "Rel/Kitten", targetLink: "breeder", targetAttributes: ["name", "uuid"] }
+          ]
+        }
+      }
+    ),
+    "Rel/Pet": metadata("Rel/Pet", PET_PROPERTIES, { relations: { links: PET_LINKS }, subclasses: [RelKitten] }),
+    "Rel/Kitten": metadata(
+      "Rel/Kitten",
+      { ...PET_PROPERTIES, breeder: string },
+      {
+        ancestors: ["Rel/Pet"],
+        relations: { links: [...PET_LINKS, { attribute: "breeder", model: "Rel/Breeder", type: "LINK" }] }
+      }
     ),
     "Rel/AggRow": metadata("Rel/AggRow", {
       uuid: string,
@@ -348,7 +472,11 @@ const CLASSES: Record<string, any> = {
   "Rel/Node": RelNode,
   "Rel/CycleA": RelCycleA,
   "Rel/CycleB": RelCycleB,
-  "Rel/AggRow": RelAggRow
+  "Rel/AggRow": RelAggRow,
+  "Rel/Owner": RelOwner,
+  "Rel/Breeder": RelBreeder,
+  "Rel/Pet": RelPet,
+  "Rel/Kitten": RelKitten
 };
 
 /**

@@ -127,3 +127,38 @@ export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression 
     return TIME_KINDS.has(this.type.kind) ? this.dialect.timeText(column, this.type) : this.dialect.castText(column);
   }
 }
+
+/**
+ * A condition rendered in SQL by the repository: the sub-query of a link collection, the key parts of a composite
+ * reference
+ */
+export class SQLConditionExpression extends WebdaQL.Expression<"SQL"> {
+  /**
+   * @param sql - the condition
+   */
+  constructor(protected readonly sql: string) {
+    super("SQL");
+  }
+
+  /**
+   * Only the database evaluates the condition
+   * @returns never
+   */
+  eval(): boolean {
+    throw new Error("A SQL condition is evaluated by the database");
+  }
+
+  /**
+   * @returns the SQL condition
+   */
+  toString(): string {
+    return this.sql;
+  }
+
+  /**
+   * @returns false: the values are already rendered
+   */
+  isDynamic(): boolean {
+    return false;
+  }
+}

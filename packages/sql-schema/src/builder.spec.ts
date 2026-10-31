@@ -353,7 +353,15 @@ describe("RelationalSchemaBuilder", () => {
             parent: { attribute: "owner", model: "WebdaSample/User" },
             links: [link("friend", "WebdaSample/User"), link("buddy", "WebdaSample/User")],
             queries: [{ attribute: "posts", model: "WebdaSample/Post", targetAttribute: "profile" }],
-            maps: [{ attribute: "mapped", model: "WebdaSample/Post" }]
+            maps: [
+              { attribute: "mapped", model: "WebdaSample/Post" },
+              {
+                attribute: "copies",
+                model: "WebdaSample/Post",
+                targetLink: "profile",
+                targetAttributes: ["title", "uuid"]
+              }
+            ]
           },
           // Relations does not tell a OneToOne from a ModelLink; a relation only in Reflection is not one
           Reflection: {
@@ -380,7 +388,22 @@ describe("RelationalSchemaBuilder", () => {
       targetAttribute: "profile",
       storage: { kind: "none" }
     });
-    expect(kinds["WebdaSample/Profile.mapped"]).toMatchObject({ kind: "map", storage: { kind: "none" } });
+    expect(kinds["WebdaSample/Profile.mapped"]).toEqual({
+      model: "WebdaSample/Profile",
+      attribute: "mapped",
+      kind: "map",
+      target: "WebdaSample/Post",
+      storage: { kind: "none" }
+    });
+    expect(kinds["WebdaSample/Profile.copies"]).toEqual({
+      model: "WebdaSample/Profile",
+      attribute: "copies",
+      kind: "map",
+      target: "WebdaSample/Post",
+      targetAttribute: "profile",
+      attributes: ["title", "uuid"],
+      storage: { kind: "none" }
+    });
     expect(kinds["WebdaSample/Post.profile"]).toMatchObject({ kind: "link", target: "WebdaSample/Profile" });
     expect(columns(plan, "webdasample_profile")).toEqual([
       "uuid text",

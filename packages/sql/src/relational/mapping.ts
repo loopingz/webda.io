@@ -9,6 +9,7 @@ import type { ColumnPlan, RelationPlan, RelationalSchemaPlan, TablePlan } from "
  * - `json`: a JSON field, with the path inside it (may be empty)
  * - `reference`: a reference to a composite key, one column per key part
  * - `junction`: the rows of a junction table
+ * - `mapped`: a `ModelsMapped` filled on read from the table of its model, see {@link MappedSource}
  * - `extra`: an unknown field kept in the extra JSON column
  * - `unknown`: an unknown field and no extra column
  */
@@ -17,8 +18,41 @@ export type AttributeTarget =
   | { kind: "json"; column: ColumnPlan; path: string[] }
   | { kind: "reference"; columns: ColumnPlan[]; relation: RelationPlan }
   | { kind: "junction"; table: TablePlan; relation: RelationPlan }
+  | { kind: "mapped"; source: MappedSource }
   | { kind: "extra"; column: ColumnPlan; path: string[] }
   | { kind: "unknown" };
+
+/**
+ * A `ModelsMapped` attribute the store fills on read: its model is planned by the same store and links to this table
+ * through a reference (columns) or a link collection (junction)
+ */
+export interface MappedSource {
+  /**
+   * The `map` relation of this table
+   */
+  relation: RelationPlan;
+  /**
+   * The table of the mapped model
+   */
+  table: TablePlan;
+  /**
+   * The mapping of that table
+   */
+  mapping: TableMapping;
+  /**
+   * The `__type` values of the mapped model and of its subclasses
+   */
+  types: string[];
+  /**
+   * The mapped model is the root of its table: its rows without `__type` are its own
+   */
+  untyped: boolean;
+  /**
+   * How a row of the mapped model links to this table: its reference columns, or the junction table of its link
+   * collection
+   */
+  link: { kind: "columns"; columns: ColumnPlan[] } | { kind: "junction"; table: TablePlan };
+}
 
 /**
  * The rows of a junction table for one owner row
@@ -59,14 +93,18 @@ export class TableMapping {
   private readonly byField = new Map<string, ColumnPlan[]>();
   private readonly relations = new Map<string, RelationPlan>();
   private readonly junctionTables = new Map<string, TablePlan>();
+  private mappedSources?: Map<string, MappedSource>;
 
   /**
    * @param plan - the plan
    * @param table - the table of the models
+   * @param isA - whether a model is a subclass of another (the plan does not keep the hierarchy): the projections are
+   *   compared without it
    */
   constructor(
     readonly plan: RelationalSchemaPlan,
-    readonly table: TablePlan
+    readonly table: TablePlan,
+    private readonly isA?: (type: string, model: string) => boolean
   ) {
     this.typeColumn = table.columns.find(c => c.role === "type")?.name ?? TYPE_COLUMN;
     this.extraColumn = table.columns.find(c => c.role === "extra")?.name;
@@ -101,6 +139,10 @@ export class TableMapping {
     const junction = this.junctionTables.get(head);
     if (relation && junction) {
       return { kind: "junction", table: junction, relation };
+    }
+    const source = this.mapped().get(head);
+    if (source) {
+      return { kind: "mapped", source };
     }
     const columns = this.byField.get(head);
     if (columns?.length) {
@@ -139,6 +181,62 @@ export class TableMapping {
    */
   junctions(): { table: TablePlan; relation: RelationPlan }[] {
     return [...this.junctionTables].map(([attribute, table]) => ({ table, relation: this.relations.get(attribute)! }));
+  }
+
+  /**
+   * The `ModelsMapped` attributes of the models of the table the store fills on read, computed once (the mapping of
+   * a mapped table is built lazily: two tables may map each other)
+   * @returns the sources, by attribute
+   */
+  mapped(): Map<string, MappedSource> {
+    if (this.mappedSources) {
+      return this.mappedSources;
+    }
+    this.mappedSources = new Map();
+    for (const relation of this.relations.values()) {
+      const source = relation.kind === "map" ? this.mappedSource(relation) : undefined;
+      if (source) {
+        this.mappedSources.set(relation.attribute, source);
+      }
+    }
+    return this.mappedSources;
+  }
+
+  /**
+   * @param relation - a `map` relation of the table
+   * @returns where its items come from, undefined when its model is not planned here or does not link to this table
+   */
+  private mappedSource(relation: RelationPlan): MappedSource | undefined {
+    const target = relation.target;
+    const table = this.plan.tables.find(t => !t.junction && t.models.includes(target!));
+    const link =
+      table &&
+      this.plan.relations.find(
+        r =>
+          r.attribute === relation.targetAttribute &&
+          table.models.includes(r.model) &&
+          r.target !== undefined &&
+          this.table.models.includes(r.target)
+      );
+    if (!table || !link) {
+      return undefined;
+    }
+    const mapping = table === this.table ? this : new TableMapping(this.plan, table, this.isA);
+    const storage = link.storage;
+    return {
+      relation,
+      table,
+      mapping,
+      types: table.models.filter(model => mapping.appliesTo(target!, model)),
+      untyped: table.root === target,
+      link:
+        storage.kind === "junction"
+          ? { kind: "junction", table: this.plan.tables.find(t => t.name === storage.table)! }
+          : {
+              kind: "columns",
+              columns: table.columns.filter(c => c.role === "reference" && c.field === link.attribute)
+            }
+    };
   }
 
   /**
@@ -200,18 +298,21 @@ export class TableMapping {
   }
 
   /**
-   * Whether a relation declared by a model applies to objects of a type: the same model, or an ancestor (its
-   * projection is included in the type's)
-   * @param relation - the relation
+   * Whether what a model declares applies to objects of a type: the same model, or an ancestor (without the
+   * hierarchy: a model whose projection is included in the type's)
+   * @param model - the declaring model
    * @param type - the model identifier of the object
-   * @returns true when the relation is one of the type's
+   * @returns true when the type is the model or one of its subclasses
    */
-  private appliesTo(relation: RelationPlan, type: string): boolean {
-    if (relation.model === type) {
+  appliesTo(model: string, type: string): boolean {
+    if (model === type) {
       return true;
     }
+    if (this.isA) {
+      return this.isA(type, model);
+    }
     const own = new Set(this.projection(type));
-    return this.projection(relation.model).every(column => own.has(column));
+    return this.projection(model).every(column => own.has(column));
   }
 
   /**
@@ -246,11 +347,15 @@ export class TableMapping {
       columns.push(name);
       values.push(this.referenceValue(json[column.field], column));
     }
+    // A filled ModelsMapped is read from its model: never written
+    for (const attribute of this.mapped().keys()) {
+      handled.add(attribute);
+    }
     const junctions: JunctionWrite[] = [];
     for (const [attribute, table] of this.junctionTables) {
       const relation = this.relations.get(attribute)!;
       handled.add(attribute);
-      if (attribute in json || (!partial && this.appliesTo(relation, type))) {
+      if (attribute in json || (!partial && this.appliesTo(relation.model, type))) {
         junctions.push({ table, relation, rows: this.junctionRows(json, json[attribute], table, relation) });
       }
     }

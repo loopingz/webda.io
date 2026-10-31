@@ -9,8 +9,9 @@
  *   protocol carries in `TransformResult.diagnostics`. Positions refer to the
  *   authored file, so errors land on the query the developer wrote. A query on a
  *   sealed field (`SealedField`, an envelope the server cannot read) is a
- *   warning, in these arguments and in the static `getPermissionQuery` of the
- *   models; the build logs it without failing.
+ *   warning, in these arguments, in the static `getPermissionQuery` of the
+ *   models and on an `@Index` / `@Unique` tag; the build logs it without
+ *   failing.
  * - **Rewrite.** A template literal is turned into an `escape(parts, values)`
  *   call so interpolated values cannot break out of the query.
  *
@@ -18,7 +19,7 @@
  * here it is text through the shared plan model.
  */
 import type { SourceFile } from "typescript/unstable/ast";
-import { SyntaxKind } from "typescript/unstable/ast";
+import { getJSDocTags, SyntaxKind } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import type { AnalysisContext, Edit, FileEdits, GeneratedDiagnostic, Generator } from "../plan.ts";
 
@@ -31,7 +32,10 @@ const WQL_UNKNOWN_ATTRIBUTE = 9001;
 const WQL_GRAMMAR_ERROR = 9002;
 /** A DELETE / UPDATE / SELECT field list where a filter query is expected. */
 const WQL_STATEMENT_NOT_ALLOWED = 9003;
-/** A sealed field (`@WebdaBehavior Webda/Sealed`) in a query: the server cannot filter, compare or index it. */
+/**
+ * A sealed field (`@WebdaBehavior Webda/Sealed`) in a query or an `@Index` / `@Unique` tag: the server cannot filter,
+ * compare or index it.
+ */
 const WQL_SEALED_ATTRIBUTE = 9004;
 
 /** Identifier of the `SealedField` behavior of `@webda/core`. */
@@ -275,7 +279,10 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
          */
         function visit(node: any): void {
           if (is.isCallExpression(node)) inspectCall(node);
-          if (is.isClassDeclaration(node)) inspectPermissionQueries(node);
+          if (is.isClassDeclaration(node)) {
+            inspectPermissionQueries(node);
+            inspectSealedIndexes(node);
+          }
           node.forEachChild?.((child: any) => {
             visit(child);
             return undefined;
@@ -328,6 +335,40 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
             });
           };
           queries(method.body);
+        }
+
+        /**
+         * Warn on the `@Index` / `@Unique` tags of the sealed fields a class declares: the relational stores would
+         * index the envelopes, whose ciphertext never orders nor collides like the values
+         * @param cls - the class declaration
+         */
+        function inspectSealedIndexes(cls: any): void {
+          const tagged = cls.members
+            .filter((member: any) => is.isPropertyDeclaration(member) && is.isIdentifier(member.name))
+            .map((member: any) => ({
+              member,
+              tag: getJSDocTags(member).find((tag: any) => ["Index", "Unique"].includes(tag.tagName.text))
+            }))
+            .filter(({ tag }: any) => tag);
+          // An anonymous class (`export default class`) is not a model
+          const symbol = tagged.length && cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
+          if (!symbol) return;
+          const sealed = sealedAttributes(ctx, ctx.checker.getDeclaredTypeOfSymbol(symbol));
+          for (const { member, tag } of tagged) {
+            const name = member.name.text;
+            if (!sealed.includes(name)) continue;
+            const start = member.name.getStart();
+            diagnostics.push({
+              start,
+              length: member.name.end - start,
+              code: WQL_SEALED_ATTRIBUTE,
+              severity: "warning",
+              messageText:
+                `Attribute '${name}' is a sealed field: the server stores an envelope it cannot read, so ` +
+                `@${tag.tagName.text} indexes the envelopes, not the values (sealed values cannot be filtered, ` +
+                "compared or indexed)"
+            });
+          }
         }
 
         /**

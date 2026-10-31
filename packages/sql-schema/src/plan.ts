@@ -100,7 +100,7 @@ export interface IndexPlan {
  * - `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`
  * - `linksMap`: `ModelLinksMap`
  * - `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage
- * - `map`: `ModelsMapped`, denormalized copies: no storage
+ * - `map`: `ModelsMapped`, denormalized copies: no storage, the relational stores fill them on read
  */
 export type RelationKind = "parent" | "link" | "linksSimpleArray" | "linksArray" | "linksMap" | "query" | "map";
 
@@ -125,9 +125,13 @@ export interface RelationPlan {
    */
   target?: string;
   /**
-   * For a `query`: the attribute of the target model linking back to this model
+   * For a `query` or a `map`: the attribute of the target model linking back to this model
    */
   targetAttribute?: string;
+  /**
+   * For a `map`: the attributes of the target copied into each item
+   */
+  attributes?: string[];
   /**
    * `OneToOne`: one row at most per target
    */

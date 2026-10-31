@@ -168,7 +168,9 @@ describe("WebdaQL rewriting", () => {
 describe("WebdaQL sealed fields", () => {
   it("warns on a sealed field in a branded query argument, as a warning", () => {
     const { diagnostics } = run(undefined, "sealed.model.ts");
-    const sealed = diagnostics.filter(d => d.code === WQL_CODES.SEALED_ATTRIBUTE);
+    const sealed = diagnostics.filter(
+      d => d.code === WQL_CODES.SEALED_ATTRIBUTE && !/@(Index|Unique)/.test(d.messageText)
+    );
     expect(sealed.every(d => d.severity === "warning")).toBe(true);
     expect(sealed.every(d => /sealed field/.test(d.messageText) && /never matches/.test(d.messageText))).toBe(true);
     // The service call sites: a plain literal and a template; not the query on title only
@@ -189,7 +191,7 @@ describe("WebdaQL sealed fields", () => {
     const { diagnostics } = run(undefined, "sealed.model.ts");
     const text = readFileSync(join(fixture, "src", "sealed.model.ts"), "utf8");
     const sealed = diagnostics
-      .filter(d => d.code === WQL_CODES.SEALED_ATTRIBUTE)
+      .filter(d => d.code === WQL_CODES.SEALED_ATTRIBUTE && !/@(Index|Unique)/.test(d.messageText))
       .map(d => text.slice(d.start, d.start + d.length));
     expect(sealed).toContain(`"content = 'x'"`);
     expect(sealed).toContain("`owner = '${userId}' OR content.body = 'y'`");
@@ -197,6 +199,19 @@ describe("WebdaQL sealed fields", () => {
     expect(sealed).toHaveLength(4);
     // A permission query is not a branded argument: no unknown-attribute error for it
     expect(diagnostics.filter(d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE)).toHaveLength(1);
+  });
+
+  it("warns on an @Index / @Unique tag on a sealed field", () => {
+    const { diagnostics } = run(undefined, "sealed.model.ts");
+    const text = readFileSync(join(fixture, "src", "sealed.model.ts"), "utf8");
+    const indexed = diagnostics.filter(
+      d => d.code === WQL_CODES.SEALED_ATTRIBUTE && /@(Index|Unique)/.test(d.messageText)
+    );
+    expect(indexed.every(d => d.severity === "warning")).toBe(true);
+    // The sealed fields of IndexedNote: not the plain title, the untagged field nor the anonymous class
+    expect(indexed.map(d => text.slice(d.start, d.start + d.length))).toEqual(["secret", "content"]);
+    expect(indexed[0].messageText).toContain("@Unique indexes the envelopes");
+    expect(indexed[1].messageText).toContain("@Index indexes the envelopes");
   });
 
   it("does not warn on models without sealed fields", () => {

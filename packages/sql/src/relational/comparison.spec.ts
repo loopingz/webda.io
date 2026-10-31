@@ -2,7 +2,13 @@ import { WebdaError } from "@webda/core";
 import type { ColumnType } from "@webda/sql-schema";
 import { describe, expect, it } from "vitest";
 import { sqlString } from "../dialect.js";
-import { SQLColumnComparisonExpression, columnLiteral, isTimeValue, valueMatchesType } from "./comparison.js";
+import {
+  SQLColumnComparisonExpression,
+  SQLConditionExpression,
+  columnLiteral,
+  isTimeValue,
+  valueMatchesType
+} from "./comparison.js";
 import type { RelationalDialect } from "./dialect.js";
 
 /** The fragments the comparison needs */
@@ -85,5 +91,14 @@ describe("SQLColumnComparisonExpression", () => {
     expect(columnLiteral(2.5, { kind: "double" })).toBe("2.5");
     expect(columnLiteral(false, boolean)).toBe("FALSE");
     expect(columnLiteral("a'b", { kind: "varchar", length: 3 })).toBe("'a''b'");
+  });
+});
+
+describe("SQLConditionExpression", () => {
+  it("renders its SQL, static, evaluated by the database only", () => {
+    const condition = new SQLConditionExpression("EXISTS (SELECT 1)");
+    expect(condition.toString()).toBe("EXISTS (SELECT 1)");
+    expect(condition.isDynamic()).toBe(false);
+    expect(() => condition.eval()).toThrow(/evaluated by the database/);
   });
 });

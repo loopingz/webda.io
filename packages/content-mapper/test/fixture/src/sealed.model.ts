@@ -32,6 +32,26 @@ export class SealedNote extends UuidModel {
   }
 }
 
+/** A model indexing its fields: an index on a sealed field indexes the envelopes. */
+export class IndexedNote extends UuidModel {
+  /** @Index */
+  title: string = "";
+  /** @Unique */
+  secret: SealedField<string>;
+  /** @Index byBody */
+  content: SealedField<{ body: string }>;
+  /** Not indexed */
+  other: SealedField<string>;
+  /** @Index */
+  ["computed"]: string = "";
+}
+
+/** An anonymous model indexing a sealed field: not a model. */
+export const Anonymous = class {
+  /** @Index */
+  content: SealedField<string>;
+};
+
 /** A model whose permission query is not static: not a permission query. */
 export class PlainNote extends UuidModel {
   title: string = "";

@@ -67,7 +67,7 @@ nothing (the tables are already typed). A `tables` override must be a lowercase 
 | `ModelParent` / `BelongTo`                               | key column(s) + `FOREIGN KEY ... ON DELETE CASCADE`                                                                           |
 | `ModelLink` / `ManyToOne` / `OneToOne`                   | key column(s) + `FOREIGN KEY ... ON DELETE NO ACTION`, indexed (`OneToOne`: unique)                                           |
 | `ModelLinksSimpleArray` / `ManyToMany` / `ModelLinksMap` | junction table `<table>_<attribute>` (owner key, target key, `_position` or `key`, link attributes or `attributes` JSONB)     |
-| `ModelRelated` / `OneToMany` / `ModelsMapped`            | no storage (`ModelsMapped` stays empty: do not attach a `ModelMapper` to these models)                                        |
+| `ModelRelated` / `OneToMany` / `ModelsMapped`            | no storage; a `ModelsMapped` is filled on read from the rows of its model (see [Mapped attributes](#mapped-attributes))       |
 | a link to a model of another store                       | column + index, no foreign key, one `WARN` at init; with `foreignKeysToJsonb`, a foreign key to the `uuid` of its JSONB table |
 | `@Index` / `@Unique` JSDoc tag on an attribute           | an index (unique with `@Unique`) on its column(s); `@Index <name>` on several attributes builds one composite index           |
 | subclasses                                               | the table of their closest listed ancestor, with an indexed `__type` column; `useRepository(Dog).query("")` filters on it     |
@@ -178,6 +178,15 @@ Per-version views, `schemaPerVersion` and the dual-write trigger of the design a
   nothing, `!=` matches `NULL`). A time column compares natively with a date or a date text and reads as its ISO text
   otherwise: `_lastUpdate = 'abc'` matches nothing, `_lastUpdate LIKE '2024-05%'` and `day LIKE '2024-05%'` match the
   ISO form the models store. `NULL` sorts first ascending, last descending.
+- WebdaQL on link collections, as an `EXISTS` sub-query on the junction: `tags CONTAINS 't1'` (the collection links
+  to the key; a composite key is split), `contributors.role = 'editor'` (**one item** matches: a target key part such
+  as `contributors.uuid`, a typed link field or a path in the `attributes` column), on a map the second segment is the
+  item key (`reviewers.lead.since > 2020`, `reviewers.lead IS NULL`). A link collection reads as an array or a map,
+  never null: `tags IS NULL` is `FALSE`. These comparisons work in every statement (`query`, `count`, `updateMany`,
+  `deleteMany`, aggregations); the in-memory stores do not match item attributes this way.
+- WebdaQL on a reference to a composite key compares its key parts: `pair = 'x_y'`, `pair != 'x_y'` and `IN` split
+  the value on the key separator (a value that does not split matches nothing, everything for `!=`), `LIKE` and the
+  ordering operators compare the joined text, `IS NULL` holds when every part is `NULL`.
 - `incrementAttributes` works on numeric columns; `upsertItemToCollection` / `deleteItemFromCollection` work on JSONB
   arrays and on simple link arrays (by position); `updateMany` assigns columns and JSONB paths (one assignment per
   JSONB column); `deleteMany` is one `DELETE`.
@@ -185,23 +194,34 @@ Per-version views, `schemaPerVersion` and the dual-write trigger of the design a
 
 ### Errors
 
-| Situation                                                                                                                                                                                     | Error                                                                           |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| duplicate primary key on `create`                                                                                                                                                             | `Error("Already exists: <key>")`                                                |
-| a key listed twice in a link collection (`tags: ["t1", "t1"]`) on `create`, `update` or `patch`                                                                                               | `WebdaError.BadRequest` naming the attribute                                    |
-| collision on a unique index (`@Unique`, `OneToOne`) on `create`, `update` or `patch`                                                                                                          | `WebdaError.Conflict` naming the fields                                         |
-| foreign key violation on insert or update (unknown link target)                                                                                                                               | `WebdaError.BadRequest` naming the relation                                     |
-| delete of a row still referenced (`NO ACTION`)                                                                                                                                                | `WebdaError.Conflict`                                                           |
-| duplicate key appended to a simple link array                                                                                                                                                 | `WebdaError.Conflict`                                                           |
-| filter or `ORDER BY` on a junction attribute, on a composite reference, on an unknown field without `_extra`; collection operation on a scalar; `incrementAttributes` on a non-numeric column | `WebdaError.BadRequest`                                                         |
-| service named `Registry`                                                                                                                                                                      | `WebdaError.CodeError("RELATIONAL_STORE_AS_REGISTRY")`                          |
-| `table` parameter                                                                                                                                                                             | `WebdaError.CodeError("RELATIONAL_SHARED_TABLE")`                               |
-| repository of a model not listed                                                                                                                                                              | `WebdaError.CodeError("MODEL_NOT_PLANNED")`                                     |
-| `schemaSync: "validate"` with a difference                                                                                                                                                    | `SchemaDriftError` (`SCHEMA_DRIFT`)                                             |
-| plan incompatible with a live application version                                                                                                                                             | `SchemaIncompatibleError` (409, fatal at `init()`)                              |
-| `Registry` unreachable at `init()`                                                                                                                                                            | `SchemaRegistryError` (`SCHEMA_REGISTRY_UNAVAILABLE`, fatal)                    |
-| `Webda/SchemaVersion` listed in the store models                                                                                                                                              | `WebdaError.CodeError("RELATIONAL_SCHEMA_VERSION_MODEL")`                       |
-| `importFromJsonb` from a relational store, or of a model whose JSONB table is the relational one                                                                                              | `WebdaError.CodeError("RELATIONAL_IMPORT_SOURCE" \| "RELATIONAL_IMPORT_TABLE")` |
+| Situation                                                                                                                                                                                                                                                                        | Error                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| duplicate primary key on `create`                                                                                                                                                                                                                                                | `Error("Already exists: <key>")`                                                |
+| a key listed twice in a link collection (`tags: ["t1", "t1"]`) on `create`, `update` or `patch`                                                                                                                                                                                  | `WebdaError.BadRequest` naming the attribute                                    |
+| collision on a unique index (`@Unique`, `OneToOne`) on `create`, `update` or `patch`                                                                                                                                                                                             | `WebdaError.Conflict` naming the fields                                         |
+| foreign key violation on insert or update (unknown link target)                                                                                                                                                                                                                  | `WebdaError.BadRequest` naming the relation                                     |
+| delete of a row still referenced (`NO ACTION`)                                                                                                                                                                                                                                   | `WebdaError.Conflict`                                                           |
+| duplicate key appended to a simple link array                                                                                                                                                                                                                                    | `WebdaError.Conflict`                                                           |
+| `ORDER BY` on a junction attribute or a composite reference; a comparison a junction cannot answer (`tags = 't1'`); a filter on a filled `ModelsMapped` or on an unknown field without `_extra`; collection operation on a scalar; `incrementAttributes` on a non-numeric column | `WebdaError.BadRequest`                                                         |
+| service named `Registry`                                                                                                                                                                                                                                                         | `WebdaError.CodeError("RELATIONAL_STORE_AS_REGISTRY")`                          |
+| `table` parameter                                                                                                                                                                                                                                                                | `WebdaError.CodeError("RELATIONAL_SHARED_TABLE")`                               |
+| repository of a model not listed                                                                                                                                                                                                                                                 | `WebdaError.CodeError("MODEL_NOT_PLANNED")`                                     |
+| `schemaSync: "validate"` with a difference                                                                                                                                                                                                                                       | `SchemaDriftError` (`SCHEMA_DRIFT`)                                             |
+| plan incompatible with a live application version                                                                                                                                                                                                                                | `SchemaIncompatibleError` (409, fatal at `init()`)                              |
+| `Registry` unreachable at `init()`                                                                                                                                                                                                                                               | `SchemaRegistryError` (`SCHEMA_REGISTRY_UNAVAILABLE`, fatal)                    |
+| `Webda/SchemaVersion` listed in the store models                                                                                                                                                                                                                                 | `WebdaError.CodeError("RELATIONAL_SCHEMA_VERSION_MODEL")`                       |
+| `importFromJsonb` from a relational store, or of a model whose JSONB table is the relational one                                                                                                                                                                                 | `WebdaError.CodeError("RELATIONAL_IMPORT_SOURCE" \| "RELATIONAL_IMPORT_TABLE")` |
+
+## Mapped attributes
+
+A `ModelsMapped<Post, "author", "title">` is a denormalized copy kept by a `ModelMapper` on the document stores. When
+the mapped model (`Post`) is listed in the same relational store and its link (`author`, a reference or a link
+collection) targets this model, the store **fills the attribute on read** instead: one statement per attribute and per
+page of rows selects the rows of the mapped model (and of its subclasses) linking to each owner, in primary key order,
+and each item holds the mapped attributes and the `uuid` of the row (a composite key is joined). The attribute is
+never written (a value given on `create` / `patch` is ignored) and cannot be filtered: query the mapped model instead.
+Do not attach a `ModelMapper` to these models. A link collection of the mapped model is not copied into the items. A
+`ModelsMapped` whose model is served by another store keeps the previous behaviour (stored in `_extra`).
 
 ## Promoting a model from the JSONB store
 
@@ -222,15 +242,13 @@ committed. The JSONB table and the relational table of a model must have differe
 
 ## Limitations
 
-- No filter on a junction attribute (`tags CONTAINS 't1'`): query the target model, or keep the collection in a JSONB
-  field.
-- No filter on a reference to a composite key.
-- `ModelsMapped` attributes are not filled.
+- No `ORDER BY` on a junction attribute or on a reference to a composite key.
+- A `ModelsMapped` is only filled when its model is in the same store.
 - No `MigratableStore` raw access (there are no Webda 3 JSON rows in a typed table).
 - A JSON `null` stored in a JSONB column reads as an absent field.
 
 Follow-ups tracked in [#838](https://github.com/loopingz/webda.io/issues/838): per-version views and
-`schemaPerVersion` (#1016), filters on junction attributes and composite references (#1017).
+`schemaPerVersion` (#1016).
 
 ## Other engines
 

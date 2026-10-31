@@ -51,7 +51,13 @@ export interface SchemaModelMetadata {
      */
     links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: string }[];
     queries?: { attribute: string; model?: string; targetAttribute?: string }[];
-    maps?: { attribute: string; model?: string; [key: string]: unknown }[];
+    maps?: {
+      attribute: string;
+      model?: string;
+      targetLink?: string;
+      targetAttributes?: string[];
+      [key: string]: unknown;
+    }[];
     /**
      * Attributes tagged `@Index` / `@Unique`; those sharing a `name` form one composite index, in declaration order
      */
@@ -88,6 +94,10 @@ export interface DeclaredRelation {
    */
   target?: string;
   targetAttribute?: string;
+  /**
+   * For a `map`: the attributes of the target copied into each item
+   */
+  attributes?: string[];
   unique?: boolean;
   /**
    * Delete policy of the relation, defaulted from its kind
@@ -192,7 +202,13 @@ export function declaredRelations(meta: SchemaModelMetadata): Map<string, Declar
     });
   }
   for (const map of relations.maps ?? []) {
-    result.set(map.attribute, { attribute: map.attribute, kind: "map", target: map.model });
+    result.set(map.attribute, {
+      attribute: map.attribute,
+      kind: "map",
+      target: map.model,
+      ...(map.targetLink ? { targetAttribute: map.targetLink } : {}),
+      ...(map.targetAttributes?.length ? { attributes: map.targetAttributes } : {})
+    });
   }
   return result;
 }

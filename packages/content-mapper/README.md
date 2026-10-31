@@ -24,12 +24,12 @@ You rarely use it directly: `webdac build` (from `@webda/compiler`) runs it for 
 
 ## What it generates
 
-| Generator        | Output                                                                                                                                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `accessors`      | Typed accessors that coerce on assignment (`user.createdAt = "2020-01-01"` stores a `Date`) and relations                                                                                       |
-| `behaviors`      | Members of the [Behaviors](https://webda.io/docs/Concepts/Models/Behaviors) attached to a model                                                                                                 |
-| `loadParameters` | `loadParameters()` for services extending `Service<T>`, from their parameters class                                                                                                             |
-| `qlValidator`    | Compile-time validation of `WebdaQLString<T>` queries, reported as TypeScript diagnostics; a sealed field in a query or in a `getPermissionQuery` is a warning (`WQL9004`), logged by the build |
+| Generator        | Output                                                                                                                                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `accessors`      | Typed accessors that coerce on assignment (`user.createdAt = "2020-01-01"` stores a `Date`) and relations                                                                                                                          |
+| `behaviors`      | Members of the [Behaviors](https://webda.io/docs/Concepts/Models/Behaviors) attached to a model                                                                                                                                    |
+| `loadParameters` | `loadParameters()` for services extending `Service<T>`, from their parameters class                                                                                                                                                |
+| `qlValidator`    | Compile-time validation of `WebdaQLString<T>` queries, reported as TypeScript diagnostics; a sealed field in a query, in a `getPermissionQuery` or under an `@Index` / `@Unique` tag is a warning (`WQL9004`), logged by the build |
 
 It also discovers the Webda objects of a project and produces the JSON schemas of models, services and operations
 used in `webda.module.json`.

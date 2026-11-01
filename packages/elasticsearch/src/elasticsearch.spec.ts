@@ -146,6 +146,11 @@ class ElasticSearchTest extends ElasticSearchBaseTest {
     );
     await service.resolve().init();
     assert.throws(() => service.checkIndex("projects"), ESUnknownIndexError);
+    await assert.rejects(
+      () => service["_increments"]("users", "u1", [{ property: "a; evil()", value: 1 }]),
+      /Invalid property name/
+    );
+    await assert.rejects(() => service["_addItem"]("users", "u1", "a; evil()", {}), /Invalid property name/);
     await service.stop();
   }
 

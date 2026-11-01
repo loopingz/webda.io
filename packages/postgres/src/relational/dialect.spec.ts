@@ -206,6 +206,10 @@ export class PostgresRelationalDialectTest {
     );
     assert.strictEqual(d.columnJsonRemoveItem("files", 1), `COALESCE("files" - 1, '[]'::jsonb)`);
     assert.strictEqual(d.columnJsonItemCondition("files", 1, "hash", 3), `"files"#>>'{1,hash}' = $3`);
+    assert.throws(() => d.keyText("a' OR 1=1--"), /Invalid attribute/);
+    assert.throws(() => d.jsonText(["a", "b'}--"]), /Invalid attribute/);
+    assert.throws(() => d.setCollectionItem("items", 1, -1, "2026-01-01"), /Invalid index/);
+    assert.throws(() => d.columnJsonSetPath("m", ["a", "b'}--"], 1), /Invalid attribute/);
   }
 
   @test

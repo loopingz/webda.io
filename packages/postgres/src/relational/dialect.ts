@@ -262,12 +262,12 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
 
   /** @override */
   columnJsonText(column: string, path: string[]): string {
-    return `${this.quote(column)}#>>'{${path.join(",")}}'`;
+    return `${this.quote(column)}#>>'{${this.checkPath(path).join(",")}}'`;
   }
 
   /** @override */
   columnJsonValue(column: string, path: string[]): string {
-    return `${this.quote(column)}#>'{${path.join(",")}}'`;
+    return `${this.quote(column)}#>'{${this.checkPath(path).join(",")}}'`;
   }
 
   /** @override */
@@ -291,6 +291,7 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
    * @override
    */
   columnJsonSetPath(column: string, path: string[], valueParam: number): string {
+    this.checkPath(path);
     let json = `COALESCE(${this.quote(column)}, '{}'::jsonb)`;
     for (let i = 1; i < path.length; i++) {
       const parent = `'{${path.slice(0, i).join(",")}}'`;
@@ -304,17 +305,18 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
     const array = `COALESCE(${this.quote(column)}, '[]'::jsonb)`;
     return index === undefined
       ? `${array} || jsonb_build_array($${itemParam}::jsonb)`
-      : `jsonb_set(${array}, '{${index}}', $${itemParam}::jsonb)`;
+      : `jsonb_set(${array}, '{${this.checkIndex(index)}}', $${itemParam}::jsonb)`;
   }
 
   /** @override */
   columnJsonRemoveItem(column: string, index: number): string {
-    return `COALESCE(${this.quote(column)} - ${index}, '[]'::jsonb)`;
+    return `COALESCE(${this.quote(column)} - ${this.checkIndex(index)}, '[]'::jsonb)`;
   }
 
   /** @override */
   columnJsonItemCondition(column: string, index: number, field: string, valueParam: number): string {
-    return `${this.quote(column)}#>>'{${index},${field}}' = $${valueParam}`;
+    this.checkKey(field);
+    return `${this.quote(column)}#>>'{${this.checkIndex(index)},${field}}' = $${valueParam}`;
   }
 
   /**

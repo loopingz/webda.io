@@ -1,5 +1,27 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.12...offline-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* **core:** hand the caller context to getProtectedAttributes (per-caller field write rules) ([#1020](https://github.com/loopingz/webda.io/issues/1020)) ([8118f69](https://github.com/loopingz/webda.io/commit/8118f698a2730f207f8e6623a35480d00a37ab47))
+* **sealed:** offline decrypt-on-read, sealed-field query warning, escrow kid precondition, set size cap ([#1022](https://github.com/loopingz/webda.io/issues/1022)) ([5be9b53](https://github.com/loopingz/webda.io/commit/5be9b53aafacda210eda0163158273444d5c471a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/versioning bumped to 4.0.0-beta.13
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.11...offline-v4.0.0-beta.12) (2026-10-22)
 
 

@@ -186,6 +186,41 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.12...aws-v4.0.0-beta.13) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **otel:** @webda/otel no longer honors an incoming traceparent from any caller: list upstream services in trustedTraceSources (default []) or cross-service traces split. traceExporter.sampling now applies to the auto-instrumented HTTP and database spans (ParentBased ratio sampler). The HTTP instrumentation's incoming SERVER spans and the router span are replaced by Webda's SERVER span on every entry point. The Router emits CORS response headers for the origins of the website parameter and the CORS filters; Lambda OPTIONS without Origin no longer gets Access-Control-Max-Age/Allow-Headers. See the Upgrading section of packages/otel/README.md.
+
+### Features
+
+* **azure:** add Azure services, Container Apps and Functions deployers ([#998](https://github.com/loopingz/webda.io/issues/998)) ([6c7b1aa](https://github.com/loopingz/webda.io/commit/6c7b1aa386b8930c125ce5c975e74ec0c21e686b))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **otel:** on-demand web tracing (W3C trace context, X-Webda-Trace token, every entry point) ([#1029](https://github.com/loopingz/webda.io/issues/1029)) ([3d5387b](https://github.com/loopingz/webda.io/commit/3d5387bf5f1a3b505a580637daa83e1a362c23de))
+* read and migrate Webda 3 types in the MongoDB and DynamoDB stores ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#964](https://github.com/loopingz/webda.io/issues/964)) ([a644d5c](https://github.com/loopingz/webda.io/commit/a644d5c703855869e6d16e55ffb8c3caaadc6c5b))
+
+
+### Bug Fixes
+
+* **aws,azure:** harden Lambda/Azure request parsing, multi-value headers, and S3 key encoding ([#1044](https://github.com/loopingz/webda.io/issues/1044)) ([648ae7c](https://github.com/loopingz/webda.io/commit/648ae7cc4066ee8f10e149c115e6608b6afe1e56))
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.13
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.13
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.11...aws-v4.0.0-beta.12) (2026-10-22)
 
 

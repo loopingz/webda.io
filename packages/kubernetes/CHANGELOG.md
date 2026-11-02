@@ -137,6 +137,35 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.12...kubernetes-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* **cloudevents:** CloudEventsReceiver, KnativeBrokerPubSub and Knative Trigger manifests ([#1025](https://github.com/loopingz/webda.io/issues/1025)) ([2f82dde](https://github.com/loopingz/webda.io/commit/2f82ddeec99c9d8247f9e5fe2fa911dc6050641a))
+* **core,kubernetes:** ClusterService with leader election and whenLeader() ([#1004](https://github.com/loopingz/webda.io/issues/1004)) ([095a497](https://github.com/loopingz/webda.io/commit/095a497dbd1c12629ac32c32f6fc38127c6c85f8))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **kubernetes:** KnativeDeployer with Cloud Run support, HttpServer $PORT, health route and graceful drain ([#1021](https://github.com/loopingz/webda.io/issues/1021)) ([c000a3c](https://github.com/loopingz/webda.io/commit/c000a3c454ae0afe8914c9af59da423ca9f698c7))
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.13
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.11...kubernetes-v4.0.0-beta.12) (2026-10-22)
 
 

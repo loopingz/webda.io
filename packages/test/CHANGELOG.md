@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.8...test-v4.0.0-beta.9) (2026-11-02)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/decorators bumped to 4.0.0-beta.6
+    * @webda/workout bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.7...test-v4.0.0-beta.8) (2026-10-22)
 
 

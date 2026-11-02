@@ -200,6 +200,25 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.12...mongo-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* read and migrate Webda 3 types in the MongoDB and DynamoDB stores ([#889](https://github.com/loopingz/webda.io/issues/889)) ([#964](https://github.com/loopingz/webda.io/issues/964)) ([a644d5c](https://github.com/loopingz/webda.io/commit/a644d5c703855869e6d16e55ffb8c3caaadc6c5b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.13
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.11...mongo-v4.0.0-beta.12) (2026-10-22)
 
 

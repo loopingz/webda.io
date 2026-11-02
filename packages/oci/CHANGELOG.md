@@ -1,5 +1,28 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/oci-v4.0.0-beta.12...oci-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* **azure:** add Azure services, Container Apps and Functions deployers ([#998](https://github.com/loopingz/webda.io/issues/998)) ([6c7b1aa](https://github.com/loopingz/webda.io/commit/6c7b1aa386b8930c125ce5c975e74ec0c21e686b))
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/oci-v4.0.0-beta.11...oci-v4.0.0-beta.12) (2026-10-22)
 
 

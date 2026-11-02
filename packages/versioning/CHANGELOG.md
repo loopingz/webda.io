@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.12...versioning-v4.0.0-beta.13) (2026-11-02)
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.11...versioning-v4.0.0-beta.12) (2026-10-22)
 
 

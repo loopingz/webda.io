@@ -3,6 +3,61 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.12...core-v4.0.0-beta.13) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **otel:** @webda/otel no longer honors an incoming traceparent from any caller: list upstream services in trustedTraceSources (default []) or cross-service traces split. traceExporter.sampling now applies to the auto-instrumented HTTP and database spans (ParentBased ratio sampler). The HTTP instrumentation's incoming SERVER spans and the router span are replaced by Webda's SERVER span on every entry point. The Router emits CORS response headers for the origins of the website parameter and the CORS filters; Lambda OPTIONS without Origin no longer gets Access-Control-Max-Age/Allow-Headers. See the Upgrading section of packages/otel/README.md.
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996))
+
+### Features
+
+* **auth:** store the password escrow with the password change ([#1018](https://github.com/loopingz/webda.io/issues/1018)) ([712e1ef](https://github.com/loopingz/webda.io/commit/712e1ef5abe616b50062c37529fa7613428ce4c1))
+* **azure:** add Azure services, Container Apps and Functions deployers ([#998](https://github.com/loopingz/webda.io/issues/998)) ([6c7b1aa](https://github.com/loopingz/webda.io/commit/6c7b1aa386b8930c125ce5c975e74ec0c21e686b))
+* **cloudevents:** CloudEventsReceiver, KnativeBrokerPubSub and Knative Trigger manifests ([#1025](https://github.com/loopingz/webda.io/issues/1025)) ([2f82dde](https://github.com/loopingz/webda.io/commit/2f82ddeec99c9d8247f9e5fe2fa911dc6050641a))
+* **core,kubernetes:** ClusterService with leader election and whenLeader() ([#1004](https://github.com/loopingz/webda.io/issues/1004)) ([095a497](https://github.com/loopingz/webda.io/commit/095a497dbd1c12629ac32c32f6fc38127c6c85f8))
+* **core:** complete action REST bindings and OpenAPI ([#996](https://github.com/loopingz/webda.io/issues/996)) ([d9ddb34](https://github.com/loopingz/webda.io/commit/d9ddb34f2ec01bece5c4ca64631e14fe6d3d6264))
+* **core:** GlobalOperationContext and useSystem() for system operation calls ([#1003](https://github.com/loopingz/webda.io/issues/1003)) ([b5dc9ef](https://github.com/loopingz/webda.io/commit/b5dc9ef86ce6213c27e186867bdd4b7ba9c323df))
+* **core:** hand the caller context to getProtectedAttributes (per-caller field write rules) ([#1020](https://github.com/loopingz/webda.io/issues/1020)) ([8118f69](https://github.com/loopingz/webda.io/commit/8118f698a2730f207f8e6623a35480d00a37ab47))
+* **core:** operation transaction participants ([#980](https://github.com/loopingz/webda.io/issues/980)) ([f4d49d6](https://github.com/loopingz/webda.io/commit/f4d49d6eeae73968b379592c242cd9957f51da64))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **core:** validate symmetry of model relations and store routing ([#458](https://github.com/loopingz/webda.io/issues/458)) ([#905](https://github.com/loopingz/webda.io/issues/905)) ([3754359](https://github.com/loopingz/webda.io/commit/37543596ca25bbea2a2c1f83d0f438f047b884ec))
+* **kubernetes:** KnativeDeployer with Cloud Run support, HttpServer $PORT, health route and graceful drain ([#1021](https://github.com/loopingz/webda.io/issues/1021)) ([c000a3c](https://github.com/loopingz/webda.io/commit/c000a3c454ae0afe8914c9af59da423ca9f698c7))
+* **models:** add permission-aware polymorphic links ([#997](https://github.com/loopingz/webda.io/issues/997)) ([004562e](https://github.com/loopingz/webda.io/commit/004562e14b3bf47d61b29dcee5a430ae8082f4b5))
+* **oauth,oidc:** shared login across applications with remote resource-bound access tokens ([#993](https://github.com/loopingz/webda.io/issues/993)) ([2c9778a](https://github.com/loopingz/webda.io/commit/2c9778ac61ec09cddd54fcbeb104d3b7c8829e63)), closes [#992](https://github.com/loopingz/webda.io/issues/992)
+* **otel:** on-demand web tracing (W3C trace context, X-Webda-Trace token, every entry point) ([#1029](https://github.com/loopingz/webda.io/issues/1029)) ([3d5387b](https://github.com/loopingz/webda.io/commit/3d5387bf5f1a3b505a580637daa83e1a362c23de))
+* **sealed:** offline decrypt-on-read, sealed-field query warning, escrow kid precondition, set size cap ([#1022](https://github.com/loopingz/webda.io/issues/1022)) ([5be9b53](https://github.com/loopingz/webda.io/commit/5be9b53aafacda210eda0163158273444d5c471a))
+
+
+### Bug Fixes
+
+* **core,graphql:** escape OpenAPI JSON in Swagger HTML and URLs in GraphiQL ([#1046](https://github.com/loopingz/webda.io/issues/1046)) ([11d1854](https://github.com/loopingz/webda.io/commit/11d18542ddc13a60e7aaf8e659e62ea68af254ac))
+* **core:** advertise CLI requirements in operations listing ([#994](https://github.com/loopingz/webda.io/issues/994)) ([2c0264a](https://github.com/loopingz/webda.io/commit/2c0264a4063d62ddd81fbaf8ec62b58b7d53f6ae))
+* **core:** answer operation results with their toDTO, as the caller ([#990](https://github.com/loopingz/webda.io/issues/990)) ([4b944b6](https://github.com/loopingz/webda.io/commit/4b944b688ab98f333eb14e802929882576fd3142))
+* **core:** bind JWT cookie purpose and cap kid-derived HMAC key index ([#1032](https://github.com/loopingz/webda.io/issues/1032)) ([76d1a05](https://github.com/loopingz/webda.io/commit/76d1a05b2fe10836a87e402f33459904307051a3))
+* **core:** enforce Origin check on cookie-authenticated mutations and WebSocket upgrades ([#1037](https://github.com/loopingz/webda.io/issues/1037)) ([4b7546f](https://github.com/loopingz/webda.io/commit/4b7546f374c1d0487066fc416ff3872c439c79ea))
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+* **sql:** relational store polish: review minors, @Index/@Unique, foreignKeysToJsonb, importFromJsonb ([#1023](https://github.com/loopingz/webda.io/issues/1023)) ([277555f](https://github.com/loopingz/webda.io/commit/277555fb450ef1e926cd4ace68be8cab72d116f3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.13
+    * @webda/decorators bumped to 4.0.0-beta.6
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/content-mapper bumped to 4.0.0-beta.11
+    * @webda/test bumped to 4.0.0-beta.9
+  * peerDependencies
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.11...core-v4.0.0-beta.12) (2026-10-22)
 
 

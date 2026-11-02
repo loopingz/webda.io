@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/oidc-v4.0.0-beta.12...oidc-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* **azure:** add Azure services, Container Apps and Functions deployers ([#998](https://github.com/loopingz/webda.io/issues/998)) ([6c7b1aa](https://github.com/loopingz/webda.io/commit/6c7b1aa386b8930c125ce5c975e74ec0c21e686b))
+* **oauth,oidc:** shared login across applications with remote resource-bound access tokens ([#993](https://github.com/loopingz/webda.io/issues/993)) ([2c9778a](https://github.com/loopingz/webda.io/commit/2c9778ac61ec09cddd54fcbeb104d3b7c8829e63)), closes [#992](https://github.com/loopingz/webda.io/issues/992)
+
+
+### Bug Fixes
+
+* **oidc:** default client user tokens without scope to empty scopes and validate mfa claims ([#1034](https://github.com/loopingz/webda.io/issues/1034)) ([b5adb3d](https://github.com/loopingz/webda.io/commit/b5adb3d24f5f39418c625f92d55f3d81598b6318))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/iam bumped to 4.0.0-beta.13
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/oidc-v4.0.0-beta.11...oidc-v4.0.0-beta.12) (2026-10-22)
 
 

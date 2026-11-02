@@ -8,6 +8,7 @@ import {
   WebContext,
   WebdaError
 } from "@webda/core";
+import { timingSafeEqual } from "node:crypto";
 import { type AnyMethod, createMethodDecorator, getMetadata } from "@webda/decorators";
 import { CloudEvent, HTTP, type Message } from "cloudevents";
 import { isCloudEvent } from "../models/cloudevent.js";
@@ -150,6 +151,16 @@ export class CloudEventsReceiverParameters extends ServiceParameters {
    * @default 10000
    */
   dedupeSize: number;
+  /**
+   * Require an authenticated Webda session on incoming CloudEvent HTTP requests
+   *
+   * @default false
+   */
+  requireAuthentication?: boolean;
+  /**
+   * Shared bearer token required in `Authorization: Bearer <token>` on incoming requests
+   */
+  bearerToken?: string;
 
   /**
    * @override
@@ -161,6 +172,7 @@ export class CloudEventsReceiverParameters extends ServiceParameters {
     this.dedupe ??= false;
     this.dedupeTtl ??= 3600000;
     this.dedupeSize ??= 10000;
+    this.requireAuthentication ??= false;
     return this;
   }
 }
@@ -538,6 +550,19 @@ export class CloudEventsReceiver<
     }
   })
   async receive(context: WebContext): Promise<void> {
+    if (this.parameters.bearerToken) {
+      const expected = Buffer.from(this.parameters.bearerToken);
+      const authHeader = (context.getHttpContext().getUniqueHeader("authorization") || "").trim();
+      const provided = Buffer.from(authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "");
+      if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+        this.metrics.rejected.inc();
+        throw new WebdaError.Unauthorized("Invalid or missing CloudEvents bearer token");
+      }
+    }
+    if (this.parameters.requireAuthentication && !context.getCurrentUserId()) {
+      this.metrics.rejected.inc();
+      throw new WebdaError.Unauthorized("Authentication required for CloudEvents receiver");
+    }
     const { events, batch } = await this.parse(context);
     const replies: CloudEvent[] = [];
     for (const event of events) {

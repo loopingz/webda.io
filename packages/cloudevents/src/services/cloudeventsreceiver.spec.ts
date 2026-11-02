@@ -424,4 +424,30 @@ class CloudEventsReceiverTest extends WebdaApplicationTest {
     );
     assert.strictEqual(context.getResponseCode(), 202);
   }
+
+  @test
+  async authAndBearerTokenEnforcement() {
+    const secured = await this.receiver({ bearerToken: "secret-token", requireAuthentication: true });
+    await assert.rejects(
+      this.post(secured, { "content-type": "application/cloudevents+json" }, JSON.stringify(attributes)),
+      WebdaError.Unauthorized
+    );
+    await assert.rejects(
+      this.post(
+        secured,
+        { "content-type": "application/cloudevents+json", authorization: "Bearer secret-token" },
+        JSON.stringify(attributes)
+      ),
+      WebdaError.Unauthorized
+    );
+    const http = new HttpContext("test.webda.io", "POST", "/cloudevents", "http", 80, {
+      "content-type": "application/cloudevents+json",
+      authorization: "Bearer secret-token"
+    });
+    http.setBody(JSON.stringify(attributes));
+    const context = await this.newWebContext(http);
+    context.getCurrentUserId = () => "user-1";
+    await secured.receive(context);
+    assert.ok(context.getResponseCode() === 200 || context.getResponseCode() === 202);
+  }
 }

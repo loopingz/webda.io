@@ -155,6 +155,14 @@ class FakeEventsService extends Service {
   getClientEvents(): string[] {
     return ["test", "test2"];
   }
+
+  /**
+   * @param event - event name
+   * @returns true when authorized
+   */
+  authorizeClientEvent(event: string): boolean {
+    return event === "test";
+  }
 }
 
 const str = { type: "string" };

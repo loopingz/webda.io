@@ -65,6 +65,10 @@
         },
         "description": "Parameters of the {@link CloudEventsReceiver}",
         "properties": {
+          "bearerToken": {
+            "description": "Shared bearer token required in `Authorization: Bearer <token>` on incoming requests",
+            "type": "string"
+          },
           "dedupe": {
             "default": false,
             "description": "Acknowledge an event already handled with the same `source` and `id` without dispatching it again\n\nDelivery is at-least-once: the sender retries an event it did not get a 2xx for, so a handler that\nsucceeded but whose response was lost runs twice. The cache is in memory and per replica: it only\ncovers the retries reaching the same replica, keep the handlers idempotent.",
@@ -98,6 +102,11 @@
               "$ref": "#/definitions/CloudEventFilterDefinition"
             },
             "type": "array"
+          },
+          "requireAuthentication": {
+            "default": false,
+            "description": "Require an authenticated Webda session on incoming CloudEvent HTTP requests",
+            "type": "boolean"
           },
           "strict": {
             "default": false,

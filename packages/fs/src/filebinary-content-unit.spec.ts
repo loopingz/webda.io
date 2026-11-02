@@ -93,6 +93,12 @@ class FileBinaryContentTest extends WebdaApplicationTest {
       },
       (err: any) => err instanceof ContentNotFoundError && err.message.includes("Path traversal rejected")
     );
+    await assert.rejects(
+      async () => {
+        await this.fileBinary.getContent("file:///etc/passwd");
+      },
+      (err: any) => err instanceof ContentNotFoundError && err.message.includes("Path traversal rejected")
+    );
   }
 
   @test

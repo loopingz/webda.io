@@ -45,6 +45,12 @@ export interface ActionOptions {
    * `OperationDefinition.maxMfaAge`. Read by the compiler: use a string or number literal
    */
   maxMfaAge?: number | string;
+  /**
+   * Feature flag gating the operation. When the flag is off for the caller
+   * the operation answers NotFound and is left out of listings.
+   * `true` uses the operation id as flag name.
+   */
+  featureFlag?: string | true;
 }
 
 /**

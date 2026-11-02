@@ -126,8 +126,10 @@ describe("module metadata on a fixture", () => {
       bare: {}
     });
     const named = buildBehaviorActions(session.ctx, classOf(session, "behaviors.ts", "Named"), "Custom/Named");
-    expect(Object.keys(named)).toEqual(["own", "read", "write", "bare"]);
+    expect(Object.keys(named)).toEqual(["own", "flagged", "selfFlagged", "read", "write", "bare"]);
     expect(named.own).toEqual({ maxMfaAge: "5m" });
+    expect(named.flagged).toEqual({ featureFlag: "named-flag" });
+    expect(named.selfFlagged).toEqual({ featureFlag: true });
   });
 
   it("records @Shared methods with their source and allowlisted imports", () => {
@@ -239,7 +241,10 @@ describe("module metadata on a fixture", () => {
       lookup: { global: true, handler: "find" },
       payout: { maxMfaAge: "10m" },
       purge: { global: true, maxMfaAge: 600 },
-      computedAge: {}
+      computedAge: {},
+      report: { featureFlag: "beta-reports" },
+      rebuild: { global: true, featureFlag: true },
+      computedFlag: {}
     });
   });
 
@@ -297,6 +302,8 @@ describe("module metadata on a fixture", () => {
       Import: "lib/behaviors:Named",
       Actions: {
         own: { maxMfaAge: "5m" },
+        flagged: { featureFlag: "named-flag" },
+        selfFlagged: { featureFlag: true },
         read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } },
         write: {},
         bare: {}

@@ -21,6 +21,7 @@ import {
   assertFilterOnly,
   callOperation,
   canCallOperation,
+  isOperationEnabled,
   createOperationFilter,
   useInstanceStorage,
   runWithInstanceStorage,
@@ -1477,6 +1478,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.countOperation(context);
     const ctx = new GraphQLOperationContext(context, input, this.modelsMap[op.output] ? chunk => chunk : publicCopy);
     await ctx.init();
+    if (!(await isOperationEnabled(ctx, id, op))) {
+      throw operationError(new WebdaError.NotFound(`${id} Unknown`));
+    }
     if (!(await canCallOperation(ctx, id, { input }))) {
       throw operationError(new WebdaError.Forbidden(`${id} PermissionDenied`));
     }

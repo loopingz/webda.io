@@ -1,9 +1,12 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import {
+  FeatureFlagProvider,
+  registerFeatureFlagProvider,
   registerOperation,
   registerOperationAuthorizer,
   Session,
+  unregisterFeatureFlagProvider,
   unregisterOperationAuthorizer,
   useApplication,
   useInstanceStorage
@@ -21,12 +24,16 @@ class McpServerTest extends McpFixtureTest {
   /**
    * Connect an SDK client to a server built over all registered operations
    * @param user - logged-in user id, or undefined for anonymous
-   * @param options - token scopes on the session, listOutOfScopeTools
+   * @param options - token scopes and roles on the session, listOutOfScopeTools
    * @param options.scopes - session token scopes
+   * @param options.roles - session roles
    * @param options.listOutOfScopeTools - list out-of-scope tools
    * @returns connected client
    */
-  async connect(user?: string, options: { scopes?: string[]; listOutOfScopeTools?: boolean } = {}): Promise<Client> {
+  async connect(
+    user?: string,
+    options: { scopes?: string[]; roles?: string[]; listOutOfScopeTools?: boolean } = {}
+  ): Promise<Client> {
     registerFixture();
     const ops = useInstanceStorage().operations;
     const tools = new ToolRegistry(name => useApplication().getSchema(name));
@@ -36,6 +43,7 @@ class McpServerTest extends McpFixtureTest {
     const session = new Session();
     if (user) session.login(user, user);
     if (options.scopes) session.scopes = options.scopes;
+    if (options.roles) session.roles = options.roles;
     const server = createMcpServer({
       info: { name: "test", version: "1.0.0" },
       tools,
@@ -74,6 +82,39 @@ class McpServerTest extends McpFixtureTest {
       await assert.rejects(() => client.callTool({ name: "Fixture.Echo", arguments: { text: "hi" } }), /Unknown tool/);
     } finally {
       unregisterOperationAuthorizer(authorizer as any);
+    }
+  }
+
+  @test
+  async listsToolsFilteredByFeatureFlags() {
+    registerOperation("Fixture.Flagged", {
+      service: "Fixture",
+      method: "echo",
+      input: "void",
+      output: "void",
+      featureFlag: "mcp-test-flag"
+    });
+    const provider: FeatureFlagProvider = {
+      isEnabled(flag, ctx) {
+        if (flag === "mcp-test-flag") {
+          return ctx.session?.roles?.includes("beta");
+        }
+        return undefined;
+      }
+    };
+    registerFeatureFlagProvider(provider, 10);
+    try {
+      const anonClient = await this.connect();
+      const anonTools = (await anonClient.listTools()).tools.map(t => t.name);
+      assert.ok(!anonTools.includes("Fixture.Flagged"), "Disabled tool should not appear in listTools");
+      await assert.rejects(() => anonClient.callTool({ name: "Fixture.Flagged", arguments: {} }), /Unknown tool/);
+
+      const betaClient = await this.connect("alice", { roles: ["beta"] });
+      const betaTools = (await betaClient.listTools()).tools.map(t => t.name);
+      assert.ok(betaTools.includes("Fixture.Flagged"), "Enabled tool should appear in listTools");
+    } finally {
+      unregisterFeatureFlagProvider(provider);
+      delete useInstanceStorage().operations["Fixture.Flagged"];
     }
   }
 

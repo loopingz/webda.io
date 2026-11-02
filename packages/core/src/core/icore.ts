@@ -215,6 +215,16 @@ export interface OperationDefinition {
    * Additional transport hints for future extensibility
    */
   extensions?: Record<string, unknown>;
+  /**
+   * Feature flag gating the operation. When the flag is off for the caller
+   * the operation answers NotFound and is left out of listings.
+   * `true` uses the operation id as flag name.
+   */
+  featureFlag?: string | true;
+  /**
+   * Feature flags gating the operation (from definition + pattern mappings)
+   */
+  featureFlags?: string[];
 }
 
 /**

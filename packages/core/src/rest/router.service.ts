@@ -20,6 +20,7 @@ import { templateVariables } from "../templates/templates.js";
 import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { FileUtils, JSONUtils } from "@webda/utils";
+import { getOperationFeatureFlags } from "../services/featureflags.js";
 import * as WebdaError from "../errors/errors.js";
 import { inputSchemaToOpenAPI } from "./binding.js";
 import { CorsOriginFilter } from "./originfilter.js";
@@ -894,6 +895,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
             requestBody,
             parameters: route.openapi[method.toLowerCase()]?.parameters
           };
+          // The spec is static: a flagged operation stays in it, with its gate documented
+          const flags = operationId ? getOperationFeatureFlags(operationId) : [];
+          if (flags.length > 0) {
+            (desc as any)["x-webda-feature-flag"] = flags.length === 1 ? flags[0] : flags;
+          }
           if (method.toLowerCase().startsWith("p") && route.openapi[method.toLowerCase()]?.schemas?.input) {
             // Add request schema if exist
             desc.requestBody ??= {

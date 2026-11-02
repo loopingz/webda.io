@@ -1124,6 +1124,18 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @returns true if the condition is met
    */
   async checkRequest(ctx: IWebContext): Promise<boolean> {
+    const httpCtx = ctx.getHttpContext();
+    const method = httpCtx.getMethod();
+    const origin = httpCtx.getUniqueHeader("origin");
+    const session = ctx.getSession();
+    const isWebSocket = httpCtx.getUniqueHeader("upgrade", "").toLowerCase() === "websocket";
+    const isCookieAuth =
+      Boolean(session?.isLogged()) && !session.stateless && !httpCtx.getUniqueHeader("authorization");
+    if (origin && isCookieAuth && (method !== "GET" || isWebSocket) && method !== "OPTIONS") {
+      if (origin === "null" || (origin !== httpCtx.getOrigin() && !(await this.checkCORSRequest(ctx)))) {
+        return false;
+      }
+    }
     // Do not need to filter on OPTIONS as CORS is for that
     if (ctx.getHttpContext().getMethod() === "OPTIONS" || this._requestFilters.length === 0) {
       return true;

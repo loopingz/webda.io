@@ -1,4 +1,4 @@
-import { Action, CoreModel, type IOperationContext } from "@webda/core";
+import { Action, CoreModel, type IOperationContext, type MfaState } from "@webda/core";
 import { useWorkflowControls } from "../hooks.js";
 import type { FlowDefinitionData, FlowError, Journal } from "../graph.js";
 
@@ -19,6 +19,22 @@ export interface WorkflowLauncher {
    * Ident used by the launcher to log in
    */
   identId?: string;
+  /**
+   * Granted scopes of the launcher session, when restricted
+   */
+  scopes?: string[];
+  /**
+   * OAuth client id of the launcher session, when applicable
+   */
+  clientId?: string;
+  /**
+   * MFA state of the launcher session
+   */
+  mfa?: MfaState;
+  /**
+   * MFA verification timestamp of the launcher session
+   */
+  mfaAt?: number;
   /**
    * Launched by the system
    */

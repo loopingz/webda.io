@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { evaluate, validateExpr } from "./expression.js";
+import { evaluate, MAX_EXPR_STRING_LENGTH, validateExpr } from "./expression.js";
 import type { BinaryOp, Expr } from "./graph.js";
 
 /**
@@ -118,6 +118,13 @@ class ExpressionTest {
     assert.deepStrictEqual(validateExpr({ get: [{ var: "o" }, { bad: 1 }] }), ["$.get[1]"]);
     assert.deepStrictEqual(validateExpr({ not: { x: 1 } }), ["$.not"]);
     assert.deepStrictEqual(validateExpr({ neg: { var: "a" } }), []);
+    assert.deepStrictEqual(validateExpr({ obj: { constructor: { lit: 1 } } }), ["$.obj.constructor"]);
+
+    // Expression string growth and forbidden object keys are bounded/rejected
+    const big = "x".repeat(Math.floor(MAX_EXPR_STRING_LENGTH / 2) + 10);
+    assert.throws(() => evaluate({ op: "+", args: [{ lit: big }, { lit: big }] }, {}), /string length limit/);
+    assert.throws(() => evaluate({ tpl: [big, big] }, {}), /string length limit/);
+    assert.throws(() => evaluate({ obj: { constructor: { lit: 1 } } }, {}), /Forbidden object key/);
     assert.deepStrictEqual(validateExpr({ var: 3 }), ["$"]);
     assert.deepStrictEqual(validateExpr({ obj: [] }), ["$"]);
   }

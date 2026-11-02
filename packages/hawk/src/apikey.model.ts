@@ -1,6 +1,6 @@
 import { HttpContext, IOperationContext, OwnerModel, WebContext, WebdaError, useRegistry } from "@webda/core";
 import { createChecker } from "is-in-subnet";
-import { HawkService, type HawkCredentials } from "./hawk.service.js";
+import { compileSafeAnchoredRegExp, HawkService, type HawkCredentials } from "./hawk.service.js";
 import { randomBytes } from "node:crypto";
 
 /**
@@ -111,8 +111,8 @@ export default class ApiKey extends OwnerModel {
 
     // Returns TRUE as soon as we found a matching authorized regexp
     for (const x in this.origins) {
-      const pattern = new RegExp(this.origins[x]);
-      if (origin.match(pattern)) {
+      const pattern = compileSafeAnchoredRegExp(this.origins[x].replace(/^regexp:\/\//, ""));
+      if (pattern && pattern.test(origin)) {
         return true;
       }
     }
@@ -154,7 +154,8 @@ export default class ApiKey extends OwnerModel {
       return false;
     }
     for (const pattern of permissions) {
-      if (ctx.getUrl().match(pattern)) {
+      const regex = compileSafeAnchoredRegExp(pattern);
+      if (regex && regex.test(ctx.getUrl())) {
         return true;
       }
     }

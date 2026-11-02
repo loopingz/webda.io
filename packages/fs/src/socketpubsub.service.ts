@@ -346,14 +346,14 @@ function frame(buf: Buffer): Buffer {
   return Buffer.concat([len, buf]);
 }
 
+const MAX_FRAME_SIZE = 16 * 1024 * 1024;
+
 /**
  * Build a stateful frame decoder. Returns a function that consumes raw
  * socket chunks and calls `onFrame` once for each complete frame read.
  * @param onFrame - invoked with each complete unframed payload
  * @returns the chunk consumer
  */
-const MAX_FRAME_SIZE = 16 * 1024 * 1024;
-
 export function makeFrameReader(onFrame: (buf: Buffer) => void): (chunk: Buffer) => void {
   let pending = Buffer.alloc(0);
   return chunk => {

@@ -77,15 +77,19 @@ export class Ident extends Model {
   }
 
   /**
-   * Build and validate a key
-   * @param providerUid - uid on the provider
-   * @param provider - provider name
-   * @returns the composite key
+   * @override
+   * @returns protected attributes
    */
   static getProtectedAttributes(): string[] {
     return ["_user", "_type", "provider", "providerUid", "verifiedAt"];
   }
 
+  /**
+   * Build and validate a key
+   * @param providerUid - uid on the provider
+   * @param provider - provider name
+   * @returns the composite key
+   */
   static key(providerUid: string, provider: string): { providerUid: string; provider: string } {
     for (const [name, v] of [
       ["providerUid", providerUid],

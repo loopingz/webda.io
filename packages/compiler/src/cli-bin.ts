@@ -1,5 +1,5 @@
 import { closeSync, constants, fchmodSync, ftruncateSync, mkdirSync, openSync, readFileSync, writeSync } from "node:fs";
-import { dirname, join, normalize, posix, relative, resolve, sep } from "node:path";
+import { dirname, normalize, posix, relative, resolve, sep } from "node:path";
 import { useLog, useWorkerOutput } from "@webda/workout";
 import type { PackageDescriptor } from "./definition.js";
 

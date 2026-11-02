@@ -902,6 +902,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
 
   /**
    * @param client - requesting client
+   * @param redirectUri - redirect URI of the pending request
    * @returns the host publishing a metadata document client, undefined for the others
    */
   protected metadataHost(client: OAuthClient, redirectUri?: string): string | undefined {

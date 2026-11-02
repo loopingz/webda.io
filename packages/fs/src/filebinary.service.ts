@@ -131,12 +131,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const { key } = parseContentUrl(url);
     const absPath = resolve(key);
     const absFolder = resolve(this.parameters.folder);
-
-    if (key.includes("..")) {
-      const folderWithSep = absFolder.endsWith(sep) ? absFolder : absFolder + sep;
-      if (!absPath.startsWith(folderWithSep) && absPath !== absFolder) {
-        throw new ContentNotFoundError(`Path traversal rejected: ${url}`);
-      }
+    const folderWithSep = absFolder + sep;
+    if (!absPath.startsWith(folderWithSep)) {
+      throw new ContentNotFoundError(`Path traversal rejected: ${url}`);
     }
     return absPath;
   }
@@ -295,8 +292,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       throw new WebdaError.Forbidden("Incorrect JWT");
     }
     ctx.writeHead(200, {
-      "content-disposition": ctx.parameter("content-disposition"),
-      "content-type": ctx.parameter("content-type")
+      "content-disposition": "attachment",
+      "content-type": ctx.parameter("content-type"),
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "default-src 'none'; sandbox"
     });
     const map = await this.get({ hash } as BinaryMap);
     // Fake a binary map for this case

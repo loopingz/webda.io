@@ -1249,6 +1249,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           (info.fieldNodes[0].selectionSet?.selections || [])
             .filter(node => node.kind === "Field")
             .map(n => (<FieldNode>n).name.value)
+            .filter(e => (services[i] as any)?.authorizeClientEvent?.(e, context) !== false)
             .forEach(n => (fieldsMap[n] = true));
           return new EventIterator(services[i], fieldsMap, id, {}).iterate();
         }

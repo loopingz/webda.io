@@ -393,8 +393,8 @@ export class HttpServer<
       if (!ctx) {
         if (!res.headersSent) {
           res.writeHead(500);
-          res.end();
         }
+        res.end();
         return;
       }
       const webCtx = ctx as WebContext;

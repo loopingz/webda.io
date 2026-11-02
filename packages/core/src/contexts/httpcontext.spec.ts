@@ -248,8 +248,18 @@ class HttpContextTest {
     assert.strictEqual(ended, true);
 
     statusWritten = 0;
-    await dummy.handleWebRequest({} as any, { headersSent: true } as any);
+    ended = false;
+    await dummy.handleWebRequest(
+      {} as any,
+      {
+        headersSent: true,
+        end: () => {
+          ended = true;
+        }
+      } as any
+    );
     assert.strictEqual(statusWritten, 0);
+    assert.strictEqual(ended, true);
 
     const fakeTls = new EventEmitter();
     fakeTls.on("connection", () => {});

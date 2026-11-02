@@ -1906,12 +1906,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       ctx.write(printSchema(this.schema));
     } else {
       ctx.writeHead(200, { "Content-Type": "text/html" });
-      ctx.write(
-        GraphIQL.replace("{{URL}}", httpContext.getAbsoluteUrl()).replace(
-          "{{WSURL}}",
-          httpContext.getAbsoluteUrl().replace("http", "ws")
-        )
-      );
+      const escapeJsSingleQuoted = (val: string) =>
+        JSON.stringify(val).slice(1, -1).replace(/'/g, "\\'").replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
+      const rawUrl = httpContext.getAbsoluteUrl();
+      const safeUrl = escapeJsSingleQuoted(rawUrl);
+      const safeWsUrl = escapeJsSingleQuoted(rawUrl.replace(/^http/, "ws"));
+      ctx.write(GraphIQL.replace("{{URL}}", () => safeUrl).replace("{{WSURL}}", () => safeWsUrl));
     }
   }
 

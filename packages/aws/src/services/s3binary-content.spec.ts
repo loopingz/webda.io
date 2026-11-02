@@ -290,6 +290,19 @@ class S3BinaryContentStorageTest extends WebdaApplicationTest {
     assert.notStrictEqual(selected, this.s3Binary._s3);
     assert.strictEqual((this.s3Binary as any).getContentClient(endpoint), selected);
     assert.strictEqual((this.s3Binary as any).getContentClient(), this.s3Binary._s3);
+    assert.throws(() => (this.s3Binary as any).getContentClient("not-a-url"), /Invalid S3 content endpoint URL/);
+    assert.throws(
+      () => (this.s3Binary as any).getContentClient("ftp://127.0.0.1:9000"),
+      /Invalid S3 content endpoint URL/
+    );
+    assert.throws(
+      () => (this.s3Binary as any).getContentClient("http://user:pass@127.0.0.1:9000"),
+      /Invalid S3 content endpoint URL/
+    );
+    this.s3Binary.parameters.allowedEndpoints = [endpoint];
+    assert.strictEqual((this.s3Binary as any).getContentClient(endpoint), selected);
+    assert.throws(() => (this.s3Binary as any).getContentClient("http://127.0.0.1:9001"), /not in allowedEndpoints/);
+    this.s3Binary.parameters.allowedEndpoints = undefined;
     assert.strictEqual((await selected.config.endpoint()).hostname, "127.0.0.1");
     assert.strictEqual((await selected.config.endpoint()).port, 9000);
     assert.strictEqual(selected.config.forcePathStyle, true);

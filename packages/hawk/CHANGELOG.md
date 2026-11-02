@@ -144,6 +144,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.12...hawk-v4.0.0-beta.13) (2026-11-02)
+
+
+### Bug Fixes
+
+* **hawk:** prevent request filter bypass, open redirect prefix match, and unsafe origin regex ([#1038](https://github.com/loopingz/webda.io/issues/1038)) ([6025060](https://github.com/loopingz/webda.io/commit/60250609ddfaa7ac5c8114add85ef63d064b9eea))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.11...hawk-v4.0.0-beta.12) (2026-10-22)
 
 

@@ -81,6 +81,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/otel-v4.0.0-beta.12...otel-v4.0.0-beta.13) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **otel:** @webda/otel no longer honors an incoming traceparent from any caller: list upstream services in trustedTraceSources (default []) or cross-service traces split. traceExporter.sampling now applies to the auto-instrumented HTTP and database spans (ParentBased ratio sampler). The HTTP instrumentation's incoming SERVER spans and the router span are replaced by Webda's SERVER span on every entry point. The Router emits CORS response headers for the origins of the website parameter and the CORS filters; Lambda OPTIONS without Origin no longer gets Access-Control-Max-Age/Allow-Headers. See the Upgrading section of packages/otel/README.md.
+
+### Features
+
+* **otel:** on-demand web tracing (W3C trace context, X-Webda-Trace token, every entry point) ([#1029](https://github.com/loopingz/webda.io/issues/1029)) ([3d5387b](https://github.com/loopingz/webda.io/commit/3d5387bf5f1a3b505a580637daa83e1a362c23de))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/otel-v4.0.0-beta.11...otel-v4.0.0-beta.12) (2026-10-22)
 
 

@@ -134,6 +134,36 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.12...graphql-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* **core:** hand the caller context to getProtectedAttributes (per-caller field write rules) ([#1020](https://github.com/loopingz/webda.io/issues/1020)) ([8118f69](https://github.com/loopingz/webda.io/commit/8118f698a2730f207f8e6623a35480d00a37ab47))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **models:** add permission-aware polymorphic links ([#997](https://github.com/loopingz/webda.io/issues/997)) ([004562e](https://github.com/loopingz/webda.io/commit/004562e14b3bf47d61b29dcee5a430ae8082f4b5))
+
+
+### Bug Fixes
+
+* **cloudevents,graphql:** add CloudEvents receiver authentication and authorize GraphQL service events ([#1045](https://github.com/loopingz/webda.io/issues/1045)) ([0e14475](https://github.com/loopingz/webda.io/commit/0e144758240b012e49cd26512083bbca39bd893e))
+* **core,graphql:** escape OpenAPI JSON in Swagger HTML and URLs in GraphiQL ([#1046](https://github.com/loopingz/webda.io/issues/1046)) ([11d1854](https://github.com/loopingz/webda.io/commit/11d18542ddc13a60e7aaf8e659e62ea68af254ac))
+* **graphql:** enforce @Operation permissions, scopes, MFA, and authorizers on model CRUD ([#1030](https://github.com/loopingz/webda.io/issues/1030)) ([41159cf](https://github.com/loopingz/webda.io/commit/41159cfac871b04843f6f50829690ef6eead500b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/runtime bumped to 4.0.0-beta.13
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.11...graphql-v4.0.0-beta.12) (2026-10-22)
 
 

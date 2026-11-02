@@ -1,5 +1,36 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-beta.12...oauth-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* **azure:** add Azure services, Container Apps and Functions deployers ([#998](https://github.com/loopingz/webda.io/issues/998)) ([6c7b1aa](https://github.com/loopingz/webda.io/commit/6c7b1aa386b8930c125ce5c975e74ec0c21e686b))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **oauth,oidc:** shared login across applications with remote resource-bound access tokens ([#993](https://github.com/loopingz/webda.io/issues/993)) ([2c9778a](https://github.com/loopingz/webda.io/commit/2c9778ac61ec09cddd54fcbeb104d3b7c8829e63)), closes [#992](https://github.com/loopingz/webda.io/issues/992)
+
+
+### Bug Fixes
+
+* **oauth:** block MFA-pending sessions at authorize and preserve mfaAt across refresh ([#1033](https://github.com/loopingz/webda.io/issues/1033)) ([b385f56](https://github.com/loopingz/webda.io/commit/b385f5641cc551e7fe99182730ca85c86e0b73b1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/auth bumped to 4.0.0-beta.13
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/content-mapper bumped to 4.0.0-beta.11
+    * @webda/fs bumped to 4.0.0-beta.13
+    * @webda/mcp bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-beta.11...oauth-v4.0.0-beta.12) (2026-10-22)
 
 

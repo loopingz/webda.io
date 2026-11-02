@@ -1,5 +1,27 @@
 # Changelog
 
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.9...ql-v4.0.0-beta.10) (2026-11-02)
+
+
+### Features
+
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+
+
+### Bug Fixes
+
+* **ql,serialize:** block prototype key access in WebdaQL/serializer and bound LIKE regexes ([#1043](https://github.com/loopingz/webda.io/issues/1043)) ([d581516](https://github.com/loopingz/webda.io/commit/d5815160aca1a8bfbe8d45ce0a56fa0d13b05527))
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.8...ql-v4.0.0-beta.9) (2026-10-22)
 
 

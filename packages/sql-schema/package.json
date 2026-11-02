@@ -1,6 +1,6 @@
 {
   "name": "@webda/sql-schema",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0-beta.2",
   "description": "Driver-free relational schema plan (typed columns, foreign keys, junction tables) built from Webda model metadata",
   "keywords": [
     "sql",

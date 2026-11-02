@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.12...cloudevents-v4.0.0-beta.13) (2026-11-02)
+
+
+### Features
+
+* **cloudevents:** CloudEventsReceiver, KnativeBrokerPubSub and Knative Trigger manifests ([#1025](https://github.com/loopingz/webda.io/issues/1025)) ([2f82dde](https://github.com/loopingz/webda.io/commit/2f82ddeec99c9d8247f9e5fe2fa911dc6050641a))
+
+
+### Bug Fixes
+
+* **cloudevents,graphql:** add CloudEvents receiver authentication and authorize GraphQL service events ([#1045](https://github.com/loopingz/webda.io/issues/1045)) ([0e14475](https://github.com/loopingz/webda.io/commit/0e144758240b012e49cd26512083bbca39bd893e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/decorators bumped to 4.0.0-beta.6
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.11...cloudevents-v4.0.0-beta.12) (2026-10-22)
 
 

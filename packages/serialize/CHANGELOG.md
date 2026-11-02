@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/serialize-v4.0.0-beta.8...serialize-v4.0.0-beta.9) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ql,serialize:** block prototype key access in WebdaQL/serializer and bound LIKE regexes ([#1043](https://github.com/loopingz/webda.io/issues/1043)) ([d581516](https://github.com/loopingz/webda.io/commit/d5815160aca1a8bfbe8d45ce0a56fa0d13b05527))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/serialize-v4.0.0-beta.7...serialize-v4.0.0-beta.8) (2026-10-22)
 
 

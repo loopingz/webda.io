@@ -5,7 +5,9 @@ import {
   EventRepository,
   MemoryRepository,
   OwnerModel,
+  registerOperationAuthorizer,
   registerRepository,
+  runWithInstanceStorage,
   User,
   WebdaError
 } from "@webda/core";
@@ -13,7 +15,7 @@ import { GraphQLObjectType } from "graphql";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { GraphQLService } from "./graphql.service.js";
-import { createFromInput, updateFromInput } from "./mutations.js";
+import { createFromInput, loadForAction, updateFromInput } from "./mutations.js";
 
 /**
  * Opted-in model: the static form only
@@ -260,5 +262,87 @@ describe("GraphQL permissions go through the core helper", () => {
     assert.notStrictEqual(next, "timeout", "the update was delivered");
     assert.strictEqual((next as any).value.Fragile, null);
     await iterator.return?.(undefined);
+  });
+
+  it("enforces @Operation permissions, scopes, MFA, and registered OperationAuthorizers on model CRUD", async () => {
+    registerRepository(OpenDoc, new MemoryRepository(OpenDoc, ["uuid"]) as any);
+    await OpenDoc.create({ uuid: "o-op", name: "open" } as any);
+
+    const operations: Record<string, any> = {
+      "OpenDoc.Get": {
+        id: "OpenDoc.Get",
+        input: "void",
+        output: "void",
+        permission: "userId = 'alice'"
+      },
+      "OpenDoc.Create": {
+        id: "OpenDoc.Create",
+        input: "void",
+        output: "void",
+        maxMfaAge: 300
+      }
+    };
+    await runWithInstanceStorage({ operations } as any, async () => {
+      const makeCtx = (opts: { user?: string; mfa?: string; scopes?: string[] }) => ({
+        getCurrentUserId: () => opts.user ?? "alice",
+        getSession: () => ({
+          userId: opts.user ?? "alice",
+          mfa: opts.mfa ?? "none",
+          isLogged: () => true,
+          mfaAge: () => 0,
+          scopes: opts.scopes
+        })
+      });
+
+      assert.deepStrictEqual(
+        await error(() => loadForAction(OpenDoc, "o-op", makeCtx({ scopes: ["Other.Get"] }), "get")),
+        {
+          message: "Permission denied",
+          code: "PERMISSION_DENIED"
+        }
+      );
+
+      assert.deepStrictEqual(
+        await error(() => loadForAction(OpenDoc, "o-op", makeCtx({ user: "bob", scopes: ["OpenDoc.Get"] }), "get")),
+        {
+          message: "Permission denied",
+          code: "PERMISSION_DENIED"
+        }
+      );
+
+      const allowed = await loadForAction(OpenDoc, "o-op", makeCtx({ user: "alice", scopes: ["OpenDoc.Get"] }), "get");
+      assert.strictEqual(allowed.uuid, "o-op");
+
+      // Unregistered operation fallback (OpenDoc.Update is not in `operations`)
+      const updated = await loadForAction(OpenDoc, "o-op", makeCtx({ user: "alice" }), "update");
+      assert.strictEqual(updated.uuid, "o-op");
+
+      assert.deepStrictEqual(
+        await error(() => createFromInput(OpenDoc, { name: "mfa-blocked" }, makeCtx({ mfa: "none" }))),
+        {
+          message: "Permission denied",
+          code: "PERMISSION_DENIED"
+        }
+      );
+
+      const created = await createFromInput(OpenDoc, { name: "mfa-ok" }, makeCtx({ mfa: "verified" }));
+      assert.strictEqual(created.name, "mfa-ok");
+
+      assert.deepStrictEqual(await error(() => loadForAction(OpenDoc, "o-op", makeCtx({ mfa: "pending" }), "get")), {
+        message: "Permission denied",
+        code: "PERMISSION_DENIED"
+      });
+
+      registerOperationAuthorizer(async (_ctx, opId) => (opId === "OpenDoc.Get" ? "denied" : true));
+      assert.deepStrictEqual(
+        await error(() => loadForAction(OpenDoc, "o-op", makeCtx({ user: "alice", scopes: ["OpenDoc.Get"] }), "get")),
+        {
+          message: "Permission denied",
+          code: "PERMISSION_DENIED"
+        }
+      );
+      const createdAfterAuth = await createFromInput(OpenDoc, { name: "auth-ok" }, makeCtx({ mfa: "verified" }));
+      assert.strictEqual(createdAfterAuth.name, "auth-ok");
+    });
   });
 });

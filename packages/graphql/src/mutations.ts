@@ -2,14 +2,21 @@ import {
   checkModelParent,
   checkModelPermission,
   checkModelReparent,
+  checkOperationMfa,
+  checkOperationPermission,
   createModel,
   getParentRelation,
+  listOperationAuthorizers,
   loadModelForAction,
   prepareCreateInput,
   sanitizeModelInput,
+  scopeAuthorizer,
+  scopeMatches,
+  useInstanceStorage,
   useModelMetadata,
   WebdaError
 } from "@webda/core";
+import type { OperationContext, OperationDefinition } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import { useLog } from "@webda/workout";
 import { GraphQLError } from "graphql";
@@ -83,6 +90,58 @@ export function operationError(err: unknown): GraphQLError {
 }
 
 /**
+ * Enforce MFA pending guard, operation permission/MFA freshness, token scopes, and registered OperationAuthorizers
+ * for a model CRUD action
+ * @param model - model class
+ * @param context - caller context
+ * @param action - CRUD action ("get", "query", "create", "update", "delete")
+ * @param input - optional input payload passed to authorizers
+ */
+export async function enforceModelOperationPermission(
+  model: any,
+  context: any,
+  action: string,
+  input: any
+): Promise<void> {
+  let storage: ReturnType<typeof useInstanceStorage> | undefined;
+  try {
+    storage = useInstanceStorage();
+  } catch {
+    return;
+  }
+  const session = context.getSession?.();
+  if (session?.mfa === "pending") {
+    throw permissionDenied();
+  }
+  const primaryId = `${model.name}.${action.charAt(0).toUpperCase() + action.slice(1)}`;
+  const op =
+    storage.operations?.[primaryId] ?? ({ id: primaryId, input: "void", output: "void" } as OperationDefinition);
+  const opContext: OperationContext = Object.assign(Object.create(context), {
+    isGlobalContext: () => false,
+    getSession: () => session
+  });
+  try {
+    checkOperationMfa(opContext, primaryId, op);
+  } catch {
+    throw permissionDenied();
+  }
+  if (
+    !checkOperationPermission(opContext, primaryId, op) ||
+    (session?.scopes !== undefined && !scopeMatches(session.scopes, primaryId))
+  ) {
+    throw permissionDenied();
+  }
+  for (const authorizer of listOperationAuthorizers()) {
+    if (
+      authorizer !== scopeAuthorizer &&
+      (await authorizer(opContext, primaryId, op, { input, probe: false })) !== true
+    ) {
+      throw permissionDenied();
+    }
+  }
+}
+
+/**
  * Load an object for an action as the caller, with the core rules (the model's static `canAct`, deny by default): a
  * missing object and an object the caller may not read answer the same NOT_FOUND error; an object the caller may
  * read but not act on answers PERMISSION_DENIED
@@ -93,6 +152,7 @@ export function operationError(err: unknown): GraphQLError {
  * @returns the object
  */
 export async function loadForAction(model: any, uuid: any, context: any, action: string): Promise<any> {
+  await enforceModelOperationPermission(model, context, action, { uuid });
   return asGraphQL(() => loadModelForAction(model, uuid, context, action));
 }
 
@@ -122,6 +182,7 @@ export function isInputAttribute(attribute: string, graph?: ModelGraph, writable
 export async function createFromInput(model: any, input: any, context: any): Promise<any> {
   // Same input rules as the REST create: sanitized, parent link kept, client uuid ignored for UuidModels
   const data: any = prepareCreateInput(model, input ?? {}, context);
+  await enforceModelOperationPermission(model, context, "create", data);
   const object = new model();
   object.load(data);
   // The parent must exist and be readable: an unreadable parent answers like a missing one

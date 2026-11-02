@@ -65,7 +65,14 @@ import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
 import { graphQLNames, restoreInputKeys, WEBDA_KEY } from "./names.js";
-import { createFromInput, isInputAttribute, loadForAction, operationError, updateFromInput } from "./mutations.js";
+import {
+  createFromInput,
+  enforceModelOperationPermission,
+  isInputAttribute,
+  loadForAction,
+  operationError,
+  updateFromInput
+} from "./mutations.js";
 import {
   GRAPHQL_NAME,
   GraphQLOperationContext,
@@ -1556,6 +1563,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @returns the readable results
    */
   protected async withTotal(model: any, query: string, context: any): Promise<QueryResultWithTotal> {
+    await enforceModelOperationPermission(model, context, "query", { query });
     const res: QueryResultWithTotal = await queryModelWithPermissions(model, query, context);
     // Not enumerable: never serialized, only reached by the field resolver
     Object.defineProperty(res, QUERY_TOTAL, { value: () => countModelWithPermissions(model, query, context) });

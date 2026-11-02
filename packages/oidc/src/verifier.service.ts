@@ -400,20 +400,24 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
    * @returns the session
    */
   protected userSession(session: Session, claims: Record<string, any>): Session {
+    const mfa = claims.mfa === "verified" ? "verified" : "none";
+    const mfaAt = typeof claims.mfaAt === "number" ? claims.mfaAt : undefined;
     session.login(claims.sub, claims.ident, {
       provider: claims.provider,
       amr: claims.amr,
-      mfa: claims.mfa,
-      mfaAt: claims.mfaAt,
+      mfa,
+      mfaAt,
       mfaVerifications: claims.mfaVerifications
     });
     session.roles = claims.roles;
     session.authAt = claims.authAt;
-    if (typeof claims.scope === "string") {
-      session.scopes = claims.scope.split(" ").filter(Boolean);
-    }
     if (typeof claims.client_id === "string") {
       session.clientId = claims.client_id;
+    }
+    if (typeof claims.scope === "string") {
+      session.scopes = claims.scope.split(" ").filter(Boolean);
+    } else if (session.clientId !== undefined) {
+      session.scopes = [];
     }
     return session;
   }

@@ -105,6 +105,7 @@ export class AzureFunctionServer extends Service<AzureFunctionServerParameters> 
   async handleRequest(request: HttpRequest, invocation: InvocationContext): Promise<HttpResponseInit> {
     const url = new URL(request.url),
       headers = Object.fromEntries(request.headers.entries());
+    const clientIp = this.getClientIp(headers);
     const http = new HttpContext(
       url.host,
       request.method as HttpMethodType,
@@ -112,7 +113,7 @@ export class AzureFunctionServer extends Service<AzureFunctionServerParameters> 
       url.protocol === "http:" ? "http" : "https",
       Number(url.port || (url.protocol === "http:" ? 80 : 443)),
       headers
-    );
+    ).setClientIp(clientIp || "");
     if (!["GET", "HEAD"].includes(request.method)) http.setBody(Buffer.from(await request.arrayBuffer()));
     const context = new AzureFunctionContext(http);
     await context.init();
@@ -124,7 +125,7 @@ export class AzureFunctionServer extends Service<AzureFunctionServerParameters> 
         path: url.pathname,
         scheme: url.protocol === "http:" ? "http" : "https",
         headers: Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])),
-        clientIp: this.getClientIp(headers)
+        clientIp
       },
       async handle => {
         const result = await runWithContext(context, async () => {

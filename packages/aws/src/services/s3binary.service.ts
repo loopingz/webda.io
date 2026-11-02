@@ -116,6 +116,10 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
    * @default 86400
    */
   pendingTimeout?: number;
+  /**
+   * Optional allowlist of endpoints selectable through `?endpoint=` in content URLs
+   */
+  allowedEndpoints?: string[];
 
   /**
    * @override
@@ -180,6 +184,20 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   protected getContentClient(endpoint?: string, credential?: string): S3 {
     if (!endpoint && !credential) {
       return this._s3;
+    }
+    if (endpoint) {
+      let parsed: URL;
+      try {
+        parsed = new URL(endpoint);
+      } catch {
+        throw new WebdaError.BadRequest("Invalid S3 content endpoint URL");
+      }
+      if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") || parsed.username || parsed.password) {
+        throw new WebdaError.BadRequest("Invalid S3 content endpoint URL");
+      }
+      if (this.parameters.allowedEndpoints && !this.parameters.allowedEndpoints.includes(endpoint)) {
+        throw new WebdaError.BadRequest("S3 content endpoint is not in allowedEndpoints");
+      }
     }
     const cacheKey = JSON.stringify([endpoint, credential]);
     let client = this.contentClients.get(cacheKey);

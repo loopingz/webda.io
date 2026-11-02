@@ -61,6 +61,10 @@ export class LambdaServerParameters extends ServiceParameters {
    * @default false
    */
   waitForEmptyEventLoop?: boolean;
+  /**
+   * Optional allowlist of service names permitted for `command: "launch"` invocations
+   */
+  allowedLaunchServices?: string[];
 
   /**
    * @override
@@ -173,6 +177,23 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
    * @param commandEvent - the command
    */
   protected async handleLaunch(commandEvent: LambdaCommandEvent) {
+    if (
+      this.parameters.allowedLaunchServices &&
+      !this.parameters.allowedLaunchServices.includes(commandEvent.service)
+    ) {
+      this.log("ERROR", "Service not allowed for launch", commandEvent.service);
+      return;
+    }
+    if (
+      typeof commandEvent.method !== "string" ||
+      commandEvent.method.startsWith("_") ||
+      ["constructor", "init", "resolve", "reinit", "stop", "destroy", "__proto__", "prototype"].includes(
+        commandEvent.method
+      )
+    ) {
+      this.log("ERROR", "Forbidden method on launch", commandEvent.method);
+      return;
+    }
     const args = commandEvent.args || [];
     this.log("INFO", "Executing", commandEvent.method, "on", commandEvent.service, "with", args);
     const service = useCore().getServices()[commandEvent.service];
@@ -203,8 +224,14 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
       this.log("INFO", "Handled AWS event", sourceEvent);
       return;
     }
-    // Manual launch of webda
-    if (sourceEvent.command === "launch" && sourceEvent.service && sourceEvent.method) {
+    // Manual launch of webda (never from an API Gateway HTTP event)
+    if (
+      !sourceEvent.httpMethod &&
+      !sourceEvent.requestContext &&
+      sourceEvent.command === "launch" &&
+      sourceEvent.service &&
+      sourceEvent.method
+    ) {
       await this.handleLaunch(sourceEvent);
       return;
     }
@@ -230,13 +257,12 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
     if (event.queryStringParameters) {
       let sep = "?";
       for (const i in event.queryStringParameters) {
-        // If additional error code it will be contained so need to check for &
-        // May need to add urlencode
-        resourcePath += sep + i + "=" + event.queryStringParameters[i];
+        resourcePath += sep + encodeURIComponent(i) + "=" + encodeURIComponent(String(event.queryStringParameters[i]));
         sep = "&";
       }
     }
     this.log("INFO", method, event.path);
+    const resolvedClientIp = this.getClientIp(event);
     const httpContext = new HttpContext(
       vhost,
       <HttpMethodType>method,
@@ -244,7 +270,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
       <"http" | "https">protocol,
       port,
       headers
-    ).setClientIp(headers["X-Real-Ip"]); // Might use identity.sourceIp
+    ).setClientIp(resolvedClientIp || headers["X-Real-Ip"]);
     // API Gateway stage or custom domain base path: the router matches on the uri relative to it
     this.computePrefix(event, httpContext);
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {

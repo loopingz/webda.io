@@ -630,4 +630,42 @@ class LambdaHandlerTest extends WebdaApplicationTest {
     assert.strictEqual(result, undefined);
     assert.deepStrictEqual(warnings, ["Cannot resolve the client address"]);
   }
+
+  @test
+  async launchGuardAndAllowlist() {
+    // API Gateway events with httpMethod must not trigger handleLaunch
+    await this.handler.handleRequest(
+      {
+        httpMethod: "POST",
+        command: "launch",
+        service: "DebugMailer",
+        method: "send",
+        args: ["injected"]
+      },
+      this.context
+    );
+    assert.strictEqual(this.getMailer().sent.length, 0);
+
+    // Lifecycle / private methods are blocked
+    await this.handler.handleRequest(
+      {
+        command: "launch",
+        service: "DebugMailer",
+        method: "init",
+        args: []
+      },
+      undefined
+    );
+    this.handler.getParameters().allowedLaunchServices = ["OtherService"];
+    await this.handler.handleRequest(
+      {
+        command: "launch",
+        service: "DebugMailer",
+        method: "send",
+        args: ["blocked"]
+      },
+      undefined
+    );
+    assert.strictEqual(this.getMailer().sent.length, 0);
+  }
 }

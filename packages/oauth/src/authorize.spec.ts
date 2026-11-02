@@ -8,7 +8,7 @@ import {
   useDynamicService,
   useRouter
 } from "@webda/core";
-import { OAuthTest, query } from "./test/oauthtest.js";
+import { OAuthTest, query, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
 import { readPending, writePending } from "./pending.js";
 import { OAuthGrant } from "./models.model.js";
 
@@ -407,6 +407,53 @@ class AuthorizeTest extends OAuthTest {
     assert.strictEqual(cleared.value, "");
     assert.strictEqual(cleared.options.maxAge, 0);
     assert.strictEqual(cleared.options.path, "/oauth");
+  }
+
+  @test
+  async mfaPendingSessionCannotAuthorizeAndMfaTimestampsSurviveGrant() {
+    registerTestOperations();
+    try {
+      const pendingBrowser = await this.browser();
+      pendingBrowser.ctx.getSession().login("u1", "u1@email", { provider: "email", amr: ["pwd"], mfa: "pending" });
+      const res = await this.authorize(pendingBrowser, { scope: "Task.*" });
+      assert.strictEqual(
+        res.headers.Location,
+        "/login?redirect=" + encodeURIComponent("http://test.webda.io/oauth/consent")
+      );
+      await assert.rejects(() => this.op(pendingBrowser, "OAuth.Consent.Get"), /Login required/);
+
+      const mfaAt = Date.now() - 5000;
+      const verifiedBrowser = await this.browser();
+      verifiedBrowser.ctx.getSession().login("u1", "u1@email", {
+        provider: "email",
+        mfa: "verified",
+        mfaAt,
+        mfaVerifications: { admin: { verifiedAt: mfaAt, amr: "totp" } },
+        amr: ["pwd", "totp"]
+      });
+      const redirectUri = "http://127.0.0.1:1234/callback";
+      await this.authorize(verifiedBrowser, { scope: "Task.Get", redirect_uri: redirectUri, prompt: "consent" });
+      const { csrf } = await this.op(verifiedBrowser, "OAuth.Consent.Get");
+      const { redirect } = await this.op(verifiedBrowser, "OAuth.Consent.Decide", {
+        allow: true,
+        operations: ["Task.Get"],
+        csrf
+      });
+      const code = query(redirect).code!;
+      const tokens = await this.tokenRequest({
+        grant_type: "authorization_code",
+        client_id: "app",
+        redirect_uri: redirectUri,
+        code,
+        code_verifier: verifiedBrowser.verifier!
+      });
+      assert.strictEqual(tokens.status, 200);
+      const verifiedClaims = await useCrypto().jwtVerify(tokens.body.access_token, { audience: "webda-access" });
+      assert.strictEqual(verifiedClaims.mfa, "verified");
+      assert.strictEqual(verifiedClaims.mfaAt, mfaAt);
+    } finally {
+      unregisterTestOperations();
+    }
   }
 }
 

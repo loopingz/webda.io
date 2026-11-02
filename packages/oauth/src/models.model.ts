@@ -1,5 +1,5 @@
 import { Model, WEBDA_PRIMARY_KEY } from "@webda/models";
-import type { MfaState } from "@webda/core";
+import type { MfaState, MfaVerification } from "@webda/core";
 
 /** Identity captured at consent time */
 export interface GrantIdentity {
@@ -8,6 +8,8 @@ export interface GrantIdentity {
   provider?: string;
   amr: string[];
   mfa: MfaState;
+  mfaAt?: number;
+  mfaVerifications?: Record<string, MfaVerification>;
 }
 
 /**

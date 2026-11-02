@@ -82,7 +82,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       action.uuid,
       "started with",
       Object.keys(envs)
-        .map(k => `${k}=${envs[k]}`)
+        .map(k => `${k}=${k === "JOB_SECRET_KEY" ? "***" : envs[k]}`)
         .join(" "),
       this.parameters.command,
       this.parameters.args ? this.parameters.args.map(a => `'${a}'`).join(" ") : ""

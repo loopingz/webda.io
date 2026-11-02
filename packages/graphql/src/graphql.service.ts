@@ -894,7 +894,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    */
   countOperation(context: WebContext, increment: number = 1) {
     const ext = context.getExtension<GraphQLContextExtension>("graphql");
-    if (ext?.count === this.parameters.maxOperationsPerRequest) {
+    if (ext && ext.count! + increment > this.parameters.maxOperationsPerRequest) {
       throw new GraphQLError("Too many operations", {
         extensions: {
           code: "TOO_MANY_OPERATIONS"
@@ -902,8 +902,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       });
     }
     if (ext) {
-      ext.count ??= 0;
-      ext.count += increment;
+      ext.count! += increment;
     }
   }
 

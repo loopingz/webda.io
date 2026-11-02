@@ -173,6 +173,24 @@ class OtelTest extends WebdaApplicationTest {
     diag.disable();
     await service.stop();
   }
+
+  @test
+  async webTracingEmailValidation() {
+    const service = new OtelService(
+      "otel",
+      new OtelServiceParameters().load({
+        webTracing: { allowedEmails: [".*@webda\\.io"] }
+      })
+    );
+    const makeCtx = (email?: string) =>
+      ({
+        getCurrentUserId: () => "u1",
+        getCurrentUser: async () => (email !== undefined ? { getEmail: () => email } : undefined)
+      }) as any;
+    assert.strictEqual(await (service as any).canEnableWebTracing(makeCtx(undefined)), false);
+    assert.strictEqual(await (service as any).canEnableWebTracing(makeCtx("a".repeat(321) + "@webda.io")), false);
+    assert.strictEqual(await (service as any).canEnableWebTracing(makeCtx("user@webda.io")), true);
+  }
 }
 
 @suite

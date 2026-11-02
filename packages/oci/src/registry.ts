@@ -198,9 +198,10 @@ export class RegistryClient {
     init: { headers?: Record<string, string>; body?: () => any; redirect?: RequestRedirect } = {}
   ): Promise<Response> {
     const url = path.startsWith("http") ? path : `${this.baseUrl}${path}`;
+    const sameOrigin = !path.startsWith("http") || new URL(url).origin === new URL(this.baseUrl).origin;
     for (let attempt = 0; ; attempt++) {
       const headers: Record<string, string> = { ...init.headers };
-      const authorization = await this.authorization(scopes);
+      const authorization = sameOrigin ? await this.authorization(scopes) : undefined;
       if (authorization) {
         headers.authorization = authorization;
       }

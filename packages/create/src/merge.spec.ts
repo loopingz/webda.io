@@ -17,4 +17,11 @@ class MergeTest {
     assert.deepStrictEqual(deepMerge({ list: [1, 2], v: "a" }, { list: [3], v: "b" }), { list: [3], v: "b" });
     assert.deepStrictEqual(deepMerge({ v: { nested: 1 } }, { v: "flat" }), { v: "flat" });
   }
+
+  @test
+  skipsPrototypePollutionKeys() {
+    const source = JSON.parse('{"__proto__": {"polluted": true}, "constructor": "bad", "ok": 1}');
+    assert.deepStrictEqual(deepMerge({ a: 1 }, source), { a: 1, ok: 1 });
+    assert.strictEqual(({} as any).polluted, undefined);
+  }
 }

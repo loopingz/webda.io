@@ -409,38 +409,11 @@ function getSource(
  * @returns base64 SHA-256 digest or undefined
  */
 export function argumentsHash(args: any[]): string | undefined {
-  const hash = createHash("sha256");
-  for (const arg of args) {
-    if (arg === null) {
-      hash.update("null");
-    } else if (arg === undefined) {
-      hash.update("undefined");
-    } else if (typeof arg === "string" || typeof arg === "number" || typeof arg === "boolean") {
-      // Primitives can be directly stringified
-      hash.update(String(arg));
-    } else if (typeof arg.toJSON === "function") {
-      // Try toJSON first for objects with custom serialization
-      try {
-        hash.update(JSON.stringify(arg.toJSON()));
-      } catch {
-        return undefined;
-      }
-    } else if (Array.isArray(arg) || (typeof arg === "object" && arg.constructor === Object)) {
-      // Plain objects and arrays - use JSON.stringify
-      try {
-        hash.update(JSON.stringify(arg));
-      } catch {
-        return undefined;
-      }
-    } else if (typeof arg.toString === "function" && arg.toString !== Object.prototype.toString) {
-      // Custom toString implementation (not the default [object Object])
-      hash.update(arg.toString());
-    } else {
-      // We cannot find a deterministic representation for the object
-      return undefined;
-    }
+  const key = argumentsSimpleKey(args);
+  if (key === undefined) {
+    return undefined;
   }
-  return hash.digest("base64");
+  return createHash("sha256").update(key).digest("base64");
 }
 
 /**

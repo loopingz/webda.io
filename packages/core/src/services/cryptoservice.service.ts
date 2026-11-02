@@ -5,7 +5,8 @@ import {
   createHmac,
   createPublicKey,
   generateKeyPairSync,
-  randomBytes
+  randomBytes,
+  timingSafeEqual
 } from "crypto";
 import jwt from "jsonwebtoken";
 import * as util from "util";
@@ -738,10 +739,12 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       data = JSONUtils.stringify(data);
     }
     const [keyId, mac] = hmac.split(".");
-    if (!(await this.checkKey(keyId))) {
+    if (!mac || !(await this.checkKey(keyId))) {
       return false;
     }
-    return createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex") === mac;
+    const expected = Buffer.from(createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex"));
+    const provided = Buffer.from(mac);
+    return expected.length === provided.length && timingSafeEqual(expected, provided);
   }
 
   /**

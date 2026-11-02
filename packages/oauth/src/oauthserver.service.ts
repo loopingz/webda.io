@@ -886,7 +886,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         name: client.name,
         logo: client.logo,
         uri: client.client_uri,
-        host: client.registered ? this.redirectHost(pending.redirectUri) : this.metadataHost(client),
+        host: client.registered
+          ? this.redirectHost(pending.redirectUri)
+          : this.metadataHost(client, pending.redirectUri),
         verified: !client.registered
       },
       user: { id: userId },
@@ -902,8 +904,13 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param client - requesting client
    * @returns the host publishing a metadata document client, undefined for the others
    */
-  protected metadataHost(client: OAuthClient): string | undefined {
-    return client.metadataDocument ? new URL(client.id).host : undefined;
+  protected metadataHost(client: OAuthClient, redirectUri?: string): string | undefined {
+    if (!client.metadataDocument) return undefined;
+    const docHost = new URL(client.id).host;
+    const redirHost = this.redirectHost(redirectUri);
+    return redirHost && redirHost !== docHost && redirHost !== "local application"
+      ? `${docHost} (redirects to ${redirHost})`
+      : docHost;
   }
 
   /**

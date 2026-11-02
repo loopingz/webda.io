@@ -391,8 +391,10 @@ export class HttpServer<
     try {
       const ctx = await this.getContextFromRequest(req, res);
       if (!ctx) {
-        res.writeHead(500);
-        res.end();
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end();
+        }
         return;
       }
       const webCtx = ctx as WebContext;
@@ -798,7 +800,9 @@ export class HttpServer<
     }
     const handshake = listeners[0] as (socket: Socket) => void;
     const redirect = (this.redirectServer = createServer((req, res) => {
-      res.writeHead(308, { Location: `https://${req.headers.host ?? "localhost"}${req.url ?? "/"}` });
+      const safeHost = /^[a-zA-Z0-9.:-]+$/.test(req.headers.host!) ? req.headers.host : "localhost";
+      const safePath = (req.url ?? "/").replace(/^\/+/, "/");
+      res.writeHead(308, { Location: `https://${safeHost}${safePath}` });
       res.end();
     }));
     tlsServer.removeListener("connection", handshake);

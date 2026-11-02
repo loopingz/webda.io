@@ -352,12 +352,18 @@ function frame(buf: Buffer): Buffer {
  * @param onFrame - invoked with each complete unframed payload
  * @returns the chunk consumer
  */
-function makeFrameReader(onFrame: (buf: Buffer) => void): (chunk: Buffer) => void {
+const MAX_FRAME_SIZE = 16 * 1024 * 1024;
+
+export function makeFrameReader(onFrame: (buf: Buffer) => void): (chunk: Buffer) => void {
   let pending = Buffer.alloc(0);
   return chunk => {
     pending = Buffer.concat([pending, chunk]);
     while (pending.length >= 4) {
       const len = pending.readUInt32BE(0);
+      if (len > MAX_FRAME_SIZE) {
+        pending = Buffer.alloc(0);
+        throw new Error("Frame size exceeds maximum allowed");
+      }
       if (pending.length < 4 + len) break;
       const payload = pending.subarray(4, 4 + len);
       pending = pending.subarray(4 + len);

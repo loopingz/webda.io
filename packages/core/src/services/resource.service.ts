@@ -263,17 +263,26 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
     }
 
     // Avoid path transversal
-    if (!path.resolve(file).startsWith(this._resolved)) {
-      throw new WebdaError.Unauthorized(file);
+    const resolvedFile = path.resolve(file);
+    const resolvedRoot = path.resolve(this._resolved);
+    if (resolvedFile !== resolvedRoot && !resolvedFile.startsWith(resolvedRoot + path.sep)) {
+      throw new WebdaError.Unauthorized("Unauthorized");
     }
 
     if (!fs.existsSync(file)) {
       file = path.join(this._resolved, this.parameters.index);
       // Catch All for SPA
       if (!(this.parameters.indexFallback && fs.existsSync(file))) {
-        throw new WebdaError.NotFound(file);
+        throw new WebdaError.NotFound("Resource not found");
       }
       cacheControl = this.parameters.indexCacheControl;
+    }
+    const stat = fs.statSync(file);
+    if (stat.isDirectory()) {
+      throw new WebdaError.NotFound("Resource not found");
+    }
+    if (!fs.realpathSync(file).startsWith(fs.realpathSync(this._resolved) + path.sep)) {
+      throw new WebdaError.Unauthorized("Unauthorized");
     }
     let mimetype = mime.lookup(file) || "application/octet-stream";
     if (mimetype.startsWith("text/")) {
@@ -281,7 +290,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
     }
     ctx.writeHead(200, {
       "content-type": mimetype,
-      "content-length": fs.lstatSync(file).size,
+      "content-length": stat.size,
       "cache-control": cacheControl
     });
     // We could cache in memory some of the file to avoid I/O

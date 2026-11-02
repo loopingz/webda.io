@@ -108,6 +108,11 @@ await runCli({ appPath: fileURLToPath(new URL("../", import.meta.url)) });
       assert.ok(warnings[0].includes('"runner": "bin/runner.mjs"'), warnings[0]);
       // No webda.cli: nothing generated
       assert.strictEqual(writeCliBin(dir, { name: "runner" } as any), undefined);
+      // Path traversal in webda.cli.bin is rejected
+      assert.throws(
+        () => writeCliBin(dir, { name: "runner", webda: { cli: { bin: "../evil.mjs" } } } as any),
+        /must be inside application directory/
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

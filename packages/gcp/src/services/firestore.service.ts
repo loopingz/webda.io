@@ -192,7 +192,11 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
    * @returns the document reference
    */
   getDocumentRef(primaryKey: any): DocumentReference {
-    return this.firestore.doc(`${this.collection}/${this.getPrimaryKey(primaryKey).toString()}`);
+    const key = this.getPrimaryKey(primaryKey).toString();
+    if (key.includes("/")) {
+      throw new Error("Invalid primary key");
+    }
+    return this.firestore.doc(`${this.collection}/${key}`);
   }
 
   /**

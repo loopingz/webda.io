@@ -370,7 +370,7 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
       if (operationId === "IAMPolicy.Create") {
         // The whole document: a stored policy that cannot compile would freeze every rebuild
         validatePolicyDocument(input);
-      } else if (input.statements !== undefined) {
+      } else if (operationId === "IAMPolicy.Update" || input.statements !== undefined) {
         validateStatements(input.statements);
       }
       if (operationId === "IAMPolicy.Create" && this.configNames.has(input.name)) {

@@ -73,7 +73,10 @@ export function writeCliBin(
   if (!binPath) {
     return undefined;
   }
-  const file = join(appPath, binPath);
+  const file = resolve(appPath, binPath);
+  if (!file.startsWith(resolve(appPath) + sep)) {
+    throw new Error(`CLI bin path '${binPath}' must be inside application directory`);
+  }
   const content = generateCliBin(binPath);
   mkdirSync(dirname(file), { recursive: true });
   const fd = openSync(file, constants.O_RDWR | constants.O_CREAT, 0o755);

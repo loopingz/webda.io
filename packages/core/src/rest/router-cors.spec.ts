@@ -260,4 +260,56 @@ class RouterCorsTest extends WebdaApplicationTest {
     // No website: no filter registered
     assert.strictEqual(this.router["_requestCORSFilters"].filter(f => f instanceof CorsOriginFilter).length, 0);
   }
+
+  @test
+  async csrfRejectsCrossOriginCookieMutation() {
+    this.allow(["https://ui.example.com"]);
+    let executed = 0;
+    this.router.addRouteToRouter("/csrf-target", {
+      methods: ["POST"],
+      _method: async () => {
+        executed++;
+      }
+    } as any);
+    this.router.remapRoutes();
+
+    const evilCtx = new WebContext(
+      new HttpContext("api.example.com", "POST", "/csrf-target", "https", 443, { Origin: "https://evil.example.com" })
+    );
+    evilCtx.newSession().login("u1", "i1");
+    await runWithContext(evilCtx, () => this.router.execute(evilCtx));
+    assert.strictEqual(evilCtx.statusCode, 403);
+    assert.strictEqual(executed, 0);
+
+    const sameCtx = new WebContext(
+      new HttpContext("api.example.com", "POST", "/csrf-target", "https", 443, { Origin: "https://api.example.com" })
+    );
+    sameCtx.newSession().login("u1", "i1");
+    await runWithContext(sameCtx, () => this.router.execute(sameCtx));
+    assert.strictEqual(executed, 1);
+
+    const wsEvilCtx = new WebContext(
+      new HttpContext("api.example.com", "GET", "/ws", "https", 443, {
+        Origin: "https://evil.example.com",
+        Upgrade: "websocket"
+      })
+    );
+    wsEvilCtx.newSession().login("u1", "i1");
+    assert.strictEqual(await this.router.checkRequest(wsEvilCtx), false);
+
+    const optLoggedCtx = new WebContext(
+      new HttpContext("api.example.com", "OPTIONS", "/csrf-target", "https", 443, {
+        Origin: "https://evil.example.com"
+      })
+    );
+    optLoggedCtx.newSession().login("u1", "i1");
+    assert.strictEqual(await this.router.checkRequest(optLoggedCtx), true);
+
+    const noSessionPostCtx = new WebContext(
+      new HttpContext("api.example.com", "POST", "/csrf-target", "https", 443, {
+        Origin: "https://evil.example.com"
+      })
+    );
+    assert.strictEqual(await this.router.checkRequest(noSessionPostCtx), true);
+  }
 }

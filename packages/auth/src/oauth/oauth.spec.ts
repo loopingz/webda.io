@@ -323,6 +323,14 @@ class OAuthProviderTest extends AuthTest {
       (await this.route(mine, "callback", { code, state: otherState })).location,
       `${KO}?reason=STATE_MISMATCH`
     );
+    // Pending login started anonymously cannot be consumed by a logged-in session
+    const anon = await this.browser();
+    const anonState = (await this.start(anon)).state;
+    anon.ctx.getSession().login("victim-user", "ident-1");
+    assert.strictEqual(
+      (await this.route(anon, "callback", { code, state: anonState })).location,
+      `${KO}?reason=STATE_MISMATCH`
+    );
     assert.strictEqual(this.fake.calls.length, 0, "the code is never exchanged");
     for (const b of [browser, mine]) {
       assert.ok(!b.ctx.getSession().isLogged());

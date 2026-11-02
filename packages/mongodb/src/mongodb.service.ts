@@ -278,7 +278,11 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   protected getFilter(key: string, conditionField?: any, condition?: any): any {
     const filter: any = { _id: key };
     if (conditionField) {
-      filter[String(conditionField)] = condition instanceof Date ? condition.toISOString() : condition;
+      const field = String(conditionField);
+      if (/^(_id|\$)/.test(field)) {
+        throw new Error("Invalid condition field");
+      }
+      filter[field] = { $eq: condition instanceof Date ? condition.toISOString() : condition };
     }
     return filter;
   }
@@ -430,15 +434,21 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   ): Promise<void> {
     const key = this.getPrimaryKey(primaryKey).toString();
     const prop = String(collection);
+    if (!/^[A-Za-z0-9_]+$/.test(prop)) {
+      throw new Error("Invalid collection property name");
+    }
     const filter: any = { _id: key };
     const value = JSON.parse(JSON.stringify(item));
     let params: any;
     if (index === undefined) {
       params = { $push: { [prop]: value }, $set: { _lastUpdate: new Date().toISOString() } };
     } else {
+      if (!/^\d+$/.test(String(index))) {
+        throw new Error("Invalid collection index");
+      }
       params = { $set: { [`${prop}.${index}`]: value, _lastUpdate: new Date().toISOString() } };
       if (itemWriteCondition !== undefined) {
-        filter[`${prop}.${index}.${String(itemWriteConditionField)}`] = itemWriteCondition;
+        filter[`${prop}.${index}.${String(itemWriteConditionField)}`] = { $eq: itemWriteCondition };
       }
     }
     const res = await (await this.getCollection()).updateOne(filter, params);
@@ -460,9 +470,12 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   ): Promise<void> {
     const key = this.getPrimaryKey(primaryKey).toString();
     const prop = String(collection);
+    if (!/^[A-Za-z0-9_]+:\d+$/.test(`${prop}:${index}`)) {
+      throw new Error("Invalid collection parameters");
+    }
     const filter: any = { _id: key };
     if (itemWriteCondition !== undefined) {
-      filter[`${prop}.${index}.${String(itemWriteConditionField)}`] = itemWriteCondition;
+      filter[`${prop}.${index}.${String(itemWriteConditionField)}`] = { $eq: itemWriteCondition };
     }
     const col = await this.getCollection();
     // MongoDB cannot remove an array element by index: unset it then pull the null

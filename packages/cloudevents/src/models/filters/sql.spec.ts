@@ -3,6 +3,7 @@ import { CloudEvent } from "cloudevents";
 import { ANTLRInputStream, CommonTokenStream } from "antlr4ts";
 import { ParseTreeWalker } from "antlr4ts/tree/index.js";
 import { FiltersHelper } from "./index.js";
+import { SubscriptionMixIn } from "../subscription.js";
 import { SqlFilterImplementation, LikeExpression, AttributeExpression, InExpression, ValueExpression } from "./sql.js";
 import { CESQLParserLexer } from "./sql/CESQLParserLexer.js";
 import { CESQLParserParser, BinaryMultiplicativeExpressionContext } from "./sql/CESQLParserParser.js";
@@ -41,6 +42,19 @@ test("SQLFilter", () => {
       sql: `subject = "plopi"`
     }).match(event2)
   ).toBe(false);
+
+  expect(
+    FiltersHelper.get({
+      sql: "EXISTS toString"
+    }).match(event2)
+  ).toBe(false);
+
+  class Sub extends SubscriptionMixIn(Object) {}
+  const sub = new Sub();
+  sub.sink = "http://localhost:18181";
+  expect(typeof sub.createEmitter()).toBe("function");
+  sub.sink = "file:///etc/passwd";
+  expect(() => sub.createEmitter()).toThrow();
 });
 
 test("SQLFilter Sets", () => {

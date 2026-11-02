@@ -140,11 +140,14 @@ export function captureBody(
   };
 }
 
+const SENSITIVE_HEADERS = new Set(["authorization", "cookie", "set-cookie", "x-api-key"]);
+
 /**
  * Normalize a request/response headers record into `Record<string, string>`.
  *
  * - `undefined`/`null` values are dropped.
- * - Array values (e.g. multiple Set-Cookie) are joined with `, `.
+ * - Sensitive headers (`Authorization`, `Cookie`, `Set-Cookie`, `X-Api-Key`) are redacted.
+ * - Array values are joined with `, `.
  * - Other values are coerced via `String()`.
  *
  * @param headers - The raw headers object (may be `undefined`).
@@ -157,7 +160,9 @@ export function normalizeHeaders(
   if (!headers) return result;
   for (const [key, value] of Object.entries(headers)) {
     if (value === undefined || value === null) continue;
-    if (Array.isArray(value)) {
+    if (SENSITIVE_HEADERS.has(key.toLowerCase())) {
+      result[key] = "[REDACTED]";
+    } else if (Array.isArray(value)) {
       result[key] = value.join(", ");
     } else {
       result[key] = String(value);

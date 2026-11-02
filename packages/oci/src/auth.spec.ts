@@ -4,7 +4,8 @@ import * as assert from "node:assert";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseAuthChallenge, readDockerConfig, resolveCredentials } from "./auth.js";
+import { getHelperCredentials, parseAuthChallenge, readDockerConfig, resolveCredentials } from "./auth.js";
+import { RegistryClient } from "./registry.js";
 
 @suite
 class AuthTest {
@@ -128,5 +129,25 @@ class AuthTest {
     } finally {
       rmSync(folder, { recursive: true, force: true });
     }
+  }
+
+  @test
+  async helperValidationAndSameOriginAuth() {
+    assert.strictEqual(getHelperCredentials("../evil", "ghcr.io"), undefined);
+    assert.strictEqual(getHelperCredentials("nonexistent-helper-xyz", "ghcr.io"), undefined);
+    const seenHeaders: Record<string, string>[] = [];
+    const client = new RegistryClient("ghcr.io", {
+      credentials: { token: "secret-token" },
+      fetch: (async (_url: any, init: any) => {
+        seenHeaders.push(init?.headers ?? {});
+        return new Response("ok", { status: 200 });
+      }) as any
+    });
+    await client.request("GET", "/v2/", []);
+    await client.request("PUT", "https://ghcr.io/v2/blobs/uploads/1", []);
+    await client.request("PUT", "https://s3.amazonaws.com/bucket/blob", []);
+    assert.strictEqual(seenHeaders[0].authorization, "Bearer secret-token");
+    assert.strictEqual(seenHeaders[1].authorization, "Bearer secret-token");
+    assert.strictEqual(seenHeaders[2].authorization, undefined);
   }
 }

@@ -561,6 +561,12 @@ export class CovRepositoryTest {
     await repo.incrementAttributes("cond-test", { "metadata.newProp": 3 } as any);
     const incResult2 = await repo.get("cond-test");
     assert.strictEqual((incResult2.metadata as any).newProp, 3); // 0 + 3
+
+    // incrementAttributes with failing condition
+    await assert.rejects(
+      () => repo.incrementAttributes("cond-test", [{ property: "age" } as any], "name", "Wrong"),
+      /Condition failed/
+    );
   }
 
   @test

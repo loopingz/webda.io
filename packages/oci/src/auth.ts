@@ -163,6 +163,9 @@ export function readDockerConfig(env: Record<string, string | undefined> = proce
  * @returns the credentials, undefined when the helper has none
  */
 export function getHelperCredentials(helper: string, serverUrl: string): PlainRegistryCredentials | undefined {
+  if (!/^[a-zA-Z0-9_-]+$/.test(helper)) {
+    return undefined;
+  }
   const result = spawnSync(`docker-credential-${helper}`, ["get"], { input: serverUrl, encoding: "utf8" });
   if (result.status !== 0 || !result.stdout) {
     return undefined;

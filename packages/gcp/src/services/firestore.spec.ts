@@ -320,5 +320,6 @@ class FireStoreTest extends WebdaApplicationTest {
     await repo.query("ORDER BY state ASC, order DESC LIMIT 10");
     await repo.query("order > 900 ORDER BY team.id ASC LIMIT 10");
     await repo.query("ORDER BY team.id ASC, order DESC LIMIT 10");
+    await assert.rejects(() => repo.exists("a/b"), /Invalid primary key/);
   }
 }

@@ -367,7 +367,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
       return true;
     }
     const email = (await context.getCurrentUser())?.getEmail?.();
-    if (!email) {
+    if (!email || email.length > 320) {
       return false;
     }
     return allowed.some(pattern => {

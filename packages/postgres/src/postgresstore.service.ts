@@ -306,7 +306,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
       const fields = ["uuid"];
 
       for (const field of Object.keys(schema.properties)) {
-        if (field === "uuid" || !field.match(/^[0-9a-zA-Z-_$]+$/)) {
+        if (field === "uuid" || !field.match(/^[0-9a-zA-Z_$-]+$/)) {
           continue;
         }
         let cast = "";

@@ -208,5 +208,10 @@ export class SecureCookie {
       j++;
       i += limit;
     }
+    const existing = ctx.getHttpContext().getCookies();
+    while (existing?.[`${name}${j}`]) {
+      ctx.cookie(`${name}${j}`, "", { ...params, maxAge: 0 });
+      j++;
+    }
   }
 }

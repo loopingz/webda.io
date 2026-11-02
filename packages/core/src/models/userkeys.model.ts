@@ -482,9 +482,10 @@ export class UserKeys {
    */
   @Action({ rest: { method: "PUT" } })
   async setEscrow(kind: EscrowKind, escrow: EscrowBlob): Promise<void> {
-    this.authorize();
+    const owner = this.authorize();
     this.replaceEscrow(kind, escrow);
     await this.saveOwner();
+    await runAsSystem(() => owner.ref().setAttribute("_escrowAttempts", 0));
   }
 
   /**

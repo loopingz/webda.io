@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { FileQueue, FileQueueParameters } from "./filequeue.service.js";
+import { makeFrameReader } from "./socketpubsub.service.js";
 
 /**
  * Helper to create a FileQueue instance with proper parameters,
@@ -322,6 +323,20 @@ class FileQueueUnitTest {
     const size = await this.queue.size();
     // Size should be 2: the collision file + the actual message
     assert.ok(size >= 1);
+  }
+
+  @test
+  frameReaderSizeLimit() {
+    const frames: Buffer[] = [];
+    const reader = makeFrameReader(b => frames.push(b));
+    const ok = Buffer.allocUnsafe(6);
+    ok.writeUInt32BE(2, 0);
+    ok.write("hi", 4);
+    reader(ok);
+    assert.strictEqual(frames.length, 1);
+    const header = Buffer.allocUnsafe(4);
+    header.writeUInt32BE(32 * 1024 * 1024, 0);
+    assert.throws(() => reader(header), /Frame size exceeds maximum allowed/);
   }
 }
 

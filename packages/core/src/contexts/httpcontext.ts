@@ -114,7 +114,7 @@ export class HttpContext {
     for (const i in headers) {
       if (i.toLowerCase() === "cookie") {
         this.cookies = Array.isArray(headers[i])
-          ? (<string[]>headers[i]).map(c => cookieParse(c))
+          ? Object.assign({}, ...(<string[]>headers[i]).map(c => cookieParse(c)))
           : cookieParse(<string>headers[i]);
       }
       this.headers[i.toLowerCase()] = headers[i];

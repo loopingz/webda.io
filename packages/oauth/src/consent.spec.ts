@@ -68,6 +68,13 @@ class ConsentTest extends OAuthTest {
     const req = await this.op(b, "OAuth.Consent.Get");
     assert.strictEqual(req.client.verified, true);
     assert.strictEqual(req.client.host, undefined);
+    const server: any = useService("OAuthServer");
+    const docClient = { id: "https://app.example.com/client.json", metadataDocument: true };
+    assert.strictEqual(server.metadataHost(docClient, "https://app.example.com/cb"), "app.example.com");
+    assert.strictEqual(
+      server.metadataHost(docClient, "https://other.example.com/cb"),
+      "app.example.com (redirects to other.example.com)"
+    );
   }
 
   @test

@@ -47,6 +47,8 @@ test("Subscription", async () => {
   await subscription.emit(event);
   expect(called).toBe(false);
   server.close();
+  subscription.sink = "file:///etc/passwd";
+  expect(() => subscription.createEmitter()).toThrow();
   subscription.protocol = "UNKNOWN" as any;
   expect(() => subscription.createEmitter()).toThrow();
 });

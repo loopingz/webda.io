@@ -238,7 +238,7 @@ export function SubscriptionMixIn(clazz: any) {
      * @returns the emitter function for the configured protocol
      */
     createEmitter(): EmitterFunction {
-      if (this.protocol === "HTTP") {
+      if (this.protocol === "HTTP" && /^https?:\/\//i.test(this.sink)) {
         return emitterFor(httpTransport(this.sink), this.protocolsettings as any);
       }
       throw new Error("Unsupported protocol");

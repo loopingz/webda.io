@@ -33,8 +33,9 @@ class KubeRunnerTest extends WebdaApplicationTest {
       JOB_HOOK: "hook",
       JOB_ID: "uuid",
       JOB_ORCHESTRATOR: "test",
-      JOB_SECRET_KEY: "mykey"
-    };
+      JOB_SECRET_KEY: "mykey",
+      LD_PRELOAD: "ignored"
+    } as any;
   }
 
   @test

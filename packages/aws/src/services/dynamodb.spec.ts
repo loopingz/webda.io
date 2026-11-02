@@ -513,6 +513,14 @@ class DynamoDBTest extends WebdaAwsTest {
       await assert.rejects(() => this.repo.removeAttribute("plop", "test" as any), /Unknown/);
       await assert.rejects(() => this.repo.deleteItemFromCollection("plop", "test" as any, 1, "plop", 2), /Unknown/);
       await assert.rejects(() => this.repo.upsertItemToCollection("plop", "test" as any, "plop" as any), /Unknown/);
+      await assert.rejects(
+        () => this.repo.upsertItemToCollection("plop", "test" as any, "plop" as any, -1),
+        /Invalid collection index/
+      );
+      await assert.rejects(
+        () => this.repo.deleteItemFromCollection("plop", "test" as any, -1),
+        /Invalid collection index/
+      );
       await assert.rejects(() => this.repo.delete("plop"), /Unknown/);
       await assert.rejects(() => this.repo.patch("plop", { t: "l" } as any), /Unknown/);
       await assert.rejects(() => this.repo.update({ uuid: "plop" } as any), /Unknown/);

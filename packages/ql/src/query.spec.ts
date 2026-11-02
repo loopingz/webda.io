@@ -616,4 +616,16 @@ class QueryTest {
     assert.ok(validator.eval({ a: 1, b: null }));
     assert.ok(!validator.eval({ a: 1, b: 2 }));
   }
+
+  @test
+  securityHardening() {
+    assert.strictEqual(WebdaQL.ComparisonExpression.likeToRegex("%%%%a%%%b%%").source, ".*a.*b.*");
+    assert.throws(() => WebdaQL.ComparisonExpression.likeToRegex("a".repeat(513)), /maximum length/);
+    assert.throws(() => WebdaQL.ComparisonExpression.likeToRegex("%a".repeat(20)), /too many wildcards/);
+    assert.strictEqual(WebdaQL.ComparisonExpression.getAttributeValue({ a: 1 }, ["constructor", "name"]), undefined);
+    assert.strictEqual(WebdaQL.ComparisonExpression.getAttributeValue({ a: 1 }, ["__proto__", "toString"]), undefined);
+    const target: any = {};
+    new WebdaQL.ComparisonExpression("=", "constructor.prototype.polluted", "yes").setAttributeValue(target);
+    assert.strictEqual(({} as any).polluted, undefined);
+  }
 }

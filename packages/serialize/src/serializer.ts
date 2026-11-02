@@ -719,6 +719,15 @@ export class SerializerContext {
         throw new Error(`Reference '${ref}' failed: cannot traverse null/undefined at segment '${decoded}'`);
       }
 
+      if (
+        decoded === "__proto__" ||
+        decoded === "constructor" ||
+        decoded === "prototype" ||
+        !Object.prototype.hasOwnProperty.call(cur, decoded)
+      ) {
+        throw new Error(`Reference '${ref}' not found: property '${decoded}' does not exist`);
+      }
+
       cur = cur[decoded];
 
       if (cur === undefined) {

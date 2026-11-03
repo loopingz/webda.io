@@ -301,6 +301,16 @@ class LambdaHandlerTest extends WebdaApplicationTest {
   }
 
   @test
+  async responseCookiesWithAndWithoutOptions() {
+    const context = await this.newContext();
+    context.cookie("plain", "hello world");
+    context.cookie("secured", "value", { httpOnly: true, secure: true, path: "/api" });
+    const result = await this.handler.handleLambdaReturn(context);
+    assert.ok(result.multiValueHeaders["Set-Cookie"].includes("plain=hello%20world"));
+    assert.ok(result.multiValueHeaders["Set-Cookie"].includes("secured=value; Path=/api; HttpOnly; Secure"));
+  }
+
+  @test
   async handleRequestUnknownRoute() {
     this.ensureGoodCSRF();
     this.evt.path = "/route/unknown";

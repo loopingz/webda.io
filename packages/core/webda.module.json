@@ -433,6 +433,15 @@
             },
             "type": "object"
           },
+          "jwt$header": {
+            "additionalProperties": false,
+            "properties": {
+              "typ": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "jwt$secretOrPublicKey#3": {
             "additionalProperties": false,
             "properties": {
@@ -655,6 +664,15 @@
                   "spki",
                   "pkcs1"
                 ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "jwt$header": {
+            "additionalProperties": false,
+            "properties": {
+              "typ": {
                 "type": "string"
               }
             },
@@ -1235,6 +1253,10 @@
             "description": "Run this instance as an HTTP/2 cleartext (h2c) server rather than\nHTTP/1.1. The resulting port accepts only prior-knowledge HTTP/2\nclients (e.g. `grpcurl -plaintext`). To serve both REST (HTTP/1.1)\nand gRPC without TLS, configure a second HttpServer service with\n`h2c: true` on a separate port.",
             "type": "boolean"
           },
+          "healthPath": {
+            "description": "Path of the readiness and liveness probe, disabled when unset\n\nAnswered before the routing, without a context: `200 {\"status\":\"ok\"}` once Core is ready, `503` while\nit is starting (`{\"status\":\"starting\"}`) or the server is draining (`{\"status\":\"stopping\"}`).\nThe `WEBDA_HEALTH_PATH` environment variable enables it when not configured: the Knative deployer sets\nit for the readiness probe of its revisions.",
+            "type": "string"
+          },
           "http2": {
             "default": false,
             "description": "Enable HTTP/2 (default: true when key+cert provided)\nSet to false for HTTPS without HTTP/2",
@@ -1246,7 +1268,7 @@
           },
           "port": {
             "default": 18080,
-            "description": "Port to listen on",
+            "description": "Port to listen on\n\nWhen not set, the `PORT` environment variable is used (Knative, Cloud Run and most PaaS inject it),\nthen 18080. An explicit value always wins over the environment.",
             "type": "number"
           },
           "requestLimit": {
@@ -1257,6 +1279,11 @@
           "requestTimeout": {
             "default": 60000,
             "description": "Will not take more than this to read a request (unit: milliseconds)\n\nThis parameter can be overriden by a direct call to\ngetHttpContext().getRawBody(undefined, xxx)",
+            "type": "number"
+          },
+          "shutdownGracePeriod": {
+            "default": 10000,
+            "description": "Milliseconds the server waits for its in-flight requests when it stops, before closing their connections\n\nStopping first refuses new connections and answers `503` on `healthPath`, so a load balancer stops\nrouting to the instance. Keep it below the termination grace period of the pod (30s on Kubernetes).",
             "type": "number"
           },
           "trustedProxies": {
@@ -2076,6 +2103,20 @@
           "type": {
             "description": "Type of the service",
             "type": "string"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "Origins allowed to call the API from a browser (CORS), matched on the request `Origin` header\n\nExact origins (`https://ui.example.com`, `http://localhost:5173`), `https://*.example.com` for the\nsubdomains, or `\"*\"` for any origin. Other CORS filters (services with the `cors-filter` capability) can\nallow more origins.\n\n{@link CorsOriginFilter}"
           },
           "openapi": {
             "type": "object",
@@ -4141,7 +4182,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -4159,6 +4200,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -4180,6 +4225,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -4580,7 +4626,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -4598,6 +4644,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -4619,6 +4669,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -5023,7 +5074,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -5041,6 +5092,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -5062,6 +5117,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -5563,7 +5619,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -5581,6 +5637,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -5602,6 +5662,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -5990,7 +6051,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -6008,6 +6069,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -6029,6 +6094,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -6421,7 +6487,7 @@
             },
             "EscrowBlob": {
               "additionalProperties": false,
-              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+              "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
               "properties": {
                 "ct": {
                   "type": "string"
@@ -6439,6 +6505,10 @@
                 },
                 "kdfParams": {
                   "type": "object"
+                },
+                "kid": {
+                  "description": "Active key id when the escrow was created",
+                  "type": "string"
                 },
                 "kind": {
                   "enum": [
@@ -6460,6 +6530,7 @@
                 "iv",
                 "kdf",
                 "kdfParams",
+                "kid",
                 "kind",
                 "salt",
                 "v"
@@ -6903,7 +6974,17 @@
       },
       "required": [
         "method"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "method",
+          "input"
+        ]
+      }
     },
     "Webda/MFA.enroll.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6921,7 +7002,17 @@
       "required": [
         "method",
         "code"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "method",
+          "code"
+        ]
+      }
     },
     "Webda/MFA.confirm.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6935,7 +7026,16 @@
       },
       "required": [
         "method"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "method"
+        ]
+      }
     },
     "Webda/MFA.challenge.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6952,7 +7052,17 @@
       },
       "required": [
         "code"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "code",
+          "method"
+        ]
+      }
     },
     "Webda/MFA.verify.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6966,7 +7076,16 @@
       },
       "required": [
         "code"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "code"
+        ]
+      }
     },
     "Webda/MFA.recover.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6984,7 +7103,17 @@
       "required": [
         "method",
         "code"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "method",
+          "code"
+        ]
+      }
     },
     "Webda/MFA.disable.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -6999,7 +7128,16 @@
       },
       "required": [
         "code"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "code"
+        ]
+      }
     },
     "Webda/MFA.recoveryCodes.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -7030,7 +7168,17 @@
       "required": [
         "current",
         "next"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "put",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "current",
+          "next"
+        ]
+      }
     },
     "Webda/Password.change.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -7157,6 +7305,15 @@
           },
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "put",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "envelope"
+        ]
       }
     },
     "Webda/Sealed.set.output": {
@@ -7316,7 +7473,7 @@
         },
         "EscrowBlob": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -7334,6 +7491,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -7355,12 +7516,24 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
           ],
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "publicKey",
+          "keyring",
+          "escrows"
+        ]
       }
     },
     "Webda/UserKeys.setup.output": {
@@ -7380,7 +7553,16 @@
       },
       "required": [
         "kind"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "kind"
+        ]
+      }
     },
     "Webda/UserKeys.getEscrow.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -7408,7 +7590,7 @@
       "definitions": {
         "EscrowBlob": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -7426,6 +7608,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -7447,6 +7633,7 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
@@ -7600,7 +7787,14 @@
     },
     "Webda/UserKeys.getKeyring.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/UserKeys.getKeyring.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -7779,7 +7973,7 @@
         },
         "escrow": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -7797,6 +7991,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -7818,6 +8016,7 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
@@ -7828,7 +8027,17 @@
       "required": [
         "kind",
         "escrow"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "put",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "kind",
+          "escrow"
+        ]
+      }
     },
     "Webda/UserKeys.setEscrow.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -7847,7 +8056,19 @@
       },
       "required": [
         "kind"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "delete",
+        "template": "",
+        "path": [],
+        "query": [
+          {
+            "name": "kind",
+            "required": true
+          }
+        ],
+        "body": []
+      }
     },
     "Webda/UserKeys.removeEscrow.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8005,7 +8226,7 @@
         },
         "EscrowBlob": {
           "additionalProperties": false,
-          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve",
+          "description": "Keyring key wrapped by a KDF-derived KEK (AES-GCM), the parameters are stored so they can evolve\n\n`kid` is the active key the keyring was encrypted for when the escrow was made, in clear and outside the AAD: the\nserver refuses an escrow made for another key than its active one (a device that missed a rotation).",
           "properties": {
             "ct": {
               "type": "string"
@@ -8023,6 +8244,10 @@
             },
             "kdfParams": {
               "type": "object"
+            },
+            "kid": {
+              "description": "Active key id when the escrow was created",
+              "type": "string"
             },
             "kind": {
               "enum": [
@@ -8044,12 +8269,24 @@
             "iv",
             "kdf",
             "kdfParams",
+            "kid",
             "kind",
             "salt",
             "v"
           ],
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "publicKey",
+          "keyring",
+          "escrows"
+        ]
       }
     },
     "Webda/UserKeys.rotate.output": {
@@ -8065,7 +8302,16 @@
       },
       "required": [
         "name"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "",
+        "path": [],
+        "query": [],
+        "body": [
+          "name"
+        ]
+      }
     },
     "Webda/UserKeys.registerDevice.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8089,7 +8335,19 @@
       },
       "required": [
         "id"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "delete",
+        "template": "",
+        "path": [],
+        "query": [
+          {
+            "name": "id",
+            "required": true
+          }
+        ],
+        "body": []
+      }
     },
     "Webda/UserKeys.revokeDevice.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8104,7 +8362,16 @@
       },
       "required": [
         "hash"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "delete",
+        "template": "{hash}",
+        "path": [
+          "hash"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/Binary.delete.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8112,7 +8379,14 @@
     },
     "Webda/Binary.attach.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "post",
+        "template": ".",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/Binary.attach.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8164,6 +8438,15 @@
           "additionalProperties": false,
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "put",
+        "template": ".",
+        "path": [],
+        "query": [],
+        "body": [
+          "body"
+        ]
       }
     },
     "Webda/Binary.attachChallenge.output": {
@@ -8178,7 +8461,16 @@
       },
       "required": [
         "hash"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "complete/{hash}",
+        "path": [
+          "hash"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/Binary.complete.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8186,7 +8478,14 @@
     },
     "Webda/Binary.download.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": ".",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/Binary.download.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8194,7 +8493,14 @@
     },
     "Webda/Binary.downloadUrl.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "url",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/Binary.downloadUrl.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8261,7 +8567,18 @@
       "required": [
         "hash",
         "metadata"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "put",
+        "template": "{hash}",
+        "path": [
+          "hash"
+        ],
+        "query": [],
+        "body": [
+          "metadata"
+        ]
+      }
     },
     "Webda/Binary.setMetadata.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8269,7 +8586,14 @@
     },
     "Webda/BinariesImpl.attach.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "post",
+        "template": ".",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/BinariesImpl.attach.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8321,6 +8645,15 @@
           "additionalProperties": false,
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "put",
+        "template": ".",
+        "path": [],
+        "query": [],
+        "body": [
+          "body"
+        ]
       }
     },
     "Webda/BinariesImpl.attachChallenge.output": {
@@ -8335,7 +8668,16 @@
       },
       "required": [
         "hash"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "complete/{hash}",
+        "path": [
+          "hash"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/BinariesImpl.complete.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8350,7 +8692,16 @@
       },
       "required": [
         "index"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "get",
+        "template": "{index}",
+        "path": [
+          "index"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/BinariesImpl.get.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8365,7 +8716,16 @@
       },
       "required": [
         "index"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "get",
+        "template": "{index}/url",
+        "path": [
+          "index"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/BinariesImpl.getUrl.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8434,7 +8794,17 @@
       "required": [
         "index",
         "hash"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "delete",
+        "template": "{index}/{hash}",
+        "path": [
+          "index",
+          "hash"
+        ],
+        "query": [],
+        "body": []
+      }
     },
     "Webda/BinariesImpl.deleteAt.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8454,7 +8824,19 @@
       "required": [
         "index",
         "hash"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "put",
+        "template": "{index}/{hash}",
+        "path": [
+          "index",
+          "hash"
+        ],
+        "query": [],
+        "body": [
+          "metadata"
+        ]
+      }
     },
     "Webda/BinariesImpl.setMetadata.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8734,7 +9116,21 @@
             "method": "PUT"
           }
         }
-      }
+      },
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Policy of a SealedField attribute (`models.<Model>.behaviors.<attribute>` in the configuration)",
+        "properties": {
+          "maxSize": {
+            "description": "Upper bound of a client-sealed envelope stored with `set` (ciphertext `ct`, base64url characters, 1 MiB by\ndefault): the server cannot read the value, its size is the only check it can make.",
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "Configuration": "lib/models/sealed.model:SealedFieldParameters"
     }
   },
   "capabilities": {

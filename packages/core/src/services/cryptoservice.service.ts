@@ -5,7 +5,8 @@ import {
   createHmac,
   createPublicKey,
   generateKeyPairSync,
-  randomBytes
+  randomBytes,
+  timingSafeEqual
 } from "crypto";
 import jwt from "jsonwebtoken";
 import * as util from "util";
@@ -738,10 +739,12 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       data = JSONUtils.stringify(data);
     }
     const [keyId, mac] = hmac.split(".");
-    if (!(await this.checkKey(keyId))) {
+    if (!mac || !(await this.checkKey(keyId))) {
       return false;
     }
-    return createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex") === mac;
+    const expected = Buffer.from(createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex"));
+    const provided = Buffer.from(mac);
+    return expected.length === provided.length && timingSafeEqual(expected, provided);
   }
 
   /**
@@ -800,7 +803,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @param callback - the callback function
    */
   public async getJWTKey(header, callback) {
-    if (!header.kid) {
+    if (!header || typeof header.kid !== "string" || header.kid.length < 2) {
       callback(new Error("Unknown key"));
       return;
     }
@@ -1520,8 +1523,12 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @returns the result
    */
   public async decrypt(token: string): Promise<any> {
-    const input = Buffer.from(await this.jwtVerify(token), "base64");
+    const raw = await this.jwtVerify(token);
     const header = this.getJWTHeader(token);
+    const input = typeof raw === "string" ? Buffer.from(raw, "base64") : Buffer.alloc(0);
+    if (input.length <= 16 || !header || typeof header.kid !== "string" || !header.kid.startsWith("S")) {
+      throw new Error("Invalid encrypted payload");
+    }
     const iv = input.subarray(0, 16);
     const decipher = createDecipheriv(
       this.parameters.symetricCipher,

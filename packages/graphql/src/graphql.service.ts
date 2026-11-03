@@ -66,7 +66,14 @@ import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
 import { graphQLNames, restoreInputKeys, WEBDA_KEY } from "./names.js";
-import { createFromInput, isInputAttribute, loadForAction, operationError, updateFromInput } from "./mutations.js";
+import {
+  createFromInput,
+  enforceModelOperationPermission,
+  isInputAttribute,
+  loadForAction,
+  operationError,
+  updateFromInput
+} from "./mutations.js";
 import {
   GRAPHQL_NAME,
   GraphQLOperationContext,
@@ -888,7 +895,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    */
   countOperation(context: WebContext, increment: number = 1) {
     const ext = context.getExtension<GraphQLContextExtension>("graphql");
-    if (ext?.count === this.parameters.maxOperationsPerRequest) {
+    if (ext && ext.count! + increment > this.parameters.maxOperationsPerRequest) {
       throw new GraphQLError("Too many operations", {
         extensions: {
           code: "TOO_MANY_OPERATIONS"
@@ -896,8 +903,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       });
     }
     if (ext) {
-      ext.count ??= 0;
-      ext.count += increment;
+      ext.count! += increment;
     }
   }
 
@@ -1250,6 +1256,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           (info.fieldNodes[0].selectionSet?.selections || [])
             .filter(node => node.kind === "Field")
             .map(n => (<FieldNode>n).name.value)
+            .filter(e => (services[i] as any)?.authorizeClientEvent?.(e, context) !== false)
             .forEach(n => (fieldsMap[n] = true));
           return new EventIterator(services[i], fieldsMap, id, {}).iterate();
         }
@@ -1559,6 +1566,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @returns the readable results
    */
   protected async withTotal(model: any, query: string, context: any): Promise<QueryResultWithTotal> {
+    await enforceModelOperationPermission(model, context, "query", { query });
     const res: QueryResultWithTotal = await queryModelWithPermissions(model, query, context);
     // Not enumerable: never serialized, only reached by the field resolver
     Object.defineProperty(res, QUERY_TOTAL, { value: () => countModelWithPermissions(model, query, context) });
@@ -1909,12 +1917,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       ctx.write(printSchema(this.schema));
     } else {
       ctx.writeHead(200, { "Content-Type": "text/html" });
-      ctx.write(
-        GraphIQL.replace("{{URL}}", httpContext.getAbsoluteUrl()).replace(
-          "{{WSURL}}",
-          httpContext.getAbsoluteUrl().replace("http", "ws")
-        )
-      );
+      const escapeJsSingleQuoted = (val: string) =>
+        JSON.stringify(val).slice(1, -1).replace(/'/g, "\\'").replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
+      const rawUrl = httpContext.getAbsoluteUrl();
+      const safeUrl = escapeJsSingleQuoted(rawUrl);
+      const safeWsUrl = escapeJsSingleQuoted(rawUrl.replace(/^http/, "ws"));
+      ctx.write(GraphIQL.replace("{{URL}}", () => safeUrl).replace("{{WSURL}}", () => safeWsUrl));
     }
   }
 

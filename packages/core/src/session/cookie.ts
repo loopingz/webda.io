@@ -141,8 +141,22 @@ export class SecureCookie {
     }
 
     try {
-      return Object.assign(session, await useCrypto().jwtVerify(raw, options));
-    } catch (err) {
+      const header = useCrypto().getJWTHeader(raw);
+      const verified = await useCrypto().jwtVerify(raw, options);
+      if (
+        (header?.typ && header.typ !== "JWT") ||
+        !verified ||
+        typeof verified !== "object" ||
+        Array.isArray(verified) ||
+        verified.fam !== undefined ||
+        verified.client_id !== undefined ||
+        typeof verified.scope === "string" ||
+        (!options?.audience && verified.aud !== undefined)
+      ) {
+        throw new Error("Non-cookie JWT rejected in SecureCookie.load");
+      }
+      return Object.assign(session, verified);
+    } catch {
       useLog("WARN", "Ignoring bad cookie", `'${raw}'`, "from", context.getHttpContext());
       return session;
     }
@@ -193,6 +207,11 @@ export class SecureCookie {
       ctx.cookie(cookieName, value.substring(i, i + limit), params);
       j++;
       i += limit;
+    }
+    const existing = ctx.getHttpContext().getCookies();
+    while (existing?.[`${name}${j}`]) {
+      ctx.cookie(`${name}${j}`, "", { ...params, maxAge: 0 });
+      j++;
     }
   }
 }

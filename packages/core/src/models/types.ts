@@ -60,6 +60,11 @@ export interface IUser extends Model {
 
 /**
  * Define a object that can define permission on attribute level
+ *
+ * @deprecated No framework path calls `attributePermission` anymore: it is a leftover of the v3 attribute proxy.
+ * Per-field write rules go through the client input sanitization: the static `getProtectedAttributes(context?)`
+ * of the model (per caller when it reads the context), `getClientWritableAttributes()` and `@readOnly`; per-field
+ * read rules through `toDTO()`. See the Permissions documentation ("Client input" and "Per-caller field rules").
  */
 export interface IAttributeLevelPermissionModel extends IContextAware {
   attributePermission(attribute: string | symbol, value: any, action: "READ" | "WRITE"): any;

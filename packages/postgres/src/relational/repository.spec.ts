@@ -14,16 +14,21 @@ import {
   WebdaApplicationTest
 } from "@webda/core/lib/test";
 import { escape } from "@webda/ql";
-import { RelationalRepository, RelationalSchemaManager, runTransaction } from "@webda/sql";
+import { RelationalRepository, RelationalSchemaManager, isSubclassOf, runTransaction } from "@webda/sql";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
 import {
   RelAggRow,
   RelAnimal,
+  RelBreeder,
   RelDog,
+  RelKitten,
+  RelNode,
+  RelOwner,
   RelPair,
   RelPairRef,
+  RelPet,
   RelPost,
   RelTag,
   RelUser,
@@ -268,12 +273,201 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
   @test
   async unsupportedAttributesAreRejected() {
     const posts = this.repo(RelPost);
-    await assert.rejects(() => posts.query("tags CONTAINS 't1'"), WebdaError.BadRequest);
     await assert.rejects(() => posts.query("title CONTAINS 'x'"), WebdaError.BadRequest);
-    await assert.rejects(() => this.repo(RelPairRef).query("pair = 'x_y'"), WebdaError.BadRequest);
     await assert.rejects(() => this.repo(RelPost, { extraColumn: false }).query("unknown = 1"), WebdaError.BadRequest);
     await assert.rejects(() => posts.query("ORDER BY tags ASC"), WebdaError.BadRequest);
     assert.deepStrictEqual(await this.uuids(posts, "unknown = 1"), [], "an unknown field reads the extra column");
+  }
+
+  /**
+   * Seed the contributors and reviewers of the posts: p1 has u1 (editor, level 3) and u2 (no attributes), p2 has u2
+   * (reviewer), p3 is reviewed by u2 (lead since 2024) and u1 (backup); p1 already has u1 as lead since 2020
+   */
+  async seedLinks(): Promise<void> {
+    await this.seedPosts();
+    await this.insert("rel_user", { uuid: "u2", name: "bob", __type: "Rel/User" });
+    const contributor = (post: string, user: string, position: number, attributes?: any) =>
+      this.insert("rel_post_contributors", {
+        post,
+        user,
+        _position: position,
+        ...(attributes ? { attributes } : {})
+      });
+    await contributor("p1", "u1", 0, { role: "editor", level: 3 });
+    await contributor("p1", "u2", 1);
+    await contributor("p2", "u2", 0, { role: "reviewer", level: 1 });
+    await this.insert("rel_post_reviewers", { post: "p3", user: "u2", key: "lead", attributes: { since: 2024 } });
+    await this.insert("rel_post_reviewers", { post: "p3", user: "u1", key: "backup" });
+  }
+
+  @test
+  async junctionAttributeFilters() {
+    await this.seedLinks();
+    const posts = this.repo(RelPost);
+    // A link collection CONTAINS a target key
+    assert.deepStrictEqual(await this.uuids(posts, "tags CONTAINS 't1'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(posts, "tags CONTAINS 't9'"), []);
+    assert.deepStrictEqual(await this.uuids(posts, "contributors CONTAINS 'u2'"), ["p1", "p2"]);
+    assert.deepStrictEqual(await this.uuids(posts, "reviewers CONTAINS 'u1'"), ["p1", "p3"]);
+    // One item of the collection matches: a link attribute, the target key
+    assert.deepStrictEqual(await this.uuids(posts, "contributors.role = 'editor'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(posts, "contributors.role IN ['editor', 'reviewer']"), ["p1", "p2"]);
+    assert.deepStrictEqual(await this.uuids(posts, "contributors.level > 1"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(posts, "contributors.role IS NULL"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(posts, "contributors.uuid = 'u2' AND views < 5"), ["p2"]);
+    assert.deepStrictEqual(await this.uuids(posts, "contributors.uuid IN ['u1']"), ["p1"]);
+    // A map item is selected by its key
+    assert.deepStrictEqual(await this.uuids(posts, "reviewers.lead.since = 2020"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(posts, "reviewers.lead.since > 2020"), ["p3"]);
+    assert.deepStrictEqual(await this.uuids(posts, "reviewers.lead.uuid = 'u1'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(posts, "reviewers.lead IS NOT NULL"), ["p1", "p3"]);
+    assert.deepStrictEqual(await this.uuids(posts, "reviewers.lead IS NULL"), ["p2", "p4"]);
+    assert.deepStrictEqual(await this.uuids(posts, "reviewers.backup IS NOT NULL OR tags CONTAINS 't2'"), ["p1", "p3"]);
+    // A link collection reads as an array or a map, never null
+    assert.deepStrictEqual(await this.uuids(posts, "tags IS NULL"), []);
+    assert.deepStrictEqual(await this.uuids(posts, "tags IS NOT NULL"), ["p1", "p2", "p3", "p4"]);
+    // Every statement takes them
+    assert.deepStrictEqual(await posts.count("tags CONTAINS 't2' AND views > 5"), {
+      value: 1,
+      relation: "eq",
+      native: true
+    });
+    assert.strictEqual(
+      await posts.updateMany("UPDATE SET status = 'published' WHERE contributors.role = 'reviewer'"),
+      1
+    );
+    assert.strictEqual(((await posts.get("p2")) as any).status, "published");
+    assert.strictEqual(await posts.deleteMany("DELETE WHERE reviewers.backup IS NOT NULL"), 1);
+    assert.strictEqual(await posts.exists("p3"), false);
+    // What a junction cannot answer
+    for (const query of [
+      "tags = 't1'",
+      "tags.label = 'a'",
+      "reviewers.lead = 1",
+      "contributors.uuid.x = 'u1'",
+      "contributors LIKE 'u%'"
+    ]) {
+      await assert.rejects(() => posts.query(query), WebdaError.BadRequest, query);
+    }
+  }
+
+  @test
+  async junctionTypedFieldsAndCompositeKeys() {
+    await this.seedTargets();
+    await this.insert("rel_owner", { uuid: "o1", name: "ann", __type: "Rel/Owner" });
+    const pairs = this.repo(RelPair);
+    await pairs.create({ a: "x", b: "y", label: "xy", tags: ["t1"] });
+    await pairs.create({ a: "x", b: "z", tags: ["t2"] });
+    const pets = this.repo(RelPet);
+    await pets.create({
+      uuid: "pet1",
+      name: "rex",
+      owners: { home: { uuid: "o1", since: 2019, meta: { a: 1 } } },
+      pairs: ["x_y"]
+    });
+    await pets.create({
+      uuid: "pet2",
+      name: "tom",
+      owners: { work: { uuid: "o1", since: 2023 } },
+      pairs: [],
+      friends: [{ uuid: "g1", mood: "calm" }]
+    });
+    // Typed link fields, a JSON link field
+    assert.deepStrictEqual(await this.uuids(pets, "owners.home.since > 2018"), ["pet1"]);
+    assert.deepStrictEqual(await this.uuids(pets, "owners.work.since = 2023"), ["pet2"]);
+    assert.deepStrictEqual(await this.uuids(pets, "owners.home.meta.a = 1"), ["pet1"]);
+    assert.deepStrictEqual(await this.uuids(pets, "owners.home.uuid = 'o1'"), ["pet1"]);
+    // The key of a link to a model no store plans
+    assert.deepStrictEqual(await this.uuids(pets, "friends.uuid = 'g1' AND friends.mood = 'calm'"), ["pet2"]);
+    // A composite target key is split; a key that does not split matches nothing
+    assert.deepStrictEqual(await this.uuids(pets, "pairs CONTAINS 'x_y'"), ["pet1"]);
+    assert.deepStrictEqual(await this.uuids(pets, "pairs CONTAINS 'x'"), []);
+    // A composite owner key
+    const tagged = (await pairs.query("tags CONTAINS 't2'")).results.map((p: any) => `${p.a}_${p.b}`);
+    assert.deepStrictEqual(tagged, ["x_z"]);
+    // Without an attributes column, an unknown link field is refused
+    await assert.rejects(() => pets.query("owners.home.nope = 1"), WebdaError.BadRequest);
+    await assert.rejects(() => pets.query("owners.home.since.x = 1"), WebdaError.BadRequest);
+  }
+
+  @test
+  async compositeReferenceFilters() {
+    const pairs = this.repo(RelPair);
+    await pairs.create({ a: "x", b: "y" });
+    await pairs.create({ a: "x", b: "z" });
+    const refs = this.repo(RelPairRef);
+    await refs.create({ uuid: "r1", pair: "x_y" });
+    await refs.create({ uuid: "r2", pair: "x_z" });
+    await refs.create({ uuid: "r3" });
+    assert.deepStrictEqual(await this.uuids(refs, "pair = 'x_y'"), ["r1"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair != 'x_y'"), ["r2", "r3"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair IN ['x_z', 'bad']"), ["r2"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair = 'bad'"), []);
+    assert.deepStrictEqual(await this.uuids(refs, "pair != 'bad'"), ["r1", "r2", "r3"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair IS NULL"), ["r3"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair IS NOT NULL"), ["r1", "r2"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair LIKE '%z'"), ["r2"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair > 'x_y'"), ["r2"]);
+    assert.deepStrictEqual(await this.uuids(refs, "pair < 1"), []);
+    await assert.rejects(() => refs.query("pair CONTAINS 'x'"), WebdaError.BadRequest);
+    await assert.rejects(() => refs.query("pair.a = 'x'"), WebdaError.BadRequest);
+    await assert.rejects(() => refs.query("ORDER BY pair ASC"), WebdaError.BadRequest);
+  }
+
+  @test
+  async modelsMappedAreFilledOnRead() {
+    await this.seedPosts();
+    const owners = this.repo(RelOwner);
+    await owners.create({ uuid: "o1", name: "ann", pets: [{ uuid: "ignored" }] });
+    await this.repo(RelBreeder).create({ uuid: "b1", name: "bea" });
+    const pets = this.repo(RelPet);
+    // Two keys linking the same owner: one item
+    await pets.create({ uuid: "pet1", name: "rex", owners: { home: { uuid: "o1" }, alt: { uuid: "o1" } } });
+    await this.repo(RelKitten).create({ uuid: "pet2", name: "tom", breeder: "b1", owners: { home: { uuid: "b1" } } });
+    await this.repo(RelKitten).create({ uuid: "pet3", name: "zoe", breeder: "b1" });
+    await this.repo(RelKitten).create({ uuid: "pet5", breeder: "b1" });
+    // A row without __type belongs to the root of its table: a pet, not a kitten
+    await this.insert("rel_pet", { uuid: "pet4", name: "old", breeder: "b1" });
+    await this.insert("rel_pet_owners", { pet: "pet4", owner: "o1", key: "x" });
+    const o1: any = await owners.get("o1");
+    assert.deepStrictEqual(o1.pets, [
+      { uuid: "pet1", name: "rex" },
+      { uuid: "pet4", name: "old" }
+    ]);
+    assert.strictEqual(o1.litter, undefined, "an owner has no litter");
+    const b1: any = await owners.get("b1");
+    assert.ok(b1 instanceof RelBreeder);
+    assert.deepStrictEqual(b1.pets, [{ uuid: "pet2", name: "tom" }]);
+    assert.deepStrictEqual(b1.litter, [{ uuid: "pet2", name: "tom" }, { uuid: "pet3", name: "zoe" }, { uuid: "pet5" }]);
+    // The hierarchy comes from the application models
+    assert.strictEqual(isSubclassOf("Rel/Breeder", "Rel/Owner"), true);
+    assert.strictEqual(isSubclassOf("Rel/Owner", "Rel/Breeder"), false);
+    assert.strictEqual(isSubclassOf("Rel/Nope", "Rel/Owner"), false);
+    const all = (await owners.query("name IS NOT NULL")).results.map((o: any) => o.pets.length);
+    assert.deepStrictEqual(all.sort(), [1, 2]);
+    // Never written: the extra column does not keep it
+    assert.deepStrictEqual((await this.rows("rel_owner", `"uuid" = 'o1'`))[0]._extra, {});
+    await owners.patch("o1", { pets: [] } as any);
+    assert.strictEqual(((await owners.get("o1")) as any).pets.length, 2);
+    // A mapped attribute is not filterable
+    await assert.rejects(() => owners.query("pets.name = 'rex'"), WebdaError.BadRequest);
+    // Through a junction without targetAttributes: the keys; a self map; a composite reference
+    assert.deepStrictEqual(((await this.repo(RelTag).get("t2")) as any).posts, [{ uuid: "p1" }]);
+    const nodes = this.repo(RelNode);
+    await nodes.create({ uuid: "n1" });
+    await nodes.create({ uuid: "n2", parentNode: "n1" });
+    await nodes.create({ uuid: "n3", parentNode: "n1" });
+    assert.deepStrictEqual(((await nodes.get("n1")) as any).children, [{ uuid: "n2" }, { uuid: "n3" }]);
+    assert.deepStrictEqual(((await nodes.get("n2")) as any).children, []);
+    await this.repo(RelPair).create({ a: "x", b: "y" });
+    await this.repo(RelPairRef).create({ uuid: "r1", pair: "x_y" });
+    assert.deepStrictEqual(((await this.repo(RelPair).get("x_y")) as any).refs, [{ uuid: "r1" }]);
+    // A map the store cannot fill is kept as it was written
+    const tags = this.repo(RelTag);
+    await tags.create({ uuid: "t9", label: "z", unlinked: ["k"] });
+    const t9: any = await tags.get("t9");
+    assert.deepStrictEqual(t9.unlinked, ["k"]);
+    assert.strictEqual(t9.elsewhere, undefined);
   }
 
   @test
@@ -792,5 +986,119 @@ export class RelationalRepositoryTest extends WebdaApplicationTest {
       "2024-01-02"
     );
     assert.deepStrictEqual(await this.uuids(repo, "day >= '2024-02-01'"), ["p2"]);
+  }
+
+  @test
+  async timeColumnsMatchNothingOnNonDateText() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", _lastUpdate: "2024-05-06T07:08:09.123Z", day: "2024-05-06" });
+    await repo.create({ uuid: "p2", title: "T" });
+    // A text that is no date matches nothing instead of raising, `!=` matches everything
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate = 'abc'"), []);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate != 'abc'"), ["p1", "p2"]);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate > 'abc'"), []);
+    assert.deepStrictEqual(await this.uuids(repo, "day = 'abc'"), []);
+    assert.deepStrictEqual(await this.uuids(repo, "day < 'abc'"), []);
+    // Dates compare natively, LIKE sees the ISO text
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate = '2024-05-06T07:08:09.123Z'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate LIKE '2024-05-06T07%'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "_lastUpdate LIKE '%.123Z'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "day >= '2024-05-06'"), ["p1"]);
+    assert.deepStrictEqual(await this.uuids(repo, "day LIKE '2024-05%'"), ["p1"]);
+  }
+
+  @test
+  async duplicatesTellRowJunctionAndUniqueIndexApart() {
+    await this.seedTargets();
+    const users = this.repo(RelUser);
+    const posts = this.repo(RelPost);
+    await users.create({ uuid: "u3", email: "a@b" });
+    await assert.rejects(() => users.create({ uuid: "u3", email: "other" }), /^Error: Already exists: u3$/);
+    // The `@Unique` index of the fixture
+    await assert.rejects(
+      () => users.create({ uuid: "u4", email: "a@b" }),
+      (err: any) => err instanceof WebdaError.Conflict && err.message === "Rel/User: email must be unique"
+    );
+    assert.strictEqual(await users.exists("u4"), false);
+    await users.create({ uuid: "u4", email: "c@d" });
+    await assert.rejects(() => users.update({ uuid: "u4", email: "a@b" }), WebdaError.Conflict);
+    await assert.rejects(() => users.patch("u4", { email: "a@b" }), WebdaError.Conflict);
+    await assert.rejects(
+      () => posts.create({ uuid: "p1", title: "T", tags: ["t1", "t1"] }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message === "Rel/Post.tags holds a key twice"
+    );
+    assert.strictEqual(await posts.exists("p1"), false, "the row insert is rolled back with its junction");
+    await posts.create({ uuid: "p1", title: "T", tags: ["t1"] });
+    await assert.rejects(() => posts.patch("p1", { tags: ["t2", "t2"] }), WebdaError.BadRequest);
+    assert.deepStrictEqual(((await posts.get("p1")) as any).tags, ["t1"]);
+    // Any other junction failure is reported as is
+    (posts as any).writeJunction = async () => {
+      throw new Error("boom");
+    };
+    await assert.rejects(() => posts.patch("p1", { tags: ["t2"] }), /boom/);
+  }
+
+  @test
+  async patchRoundTripsItsData() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", views: 1, meta: { a: 1 } });
+    // Undefined values are not patched, dates serialize, an enumerable __type is never trusted
+    await repo.patch("p1", {
+      views: undefined,
+      title: "T2",
+      _lastUpdate: new Date("2024-05-06T07:08:09.123Z"),
+      __type: "Rel/Dog"
+    } as any);
+    const post: any = await repo.get("p1");
+    assert.strictEqual(post.views, 1);
+    assert.strictEqual(post.title, "T2");
+    assert.strictEqual(post._lastUpdate, "2024-05-06T07:08:09.123Z");
+    assert.ok(post instanceof RelPost);
+    // What has a toJSON is patched as it serializes
+    await repo.patch("p1", { title: "ignored", toJSON: () => ({ title: "T3", meta: { b: 2 } }) } as any);
+    const again: any = await repo.get("p1");
+    assert.strictEqual(again.title, "T3");
+    assert.deepStrictEqual(again.meta, { b: 2 });
+  }
+
+  @test
+  async linksArrayMixingKeysAndObjects() {
+    await this.seedTargets();
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", contributors: ["u1", { uuid: "u2", role: "x" }] });
+    assert.deepStrictEqual(((await repo.get("p1")) as any).contributors, [{ uuid: "u1" }, { uuid: "u2", role: "x" }]);
+    await repo.update({ uuid: "p1", title: "T", contributors: [{ uuid: "u2", role: "y" }, "u1"] });
+    assert.deepStrictEqual(((await repo.get("p1")) as any).contributors, [{ uuid: "u2", role: "y" }, { uuid: "u1" }]);
+  }
+
+  @test
+  async cleanDeletesSelfReferencesInOneTransaction() {
+    const nodes = this.repo(RelNode);
+    await nodes.create({ uuid: "n1" });
+    await nodes.create({ uuid: "n2", parentNode: "n1" });
+    await nodes.patch("n1", { parentNode: "n2" });
+    await nodes.__clean();
+    assert.deepStrictEqual(await this.rows("rel_node"), []);
+  }
+
+  @test
+  async jsonItemConditionAtAnIndexAndUnknownUniqueIndex() {
+    const repo = this.repo(RelPost);
+    await repo.create({ uuid: "p1", title: "T", files: [{ name: "f0" }, { name: "f1" }] });
+    await assert.rejects(
+      () => repo.upsertItemToCollection("p1", "files" as any, { name: "x" }, 1, "name", "nope"),
+      UpdateConditionFailError
+    );
+    await repo.upsertItemToCollection("p1", "files" as any, { name: "f1b" }, 1, "name", "f1");
+    assert.deepStrictEqual(((await repo.get("p1")) as any).files, [{ name: "f0" }, { name: "f1b" }]);
+    // A unique index the plan does not know (added by a DBA) is a conflict named after what the engine reports
+    await this.client.query(`CREATE UNIQUE INDEX dba_uq ON rel_tag (label)`);
+    const tags = this.repo(RelTag);
+    await tags.create({ uuid: "t1", label: "same" });
+    await assert.rejects(
+      () => tags.create({ uuid: "t2", label: "same" }),
+      (err: any) =>
+        err instanceof WebdaError.Conflict && /^Rel\/Tag: unique constraint (dba_uq|label) violated$/.test(err.message)
+    );
   }
 }

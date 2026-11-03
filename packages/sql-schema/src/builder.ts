@@ -1,10 +1,16 @@
 import { columnName, constraintName, identifier, mapScalar, typeToString, widestType } from "./columns.js";
 import type { DeclaredRelation, JSONSchemaLike, SchemaModelMetadata } from "./metadata.js";
-import { declaredRelations, referenceIdentifier, shortName } from "./metadata.js";
+import {
+  declaredRelations,
+  foreignKeyAction,
+  junctionForeignKeyAction,
+  referenceIdentifier,
+  shortName
+} from "./metadata.js";
 import type {
   ColumnPlan,
   ColumnType,
-  DeletePolicy,
+  ForeignKeyAction,
   ForeignKeyPlan,
   IndexPlan,
   ModelPlan,
@@ -28,6 +34,22 @@ export interface RelationalSchemaOptions extends Partial<SchemaLayoutOptions> {
    * Models outside the plan, to resolve and type the references to them (no foreign key is created to them)
    */
   knownModels?: Iterable<SchemaModelMetadata>;
+  /**
+   * Tables outside the plan a reference may point to with a foreign key (`foreignKeysToJsonb`): the key column(s) of
+   * the table holding a model of another store in the same database, by model identifier
+   */
+  referencedTables?: { [identifier: string]: ReferencedTable };
+}
+
+/**
+ * A table outside the plan a foreign key may reference
+ */
+export interface ReferencedTable {
+  table: string;
+  /**
+   * Its key columns, one per key part of the reference
+   */
+  columns: string[];
 }
 
 /**
@@ -105,7 +127,10 @@ interface TableDraft {
  *   CASCADE` for a parent, `NO ACTION` for a link (until the delete policies of #798)
  * - `ModelLinksSimpleArray` / `ModelLinksArray` / `ModelLinksMap`: a junction table `<table>_<attribute>`
  * - `ModelRelated` / `ModelsMapped`: no storage
- * - foreign keys only between models of the plan: a reference to another model gets a column and an index
+ * - foreign keys only between models of the plan: a reference to another model gets a column and an index, or a
+ *   foreign key to its table when `referencedTables` names it
+ * - `@Index` / `@Unique` tags (`Relations.indexes`): an index on the columns of the attribute, one composite index
+ *   per group name
  */
 export class RelationalSchemaBuilder {
   private readonly layout: SchemaLayoutOptions;
@@ -197,7 +222,7 @@ class PlanBuilder {
       options: { ...this.layout },
       tables: this.sortTables([...tables, ...this.junctions]),
       foreignKeys: [...this.foreignKeys.values()],
-      indexes: [...this.indexes.values()],
+      indexes: this.finishIndexes(),
       relations: this.relations,
       models: this.models,
       warnings: this.warnings
@@ -507,6 +532,41 @@ class PlanBuilder {
         this.useColumn(meta, name);
       }
     }
+    this.addTaggedIndexes(draft);
+  }
+
+  /**
+   * The indexes of the `@Index` / `@Unique` tags of the models of a table: one per tagged attribute, one per group
+   * name (its attributes in declaration order)
+   * @param draft - the table
+   * @throws SchemaBuildError when a tagged attribute has no column in the table
+   */
+  private addTaggedIndexes(draft: TableDraft): void {
+    const groups = new Map<string, { columns: string[]; unique: boolean }>();
+    for (const meta of draft.members) {
+      for (const declaration of meta.Relations?.indexes ?? []) {
+        const columns = [...draft.columns.values()]
+          .filter(c => c.field === declaration.attribute && (c.role === "field" || c.role === "reference"))
+          .map(c => c.name);
+        if (!columns.length) {
+          throw new SchemaBuildError(
+            `@${declaration.unique ? "Unique" : "Index"} on ${meta.Identifier}.${declaration.attribute}: ` +
+              `not a column of ${draft.name} (link collections are indexed by their junction)`
+          );
+        }
+        if (declaration.name) {
+          const group = groups.get(declaration.name) ?? { columns: [], unique: false };
+          group.columns.push(...columns.filter(c => !group.columns.includes(c)));
+          group.unique ||= !!declaration.unique;
+          groups.set(declaration.name, group);
+        } else if (!this.isKeyPrefix(draft, columns)) {
+          this.addIndex(draft.name, columns, !!declaration.unique);
+        }
+      }
+    }
+    for (const [name, group] of groups) {
+      this.addIndex(draft.name, group.columns, group.unique, name);
+    }
   }
 
   /**
@@ -557,6 +617,7 @@ class PlanBuilder {
       kind: relation.kind,
       ...(target ? { target } : {}),
       ...(relation.targetAttribute ? { targetAttribute: relation.targetAttribute } : {}),
+      ...(relation.attributes ? { attributes: relation.attributes } : {}),
       ...(relation.unique ? { unique: true } : {}),
       ...details,
       storage
@@ -595,7 +656,7 @@ class PlanBuilder {
       return;
     }
     const target = this.quietTarget(relation);
-    const onDelete: DeletePolicy = relation.kind === "parent" ? "CASCADE" : "NO ACTION";
+    const onDelete = foreignKeyAction(relation.onDelete);
     const foreignKey = this.constraintTo(draft.name, names, meta, relation, target, onDelete);
     const separator = columns.length > 1 ? this.separatorOf(target) : undefined;
     this.addRelation(
@@ -651,17 +712,26 @@ class PlanBuilder {
     meta: SchemaModelMetadata,
     relation: DeclaredRelation,
     target: SchemaModelMetadata | undefined,
-    onDelete: DeletePolicy
+    onDelete: ForeignKeyAction
   ): ForeignKeyPlan | undefined {
     if (!target) {
       return undefined;
     }
     if (!this.handled.has(target.Identifier)) {
+      const referenced = this.options.referencedTables?.[target.Identifier];
+      if (referenced && referenced.columns.length === columns.length) {
+        return this.layout.foreignKeys
+          ? this.addForeignKey(table, columns, referenced.table, referenced.columns, onDelete)
+          : undefined;
+      }
       this.warn(
         "CROSS_STORE_REFERENCE",
         meta,
         relation.attribute,
-        `${target.Identifier} is not stored by this store: ${relation.attribute} gets a column and an index, no foreign key`
+        referenced
+          ? `${target.Identifier} is keyed by ${referenced.columns.length} column(s) in ${referenced.table}, ` +
+              `${relation.attribute} by ${columns.length}: a column and an index, no foreign key`
+          : `${target.Identifier} is not stored by this store: ${relation.attribute} gets a column and an index, no foreign key`
       );
       return undefined;
     }
@@ -685,7 +755,7 @@ class PlanBuilder {
     columns: string[],
     references: string,
     referenced: string[],
-    onDelete: DeletePolicy
+    onDelete: ForeignKeyAction
   ): ForeignKeyPlan {
     const name = constraintName("fk", table, columns);
     const foreignKey = this.foreignKeys.get(name) ?? {
@@ -703,10 +773,28 @@ class PlanBuilder {
    * @param table - the table
    * @param columns - the columns
    * @param unique - a unique index
+   * @param group - the group name of a tagged composite index, named after it instead of its columns
+   * @throws SchemaBuildError when the name is taken by an index on other columns
    */
-  private addIndex(table: string, columns: string[], unique: boolean): void {
-    const name = constraintName(unique ? "uq" : "idx", table, columns);
+  private addIndex(table: string, columns: string[], unique: boolean, group?: string): void {
+    const name = constraintName(unique ? "uq" : "idx", table, group ? [group] : columns);
+    const existing = this.indexes.get(name);
+    if (existing && existing.columns.join("\0") !== columns.join("\0")) {
+      throw new SchemaBuildError(
+        `Index ${name} is declared on ${existing.columns.join(", ")} and on ${columns.join(", ")}: rename the group`
+      );
+    }
     this.indexes.set(name, { name, table, columns, unique });
+  }
+
+  /**
+   * @returns the indexes, without the plain ones a unique index on the same columns makes redundant
+   */
+  private finishIndexes(): IndexPlan[] {
+    const unique = new Set(
+      [...this.indexes.values()].filter(i => i.unique).map(i => `${i.table}\0${i.columns.join("\0")}`)
+    );
+    return [...this.indexes.values()].filter(i => i.unique || !unique.has(`${i.table}\0${i.columns.join("\0")}`));
   }
 
   /**
@@ -791,12 +879,12 @@ class PlanBuilder {
       meta,
       relation,
       target,
-      "NO ACTION"
+      junctionForeignKeyAction(relation.onDelete)
     );
     if (targetForeignKey) {
       const recorded = this.relationKeys.get(`${draft.name}\0${relation.attribute}`)!;
       recorded.foreignKey = targetForeignKey.name;
-      recorded.onDelete = "NO ACTION";
+      recorded.onDelete = targetForeignKey.onDelete;
     }
     // Reverse lookups: the target columns do not start the primary key
     this.addIndex(
@@ -905,7 +993,8 @@ class PlanBuilder {
     const byName = new Map(tables.map(t => [t.name, t]));
     const dependencies = new Map<string, Set<string>>(tables.map(t => [t.name, new Set()]));
     for (const fk of this.foreignKeys.values()) {
-      if (fk.table !== fk.references.table) {
+      // A table outside the plan (`referencedTables`) is not created here
+      if (fk.table !== fk.references.table && byName.has(fk.references.table)) {
         dependencies.get(fk.table)?.add(fk.references.table);
       }
     }

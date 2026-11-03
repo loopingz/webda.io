@@ -105,9 +105,13 @@ describe("planSchemaChanges", () => {
       ...plan.indexes.filter(i => i.table === "app_user").map(() => "createIndex")
     ]);
     expect(create.drift.map(d => d.message)).toContain("column app_post.views is missing (schemaSync: alter adds it)");
-    expect(
-      create.drift.some(d => d.message.startsWith("add foreign key") || d.message.startsWith("create index"))
-    ).toBe(true);
+    expect(create.drift.some(d => d.message.startsWith("foreign key fk_"))).toBe(true);
+    expect(create.drift.some(d => d.message.startsWith("index idx_"))).toBe(true);
+    expect(create.drift.find(d => d.message.startsWith("column app_post.views"))).toMatchObject({
+      table: "app_post",
+      column: "views"
+    });
+    expect(create.drift.find(d => d.message.startsWith("index"))!.column).toBeUndefined();
   });
 
   it("driftReportsTypeMismatchUnknownAndExtraColumns", () => {

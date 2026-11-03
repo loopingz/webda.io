@@ -40,7 +40,15 @@ export type { QlValidatorOptions } from "./generators/qlvalidator.ts";
 export { buildMappedText, SpanMapKind } from "./spans.ts";
 export type { MappedText, SpanMapping } from "./spans.ts";
 
-export { buildModelMetadata, buildRelations, discoverWebdaObjects, reflectAttributes } from "./module-discovery.ts";
+export {
+  backfillModelRelations,
+  buildModelMetadata,
+  buildRelations,
+  discoverWebdaObjects,
+  reflectAttributes
+} from "./module-discovery.ts";
+export { DELETE_POLICIES } from "./relations.ts";
+export type { DeletePolicy, RelationDependent } from "./relations.ts";
 export type {
   DiscoveredObject,
   DiscoveryOptions,

@@ -1,4 +1,5 @@
 export * from "./comparison.js";
+export * from "./contract.js";
 export * from "./dialect.js";
 export * from "./manager.js";
 export * from "./mapping.js";
@@ -6,3 +7,5 @@ export * from "./repository.js";
 export * from "./support.js";
 export * from "./sync.js";
 export * from "./transaction.js";
+export * from "./schemaversion.model.js";
+export * from "./versions.js";

@@ -95,16 +95,22 @@ export class McpSessionManager {
   }
 
   /**
-   * Close and remove the least recently used session
+   * Close and remove the least recently used session, preferring anonymous sessions first
+   * @param allowEvictingAuthenticated - whether an authenticated session may be evicted when no anonymous session exists
    * @returns the evicted session id, or undefined when there is none
    */
-  async evictOldest(): Promise<string | undefined> {
-    let oldest: McpSessionEntry | undefined;
+  async evictOldest(allowEvictingAuthenticated: boolean = true): Promise<string | undefined> {
+    let oldestAnon: McpSessionEntry | undefined;
+    let oldestAny: McpSessionEntry | undefined;
     for (const entry of this.sessions.values()) {
-      if (!oldest || entry.lastSeen < oldest.lastSeen) {
-        oldest = entry;
+      if (entry.userId === undefined && (!oldestAnon || entry.lastSeen < oldestAnon.lastSeen)) {
+        oldestAnon = entry;
+      }
+      if (!oldestAny || entry.lastSeen < oldestAny.lastSeen) {
+        oldestAny = entry;
       }
     }
+    const oldest = oldestAnon ?? (allowEvictingAuthenticated ? oldestAny : undefined);
     if (!oldest) {
       return undefined;
     }

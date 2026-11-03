@@ -223,4 +223,64 @@ class HttpContextTest {
     ctx.setBody(str);
     await assert.rejects(() => ctx.getRawBody(undefined, 100), /Request timeout/);
   }
+
+  @test
+  async httpServerContextAndRedirectUnit() {
+    const { HttpServer } = await import("../services/httpserver.service.js");
+    const { EventEmitter } = await import("node:events");
+    const dummy: any = Object.create(HttpServer.prototype);
+    dummy.getContextFromRequest = async () => undefined;
+    let statusWritten = 0;
+    let ended = false;
+    await dummy.handleWebRequest(
+      {} as any,
+      {
+        headersSent: false,
+        writeHead: (code: number) => {
+          statusWritten = code;
+        },
+        end: () => {
+          ended = true;
+        }
+      } as any
+    );
+    assert.strictEqual(statusWritten, 500);
+    assert.strictEqual(ended, true);
+
+    statusWritten = 0;
+    ended = false;
+    await dummy.handleWebRequest(
+      {} as any,
+      {
+        headersSent: true,
+        end: () => {
+          ended = true;
+        }
+      } as any
+    );
+    assert.strictEqual(statusWritten, 0);
+    assert.strictEqual(ended, true);
+
+    const fakeTls = new EventEmitter();
+    fakeTls.on("connection", () => {});
+    dummy.redirectPlainHttp(fakeTls as any);
+    let redirectLocation = "";
+    const triggerRedirect = (host?: string, url?: string) => {
+      dummy.redirectServer.emit(
+        "request",
+        { headers: host ? { host } : {}, url },
+        {
+          writeHead: (_code: number, headers: any) => {
+            redirectLocation = headers.Location;
+          },
+          end: () => {}
+        }
+      );
+    };
+    triggerRedirect("example.com:8443", "//admin/login");
+    assert.strictEqual(redirectLocation, "https://example.com:8443/admin/login");
+    triggerRedirect("evil.com/bad", undefined);
+    assert.strictEqual(redirectLocation, "https://localhost/");
+    dummy.redirectServer.close();
+  }
 }

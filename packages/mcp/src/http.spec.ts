@@ -315,4 +315,83 @@ class McpHttpTest extends McpFixtureTest {
       service.parameters.maxSessions = previous;
     }
   }
+
+  /**
+   * Call Fixture.Headers over a session whose requests carry `headers`
+   * @param headers - extra request headers
+   * @returns what the operation saw
+   */
+  async seenHeaders(headers: Record<string, string>): Promise<any> {
+    registerOperation("Fixture.Headers", { service: "Fixture", method: "headers", input: "void", output: "void" });
+    const transport = new StreamableHTTPClientTransport(new URL(await this.url()), { requestInit: { headers } });
+    const client = new Client({ name: "spec", version: "1.0.0" });
+    await client.connect(transport);
+    try {
+      const result = await client.callTool({ name: "Fixture.Headers", arguments: {} });
+      return JSON.parse((result.content[0] as any).text);
+    } finally {
+      await client.close();
+    }
+  }
+
+  @test
+  async forwardsOnlyAllowlistedHeaders() {
+    const mcp = useService<McpService>("Mcp");
+    const sent = {
+      "x-example-key": "k1",
+      "x-other": "o",
+      "x-test-user": "alice",
+      cookie: "a=b",
+      authorization: "Bearer t"
+    };
+    // default: nothing is forwarded, the operation sees no HTTP request
+    assert.deepStrictEqual((await this.seenHeaders(sent)).http, false);
+    mcp.getParameters().forwardHeaders = ["X-Example-Key", "authorization", "cookie"];
+    try {
+      assert.deepStrictEqual(await this.seenHeaders(sent), {
+        http: true,
+        key: "k1",
+        other: null,
+        authorization: null,
+        cookie: null,
+        user: null,
+        path: "/mcp"
+      });
+      const missing = await this.seenHeaders({ "x-test-user": "alice" });
+      assert.strictEqual(missing.http, true);
+      assert.strictEqual(missing.key, null);
+    } finally {
+      mcp.getParameters().forwardHeaders = [];
+    }
+  }
+
+  @test
+  async forwardedHeadersBelongToEachRequestNotTheSession() {
+    const mcp = useService<McpService>("Mcp");
+    mcp.getParameters().forwardHeaders = ["x-example-key"];
+    registerOperation("Fixture.Headers", { service: "Fixture", method: "headers", input: "void", output: "void" });
+    let key: string | undefined = "first";
+    const transport = new StreamableHTTPClientTransport(new URL(await this.url()), {
+      fetch: (url, init) => {
+        const headers = new Headers(init?.headers);
+        if (key) headers.set("x-example-key", key);
+        else headers.delete("x-example-key");
+        return fetch(url, { ...init, headers });
+      }
+    });
+    const client = new Client({ name: "spec", version: "1.0.0" });
+    try {
+      await client.connect(transport);
+      const call = async () =>
+        JSON.parse(((await client.callTool({ name: "Fixture.Headers", arguments: {} })).content[0] as any).text).key;
+      assert.strictEqual(await call(), "first");
+      key = "second";
+      assert.strictEqual(await call(), "second");
+      key = undefined;
+      assert.strictEqual(await call(), null);
+    } finally {
+      mcp.getParameters().forwardHeaders = [];
+      await client.close();
+    }
+  }
 }

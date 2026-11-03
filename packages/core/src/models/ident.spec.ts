@@ -97,4 +97,26 @@ class IdentTest extends WebdaApplicationTest {
     assert.strictEqual(storage.has("a_b@x.com_email"), false);
     assert.ok(storage.has("p3:google"));
   }
+
+  @test
+  async roleModelMissingUserForbidden() {
+    const { RoleModel } = await import("./rolemodel.model.js");
+    const dummy: any = Object.create(RoleModel.prototype);
+    await assert.rejects(
+      () =>
+        dummy.getRoles({
+          getCurrentUserId: () => "u1",
+          getSession: () => ({}),
+          getCurrentUser: async () => undefined
+        }),
+      /No user/
+    );
+    const session: any = {};
+    const roles = await dummy.getRoles({
+      getCurrentUserId: () => "u1",
+      getSession: () => session,
+      getCurrentUser: async () => ({ getRoles: () => ["admin"] })
+    });
+    assert.deepStrictEqual(roles, ["admin"]);
+  }
 }

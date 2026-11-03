@@ -110,6 +110,55 @@ function columns(plan: RelationalSchemaPlan, name: string): string[] {
 }
 
 describe("RelationalSchemaBuilder", () => {
+  it("derives the ON DELETE of each foreign key from the relation delete policy", () => {
+    const plan = buildSchemaPlan([
+      model("MyApp/User", { uuid }),
+      model("MyApp/Tag", { uuid }),
+      model(
+        "MyApp/Comment",
+        {
+          uuid,
+          author: { type: "string" },
+          reviewer: { type: "string" },
+          editor: { type: "string" },
+          plain: { type: "string" },
+          tags: { type: "array", items: { type: "string" } },
+          pinned: { type: "array", items: { type: "string" } }
+        },
+        {
+          required: ["uuid", "author", "plain"],
+          Relations: {
+            parent: { attribute: "author", model: "MyApp/User", onDelete: "RESTRICT" },
+            links: [
+              { attribute: "reviewer", model: "MyApp/User", type: "LINK", onDelete: "SET_NULL" },
+              { attribute: "editor", model: "MyApp/User", type: "LINK", onDelete: "CASCADE" },
+              { attribute: "plain", model: "MyApp/User", type: "LINK" },
+              { attribute: "tags", model: "MyApp/Tag", type: "LINKS_SIMPLE_ARRAY", onDelete: "SET_NULL" },
+              { attribute: "pinned", model: "MyApp/Tag", type: "LINKS_SIMPLE_ARRAY", onDelete: "RESTRICT" }
+            ]
+          }
+        }
+      ),
+      model(
+        "MyApp/Note",
+        { uuid, owner: { type: "string" } },
+        { Relations: { parent: { attribute: "owner", model: "MyApp/User", onDelete: "NONE" } } }
+      )
+    ]);
+    const onDelete = (name: string) => plan.foreignKeys.find(f => f.name === name)?.onDelete;
+    expect(onDelete("fk_myapp_comment_author")).toBe("RESTRICT");
+    expect(onDelete("fk_myapp_comment_reviewer")).toBe("SET NULL");
+    expect(onDelete("fk_myapp_comment_editor")).toBe("CASCADE");
+    expect(onDelete("fk_myapp_comment_plain")).toBe("NO ACTION");
+    expect(onDelete("fk_myapp_note_owner")).toBe("NO ACTION");
+    // SET_NULL on a link array removes the item: the junction row goes with the target
+    expect(onDelete("fk_myapp_comment_tags_tag")).toBe("CASCADE");
+    expect(onDelete("fk_myapp_comment_pinned_tag")).toBe("RESTRICT");
+    const relation = (attribute: string) => plan.relations.find(r => r.attribute === attribute);
+    expect(relation("reviewer")?.onDelete).toBe("SET NULL");
+    expect(relation("tags")?.onDelete).toBe("CASCADE");
+  });
+
   it("maps the #838 blog sample to typed tables, foreign keys and a junction", () => {
     const plan = buildSchemaPlan(blog());
     expect(plan.version).toBe(1);
@@ -304,7 +353,15 @@ describe("RelationalSchemaBuilder", () => {
             parent: { attribute: "owner", model: "WebdaSample/User" },
             links: [link("friend", "WebdaSample/User"), link("buddy", "WebdaSample/User")],
             queries: [{ attribute: "posts", model: "WebdaSample/Post", targetAttribute: "profile" }],
-            maps: [{ attribute: "mapped", model: "WebdaSample/Post" }]
+            maps: [
+              { attribute: "mapped", model: "WebdaSample/Post" },
+              {
+                attribute: "copies",
+                model: "WebdaSample/Post",
+                targetLink: "profile",
+                targetAttributes: ["title", "uuid"]
+              }
+            ]
           },
           // Relations does not tell a OneToOne from a ModelLink; a relation only in Reflection is not one
           Reflection: {
@@ -331,7 +388,22 @@ describe("RelationalSchemaBuilder", () => {
       targetAttribute: "profile",
       storage: { kind: "none" }
     });
-    expect(kinds["WebdaSample/Profile.mapped"]).toMatchObject({ kind: "map", storage: { kind: "none" } });
+    expect(kinds["WebdaSample/Profile.mapped"]).toEqual({
+      model: "WebdaSample/Profile",
+      attribute: "mapped",
+      kind: "map",
+      target: "WebdaSample/Post",
+      storage: { kind: "none" }
+    });
+    expect(kinds["WebdaSample/Profile.copies"]).toEqual({
+      model: "WebdaSample/Profile",
+      attribute: "copies",
+      kind: "map",
+      target: "WebdaSample/Post",
+      targetAttribute: "profile",
+      attributes: ["title", "uuid"],
+      storage: { kind: "none" }
+    });
     expect(kinds["WebdaSample/Post.profile"]).toMatchObject({ kind: "link", target: "WebdaSample/Profile" });
     expect(columns(plan, "webdasample_profile")).toEqual([
       "uuid text",
@@ -347,6 +419,137 @@ describe("RelationalSchemaBuilder", () => {
         { name: "uq_webdasample_profile_friend", table: "webdasample_profile", columns: ["friend"], unique: true }
       ])
     );
+  });
+
+  it("renders the @Index and @Unique tags as indexes", () => {
+    const plan = buildSchemaPlan([
+      model(
+        "Tagged/User",
+        {
+          uuid,
+          email: { type: "string" },
+          name: { type: "string" },
+          day: { type: "string" },
+          meta: { type: "object" }
+        },
+        {
+          Relations: {
+            indexes: [
+              { attribute: "email", unique: true },
+              { attribute: "uuid" },
+              { attribute: "name", name: "byNameDay" },
+              { attribute: "day", name: "byNameDay" },
+              { attribute: "meta" }
+            ]
+          }
+        }
+      ),
+      model(
+        "Tagged/Admin",
+        { uuid, level: { type: "integer" }, pair: { type: "string" } },
+        {
+          Ancestors: ["Tagged/User"],
+          Relations: {
+            // An inherited column, a reference (indexed already: the unique index replaces the plain one)
+            indexes: [{ attribute: "name" }, { attribute: "pair", unique: true }],
+            links: [link("pair", "Tagged/Pair")]
+          }
+        }
+      ),
+      model("Tagged/Pair", { a: uuid, b: uuid }, { PrimaryKey: ["a", "b"], PrimaryKeySeparator: "#" })
+    ]);
+    const names = plan.indexes.filter(i => i.table === "tagged_user").map(i => `${i.name}:${i.columns}:${i.unique}`);
+    expect(names).toEqual([
+      "uq_tagged_user_email:email:true",
+      "idx_tagged_user_meta:meta:false",
+      "idx_tagged_user_name:name:false",
+      "uq_tagged_user_pair_a_pair_b:pair_a,pair_b:true",
+      "idx_tagged_user_byNameDay:name,day:false",
+      "idx_tagged_user___type:__type:false"
+    ]);
+    expect(() =>
+      buildSchemaPlan([
+        model(
+          "Tagged/Bad",
+          { uuid, tags: { type: "array" } },
+          {
+            Relations: { indexes: [{ attribute: "tags" }], links: [link("tags", "Tagged/Bad", "LINKS_SIMPLE_ARRAY")] }
+          }
+        )
+      ])
+    ).toThrow(/@Index on Tagged\/Bad.tags: not a column/);
+    expect(() =>
+      buildSchemaPlan([
+        model("Tagged/Bad", { uuid }, { Relations: { indexes: [{ attribute: "nope", unique: true }] } })
+      ])
+    ).toThrow(/@Unique on Tagged\/Bad.nope: not a column/);
+    expect(() =>
+      buildSchemaPlan([
+        model(
+          "Tagged/Bad",
+          { uuid, a: uuid, b: uuid },
+          {
+            Relations: {
+              indexes: [
+                { attribute: "a", name: "b", unique: true },
+                { attribute: "b", unique: true }
+              ]
+            }
+          }
+        )
+      ])
+    ).toThrow(/Index uq_tagged_bad_b is declared on b and on a/);
+  });
+
+  it("references the JSON table of a model outside the plan when referencedTables names it", () => {
+    const build = (options: Parameters<typeof buildSchemaPlan>[1]) =>
+      buildSchemaPlan(
+        [
+          model(
+            "Ext/Comment",
+            { uuid, moderator: uuid, pair: uuid, voters: { type: "array", items: { type: "string" } } },
+            links(
+              link("moderator", "Webda/User"),
+              link("pair", "Ext/Pair"),
+              link("voters", "Webda/User", "LINKS_SIMPLE_ARRAY")
+            )
+          )
+        ],
+        {
+          knownModels: [
+            model("Webda/User", { uuid }),
+            model("Ext/Pair", { a: uuid, b: uuid }, { PrimaryKey: ["a", "b"] })
+          ],
+          ...options
+        }
+      );
+    const referencedTables = {
+      "Webda/User": { table: "webda_user", columns: ["uuid"] },
+      "Ext/Pair": { table: "ext_pair", columns: ["uuid"] }
+    };
+    const plan = build({ referencedTables });
+    expect(
+      plan.foreignKeys.map(fk => `${fk.table}.${fk.columns} -> ${fk.references.table}.${fk.references.columns}`)
+    ).toEqual([
+      "ext_comment.moderator -> webda_user.uuid",
+      "ext_comment_voters.comment -> ext_comment.uuid",
+      "ext_comment_voters.user -> webda_user.uuid"
+    ]);
+    expect(plan.relations.find(r => r.attribute === "moderator")).toMatchObject({
+      foreignKey: "fk_ext_comment_moderator",
+      onDelete: "NO ACTION"
+    });
+    // The composite key of the JSON row is one column: no foreign key, a specific warning; plain tables keep theirs
+    expect(plan.warnings.map(w => `${w.attribute}: ${w.message}`)).toEqual([
+      "pair: Ext/Pair is keyed by 1 column(s) in ext_pair, pair by 2: a column and an index, no foreign key"
+    ]);
+    expect(plan.tables.map(t => t.name)).toEqual(["ext_comment", "ext_comment_voters"]);
+    expect(build({ referencedTables, foreignKeys: false }).foreignKeys).toEqual([]);
+    expect(build({}).warnings.map(w => w.code)).toEqual([
+      "CROSS_STORE_REFERENCE",
+      "CROSS_STORE_REFERENCE",
+      "CROSS_STORE_REFERENCE"
+    ]);
   });
 
   it("supports composite primary keys and references to them", () => {

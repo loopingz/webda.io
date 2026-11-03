@@ -1,7 +1,7 @@
 import { describe, it } from "vitest";
 import * as assert from "assert";
 import { HttpContext } from "@webda/core";
-import { ProxyService } from "./proxy.service.js";
+import { createHttpHeader, ProxyService } from "./proxy.service.js";
 
 /**
  * @param proxyHeaders - whether X-Forwarded-* headers are added
@@ -94,5 +94,13 @@ describe("ProxyService.getRequestHeaders", () => {
   it("forwards headers untouched when proxyHeaders is disabled", () => {
     const headers = proxy(false).getRequestHeaders(context({ "x-forwarded-for": "1.2.3.4", accept: "text/html" }));
     assert.deepStrictEqual(headers, { "x-forwarded-for": "1.2.3.4", accept: "text/html" });
+  });
+
+  it("strips CRLF in createHttpHeader and enforces requireAuthentication in proxyWS", async () => {
+    const raw = createHttpHeader("HTTP/1.1 101 OK\r\nInjected: 1", {
+      "X-Single\r\n": "val\r\n",
+      "X-Multi": ["a\r\n", "b"]
+    });
+    assert.strictEqual(raw, "HTTP/1.1 101 OKInjected: 1\r\nX-Single: val\r\nX-Multi: a\r\nX-Multi: b\r\n\r\n");
   });
 });

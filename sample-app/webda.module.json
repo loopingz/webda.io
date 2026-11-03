@@ -635,7 +635,8 @@
       "Relations": {
         "parent": {
           "attribute": "company",
-          "model": "WebdaDemo/Company"
+          "model": "WebdaDemo/Company",
+          "onDelete": "CASCADE"
         }
       },
       "Ancestors": [
@@ -725,8 +726,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -809,8 +809,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -871,8 +870,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -1047,6 +1045,24 @@
             "model": "WebdaDemo/Hardware",
             "targetAttribute": "classroom"
           }
+        ],
+        "children": [
+          "WebdaDemo/ComputerScreen",
+          "WebdaDemo/Hardware"
+        ],
+        "dependents": [
+          {
+            "model": "WebdaDemo/ComputerScreen",
+            "attribute": "classroom",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
+          },
+          {
+            "model": "WebdaDemo/Hardware",
+            "attribute": "classroom",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
+          }
         ]
       },
       "Ancestors": [],
@@ -1176,6 +1192,45 @@
             "attribute": "users",
             "model": "WebdaDemo/User",
             "targetAttribute": "company"
+          }
+        ],
+        "children": [
+          "WebdaDemo/AnotherSubProject",
+          "WebdaDemo/Project",
+          "WebdaDemo/SubProject",
+          "WebdaDemo/SubSubProject",
+          "WebdaDemo/User"
+        ],
+        "dependents": [
+          {
+            "model": "WebdaDemo/AnotherSubProject",
+            "attribute": "company",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
+          },
+          {
+            "model": "WebdaDemo/Project",
+            "attribute": "company",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
+          },
+          {
+            "model": "WebdaDemo/SubProject",
+            "attribute": "company",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
+          },
+          {
+            "model": "WebdaDemo/SubSubProject",
+            "attribute": "company",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
+          },
+          {
+            "model": "WebdaDemo/User",
+            "attribute": "company",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
           }
         ]
       },
@@ -1564,7 +1619,8 @@
       "Relations": {
         "parent": {
           "attribute": "_user",
-          "model": "WebdaDemo/User"
+          "model": "WebdaDemo/User",
+          "onDelete": "CASCADE"
         },
         "links": [
           {
@@ -1602,12 +1658,11 @@
           "additionalProperties": false,
           "properties": {
             "_loanTo": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "_user": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "name": {
@@ -1633,12 +1688,11 @@
           "additionalProperties": false,
           "properties": {
             "_loanTo": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "_user": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "name": {
@@ -1664,12 +1718,11 @@
           "additionalProperties": false,
           "properties": {
             "_loanTo": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "_user": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "name": {
@@ -1719,7 +1772,8 @@
       "Relations": {
         "parent": {
           "attribute": "classroom",
-          "model": "WebdaDemo/Classroom"
+          "model": "WebdaDemo/Classroom",
+          "onDelete": "CASCADE"
         },
         "queries": [
           {
@@ -1766,8 +1820,7 @@
           "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "modelId": {
@@ -1801,8 +1854,7 @@
           "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "modelId": {
@@ -1836,8 +1888,7 @@
           "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "modelId": {
@@ -2436,7 +2487,7 @@
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "name": {
@@ -2475,7 +2526,7 @@
               "type": "array"
             },
             "teacher": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "uuid": {
@@ -2499,7 +2550,7 @@
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "name": {
@@ -2538,7 +2589,7 @@
               "type": "array"
             },
             "teacher": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "uuid": {
@@ -2562,7 +2613,7 @@
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "name": {
@@ -2601,7 +2652,7 @@
               "type": "array"
             },
             "teacher": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "string"
             },
             "uuid": {
@@ -2648,7 +2699,8 @@
       "Relations": {
         "parent": {
           "attribute": "classroom",
-          "model": "WebdaDemo/Classroom"
+          "model": "WebdaDemo/Classroom",
+          "onDelete": "CASCADE"
         },
         "queries": [
           {
@@ -2689,8 +2741,7 @@
           "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "name": {
@@ -2716,8 +2767,7 @@
           "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "name": {
@@ -2743,8 +2793,7 @@
           "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "name": {
@@ -3269,7 +3318,8 @@
       "Relations": {
         "parent": {
           "attribute": "company",
-          "model": "WebdaDemo/Company"
+          "model": "WebdaDemo/Company",
+          "onDelete": "CASCADE"
         }
       },
       "Ancestors": [
@@ -3359,8 +3409,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -3443,8 +3492,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -3505,8 +3553,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -3923,7 +3970,8 @@
       "Relations": {
         "parent": {
           "attribute": "company",
-          "model": "WebdaDemo/Company"
+          "model": "WebdaDemo/Company",
+          "onDelete": "CASCADE"
         }
       },
       "Ancestors": [
@@ -4011,8 +4059,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -4095,8 +4142,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -4157,8 +4203,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -4223,7 +4268,8 @@
       "Relations": {
         "parent": {
           "attribute": "company",
-          "model": "WebdaDemo/Company"
+          "model": "WebdaDemo/Company",
+          "onDelete": "CASCADE"
         }
       },
       "Ancestors": [
@@ -4318,8 +4364,7 @@
               "type": "string"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -4406,8 +4451,7 @@
               "type": "string"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -4472,8 +4516,7 @@
               "type": "string"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -4710,7 +4753,8 @@
       "Relations": {
         "parent": {
           "attribute": "company",
-          "model": "WebdaDemo/Company"
+          "model": "WebdaDemo/Company",
+          "onDelete": "CASCADE"
         },
         "behaviors": [
           {
@@ -4744,6 +4788,17 @@
             "attribute": "contacts",
             "model": "WebdaDemo/Contact",
             "targetAttribute": "owner"
+          }
+        ],
+        "children": [
+          "WebdaDemo/Computer"
+        ],
+        "dependents": [
+          {
+            "model": "WebdaDemo/Computer",
+            "attribute": "_user",
+            "type": "PARENT",
+            "onDelete": "CASCADE"
           }
         ]
       },
@@ -4944,7 +4999,6 @@
               "type": "number"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
               "description": "Company the user belongs to",
               "type": "string"
             },
@@ -5043,7 +5097,6 @@
               "type": "number"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
               "description": "Company the user belongs to",
               "type": "string"
             },
@@ -5214,7 +5267,6 @@
               "type": "number"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
               "description": "Company the user belongs to",
               "type": "string"
             },
@@ -5502,8 +5554,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {
@@ -5564,8 +5615,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
+              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
               "type": "string"
             },
             "n": {

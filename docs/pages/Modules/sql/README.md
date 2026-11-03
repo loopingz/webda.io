@@ -42,7 +42,14 @@ upvote and comment if you need them):
 - `planSchemaChanges(plan, live, mode)`: the additive steps bringing a database to a `RelationalSchemaPlan` and the
   drift it never resolves (no drop, no type change, no `NOT NULL`); `SchemaDriftError` for `validate`.
 - `RelationalSchemaManager`: builds the plan from the model metadata, logs its warnings, renders the create DDL, diffs
-  and syncs under the dialect lock.
+  and syncs under the dialect lock, with the registry hooks (`check` before the DDL, `register` after it, both under
+  the lock), runs the `online` steps the dialect keeps out of the transaction (`renderOnlineStep`:
+  `CREATE INDEX CONCURRENTLY`, `NOT VALID` + `VALIDATE CONSTRAINT`), plans and applies the contract phase
+  (`planContract`, `renderContractStep`) and the batched `backfill`.
+- `SchemaVersion` (`Webda/SchemaVersion`): the model of the version registry, stored by the `Registry` catch-all;
+  `SchemaVersionRegistry`: live versions, `compareSchemaPlans` against them, register, heartbeat (`patch()`), retire;
+  `SchemaIncompatibleError` (409) with the expand/contract recipe of every blocking change, `SchemaRegistryError`
+  (fail closed).
 - `TableMapping`: objects to rows (explicit column lists from the model projection, references split for composite
   keys, junction rows, the extra JSON column) and back.
 - `SQLColumnComparisonExpression`: a WebdaQL comparison rendered for the column type, keeping the in-memory semantics
@@ -54,8 +61,9 @@ upvote and comment if you need them):
 - `runTransaction` / `AsyncMutex`: `BEGIN` / `COMMIT` / `ROLLBACK` on one connection; on a connection that is not
   pooled, the store runs every statement and every transaction through the same mutex.
 
-- `RelationalStoreSupport`: the store behavior each engine store composes (plan at init, `schemaSync`, table
-  resolution, repository factory, clean, the `schema` command) and `loadRelationalParameters`.
+- `RelationalStoreSupport`: the store behavior each engine store composes (plan at init, `schemaSync` under the
+  version registry, table resolution, repository factory, clean, the `schema show | check | contract | retire |
+backfill` commands) and `loadRelationalParameters`.
 
 See [`PostgresRelationalStore`](../postgres/PostgresRelationalStore.md) and
 [`SQLiteRelationalStore`](../sqlite/SQLiteRelationalStore.md) for the user-facing behavior.

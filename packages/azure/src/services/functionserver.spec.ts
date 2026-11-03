@@ -1,8 +1,10 @@
 import { suite, test } from "@webda/test";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import {
   CronDefinition,
   CronService,
   registerOperation,
+  registerRequestTracer,
   Service,
   ServiceParameters,
   useContext,
@@ -77,6 +79,123 @@ class FunctionServerTest extends AzureTest {
     }
   }
 
+  @test async tracesHttpRequests() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    const traced: { request: any; statuses: number[] }[] = [];
+    registerRequestTracer({
+      trace: async (request, fn) => {
+        const entry = { request, statuses: [] as number[] };
+        traced.push(entry);
+        return fn({ setStatus: code => entry.statuses.push(code) });
+      }
+    });
+    try {
+      const request = (forwarded?: string) =>
+        ({
+          url: "https://example.test/path?q=1",
+          method: "GET",
+          headers: new Headers({ "X-Custom": "A", ...(forwarded ? { "X-Forwarded-For": forwarded } : {}) }),
+          arrayBuffer: async () => new ArrayBuffer(0)
+        }) as any;
+      runtime.execute.mockImplementationOnce(async context => {
+        context.statusCode = 202;
+      });
+      const response = await service.handleRequest(request("10.0.0.1, 203.0.113.9:51234"), {} as any);
+      expect(response.status).toBe(202);
+      expect(traced).toHaveLength(1);
+      expect(traced[0].request).toMatchObject({
+        protocol: "http",
+        method: "GET",
+        path: "/path",
+        scheme: "https",
+        clientIp: "203.0.113.9"
+      });
+      expect(traced[0].request.headers["x-custom"]).toBe("A");
+      expect(traced[0].statuses).toEqual([202]);
+      // IPv6 forms and garbage never throw
+      await service.handleRequest(request("[2001:db8::1]:443"), {} as any);
+      expect(traced[1].request.clientIp).toBe("2001:db8::1");
+      await service.handleRequest(request("2001:db8::2"), {} as any);
+      expect(traced[2].request.clientIp).toBe("2001:db8::2");
+      await service.handleRequest(request("garbage"), {} as any);
+      expect(traced[3].request.clientIp).toBeUndefined();
+      await service.handleRequest(request(), {} as any);
+      expect(traced[4].request.clientIp).toBeUndefined();
+      // Refused origin is traced with 401
+      runtime.cors.mockResolvedValueOnce(false);
+      const refused = request();
+      refused.headers.set("origin", "https://evil.test");
+      expect((await service.handleRequest(refused, {} as any)).status).toBe(401);
+      expect(traced[5].statuses).toEqual([401]);
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  /**
+   * Run fn capturing the WARN log messages
+   * @param fn - the function to run
+   * @returns the first argument of each WARN log
+   */
+  async warnings(fn: () => Promise<void>): Promise<string[]> {
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      await fn();
+    } finally {
+      memoryLogger.close();
+    }
+    return memoryLogger
+      .getLogs()
+      .filter(m => m.log?.level === "WARN")
+      .map(m => m.log!.args[0]);
+  }
+
+  @test async tracerStatusFailureKeepsTheResponse() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    registerRequestTracer({
+      trace: async (_request, fn) =>
+        fn({
+          setStatus: () => {
+            throw new Error("tracer broken");
+          }
+        })
+    });
+    try {
+      runtime.execute.mockImplementationOnce(async context => {
+        context.statusCode = 202;
+      });
+      let status: number | undefined;
+      const warnings = await this.warnings(async () => {
+        status = (
+          await service.handleRequest(
+            {
+              url: "https://example.test/path",
+              method: "GET",
+              headers: new Headers(),
+              arrayBuffer: async () => new ArrayBuffer(0)
+            } as any,
+            {} as any
+          )
+        ).status;
+      });
+      expect(status).toBe(202);
+      expect(warnings).toContain("Request tracer failed to record the status");
+    } finally {
+      registerRequestTracer(undefined);
+    }
+  }
+
+  @test async clientIpNeverThrows() {
+    const service = useDynamicService<AzureFunctionServer>("Function");
+    let clientIp: string | undefined = "unset";
+    // A header value that is not a string (not built from the Headers of a request)
+    const warnings = await this.warnings(async () => {
+      clientIp = service["getClientIp"]({ "x-forwarded-for": 42 as any });
+    });
+    expect(clientIp).toBeUndefined();
+    expect(warnings).toEqual(["Cannot resolve the client address"]);
+  }
+
   @test async mapsHttpAndBinaryResponses() {
     const service = useDynamicService<AzureFunctionServer>("Function");
     const input = Buffer.from([0, 255, 1]);
@@ -87,6 +206,8 @@ class FunctionServerTest extends AzureTest {
       arrayBuffer: async () => input
     } as any;
     runtime.execute.mockImplementationOnce(async context => {
+      // The Router sets the CORS headers
+      context.setHeader("Access-Control-Allow-Origin", context.getHttpContext().getUniqueHeader("origin"));
       expect(context.getHttpContext().getRelativeUri()).toBe("/path?q=1");
       expect(await context.getHttpContext().getRawBody()).toEqual(input);
       context.statusCode = 201;
@@ -119,7 +240,10 @@ class FunctionServerTest extends AzureTest {
       expect((await service.handleRequest(request, {} as any)).status).toBe(expected);
     }
     runtime.cors.mockResolvedValueOnce(false);
-    expect((await service.handleRequest(request, {} as any)).status).toBe(401);
+    const refused = await service.handleRequest(request, {} as any);
+    expect(refused.status).toBe(401);
+    expect(refused.headers).toMatchObject({ Vary: "Origin" });
+    expect(Object.keys(refused.headers).filter(h => h.toLowerCase().startsWith("access-control"))).toEqual([]);
     await service.handleEvent("servicebus", { event: true }, {} as any);
     expect(runtime.event).toHaveBeenCalledWith("servicebus", { event: true }, {});
     runtime.event.mockResolvedValueOnce(false);

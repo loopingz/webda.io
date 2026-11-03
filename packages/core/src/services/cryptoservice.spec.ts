@@ -433,6 +433,15 @@ class CryptoServiceKeysFileTest extends WebdaApplicationTest {
     assert.strictEqual((await crypto.decrypt(await crypto.encrypt({ test: "plop" }))).test, "plop");
     assert.strictEqual(await crypto.jwtVerify(await crypto.jwtSign("plop", { algorithm: "RS256" })), "plop");
     assert.ok(existsSync(out));
+
+    // Non-string kid in JWT header is rejected cleanly without throwing synchronously
+    const badHeader = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT", kid: 12345 })).toString("base64url");
+    const badPayload = Buffer.from(JSON.stringify({ sub: "x" })).toString("base64url");
+    await assert.rejects(() => crypto.jwtVerify(`${badHeader}.${badPayload}.sig`), /Unknown key/);
+
+    // Object JWT passed to decrypt() is rejected cleanly
+    const objJwt = await crypto.jwtSign({ sub: "x" });
+    await assert.rejects(() => crypto.decrypt(objJwt), /Invalid encrypted payload/);
   }
 }
 

@@ -642,5 +642,18 @@ export class MongoStoreTest extends WebdaApplicationTest {
     } finally {
       await client.close();
     }
+    await assert.rejects(() => this.repo.patch("r1", { name: "x" }, "$where" as any, "1"), /Invalid condition field/);
+    await assert.rejects(
+      () => this.repo.upsertItemToCollection("r1", "bad.prop" as any, "v"),
+      /Invalid collection property name/
+    );
+    await assert.rejects(
+      () => this.repo.upsertItemToCollection("r1", "items" as any, "v", -1),
+      /Invalid collection index/
+    );
+    await assert.rejects(
+      () => this.repo.deleteItemFromCollection("r1", "bad.prop" as any, 0),
+      /Invalid collection parameters/
+    );
   }
 }

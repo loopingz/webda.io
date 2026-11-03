@@ -34,10 +34,21 @@ class FakeServer implements KeysApi {
   async getKeys() {
     return structuredClone({ publicKeys: this.publicKeys, devices: this.devices });
   }
+  /**
+   * The server precondition: an escrow is made for the active key
+   * @param escrows - submitted escrows
+   * @param kid - active key id
+   */
+  checkEscrows(escrows: Partial<Record<string, EscrowBlob>>, kid: string) {
+    for (const escrow of Object.values(escrows)) {
+      if (escrow.kid !== kid) throw new Error("412 The escrow was made for another key than the active one");
+    }
+  }
   async setup(publicKey: PublicKeyInput, keyring: KeyringBlob, escrows: Partial<Record<string, EscrowBlob>>) {
     this.payloads.push({ publicKey, keyring, escrows });
     if (this.publicKeys.length) throw new Error("409 Keys are already set up");
     if (!Object.keys(escrows).length) throw new Error("400 At least one escrow is required");
+    this.checkEscrows(escrows, publicKey.kid);
     this.publicKeys = [{ kid: publicKey.kid, jwk: publicKey.jwk, createdAt: Date.now() }];
     this.keyring = keyring;
     this.escrows = structuredClone(escrows);
@@ -50,6 +61,7 @@ class FakeServer implements KeysApi {
   }
   async setEscrow(kind: EscrowBlob["kind"], escrow: EscrowBlob) {
     this.payloads.push({ kind, escrow });
+    this.checkEscrows({ [kind]: escrow }, this.publicKeys.filter(k => k.retiredAt === undefined).pop()!.kid);
     this.escrows[kind] = escrow;
   }
   async removeEscrow(kind: EscrowBlob["kind"]) {
@@ -71,6 +83,7 @@ class FakeServer implements KeysApi {
     escrows?: Partial<Record<EscrowBlob["kind"], EscrowBlob>>
   ) {
     this.payloads.push({ publicKey, keyring, escrows });
+    if (escrows) this.checkEscrows(escrows, publicKey.kid);
     for (const key of this.publicKeys) key.retiredAt ??= Date.now();
     this.publicKeys.push({ kid: publicKey.kid, jwk: publicKey.jwk, createdAt: Date.now() });
     this.keyring = keyring;
@@ -286,6 +299,7 @@ describe("KeyVault", () => {
     const before = server.escrows.password;
     await a.changePassword("new password");
     expect(server.escrows.password).not.toEqual(before);
+    expect(server.escrows.password!.kid).toBe(server.publicKeys[0].kid);
     expect(JSON.stringify(server.payloads)).not.toContain("new password");
     const env = await server.sealForUser("still readable");
     // Existing devices keep working
@@ -307,6 +321,7 @@ describe("KeyVault", () => {
     await locked.changePassword("third", { oldPassword: "new password" });
     expect(server.escrowFetches).toBe(fetches + 1);
     expect(locked.isUnlocked).toBe(false);
+    expect(server.escrows.password!.kid).toBe(server.publicKeys[0].kid);
     const d = device(server).vault;
     await d.unlockWithEscrow({ password: "third" }, { device: PASSCODE, deviceName: "d" });
     expect(await d.open(env, CTX)).toBe("still readable");
@@ -495,8 +510,13 @@ describe("KeyVault", () => {
     await expect(
       b2.vault.unlockWithEscrow({ password: "new password" }, { device: PASSCODE, deviceName: "tablet" })
     ).rejects.toBeInstanceOf(KeyringPinError);
+    // The UI shows both fingerprints: the user compares the served one with the device that did the reset
+    expect(await b2.vault.pinnedFingerprint()).toBe(await fingerprint(server.publicKeys[0].jwk));
+    expect(await b2.vault.servedFingerprint()).toBe(await fingerprint(server.publicKeys[1].jwk));
+    expect(await c.vault.pinnedFingerprint()).toBe(await b2.vault.servedFingerprint());
     await b2.vault.forgetPin();
     expect(await b.storage.get(`webda-sealed:pin:${USER}`)).toBeUndefined();
+    expect(await b2.vault.pinnedFingerprint()).toBeUndefined();
     await b2.vault.unlockWithEscrow({ recoveryCode: recoveryCode! }, { device: PASSCODE, deviceName: "tablet" });
     expect(await b2.vault.open(newEnv, CTX)).toBe("new");
     await expect(b2.vault.open(oldEnv, CTX)).rejects.toThrow(oldKid);
@@ -535,6 +555,8 @@ describe("KeyVault", () => {
     });
     expect(recoveryCode).toBeDefined();
     expect(Object.keys(server.escrows).sort()).toEqual(["password", "recovery"]);
+    // The rebuilt escrows are made for the rotated key
+    expect(server.escrows.password!.kid).toBe(server.publicKeys.at(-1)!.kid);
     // The old keyring key no longer opens the server keyring
     await expect(decryptKeyring(server.keyring!, oldKeyringKey, USER, server.publicKeys)).rejects.toThrow();
     const newEnv = await server.sealForUser("new");

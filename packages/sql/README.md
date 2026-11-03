@@ -12,4 +12,7 @@ It also holds the engine-neutral part of the **typed table** stores (`src/relati
 the additive schema sync planner and `RelationalSchemaManager`, `TableMapping` (objects to typed rows and junction
 rows), `SQLColumnComparisonExpression`, `RelationalRepository` and `RelationalStoreSupport`, consumed by
 `PostgresRelationalStore` (`@webda/postgres`) and `SQLiteRelationalStore` (`@webda/sqlite`) on top of the
-`RelationalSchemaPlan` of `@webda/sql-schema`.
+`RelationalSchemaPlan` of `@webda/sql-schema`, and the multi-version registry those stores use to share one database
+between several application versions: the `Webda/SchemaVersion` model (stored by the `Registry`),
+`SchemaVersionRegistry` (live versions, compatibility check, heartbeat, retire), `SchemaIncompatibleError`, the
+contract planner (`planContract`) and the `schema check | contract | retire | backfill` commands.

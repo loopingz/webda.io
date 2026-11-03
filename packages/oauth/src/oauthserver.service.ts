@@ -222,6 +222,10 @@ function identityOf(session: Session): GrantIdentity {
     identId: session.identUsed,
     provider: session.provider,
     amr: session.amr ?? [],
+    ...(session.mfaAt !== undefined ? { mfaAt: session.mfaAt } : {}),
+    ...(session.mfaVerifications && Object.keys(session.mfaVerifications).length > 0
+      ? { mfaVerifications: session.mfaVerifications }
+      : {}),
     mfa: session.mfa ?? "none"
   };
 }
@@ -687,8 +691,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     };
     const prompt = p("prompt");
     const session = ctx.getSession();
-    // A bearer (scoped) session cannot drive the authorization endpoint: consent comes from a browser session
-    if (!session?.isLogged() || session.scopes !== undefined) {
+    // A bearer (scoped) or MFA-pending session cannot drive the authorization endpoint
+    if (!session?.isLogged() || session.mfa === "pending" || session.scopes !== undefined) {
       if (prompt === "none") return fail("login_required", "Login required");
       if (!(await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending))) {
         return fail("invalid_request", "Authorization request is too large");
@@ -882,7 +886,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         name: client.name,
         logo: client.logo,
         uri: client.client_uri,
-        host: client.registered ? this.redirectHost(pending.redirectUri) : this.metadataHost(client),
+        host: client.registered
+          ? this.redirectHost(pending.redirectUri)
+          : this.metadataHost(client, pending.redirectUri),
         verified: !client.registered
       },
       user: { id: userId },
@@ -896,10 +902,16 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
 
   /**
    * @param client - requesting client
+   * @param redirectUri - redirect URI of the pending request
    * @returns the host publishing a metadata document client, undefined for the others
    */
-  protected metadataHost(client: OAuthClient): string | undefined {
-    return client.metadataDocument ? new URL(client.id).host : undefined;
+  protected metadataHost(client: OAuthClient, redirectUri?: string): string | undefined {
+    if (!client.metadataDocument) return undefined;
+    const docHost = new URL(client.id).host;
+    const redirHost = this.redirectHost(redirectUri);
+    return redirHost && redirHost !== docHost && redirHost !== "local application"
+      ? `${docHost} (redirects to ${redirHost})`
+      : docHost;
   }
 
   /**
@@ -1000,8 +1012,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    */
   protected async requirePending(ctx: WebContext): Promise<PendingRequest> {
     const session = ctx.getSession();
-    // A bearer (scoped) session cannot consent: consent comes from a browser session
-    if (!session?.isLogged() || session.scopes !== undefined) throw new WebdaError.Unauthorized("Login required");
+    // A bearer (scoped) or MFA-pending session cannot consent: consent comes from a browser session
+    if (!session?.isLogged() || session.mfa === "pending" || session.scopes !== undefined)
+      throw new WebdaError.Unauthorized("Login required");
     const pending = await readPending(ctx, PENDING_COOKIE);
     if (!pending) throw new WebdaError.BadRequest("No pending authorization request");
     if (pending.userId === undefined) {
@@ -1521,7 +1534,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     session.login(identity.userId, identity.identId, {
       provider: identity.provider,
       amr: identity.amr,
-      mfa: identity.mfa
+      mfa: identity.mfa,
+      mfaAt: identity.mfaAt,
+      mfaVerifications: identity.mfaVerifications
     });
     const tokens = await this.tokenService().issue(session, undefined, {
       clientId,

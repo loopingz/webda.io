@@ -53,7 +53,8 @@ pnpm add @webda/mcp
       // "serverVersion": "1.0.0", // defaults to the application package version
       // "stdio": { "user": "<userId>" }, // default --user for `webda mcp`
       // "authenticator": "myAuthenticator", // service implementing McpAuthenticator; default uses the Webda session
-      // "listOutOfScopeTools": false // list the tools an OAuth token scope does not cover
+      // "listOutOfScopeTools": false, // list the tools an OAuth token scope does not cover
+      // "forwardHeaders": ["x-example-key"] // request headers the operations see through getHttpContext()
     }
   }
 }
@@ -74,6 +75,7 @@ pnpm add @webda/mcp
 | `stdio.user`          | string                          | none                                | Default `--user` for `webda mcp`                                                                                                                            |
 | `authenticator`       | string                          | none                                | Name of a service implementing `McpAuthenticator`; the default uses the Webda session                                                                       |
 | `listOutOfScopeTools` | boolean                         | `false`                             | With `McpOAuthAuthenticator`, also list the tools the token scope does not cover (see [OAuth](#oauth))                                                      |
+| `forwardHeaders`      | string[]                        | `[]`                                | Request headers passed to the operations a tool call or resource read runs (see [Request headers](#request-headers)); never `authorization` or `cookie`     |
 
 > **Remote deployments must set `allowedHosts`.** The Host header is checked on every HTTP request as DNS-rebinding protection: unless your public hostname(s) are listed (or the value is `"*"`), every request gets `403 Host not allowed`.
 >
@@ -186,6 +188,19 @@ an application token (`aud` `webda-access`) or a token issued for another resour
 - Tools the user cannot call because of **permissions** are never listed and answer `Unknown tool`, as for a tool that
   does not exist; so do the `OAuth.*` operations, which are never delegated.
 
+### Request headers
+
+An operation run over MCP sees no HTTP request by default: `useContext().getHttpContext()` is `undefined`. When an
+operation needs a per-request credential besides the bearer token (a client-held key that unlocks server-side secrets
+for this request only, a scoped grant), list its header in `forwardHeaders`: the operation then gets an `HttpContext`
+on the MCP request's host and path carrying **only** those headers, so `getUniqueHeader("x-example-key")` works as on
+REST.
+
+- `authorization` and `cookie` are never forwarded, even when listed.
+- Values come from the HTTP request that carried the `tools/call` (or resource read), never from an earlier request of
+  the same MCP session: a request without the header gives the operation none.
+- Over stdio nothing is forwarded.
+
 ### Multiple instances
 
 MCP HTTP sessions live in the memory of the instance that created them. When running several instances behind a load balancer, route each client to the same instance (sticky sessions on the `Mcp-Session-Id` header or the client address); a request reaching another instance gets `404 Session not found`.
@@ -215,6 +230,7 @@ export class PostService extends Service {
 - With the default authenticator, HTTP callers are anonymous in practice (see [Who is the HTTP caller?](#who-is-the-http-caller)).
 - `webda mcp` over stdio trusts whoever launches it: that process acts with the permissions of `--user` (or anonymous permissions without it).
 - With `McpOAuthAuthenticator`, callers present an OAuth bearer token whose scope limits the tools they see and call (see [OAuth](#oauth)).
+- Operations see request headers only when listed in `forwardHeaders`, per request, never `authorization` or `cookie` (see [Request headers](#request-headers)).
 
 ## Reference
 

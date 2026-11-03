@@ -126,4 +126,14 @@ describe("GraphQL relation sub-queries", () => {
     assert.deepStrictEqual(refused, { message: "Object not found", code: "NOT_FOUND" });
     assert.deepStrictEqual(refused, missing);
   });
+
+  it("enforces maxOperationsPerRequest even when increment > 1 jumps past the limit", () => {
+    const service: GraphQLService = Object.create(GraphQLService.prototype);
+    (service as any).parameters = { maxOperationsPerRequest: 5 };
+    const ext = { count: 4, loaders: {} };
+    const ctx: any = { getExtension: () => ext };
+    assert.throws(() => service.countOperation(ctx, 2), /Too many operations/);
+    service.countOperation(ctx, 1);
+    assert.strictEqual(ext.count, 5);
+  });
 });

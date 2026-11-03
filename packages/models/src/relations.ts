@@ -403,6 +403,8 @@ export interface ModelLinker<T extends Storable = any, K extends "Link" | "Relat
  *
  * This is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation
  *
+ * Deleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`
+ *
  * ```
  * class Album extends Model {
  *  artist: ModelLink<Artist>;
@@ -487,9 +489,45 @@ export class ModelLink<T extends Storable> implements ModelLinker {
 }
 
 /**
+ * What happens to the dependents of a model when it is deleted
+ *
+ * Declared on the relation with the `@OnDelete <POLICY>` JSDoc tag (`@CascadeDelete` is a synonym of
+ * `@OnDelete CASCADE`), defaulted from the relation kind otherwise:
+ *
+ * | Policy | Effect when the target of the relation is deleted |
+ * |---|---|
+ * | `CASCADE` | Delete every dependent, through the repository so its own events fire and it cascades in turn |
+ * | `RESTRICT` | Refuse the delete with a `409 Conflict` while a dependent exists |
+ * | `SET_NULL` | Remove the attribute of each dependent (a single link) or the item (a link array) |
+ * | `NONE` | Do nothing |
+ *
+ * | Relation | Default |
+ * |---|---|
+ * | `ModelParent` / `BelongTo` | `CASCADE` (`SET_NULL` is refused: a parent is mandatory) |
+ * | `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne` | `NONE` |
+ * | `ModelLinksSimpleArray` / `ModelLinksArray` / `ManyToMany` | `NONE` |
+ * | `Contains` (declared on the owner) | `CASCADE`: deleting the owner deletes the listed models |
+ *
+ * The `RelationIntegrity` service of `@webda/core` applies the policies, on the repository `Delete` / `Deleted`
+ * events: `Repository.deleteMany` emits none, so it never cascades.
+ *
+ * ```ts
+ * class Comment extends UuidModel {
+ *   post: BelongTo<Post>; // CASCADE
+ *   /** @OnDelete RESTRICT *\/
+ *   author: BelongTo<User>; // a user with comments cannot be deleted
+ *   /** @OnDelete SET_NULL *\/
+ *   reviewer: RelateTo<User>;
+ * }
+ * ```
+ */
+export type DeletePolicy = "CASCADE" | "RESTRICT" | "SET_NULL" | "NONE";
+
+/**
  * Define the parent of the model
  *
- * Similar to @ModelLink but implies a Cascade delete
+ * Deleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or
+ * `@OnDelete NONE`
  */
 export type ModelParent<T extends Storable> = ModelLink<T>;
 
@@ -1163,16 +1201,24 @@ export type ManyToMany<T extends Storable, K extends object = object> = K extend
   : ModelLinksSimpleArray<T>;
 
 /**
- * Define the parent of the model
- * Can only have one parent and implies a Cascade delete
+ * Define the parent of the model, alias of ModelParent
  *
- * Alias for @ModelParent
- * Similar to @ModelLink but implies a Cascade delete
+ * Deleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or
+ * `@OnDelete NONE`
  */
 export type BelongTo<T extends Storable> = ModelParent<T>;
-/** Alias for ModelLink - defines a relation to another model. */
+/**
+ * Alias for ModelLink - defines a relation to another model
+ *
+ * Deleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`
+ */
 export type RelateTo<T extends Storable> = ModelLink<T>;
-/** Alias for ManyToMany - defines ownership of a collection of models. */
+/**
+ * Alias for ManyToMany - defines ownership of a collection of models
+ *
+ * Deleting the owner deletes the listed models (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or
+ * `@OnDelete NONE`
+ */
 export type Contains<T extends Storable> = ManyToMany<T>;
 
 /**
@@ -1180,6 +1226,8 @@ export type Contains<T extends Storable> = ManyToMany<T>;
  *
  * This is used to define the junction model in a n:m relation with additional data
  * It does not require to have a symetric relation on the other side
+ *
+ * `linkA` is a {@link ModelParent}: deleting the model it targets deletes the junction (`CASCADE`).
  */
 export class JunctionLink<T extends Storable, K extends Storable> implements Storable {
   [WEBDA_PRIMARY_KEY] = ["linkA", "linkB"] as const;

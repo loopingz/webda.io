@@ -294,8 +294,10 @@ export class RESTOperationsTransport<
     socket: Duplex,
     head: Buffer
   ): Promise<void> {
+    // A service whose creation failed (unknown type, constructor error) stays `undefined` in the map: skip it, one
+    // broken service must not take down every WebSocket operation
     const http = Object.values(useCore().getServices()).find(
-      s => (s as any).server === server && typeof (s as any).getContextFromRequest === "function"
+      s => (s as any)?.server === server && typeof (s as any).getContextFromRequest === "function"
     ) as any;
     const base: WebContext | undefined = http && (await http.getContextFromRequest(req));
     if (!base) return this.refuseUpgrade(socket, 400, "Bad Request");
@@ -1271,9 +1273,14 @@ export class RESTOperationsTransport<
    * @param ctx - the web context
    */
   async openapi(ctx: WebContext) {
-    this.openapiContent ??= SWAGGER_HTML.replace(/\{\{VERSION}}/g, this.parameters.swaggerVersion).replace(
+    const safeVersion = encodeURIComponent(this.parameters.swaggerVersion);
+    const safeOpenApiJson = JSON.stringify(useRouter().exportOpenAPI(true))
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/&/g, "\\u0026");
+    this.openapiContent ??= SWAGGER_HTML.replace(/\{\{VERSION}}/g, () => safeVersion).replace(
       "{{OPENAPI}}",
-      JSON.stringify(useRouter().exportOpenAPI(true))
+      () => safeOpenApiJson
     );
     ctx.write(this.openapiContent);
   }

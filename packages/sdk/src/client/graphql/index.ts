@@ -109,6 +109,9 @@ export function projectSelection(selection: GraphQLSelection, paths: string[], k
     let target = projection;
     parts.forEach((part, index) => {
       const name = source ? fieldOf(source, part) : part;
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+        throw new Error(`Invalid GraphQL selection field '${part}'`);
+      }
       const known: 1 | GraphQLSelectionField | undefined = source?.[name];
       const last = index === parts.length - 1;
       if (last) {

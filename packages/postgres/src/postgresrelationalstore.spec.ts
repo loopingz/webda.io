@@ -9,6 +9,8 @@ import { dropRelationalTables, params } from "../test/relational-helpers.js";
 import {
   RELATIONAL_MODELS,
   RelAnimal,
+  RelCycleA,
+  RelCycleB,
   RelDog,
   RelPost,
   RelTag,
@@ -16,6 +18,8 @@ import {
   registerRelationalFixtures
 } from "@webda/sql/lib/test";
 import { PostgresRelationalParameters, PostgresRelationalStore } from "./postgresrelationalstore.service.js";
+import { PostgresParameters, PostgresStore } from "./postgresstore.service.js";
+import { PostgresRepository } from "./sqlstore.js";
 
 @suite
 export class PostgresRelationalStoreTest extends WebdaApplicationTest {
@@ -287,6 +291,7 @@ export class PostgresRelationalStoreTest extends WebdaApplicationTest {
     await dropRelationalTables(this.admin);
     const empty = await this.another("empty", { models: undefined });
     assert.deepStrictEqual(empty.getSchemaPlan().tables, []);
+    assert.deepStrictEqual(await empty.importFromJsonb(useCore().getService("Registry") as any), []);
     assert.deepStrictEqual(await this.columns("rel_post"), []);
     await empty.stop();
   }
@@ -310,5 +315,176 @@ export class PostgresRelationalStoreTest extends WebdaApplicationTest {
     for (const table of ["rel_post", "rel_post_tags", "rel_tag"]) {
       assert.strictEqual((await this.admin.query(`SELECT count(*)::int AS n FROM ${table}`)).rows[0].n, 0, table);
     }
+  }
+
+  @test
+  async cleanDeletesCyclesInOneTransaction() {
+    const as = useRepository(RelCycleA as any);
+    const bs = useRepository(RelCycleB as any);
+    await as.create({ uuid: "a1" } as any);
+    await bs.create({ uuid: "b1", other: "a1" } as any);
+    await as.patch("a1" as any, { other: "b1" } as any);
+    await this.store.__clean();
+    for (const table of ["rel_cyclea", "rel_cycleb"]) {
+      assert.strictEqual((await this.admin.query(`SELECT count(*)::int AS n FROM ${table}`)).rows[0].n, 0, table);
+    }
+  }
+
+  @test
+  async taggedIndexesAreCreated() {
+    const indexes = (
+      await this.admin.query(`SELECT indexname, indexdef FROM pg_indexes WHERE tablename IN ('rel_user', 'rel_post')`)
+    ).rows;
+    const def = (name: string) => indexes.find(i => i.indexname === name)?.indexdef;
+    assert.match(def("uq_rel_user_email")!, /UNIQUE INDEX .* \(email\)/);
+    assert.match(def("idx_rel_post_byAuthorDay")!, /\(author, day\)/);
+    assert.ok(def("idx_rel_post_author"), "the composite index replaces no plain one");
+  }
+
+  /**
+   * Replace the Registry with a JSONB PostgresStore for one test
+   * @param tables - its table overrides
+   * @param fn - the test
+   */
+  async withJsonRegistry(
+    tables: Record<string, string>,
+    fn: (registry: PostgresStore) => Promise<void>
+  ): Promise<void> {
+    const previous = useCore().getService("Registry");
+    const registry = new PostgresStore("Registry", new PostgresParameters().load({ ...params, tables }));
+    this.registerService(registry as any, "Registry");
+    try {
+      await registry.resolve().init();
+      await fn(registry);
+    } finally {
+      await registry.stop();
+      this.registerService(previous, "Registry");
+      await this.admin.query(
+        `DROP TABLE IF EXISTS ${[...Object.values(tables), "webda_ownermodel"].map(t => `"${t}"`).join(", ")} CASCADE`
+      );
+    }
+  }
+
+  @test
+  async registryServesUnlistedModelsAndForeignKeysToJsonb() {
+    await this.store.stop();
+    await dropRelationalTables(this.admin);
+    await this.withJsonRegistry({}, async registry => {
+      const fk = await this.another("fk", { foreignKeysToJsonb: true });
+      // A model the relational store does not list is served by the Registry, through its JSONB repository
+      const owners: any = useRepository(useModel("Webda/OwnerModel"));
+      assert.ok(owners.repository instanceof PostgresRepository);
+      assert.strictEqual(fk.handleModel(useModel("Webda/OwnerModel")), -1);
+      assert.strictEqual(fk.jsonTableOf(registry, useModel("Webda/OwnerModel")), "webda_ownermodel");
+      assert.strictEqual(fk.jsonTableOf(fk, useModel("Rel/Post")), undefined, "never to a relational store");
+      // The link to it is a real foreign key to the uuid of the JSONB table, created with the schema
+      const constraints = (
+        await this.admin.query(
+          `SELECT confrelid::regclass::text AS target FROM pg_constraint WHERE conname = 'fk_rel_comment_moderator'`
+        )
+      ).rows;
+      assert.deepStrictEqual(constraints, [{ target: "webda_ownermodel" }]);
+      assert.deepStrictEqual(await this.columns("webda_ownermodel"), ["uuid", "data"]);
+      await useRepository(RelPost as any).create({ uuid: "p1", title: "T" } as any);
+      const comments = useRepository(useModel("Rel/Comment"));
+      await assert.rejects(
+        () => comments.create({ uuid: "c1", post: "p1", moderator: "nobody" } as any),
+        (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("Rel/Comment.moderator")
+      );
+      await owners.create({ uuid: "o1", name: "owner" });
+      await comments.create({ uuid: "c1", post: "p1", moderator: "o1" } as any);
+      await assert.rejects(() => owners.delete("o1"), /violates foreign key/);
+      await fk.stop();
+      // Without the option, or with a shared JSONB table, the link is a column and an index only
+      await dropRelationalTables(this.admin);
+      const plain = await this.another("plain", {});
+      assert.strictEqual(
+        (
+          await this.admin.query(
+            `SELECT count(*)::int AS n FROM pg_constraint WHERE conname = 'fk_rel_comment_moderator'`
+          )
+        ).rows[0].n,
+        0
+      );
+      (registry.getParameters() as any).table = "shared";
+      assert.strictEqual(plain.jsonTableOf(registry, useModel("Webda/OwnerModel")), undefined);
+      await plain.stop();
+    });
+  }
+
+  @test
+  async importFromJsonbPromotesModels() {
+    const tables = { "Rel/User": "json_rel_user", "Rel/Tag": "json_rel_tag", "Rel/Post": "json_rel_post" };
+    await this.withJsonRegistry(tables, async registry => {
+      const json = (model: any) => registry.getRepository(useModel(model));
+      await json("Rel/User").create({ uuid: "u1", name: "alice", email: "a@b" } as any);
+      await json("Rel/Tag").create({ uuid: "t1", label: "x" } as any);
+      await json("Rel/Post").create({ uuid: "p1", title: "T", author: "u1", tags: ["t1"], extra: 1 } as any);
+      await json("Rel/Post").create({ uuid: "p2", title: "T2", contributors: [{ uuid: "u1", role: "r" }] } as any);
+      // Already in the relational table: skipped
+      await useRepository(RelTag as any).create({ uuid: "t1", label: "old" } as any);
+      // Links in any direction: one transaction with deferred foreign keys
+      const reports = await this.store.importFromJsonb(registry, {
+        models: ["Rel/Post", "Rel/User", "Rel/Tag"],
+        purge: true
+      });
+      assert.deepStrictEqual(reports, [
+        { model: "Rel/User", imported: 1, skipped: 0 },
+        { model: "Rel/Post", imported: 2, skipped: 0 },
+        { model: "Rel/Tag", imported: 0, skipped: 1 }
+      ]);
+      const post: any = await useRepository(RelPost as any).get("p1" as any);
+      assert.ok(post instanceof RelPost);
+      assert.strictEqual(post.author, "u1");
+      assert.deepStrictEqual(post.tags, ["t1"]);
+      assert.strictEqual(post.extra, 1);
+      assert.deepStrictEqual(((await useRepository(RelPost as any).get("p2" as any)) as any).contributors, [
+        { uuid: "u1", role: "r" }
+      ]);
+      assert.strictEqual(((await useRepository(RelTag as any).get("t1" as any)) as any).label, "old");
+      for (const table of Object.values(tables)) {
+        assert.strictEqual((await this.admin.query(`SELECT count(*)::int AS n FROM ${table}`)).rows[0].n, 0, table);
+      }
+      // A failure rolls the whole import back
+      await json("Rel/Post").create({ uuid: "p3", title: "T3", author: "nobody" } as any);
+      await json("Rel/Post").create({ uuid: "p4", title: "T4" } as any);
+      await assert.rejects(() => this.store.importFromJsonb(registry, { models: ["Rel/Post"] }), WebdaError.BadRequest);
+      assert.strictEqual(await useRepository(RelPost as any).exists("p4" as any), false);
+      await json("Rel/Post").delete("p3" as any);
+      // The command prints the reports; on a pool the import joins withTransaction
+      const pooled = await this.another("pooled", { usePool: true, schemaSync: "none" });
+      const lines: string[] = [];
+      const log = console.log;
+      console.log = (...args: any[]) => void lines.push(args.join(" "));
+      try {
+        assert.strictEqual(await pooled.import("Rel/Post, Rel/Tag", "Registry"), 0);
+      } finally {
+        console.log = log;
+      }
+      assert.deepStrictEqual(lines, ["Rel/Post: 1 imported, 0 skipped", "Rel/Tag: 0 imported, 0 skipped"]);
+      assert.strictEqual(await useRepository(RelPost as any).exists("p4" as any), true);
+      await pooled.stop();
+      // Refusals: the source, a model not listed, a model whose JSONB table is the relational one (every table root
+      // by default: Rel/AggRow is stored in rel_aggrow by both)
+      await assert.rejects(
+        () => this.store.importFromJsonb(this.store),
+        (err: any) => err instanceof WebdaError.CodeError && err.code === "RELATIONAL_IMPORT_SOURCE"
+      );
+      await assert.rejects(
+        () => this.store.import("", "Authentication"),
+        (err: any) => err instanceof WebdaError.CodeError && err.code === "RELATIONAL_IMPORT_SOURCE"
+      );
+      await assert.rejects(
+        () => this.store.importFromJsonb(registry, { models: ["Webda/OwnerModel"] }),
+        (err: any) => err instanceof WebdaError.CodeError && err.code === "MODEL_NOT_PLANNED"
+      );
+      await assert.rejects(
+        () => this.store.importFromJsonb(registry),
+        (err: any) =>
+          err instanceof WebdaError.CodeError &&
+          err.code === "RELATIONAL_IMPORT_TABLE" &&
+          err.message.includes("Rel/AggRow is stored by Registry in rel_aggrow")
+      );
+    });
   }
 }

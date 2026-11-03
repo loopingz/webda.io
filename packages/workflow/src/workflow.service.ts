@@ -989,11 +989,17 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
       if (args[i] !== undefined) input[name] = args[i];
     });
     // A stored workflow never runs as the system: a cron tick runs it as the user who saved it last
+    const session = context.getSession();
     const launcher = this.instanceLauncher(
       def,
       context.isGlobalContext()
         ? { system: true }
-        : { userId: context.getCurrentUserId() || undefined, identId: context.getSession()?.identUsed }
+        : {
+            userId: context.getCurrentUserId() || undefined,
+            identId: session.identUsed,
+            scopes: session.scopes,
+            clientId: session.clientId
+          }
     );
     const instance = await runAsSystem(() => this.createInstance(def, input, launcher));
     return { uuid: instance.uuid };
@@ -1421,6 +1427,8 @@ export class WorkflowService<T extends WorkflowServiceParameters = WorkflowServi
     if (launcher?.userId) {
       session.login(launcher.userId, launcher.identId ?? "");
     }
+    session.scopes = launcher.scopes;
+    session.clientId = launcher.clientId;
     ctx.setSession(session);
     ctx.setInput(Buffer.from(JSON.stringify(input ?? null)));
     return ctx;

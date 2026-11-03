@@ -1,9 +1,15 @@
-import { Command } from "@webda/core";
+import { Command, Store, WebdaError, useCore } from "@webda/core";
 import type { ModelClass, RawTable } from "@webda/core";
-import { RelationalStoreSupport, loadRelationalParameters, runTransaction } from "@webda/sql";
-import type { RelationalLayoutParameters, RelationalRepository, SQLClient, SchemaSyncMode } from "@webda/sql";
+import { RelationalStoreSupport, SQLStore, loadRelationalParameters, runTransaction } from "@webda/sql";
+import type {
+  ImportReport,
+  RelationalLayoutParameters,
+  RelationalRepository,
+  SQLClient,
+  SchemaSyncMode
+} from "@webda/sql";
 import type { RelationalSchemaPlan } from "@webda/sql-schema";
-import { acquireDatabase, releaseDatabase } from "./dbregistry.js";
+import { acquireDatabase, databaseKey, releaseDatabase } from "./dbregistry.js";
 import { SQLiteRelationalDialect } from "./relational/dialect.js";
 import { SQLiteStore, SQLiteStoreParameters } from "./sqlitestore.service.js";
 
@@ -38,10 +44,38 @@ export class SQLiteRelationalParameters extends SQLiteStoreParameters implements
    */
   foreignKeys?: boolean;
   /**
+   * Also declare a foreign key to the `uuid` column of the JSON table of a model served by a `SQLiteStore` (the
+   * `Registry`) on the same database with a table per model; the JSON table is created at `init()`
+   * @default false
+   */
+  foreignKeysToJsonb?: boolean;
+  /**
    * Declare JSON `number` fields as `DECIMAL` instead of `REAL`
    * @default false
    */
   numericAsDecimal?: boolean;
+
+  /**
+   * Version of the application recorded in the `Webda/SchemaVersion` registry
+   * @default the version of package.json
+   */
+  appVersion?: string;
+  /**
+   * Elements whose blocking changes against a live version are accepted (`<table>`, `<table>.<column>`, `<model>`
+   * or `<model>.<attribute>`): the `BLOCK` becomes a `WARN` and the version records it in `forced`
+   * @default []
+   */
+  allowIncompatible?: string[];
+  /**
+   * Seconds between two heartbeats of the version in the registry, 0 for none
+   * @default 60
+   */
+  versionHeartbeat?: number;
+  /**
+   * Seconds after its last heartbeat a version still counts as live
+   * @default 600
+   */
+  versionTtl?: number;
 
   /**
    * @override
@@ -94,6 +128,24 @@ export class SQLiteRelationalStore<
   }
 
   /**
+   * The JSON table of a model served by a `SQLiteStore` on the same database, with a table per model
+   * (`foreignKeysToJsonb`)
+   * @param store - the store serving the model
+   * @param model - the model
+   * @returns the table, undefined when no foreign key can reference it
+   */
+  jsonTableOf(store: Store | undefined, model: ModelClass): string | undefined {
+    if (!(store instanceof SQLiteStore) || store instanceof SQLiteRelationalStore) {
+      return undefined;
+    }
+    const parameters = store.getParameters();
+    if (parameters.table || databaseKey(parameters, store.getName()) !== databaseKey(this.parameters, this.getName())) {
+      return undefined;
+    }
+    return store.resolveTable(model);
+  }
+
+  /**
    * Run statements in one transaction: the transaction of the current async chain (an operation with
    * `transaction: "operation"`, `withTransaction`) when there is one, else a transaction of its own, serialized on
    * the database handle
@@ -110,16 +162,41 @@ export class SQLiteRelationalStore<
   }
 
   /**
-   * Enable the foreign keys of the database, then bring it to the plan (`schemaSync`), once at init
+   * A schema refused by the live versions or an unreachable registry stops the application
+   * @override
+   */
+  async init(): Promise<this> {
+    try {
+      return await super.init();
+    } catch (err) {
+      throw this.relational.initError(err);
+    }
+  }
+
+  /**
+   * Stop the version heartbeat
+   * @override
+   */
+  async stop(): Promise<void> {
+    this.relational.stop();
+    await super.stop();
+  }
+
+  /**
+   * Check the plan against the live versions, enable the foreign keys of the database, bring it to the plan
+   * (`schemaSync`) under the mutex of the handle, then register this version. The registry may be a `SQLiteStore` on
+   * the same handle, so it is read and written outside the mutex
    * @override
    */
   async checkTable(): Promise<void> {
     const handle = this.handle!;
+    const live = await this.relational.checkVersions();
     await handle.mutex.run(async () => {
       // Ignored by SQLite while a transaction is open on the connection: run it under the lock
       handle.db.exec("PRAGMA foreign_keys = ON");
-      return this.relational.sync(handle.client);
+      return this.relational.sync(handle.client, live);
     });
+    await this.relational.registerVersion();
   }
 
   /**
@@ -161,13 +238,75 @@ export class SQLiteRelationalStore<
   }
 
   /**
-   * Delete every row of every table of the plan (tests)
+   * Delete every row of every table of the plan (tests), in one transaction: the deferred foreign keys of a cycle
+   * are checked once every row is gone
    * @override
    */
   async __clean(): Promise<void> {
-    for (const statement of this.relational.cleanStatements()) {
-      await this.getClient()!.query(statement);
+    await this.transact(async tx => {
+      for (const statement of this.relational.cleanStatements()) {
+        await tx.query(statement);
+      }
+    });
+  }
+
+  /**
+   * Promote models from a JSON store: their rows are imported in the relational tables in one transaction, then
+   * deleted from the source when `purge` is set. The models must already be listed in `models`, and their relational
+   * table must not be the JSON one (name one of them with `tables`)
+   * @param source - the JSON store holding the rows
+   * @param options - the models (every table root by default) and whether to purge the source
+   * @param options.models - the model identifiers
+   * @param options.purge - delete the imported rows from the source after the commit
+   * @returns one report per model
+   */
+  async importFromJsonb(
+    source: SQLStore<any>,
+    options: { models?: string[]; purge?: boolean } = {}
+  ): Promise<ImportReport[]> {
+    return this.relational.importFromJson(source, {
+      ...options,
+      // The transaction of the async chain: the source, on the same database handle, reads inside it
+      transact: fn => this.withTransaction(() => fn()),
+      repository: model => (this.getRepository(model) as any).repository
+    });
+  }
+
+  /**
+   * Import the rows of models from a JSON store (`importFromJsonb`)
+   * @param models - comma-separated model identifiers, every table root of the plan by default
+   * @param source - the JSON store holding the rows
+   * @param purge - delete the imported rows from the source once committed
+   * @returns 0
+   * @throws WebdaError.CodeError `RELATIONAL_IMPORT_SOURCE` when the source is not a `SQLiteStore`
+   */
+  @Command("sqlite import", {
+    description: "Import the rows of models from a JSON SQLiteStore into the relational tables",
+    phase: "initialized"
+  })
+  async import(
+    /** @description Comma-separated model identifiers, every table root of the plan by default */
+    models: string = "",
+    /** @description The JSON store holding the rows */
+    source: string = "Registry",
+    /** @description Delete the imported rows from the source once committed */
+    purge: boolean = false
+  ): Promise<number> {
+    const store = useCore().getService(source);
+    if (!(store instanceof SQLStore)) {
+      throw new WebdaError.CodeError("RELATIONAL_IMPORT_SOURCE", `${source} is not a SQL store`);
     }
+    const reports = await this.importFromJsonb(store, {
+      models: models
+        .split(",")
+        .map(m => m.trim())
+        .filter(Boolean),
+      purge
+    });
+    for (const report of reports) {
+      console.log(`${report.model}: ${report.imported} imported, ${report.skipped} skipped`);
+    }
+    return 0;
   }
 
   /**
@@ -177,7 +316,7 @@ export class SQLiteRelationalStore<
    * @param json - print the plan as JSON
    * @returns 0, 1 when `diff` found differences the store cannot resolve
    */
-  @Command("sqlite schema", {
+  @Command("sqlite schema show", {
     description: "Print the relational schema plan, its DDL or the diff with the database",
     phase: "resolved"
   })
@@ -190,6 +329,91 @@ export class SQLiteRelationalStore<
     json: boolean = false
   ): Promise<number> {
     return this.relational.schemaCommand(sql, diff, json, async () => {
+      const handle = await acquireDatabase(this.parameters, this.getName());
+      return { client: handle.client, close: async () => releaseDatabase(handle) };
+    });
+  }
+  /**
+   * Compare the plan with the live versions of the registry (CI: fail before deploy, not at startup)
+   * @param against - compare with one version (identifier, application version or plan hash) instead of the live ones
+   * @param forceIncompatible - downgrade every blocking change to a warning
+   * @param json - print the changes as JSON
+   * @returns 0, 1 when a change blocks, 2 when `against` matches no version
+   */
+  @Command("sqlite schema check", {
+    description: "Compare the schema plan with the live application versions",
+    phase: "resolved"
+  })
+  async schemaCheck(
+    /** @description Compare with one version (identifier, application version or plan hash) */
+    against?: string,
+    /** @description Downgrade every blocking change to a warning */
+    forceIncompatible: boolean = false,
+    /** @description Print the changes as JSON */
+    json: boolean = false
+  ): Promise<number> {
+    return this.relational.checkCommand(against, forceIncompatible, json);
+  }
+
+  /**
+   * Apply (or print) what no live version uses any more: drop the unused columns and tables, `SET NOT NULL` where
+   * every live version requires the field and no row is null, validate the foreign keys. Never run by `init()`
+   * @param dryRun - print the statements without running them
+   * @returns 0
+   */
+  @Command("sqlite schema contract", {
+    description: "Drop what no live version uses, set NOT NULL where every live version requires it",
+    phase: "resolved"
+  })
+  async schemaContract(
+    /** @description Print the statements without running them */
+    dryRun: boolean = false
+  ): Promise<number> {
+    return this.relational.contractCommand(dryRun, async () => {
+      const handle = await acquireDatabase(this.parameters, this.getName());
+      return { client: handle.client, close: async () => releaseDatabase(handle) };
+    });
+  }
+
+  /**
+   * Retire a version: it no longer counts for the compatibility checks and the contract phase
+   * @param version - its identifier, application version or plan hash
+   * @returns 0, 1 when no version matches
+   */
+  @Command("sqlite schema retire", {
+    description: "Retire an application version from the schema registry",
+    phase: "resolved"
+  })
+  async schemaRetire(
+    /** @description Identifier, application version or plan hash of the version */
+    version: string
+  ): Promise<number> {
+    return this.relational.retireCommand(version);
+  }
+
+  /**
+   * Copy a column into another one where the target is null (the expand step of a rename or a type change)
+   * @param table - the table
+   * @param from - the source column
+   * @param to - the target column
+   * @param batch - rows per statement
+   * @returns 0
+   */
+  @Command("sqlite schema backfill", {
+    description: "Copy a column into another one, by batches",
+    phase: "resolved"
+  })
+  async schemaBackfill(
+    /** @description The table */
+    table: string,
+    /** @description The source column */
+    from: string,
+    /** @description The target column */
+    to: string,
+    /** @description Rows per statement */
+    batch: number = 1000
+  ): Promise<number> {
+    return this.relational.backfillCommand(table, from, to, batch, async () => {
       const handle = await acquireDatabase(this.parameters, this.getName());
       return { client: handle.client, close: async () => releaseDatabase(handle) };
     });

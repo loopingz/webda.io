@@ -166,7 +166,11 @@ export class WarmSession {
     const produced = ctx.sourceFiles.length ? this.generators.flatMap(g => g.analyze(ctx as any)) : [];
     const { plan } = mergePlan(produced);
     const edits: Edit[] = plan.get(fileName) ?? [];
-    const diagnostics = produced.filter(f => f.fileName === fileName).flatMap(f => f.diagnostics ?? []);
+    // The protocol has no severity: a warning reaches the editor as the others do (the build tells them apart)
+    const diagnostics = produced
+      .filter(f => f.fileName === fileName)
+      .flatMap(f => f.diagnostics ?? [])
+      .map(({ severity: _severity, ...diagnostic }) => diagnostic);
     const analyzeMs = ms(t1);
 
     const t2 = process.hrtime.bigint();

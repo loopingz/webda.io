@@ -116,17 +116,18 @@ await tasks.create({ title: "Write docs" });
 tasks.on("change", evt => render());
 ```
 
-| Option          | Default                      | Description                                                         |
-| --------------- | ---------------------------- | ------------------------------------------------------------------- |
-| `storage`       |                              | Local storage, see [Storage and transport](#storage-and-transport)  |
-| `transport`     |                              | Server access, see [Storage and transport](#storage-and-transport)  |
-| `scopes`        |                              | Scopes to sync, see [Scopes](#scopes)                               |
-| `onConflict`    | `"manual"`                   | See [Conflicts](#conflicts)                                         |
-| `syncInterval`  | `30000`                      | Milliseconds between automatic syncs, `0` disables the timer        |
-| `primaryKeys`   | `["uuid"]` per model         | Key fields per model                                                |
-| `versioning`    | `{}`                         | `@webda/versioning` config (array identity, string strategies)      |
-| `retry`         | `{ base: 1000, max: 60000 }` | Exponential backoff (ms) of failed syncs and of watch reconnections |
-| `pushBatchSize` | `100`                        | Mutations per push request, at most the server `maxMutations`       |
+| Option          | Default                      | Description                                                           |
+| --------------- | ---------------------------- | --------------------------------------------------------------------- |
+| `storage`       |                              | Local storage, see [Storage and transport](#storage-and-transport)    |
+| `transport`     |                              | Server access, see [Storage and transport](#storage-and-transport)    |
+| `scopes`        |                              | Scopes to sync, see [Scopes](#scopes)                                 |
+| `onConflict`    | `"manual"`                   | See [Conflicts](#conflicts)                                           |
+| `syncInterval`  | `30000`                      | Milliseconds between automatic syncs, `0` disables the timer          |
+| `primaryKeys`   | `["uuid"]` per model         | Key fields per model                                                  |
+| `versioning`    | `{}`                         | `@webda/versioning` config (array identity, string strategies)        |
+| `retry`         | `{ base: 1000, max: 60000 }` | Exponential backoff (ms) of failed syncs and of watch reconnections   |
+| `pushBatchSize` | `100`                        | Mutations per push request, at most the server `maxMutations`         |
+| `sealed`        |                              | Decrypt-on-read of sealed fields, see [Sealed fields](#sealed-fields) |
 
 ### Collections
 
@@ -219,6 +220,40 @@ failed) and `INTERNAL`.
 - Other backends implement the exported `StorageAdapter` (records and metadata, `putRecords` must be atomic) and
   `Transport` (`pull`, `push`, `snapshot` and an optional `watch`) interfaces. A transport throws a
   `TransportError(status, message)`, with status `0` for network errors.
+
+### Sealed fields
+
+A [sealed field](https://webda.io/docs/Concepts/Models/SealedFields) (`SealedField` of `@webda/core`, marked
+`"x-webda-sealed": true` in the model schema) is stored by the server as an envelope only the user devices can open. The
+replica stores the same envelope; with the `sealed` option the collections open it on read with the user `KeyVault` of
+`@webda/sealed-client`:
+
+```ts
+import { sealedFields } from "@webda/offline/client";
+
+const client = new OfflineClient({
+  ...options,
+  sealed: {
+    // From the model schemas: { "MyApp/Note": ["content"] }
+    fields: { "MyApp/Note": sealedFields(noteSchema) },
+    vault // the KeyVault, unlocked or not
+  }
+});
+const note = await notes.get(uuid); // note.content is the plaintext while the vault is unlocked
+if (isSealed(note.content)) showLockedPlaceholder(); // the vault is locked, or the value did not open
+await notes.patch(uuid, { content: await vault.seal(value, { modelType: "MyApp/Note", uuid, field: "content" }) });
+```
+
+- `get` and `query` return copies whose sealed fields are opened: the plaintext lives in memory only, the local
+  storage and the `change` events hold the envelope. While the vault is locked the envelope is returned as stored,
+  `isSealed(value)` tells; a value that does not open (a key this vault does not hold) is kept sealed too and its error
+  emitted as an `error` event.
+- A filter is evaluated on the stored objects: a condition on a sealed field never matches, on the server either.
+- Writes store envelopes: `create` and `patch` refuse a plaintext in a sealed field (`null` clears it). Seal with
+  `vault.seal(value, { modelType, uuid, field })`; the pushed envelope must be sealed to the active key of the
+  recipient, as `<Model>.<Field>.Set` checks.
+- The envelope is bound to its record: `uuid` of the AAD is the single key field, or the fields of a composite key
+  joined with `_` (the default model separator); `uuidOf(model, pkFields, object)` overrides it.
 
 ## Encrypted local replica
 

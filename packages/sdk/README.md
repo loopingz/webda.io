@@ -173,6 +173,38 @@ on the first call. Pass `package` when `GrpcService.packageName` is not `webda`.
 gRPC statuses map to HTTP-like statuses (`NOT_FOUND` → 404, `UNAVAILABLE` → 0, i.e. offline...). `GrpcService` decodes
 requests with proto defaults: a required attribute left out arrives as `""` / `0`.
 
+### Web tracing
+
+Ask the server to trace what this client does (operation `Otel.EnableWebTracing`, needs `@webda/otel`). While enabled,
+every call on every transport carries `X-Webda-Trace`, `baggage: session.id=...` and a `traceparent`; headers given in
+the call options win. The state is in memory only and ends at `expiresAt` or on `disableWebTracing()`.
+
+```ts
+const { sessionId, expiresAt } = await client.enableWebTracing("rec-1");
+client.isWebTracing(); // false once expired
+client.disableWebTracing();
+```
+
+The server only answers cross-origin calls with CORS headers when the page origin is accepted: list it in the server
+`website` parameter (`"website": ["https://app.example.com"]`), or accept it with another CORS filter.
+
+`expiresAt` is the server clock: the client compares it with its own clock, so a skewed client clock ends the tracing
+early or late (the server rejects an expired token anyway).
+
+Without more, each call gets a random trace id. To make a user action and its requests one trace, give the client the
+active span of your browser OpenTelemetry setup (`@webda/sdk/client` does not depend on `@opentelemetry/api`):
+
+```ts
+import { trace } from "@opentelemetry/api";
+
+await client.enableWebTracing("rec-1", {
+  activeSpanContext: () => {
+    const ctx = trace.getActiveSpan()?.spanContext();
+    return ctx && { traceId: ctx.traceId, spanId: ctx.spanId };
+  }
+});
+```
+
 ### Offline
 
 ```ts

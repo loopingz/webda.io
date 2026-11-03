@@ -124,7 +124,11 @@ class SdkManifestTest extends SampleAppTest {
     assert.strictEqual(user.plural, "Users");
     assert.deepStrictEqual(user.primaryKey, ["uuid"]);
     assert.deepStrictEqual(user.ancestors, ["Webda/User"]);
-    assert.deepStrictEqual(user.relations.parent, { attribute: "company", model: "WebdaDemo/Company" });
+    assert.deepStrictEqual(user.relations.parent, {
+      attribute: "company",
+      model: "WebdaDemo/Company",
+      onDelete: "CASCADE"
+    });
     // The metadata names the target attribute after its type (`User`): resolved to the real parent attribute
     assert.deepStrictEqual(
       user.relations.queries!.find(q => q.attribute === "computers"),

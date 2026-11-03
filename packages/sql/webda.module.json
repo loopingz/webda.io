@@ -3,7 +3,2315 @@
   "beans": {},
   "deployers": {},
   "moddas": {},
-  "models": {},
+  "models": {
+    "Webda/SchemaVersion": {
+      "Plural": "SchemaVersia",
+      "Import": "lib/relational/schemaversion.model:SchemaVersion",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "store": {
+          "type": "string"
+        },
+        "appVersion": {
+          "type": "string"
+        },
+        "planHash": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "RelationalSchemaPlan"
+        },
+        "status": {
+          "type": "\"LIVE\" | \"RETIRED\""
+        },
+        "firstSeen": {
+          "type": "Date"
+        },
+        "lastHeartbeat": {
+          "type": "Date"
+        },
+        "instances": {
+          "type": "Record",
+          "typeParameters": [
+            "string",
+            "Date"
+          ]
+        },
+        "forced": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "ColumnPlan": {
+              "additionalProperties": false,
+              "description": "A column of a table",
+              "properties": {
+                "enum": {
+                  "description": "Allowed values (`CHECK (col IN (...))`)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "field": {
+                  "description": "The model field the column holds: the attribute for `field`/`reference`, the link attribute field for junction\nattribute columns, empty for the system columns",
+                  "type": "string"
+                },
+                "keyPart": {
+                  "description": "For a `reference`, `owner` or `target` column: the primary key field of the referenced model it holds",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Physical column name (after `columnNaming`)",
+                  "type": "string"
+                },
+                "nullable": {
+                  "default": false,
+                  "description": "Whether the model allows the value to be absent. A store may still create the column nullable (see the\nmulti-version rules of #838: `NOT NULL` is only applied in the contract phase)",
+                  "type": "boolean"
+                },
+                "role": {
+                  "description": "What a column holds\n\n- `field`: a model field (scalar or JSON)\n- `reference`: the key (or one key part) of a linked model (`ModelLink`, `ModelParent`)\n- `type`: the `__type` class discriminator\n- `extra`: the JSON column keeping the properties the schema does not know\n- `owner` / `target`: the keys of a junction row\n- `position`: the index of the link in its array\n- `key`: the key of the link in its map\n- `attributes`: the JSON column holding the link attributes when they have no declared field",
+                  "enum": [
+                    "field",
+                    "reference",
+                    "type",
+                    "extra",
+                    "owner",
+                    "target",
+                    "position",
+                    "key",
+                    "attributes"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%231"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%232"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%233"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%234"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%235"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%236"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%237"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%238"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%239"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%2310"
+                    }
+                  ],
+                  "description": "Engine-neutral column type: each store maps it to its own DDL type (`TEXT`, `DataTypes.STRING(n)`, ...)"
+                }
+              },
+              "required": [
+                "field",
+                "name",
+                "role",
+                "type"
+              ],
+              "type": "object"
+            },
+            "ForeignKeyPlan": {
+              "additionalProperties": false,
+              "description": "A foreign key constraint\n\nStores create every table first and the constraints afterwards (deferrable), so self references and cycles work.",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "onDelete": {
+                  "description": "`ON DELETE` behavior of a foreign key",
+                  "enum": [
+                    "CASCADE",
+                    "RESTRICT",
+                    "SET NULL",
+                    "NO ACTION"
+                  ],
+                  "type": "string"
+                },
+                "references": {
+                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "name",
+                "onDelete",
+                "references",
+                "table"
+              ],
+              "type": "object"
+            },
+            "IndexPlan": {
+              "additionalProperties": false,
+              "description": "An index",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "unique": {
+                  "default": false,
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "columns",
+                "name",
+                "table"
+              ],
+              "type": "object"
+            },
+            "JunctionPlan": {
+              "additionalProperties": false,
+              "description": "A junction table: the rows of a `linksSimpleArray`, `linksArray` or `linksMap` relation",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "linksSimpleArray",
+                    "linksArray",
+                    "linksMap"
+                  ],
+                  "type": "string"
+                },
+                "model": {
+                  "description": "Model declaring the relation",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "attribute",
+                "kind",
+                "model"
+              ],
+              "type": "object"
+            },
+            "ModelPlan": {
+              "additionalProperties": false,
+              "description": "What a model reads and writes: its projection of the table",
+              "properties": {
+                "columns": {
+                  "description": "Columns the model uses (its fields, references, `__type` and the extra column), in table order",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "table"
+              ],
+              "type": "object"
+            },
+            "Record<string, Date>": {
+              "additionalProperties": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "RelationPlan": {
+              "additionalProperties": false,
+              "description": "A relation of a model",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "foreignKey": {
+                  "description": "Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled",
+                  "type": "string"
+                },
+                "keySeparator": {
+                  "description": "Separator joining the target composite key into the string the model stores",
+                  "type": "string"
+                },
+                "kind": {
+                  "description": "Kind of a relation, from `Metadata.Relations` (the compiler records the aliases as the type they resolve to)\n\n- `parent`: `ModelParent` / `BelongTo`\n- `link`: `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne`\n- `linksSimpleArray`: `ModelLinksSimpleArray`\n- `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`\n- `linksMap`: `ModelLinksMap`\n- `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage\n- `map`: `ModelsMapped`, denormalized copies: no storage",
+                  "enum": [
+                    "parent",
+                    "link",
+                    "linksSimpleArray",
+                    "linksArray",
+                    "linksMap",
+                    "query",
+                    "map"
+                  ],
+                  "type": "string"
+                },
+                "model": {
+                  "description": "Model declaring the relation",
+                  "type": "string"
+                },
+                "onDelete": {
+                  "description": "`ON DELETE` of the constraint, when one is created",
+                  "enum": [
+                    "CASCADE",
+                    "RESTRICT",
+                    "SET NULL",
+                    "NO ACTION"
+                  ],
+                  "type": "string"
+                },
+                "storage": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%231"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%232"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%233"
+                    }
+                  ],
+                  "description": "Where a relation lives"
+                },
+                "target": {
+                  "description": "Identifier of the related model, undefined when it cannot be resolved",
+                  "type": "string"
+                },
+                "targetAttribute": {
+                  "description": "For a `query`: the attribute of the target model linking back to this model",
+                  "type": "string"
+                },
+                "unique": {
+                  "default": false,
+                  "description": "`OneToOne`: one row at most per target",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "attribute",
+                "kind",
+                "model",
+                "storage"
+              ],
+              "type": "object"
+            },
+            "RelationalSchemaPlan": {
+              "additionalProperties": false,
+              "description": "The relational schema of the models of a store: a pure function of their metadata",
+              "properties": {
+                "foreignKeys": {
+                  "items": {
+                    "$ref": "#/definitions/ForeignKeyPlan"
+                  },
+                  "type": "array"
+                },
+                "indexes": {
+                  "items": {
+                    "$ref": "#/definitions/IndexPlan"
+                  },
+                  "type": "array"
+                },
+                "models": {
+                  "$ref": "#/definitions/plan%24models"
+                },
+                "options": {
+                  "$ref": "#/definitions/SchemaLayoutOptions"
+                },
+                "relations": {
+                  "items": {
+                    "$ref": "#/definitions/RelationPlan"
+                  },
+                  "type": "array"
+                },
+                "tables": {
+                  "description": "Tables in creation order: a referenced table comes before the tables referencing it (cycles excepted)",
+                  "items": {
+                    "$ref": "#/definitions/TablePlan"
+                  },
+                  "type": "array"
+                },
+                "version": {
+                  "const": 1,
+                  "description": "Format version of the plan",
+                  "type": "number"
+                },
+                "warnings": {
+                  "items": {
+                    "$ref": "#/definitions/SchemaWarning"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "foreignKeys",
+                "indexes",
+                "models",
+                "options",
+                "relations",
+                "tables",
+                "version",
+                "warnings"
+              ],
+              "type": "object"
+            },
+            "SchemaLayoutOptions": {
+              "additionalProperties": false,
+              "description": "Options of the builder that change the physical layout: two plans built with different options are incompatible",
+              "properties": {
+                "columnNaming": {
+                  "description": "`preserve` keeps the field names (quoted camelCase), `snake_case` converts them",
+                  "enum": [
+                    "preserve",
+                    "snake_case"
+                  ],
+                  "type": "string"
+                },
+                "extraColumn": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "const": false,
+                      "type": "boolean"
+                    }
+                  ],
+                  "description": "Name of the JSON column keeping unknown properties, false to have none"
+                },
+                "foreignKeys": {
+                  "default": false,
+                  "description": "Create foreign key constraints between the tables of the plan",
+                  "type": "boolean"
+                },
+                "numericAsDecimal": {
+                  "default": false,
+                  "description": "Map JSON schema `number` to `decimal` instead of `double`",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "columnNaming",
+                "extraColumn"
+              ],
+              "type": "object"
+            },
+            "SchemaWarning": {
+              "additionalProperties": false,
+              "description": "A warning raised while building, for the store to log",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "code": {
+                  "enum": [
+                    "CROSS_STORE_REFERENCE",
+                    "UNRESOLVED_TARGET"
+                  ],
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "model"
+              ],
+              "type": "object"
+            },
+            "TablePlan": {
+              "additionalProperties": false,
+              "description": "A table",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "$ref": "#/definitions/ColumnPlan"
+                  },
+                  "type": "array"
+                },
+                "junction": {
+                  "$ref": "#/definitions/JunctionPlan",
+                  "description": "Set on junction tables"
+                },
+                "models": {
+                  "description": "For a model table: every model stored in it (single-table inheritance)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "primaryKey": {
+                  "description": "Primary key column names",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "primaryKeySeparator": {
+                  "description": "Separator joining a composite primary key into a string",
+                  "type": "string"
+                },
+                "root": {
+                  "description": "For a model table: the model it was declared for, owner of rows without `__type`",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "models",
+                "name",
+                "primaryKey"
+              ],
+              "type": "object"
+            },
+            "plan$foreignKeys[]$references": {
+              "additionalProperties": false,
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "table"
+              ],
+              "type": "object"
+            },
+            "plan$models": {
+              "additionalProperties": {
+                "$ref": "#/definitions/ModelPlan"
+              },
+              "type": "object"
+            },
+            "plan$relations[]$storage#1": {
+              "additionalProperties": false,
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kind": {
+                  "const": "columns",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$relations[]$storage#2": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "junction",
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "table"
+              ],
+              "type": "object"
+            },
+            "plan$relations[]$storage#3": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "none",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#1": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#10": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "json",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#2": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "varchar",
+                  "type": "string"
+                },
+                "length": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "kind",
+                "length"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#3": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "timestamptz",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#4": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#5": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#6": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "bigint",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#7": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "double",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#8": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "decimal",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#9": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "boolean",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "A version of the application running against the tables of a relational store\n\nOne entry per store, application version and plan hash (`uuid` is `<store>:<appVersion>:<planHash>`), created by\nthe store at `init()` and refreshed by its heartbeat. Nobody claims the model, so `Store.computeStores()` sends it\nto the `Registry` catch-all: the relational store keeps its bookkeeping in a schemaless store, never the other way\naround.\n\nLive versions (`status: \"LIVE\"` with a recent `lastHeartbeat`) are what `schemaSync` protects: the physical schema\nstays the union of their plans. `webda <engine> schema retire` sets `status: \"RETIRED\"`; `schema contract` then\nproposes what no live version uses any more.",
+          "properties": {
+            "appVersion": {
+              "description": "Version of the application (`package.json`, or the `appVersion` parameter of the store)",
+              "type": "string"
+            },
+            "firstSeen": {
+              "description": "First `init()` of the version",
+              "format": "date-time",
+              "type": "string"
+            },
+            "forced": {
+              "description": "The `allowIncompatible` entries that downgraded a `BLOCK` to `WARN` when this version started",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "instances": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20Date%3E",
+              "description": "Last heartbeat of each instance (`useCore().getInstanceId()`)"
+            },
+            "lastHeartbeat": {
+              "description": "Last heartbeat of any instance, refreshed with `patch()`",
+              "format": "date-time",
+              "type": "string"
+            },
+            "plan": {
+              "$ref": "#/definitions/RelationalSchemaPlan",
+              "description": "The plan of the version: tables, columns and types, keys, relations, indexes"
+            },
+            "planHash": {
+              "description": "sha256 of the canonical plan",
+              "type": "string"
+            },
+            "status": {
+              "description": "`LIVE` while instances run it, `RETIRED` once an operator retired it",
+              "enum": [
+                "LIVE",
+                "RETIRED"
+              ],
+              "type": "string"
+            },
+            "store": {
+              "description": "Name of the relational store",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "appVersion",
+            "firstSeen",
+            "forced",
+            "instances",
+            "lastHeartbeat",
+            "plan",
+            "planHash",
+            "status",
+            "store",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "ColumnPlan": {
+              "additionalProperties": false,
+              "description": "A column of a table",
+              "properties": {
+                "enum": {
+                  "description": "Allowed values (`CHECK (col IN (...))`)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "field": {
+                  "description": "The model field the column holds: the attribute for `field`/`reference`, the link attribute field for junction\nattribute columns, empty for the system columns",
+                  "type": "string"
+                },
+                "keyPart": {
+                  "description": "For a `reference`, `owner` or `target` column: the primary key field of the referenced model it holds",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Physical column name (after `columnNaming`)",
+                  "type": "string"
+                },
+                "nullable": {
+                  "default": false,
+                  "description": "Whether the model allows the value to be absent. A store may still create the column nullable (see the\nmulti-version rules of #838: `NOT NULL` is only applied in the contract phase)",
+                  "type": "boolean"
+                },
+                "role": {
+                  "description": "What a column holds\n\n- `field`: a model field (scalar or JSON)\n- `reference`: the key (or one key part) of a linked model (`ModelLink`, `ModelParent`)\n- `type`: the `__type` class discriminator\n- `extra`: the JSON column keeping the properties the schema does not know\n- `owner` / `target`: the keys of a junction row\n- `position`: the index of the link in its array\n- `key`: the key of the link in its map\n- `attributes`: the JSON column holding the link attributes when they have no declared field",
+                  "enum": [
+                    "field",
+                    "reference",
+                    "type",
+                    "extra",
+                    "owner",
+                    "target",
+                    "position",
+                    "key",
+                    "attributes"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%231"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%232"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%233"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%234"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%235"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%236"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%237"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%238"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%239"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%2310"
+                    }
+                  ],
+                  "description": "Engine-neutral column type: each store maps it to its own DDL type (`TEXT`, `DataTypes.STRING(n)`, ...)"
+                }
+              },
+              "required": [
+                "field",
+                "name",
+                "role",
+                "type"
+              ],
+              "type": "object"
+            },
+            "ForeignKeyPlan": {
+              "additionalProperties": false,
+              "description": "A foreign key constraint\n\nStores create every table first and the constraints afterwards (deferrable), so self references and cycles work.",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "onDelete": {
+                  "description": "`ON DELETE` behavior of a foreign key",
+                  "enum": [
+                    "CASCADE",
+                    "RESTRICT",
+                    "SET NULL",
+                    "NO ACTION"
+                  ],
+                  "type": "string"
+                },
+                "references": {
+                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "name",
+                "onDelete",
+                "references",
+                "table"
+              ],
+              "type": "object"
+            },
+            "IndexPlan": {
+              "additionalProperties": false,
+              "description": "An index",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "unique": {
+                  "default": false,
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "columns",
+                "name",
+                "table"
+              ],
+              "type": "object"
+            },
+            "JunctionPlan": {
+              "additionalProperties": false,
+              "description": "A junction table: the rows of a `linksSimpleArray`, `linksArray` or `linksMap` relation",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "linksSimpleArray",
+                    "linksArray",
+                    "linksMap"
+                  ],
+                  "type": "string"
+                },
+                "model": {
+                  "description": "Model declaring the relation",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "attribute",
+                "kind",
+                "model"
+              ],
+              "type": "object"
+            },
+            "ModelPlan": {
+              "additionalProperties": false,
+              "description": "What a model reads and writes: its projection of the table",
+              "properties": {
+                "columns": {
+                  "description": "Columns the model uses (its fields, references, `__type` and the extra column), in table order",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "table"
+              ],
+              "type": "object"
+            },
+            "Record<string, Date>": {
+              "additionalProperties": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "RelationPlan": {
+              "additionalProperties": false,
+              "description": "A relation of a model",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "foreignKey": {
+                  "description": "Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled",
+                  "type": "string"
+                },
+                "keySeparator": {
+                  "description": "Separator joining the target composite key into the string the model stores",
+                  "type": "string"
+                },
+                "kind": {
+                  "description": "Kind of a relation, from `Metadata.Relations` (the compiler records the aliases as the type they resolve to)\n\n- `parent`: `ModelParent` / `BelongTo`\n- `link`: `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne`\n- `linksSimpleArray`: `ModelLinksSimpleArray`\n- `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`\n- `linksMap`: `ModelLinksMap`\n- `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage\n- `map`: `ModelsMapped`, denormalized copies: no storage",
+                  "enum": [
+                    "parent",
+                    "link",
+                    "linksSimpleArray",
+                    "linksArray",
+                    "linksMap",
+                    "query",
+                    "map"
+                  ],
+                  "type": "string"
+                },
+                "model": {
+                  "description": "Model declaring the relation",
+                  "type": "string"
+                },
+                "onDelete": {
+                  "description": "`ON DELETE` of the constraint, when one is created",
+                  "enum": [
+                    "CASCADE",
+                    "RESTRICT",
+                    "SET NULL",
+                    "NO ACTION"
+                  ],
+                  "type": "string"
+                },
+                "storage": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%231"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%232"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%233"
+                    }
+                  ],
+                  "description": "Where a relation lives"
+                },
+                "target": {
+                  "description": "Identifier of the related model, undefined when it cannot be resolved",
+                  "type": "string"
+                },
+                "targetAttribute": {
+                  "description": "For a `query`: the attribute of the target model linking back to this model",
+                  "type": "string"
+                },
+                "unique": {
+                  "default": false,
+                  "description": "`OneToOne`: one row at most per target",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "attribute",
+                "kind",
+                "model",
+                "storage"
+              ],
+              "type": "object"
+            },
+            "RelationalSchemaPlan": {
+              "additionalProperties": false,
+              "description": "The relational schema of the models of a store: a pure function of their metadata",
+              "properties": {
+                "foreignKeys": {
+                  "items": {
+                    "$ref": "#/definitions/ForeignKeyPlan"
+                  },
+                  "type": "array"
+                },
+                "indexes": {
+                  "items": {
+                    "$ref": "#/definitions/IndexPlan"
+                  },
+                  "type": "array"
+                },
+                "models": {
+                  "$ref": "#/definitions/plan%24models"
+                },
+                "options": {
+                  "$ref": "#/definitions/SchemaLayoutOptions"
+                },
+                "relations": {
+                  "items": {
+                    "$ref": "#/definitions/RelationPlan"
+                  },
+                  "type": "array"
+                },
+                "tables": {
+                  "description": "Tables in creation order: a referenced table comes before the tables referencing it (cycles excepted)",
+                  "items": {
+                    "$ref": "#/definitions/TablePlan"
+                  },
+                  "type": "array"
+                },
+                "version": {
+                  "const": 1,
+                  "description": "Format version of the plan",
+                  "type": "number"
+                },
+                "warnings": {
+                  "items": {
+                    "$ref": "#/definitions/SchemaWarning"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "foreignKeys",
+                "indexes",
+                "models",
+                "options",
+                "relations",
+                "tables",
+                "version",
+                "warnings"
+              ],
+              "type": "object"
+            },
+            "SchemaLayoutOptions": {
+              "additionalProperties": false,
+              "description": "Options of the builder that change the physical layout: two plans built with different options are incompatible",
+              "properties": {
+                "columnNaming": {
+                  "description": "`preserve` keeps the field names (quoted camelCase), `snake_case` converts them",
+                  "enum": [
+                    "preserve",
+                    "snake_case"
+                  ],
+                  "type": "string"
+                },
+                "extraColumn": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "const": false,
+                      "type": "boolean"
+                    }
+                  ],
+                  "description": "Name of the JSON column keeping unknown properties, false to have none"
+                },
+                "foreignKeys": {
+                  "default": false,
+                  "description": "Create foreign key constraints between the tables of the plan",
+                  "type": "boolean"
+                },
+                "numericAsDecimal": {
+                  "default": false,
+                  "description": "Map JSON schema `number` to `decimal` instead of `double`",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "columnNaming",
+                "extraColumn"
+              ],
+              "type": "object"
+            },
+            "SchemaWarning": {
+              "additionalProperties": false,
+              "description": "A warning raised while building, for the store to log",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "code": {
+                  "enum": [
+                    "CROSS_STORE_REFERENCE",
+                    "UNRESOLVED_TARGET"
+                  ],
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "model"
+              ],
+              "type": "object"
+            },
+            "TablePlan": {
+              "additionalProperties": false,
+              "description": "A table",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "$ref": "#/definitions/ColumnPlan"
+                  },
+                  "type": "array"
+                },
+                "junction": {
+                  "$ref": "#/definitions/JunctionPlan",
+                  "description": "Set on junction tables"
+                },
+                "models": {
+                  "description": "For a model table: every model stored in it (single-table inheritance)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "primaryKey": {
+                  "description": "Primary key column names",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "primaryKeySeparator": {
+                  "description": "Separator joining a composite primary key into a string",
+                  "type": "string"
+                },
+                "root": {
+                  "description": "For a model table: the model it was declared for, owner of rows without `__type`",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "models",
+                "name",
+                "primaryKey"
+              ],
+              "type": "object"
+            },
+            "plan$foreignKeys[]$references": {
+              "additionalProperties": false,
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "table"
+              ],
+              "type": "object"
+            },
+            "plan$models": {
+              "additionalProperties": {
+                "$ref": "#/definitions/ModelPlan"
+              },
+              "type": "object"
+            },
+            "plan$relations[]$storage#1": {
+              "additionalProperties": false,
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kind": {
+                  "const": "columns",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$relations[]$storage#2": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "junction",
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "table"
+              ],
+              "type": "object"
+            },
+            "plan$relations[]$storage#3": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "none",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#1": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#10": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "json",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#2": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "varchar",
+                  "type": "string"
+                },
+                "length": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "kind",
+                "length"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#3": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "timestamptz",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#4": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#5": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#6": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "bigint",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#7": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "double",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#8": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "decimal",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#9": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "boolean",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "A version of the application running against the tables of a relational store\n\nOne entry per store, application version and plan hash (`uuid` is `<store>:<appVersion>:<planHash>`), created by\nthe store at `init()` and refreshed by its heartbeat. Nobody claims the model, so `Store.computeStores()` sends it\nto the `Registry` catch-all: the relational store keeps its bookkeeping in a schemaless store, never the other way\naround.\n\nLive versions (`status: \"LIVE\"` with a recent `lastHeartbeat`) are what `schemaSync` protects: the physical schema\nstays the union of their plans. `webda <engine> schema retire` sets `status: \"RETIRED\"`; `schema contract` then\nproposes what no live version uses any more.",
+          "properties": {
+            "appVersion": {
+              "description": "Version of the application (`package.json`, or the `appVersion` parameter of the store)",
+              "type": "string"
+            },
+            "firstSeen": {
+              "description": "First `init()` of the version",
+              "format": "date-time",
+              "type": "string"
+            },
+            "forced": {
+              "description": "The `allowIncompatible` entries that downgraded a `BLOCK` to `WARN` when this version started",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "instances": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20Date%3E",
+              "description": "Last heartbeat of each instance (`useCore().getInstanceId()`)"
+            },
+            "lastHeartbeat": {
+              "description": "Last heartbeat of any instance, refreshed with `patch()`",
+              "format": "date-time",
+              "type": "string"
+            },
+            "plan": {
+              "$ref": "#/definitions/RelationalSchemaPlan",
+              "description": "The plan of the version: tables, columns and types, keys, relations, indexes"
+            },
+            "planHash": {
+              "description": "sha256 of the canonical plan",
+              "type": "string"
+            },
+            "status": {
+              "description": "`LIVE` while instances run it, `RETIRED` once an operator retired it",
+              "enum": [
+                "LIVE",
+                "RETIRED"
+              ],
+              "type": "string"
+            },
+            "store": {
+              "description": "Name of the relational store",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "appVersion",
+            "firstSeen",
+            "forced",
+            "instances",
+            "lastHeartbeat",
+            "plan",
+            "planHash",
+            "status",
+            "store",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "ColumnPlan": {
+              "additionalProperties": false,
+              "description": "A column of a table",
+              "properties": {
+                "enum": {
+                  "description": "Allowed values (`CHECK (col IN (...))`)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "field": {
+                  "description": "The model field the column holds: the attribute for `field`/`reference`, the link attribute field for junction\nattribute columns, empty for the system columns",
+                  "type": "string"
+                },
+                "keyPart": {
+                  "description": "For a `reference`, `owner` or `target` column: the primary key field of the referenced model it holds",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Physical column name (after `columnNaming`)",
+                  "type": "string"
+                },
+                "nullable": {
+                  "default": false,
+                  "description": "Whether the model allows the value to be absent. A store may still create the column nullable (see the\nmulti-version rules of #838: `NOT NULL` is only applied in the contract phase)",
+                  "type": "boolean"
+                },
+                "role": {
+                  "description": "What a column holds\n\n- `field`: a model field (scalar or JSON)\n- `reference`: the key (or one key part) of a linked model (`ModelLink`, `ModelParent`)\n- `type`: the `__type` class discriminator\n- `extra`: the JSON column keeping the properties the schema does not know\n- `owner` / `target`: the keys of a junction row\n- `position`: the index of the link in its array\n- `key`: the key of the link in its map\n- `attributes`: the JSON column holding the link attributes when they have no declared field",
+                  "enum": [
+                    "field",
+                    "reference",
+                    "type",
+                    "extra",
+                    "owner",
+                    "target",
+                    "position",
+                    "key",
+                    "attributes"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%231"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%232"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%233"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%234"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%235"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%236"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%237"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%238"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%239"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%2310"
+                    }
+                  ],
+                  "description": "Engine-neutral column type: each store maps it to its own DDL type (`TEXT`, `DataTypes.STRING(n)`, ...)"
+                }
+              },
+              "required": [
+                "field",
+                "name",
+                "role",
+                "type"
+              ],
+              "type": "object"
+            },
+            "ForeignKeyPlan": {
+              "additionalProperties": false,
+              "description": "A foreign key constraint\n\nStores create every table first and the constraints afterwards (deferrable), so self references and cycles work.",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "onDelete": {
+                  "description": "`ON DELETE` behavior of a foreign key",
+                  "enum": [
+                    "CASCADE",
+                    "RESTRICT",
+                    "SET NULL",
+                    "NO ACTION"
+                  ],
+                  "type": "string"
+                },
+                "references": {
+                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "name",
+                "onDelete",
+                "references",
+                "table"
+              ],
+              "type": "object"
+            },
+            "IndexPlan": {
+              "additionalProperties": false,
+              "description": "An index",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "unique": {
+                  "default": false,
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "columns",
+                "name",
+                "table"
+              ],
+              "type": "object"
+            },
+            "JunctionPlan": {
+              "additionalProperties": false,
+              "description": "A junction table: the rows of a `linksSimpleArray`, `linksArray` or `linksMap` relation",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "linksSimpleArray",
+                    "linksArray",
+                    "linksMap"
+                  ],
+                  "type": "string"
+                },
+                "model": {
+                  "description": "Model declaring the relation",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "attribute",
+                "kind",
+                "model"
+              ],
+              "type": "object"
+            },
+            "ModelPlan": {
+              "additionalProperties": false,
+              "description": "What a model reads and writes: its projection of the table",
+              "properties": {
+                "columns": {
+                  "description": "Columns the model uses (its fields, references, `__type` and the extra column), in table order",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "table"
+              ],
+              "type": "object"
+            },
+            "Record<string, Date>": {
+              "additionalProperties": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
+            "RelationPlan": {
+              "additionalProperties": false,
+              "description": "A relation of a model",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "foreignKey": {
+                  "description": "Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled",
+                  "type": "string"
+                },
+                "keySeparator": {
+                  "description": "Separator joining the target composite key into the string the model stores",
+                  "type": "string"
+                },
+                "kind": {
+                  "description": "Kind of a relation, from `Metadata.Relations` (the compiler records the aliases as the type they resolve to)\n\n- `parent`: `ModelParent` / `BelongTo`\n- `link`: `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne`\n- `linksSimpleArray`: `ModelLinksSimpleArray`\n- `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`\n- `linksMap`: `ModelLinksMap`\n- `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage\n- `map`: `ModelsMapped`, denormalized copies: no storage",
+                  "enum": [
+                    "parent",
+                    "link",
+                    "linksSimpleArray",
+                    "linksArray",
+                    "linksMap",
+                    "query",
+                    "map"
+                  ],
+                  "type": "string"
+                },
+                "model": {
+                  "description": "Model declaring the relation",
+                  "type": "string"
+                },
+                "onDelete": {
+                  "description": "`ON DELETE` of the constraint, when one is created",
+                  "enum": [
+                    "CASCADE",
+                    "RESTRICT",
+                    "SET NULL",
+                    "NO ACTION"
+                  ],
+                  "type": "string"
+                },
+                "storage": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%231"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%232"
+                    },
+                    {
+                      "$ref": "#/definitions/plan%24relations%5B%5D%24storage%233"
+                    }
+                  ],
+                  "description": "Where a relation lives"
+                },
+                "target": {
+                  "description": "Identifier of the related model, undefined when it cannot be resolved",
+                  "type": "string"
+                },
+                "targetAttribute": {
+                  "description": "For a `query`: the attribute of the target model linking back to this model",
+                  "type": "string"
+                },
+                "unique": {
+                  "default": false,
+                  "description": "`OneToOne`: one row at most per target",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "attribute",
+                "kind",
+                "model",
+                "storage"
+              ],
+              "type": "object"
+            },
+            "RelationalSchemaPlan": {
+              "additionalProperties": false,
+              "description": "The relational schema of the models of a store: a pure function of their metadata",
+              "properties": {
+                "foreignKeys": {
+                  "items": {
+                    "$ref": "#/definitions/ForeignKeyPlan"
+                  },
+                  "type": "array"
+                },
+                "indexes": {
+                  "items": {
+                    "$ref": "#/definitions/IndexPlan"
+                  },
+                  "type": "array"
+                },
+                "models": {
+                  "$ref": "#/definitions/plan%24models"
+                },
+                "options": {
+                  "$ref": "#/definitions/SchemaLayoutOptions"
+                },
+                "relations": {
+                  "items": {
+                    "$ref": "#/definitions/RelationPlan"
+                  },
+                  "type": "array"
+                },
+                "tables": {
+                  "description": "Tables in creation order: a referenced table comes before the tables referencing it (cycles excepted)",
+                  "items": {
+                    "$ref": "#/definitions/TablePlan"
+                  },
+                  "type": "array"
+                },
+                "version": {
+                  "const": 1,
+                  "description": "Format version of the plan",
+                  "type": "number"
+                },
+                "warnings": {
+                  "items": {
+                    "$ref": "#/definitions/SchemaWarning"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "foreignKeys",
+                "indexes",
+                "models",
+                "options",
+                "relations",
+                "tables",
+                "version",
+                "warnings"
+              ],
+              "type": "object"
+            },
+            "SchemaLayoutOptions": {
+              "additionalProperties": false,
+              "description": "Options of the builder that change the physical layout: two plans built with different options are incompatible",
+              "properties": {
+                "columnNaming": {
+                  "description": "`preserve` keeps the field names (quoted camelCase), `snake_case` converts them",
+                  "enum": [
+                    "preserve",
+                    "snake_case"
+                  ],
+                  "type": "string"
+                },
+                "extraColumn": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "const": false,
+                      "type": "boolean"
+                    }
+                  ],
+                  "description": "Name of the JSON column keeping unknown properties, false to have none"
+                },
+                "foreignKeys": {
+                  "default": false,
+                  "description": "Create foreign key constraints between the tables of the plan",
+                  "type": "boolean"
+                },
+                "numericAsDecimal": {
+                  "default": false,
+                  "description": "Map JSON schema `number` to `decimal` instead of `double`",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "columnNaming",
+                "extraColumn"
+              ],
+              "type": "object"
+            },
+            "SchemaWarning": {
+              "additionalProperties": false,
+              "description": "A warning raised while building, for the store to log",
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "code": {
+                  "enum": [
+                    "CROSS_STORE_REFERENCE",
+                    "UNRESOLVED_TARGET"
+                  ],
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "model"
+              ],
+              "type": "object"
+            },
+            "TablePlan": {
+              "additionalProperties": false,
+              "description": "A table",
+              "properties": {
+                "columns": {
+                  "items": {
+                    "$ref": "#/definitions/ColumnPlan"
+                  },
+                  "type": "array"
+                },
+                "junction": {
+                  "$ref": "#/definitions/JunctionPlan",
+                  "description": "Set on junction tables"
+                },
+                "models": {
+                  "description": "For a model table: every model stored in it (single-table inheritance)",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "primaryKey": {
+                  "description": "Primary key column names",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "primaryKeySeparator": {
+                  "description": "Separator joining a composite primary key into a string",
+                  "type": "string"
+                },
+                "root": {
+                  "description": "For a model table: the model it was declared for, owner of rows without `__type`",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "models",
+                "name",
+                "primaryKey"
+              ],
+              "type": "object"
+            },
+            "plan$foreignKeys[]$references": {
+              "additionalProperties": false,
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "table"
+              ],
+              "type": "object"
+            },
+            "plan$models": {
+              "additionalProperties": {
+                "$ref": "#/definitions/ModelPlan"
+              },
+              "type": "object"
+            },
+            "plan$relations[]$storage#1": {
+              "additionalProperties": false,
+              "properties": {
+                "columns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "kind": {
+                  "const": "columns",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columns",
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$relations[]$storage#2": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "junction",
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "table"
+              ],
+              "type": "object"
+            },
+            "plan$relations[]$storage#3": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "none",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#1": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#10": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "json",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#2": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "varchar",
+                  "type": "string"
+                },
+                "length": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "kind",
+                "length"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#3": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "timestamptz",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#4": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#5": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#6": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "bigint",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#7": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "double",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#8": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "decimal",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "plan$tables[]$columns[]$type#9": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "boolean",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "A version of the application running against the tables of a relational store\n\nOne entry per store, application version and plan hash (`uuid` is `<store>:<appVersion>:<planHash>`), created by\nthe store at `init()` and refreshed by its heartbeat. Nobody claims the model, so `Store.computeStores()` sends it\nto the `Registry` catch-all: the relational store keeps its bookkeeping in a schemaless store, never the other way\naround.\n\nLive versions (`status: \"LIVE\"` with a recent `lastHeartbeat`) are what `schemaSync` protects: the physical schema\nstays the union of their plans. `webda <engine> schema retire` sets `status: \"RETIRED\"`; `schema contract` then\nproposes what no live version uses any more.",
+          "properties": {
+            "appVersion": {
+              "description": "Version of the application (`package.json`, or the `appVersion` parameter of the store)",
+              "type": "string"
+            },
+            "firstSeen": {
+              "description": "First `init()` of the version",
+              "format": "date-time",
+              "type": "string"
+            },
+            "forced": {
+              "description": "The `allowIncompatible` entries that downgraded a `BLOCK` to `WARN` when this version started",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "instances": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20Date%3E",
+              "description": "Last heartbeat of each instance (`useCore().getInstanceId()`)"
+            },
+            "lastHeartbeat": {
+              "description": "Last heartbeat of any instance, refreshed with `patch()`",
+              "format": "date-time",
+              "type": "string"
+            },
+            "plan": {
+              "$ref": "#/definitions/RelationalSchemaPlan",
+              "description": "The plan of the version: tables, columns and types, keys, relations, indexes"
+            },
+            "planHash": {
+              "description": "sha256 of the canonical plan",
+              "type": "string"
+            },
+            "status": {
+              "description": "`LIVE` while instances run it, `RETIRED` once an operator retired it",
+              "enum": [
+                "LIVE",
+                "RETIRED"
+              ],
+              "type": "string"
+            },
+            "store": {
+              "description": "Name of the relational store",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "appVersion",
+            "firstSeen",
+            "forced",
+            "instances",
+            "lastHeartbeat",
+            "plan",
+            "planHash",
+            "status",
+            "store",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/SchemaVersion"
+    }
+  },
   "schemas": {
     "Webda/BinaryFile": {
       "$schema": "http://json-schema.org/draft-07/schema#",

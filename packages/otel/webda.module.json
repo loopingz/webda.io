@@ -83,6 +83,25 @@
               "type"
             ],
             "type": "object"
+          },
+          "webTracing#2": {
+            "additionalProperties": false,
+            "description": "On-demand web tracing: an authorized user gets a short-lived token, the browser sends it as\n`X-Webda-Trace` to have its `traceparent` and `baggage` honored",
+            "properties": {
+              "allowedEmails": {
+                "description": "Emails allowed to enable web tracing, as regular expressions matching the whole email\n(`\"*\"` means any authenticated user). Empty or missing means nobody.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "duration": {
+                "default": 900,
+                "description": "Token lifetime in seconds",
+                "type": "number"
+              }
+            },
+            "type": "object"
           }
         },
         "description": "OpenTelemetry service parameters",
@@ -120,9 +139,21 @@
             },
             "description": "Trace export configuration"
           },
+          "trustedTraceSources": {
+            "default": [],
+            "description": "Sources (IP or CIDR) whose `traceparent` and `baggage` are always honored",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "type": {
             "description": "Type of the service",
             "type": "string"
+          },
+          "webTracing": {
+            "$ref": "#/definitions/webTracing%232",
+            "description": "On-demand web tracing: an authorized user gets a short-lived token, the browser sends it as\n`X-Webda-Trace` to have its `traceparent` and `baggage` honored"
           },
           "openapi": {
             "type": "object",
@@ -177,6 +208,44 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "OtelService.enableWebTracing.input": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "otel/tracing",
+        "path": [],
+        "query": [],
+        "body": [
+          "sessionId"
+        ]
+      }
+    },
+    "OtelService.enableWebTracing.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "expiresAt": {
+          "type": "number"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "expiresAt",
+        "sessionId",
+        "token"
+      ],
+      "type": "object"
     }
   },
   "behaviors": {}

@@ -12,6 +12,8 @@ import {
   getOperationStreaming,
   runWithContext,
   runWithInstanceStorage,
+  traceRequest,
+  type RequestTraceHandle,
   useApplication,
   useCore,
   useInstanceStorage,
@@ -285,18 +287,71 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
    * @param res - HTTP/2 response used to write gRPC frames and trailers
    * @param server - the HttpServer that received the request, it extracts the client certificate
    * @param server.extractClientCertificate - client certificate of the request
+   * @param server.resolveClientIp - client address of the request, for the trace
    * @returns a promise that resolves when the response has been fully sent
    */
   async handleGrpcRequest(
     req: IncomingMessage,
     res: ServerResponse,
-    server?: { extractClientCertificate?(req: IncomingMessage): ClientCertificate | undefined }
+    server?: {
+      extractClientCertificate?(req: IncomingMessage): ClientCertificate | undefined;
+      resolveClientIp?(req: IncomingMessage): string | undefined;
+    }
   ): Promise<void> {
+    const grpcPath = req.url ?? "";
+    const known = this.rpcToOperation.has(grpcPath) && this.rpcMethods.has(grpcPath);
+    let clientIp: string | undefined;
+    try {
+      clientIp = server?.resolveClientIp?.(req);
+    } catch {
+      // the client address is only informative
+    }
+    const headers = Object.fromEntries(
+      Object.entries(req.headers ?? {}).filter(([key]) => !key.startsWith(":"))
+    ) as Record<string, string | string[] | undefined>;
+    await traceRequest(
+      {
+        protocol: "grpc",
+        method: "POST",
+        // Only registered methods keep their path: a caller must not inflate the metric cardinality
+        path: known ? grpcPath : "/_OTHER/_OTHER",
+        scheme: "http",
+        protocolVersion: "2",
+        headers,
+        clientIp
+      },
+      handle => this.serveGrpcRequest(req, res, server, handle)
+    );
+  }
+
+  /**
+   * Serve a gRPC call, reporting its status to the trace until the trailers are sent
+   * @param req - HTTP/2 request
+   * @param res - HTTP/2 response
+   * @param server - the HttpServer that received the request
+   * @param server.extractClientCertificate - client certificate of the request
+   * @param handle - the trace of the call
+   * @returns a promise that resolves when the response has been fully sent
+   */
+  private async serveGrpcRequest(
+    req: IncomingMessage,
+    res: ServerResponse,
+    server: { extractClientCertificate?(req: IncomingMessage): ClientCertificate | undefined } | undefined,
+    handle: RequestTraceHandle
+  ): Promise<void> {
+    const setStatus = (code: number) => {
+      try {
+        handle.setStatus(code);
+      } catch {
+        // the tracer never breaks the response
+      }
+    };
     const grpcPath = req.url ?? "";
     const opId = this.rpcToOperation.get(grpcPath);
     const methodDef = this.rpcMethods.get(grpcPath);
 
     if (!opId || !methodDef) {
+      setStatus(GrpcStatus.UNIMPLEMENTED);
       res.writeHead(200, {
         "content-type": "application/grpc",
         "grpc-status": String(GrpcStatus.UNIMPLEMENTED),
@@ -311,6 +366,7 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
       httpContext.setClientCertificate(server?.extractClientCertificate?.(req));
     } catch {
       // Client certificate header from an untrusted source
+      setStatus(GrpcStatus.PERMISSION_DENIED);
       res.writeHead(200, {
         "content-type": "application/grpc",
         "grpc-status": String(GrpcStatus.PERMISSION_DENIED),
@@ -320,6 +376,7 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
       return;
     }
     const stream = new GrpcStream(req, res, methodDef);
+    stream.onStatus(setStatus);
     const streaming = getOperationStreaming(this.getOperations()[opId]);
     const ctx = new GrpcOperationContext(httpContext, stream, res);
     const input = new AsyncQueue<unknown>();

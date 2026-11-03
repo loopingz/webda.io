@@ -20,7 +20,14 @@ import {
   Resource
 } from "@modelcontextprotocol/sdk/types.js";
 import { useLog } from "@webda/workout";
-import { errorToToolResult, runOperation, sessionContext, toToolResult, truncateUtf8 } from "./invoke.js";
+import {
+  errorToToolResult,
+  runOperation,
+  sessionContext,
+  toToolResult,
+  truncateUtf8,
+  type McpRequestInfo
+} from "./invoke.js";
 import { decodeCursor, encodeCursor, queryFor, ResourceRegistry } from "./resources.js";
 import { ToolRegistry } from "./tools.js";
 
@@ -159,6 +166,10 @@ export interface McpServerOptions {
    */
   getSession: (extra: { authInfo?: AuthInfo }) => Session;
   /**
+   * The HTTP request of a call, reduced to its forwarded headers; undefined over stdio
+   */
+  getRequest?: (extra: { authInfo?: AuthInfo }) => McpRequestInfo | undefined;
+  /**
    * Hook run before tools/resources requests (tool list change detection)
    */
   beforeRequest?: () => void;
@@ -245,6 +256,7 @@ export function createMcpServer(options: McpServerOptions): Server {
       const { value, streamed } = await runOperation(entry.operationId, {
         session,
         input: entry.wrapped ? (args as any).value : args,
+        request: options.getRequest?.(extra),
         signal: extra.signal,
         onChunk:
           progressToken === undefined
@@ -295,7 +307,8 @@ export function createMcpServer(options: McpServerOptions): Server {
     try {
       const { value } = await runOperation(match.model.getOperationId, {
         session: options.getSession(extra),
-        input: match.key
+        input: match.key,
+        request: options.getRequest?.(extra)
       });
       const cut = truncateUtf8(JSON.stringify(value ?? null), options.maxOutputBytes);
       const text = cut.truncated
@@ -330,7 +343,11 @@ export function createMcpServer(options: McpServerOptions): Server {
     }
     let value: unknown;
     try {
-      ({ value } = await runOperation(model.queryOperationId, { session, input: { query: queryFor(cursor?.token) } }));
+      ({ value } = await runOperation(model.queryOperationId, {
+        session,
+        input: { query: queryFor(cursor?.token) },
+        request: options.getRequest?.(extra)
+      }));
     } catch (err) {
       throw toResourceError(err);
     }

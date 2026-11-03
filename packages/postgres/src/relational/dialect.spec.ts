@@ -95,6 +95,42 @@ export class PostgresRelationalDialectTest {
   }
 
   @test
+  rendersOnlineAndContractSteps() {
+    const foreignKey = {
+      name: "fk_rel_comment_post",
+      table: "rel_comment",
+      columns: ["post"],
+      references: { table: "rel_post", columns: ["uuid"] },
+      onDelete: "CASCADE" as const
+    };
+    const index = { name: "uq_rel_post_slug", table: "rel_post", columns: ["slug"], unique: true };
+    assert.deepStrictEqual(this.dialect.renderOnlineStep({ kind: "createIndex", index, online: true }), {
+      inside: [],
+      after: ['CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "uq_rel_post_slug" ON "rel_post" ("slug")'],
+      onFailure: ['DROP INDEX IF EXISTS "uq_rel_post_slug"']
+    });
+    const online = this.dialect.renderOnlineStep({ kind: "addForeignKey", foreignKey, online: true });
+    assert.ok(online.inside[0].includes("DEFERRABLE INITIALLY DEFERRED NOT VALID; END IF; END $$"));
+    assert.deepStrictEqual(online.after, ['ALTER TABLE "rel_comment" VALIDATE CONSTRAINT "fk_rel_comment_post"']);
+    const step = { kind: "addColumn" as const, table: "rel_post", column: column("summary", { kind: "text" }) };
+    assert.deepStrictEqual(this.dialect.renderOnlineStep(step), { inside: this.dialect.renderStep(step), after: [] });
+    assert.deepStrictEqual(
+      [
+        { kind: "dropColumn" as const, table: "rel_post", column: "legacy" },
+        { kind: "dropTable" as const, table: "rel_old" },
+        { kind: "setNotNull" as const, table: "rel_post", column: "title" },
+        { kind: "validateForeignKey" as const, table: "rel_comment", constraint: "fk_rel_comment_post" }
+      ].flatMap(s => this.dialect.renderContractStep(s)),
+      [
+        'ALTER TABLE "rel_post" DROP COLUMN IF EXISTS "legacy"',
+        'DROP TABLE IF EXISTS "rel_old"',
+        'ALTER TABLE "rel_post" ALTER COLUMN "title" SET NOT NULL',
+        'ALTER TABLE "rel_comment" VALIDATE CONSTRAINT "fk_rel_comment_post"'
+      ]
+    );
+  }
+
+  @test
   rendersAdditiveSteps() {
     assert.deepStrictEqual(
       this.dialect.renderStep({ kind: "addColumn", table: "rel_post", column: column("summary", { kind: "text" }) }),
@@ -170,6 +206,10 @@ export class PostgresRelationalDialectTest {
     );
     assert.strictEqual(d.columnJsonRemoveItem("files", 1), `COALESCE("files" - 1, '[]'::jsonb)`);
     assert.strictEqual(d.columnJsonItemCondition("files", 1, "hash", 3), `"files"#>>'{1,hash}' = $3`);
+    assert.throws(() => d.keyText("a' OR 1=1--"), /Invalid attribute/);
+    assert.throws(() => d.jsonText(["a", "b'}--"]), /Invalid attribute/);
+    assert.throws(() => d.setCollectionItem("items", 1, -1, "2026-01-01"), /Invalid index/);
+    assert.throws(() => d.columnJsonSetPath("m", ["a", "b'}--"], 1), /Invalid attribute/);
   }
 
   @test
@@ -212,5 +252,26 @@ export class PostgresRelationalDialectTest {
     assert.deepStrictEqual(map("json"), { kind: "json" });
     assert.deepStrictEqual(map("uuid"), { kind: "uuid" });
     assert.strictEqual(map("money"), undefined);
+  }
+
+  @test
+  timeTextAndUniqueViolation() {
+    const d = this.dialect;
+    assert.strictEqual(d.timeText('"d"', { kind: "date" }), `to_char("d", 'YYYY-MM-DD')`);
+    assert.strictEqual(
+      d.timeText('"d"', { kind: "timestamptz" }),
+      `to_char("d" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
+    );
+    assert.deepStrictEqual(d.uniqueViolation({ code: "23505", table: "rel_post", constraint: "rel_post_pkey" }), {
+      table: "rel_post",
+      constraint: "rel_post_pkey",
+      primaryKey: true
+    });
+    assert.deepStrictEqual(d.uniqueViolation({ code: "23505", table: "rel_user", constraint: "uq_rel_user_email" }), {
+      table: "rel_user",
+      constraint: "uq_rel_user_email",
+      primaryKey: false
+    });
+    assert.strictEqual(d.uniqueViolation({ code: "23503" }), undefined);
   }
 }

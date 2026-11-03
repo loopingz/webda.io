@@ -11,8 +11,17 @@ const rnd = (n: number) => Buffer.from(globalThis.crypto.getRandomValues(new Uin
  * @param kind - escrow kind
  * @returns the blob
  */
-function escrow(kind: EscrowBlob["kind"] = "password"): EscrowBlob {
-  return { v: 1, kind, kdf: "argon2id", kdfParams: { m: 65536, t: 3, p: 1 }, salt: rnd(16), iv: rnd(12), ct: rnd(48) };
+function escrow(kind: EscrowBlob["kind"] = "password", kid: string = "k1"): EscrowBlob {
+  return {
+    v: 1,
+    kind,
+    kid,
+    kdf: "argon2id",
+    kdfParams: { m: 65536, t: 3, p: 1 },
+    salt: rnd(16),
+    iv: rnd(12),
+    ct: rnd(48)
+  };
 }
 
 /**
@@ -105,6 +114,17 @@ class PasswordEscrowTest extends EmailTest {
     );
     assert.ok(await this.logsIn("both@x.com", "longenough"));
     assert.deepStrictEqual(await this.escrowsOf(ctx), before);
+    // An escrow made for another key than the active one (a device that missed a rotation) is refused too
+    await assert.rejects(
+      () =>
+        this.op(
+          "Auth.Password.Change",
+          { current: "longenough", next: "brandnewpass", escrow: escrow("password", "stale") },
+          ctx
+        ),
+      (err: any) => err instanceof WebdaError.PreconditionFailed && /another key than the active one/.test(err.message)
+    );
+    assert.ok(await this.logsIn("both@x.com", "longenough"));
 
     await this.op("Auth.Password.Change", { current: "longenough", next: "brandnewpass", escrow: next }, ctx);
     assert.ok(await this.logsIn("both@x.com", "brandnewpass"));

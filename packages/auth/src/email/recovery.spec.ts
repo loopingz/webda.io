@@ -392,5 +392,26 @@ class RecoveryTest extends EmailTest {
       () => this.op("Auth.Password.Change", { current: "brandnewpass", next: "yetanotherpass" }),
       "UNAUTHORIZED"
     );
+
+    // Configured baseUrl overrides request Host header in buildLink
+    this.email.getParameters().baseUrl = "https://canonical.example.com";
+    try {
+      const link = this.email.buildLink("/recover", "tok123");
+      assert.strictEqual(link, "https://canonical.example.com/auth/email/recover?token=tok123");
+    } finally {
+      delete this.email.getParameters().baseUrl;
+    }
+
+    // Repeated wrong current-password guesses in changePassword trigger throttling
+    for (let i = 0; i < 3; i++) {
+      await rejectsWith(
+        () => this.op("Auth.Password.Change", { current: "wrongwrong", next: "yetanotherpass" }, ctx),
+        "FORBIDDEN"
+      );
+    }
+    await rejectsWith(
+      () => this.op("Auth.Password.Change", { current: "brandnewpass", next: "yetanotherpass" }, ctx),
+      "THROTTLED"
+    );
   }
 }

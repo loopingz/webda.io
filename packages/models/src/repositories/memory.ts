@@ -738,6 +738,7 @@ export class MemoryRepository<
     _condition?: any
   ): Promise<void | Record<string, number>> {
     const item = this.getSync(primaryKey);
+    this.checkCondition(item, _conditionField, _condition);
     const entries: [string, number][] = Array.isArray(info)
       ? info.map(entry =>
           typeof entry === "string"

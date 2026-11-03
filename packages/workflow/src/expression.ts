@@ -1,5 +1,10 @@
 import { BINARY_OPS, type BinaryOp, type Expr } from "./graph.js";
 
+/** Maximum length of a string produced by a flow expression */
+export const MAX_EXPR_STRING_LENGTH = 1_048_576;
+/** Object keys that must never be set on evaluated objects */
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 /**
  * Read a member of a value: own properties only, so an expression never reaches a prototype
  * @param target - the object, array or string
@@ -39,8 +44,17 @@ function binary(op: BinaryOp, a: any, b: any): any {
       return a > b;
     case ">=":
       return a >= b;
-    case "+":
+    case "+": {
+      if (typeof a === "string" || typeof b === "string") {
+        const left = String(a);
+        const right = String(b);
+        if (left.length + right.length > MAX_EXPR_STRING_LENGTH) {
+          throw new Error("Expression string length limit exceeded");
+        }
+        return left + right;
+      }
       return a + b;
+    }
     case "-":
       return a - b;
     case "*":
@@ -101,7 +115,15 @@ export function evaluate(expr: Expr, scope: Record<string, any>): any {
   if ("obj" in e) {
     const res: Record<string, any> = {};
     for (const [key, value] of Object.entries(e.obj as Record<string, Expr>)) {
-      res[key] = evaluate(value, scope);
+      if (FORBIDDEN_KEYS.has(key)) {
+        throw new Error(`Forbidden object key ${key}`);
+      }
+      Object.defineProperty(res, key, {
+        value: evaluate(value, scope),
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
     }
     return res;
   }
@@ -109,9 +131,15 @@ export function evaluate(expr: Expr, scope: Record<string, any>): any {
     return (e.arr as Expr[]).map(item => evaluate(item, scope));
   }
   if ("tpl" in e) {
-    return (e.tpl as (string | Expr)[])
-      .map(part => (typeof part === "string" ? part : String(evaluate(part, scope))))
-      .join("");
+    let out = "";
+    for (const part of e.tpl as (string | Expr)[]) {
+      const piece = typeof part === "string" ? part : String(evaluate(part, scope));
+      if (out.length + piece.length > MAX_EXPR_STRING_LENGTH) {
+        throw new Error("Expression string length limit exceeded");
+      }
+      out += piece;
+    }
+    return out;
   }
   throw new Error(`Invalid expression ${JSON.stringify(e)}`);
 }
@@ -160,7 +188,11 @@ export function validateExpr(expr: unknown, path: string = "$"): string[] {
     case "cond":
       return tuple("cond", 3);
     case "obj":
-      return isObject(value) ? Object.entries(value).flatMap(([k, v]) => validateExpr(v, `${path}.obj.${k}`)) : [path];
+      return isObject(value)
+        ? Object.entries(value).flatMap(([k, v]) =>
+            FORBIDDEN_KEYS.has(k) ? [`${path}.obj.${k}`] : validateExpr(v, `${path}.obj.${k}`)
+          )
+        : [path];
     case "arr":
       return Array.isArray(value) ? value.flatMap((v, i) => validateExpr(v, `${path}.arr[${i}]`)) : [path];
     case "tpl":

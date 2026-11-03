@@ -61,4 +61,22 @@ class McpSessionManagerTest {
     assert.strictEqual(manager.all().length, 0);
     assert.deepStrictEqual(closed, ["transport:a", "server:a"]);
   }
+
+  @test
+  async protectsAuthenticatedSessionsFromAnonymousEviction() {
+    let now = 1000;
+    const closed: string[] = [];
+    const manager = new McpSessionManager(10_000, () => now);
+    manager.add(entry("auth-1", closed));
+    assert.strictEqual(await manager.evictOldest(false), undefined);
+    assert.strictEqual(manager.all().length, 1);
+
+    now = 1100;
+    manager.add({ ...entry("anon-1", closed), userId: undefined });
+    assert.strictEqual(await manager.evictOldest(false), "anon-1");
+    assert.deepStrictEqual(
+      manager.all().map(e => e.id),
+      ["auth-1"]
+    );
+  }
 }

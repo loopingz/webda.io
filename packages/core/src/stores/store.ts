@@ -454,6 +454,35 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   };
 
   /**
+   * The store listing a model (or its closest ancestor) in its `models`
+   * @param model - the model
+   * @param stores - the candidate stores, every store of the application by default
+   * @returns the store, undefined when none lists it (the `Registry` serves it)
+   */
+  static claimingStore(model: ModelClass, stores?: Store[]): Store | undefined {
+    let currentValue = -1;
+    let currentStore: Store | undefined;
+    for (const store of stores ?? Object.values(useCore().getServices()).filter(s => s instanceof Store)) {
+      const value = store.handleModel(model);
+      if (value < 0 || (value > currentValue && currentValue !== -1)) {
+        continue;
+      }
+      currentValue = value;
+      currentStore = store;
+    }
+    return currentStore;
+  }
+
+  /**
+   * The store serving a model: the one listing it, else the `Registry`
+   * @param model - the model
+   * @returns the store, undefined before the `Registry` exists
+   */
+  static storeOf(model: ModelClass): Store | undefined {
+    return Store.claimingStore(model) ?? useCore().getService<Store>("Registry");
+  }
+
+  /**
    * Compute and register repositories for all known models based on available stores.
    *
    * Called from `Store.init()` so each store's init triggers a recompute.
@@ -478,16 +507,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         useLog("WARN", `${useModelId(model)} does not have Metadata or PrimaryKey defined`);
         continue;
       }
-      let currentValue = -1;
-      let currentStore: Store = undefined;
-      for (const store of stores) {
-        const value = store.handleModel(model);
-        if (value < 0 || (value > currentValue && currentValue !== -1)) {
-          continue;
-        }
-        currentValue = value;
-        currentStore = store;
-      }
+      let currentStore = Store.claimingStore(model, stores);
       if (!currentStore) {
         useLog("TRACE", `${useModelId(model)} fallback to Registry store`);
         currentStore = registry;

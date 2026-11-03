@@ -591,6 +591,9 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
       ExpressionAttributeValues[":item"] = [cleanObject(item)];
       ExpressionAttributeValues[":empty_list"] = [];
     } else {
+      if (!/^\d+$/.test(String(index))) {
+        throw new Error("Invalid collection index");
+      }
       params.UpdateExpression = `SET #col[${index}] = :item`;
       ExpressionAttributeValues[":item"] = cleanObject(item);
       if (itemWriteCondition !== undefined) {
@@ -622,6 +625,9 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
     itemWriteConditionField?: any,
     itemWriteCondition?: any
   ): Promise<void> {
+    if (!/^\d+$/.test(String(index))) {
+      throw new Error("Invalid collection index");
+    }
     const key = this.getKey(primaryKey);
     const ExpressionAttributeNames: any = { "#k": KEY_ATTRIBUTE, "#col": String(collection) };
     const params: any = {

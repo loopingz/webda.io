@@ -1,5 +1,6 @@
 import type { ColumnPlan, ColumnType, ForeignKeyPlan, IndexPlan, TablePlan } from "@webda/sql-schema";
 import type { SQLClient, SQLDialect } from "../dialect.js";
+import type { ContractStep } from "./contract.js";
 
 /**
  * One additive change bringing a database closer to a {@link RelationalSchemaPlan}
@@ -7,8 +8,19 @@ import type { SQLClient, SQLDialect } from "../dialect.js";
 export type SchemaStep =
   | { kind: "createTable"; table: TablePlan; foreignKeys: ForeignKeyPlan[] }
   | { kind: "addColumn"; table: string; column: ColumnPlan }
-  | { kind: "createIndex"; index: IndexPlan }
-  | { kind: "addForeignKey"; foreignKey: ForeignKeyPlan };
+  | { kind: "createIndex"; index: IndexPlan; online?: boolean }
+  | { kind: "addForeignKey"; foreignKey: ForeignKeyPlan; online?: boolean };
+
+/**
+ * How an `online` step (on a table that exists, with rows and traffic) runs: `inside` the DDL transaction under the
+ * schema lock, `after` it on its own (`CREATE INDEX CONCURRENTLY`, `VALIDATE CONSTRAINT`), `onFailure` when an
+ * `after` statement fails (drop the invalid index)
+ */
+export interface OnlineStatements {
+  inside: string[];
+  after: string[];
+  onFailure?: string[];
+}
 
 /**
  * A column as the database describes it
@@ -38,6 +50,10 @@ export interface LiveTable {
    * Names of the constraints of the table
    */
   constraints: Set<string>;
+  /**
+   * Names of the foreign keys added `NOT VALID` and not validated yet (the contract phase validates them)
+   */
+  unvalidated?: Set<string>;
 }
 
 /**
@@ -74,6 +90,18 @@ export interface RelationalDialect extends SQLDialect {
    */
   renderStep(step: SchemaStep): string[];
   /**
+   * Statements of an `online` step (a table with rows and traffic): the engine may keep the heavy work out of the
+   * DDL transaction. Without it, {@link renderStep} runs inside the transaction
+   * @param step - a schema change flagged `online`
+   * @returns the statements, split
+   */
+  renderOnlineStep?(step: SchemaStep): OnlineStatements;
+  /**
+   * @param step - a contract step
+   * @returns the statements applying it, empty when the engine cannot (reported, never failed)
+   */
+  renderContractStep?(step: ContractStep): string[];
+  /**
    * Describe the tables as the database holds them
    * @param client - the client
    * @param tables - the table names to describe
@@ -91,6 +119,14 @@ export interface RelationalDialect extends SQLDialect {
    * @returns the expression as text
    */
   castText(expr: string): string;
+  /**
+   * ISO 8601 text of a time column expression: `YYYY-MM-DD` for a `date`, the UTC `...Z` form for a `timestamptz`
+   * (what the models store and compare), for `LIKE` and the loose text comparisons
+   * @param expr - a SQL expression
+   * @param type - the column type (`date` or `timestamptz`)
+   * @returns the text
+   */
+  timeText(expr: string, type: ColumnType): string;
   /**
    * JSON value of a scalar column expression, for aggregations: a time column renders as its ISO 8601 UTC text
    * @param expr - a SQL expression
@@ -166,10 +202,29 @@ export interface RelationalDialect extends SQLDialect {
    * @param valueParam - position of the bound value
    * @returns the condition
    */
-  columnJsonItemCondition(column: string, index: number | undefined, field: string, valueParam: number): string;
+  columnJsonItemCondition(column: string, index: number, field: string, valueParam: number): string;
   /**
    * @param err - an error thrown by the client
    * @returns the violated constraint when the error is a foreign key violation, undefined otherwise
    */
   isForeignKeyViolation(err: unknown): { constraint?: string } | undefined;
+  /**
+   * @param err - an error thrown by the client
+   * @returns what a unique violation hit: the table, the constraint or index name when the engine reports it, and
+   *   whether it is the primary key; undefined for any other error
+   */
+  uniqueViolation(err: unknown): UniqueViolation | undefined;
+}
+
+/**
+ * A unique violation as a dialect reports it
+ */
+export interface UniqueViolation {
+  table?: string;
+  constraint?: string;
+  /**
+   * The columns of the violated index, when the engine names them instead of the index
+   */
+  columns?: string[];
+  primaryKey: boolean;
 }

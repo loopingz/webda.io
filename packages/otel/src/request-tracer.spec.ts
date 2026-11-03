@@ -1,5 +1,5 @@
 import { SpanKind, SpanStatusCode, context, metrics, propagation, trace } from "@opentelemetry/api";
-import { tracing } from "@opentelemetry/sdk-node";
+import * as tracing from "@opentelemetry/sdk-trace";
 import { DataPointType, MetricReader, type HistogramMetricData } from "@opentelemetry/sdk-metrics";
 import { suite, test, timeout } from "@webda/test";
 import {
@@ -52,7 +52,7 @@ class TestOtelService extends OtelService {
 
   protected getSpanProcessors(): tracing.SpanProcessor[] {
     TestOtelService.exporter = new tracing.InMemorySpanExporter();
-    TestOtelService.processor = new tracing.SimpleSpanProcessor(TestOtelService.exporter);
+    TestOtelService.processor = new tracing.SimpleSpanProcessor({ exporter: TestOtelService.exporter });
     return [new SessionIdSpanProcessor(), TestOtelService.processor];
   }
 

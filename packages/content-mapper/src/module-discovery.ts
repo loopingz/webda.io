@@ -17,7 +17,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import * as is from "typescript/unstable/ast/is";
+import * as is from "typescript/ast/is";
 import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order } from "./property-order.ts";
 import {
@@ -207,7 +207,7 @@ export function outputTarget(fileName: string, options: DiscoveryOptions): strin
   // Import paths are written to webda.module.json: keep them platform independent
   return relative(options.appPath, join(options.outDir, fromRoot))
     .replace(/\\/g, "/")
-    .replace(/\.tsx?$/, "");
+    .replace(/\.(tsx?|wts)$/, "");
 }
 
 /**
@@ -279,7 +279,7 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
       } else if (chainExtends(ctx, chain, "@webda/core", "Service")) {
         // Beans are Services carrying the @Bean decorator.
         const decorated = cls.modifiers?.some(
-          (modifier: any) => modifier.kind === 171 && /(^|\W)Bean(\W|$)/.test(ctx.textOf(sf, modifier))
+          (modifier: any) => is.isDecorator(modifier) && /(^|\W)Bean(\W|$)/.test(ctx.textOf(sf, modifier))
         );
         if (!decorated) continue;
         section = "beans";

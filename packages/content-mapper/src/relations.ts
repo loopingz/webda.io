@@ -4,10 +4,10 @@
  * A relation is recognised by its type name: the written one, or the one an alias chain leads to
  * (`type OwnedBy<T> = BelongTo<T>` → `BelongTo` → `ModelParent`).
  */
-import { getJSDocTags, getTextOfJSDocComment } from "typescript/unstable/ast";
-import type { Node } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
-import { SymbolFlags } from "typescript/unstable/sync";
+import { getJSDocTags, getTextOfJSDocComment } from "typescript/ast";
+import type { Node } from "typescript/ast";
+import * as is from "typescript/ast/is";
+import { SymbolFlags } from "typescript/sync";
 import type { AnalysisContext } from "./plan.ts";
 
 /**

@@ -14,9 +14,9 @@
  * The edits are pure insertions at the end of the file: source positions of the authored text never move.
  */
 import { dirname, relative } from "node:path";
-import type { SourceFile } from "typescript/unstable/ast";
-import { SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { SourceFile } from "typescript/ast";
+import { SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import {
   FLOW_SUFFIX,
   flowClassesOf,

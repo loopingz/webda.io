@@ -27,11 +27,11 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { formatDiagnostics } from "typescript/unstable/sync";
+import { formatDiagnostics } from "typescript/sync";
 import { runTwoPass, type FileDiagnostic } from "../twopass.ts";
-import { ModifierFlags } from "typescript/unstable/ast";
-import type { ClassDeclaration } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import { ModifierFlags } from "typescript/ast";
+import type { ClassDeclaration } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import { openSession } from "../context.ts";
 import { generateWebdaModule } from "../module.ts";
 import { generateModelSchemas } from "./model.ts";

@@ -80,3 +80,13 @@ export { findParametersNode, generateServiceSchema } from "./schema/service.ts";
 export type { ServiceSchemaOptions } from "./schema/service.ts";
 export { SchemaConversionError } from "./schema/types.ts";
 export type { JSONSchema7 } from "./schema/types.ts";
+
+export {
+  findGoFunctionFileOffset,
+  findTextSectionFileOffset,
+  findTscBinary,
+  HAS_RESERVED_EXTENSION_SYMBOL,
+  IS_PACKAGE_ALLOWED_SYMBOL,
+  patchTsc
+} from "./patch-tsc.ts";
+export type { PatchTscOptions, PatchTscResult } from "./patch-tsc.ts";

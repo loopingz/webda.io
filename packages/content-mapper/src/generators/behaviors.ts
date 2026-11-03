@@ -16,8 +16,8 @@
  * A class can be both. Author-written `toJSON` or `__hydrateBehaviors` is never
  * replaced.
  */
-import type { SourceFile } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { SourceFile } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import { classesOf, isStatic, memberName } from "../context.ts";
 import { ValueImports } from "./imports.ts";
 import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";

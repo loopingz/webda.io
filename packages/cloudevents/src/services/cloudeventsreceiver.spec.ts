@@ -380,9 +380,11 @@ class CloudEventsReceiverTest extends WebdaApplicationTest {
     });
     const postShort = () =>
       this.post(short, { "content-type": "application/cloudevents+json" }, JSON.stringify({ ...attributes, id: "5" }));
+    const now = Date.now();
+    const clock = this.stub(Date, "now").returns(now);
     await postShort();
     assert.strictEqual(short.isDuplicate(new CloudEvent({ ...attributes, id: "5" })), true);
-    await this.sleep(5);
+    clock.returns(now + 1);
     assert.strictEqual(short.isDuplicate(new CloudEvent({ ...attributes, id: "5" })), false);
     await postShort();
     assert.deepStrictEqual(received.slice(-2), ["ttl:5", "ttl:5"]);

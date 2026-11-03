@@ -1,4 +1,4 @@
-import { type SerializeOptions as CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
+import { type SerializeOptions as CookieSerializeOptions, stringifySetCookie } from "cookie";
 import type { JWTOptions } from "../services/icryptoservice.js";
 import type { HttpContext } from "../contexts/httpcontext.js";
 import { isWebContext, IWebContext } from "../contexts/icontext.js";
@@ -197,7 +197,7 @@ export class SecureCookie {
     name ??= "webda";
     let cookieName = name;
     let limit;
-    const mapLength = cookieSerialize(name, "", <CookieSerializeOptions>params).length;
+    const mapLength = stringifySetCookie({ ...(<CookieSerializeOptions>params), name, value: "" }).length;
     for (let i = 0; i < value.length;) {
       limit = SPLIT - mapLength;
       if (j > 1) {

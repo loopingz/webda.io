@@ -9,8 +9,8 @@
  * independent generators compose without knowing about each other, and keeps
  * every byte of untouched source byte-identical.
  */
-import type { Checker, Program, Project } from "typescript/unstable/sync";
-import type { SourceFile } from "typescript/unstable/ast";
+import type { Checker, Program, Project } from "typescript/sync";
+import type { SourceFile } from "typescript/ast";
 
 /** A single text splice within one file. */
 export interface Edit {

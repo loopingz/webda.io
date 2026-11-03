@@ -78,7 +78,7 @@ describe("client entry boundaries", () => {
   });
 
   it("type-checks with lib ES2022 + DOM and no ambient types (tsconfig.client.json)", () => {
-    const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
+    const tsc = join(dirname(createRequire(import.meta.url).resolve("typescript/package.json")), "bin", "tsc");
     const run = spawnSync(process.execPath, [tsc, "-p", join(root, "tsconfig.client.json")], {
       cwd: root,
       encoding: "utf8"

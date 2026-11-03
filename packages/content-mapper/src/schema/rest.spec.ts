@@ -9,8 +9,8 @@ import { openSession } from "../context.ts";
 import { generateTopLevelSchemas } from "./project.ts";
 import { actionRestOption, literalOption } from "./rest.ts";
 import * as restBindings from "./rest.ts";
-import * as is from "typescript/unstable/ast/is";
-import { SyntaxKind, type Node } from "typescript/unstable/ast";
+import * as is from "typescript/ast/is";
+import { SyntaxKind, type Node } from "typescript/ast";
 import { buildBehaviorActions, buildModelActions } from "../module.ts";
 
 describe("REST binding validation", () => {

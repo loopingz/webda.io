@@ -4,9 +4,9 @@
  * Shared by the declaration injection (`generators/flows.ts`) and the compiler (`compile.ts`), so a call the editor
  * types is a call the build compiles.
  */
-import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/unstable/ast";
-import { SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/ast";
+import { SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import type { AnalysisContext } from "../plan.ts";
 import { derivesFrom } from "../schema/service.ts";
 import { isContextType } from "../schema/action.ts";

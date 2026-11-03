@@ -1,4 +1,4 @@
-import { parse as cookieParse } from "cookie";
+import { parseCookie } from "cookie";
 import { type IncomingHttpHeaders } from "http";
 import { Readable } from "stream";
 import { HttpError, UnsupportedMediaType } from "../errors/errors.js";
@@ -114,8 +114,8 @@ export class HttpContext {
     for (const i in headers) {
       if (i.toLowerCase() === "cookie") {
         this.cookies = Array.isArray(headers[i])
-          ? Object.assign({}, ...(<string[]>headers[i]).map(c => cookieParse(c)))
-          : cookieParse(<string>headers[i]);
+          ? Object.assign({}, ...(<string[]>headers[i]).map(c => parseCookie(c)))
+          : parseCookie(<string>headers[i]);
       }
       this.headers[i.toLowerCase()] = headers[i];
     }

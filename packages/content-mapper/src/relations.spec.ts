@@ -1,4 +1,4 @@
-import { SyntaxKind } from "typescript/unstable/ast";
+import { SyntaxKind } from "typescript/ast";
 import { describe, expect, it } from "vitest";
 import { backfillRelations, resolveRelationType, type PolicyRelations } from "./relations.ts";
 

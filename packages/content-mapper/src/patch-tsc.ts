@@ -97,7 +97,7 @@ export function findTextSectionFileOffset(buf: Buffer): number {
           const sectName = buf
             .subarray(sectOff, sectOff + 16)
             .toString("utf8")
-            .replace(/\0+$/, "");
+            .split("\0", 1)[0];
           if (sectName === "__text") {
             return buf.readUInt32LE(sectOff + 48);
           }
@@ -141,7 +141,7 @@ export function findTextSectionFileOffset(buf: Buffer): number {
       const name = buf
         .subarray(secOff, secOff + 8)
         .toString("utf8")
-        .replace(/\0+$/, "");
+        .split("\0", 1)[0];
       if (name === ".text") {
         return buf.readUInt32LE(secOff + 20);
       }

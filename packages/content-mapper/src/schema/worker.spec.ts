@@ -1,3 +1,5 @@
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -7,6 +9,24 @@ const here = dirname(fileURLToPath(import.meta.url));
 const fixture = join(here, "..", "..", "test", "fixture");
 
 describe("emitProject", () => {
+  it("reports declaration emit errors and does not write partial output", () => {
+    const project = mkdtempSync(join(tmpdir(), "webda-emit-error-"));
+    try {
+      writeFileSync(
+        join(project, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { declaration: true, outDir: "lib", types: [] }, include: ["index.ts"] })
+      );
+      writeFileSync(join(project, "index.ts"), "export const create = () => class { private value = 1; };\n");
+      const report = emitProject(join(project, "tsconfig.json"), project);
+      expect(report.diagnosticCount).toBeGreaterThan(0);
+      expect(report.diagnostics).toContain("private");
+      expect(report.written).toBe(0);
+      expect(existsSync(join(project, "lib"))).toBe(false);
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
+
   it("logs the generator warnings without failing the build", () => {
     const report = emitProject(join(fixture, "tsconfig.json"), join(fixture, "src"), {
       storageModule: "./runtime.js",

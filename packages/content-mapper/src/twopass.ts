@@ -100,7 +100,9 @@ export function runTwoPass(options: TwoPassOptions): TwoPassResult {
   let diagnostics: any[] = [];
   try {
     diagnostics = [...session2.ctx.program.getSemanticDiagnostics()];
-    if (options.emit && !diagnostics.length) session2.ctx.program.emit();
+    if (options.emit && !diagnostics.length) {
+      diagnostics.push(...session2.ctx.program.emit().diagnostics);
+    }
   } finally {
     session2.dispose();
   }

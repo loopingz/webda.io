@@ -130,6 +130,14 @@ export class TokenServiceParameters extends ServiceParameters {
    * @default 86400
    */
   refreshGrace: number;
+  /**
+   * Seconds after a rotation during which the rotated refresh token presented again gets another valid token of the
+   * family, without retiring the first replacement nor revoking anything: refreshes racing with the same token (a
+   * client running several instances that share their stored credentials) all succeed. After it, `refreshGrace` and
+   * reuse detection apply. 0 disables it: of concurrent refreshes, only one succeeds and the family is revoked
+   * @default 10
+   */
+  refreshReuseInterval: number;
 
   /**
    * @param params - raw parameters
@@ -142,6 +150,7 @@ export class TokenServiceParameters extends ServiceParameters {
     this.revocationCheck ??= true;
     this.revocationCacheTtl ??= 10;
     this.refreshGrace ??= 86400;
+    this.refreshReuseInterval ??= 10;
     return this;
   }
 }
@@ -436,7 +445,9 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     }
     /** replay within the grace: the unused token it was exchanged for, to retire (undefined when never stored) */
     let retired: RefreshToken | undefined;
-    if (stored.rotatedAt) {
+    /** replay within the reuse interval: another token of the family, the rotated record is left as is */
+    const sibling = !!stored.rotatedAt && now - stored.rotatedAt <= this.parameters.refreshReuseInterval * 1000;
+    if (stored.rotatedAt && !sibling) {
       const unused = await this.unusedSuccessor(stored, now);
       if (!unused.ok) {
         await this.revokeFamily(stored.family);
@@ -459,20 +470,26 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     const nextToken = this.newRefreshToken();
     const successor = this.hash(nextToken);
     // Compare-and-set: only one caller can move rotatedAt from undefined to a value (or, within the grace, replace
-    // the successor it recorded)
-    try {
-      if (stored.rotatedAt) {
-        await ref.patch({ successor } as any, "successor" as any, stored.successor as any);
-      } else {
-        await ref.patch({ rotatedAt: now, successor } as any, "rotatedAt" as any, undefined);
+    // the successor it recorded). A sibling records nothing: the replacement of the rotation stays the successor
+    if (!sibling) {
+      try {
+        if (stored.rotatedAt) {
+          await ref.patch({ successor } as any, "successor" as any, stored.successor as any);
+        } else {
+          await ref.patch({ rotatedAt: now, successor } as any, "rotatedAt" as any, undefined);
+        }
+      } catch (err) {
+        if (!this.isConditionFailure(err)) {
+          throw err;
+        }
+        // Lost the race of the first rotation: read again, the rotation that won is within the reuse interval. Not
+        // retried for a replay, nor without reuse interval: treat as reuse and kill the family
+        if (!stored.rotatedAt && this.parameters.refreshReuseInterval > 0) {
+          return this.refresh(refreshToken, options);
+        }
+        await this.revokeFamily(stored.family);
+        throw new TokenInvalid("Refresh token reused");
       }
-    } catch (err) {
-      if (!this.isConditionFailure(err)) {
-        throw err;
-      }
-      // Lost the race: treat as reuse and kill the family
-      await this.revokeFamily(stored.family);
-      throw new TokenInvalid("Refresh token reused");
     }
     const session = new Session();
     session.login(stored.userId, stored.identId, {

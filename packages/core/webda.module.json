@@ -2121,6 +2121,11 @@
             "description": "Seconds during which a rotated refresh token presented again is rotated once more, as long as the token it was\nexchanged for was never used: a client that lost the answer of its refresh (laptop asleep, network drop)\nretries with the token it still holds instead of losing its session. The unused replacement is retired; if it\nis presented later anyway (two holders), the family is revoked. 0 disables it: any replay revokes the family",
             "type": "number"
           },
+          "refreshReuseInterval": {
+            "default": 10,
+            "description": "Seconds after a rotation during which the rotated refresh token presented again gets another valid token of the\nfamily, without retiring the first replacement nor revoking anything: refreshes racing with the same token (a\nclient running several instances that share their stored credentials) all succeed. After it, `refreshGrace` and\nreuse detection apply. 0 disables it: of concurrent refreshes, only one succeeds and the family is revoked",
+            "type": "number"
+          },
           "refreshTtl": {
             "default": 2592000,
             "description": "Refresh token lifetime in seconds",

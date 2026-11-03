@@ -328,7 +328,10 @@ for the certificate's linked user, for that request. See [Client certificates (m
   one grace: within `refreshGrace` seconds of the rotation (default 86400), while the token it was exchanged for was
   never used, the replay is rotated once more and that unused replacement is retired. A client that lost the answer
   of its refresh (laptop asleep, connection dropped) keeps its session this way; a retired token presented later (two
-  holders) revokes the family. `refreshGrace: 0` restores strict detection. `TokenService.issue()` refuses a session
+  holders) revokes the family. `refreshGrace: 0` restores strict detection. Before the grace, within
+  `refreshReuseInterval` seconds of the rotation (default 10), the rotated token gets another valid token of the
+  family and nothing is retired or revoked: refreshes racing with the same token, such as several instances of a
+  client sharing stored credentials, all keep a working session. `refreshReuseInterval: 0` makes a race a reuse. `TokenService.issue()` refuses a session
   whose MFA is pending, and the MFA state is persisted with the refresh token.
 - `Auth.Logout` revokes the family; access tokens already issued remain valid until they expire.
 

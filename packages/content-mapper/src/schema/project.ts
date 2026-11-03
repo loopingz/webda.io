@@ -17,10 +17,10 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { ClassDeclaration, MethodDeclaration, Node } from "typescript/unstable/ast";
-import { ModifierFlags, SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
-import { getJSDocTags, getTextOfJSDocComment } from "typescript/unstable/ast";
+import type { ClassDeclaration, MethodDeclaration, Node } from "typescript/ast";
+import { ModifierFlags, SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
+import { getJSDocTags, getTextOfJSDocComment } from "typescript/ast";
 import type { AnalysisContext } from "../plan.ts";
 import { discoverWebdaObjects } from "../module-discovery.ts";
 import { generateActionInput, generateActionOutput } from "./action.ts";

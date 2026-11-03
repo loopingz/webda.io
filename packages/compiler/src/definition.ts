@@ -1,6 +1,6 @@
 import { FileUtils } from "@webda/utils";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { BinaryLike, createHash, Hash } from "crypto";
+import { createHash, Hash } from "crypto";
 import { existsSync, globSync, readFileSync } from "fs";
 import type { DeletePolicy } from "@webda/content-mapper";
 import type { JSONSchema7 } from "json-schema";
@@ -1007,7 +1007,7 @@ export class WebdaProject {
       .filter(f => f.isFile())
       .map(f => join(f.parentPath, f.name))
       .sort()
-      .forEach(f => hash.update(readFileSync(f) as BinaryLike));
+      .forEach(f => hash.update(readFileSync(f)));
   }
 
   /**
@@ -1017,7 +1017,7 @@ export class WebdaProject {
   getDigest(): string {
     const current = createHash("md5");
     const tsCfg = readFileSync(this.getAppPath("tsconfig.json"));
-    current.update(tsCfg as BinaryLike);
+    current.update(tsCfg);
     // Only `include` / `exclude` are read. FileUtils.load parses the JSONC a
     // tsconfig is written in, and agrees with TypeScript's own parser on
     // every tsconfig in the repository, so the digest is unchanged.
@@ -1032,7 +1032,7 @@ export class WebdaProject {
       .map(f => join(f.parentPath, f.name))
       .sort()
       .forEach(f => {
-        current.update(readFileSync(f) as BinaryLike);
+        current.update(readFileSync(f));
       });
     this.hashCompilerPackage(current);
     // We might want to consider doing the same with the output files?

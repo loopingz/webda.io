@@ -14,9 +14,9 @@
  * The first two emit *asymmetric accessors*, which are ordinary TypeScript, so
  * any compiler produces the right `.js` and `.d.ts` with no plugin.
  */
-import { SymbolFlags } from "typescript/unstable/sync";
-import type { SourceFile } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import { SymbolFlags } from "typescript/sync";
+import type { SourceFile } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import { DEFAULT_COERCIONS } from "../coercions.ts";
 import { classesOf, isStatic, memberName } from "../context.ts";
 import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";

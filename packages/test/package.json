@@ -38,15 +38,15 @@
     "@webda/workout": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
-    "jscodeshift": "^17.3.0",
-    "mocha": "^11.7.5",
-    "jest": "^30.3.0",
+    "@types/node": "26.6.6",
     "esbuild": "^0.28.2",
-    "vitest": "^4.1.2",
-    "vite": "^6.0.0",
-    "skott": "^0.35.8",
-    "tsx": "^4.21.0"
+    "jest": "^30.5.2",
+    "jscodeshift": "^17.4.0",
+    "mocha": "^12.0.3",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "peerDependenciesMeta": {
     "vitest": {
@@ -66,6 +66,6 @@
   },
   "license": "LGPL-3.0-only",
   "peerDependencies": {
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2 || ^5.1.0"
   }
 }

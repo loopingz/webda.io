@@ -20,22 +20,22 @@
   },
   "dependencies": {
     "@webda/core": "workspace:*",
+    "@webda/ql": "workspace:*",
     "@webda/utils": "workspace:*",
     "@webda/workout": "workspace:*",
-    "@webda/ql": "workspace:*",
-    "mime-types": "^2.1.31"
+    "mime-types": "^3.0.2"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/bench": "workspace:*",
     "@webda/compiler": "workspace:*",
     "@webda/test": "workspace:*",
-    "fs-extra": "^11.0.0",
-    "sinon": "^21.0.3",
-    "skott": "^0.35.8",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "fs-extra": "^11.4.1",
+    "sinon": "^22.1.0",
+    "skott": "^0.35.12",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "files": [
     "lib",

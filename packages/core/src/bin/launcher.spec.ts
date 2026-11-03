@@ -76,6 +76,7 @@ class LauncherTest {
   beforeEach() {
     this.env = { ...process.env };
     delete process.env.NODE_COMPILE_CACHE;
+    delete process.env.NODE_DISABLE_COMPILE_CACHE;
     delete process.env.WEBDA_COMPILE_CACHE;
     state.compileCache = [];
   }

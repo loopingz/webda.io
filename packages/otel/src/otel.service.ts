@@ -13,7 +13,8 @@ import {
   LoggerProvider
 } from "@opentelemetry/sdk-logs";
 import { ConsoleMetricExporter, type MetricReader, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import * as tracing from "@opentelemetry/sdk-trace";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
 import {
   type Context,
@@ -319,7 +320,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
    */
   protected getSpanProcessors(): tracing.SpanProcessor[] {
     const exporter = this.getTraceExporter();
-    return exporter ? [new SessionIdSpanProcessor(), new tracing.BatchSpanProcessor(exporter)] : [];
+    return exporter ? [new SessionIdSpanProcessor(), new tracing.BatchSpanProcessor({ exporter })] : [];
   }
 
   /**

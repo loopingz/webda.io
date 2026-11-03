@@ -44,6 +44,7 @@ import {
   GraphQLInt,
   GraphQLList,
   GraphQLNonNull,
+  GraphQLNullableInputType,
   GraphQLObjectType,
   GraphQLOutputType,
   GraphQLResolveInfo,
@@ -1401,7 +1402,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           true
         );
         // A property the converter cannot map still is an argument: the Object scalar takes anything
-        const type = (converted?.type ?? AnyScalarType) as GraphQLInputType;
+        const type = (converted?.type ?? AnyScalarType) as GraphQLNullableInputType;
         args[name] = {
           type: required.has(name) ? new GraphQLNonNull(type) : type,
           description: converted?.description

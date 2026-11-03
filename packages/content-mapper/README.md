@@ -36,8 +36,18 @@ used in `webda.module.json`.
 
 ## Editor support
 
-Register the mapper in `tsconfig.json` to see the generated members in your editor, without false errors when
-assigning a string to a `Date` field:
+Starting in `typescript@7.1.0-dev.20261102.1`, `tsgo` rejects content mapper extensions that end in `.ts` (`TS18066`).
+You can choose between two strategies depending on whether you prefer standard `.ts` file suffixes or an unmodified `tsc` binary:
+
+### Strategy A: Keep `.model.ts` / `.service.ts` with `patchTsc` (Default)
+
+Patch the installed native `tsc` binary so compound `.model.ts` and `.service.ts` extensions remain allowed in `tsc` and `tsc --lsp`:
+
+```sh
+node node_modules/@webda/content-mapper/lib/patch-tsc.js
+```
+
+Then register `.model.ts` and `.service.ts` in `tsconfig.json`:
 
 ```jsonc
 {
@@ -45,10 +55,40 @@ assigning a string to a `Date` field:
 }
 ```
 
+### Strategy B: Use `.model.wts` / `.service.wts` with `outputExtensions` (Unmodified `tsc`)
+
+If you prefer not to patch the `tsc` binary, use `.model.wts` and `.service.wts` source suffixes and configure `outputExtensions` in `@webda/content-mapper`'s manifest (or your mapper wrapper) so emitted files and ESM imports remain `./user.model.js` and `./query.service.js`:
+
+```jsonc
+// tsconfig.json
+{
+  "contentMappers": [{ "package": "@webda/content-mapper", "extensions": [".model.wts", ".service.wts"] }]
+}
+```
+
+```jsonc
+// package.json
+{
+  "typescript": {
+    "contentMapper": {
+      "exec": ["node", "lib/server.js"],
+      "compilerOptions": ["module", "target"],
+      "outputExtensions": {
+        ".model.wts": ".model.js",
+        ".service.wts": ".service.js",
+        ".flow.wts": ".flow.js"
+      }
+    }
+  }
+}
+```
+
+> Note: With `.wts` files, configure your editor and tools (e.g. VS Code `"files.associations": { "*.wts": "typescript" }`, ESLint, Prettier) to treat `*.wts` as TypeScript.
+
 Content mappers run external code, so TypeScript asks you to trust them: `tsc --runExternalCode` on the command line,
 `initializationOptions.runExternalCode` for the language server.
 
-A model or service declared in a file without the `.model.ts` / `.service.ts` suffix is never transformed: `webdac
+A model or service declared in a file without a mapped suffix (`.model.ts` / `.service.ts` or `.model.wts` / `.service.wts`) is never transformed: `webdac
 build` fails and names the file to rename (`WEBDA_STRICT_FILE_NAMING=0` downgrades it to a warning while migrating).
 
 ## Tests with Vitest

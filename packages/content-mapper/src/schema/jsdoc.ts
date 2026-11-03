@@ -22,9 +22,9 @@
  * alternative is a schema that quietly loses documentation — exactly the
  * class of failure stage 7 is meant to make impossible.
  */
-import type { Checker, Project, Symbol as TsSymbol } from "typescript/unstable/sync";
-import { SyntaxKind } from "typescript/unstable/ast";
-import type { Node } from "typescript/unstable/ast";
+import type { Checker, Project, Symbol as TsSymbol } from "typescript/sync";
+import { SyntaxKind } from "typescript/ast";
+import type { Node } from "typescript/ast";
 
 /** A JSDoc comment node: either literal text or a `{@link}`. */
 interface CommentPart {

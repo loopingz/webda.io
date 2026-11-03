@@ -1,6 +1,6 @@
-import type { MethodDeclaration, Node } from "typescript/unstable/ast";
-import { SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { MethodDeclaration, Node } from "typescript/ast";
+import { SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import type { JSONSchema7 } from "./types.ts";
 
 /**

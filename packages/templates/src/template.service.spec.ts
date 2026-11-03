@@ -6,7 +6,10 @@ import * as assert from "assert";
 import { vi } from "vitest";
 import { TemplateService, TemplateServiceParameters, registerTemplateEngine } from "./index.js";
 
-const configure = vi.fn();
+let configuredWith: any;
+const configure = vi.fn((opts: any) => {
+  configuredWith = opts;
+});
 let configured = false;
 registerTemplateEngine("async-ok", {
   extensions: ["aok"],
@@ -77,7 +80,7 @@ class TemplateServiceTest extends TemplateServiceTestBase {
 
   @test
   configureCalled() {
-    assert.deepStrictEqual(configure.mock.calls[0][0], { x: 1 });
+    assert.deepStrictEqual(configuredWith, { x: 1 });
   }
 
   @test

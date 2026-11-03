@@ -23,9 +23,9 @@
  * which `mergePlan` collapses — rather than duplicate bindings, which are
  * TS2300.
  */
-import { SymbolFlags } from "typescript/unstable/sync";
-import type { SourceFile } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import { SymbolFlags } from "typescript/sync";
+import type { SourceFile } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import type { AnalysisContext, Edit } from "../plan.ts";
 
 /** Collects the import edits one file needs. */

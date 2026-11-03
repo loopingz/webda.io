@@ -10,10 +10,10 @@
  * and `branch[<n>]` naming the blocks of a statement that has several, and `/<Operation>` appended to a task. A
  * `// @label <name>` comment directly above a statement replaces its id with `<method>/<name>`.
  */
-import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/unstable/ast";
-import { NodeFlags, SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
-import { SymbolFlags, type Symbol as TsSymbol } from "typescript/unstable/sync";
+import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/ast";
+import { NodeFlags, SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
+import { SymbolFlags, type Symbol as TsSymbol } from "typescript/sync";
 import type { AnalysisContext } from "../plan.ts";
 import { generateActionInput } from "../schema/action.ts";
 import {

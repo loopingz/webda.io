@@ -206,8 +206,8 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
       stream.on("end", () => resolve());
       stream.on("data", chunk => {
         const buffer = Buffer.from(chunk);
-        hash.update(buffer as crypto.BinaryLike);
-        challenge.update(buffer as crypto.BinaryLike);
+        hash.update(buffer);
+        challenge.update(buffer);
       });
     });
     return { hash: hash.digest("hex"), challenge: challenge.digest("hex") };

@@ -20,11 +20,11 @@ import { SchemaConverter } from "./schema/converter.ts";
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/unstable/ast";
-import { getJSDocTags, getTextOfJSDocComment, SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
-import { SymbolFlags } from "typescript/unstable/sync";
-import type { Symbol as TsSymbol, Type } from "typescript/unstable/sync";
+import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/ast";
+import { getJSDocTags, getTextOfJSDocComment, SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
+import { SymbolFlags } from "typescript/sync";
+import type { Symbol as TsSymbol, Type } from "typescript/sync";
 import {
   classTree,
   dependencyModelName,
@@ -217,7 +217,7 @@ export interface ModuleResult {
 }
 
 /** Suffixes the content mapper is registered for. */
-const MAPPED_SUFFIXES = [".model.ts", ".service.ts", ".flow.ts"];
+const MAPPED_SUFFIXES = [".model.ts", ".service.ts", ".flow.ts", ".model.wts", ".service.wts", ".flow.wts"];
 
 /** Suffix suggested for a section when a file has none of {@link MAPPED_SUFFIXES}. */
 const SECTION_SUFFIX: Record<string, string> = {

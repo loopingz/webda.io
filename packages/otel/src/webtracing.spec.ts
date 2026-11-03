@@ -1,7 +1,7 @@
 import { SpanKind, TraceFlags, context, trace } from "@opentelemetry/api";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { ConsoleMetricExporter, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import { tracing } from "@opentelemetry/sdk-node";
+import * as tracing from "@opentelemetry/sdk-trace";
 import { suite, test, timeout } from "@webda/test";
 import { Context, HttpContext, WebContext, WebdaError, runWithContext, useCrypto } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";

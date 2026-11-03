@@ -18,9 +18,9 @@
  * The original builds the rewrite with `ts.factory`, removed in TypeScript 7;
  * here it is text through the shared plan model.
  */
-import type { SourceFile } from "typescript/unstable/ast";
-import { getJSDocTags, SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { SourceFile } from "typescript/ast";
+import { getJSDocTags, SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import type { AnalysisContext, Edit, FileEdits, GeneratedDiagnostic, Generator } from "../plan.ts";
 
 /** Module providing the runtime `escape` helper. */

@@ -16,7 +16,7 @@ import {
   propagation,
   trace
 } from "@opentelemetry/api";
-import { tracing } from "@opentelemetry/sdk-node";
+import * as tracing from "@opentelemetry/sdk-trace";
 import { type RequestTraceHandle, type RequestTracer, type TracedRequest, createSubnetChecker } from "@webda/core";
 import type { OtelService } from "./otel.service.js";
 

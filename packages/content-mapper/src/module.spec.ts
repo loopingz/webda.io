@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { ClassDeclaration, MethodDeclaration } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { ClassDeclaration, MethodDeclaration } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import { openSession, type Session } from "./context.ts";
 import {
   buildBehaviorActions,

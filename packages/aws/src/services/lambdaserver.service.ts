@@ -13,7 +13,7 @@ import {
 } from "@webda/core";
 import type { APIGatewayProxyEvent, Context as LambdaContext, S3Event } from "aws-lambda";
 import { useLog } from "@webda/workout";
-import { serialize as cookieSerialize } from "cookie";
+import { stringifySetCookie } from "cookie";
 import { isIP } from "node:net";
 import type { LambdaCommandEvent } from "./lambdacaller.service.js";
 
@@ -448,7 +448,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
     const cookies = context.getResponseCookies();
     for (const i in cookies) {
       result.multiValueHeaders["Set-Cookie"].push(
-        cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options || {})
+        stringifySetCookie({ ...(cookies[i].options || {}), name: cookies[i].name, value: cookies[i].value })
       );
     }
     const body = context.getResponseBody();

@@ -1,8 +1,8 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
-import * as is from "typescript/unstable/ast/is";
-import type { ClassDeclaration } from "typescript/unstable/ast";
+import * as is from "typescript/ast/is";
+import type { ClassDeclaration } from "typescript/ast";
 import { openSession, type Session } from "../context.ts";
 import { generateActionInput } from "./action.ts";
 import { generateModelSchemas } from "./model.ts";

@@ -16,7 +16,7 @@
  * Those are all present in the committed output. Diverging from them is a
  * schema change, not a fix, so it does not belong in this port.
  */
-import type { Checker, Project, Symbol as TsSymbol } from "typescript/unstable/sync";
+import type { Checker, Project, Symbol as TsSymbol } from "typescript/sync";
 import { documentationOf } from "./jsdoc.ts";
 import type { JSONSchema7 } from "./types.ts";
 

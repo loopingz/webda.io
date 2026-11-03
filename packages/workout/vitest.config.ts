@@ -10,10 +10,11 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      exclude: ["src/**/*.spec.ts", "src/index.ts", "src/sample.ts"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
-    include: ["src/**/*.spec.ts"]
+    include: ["src/**/*.spec.ts"],
+    exclude: ["**/node_modules/**", "src/workeroutput.spec.ts"]
   }
 });

@@ -1,5 +1,32 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/iam-v4.0.0-beta.12...iam-v4.0.0-beta.13) (2026-11-04)
+
+
+### Features
+
+* **core:** Add a dry mode for Operations ([#767](https://github.com/loopingz/webda.io/issues/767)) ([#910](https://github.com/loopingz/webda.io/issues/910)) ([1f445d7](https://github.com/loopingz/webda.io/commit/1f445d76002d83f56cbca5ac11e808763f4d58f1))
+* **core:** GlobalOperationContext and useSystem() for system operation calls ([#1003](https://github.com/loopingz/webda.io/issues/1003)) ([b5dc9ef](https://github.com/loopingz/webda.io/commit/b5dc9ef86ce6213c27e186867bdd4b7ba9c323df))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+
+
+### Bug Fixes
+
+* **security:** address medium and low security review findings (AGY-018 to AGY-036) ([#1050](https://github.com/loopingz/webda.io/issues/1050)) ([8de0715](https://github.com/loopingz/webda.io/commit/8de0715354ba3dd7f6afbca406eb8269ab6d748c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/iam-v4.0.0-beta.11...iam-v4.0.0-beta.12) (2026-10-22)
 
 

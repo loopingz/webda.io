@@ -1,6 +1,6 @@
 {
   "name": "@webda/azure",
-  "version": "4.0.0-beta.12",
+  "version": "4.0.0-beta.13",
   "description": "Azure services and deployers for Webda",
   "main": "lib/index.js",
   "scripts": {

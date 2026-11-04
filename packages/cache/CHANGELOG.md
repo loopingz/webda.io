@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-beta.12...cache-v4.0.0-beta.13) (2026-11-04)
+
+
+### Bug Fixes
+
+* **security:** address medium and low security review findings (AGY-018 to AGY-036) ([#1050](https://github.com/loopingz/webda.io/issues/1050)) ([8de0715](https://github.com/loopingz/webda.io/commit/8de0715354ba3dd7f6afbca406eb8269ab6d748c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/decorators bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-beta.11...cache-v4.0.0-beta.12) (2026-10-22)
 
 

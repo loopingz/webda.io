@@ -1,5 +1,39 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-beta.12...oauth-v4.0.0-beta.13) (2026-11-04)
+
+
+### Features
+
+* **azure:** add Azure services, Container Apps and Functions deployers ([#998](https://github.com/loopingz/webda.io/issues/998)) ([6c7b1aa](https://github.com/loopingz/webda.io/commit/6c7b1aa386b8930c125ce5c975e74ec0c21e686b))
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+* **oauth,oidc:** shared login across applications with remote resource-bound access tokens ([#993](https://github.com/loopingz/webda.io/issues/993)) ([2c9778a](https://github.com/loopingz/webda.io/commit/2c9778ac61ec09cddd54fcbeb104d3b7c8829e63)), closes [#992](https://github.com/loopingz/webda.io/issues/992)
+* **oauth:** let one refresh-token family mint tokens for several resources ([#1056](https://github.com/loopingz/webda.io/issues/1056)) ([9b0832b](https://github.com/loopingz/webda.io/commit/9b0832b825663add30e8975966b7319d8922afa9)), closes [#1049](https://github.com/loopingz/webda.io/issues/1049)
+
+
+### Bug Fixes
+
+* **core:** keep the session when refreshes race with the same token ([#1053](https://github.com/loopingz/webda.io/issues/1053)) ([6fdb416](https://github.com/loopingz/webda.io/commit/6fdb4168e383b079b8a47d09a2bf46e61534a596)), closes [#1052](https://github.com/loopingz/webda.io/issues/1052)
+* **oauth:** block MFA-pending sessions at authorize and preserve mfaAt across refresh ([#1033](https://github.com/loopingz/webda.io/issues/1033)) ([b385f56](https://github.com/loopingz/webda.io/commit/b385f5641cc551e7fe99182730ca85c86e0b73b1))
+* **security:** address medium and low security review findings (AGY-018 to AGY-036) ([#1050](https://github.com/loopingz/webda.io/issues/1050)) ([8de0715](https://github.com/loopingz/webda.io/commit/8de0715354ba3dd7f6afbca406eb8269ab6d748c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/utils bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/auth bumped to 4.0.0-beta.13
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/content-mapper bumped to 4.0.0-beta.11
+    * @webda/fs bumped to 4.0.0-beta.13
+    * @webda/mcp bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-beta.11...oauth-v4.0.0-beta.12) (2026-10-22)
 
 

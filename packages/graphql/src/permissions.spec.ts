@@ -5,7 +5,9 @@ import {
   EventRepository,
   MemoryRepository,
   OwnerModel,
+  registerFeatureFlagProvider,
   registerOperationAuthorizer,
+  registerOperationFeatureFlag,
   registerRepository,
   runWithInstanceStorage,
   User,
@@ -343,6 +345,35 @@ describe("GraphQL permissions go through the core helper", () => {
       );
       const createdAfterAuth = await createFromInput(OpenDoc, { name: "auth-ok" }, makeCtx({ mfa: "verified" }));
       assert.strictEqual(createdAfterAuth.name, "auth-ok");
+    });
+  });
+
+  it("a model CRUD operation whose feature flag is off answers NOT_FOUND", async () => {
+    registerRepository(OpenDoc, new MemoryRepository(OpenDoc, ["uuid"]) as any);
+    await OpenDoc.create({ uuid: "o-flag", name: "open" } as any);
+
+    const operations: Record<string, any> = {
+      "OpenDoc.Create": { id: "OpenDoc.Create", input: "void", output: "void", featureFlag: "docs-v2" }
+    };
+    await runWithInstanceStorage({ operations } as any, async () => {
+      // Declared in code, no provider knows the flag: off by default
+      assert.deepStrictEqual(await error(() => createFromInput(OpenDoc, { name: "flagged" }, alice)), {
+        message: "Object not found",
+        code: "NOT_FOUND"
+      });
+      assert.strictEqual((await OpenDoc.query("name = 'flagged'")).results.length, 0, "nothing is created");
+
+      // Mapped from configuration on an unregistered CRUD operation: a readable object is hidden
+      registerOperationFeatureFlag("OpenDoc.*", "docs-v2");
+      assert.deepStrictEqual(await error(() => loadForAction(OpenDoc, "o-flag", alice, "get")), {
+        message: "Object not found",
+        code: "NOT_FOUND"
+      });
+
+      // A provider turning the flag on lets the CRUD through
+      registerFeatureFlagProvider({ isEnabled: flag => (flag === "docs-v2" ? true : undefined) });
+      assert.strictEqual((await loadForAction(OpenDoc, "o-flag", alice, "get")).uuid, "o-flag");
+      assert.strictEqual((await createFromInput(OpenDoc, { name: "flag-on" }, alice)).name, "flag-on");
     });
   });
 });

@@ -226,6 +226,42 @@ class RemoteResourceTest extends OAuthTest {
   }
 
   @test
+  async remoteResourceStaysAlone() {
+    // The consent of another application differs: a grant with a remote resource is bound to that one only
+    registerProtectedResource({ path: "/mcp" });
+    const server = useService<any>("OAuthServer");
+    const clients = server.getParameters().clients;
+    const b = await this.browser();
+    await this.login(b, "u1");
+    const { verifier, challenge } = this.pkce();
+    b.verifier = verifier;
+    const search = new URLSearchParams([
+      ["response_type", "code"],
+      ["client_id", "app"],
+      ["redirect_uri", REDIRECT_URI],
+      ["code_challenge", challenge],
+      ["code_challenge_method", "S256"],
+      ["state", "s"],
+      ["scope", "Task.*"],
+      ["resource", REMOTE],
+      ["resource", `${ISSUER}/mcp`]
+    ]);
+    const mixed = await this.get(b, `/oauth/authorize?${search}`);
+    assert.strictEqual(query(mixed.headers.Location).error, "invalid_target", mixed.headers.Location);
+    // Nor may a client configuration add it to the application audience
+    clients.app.resources = [REMOTE];
+    try {
+      const configured = await this.authorize(b, { scope: "Task.*" });
+      assert.strictEqual(query(configured.headers.Location).error, "invalid_target", configured.headers.Location);
+      // Alone, the remote resource is still accepted
+      const alone = await this.authorize(b, { scope: "Task.*", resource: REMOTE });
+      assert.strictEqual(alone.headers.Location, `${ISSUER}/oauth/consent`, alone.headers.Location);
+    } finally {
+      delete clients.app.resources;
+    }
+  }
+
+  @test
   async metadataPublishesJwks() {
     const res = await this.get(await this.browser(), "/.well-known/oauth-authorization-server");
     assert.strictEqual(res.body.issuer, ISSUER);

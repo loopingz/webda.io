@@ -745,6 +745,61 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async familyMintsSeveralResources() {
+    const mcp = "https://app.example/mcp";
+    const first = await this.service.issue(this.session(), undefined, { clientId: "c", resources: [mcp] });
+    // The primary audience is the application one
+    const claims = await this.service.verifyAccess(first.accessToken);
+    assert.strictEqual(claims?.aud, "webda-access");
+    const stored = await RefreshToken.query(`family = '${claims!.fam}'`);
+    assert.strictEqual(stored.results[0].resource, undefined);
+    assert.deepStrictEqual(stored.results[0].resources, [mcp]);
+    // The same family mints a token for an allowed resource
+    const second = await this.service.refresh(first.refreshToken, { clientId: "c", resource: mcp });
+    assert.strictEqual(await this.service.verifyAccess(second.accessToken), undefined);
+    const bound = await this.service.verifyAccess(second.accessToken, { audience: mcp });
+    assert.strictEqual(bound?.aud, mcp);
+    assert.strictEqual(bound?.fam, claims!.fam);
+    // Without resource, the primary is minted again: the chosen audience is not sticky
+    const third = await this.service.refresh(second.refreshToken, { clientId: "c" });
+    assert.strictEqual((await this.service.verifyAccess(third.accessToken))?.aud, "webda-access");
+    const rotated = await RefreshToken.query(`hash = '${(this.service as any).hash(third.refreshToken)}'`);
+    assert.strictEqual(rotated.results[0].resource, undefined);
+    assert.deepStrictEqual(rotated.results[0].resources, [mcp]);
+    // Another resource is refused, without burning the token
+    await assert.rejects(
+      () => this.service.refresh(third.refreshToken, { clientId: "c", resource: "https://other/mcp" }),
+      (err: any) => err instanceof InvalidTarget
+    );
+    const fourth = await this.service.refresh(third.refreshToken, { clientId: "c", resource: mcp });
+    // Revoking the family kills the tokens of every resource
+    await this.service.revokeFamily(claims!.fam);
+    assert.strictEqual(await this.service.verifyAccess(third.accessToken), undefined);
+    assert.strictEqual(await this.service.verifyAccess(fourth.accessToken, { audience: mcp }), undefined);
+    await assert.rejects(() => this.service.refresh(fourth.refreshToken, { clientId: "c" }), TokenInvalid);
+  }
+
+  @test
+  async issueWithAudienceOfAllowedResource() {
+    const mcp = "https://app.example/mcp";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", resources: [mcp], audience: mcp });
+    assert.strictEqual(await this.service.verifyAccess(t.accessToken), undefined);
+    const claims = await this.service.verifyAccess(t.accessToken, { audience: mcp });
+    assert.strictEqual(claims?.aud, mcp);
+    // The family primary stays the application audience
+    const stored = await RefreshToken.query(`family = '${claims!.fam}'`);
+    assert.strictEqual(stored.results[0].resource, undefined);
+    const again = await this.service.refresh(t.refreshToken, { clientId: "c" });
+    assert.strictEqual((await this.service.verifyAccess(again.accessToken))?.aud, "webda-access");
+    // An audience outside the family's resources is refused
+    await assert.rejects(
+      () =>
+        this.service.issue(this.session(), undefined, { clientId: "c", resources: [mcp], audience: "https://x/mcp" }),
+      (err: any) => err instanceof InvalidTarget
+    );
+  }
+
+  @test
   async loadFromTokenRefusesBoundToken() {
     const manager = useService("SessionManager") as any;
     const t = await this.service.issue(this.session(), undefined, {

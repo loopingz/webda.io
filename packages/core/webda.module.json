@@ -3231,6 +3231,12 @@
         "resource": {
           "type": "string"
         },
+        "resources": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
         "name": {
           "type": "string"
         },
@@ -3354,8 +3360,15 @@
               "type": "number"
             },
             "resource": {
-              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "description": "Resource (RFC 8707) the access tokens are bound to by default",
               "type": "string"
+            },
+            "resources": {
+              "description": "Other resources (RFC 8707) the family may mint access tokens for, one audience per token",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
@@ -3498,8 +3511,15 @@
               "type": "number"
             },
             "resource": {
-              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "description": "Resource (RFC 8707) the access tokens are bound to by default",
               "type": "string"
+            },
+            "resources": {
+              "description": "Other resources (RFC 8707) the family may mint access tokens for, one audience per token",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",
@@ -3642,8 +3662,15 @@
               "type": "number"
             },
             "resource": {
-              "description": "Resource (RFC 8707) the access tokens are bound to",
+              "description": "Resource (RFC 8707) the access tokens are bound to by default",
               "type": "string"
+            },
+            "resources": {
+              "description": "Other resources (RFC 8707) the family may mint access tokens for, one audience per token",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "retiredAt": {
               "description": "Set when replaced, never used, by a replay of the token it came from (within the grace): presenting it means two\nholders, and revokes the family",

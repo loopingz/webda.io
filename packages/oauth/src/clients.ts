@@ -1,7 +1,10 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import type { OAuthClient, OAuthServerParameters } from "./parameters.js";
+import { OAuthRegisteredClient } from "./models.model.js";
 
+/** Prefix of the client ids of dynamically registered clients */
+export const REGISTERED_PREFIX = "dcr_";
 /** Maximum size of a Client ID Metadata Document */
 const MAX_DOCUMENT = 64 * 1024;
 /** Maximum length of a redirect_uri */
@@ -73,6 +76,27 @@ function toIPv4(hi: number, lo: number): string {
 }
 
 /**
+ * Rate limit key of a client address: an IPv4 address is its own key (an IPv4-mapped IPv6 address keys as its IPv4),
+ * an IPv6 address is keyed by its /64 prefix, the smallest block a single host usually owns. Without a client address
+ * (or with an unparsable one) every such request shares the `ip:unknown` key
+ *
+ * @param ip - client address
+ * @returns the rate limit key
+ */
+export function rateLimitKey(ip: string | undefined): string {
+  if (typeof ip !== "string") return "ip:unknown";
+  const family = isIP(ip.split("%")[0]);
+  if (family === 4) return `ip:${ip}`;
+  const g = family === 6 ? expandIPv6(ip) : undefined;
+  if (!g) return "ip:unknown";
+  if (g.slice(0, 5).every(x => x === 0) && g[5] === 0xffff) return `ip:${toIPv4(g[6], g[7])}`;
+  return `ip:${g
+    .slice(0, 4)
+    .map(x => x.toString(16))
+    .join(":")}::/64`;
+}
+
+/**
  * Fail-closed classification: anything that is not a public unicast address (or is not an IP at all) is private
  *
  * @param ip - address
@@ -108,7 +132,7 @@ export function isPrivateAddress(ip: string): boolean {
  * @param uri - redirect URI from an untrusted metadata document
  * @returns true when it is acceptable: https, loopback http, or a private-use scheme
  */
-function isAcceptableDocumentRedirect(uri: unknown): boolean {
+export function isAcceptableRedirect(uri: unknown): boolean {
   if (typeof uri !== "string" || uri.length > MAX_REDIRECT_URI) return false;
   let url: URL;
   try {
@@ -177,6 +201,7 @@ export class ClientRegistry {
       const configured = this.params.clients[clientId];
       return configured ? { ...copyClient(configured), id: clientId } : undefined;
     }
+    if (clientId.startsWith(REGISTERED_PREFIX)) return this.getRegistered(clientId);
     if (
       !this.params.clientMetadataDocuments ||
       clientId.length > MAX_REDIRECT_URI ||
@@ -199,6 +224,27 @@ export class ClientRegistry {
     }
     const client = await pending;
     return client && copyClient(client);
+  }
+
+  /**
+   * @param clientId - `dcr_` client_id
+   * @returns the registered client, undefined when unknown or expired
+   */
+  protected async getRegistered(clientId: string): Promise<OAuthClient | undefined> {
+    const ref = OAuthRegisteredClient.ref(clientId);
+    if (!(await ref.exists())) return undefined;
+    const stored: OAuthRegisteredClient = await ref.get();
+    if (!(stored.expiresAt > Date.now())) return undefined;
+    return {
+      id: stored.uuid,
+      name: stored.name,
+      redirect_uris: [...stored.redirect_uris],
+      logo: stored.logoUri,
+      client_uri: stored.clientUri,
+      defaultScope: stored.scope,
+      deviceFlow: false,
+      registered: true
+    };
   }
 
   /**
@@ -264,7 +310,7 @@ export class ClientRegistry {
       !Array.isArray(doc.redirect_uris) ||
       doc.redirect_uris.length === 0 ||
       doc.redirect_uris.length > MAX_REDIRECT_URIS ||
-      !doc.redirect_uris.every(isAcceptableDocumentRedirect)
+      !doc.redirect_uris.every(isAcceptableRedirect)
     ) {
       return undefined;
     }

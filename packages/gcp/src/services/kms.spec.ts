@@ -1,5 +1,4 @@
 import { KeyManagementServiceClient } from "@google-cloud/kms";
-import { CryptoService } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -62,9 +61,19 @@ class KMSTest extends WebdaApplicationTest {
   }
 
   @test
+  async rejectsEmptyEncryptionResponses() {
+    vi.spyOn(KeyManagementServiceClient.prototype, "encrypt").mockImplementation(<any>(async () => [{}]));
+    const service = await this.addService(GCPKMSService, {});
+    await assert.rejects(
+      () => service.encrypt("test", "projects/p/locations/l/keyRings/r/cryptoKeys/k"),
+      /no ciphertext/
+    );
+  }
+
+  @test
   async missingKey() {
     delete process.env.WEBDA_GCP_KMS_KEY;
-    const encrypter = CryptoService.getEncrypter("gcp");
+    const encrypter = await this.addService(GCPKMSService, {});
     await assert.rejects(() => encrypter.encrypt("test"), /WEBDA_GCP_KMS_KEY/);
     await assert.rejects(() => encrypter.encrypt("test", "projects/only"), /WEBDA_GCP_KMS_KEY/);
   }

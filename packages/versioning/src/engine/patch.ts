@@ -25,8 +25,22 @@ function setAtPointerMut(root: unknown, path: Path, value: unknown): unknown {
   if (path === "") return value;
   const parts = path.slice(1).split("/").map(unescapePointer);
   let cursor: any = root;
-  for (let i = 0; i < parts.length - 1; i++) cursor = cursor[parts[i]];
-  cursor[parts[parts.length - 1]] = value;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (cursor === null || typeof cursor !== "object" || !Object.hasOwn(cursor, parts[i])) {
+      throw new VersioningError("BAD_FORMAT", "patch: path must traverse own object properties", path);
+    }
+    cursor = cursor[parts[i]];
+  }
+  if (cursor === null || typeof cursor !== "object") {
+    throw new VersioningError("BAD_FORMAT", "patch: path parent must be an object", path);
+  }
+  // Define an own data property: assigning `__proto__` would invoke its inherited setter.
+  Object.defineProperty(cursor, parts[parts.length - 1], {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  });
   return root;
 }
 
@@ -53,7 +67,7 @@ export function getAtPointer(root: unknown, path: Path): unknown {
   const parts = path.slice(1).split("/").map(unescapePointer);
   let cursor: any = root;
   for (const p of parts) {
-    if (cursor == null) return undefined;
+    if (cursor == null || !Object.hasOwn(cursor, p)) return undefined;
     cursor = cursor[p];
   }
   return cursor;

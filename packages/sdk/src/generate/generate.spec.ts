@@ -91,7 +91,7 @@ class GenerateSdkTest extends SampleAppTest {
     assert.match(files["operations.ts"], /"Company\.Patch": \{ input: Partial<T\.CompanyInput>; output: T\.Company \}/);
     assert.match(
       files["operations.ts"],
-      /"SubSubProject\.Action": \{ input: T\.UuidRequest & T\.SubSubProjectActionInput; output: T\.SubSubProjectActionOutput \}/
+      /"SubSubProject\.Action": \{ input: T\.SubSubProjectActionRequest; output: T\.SubSubProjectActionOutput \}/
     );
     assert.match(
       files["operations.ts"],

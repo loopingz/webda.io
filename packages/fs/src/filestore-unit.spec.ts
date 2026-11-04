@@ -60,6 +60,16 @@ class FileBackedMapTest {
   }
 
   @test
+  async countConformance() {
+    const { checkCount } = await import("@webda/core/lib/test");
+    await runWithInstanceStorage({}, async () => {
+      const CountRow: any = class CountRow {};
+      CountRow.Metadata = { Identifier: "Test/CountRow", PrimaryKey: ["uuid"], Subclasses: [] };
+      await checkCount(this.store.getRepository(CountRow), { native: true });
+    });
+  }
+
+  @test
   async hasReturnsFalseForMissing() {
     const exists = await this.store._exists("nonexistent");
     assert.strictEqual(exists, false);

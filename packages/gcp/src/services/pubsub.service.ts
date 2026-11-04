@@ -9,7 +9,7 @@ export class GCPPubSubParameters extends ServiceParameters {
   /**
    * Topic to use on GCP
    */
-  topic: string;
+  topic!: string;
   /**
    * Subscription options to pass to GCP
    */
@@ -27,7 +27,7 @@ export default class GCPPubSubService<
   T = any,
   K extends GCPPubSubParameters = GCPPubSubParameters
 > extends PubSubService<T, K> {
-  pubsub: PubSub;
+  pubsub?: PubSub;
 
   /**
    * @override
@@ -60,6 +60,7 @@ export default class GCPPubSubService<
    */
   async sendMessage(event: T): Promise<void> {
     this.metrics.messages_sent.inc();
+    if (!this.pubsub) throw new Error("Pub/Sub client is not initialized");
     await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSONUtils.stringify(event)) });
   }
 
@@ -91,6 +92,8 @@ export default class GCPPubSubService<
     eventPrototype?: new () => T,
     onBind?: (subscription: Subscription) => void
   ): CancelablePromise<void> {
+    const pubsub = this.pubsub;
+    if (!pubsub) throw new Error("Pub/Sub client is not initialized");
     const subscriptionName = this.getSubscriptionName();
     let subscription: Subscription;
     const messageHandler = async (message: Message) => {
@@ -111,10 +114,10 @@ export default class GCPPubSubService<
     return new CancelablePromise<void>(
       async (_resolve, reject) => {
         try {
-          subscription = this.pubsub.subscription(subscriptionName);
+          subscription = pubsub.subscription(subscriptionName);
           const [exists] = await subscription.exists();
           if (!exists) {
-            const [result] = await this.pubsub
+            const [result] = await pubsub
               .topic(this.parameters.topic)
               .createSubscription(subscriptionName, this.parameters.subscriptionOptions);
             subscription = result;

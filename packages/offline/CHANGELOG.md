@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.11...offline-v4.0.0-beta.12) (2026-10-22)
+
+
+### Bug Fixes
+
+* **content-mapper:** list Events of an optional [WEBDA_EVENTS]? member under strict ([#978](https://github.com/loopingz/webda.io/issues/978)) ([c303962](https://github.com/loopingz/webda.io/commit/c30396298c8545f9c1ff5d8c4839191afbd7609f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/models bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/versioning bumped to 4.0.0-beta.12
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.10...offline-v4.0.0-beta.11) (2026-10-16)
 
 

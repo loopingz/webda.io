@@ -441,6 +441,31 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
   }
 
   @test
+  async refusesASubscriptionWhenFeatureFlagOff() {
+    registerGraphQLFixture();
+    useInstanceStorage().operations["Fixture.FlaggedSub"] = {
+      ...useInstanceStorage().operations["Fixture.Guarded"],
+      id: "Fixture.FlaggedSub",
+      featureFlag: "sub-flag",
+      permission: undefined,
+      graphql: { subscription: "fixtureFlaggedSub" }
+    } as any;
+    this.service.generateSchema();
+    try {
+      const refused = await subscribe({
+        schema: this.schema(),
+        document: parse("subscription { fixtureFlaggedSub { index } }"),
+        contextValue: this.context()
+      });
+      assert.ok(!(Symbol.asyncIterator in (refused as object)), "no stream for a disabled subscription");
+      assert.strictEqual((refused as any).errors[0].extensions.code, "NOT_FOUND");
+    } finally {
+      delete useInstanceStorage().operations["Fixture.FlaggedSub"];
+      this.service.generateSchema();
+    }
+  }
+
+  @test
   async refusesToShadowTheAggregateSubscription() {
     registerGraphQLFixture();
     useInstanceStorage().operations["Fixture.Agg"] = {

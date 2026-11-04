@@ -1,4 +1,4 @@
-import { CustomConstructor } from "@webda/tsc-esm";
+import { CustomConstructor } from "@webda/utils";
 import {
   Counter,
   CounterConfiguration,

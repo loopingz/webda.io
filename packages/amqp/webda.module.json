@@ -127,6 +127,11 @@
             "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
             "type": "number"
           },
+          "push": {
+            "default": true,
+            "description": "Subscribe with `basic.consume` instead of polling with `basic.get`\n\n`consume()` opens its own channel with a prefetch of `maxConsumers`: the broker pushes the messages as they\narrive, at most `maxConsumers` being processed at once. A message whose callback fails is requeued after\nthe `workerDelayer` delay, so it is delivered again. Set to false to poll with `receiveMessage`.",
+            "type": "boolean"
+          },
           "queue": {
             "description": "Queue name",
             "type": "string"

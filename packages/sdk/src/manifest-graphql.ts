@@ -119,7 +119,10 @@ export function describeGraphQL(
     if (!isObjectType(named)) return undefined;
     const owner = modelTypes.get(named.name);
     const selection: GraphQLSelection = {};
-    for (const field of Object.values(named.getFields()) as any[]) {
+    const fields = named.getFields();
+    for (const field of Object.values(fields) as any[]) {
+      // The total of a query result runs a count query: it is only selected when a call asks for it
+      if (field.name === "total" && "continuationToken" in fields) continue;
       const target = namedType(field.type);
       const key: string | undefined = field.extensions?.webdaKey;
       const attribute = key ?? field.name;

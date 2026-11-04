@@ -2,6 +2,7 @@ import { IOperationContext } from "../contexts/icontext.js";
 import { bind } from "@webda/ql";
 import { Password, V3_PASSWORD_MAPPED } from "./password.model.js";
 import { MFA } from "./mfa.model.js";
+import { UserKeys } from "./userkeys.model.js";
 import { type ModelClass, type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
@@ -32,6 +33,9 @@ export class User extends UuidModel {
     if (!(this.mfa instanceof MFA)) {
       (this as any).__hydrateBehaviors?.({ mfa: mapped?.mfa ?? {} });
     }
+    if (!(this.keys instanceof UserKeys)) {
+      (this as any).__hydrateBehaviors?.({ keys: mapped?.keys ?? {} });
+    }
   }
 
   /**
@@ -53,6 +57,21 @@ export class User extends UuidModel {
    * Timestamp (ms) of the last counted MFA attempt
    */
   _lastMfaAttemptAt?: number;
+
+  /**
+   * End-to-end encryption keys: public keys, encrypted keyring and its escrows, devices
+   */
+  keys?: UserKeys;
+
+  /**
+   * Escrow fetches counted since the last device registration (see {@link UserKeys.getEscrow})
+   */
+  _escrowAttempts: number = 0;
+
+  /**
+   * Timestamp (ms) of the last counted escrow fetch
+   */
+  _lastEscrowAttemptAt?: number;
 
   /**
    * Map v3 records (`__password` string) onto the Password behavior shape

@@ -97,11 +97,11 @@ registerRepository(User, new MemoryRepository(User, ["uuid"]));
   const user2 = await User.ref("user-2").create({
     active: true
   });
-  const user3 = await User.ref("user-3").create({
+  await User.ref("user-3").create({
     active: true,
     friends: []
   });
-  const user4 = await User.ref("user-4").create({
+  await User.ref("user-4").create({
     active: true,
     friends: []
   });
@@ -139,7 +139,6 @@ registerRepository(User, new MemoryRepository(User, ["uuid"]));
   await page.creator.set(user1);
   page.creationDate = new WebdaDate("2023-01-01");
   page.lastUpdater.set(user2);
-  page.lastUpdater = new ModelLink(user2.getPrimaryKey(), User.getRepository(), page);
   page.lastUpdate = new WebdaDate();
   page.lastUpdate.set(123);
   await page.save();

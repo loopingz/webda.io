@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { ClientRegistry, isPrivateAddress } from "./clients.js";
+import { ClientRegistry, isPrivateAddress, rateLimitKey } from "./clients.js";
 import { OAuthServerParameters, WEBDA_CLI_CLIENT } from "./parameters.js";
 import { OAuthError } from "./errors.js";
 
@@ -499,5 +499,16 @@ describe("OAuthError", () => {
       error_description: "missing client_id"
     });
     expect(new OAuthError("invalid_client", "unknown", 401).getResponseCode()).toBe(401);
+  });
+});
+
+describe("rateLimitKey", () => {
+  it("keys IPv4 per address, IPv6 per /64, unknown otherwise", () => {
+    expect(rateLimitKey("192.0.2.1")).toBe("ip:192.0.2.1");
+    expect(rateLimitKey("2001:db8:1:2::1")).toBe("ip:2001:db8:1:2::/64");
+    expect(rateLimitKey("2001:0db8:0001:0002:ffff::1%eth0")).toBe("ip:2001:db8:1:2::/64");
+    expect(rateLimitKey("::ffff:192.0.2.1")).toBe("ip:192.0.2.1");
+    expect(rateLimitKey(undefined)).toBe("ip:unknown");
+    expect(rateLimitKey("not an ip")).toBe("ip:unknown");
   });
 });

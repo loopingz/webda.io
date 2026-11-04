@@ -21,7 +21,7 @@ on:
     # Weekly full run
     - cron: "17 5 * * 0"
   pull_request:
-    types: [labeled, synchronize]
+    types: [labeled]
     branches: [main]
 
 concurrency:

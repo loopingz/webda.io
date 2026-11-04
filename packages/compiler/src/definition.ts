@@ -1,7 +1,8 @@
 import { FileUtils } from "@webda/utils";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { BinaryLike, createHash, Hash } from "crypto";
+import { createHash, Hash } from "crypto";
 import { existsSync, globSync, readFileSync } from "fs";
+import type { DeletePolicy } from "@webda/content-mapper";
 import type { JSONSchema7 } from "json-schema";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -55,10 +56,39 @@ export type ModelGraphBehaviorDefinition = {
   behavior: string;
 };
 
+/**
+ * What happens to the dependents of a model when it is deleted: `DeletePolicy` of `@webda/models`, validated by the
+ * content mapper when it reads the `@OnDelete` tags
+ */
+export type { DeletePolicy } from "@webda/content-mapper";
+
 export type ModelRelation = {
   attribute: string;
   model: string;
   type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
+  /**
+   * Policy applied to this model when the target is deleted, omitted for the default `NONE`
+   *
+   * With `ownership: "CONTAINS"` it is applied to the listed models when this model is deleted instead.
+   */
+  onDelete?: DeletePolicy;
+  /**
+   * `CONTAINS` for a `Contains<T>`: this model owns the models it lists
+   */
+  ownership?: "CONTAINS";
+};
+
+/**
+ * A relation targeting a model, with the policy applied to its declaring model when the target is deleted
+ */
+export type ModelRelationDependent = {
+  /**
+   * Model declaring the relation
+   */
+  model: string;
+  attribute: string;
+  type: ModelRelation["type"] | "PARENT";
+  onDelete: DeletePolicy;
 };
 
 /**
@@ -71,8 +101,10 @@ export type ModelGraph = {
   ancestors?: string[];
   /**
    * If the model has a parent
+   *
+   * `onDelete` is the policy applied to this model when the parent is deleted: `CASCADE` when omitted
    */
-  parent?: Omit<ModelRelation, "type">;
+  parent?: Omit<ModelRelation, "type" | "ownership">;
   /**
    * This contains links to other models.
    * These links are low cardinality as ids and
@@ -80,6 +112,8 @@ export type ModelGraph = {
    * current model.
    */
   links?: ModelRelation[];
+  /** Polymorphic references; absent models means any registered target. No cascade is implied. */
+  polymorphicLinks?: { attribute: string; models?: string[] }[];
   /**
    * Target other models with a new query
    * This is usually our foreign keys
@@ -99,7 +133,7 @@ export type ModelGraph = {
     /**
      * Targeted model attribute
      */
-    targetAttribute: string;
+    targetAttribute?: string;
   }[];
   /**
    * Maps are deduplication of data in your model
@@ -122,15 +156,28 @@ export type ModelGraph = {
     targetAttributes: string[];
     targetLink: string;
     /**
-     *
+     * `@CascadeDelete` (or `@OnDelete CASCADE`): deleting this model deletes the mapped models, the ones whose
+     * `targetLink` targets it
      */
     cascadeDelete: boolean;
   }[];
+  /**
+   * Attributes tagged `@Index` / `@Unique`: an index (unique with `@Unique`) in the relational stores. The attributes
+   * sharing a name (`@Index <name>`) form one composite index, in declaration order
+   */
+  indexes?: { attribute: string; unique?: boolean; name?: string }[];
   /**
    * References to every model that declare this model
    * as a parent
    */
   children?: string[];
+  /**
+   * Reverse index: every relation targeting this model whose policy is not `NONE`
+   *
+   * Computed at build time for the models of the same module. `Contains` relations are not listed: their owner
+   * applies them to the models it lists.
+   */
+  dependents?: ModelRelationDependent[];
   /**
    * Binaries attribute, in the model you can declare
    * attributes as Binary, so users can upload binaries that
@@ -252,12 +299,17 @@ export interface ModelMetadata {
       description?: string;
       summary?: string;
       /**
+       * Require the second factor to be verified within this duration (Duration syntax), see
+       * `OperationDefinition.maxMfaAge`
+       */
+      maxMfaAge?: number | string;
+      /**
        * If true, the action is global (static method) rather than per-instance
        */
       global?: boolean;
       /**
-       * Behavior-only: per-action REST hint that overrides the default
-       * `{prefix}/{uuid}/{attribute}.{actionName}` PUT mapping.
+       * REST hint relative to the model collection (or behavior attribute).
+       * Instance primary key placeholders are added automatically; `method` defaults to `PUT`.
        *
        * - `route === "."` → URL is the bare attribute path
        *   `{prefix}/{uuid}/{attribute}`.
@@ -267,12 +319,20 @@ export interface ModelMetadata {
        *   the router treats them as path variables.
        * - `route === undefined` → URL falls back to the dot-notation default.
        *
-       * `method` defaults to `"PUT"`.
+       * `path` is the URI template; `body` names a parameter receiving the whole JSON body.
        */
       rest?: {
+        path?: string;
+        body?: string;
         route?: string;
         method?: string;
       };
+      methods?: string[];
+      openapi?: any;
+      /**
+       * Feature flag gating the action
+       */
+      featureFlag?: string | true;
     };
   };
   /**
@@ -522,6 +582,46 @@ export interface WebdaModule {
    * Merged from dependencies at build/load time; project-level values override.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * Workflows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`)
+   *
+   * `@webda/workflow` registers each one at startup.
+   */
+  flows?: {
+    [id: string]: FlowMetadata;
+  };
+}
+
+/**
+ * A flow compiled from a `.flow.ts` method: a `@webda/workflow` `FlowDefinition` plus its `@Cron`s
+ */
+export interface FlowMetadata {
+  /**
+   * Flow id `<Class>.<Method>`
+   */
+  id: string;
+  /**
+   * Hash of the params and the body
+   */
+  version: string;
+  /**
+   * Names of the flow parameters, in order
+   */
+  params: string[];
+  /**
+   * JSON schema of the input
+   */
+  input: JSONSchema7;
+  /**
+   * The statements of the flow (`@webda/workflow` `Stmt[]`); a typed operation call holds
+   * `target: { class, method }`, resolved at startup to the configured service
+   */
+  body: any[];
+  source: "code";
+  /**
+   * Launch schedules, from `@Cron` on the method
+   */
+  crons?: { cron: string; description?: string; input?: Record<string, any> }[];
 }
 
 /**
@@ -869,12 +969,13 @@ export class WebdaProject {
       throw new Error(`Invalid folder ${folder}`);
     }
     this.packageDescription = JSON.parse(readFileSync(join(folder, "package.json")).toString());
-    this.namespace = this.packageDescription.webda?.namespace;
-    if (!this.namespace && this.packageDescription.name.startsWith("@")) {
-      this.namespace = this.packageDescription.name.split("/")[0].substring(1);
-      this.namespace = this.namespace.charAt(0).toUpperCase() + this.namespace.slice(1);
+    const name = this.packageDescription.name ?? "";
+    let namespace = this.packageDescription.webda?.namespace;
+    if (!namespace && name.startsWith("@")) {
+      namespace = name.split("/")[0].substring(1);
+      namespace = namespace.charAt(0).toUpperCase() + namespace.slice(1);
     }
-    this.namespace ??= "Webda";
+    this.namespace = namespace ?? "Webda";
   }
 
   /**
@@ -910,7 +1011,7 @@ export class WebdaProject {
       .filter(f => f.isFile())
       .map(f => join(f.parentPath, f.name))
       .sort()
-      .forEach(f => hash.update(readFileSync(f) as BinaryLike));
+      .forEach(f => hash.update(readFileSync(f)));
   }
 
   /**
@@ -920,7 +1021,7 @@ export class WebdaProject {
   getDigest(): string {
     const current = createHash("md5");
     const tsCfg = readFileSync(this.getAppPath("tsconfig.json"));
-    current.update(tsCfg as BinaryLike);
+    current.update(tsCfg);
     // Only `include` / `exclude` are read. FileUtils.load parses the JSONC a
     // tsconfig is written in, and agrees with TypeScript's own parser on
     // every tsconfig in the repository, so the digest is unchanged.
@@ -935,7 +1036,7 @@ export class WebdaProject {
       .map(f => join(f.parentPath, f.name))
       .sort()
       .forEach(f => {
-        current.update(readFileSync(f) as BinaryLike);
+        current.update(readFileSync(f));
       });
     this.hashCompilerPackage(current);
     // We might want to consider doing the same with the output files?

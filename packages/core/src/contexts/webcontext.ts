@@ -4,7 +4,7 @@ import * as http from "http";
 import { HttpContext } from "./httpcontext.js";
 import { Readable, Writable } from "node:stream";
 import { WritableStreamBuffer } from "stream-buffers";
-import { serialize as cookieSerialize } from "cookie";
+import { stringifySetCookie } from "cookie";
 import { useCore, useDynamicService, useService } from "../core/hooks.js";
 
 /**
@@ -203,7 +203,9 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @returns the serialized cookies
    */
   getSetCookieHeaders(): string[] {
-    return Object.values(this._cookie ?? {}).map((c: Cookie) => cookieSerialize(c.name, c.value, c.options));
+    return Object.values(this._cookie ?? {}).map((c: Cookie) =>
+      stringifySetCookie({ ...c.options, name: c.name, value: c.value })
+    );
   }
 
   /**

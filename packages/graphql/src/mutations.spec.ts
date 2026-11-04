@@ -157,6 +157,33 @@ describe("GraphQL mutations", () => {
     assert.strictEqual(isInputAttribute("_color", undefined, ["_color"]), true);
   });
 
+  it("the caller context reaches getProtectedAttributes; a missing input is an empty one", async () => {
+    FakeModel.allow = true;
+    /**
+     * `roles` is protected unless the caller is an admin
+     */
+    class Guarded extends FakeModel {
+      static getProtectedAttributes(context?: any): string[] {
+        return context?.admin ? [] : ["roles"];
+      }
+    }
+    const created: any = await createFromInput(Guarded as any, { uuid: "g1", roles: ["admin"], name: "n" }, {} as any);
+    assert.strictEqual(created.roles, undefined);
+    assert.strictEqual(created.name, "n");
+    assert.strictEqual((await updateFromInput(Guarded as any, "g1", { roles: ["admin"] }, {} as any)).roles, undefined);
+    assert.deepStrictEqual(
+      (await updateFromInput(Guarded as any, "g1", { roles: ["admin"] }, { admin: true } as any)).roles,
+      ["admin"]
+    );
+    const admin: any = await createFromInput(Guarded as any, { uuid: "g2", roles: ["user"] }, { admin: true } as any);
+    assert.deepStrictEqual(admin.roles, ["user"]);
+    // No input: nothing to load
+    assert.strictEqual((await updateFromInput(Guarded as any, "g2", undefined, {} as any)).name, undefined);
+    const empty: any = await createFromInput(Guarded as any, undefined, {} as any);
+    assert.strictEqual(empty.uuid, undefined);
+    FakeModel.stored.delete(undefined);
+  });
+
   it("a refused update or delete answers like a missing object unless the object is readable", async () => {
     FakeModel.stored.set("hidden", new FakeModel().load({ uuid: "hidden", name: "H" }));
     const error = async (fn: () => Promise<any>) => {

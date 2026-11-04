@@ -141,6 +141,20 @@ class QueryTest {
   }
 
   @test
+  likePatternsEscapeEveryRegexMetacharacter() {
+    for (const literal of ["a.b", "a+b", "a)b", "a]b", "a|b", "a$b", "a^b", "a{b", "a\\b", "a\\"]) {
+      const regex = WebdaQL.ComparisonExpression.likeToRegex(literal);
+      assert.ok(regex.test(literal), literal);
+      assert.ok(!regex.test("unrelated"), literal);
+    }
+    assert.ok(!WebdaQL.ComparisonExpression.likeToRegex("a.b").test("axb"));
+    assert.ok(WebdaQL.ComparisonExpression.likeToRegex("a__b").test("axyb"));
+    assert.ok(WebdaQL.ComparisonExpression.likeToRegex("a%%b").test("axyzb"));
+    assert.ok(WebdaQL.ComparisonExpression.likeToRegex("100\\%").test("100%"));
+    assert.ok(!WebdaQL.ComparisonExpression.likeToRegex("100\\%").test("1000"));
+  }
+
+  @test
   likeRegexp() {
     assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("test"), /test/);
     assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t_est"), /t.{1}est/);
@@ -150,7 +164,7 @@ class QueryTest {
     assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t%est"), /t.*est/);
     assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("%te?st"), /.*te\?st/);
     assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t\\%est"), /t%est/);
-    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t\\eest"), /t\\est/);
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t\\eest"), /t\\eest/);
   }
 
   @test
@@ -601,5 +615,17 @@ class QueryTest {
     assert.ok(!validator.eval({ a: null, b: null }));
     assert.ok(validator.eval({ a: 1, b: null }));
     assert.ok(!validator.eval({ a: 1, b: 2 }));
+  }
+
+  @test
+  securityHardening() {
+    assert.strictEqual(WebdaQL.ComparisonExpression.likeToRegex("%%%%a%%%b%%").source, ".*a.*b.*");
+    assert.throws(() => WebdaQL.ComparisonExpression.likeToRegex("a".repeat(513)), /maximum length/);
+    assert.throws(() => WebdaQL.ComparisonExpression.likeToRegex("%a".repeat(20)), /too many wildcards/);
+    assert.strictEqual(WebdaQL.ComparisonExpression.getAttributeValue({ a: 1 }, ["constructor", "name"]), undefined);
+    assert.strictEqual(WebdaQL.ComparisonExpression.getAttributeValue({ a: 1 }, ["__proto__", "toString"]), undefined);
+    const target: any = {};
+    new WebdaQL.ComparisonExpression("=", "constructor.prototype.polluted", "yes").setAttributeValue(target);
+    assert.strictEqual(({} as any).polluted, undefined);
   }
 }

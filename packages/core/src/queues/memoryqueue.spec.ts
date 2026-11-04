@@ -241,6 +241,26 @@ class MemoryQueueTest extends QueueTest {
   }
 
   @test
+  async cancelDuringReceiveSkipsTheIdleWait() {
+    // The receive in progress when cancelling returns no message: the loop ends without the idle wait
+    const queue: Queue = new MemoryQueue("idle", {
+      idleDelayer: { type: "linear", interval: 10000 },
+      maxIdleDelay: 10000
+    } as any);
+    queue.initMetrics();
+    queue.receiveMessage = async () => {
+      await this.sleep(100);
+      return [];
+    };
+    const consumer = queue.consume(async () => {});
+    await this.sleep(50);
+    const start = Date.now();
+    await consumer.cancel();
+    await consumer;
+    assert.ok(Date.now() - start < 1000, `the consumer ended ${Date.now() - start}ms after the cancellation`);
+  }
+
+  @test
   async idleDelayResetsAfterAMessage() {
     // Empty receives wait 20ms, 40ms; the third receive gets a message; the fourth starts the backoff again at 20ms
     const times: number[] = [];

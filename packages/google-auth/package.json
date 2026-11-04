@@ -1,6 +1,6 @@
 {
   "name": "@webda/google-auth",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-beta.12",
   "description": "Webda Google Authentication",
   "main": "lib/index.js",
   "scripts": {
@@ -38,24 +38,24 @@
   "dependencies": {
     "@webda/auth": "workspace:*",
     "@webda/core": "workspace:*",
-    "google-auth-library": "^10.6.2"
+    "google-auth-library": "^11.3.2"
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/compiler": "workspace:^",
     "@webda/content-mapper": "workspace:^",
     "@webda/test": "workspace:*",
     "@webda/workout": "workspace:*",
-    "jscodeshift": "^17.3.0",
-    "skott": "^0.35.8",
-    "tsx": "^4.21.0",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "jscodeshift": "^17.4.0",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "type": "module",
   "engines": {

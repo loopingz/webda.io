@@ -1,5 +1,5 @@
 import { Model, WEBDA_PRIMARY_KEY } from "@webda/models";
-import type { MfaState } from "@webda/core";
+import type { MfaState, MfaVerification } from "@webda/core";
 
 /** Identity captured at consent time */
 export interface GrantIdentity {
@@ -8,6 +8,8 @@ export interface GrantIdentity {
   provider?: string;
   amr: string[];
   mfa: MfaState;
+  mfaAt?: number;
+  mfaVerifications?: Record<string, MfaVerification>;
 }
 
 /**
@@ -23,6 +25,8 @@ export class OAuthCode extends Model {
   identity: GrantIdentity;
   scope: string;
   name?: string;
+  /** Resource the tokens are bound to (RFC 8707) */
+  resource?: string;
   expiresAt: number;
   /** Set when exchanged */
   usedAt?: number;
@@ -67,4 +71,25 @@ export class OAuthGrant extends Model {
   createdAt: number;
   lastUsedAt: number;
   expiresAt: number;
+}
+
+/**
+ * Client registered dynamically (RFC 7591), public client without secret
+ * @WebdaModel
+ */
+export class OAuthRegisteredClient extends Model {
+  [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
+  /** The `dcr_…` client_id */
+  uuid: string;
+  name: string;
+  clientUri?: string;
+  logoUri?: string;
+  redirect_uris: string[];
+  scope?: string;
+  createdAt: number;
+  lastUsedAt?: number;
+  /** Extended on use */
+  expiresAt: number;
+  /** Address that registered the client */
+  ip: string;
 }

@@ -23,6 +23,8 @@ export interface PendingRequest {
   scope: string;
   /** Hostname of the device requesting access, shown on the consent page */
   hostname?: string;
+  /** Resource the tokens are bound to (RFC 8707), validated (code flow) */
+  resource?: string;
   /** Device user code (device flow) */
   userCode?: string;
   /** User the request is bound to: the signed-in user when consent is first shown */
@@ -53,6 +55,7 @@ function isPendingRequest(value: any): value is PendingRequest {
     optional(value.state) &&
     optional(value.codeChallenge) &&
     optional(value.hostname) &&
+    optional(value.resource) &&
     optional(value.userCode) &&
     optional(value.userId) &&
     (value.flow !== "code" || (typeof value.redirectUri === "string" && typeof value.codeChallenge === "string")) &&

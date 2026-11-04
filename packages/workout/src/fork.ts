@@ -17,6 +17,10 @@ export class ForkParentLogger extends WorkerLogger {
    * @param msg - The message to forward to the parent process
    */
   onMessage(msg: WorkerMessage): void {
+    if (!process.send) {
+      // Not running in a forked process: there is no parent to forward to
+      return;
+    }
     try {
       this.pending++;
       process.send("ForkParentLogger: " + JSON.stringify(msg), () => {
@@ -79,10 +83,6 @@ export async function Fork(
   parentCallback?: () => void | Promise<void>,
   output?: WorkerOutput
 ) {
-  let child: ChildProcess;
-  if (process.send === undefined) {
-    child = fork(process.argv[1], process.argv.slice(2));
-  }
   if (process.send !== undefined) {
     const currentOutput = useWorkerOutput();
     // We are in a forked process so create a new WorkerOutput and
@@ -95,7 +95,7 @@ export async function Fork(
         if (workerMessage.pid === process.pid) {
           return;
         }
-        if (workerMessage.type === "input.received") {
+        if (workerMessage.type === "input.received" && workerMessage.input?.value !== undefined) {
           output.returnInput(workerMessage.input.uuid, workerMessage.input.value);
         }
       }
@@ -105,35 +105,36 @@ export async function Fork(
     try {
       await callback();
     } catch (err) {
-      useLog("ERROR", "Fork catch", err, err.message);
+      useLog("ERROR", "Fork catch", err, err instanceof Error ? err.message : String(err));
       exitCode = 1;
     } finally {
       await logger.flush();
     }
     process.exit(exitCode);
   } else {
-    output ??= useWorkerOutput();
-    output.on("message", msg => {
+    const child: ChildProcess = fork(process.argv[1], process.argv.slice(2));
+    const parentOutput = output ?? useWorkerOutput();
+    parentOutput.on("message", msg => {
       if (msg.type === "input.timeout" || msg.type === "input.received") {
         msg.pid ??= process.pid;
         try {
           child.send(PREFIX + JSON.stringify(msg));
         } catch (err) {
-          output?.log("ERROR", "Failed to send message to child process", err);
+          parentOutput.log("ERROR", "Failed to send message to child process", err);
         }
       }
     });
     child.on("message", async msg => {
       if (typeof msg === "string" && msg.startsWith(PREFIX)) {
-        output.forwardEvent(msg.substring(PREFIX.length));
+        parentOutput.forwardEvent(msg.substring(PREFIX.length));
       }
     });
     child.on("error", err => {
-      output?.log("ERROR", "Child process error", err);
+      parentOutput.log("ERROR", "Child process error", err);
     });
     child.on("exit", code => {
       if (code !== 0) {
-        output?.log("ERROR", `Child process exited with code ${code}`);
+        parentOutput.log("ERROR", `Child process exited with code ${code}`);
       }
     });
     process.on("exit", () => {

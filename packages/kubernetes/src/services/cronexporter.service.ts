@@ -1,4 +1,4 @@
-import { Command, CronDefinition, CronService, Service, templateVariables, useCore } from "@webda/core";
+import { Command, CronDefinition, CronService, Service, templateVariables } from "@webda/core";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import { CronReplace } from "../cron.js";
@@ -9,7 +9,7 @@ import { CronReplace } from "../cron.js";
 export const K8S_DEFAULT_CRON_DEFINITION = `apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: \${cron.serviceName.toLowerCase()}-\${cron.method.toLowerCase()}-\${cron.cronId}
+  name: \${cron.operationName.toLowerCase()}-\${cron.cronId}
 spec:
   concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 1
@@ -42,6 +42,8 @@ export default class KubernetesCronExporter extends Service {
   /**
    * Export all application Cron as Kubernetes resources
    *
+   * Each resource runs `webda cron run --id <cronId>`, which calls the cron operation with its input
+   *
    * @param template - Template file to use, default to a Kubernetes CronJob
    * @param target - Folder to write the resources to
    * @param filenameTemplate - Filename template to use
@@ -55,7 +57,7 @@ export default class KubernetesCronExporter extends Service {
   async cronExport(
     template?: string,
     target: string = "./crons",
-    filenameTemplate: string = "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}",
+    filenameTemplate: string = "${operationId.toLowerCase()}-${cronId}.${ext}",
     image?: string
   ): Promise<void> {
     let ext: string;
@@ -68,7 +70,7 @@ export default class KubernetesCronExporter extends Service {
       ext = "yaml";
     }
     mkdirSync(target, { recursive: true });
-    const crons = CronService.loadAnnotations(useCore().getServices());
+    const crons = CronService.resolveCrons();
     crons.forEach((cron: CronDefinition) => {
       // Copy so the shared annotation is not changed, its id must stay stable for `cron run`
       const exported = { ...cron, cronId: CronService.getExportId(cron) };

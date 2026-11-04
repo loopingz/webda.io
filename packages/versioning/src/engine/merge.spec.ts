@@ -95,6 +95,17 @@ class Merge3ValuesScalarsTest {
     expect(r.clean).toBe(true);
     expect(Number.isNaN((r.merged as { v: number }).v)).toBe(true);
   }
+
+  @test({ name: "skips prototype pollution keys" })
+  skipsPrototypePollutionKeys() {
+    const base = { a: 1 };
+    const ours = JSON.parse('{"a": 1, "__proto__": {"polluted": true}, "constructor": "bad"}');
+    const theirs = { a: 2 };
+    const r = merge3(base, ours, theirs);
+    expect(r.clean).toBe(true);
+    expect(r.merged).toEqual({ a: 2 });
+    expect(({} as any).polluted).toBeUndefined();
+  }
 }
 
 @suite("merge3 (arrays)")

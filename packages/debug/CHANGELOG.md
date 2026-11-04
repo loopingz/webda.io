@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.11...debug-v4.0.0-beta.12) (2026-10-22)
+
+
+### Bug Fixes
+
+* **compiler:** rebuild when a dependency changes ([#959](https://github.com/loopingz/webda.io/issues/959)) ([d543fb2](https://github.com/loopingz/webda.io/commit/d543fb262cc4a9f52ccf80befda5e36eedda30fb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.12
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.10...debug-v4.0.0-beta.11) (2026-10-16)
 
 

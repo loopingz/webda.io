@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "node:events";
 import WebSocket from "ws";
-import { registerOperation, useContext, useService } from "../index.js";
+import { registerOperation, useContext, useCore, useService } from "../index.js";
 import type { WebContext } from "../contexts/webcontext.js";
 import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
 import { HttpContext } from "../contexts/httpcontext.js";
@@ -142,11 +142,19 @@ class WebSocketOperationTest extends WebdaApplicationTest {
         output: "Ws.Frame",
         permission: "userId = 'alice'"
       });
+      registerOperation("Ws.Flagged", {
+        service: "Ws",
+        method: "connect",
+        input: "Ws.Frame",
+        output: "Ws.Frame",
+        featureFlag: "ws-disabled-flag"
+      });
       registerOperation("Ws.Stall", { service: "Ws", method: "stall", input: "Ws.Frame", output: "Ws.Frame" });
       const ops = useInstanceStorage().operations;
       (useService("RESTService" as any) as any).exposeServiceOperations({
         "Ws.Connect": ops["Ws.Connect"],
         "Ws.Guarded": ops["Ws.Guarded"],
+        "Ws.Flagged": ops["Ws.Flagged"],
         "Ws.Stall": ops["Ws.Stall"]
       });
       const http = useService("HttpServer" as any) as any;
@@ -170,6 +178,28 @@ class WebSocketOperationTest extends WebdaApplicationTest {
     assert.strictEqual(await closed, 1000);
     assert.deepStrictEqual(messages, [{ frame: "hello Bearer w1" }, { frame: "echo a" }]);
     assert.ok(state.closed);
+  }
+
+  @test
+  async upgradesWithAFailedServiceInTheMap() {
+    // A service whose creation failed stays undefined in Core's map, before the HTTP server when it is declared
+    // first: the upgrade must still find the server
+    const services: Record<string, unknown> = useCore().getServices();
+    const http = services["HttpServer"];
+    delete services["HttpServer"];
+    services["Broken"] = undefined;
+    services["HttpServer"] = http;
+    try {
+      const ws = new WebSocket(`ws://${await this.url()}/ws/connect`, { headers: { authorization: "Bearer w2" } });
+      const { messages, closed } = watch(ws);
+      await new Promise(r => ws.on("open", r));
+      await until(() => messages.length === 1);
+      ws.send(JSON.stringify({ frame: "bye" }));
+      assert.strictEqual(await closed, 1000);
+      assert.deepStrictEqual(messages, [{ frame: "hello Bearer w2" }]);
+    } finally {
+      delete services["Broken"];
+    }
   }
 
   @test
@@ -232,12 +262,38 @@ class WebSocketOperationTest extends WebdaApplicationTest {
   }
 
   @test
+  async refusesUpgradesRejectedByRequestFilters() {
+    const url = await this.url();
+    const router = useRouter();
+    const check = router.checkRequest;
+    router.checkRequest = async () => false;
+    try {
+      const ws = new WebSocket(`ws://${url}/ws/connect`);
+      const status = await new Promise<number>(resolve =>
+        ws.on("unexpected-response", (_req, res) => resolve(res.statusCode!))
+      );
+      assert.strictEqual(status, 403);
+    } finally {
+      router.checkRequest = check;
+    }
+  }
+
+  @test
   async refusesAForbiddenUpgrade() {
     const ws = new WebSocket(`ws://${await this.url()}/ws/guarded`);
     const status = await new Promise<number>(resolve =>
       ws.on("unexpected-response", (_req, res) => resolve(res.statusCode!))
     );
     assert.strictEqual(status, 403);
+  }
+
+  @test
+  async refusesADisabledUpgradeWith404() {
+    const ws = new WebSocket(`ws://${await this.url()}/ws/flagged`);
+    const status = await new Promise<number>(resolve =>
+      ws.on("unexpected-response", (_req, res) => resolve(res.statusCode!))
+    );
+    assert.strictEqual(status, 404);
   }
 
   @test

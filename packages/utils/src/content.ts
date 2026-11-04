@@ -206,7 +206,7 @@ export function parseContentUrl(
   let rest = schemeMatch[2];
   let endpoint: string | undefined;
   let credential: string | undefined;
-  if (["s3", "gs", "gcs"].includes(scheme)) {
+  if (["s3", "gs", "gcs", "azure", "azblob"].includes(scheme)) {
     const queryIndex = rest.indexOf("?");
     if (queryIndex !== -1) {
       const params = new URLSearchParams(rest.slice(queryIndex + 1));

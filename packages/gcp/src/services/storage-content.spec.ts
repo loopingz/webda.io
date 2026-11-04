@@ -11,6 +11,9 @@ import { afterEach, beforeEach, suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Readable, Writable } from "node:stream";
 import { vi } from "vitest";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import Storage, { GCSFinder, StorageParameters } from "./storage.service.js";
 
 const TEST_BUCKET = "gcs-unit-bucket";
@@ -364,6 +367,61 @@ class GCSStorageContentTest extends WebdaApplicationTest {
       chunks.push(Buffer.from(chunk));
     }
     assert.deepStrictEqual(JSON.parse(Buffer.concat(chunks).toString("utf-8")), { ok: true });
+  }
+
+  @test
+  async legacyFileUploadsDetectMimeAndUseTheBinaryFallback() {
+    const folder = mkdtempSync(join(tmpdir(), "gcs-mime-"));
+    try {
+      for (const [name, expected] of [
+        ["file.txt", "text/plain"],
+        ["file.unknownextension", "application/octet-stream"]
+      ]) {
+        const path = join(folder, name);
+        writeFileSync(path, "unit");
+        const createWriteStream = vi.fn(
+          () =>
+            new Writable({
+              write(_data, _encoding, done) {
+                done();
+              }
+            })
+        );
+        vi.spyOn(this.storage, "getStorageBucket").mockReturnValue({
+          file: () => ({ createWriteStream, setMetadata: async () => {} })
+        } as any);
+        await this.storage.putObject(name, path);
+        assert.deepStrictEqual(createWriteStream.mock.calls[0], [{ contentType: expected, resumable: false }]);
+      }
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async finderFollowsPageTokensAndAcceptsTheFinalNullPage() {
+    const finder = new GCSFinder();
+    const getFiles = vi
+      .fn()
+      .mockResolvedValueOnce([[{ name: "first.txt" }], { pageToken: "next" }])
+      .mockResolvedValueOnce([[{ name: "second.txt" }], null]);
+    (finder as any)._storage = { bucket: () => ({ getFiles }) };
+    assert.deepStrictEqual(await finder.find("gs://bucket/"), ["gs://bucket/first.txt", "gs://bucket/second.txt"]);
+    assert.deepStrictEqual(getFiles.mock.calls, [[{ prefix: "" }], [{ prefix: "", pageToken: "next" }]]);
+  }
+
+  @test
+  async incompleteMetadataUsesDefaults() {
+    vi.spyOn(this.storage, "getStorageBucket").mockReturnValue({
+      file: () => ({ getMetadata: async () => [{}] })
+    } as any);
+    assert.deepStrictEqual(await this.storage.getMeta({ bucket: TEST_BUCKET, key: "empty" }), {
+      size: 0,
+      contentType: "application/octet-stream"
+    });
+    const getFiles = vi.fn().mockResolvedValue([[{ name: "empty", getMetadata: async () => [{}] }], null]);
+    (this.storage as any)._storage = { bucket: () => ({ getFiles }) };
+    assert.deepStrictEqual(await this.storage.getBucketSize(), { size: 0, count: 1 });
   }
 
   @test

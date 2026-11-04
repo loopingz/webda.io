@@ -9,7 +9,7 @@ import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel, useRepository } from "@webda/models";
-import { checkAggregation } from "../test/index.js";
+import { checkAggregation, checkCount } from "../test/index.js";
 import { useCore } from "../core/hooks.js";
 import { useApplication, useParameters } from "../application/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
@@ -769,6 +769,26 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   }
 
   @test
+  async storeOfIsTheClaimingStoreOrTheRegistry() {
+    const multi = new MemoryStore("multi", { models: ["WebdaTest/Ident", "Webda/User"] });
+    const users = new MemoryStore("users", { models: ["Webda/SimpleUser"] });
+    this.registerService(multi.resolve(), "multi");
+    this.registerService(users.resolve(), "users");
+    try {
+      const simpleUser = useApplication().getModel("Webda/SimpleUser");
+      assert.strictEqual(Store.storeOf(useApplication().getModel("WebdaTest/Ident")), multi);
+      // The closest hierarchy depth wins: SimpleUser is a subclass of User in multi, listed by users
+      assert.strictEqual(Store.storeOf(simpleUser), users);
+      assert.strictEqual(Store.claimingStore(simpleUser, [multi]), multi);
+      assert.strictEqual(Store.claimingStore(useApplication().getModel("WebdaTest/Task")), undefined);
+      assert.strictEqual(Store.storeOf(useApplication().getModel("WebdaTest/Task")), useCore().getService("Registry"));
+    } finally {
+      delete useCore().getServices()["multi"];
+      delete useCore().getServices()["users"];
+    }
+  }
+
+  @test
   async walksSubclassHierarchyForNonStrictStore() {
     // Webda/User has Webda/SimpleUser as a subclass (verified via webda.module.json).
     // In non-strict mode the recursive walk should add the subclass at depth 1.
@@ -856,6 +876,12 @@ class StoreAggregationTest extends WebdaApplicationTest {
   async aggregationConformance() {
     const store = new MemoryStore("aggregation", { models: [] } as any);
     await checkAggregation(store.getRepository(AggregationRow as any), { native: true });
+  }
+
+  @test
+  async countConformance() {
+    const store = new MemoryStore("count", { models: [] } as any);
+    await checkCount(store.getRepository(AggregationRow as any), { native: true });
   }
 
   @test

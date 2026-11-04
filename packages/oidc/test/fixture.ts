@@ -60,6 +60,10 @@ export class FakeIdP {
    * Discovery document override
    */
   discovery?: any;
+  /**
+   * Serve the discovery as RFC 8414 authorization server metadata only, like an OAuthServer
+   */
+  oauthMetadataOnly = false;
 
   /**
    * @param issuer - the issuer url
@@ -109,7 +113,10 @@ export class FakeIdP {
   fetch = async (input: any): Promise<Response> => {
     const url = String(input instanceof Request ? input.url : input);
     this.calls.push(url);
-    if (url === `${this.issuer}/.well-known/openid-configuration`) {
+    if (url === `${this.issuer}/.well-known/oauth-authorization-server` && this.oauthMetadataOnly) {
+      return Response.json(this.discovery ?? { issuer: this.issuer, jwks_uri: `${this.issuer}/jwks` });
+    }
+    if (url === `${this.issuer}/.well-known/openid-configuration` && !this.oauthMetadataOnly) {
       return Response.json(this.discovery ?? { issuer: this.issuer, jwks_uri: `${this.issuer}/jwks` });
     }
     if (url === `${this.issuer}/jwks`) {

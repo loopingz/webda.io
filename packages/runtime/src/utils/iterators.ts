@@ -141,7 +141,7 @@ export class MergedIterator {
    * @param transformer - transform function applied to each resolved value
    */
   static async *iterate(data: any, ignoreUndefined = false, transformer: (data: any) => any = a => a) {
-    const res = {};
+    const res: Record<string, unknown> = {};
     let available = false;
     const asyncs: {
       [key: string]: {
@@ -152,7 +152,7 @@ export class MergedIterator {
     } = {};
     for (const i in data) {
       const attr = data[i];
-      const getPromise = async attr => {
+      const getPromise = async (attr: AsyncGenerator) => {
         const info = await attr.next();
         available = true;
         if (info.done) {

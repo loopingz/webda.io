@@ -54,7 +54,7 @@ export function typeCheck(dir: string, paths: Record<string, string[]> = {}): st
       2
     )
   );
-  const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
+  const tsc = join(dirname(createRequire(import.meta.url).resolve("typescript/package.json")), "bin", "tsc");
   const run = spawnSync(process.execPath, [tsc, "-p", join(dir, "tsconfig.json")], { cwd: dir, encoding: "utf8" });
   return `${run.stdout}${run.stderr}`.trim();
 }

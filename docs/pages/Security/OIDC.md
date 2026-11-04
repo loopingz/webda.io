@@ -94,6 +94,7 @@ Each trusted issuer:
 | `principal`   | `${sub}`                                  | Template over the claims. A leading `app:` is removed                   |
 | `groups`      | `[]`                                      | Static groups, seen by IAM as `app-group:<group>`                       |
 | `maxTokenAge` | the verifier `maxTokenAge`                | Per-issuer max lifetime                                                |
+| `session`     | `application`                             | `application` (workload tokens) or `user`, see [User sessions](#user-sessions) |
 
 `useOIDCVerifier().verify(token)` returns the `AppIdentity` or `undefined`, `verifyOrFail(token)` throws an
 `OIDCTokenInvalid` (401).
@@ -174,6 +175,25 @@ A verified token gives a **stateless** session with `session.application` set:
 user**: `getCurrentUserId()` is `undefined` and `isLogged()` is `false`, so ownership checks (`OwnerModel`) and
 user-only operations never mistake an application for a user. Mapping an application to a user is up to the
 application.
+
+## User sessions
+
+A trusted issuer with `session: "user"` is a Webda `OAuthServer` whose access tokens are bound to this application
+(its `resources`, see the `@webda/oauth` documentation). A verified token gives a **stateless user session**, like a
+local access token: `userId` is `sub`, with the `ident`, `provider`, `amr`, MFA state, `authAt`, `roles`, the token
+`scope` (enforced on every operation) and `client_id`.
+
+```jsonc
+"trustedIssuers": [{ "issuer": "https://auth.example.com", "session": "user", "claims": { "client_id": "my" } }]
+```
+
+- Only `typ: at+jwt` tokens with the `sub`, `ident` and `fam` claims are accepted. An `application` issuer refuses
+  the tokens carrying these claims (it still accepts the `at+jwt` client credentials tokens of other issuers): a
+  user access token never authenticates an application, nor a workload token a user.
+- The refresh family is not kept: it belongs to the issuer. Revocations and password changes on the issuer are only
+  seen when the token expires.
+- Discovery falls back to the RFC 8414 metadata (`/.well-known/oauth-authorization-server`) published by the
+  `OAuthServer`.
 
 ## IAM
 

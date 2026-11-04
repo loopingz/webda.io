@@ -1,3 +1,5 @@
+import fsMutable from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
@@ -17,6 +19,7 @@ import {
 import { TestApplication, WebdaApplicationTest } from "@webda/core/lib/test";
 import { useApplication } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
+import { vi } from "vitest";
 import { FileBinary } from "./filebinary.service.js";
 
 /**
@@ -174,11 +177,11 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
   async legacyChallengesAreNeitherLoadedNorProofs() {
     const { user, hash } = await this.storedFor("legacy content");
     const { challenge } = await this.hashes("legacy content");
-    // A pre-fix row: the challenge persisted on the map, the legacy `_<challenge>` marker in the folder (no proof_)
+    // A pre-fix row: the challenge persisted on the map, the legacy `_<challenge>` marker in the folder (no vproof_)
     await ImageUser.ref(user.getUUID()).patch({
       images: [{ hash, challenge, size: 14, name: "l.txt", mimetype: "text/plain" }]
     } as any);
-    fs.unlinkSync(this.binary._getPath(hash, `proof_${challenge}`));
+    fs.unlinkSync(this.binary._getPath(hash, `vproof_${challenge}`));
     this.binary._touch(this.binary._getPath(hash, `_${challenge}`));
     assert.strictEqual(await this.binary.getUsageCount(hash), 1, "legacy markers do not count as usages");
     const loaded: any = await ImageUser.ref(user.getUUID()).get();
@@ -288,6 +291,110 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
   }
 
   @test
+  async uploadDoesNotOverwriteASymlinkCreatedByARace() {
+    if (process.platform === "win32") return;
+    const user = await ImageUser.create({ displayName: "uploader" } as any);
+    const content = "symlink upload content";
+    const { hash, challenge } = await this.hashes(content);
+    const res = await this.binary.putRedirectUrl(
+      user,
+      "images",
+      {
+        hash,
+        challenge,
+        size: content.length,
+        name: "content.txt"
+      } as any,
+      await this.newContext()
+    );
+    const target = path.join(FOLDER, "target");
+    fs.writeFileSync(target, "keep");
+    const dataPath = this.binary._getPath(hash, "data");
+    const write = fs.writeFileSync;
+    let raced = false;
+    const stub = vi.spyOn(fsMutable, "writeFileSync").mockImplementation((file, data, options) => {
+      if (file === dataPath && !raced) {
+        raced = true;
+        fs.symlinkSync(target, dataPath);
+      }
+      return write(file, data, options);
+    });
+    syncBuiltinESMExports();
+    const upload = await this.newContext(content);
+    upload.setParameters({ hash, token: res!.url.split("token=")[1] });
+    try {
+      await this.binary.storeBinary(upload);
+    } finally {
+      stub.mockRestore();
+      syncBuiltinESMExports();
+    }
+    assert.ok(raced);
+    assert.strictEqual(fs.readFileSync(target, "utf8"), "keep");
+  }
+
+  @test
+  async uploadPropagatesUnexpectedWriteFailures() {
+    const user = await ImageUser.create({ displayName: "uploader" } as any);
+    const content = "write failure content";
+    const { hash, challenge } = await this.hashes(content);
+    const res = await this.binary.putRedirectUrl(
+      user,
+      "images",
+      {
+        hash,
+        challenge,
+        size: content.length,
+        name: "content.txt"
+      } as any,
+      await this.newContext()
+    );
+    const dataPath = this.binary._getPath(hash, "data");
+    const write = fsMutable.writeFileSync;
+    const failure = Object.assign(new Error("read-only filesystem"), { code: "EROFS" });
+    const stub = vi.spyOn(fsMutable, "writeFileSync").mockImplementation((file, data, options) => {
+      if (file === dataPath) throw failure;
+      return write(file, data, options);
+    });
+    syncBuiltinESMExports();
+    try {
+      const upload = await this.newContext(content);
+      upload.setParameters({ hash, token: res!.url.split("token=")[1] });
+      await assert.rejects(
+        () => this.binary.storeBinary(upload),
+        err => err === failure
+      );
+      assert.deepStrictEqual(await this.images(user.getUUID()), []);
+    } finally {
+      stub.mockRestore();
+      syncBuiltinESMExports();
+    }
+  }
+
+  /**
+   * The upload itself attaches (storeBinary): completing resolves once the hash is linked, 412 before
+   */
+  @test
+  async completeResolvesOnlyAfterTheUpload() {
+    const content = `complete content ${Date.now()}`;
+    const { hash } = await this.hashes(content);
+    for (const attribute of ["images", "profile"]) {
+      const user = await ImageUser.create({ displayName: "completer" } as any);
+      const info: any = { hash, challenge: "unknown", size: content.length, name: "c.txt", mimetype: "text/plain" };
+      const res = await this.binary.putRedirectUrl(user, attribute, info, await this.newContext());
+      assert.ok(res?.url);
+      await assert.rejects(
+        () => this.binary.completeUpload(user as any, attribute, hash),
+        (err: WebdaError.HttpError) => err.getResponseCode() === 412
+      );
+      const upload = await this.newContext(content);
+      upload.setParameters({ hash, token: res.url.split("token=")[1] });
+      await this.binary.storeBinary(upload);
+      const stored: any = await ImageUser.ref(user.getUUID()).get();
+      await this.binary.completeUpload(stored, attribute, hash);
+    }
+  }
+
+  @test
   async downloadTokensAreNotUploadTokens() {
     const { hash } = await this.storedFor("downloadable");
     // An upload token does not download
@@ -305,5 +412,157 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     ok.setParameters({ hash, token: getToken });
     await this.binary.downloadBinaryLink(ok);
     assert.strictEqual(ok.statusCode, 200);
+  }
+  /**
+   * Proofs written before every proof was computed by the service (`proof_<challenge>`) are ignored: a matching
+   * challenge gets an upload URL, nothing is attached
+   */
+  @test
+  async legacyProofIsIgnored() {
+    const { hash } = await this.storedFor("legacy proof");
+    const { challenge } = await this.hashes("legacy proof");
+    fs.unlinkSync(this.binary._getPath(hash, `vproof_${challenge}`));
+    this.binary._touch(this.binary._getPath(hash, `proof_${challenge}`));
+    assert.strictEqual(this.binary.challenge(hash, challenge), false);
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1, "a legacy proof is no usage");
+    const holder = await ImageUser.create({ displayName: "holder" } as any);
+    const info: any = { hash, challenge, size: 12, name: "l.txt", mimetype: "text/plain" };
+    const res = await this.binary.putRedirectUrl(holder, "images", info, await this.newContext());
+    assert.ok(res?.url, "an upload is required");
+    assert.deepStrictEqual(await this.images(holder.getUUID()), []);
+  }
+
+  /**
+   * `store` computes the hashes from the bytes: a preset hash that does not match is rejected and attaches nothing
+   */
+  @test
+  async storeRejectsAPresetWrongHash() {
+    const { hash } = await this.storedFor("someone else's content");
+    const user = await ImageUser.create({ displayName: "forger" } as any);
+    await assert.rejects(
+      () => this.binary.store(user, "images", new MemoryBinaryFile(Buffer.from("mine"), { name: "m.txt", hash })),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
+    assert.deepStrictEqual(await this.images(user.getUUID()), []);
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    assert.ok(!fs.existsSync(this.binary._getPath((await this.hashes("mine")).hash)), "nothing stored");
+  }
+
+  /**
+   * `store` writes the proof of the challenge it computed, never a preset one, also when the data already exists
+   */
+  @test
+  async storeWritesTheComputedProofOnly() {
+    const { challenge, hash } = await this.hashes("proven");
+    for (const name of ["first", "second"]) {
+      const user = await ImageUser.create({ displayName: name } as any);
+      await this.binary.store(
+        user,
+        "images",
+        new MemoryBinaryFile(Buffer.from("proven"), { name: "p.txt", hash: hash.toUpperCase(), challenge: "forged" })
+      );
+      assert.strictEqual((await this.images(user.getUUID()))[0].hash, hash);
+    }
+    const proofs = fs.readdirSync(this.binary._getPath(hash)).filter(f => f.includes("proof_"));
+    assert.deepStrictEqual(proofs, [`vproof_${challenge}`]);
+  }
+
+  /**
+   * `store` writes the data when a challenge created the folder but the upload never came
+   */
+  @test
+  async storeFillsAPendingFolder() {
+    const { hash, challenge } = await this.hashes("awaited");
+    const announcer = await ImageUser.create({ displayName: "announcer" } as any);
+    const info: any = { hash, challenge, size: 7, name: "a.txt", mimetype: "text/plain" };
+    assert.ok((await this.binary.putRedirectUrl(announcer, "images", info, await this.newContext()))?.url);
+    assert.ok(fs.existsSync(this.binary._getPath(hash)) && !fs.existsSync(this.binary._getPath(hash, "data")));
+    const user = await ImageUser.create({ displayName: "storer" } as any);
+    await this.binary.store(user, "images", new MemoryBinaryFile(Buffer.from("awaited"), { name: "a.txt" }));
+    assert.strictEqual(fs.readFileSync(this.binary._getPath(hash, "data")).toString(), "awaited");
+  }
+
+  /**
+   * Hashes are lower case: an upper-case challenge uses the lower-case folder and upload URL
+   */
+  @test
+  async upperCaseHashesAreNormalised() {
+    const { hash } = await this.storedFor("casing");
+    const { challenge: proof } = await this.hashes("casing");
+    const other = await ImageUser.create({ displayName: "other" } as any);
+    const info: any = { hash: hash.toUpperCase(), challenge: proof.toUpperCase(), size: 6, name: "c.txt" };
+    assert.strictEqual(await this.binary.putRedirectUrl(other, "images", info, await this.newContext()), undefined);
+    assert.strictEqual((await this.images(other.getUUID()))[0].hash, hash);
+    const fresh = await this.hashes("fresh casing");
+    const res = await this.binary.putRedirectUrl(
+      other,
+      "images",
+      { hash: fresh.hash.toUpperCase(), challenge: fresh.challenge.toUpperCase(), size: 12, name: "f.txt" } as any,
+      await this.newContext()
+    );
+    assert.ok(res?.url.includes(`/upload/data/${fresh.hash}?`), res?.url);
+  }
+
+  /**
+   * Without an explicit body the challenge is read from the operation input; the hash, the object identifier and the
+   * model identifier are required
+   */
+  @test
+  async challengeFromTheOperationInput() {
+    const user = await ImageUser.create({ displayName: "input" } as any);
+    const { hash, challenge } = await this.hashes("from input");
+    const ctx: any = { getInput: async () => ({ hash: hash.toUpperCase(), challenge, size: 10, name: "i.txt" }) };
+    const res = await this.binary.putRedirectUrl(user, "images", undefined, ctx);
+    assert.ok(res?.url.includes(`/upload/data/${hash}?`), res?.url);
+    const rejects = (promise: Promise<unknown>, message: RegExp) =>
+      assert.rejects(promise, (e: any) => e instanceof WebdaError.BadRequest && message.test(e.message));
+    await rejects(this.binary.putRedirectUrl(user, "images", undefined, undefined), /Missing binary hash/);
+    const anonymous: any = { constructor: ImageUser, getUUID: () => undefined };
+    await rejects(this.binary.putRedirectUrl(anonymous, "images", { hash } as any), /Missing object identifier/);
+    const getModelId = vi.spyOn(useApplication(), "getModelId").mockReturnValue(undefined);
+    try {
+      await rejects(this.binary.putRedirectUrl(user, "images", { hash } as any), /Missing model identifier/);
+    } finally {
+      getModelId.mockRestore();
+    }
+  }
+
+  /**
+   * A delete needs the binary hash, the object identifier and its model identifier
+   */
+  @test
+  async deleteRequiresTheIdentifiers() {
+    const { user } = await this.storedFor("delete identifiers");
+    const stored: any = await ImageUser.ref(user.getUUID()).get();
+    const rejects = (promise: Promise<unknown>, message: RegExp) =>
+      assert.rejects(promise, (e: any) => e instanceof WebdaError.BadRequest && message.test(e.message));
+    await rejects(this.binary.delete(stored, "images"), /Missing binary hash/);
+    const anonymous: any = { constructor: ImageUser, getUUID: () => undefined, images: stored.images };
+    await rejects(this.binary.delete(anonymous, "images", 0), /Missing object identifier/);
+    const getModelId = vi.spyOn(useApplication(), "getModelId").mockReturnValue(undefined);
+    try {
+      await rejects(this.binary.delete(stored, "images", 0), /Missing model identifier/);
+    } finally {
+      getModelId.mockRestore();
+    }
+    assert.strictEqual((await this.images(user.getUUID())).length, 1, "nothing removed");
+  }
+
+  /**
+   * The usage cleanup of an unknown hash is a no-op; without attribute or model, or for an absent marker, no marker
+   * is removed
+   */
+  @test
+  async cleanUsageOfUnknownHashOrWithoutAttribute() {
+    await this.binary._cleanUsage("0123456789abcdef0123456789abcdef", "u", "images", "WebdaDemo/ImageUser");
+    const { user, hash } = await this.storedFor("clean usage");
+    await this.binary._cleanUsage(hash, user.getUUID(), undefined as any, "WebdaDemo/ImageUser");
+    await this.binary._cleanUsage(hash, user.getUUID(), "images", undefined);
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    // Another owner's marker that does not exist: the stored usage is kept
+    await this.binary._cleanUsage(hash, "someone-else", "images", "WebdaDemo/ImageUser");
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    await this.binary._cleanUsage(hash, user.getUUID(), "images", "WebdaDemo/ImageUser");
+    assert.strictEqual(await this.binary.getUsageCount(hash), 0);
   }
 }

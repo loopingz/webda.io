@@ -1,5 +1,5 @@
 import { MessageReceipt, Queue, QueueParameters, SecretString, WebdaError } from "@webda/core";
-import { JSONUtils } from "@webda/utils";
+import { CancelablePromise, JSONUtils } from "@webda/utils";
 import * as amqplib from "amqplib";
 
 /**
@@ -21,6 +21,27 @@ export class AMQPQueueParameters extends QueueParameters {
    * Options passed to assertQueue
    */
   queueOptions?: any;
+  /**
+   * Subscribe with `basic.consume` instead of polling with `basic.get`
+   *
+   * `consume()` opens its own channel with a prefetch of `maxConsumers`: the broker pushes the messages as they
+   * arrive, at most `maxConsumers` being processed at once. A message whose callback fails is requeued after
+   * the `workerDelayer` delay, so it is delivered again. Set to false to poll with `receiveMessage`.
+   *
+   * @default true
+   */
+  push?: boolean;
+
+  /**
+   * @override
+   * @param params - the input parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    this.push ??= true;
+    return this;
+  }
 }
 
 /**
@@ -112,6 +133,135 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    */
   async size(): Promise<number> {
     return (await this.getChannel().assertQueue(this.parameters.queue)).messageCount;
+  }
+
+  /**
+   * Work the queue, with the messages pushed by the broker when `push` is enabled
+   *
+   * The callback runs as each message is delivered; the message is acknowledged once it succeeds. When it fails,
+   * the message is rejected and requeued after the `workerDelayer` delay. Cancelling stops the delivery, waits
+   * for the callbacks in progress and closes the channel: the messages not acknowledged go back to the queue.
+   *
+   * @override
+   * @param callback - the callback function
+   * @param eventPrototype - the event prototype
+   * @returns the consumer, resolved once cancelled
+   */
+  consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
+    if (!this.parameters.push) {
+      return super.consume(callback, eventPrototype);
+    }
+    let channel: amqplib.Channel | undefined;
+    let consumerTag: string | undefined;
+    let cancelled = false;
+    // Consecutive failed messages, and failed subscriptions
+    let failures = 0;
+    let failedSubscriptions = 0;
+    let finish: () => void;
+    const processing = new Set<Promise<void>>();
+    const requeues = new Set<NodeJS.Timeout>();
+    const process = async (ch: amqplib.Channel, msg: amqplib.ConsumeMessage) => {
+      this.metrics.messages_received.inc();
+      const end = this.metrics.processing_duration.startTimer();
+      try {
+        await callback(this.unserialize(msg.content.toString(), eventPrototype));
+      } catch (err) {
+        this.metrics.errors.inc();
+        this.log("ERROR", `Message ${msg.fields.deliveryTag}`, err);
+        // Requeue later: an immediate requeue would deliver a failing message again in a tight loop
+        const timer = setTimeout(() => {
+          requeues.delete(timer);
+          try {
+            ch.nack(msg, false, true);
+          } catch {
+            // The channel is closing: the broker requeues the message
+          }
+        }, this.delayer(++failures));
+        requeues.add(timer);
+        return;
+      } finally {
+        end();
+      }
+      failures = 0;
+      try {
+        ch.ack(msg);
+      } catch (err) {
+        // The channel closed meanwhile: the broker requeues the message
+        this.log("WARN", `Cannot acknowledge message ${msg.fields.deliveryTag}`, err);
+      }
+    };
+    const subscribe = async () => {
+      if (!this.conn) {
+        throw new WebdaError.CodeError("AMQP_NOT_CONNECTED", "AMQP service is not connected");
+      }
+      const ch = await this.conn.createChannel();
+      ch.on("error", err => this.log("WARN", `AMQP consumer channel error: ${err.message}`));
+      ch.on("close", () => {
+        requeues.forEach(timer => clearTimeout(timer));
+        requeues.clear();
+        // Closed by the broker or an error: subscribe again, unless the service is stopped
+        if (cancelled || channel !== ch) return;
+        channel = undefined;
+        retry();
+      });
+      await ch.prefetch(this.getMaxConsumers());
+      channel = ch;
+      failedSubscriptions = 0;
+      consumerTag = (
+        await ch.consume(this.parameters.queue, msg => {
+          if (msg === null) {
+            // The broker cancelled the consumer: the queue was deleted
+            this.log("WARN", `AMQP consumer of ${this.parameters.queue} cancelled by the broker`);
+            ch.close().catch(() => {});
+            return;
+          }
+          const work = process(ch, msg);
+          processing.add(work);
+          work.finally(() => processing.delete(work));
+        })
+      ).consumerTag;
+    };
+    const retry = () => {
+      if (!this.conn) {
+        // The service was stopped
+        finish();
+        return;
+      }
+      setTimeout(() => {
+        if (cancelled) return;
+        subscribe().catch(err => {
+          this.log("ERROR", `Cannot consume ${this.parameters.queue}`, err);
+          retry();
+        });
+      }, this.delayer(++failedSubscriptions));
+    };
+    return new CancelablePromise<void>(
+      (resolve, reject) => {
+        finish = resolve;
+        subscribe().catch(err => {
+          if (!this.conn) {
+            reject(err);
+            return;
+          }
+          this.log("ERROR", `Cannot consume ${this.parameters.queue}`, err);
+          retry();
+        });
+      },
+      async () => {
+        cancelled = true;
+        const ch = channel;
+        channel = undefined;
+        if (ch && consumerTag) {
+          await ch.cancel(consumerTag).catch(() => {});
+        }
+        requeues.forEach(timer => clearTimeout(timer));
+        requeues.clear();
+        await Promise.all(processing);
+        // Messages waiting to be requeued go back to the queue with the channel
+        await ch?.close().catch(() => {});
+        finish();
+      }
+    );
   }
 
   /**

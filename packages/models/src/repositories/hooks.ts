@@ -3,7 +3,7 @@ import { SettablePrimaryKey, type ModelClass } from "../storable.js";
 import { Helpers, PropertyPaths } from "../types.js";
 import type { Repository } from "./repository.js";
 import type { AggregationResult, FindOptions, ModelFilter, QueryParameters, WebdaQLString } from "@webda/ql";
-import type { AggregatedRow, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type { AggregatedRow, AggregationSpec, CountOptions, CountResult, MetricSpec } from "../aggregation.js";
 
 /**
  * Global registry mapping ModelClass constructors to their Repository instances.
@@ -41,6 +41,53 @@ export function registerRepository<T extends ModelClass>(model: T, repository: R
   Repositories.set(model, repository);
 }
 
+/** Static repository operations supplied by the storage mixin. */
+export interface RepositoryStorageMethods {
+  getRepository<T extends ModelClass>(this: T): Repository<T>;
+  create<T extends ModelClass>(this: T, data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>>;
+  query<T extends ModelClass>(
+    this: T,
+    query: WebdaQLString<InstanceType<T>>,
+    params?: QueryParameters
+  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  query<T extends ModelClass>(
+    this: T,
+    filter: ModelFilter<InstanceType<T>>,
+    options?: FindOptions<InstanceType<T>>
+  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  iterate<T extends ModelClass>(
+    this: T,
+    query: WebdaQLString<InstanceType<T>>,
+    params?: QueryParameters
+  ): AsyncGenerator<InstanceType<T>, any, any>;
+  iterate<T extends ModelClass>(
+    this: T,
+    filter: ModelFilter<InstanceType<T>>,
+    options?: Pick<FindOptions<InstanceType<T>>, "orderBy">
+  ): AsyncGenerator<InstanceType<T>, any, any>;
+  aggregate<
+    T extends ModelClass,
+    const G extends readonly PropertyPaths<InstanceType<T>>[] = [],
+    const M extends Record<string, MetricSpec<InstanceType<T>>> = Record<string, MetricSpec<InstanceType<T>>>
+  >(
+    this: T,
+    spec: AggregationSpec<InstanceType<T>, G, M>,
+    params?: QueryParameters
+  ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>>;
+  count<T extends ModelClass>(
+    this: T,
+    filter?: WebdaQLString<InstanceType<T>>,
+    params?: QueryParameters,
+    options?: CountOptions
+  ): Promise<CountResult>;
+  ref<T extends ModelClass>(this: T, key: SettablePrimaryKey<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
+}
+
+/** Instance operations supplied by the storage mixin. */
+export interface RepositoryStorageInstance {
+  toProxy(): this;
+}
+
 /**
  * MixIn that adds static repository methods (create, query, iterate, ref, getRepository)
  * to a base class, enabling Model classes to access their repository directly.
@@ -48,7 +95,9 @@ export function registerRepository<T extends ModelClass>(model: T, repository: R
  * @param Base - The base class to augment
  * @returns the augmented class with repository methods
  */
-export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) => object>(Base: TBase) {
+export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) => object>(
+  Base: TBase
+): TBase & RepositoryStorageMethods & (new (...args: any[]) => RepositoryStorageInstance) {
   return class extends Base {
     /**
      * Get the repository registered for this model class.
@@ -195,6 +244,28 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
     }
 
     /**
+     * Count the objects matching a filter directly
+     *
+     * ```ts
+     * Task.count("status = ?", ["open"], { max: 10000 });
+     * ```
+     * No permission is checked: see `countModelWithPermissions` in `@webda/core` for a client total.
+     * @param this - the model class constructor
+     * @param filter - the WebdaQL filter; ORDER BY, LIMIT and OFFSET are ignored
+     * @param params - values for the placeholders of the filter
+     * @param options - `max` stops counting after max objects (relation "gte")
+     * @returns the count
+     */
+    static count<T extends ModelClass>(
+      this: T,
+      filter?: WebdaQLString<InstanceType<T>>,
+      params?: QueryParameters,
+      options?: CountOptions
+    ): Promise<CountResult> {
+      return useRepository(this).count(filter, params, options);
+    }
+
+    /**
      * Get a reference to the model
      * @param this - the model class constructor
      * @param key - the primary key value
@@ -211,7 +282,7 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
      * Return the proxied version of this model (identity by default)
      * @returns this instance
      */
-    toProxy() {
+    toProxy(): this {
       return this;
     }
   };

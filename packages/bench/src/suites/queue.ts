@@ -342,7 +342,8 @@ export async function benchQueue(harness: QueueBenchHarness, options: QueueBench
       });
     }
 
-    if (profile.redelivery && harness.redeliveryDelayMs !== undefined) {
+    const redeliveryDelayMs = harness.redeliveryDelayMs;
+    if (profile.redelivery && redeliveryDelayMs !== undefined) {
       const count = Math.min(profile.messages, 100);
       await runner.custom({
         name: "queue.redelivery",
@@ -360,14 +361,15 @@ export async function benchQueue(harness: QueueBenchHarness, options: QueueBench
               failedAt.set(message.seq, performance.now());
               throw new Error("Benchmark induced failure");
             }
-            if (failedAt.has(message.seq)) {
-              latency.recordMs(performance.now() - failedAt.get(message.seq));
+            const firstFailure = failedAt.get(message.seq);
+            if (firstFailure !== undefined) {
+              latency.recordMs(performance.now() - firstFailure);
             }
             succeeded.add(message.seq);
             if (succeeded.size === count) done.resolve();
           });
           await prefill(run, count);
-          await withTimeout(done.promise, harness.redeliveryDelayMs * 3 + profile.drainTimeoutMs);
+          await withTimeout(done.promise, redeliveryDelayMs * 3 + profile.drainTimeoutMs);
           await stopConsumer(consumer, profile.drainTimeoutMs);
           const lost = count - succeeded.size;
           const redelivered = [...failedAt.keys()].filter(seq => succeeded.has(seq)).length;

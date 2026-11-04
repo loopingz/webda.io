@@ -1,9 +1,16 @@
 import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.js";
 import type { JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
-import { ArrayElement } from "@webda/tsc-esm";
+import { ArrayElement } from "@webda/utils";
 import type { Query as WebdaQLQuery, QueryParameters, AggregationResult } from "@webda/ql";
-import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type {
+  AggregatedRow,
+  AggregationOptions,
+  AggregationSpec,
+  CountOptions,
+  CountResult,
+  MetricSpec
+} from "../aggregation.js";
 import type { QueryMonitorOptions } from "./monitoring.js";
 import { WEBDA_TEST } from "./repository.js";
 
@@ -171,6 +178,28 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     );
     await this.emit("Aggregated", { query: spec, ...res } as any);
     return res;
+  }
+
+  /**
+   * Count through the underlying repository, monitored as a "count" operation
+   *
+   * Parameters are bound here, so the monitor sees the bound filter and the underlying repository keeps its native
+   * implementation. A count emits no repository event.
+   * @param filter - the WebdaQL filter
+   * @param params - values for the placeholders of the filter
+   * @param options - `max` stops counting after max objects
+   * @returns the count
+   */
+  async count(filter?: string, params?: QueryParameters, options?: CountOptions): Promise<CountResult> {
+    if (params !== undefined && filter) {
+      filter = (await import("@webda/ql")).bind(filter, params);
+    }
+    return this.monitor(
+      "count",
+      filter ?? "",
+      () => this.repository.count(filter, undefined, options),
+      r => r.value
+    );
   }
 
   /**

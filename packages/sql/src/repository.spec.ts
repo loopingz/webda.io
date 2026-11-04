@@ -192,6 +192,58 @@ describe("SQLRepository", () => {
     await expect(repo.get("a")).rejects.toThrow("No SQL client for table items");
   });
 
+  it("hooksKeepTheJsonStatements: field, type and key hooks drive the shared statements", async () => {
+    const WebdaQL = await import("@webda/ql");
+    const { repo } = make();
+    const statement = (r: any, q: string) => r.getStatementCondition(WebdaQL.parse(q));
+    expect(statement(repo, "DELETE LIMIT 1")).toContain("uuid IN (SELECT uuid FROM items WHERE");
+    expect((repo as any).getClassCondition()).toBeUndefined();
+    class Composite extends SQLRepository<any> {
+      protected keyColumns(): string[] {
+        return ["a", "b"];
+      }
+      protected fieldText(field: string): string {
+        return `F(${field})`;
+      }
+      protected typeText(): string {
+        return "TYPE";
+      }
+    }
+    const composite = new Composite(
+      Item as any,
+      ["a", "b"],
+      { query: async () => ({ rows: [], rowCount: 0 }) },
+      "items",
+      undefined,
+      undefined,
+      undefined,
+      new TagDialect()
+    );
+    expect(statement(composite, "DELETE LIMIT 1")).toContain("(a, b) IN (SELECT a, b FROM items WHERE");
+    const params: any[] = [];
+    expect(composite.getQueryCondition("x", "name", params)).toBe(" AND F(name)=?1");
+    expect(composite.getQueryCondition(undefined, "name", params)).toBe(" AND F(name) IS NULL");
+    class Typed extends Composite {
+      static Metadata = { Identifier: "Test/Typed", Subclasses: [] };
+      load(data: any) {
+        Object.assign(this, data);
+        return this;
+      }
+    }
+    const typed = new Composite(
+      Typed as any,
+      ["uuid"],
+      { query: async () => ({ rows: [], rowCount: 0 }) },
+      "items",
+      undefined,
+      undefined,
+      "Test/Typed",
+      new TagDialect()
+    );
+    expect((typed as any).getClassCondition()).toContain("lower(TYPE) IN ('test/typed')");
+    expect((typed as any).getClassCondition()).toContain("TYPE IS NULL");
+  });
+
   it("iterates query results and cleans the table", async () => {
     const { repo, last } = make();
     const items = [];

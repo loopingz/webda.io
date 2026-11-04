@@ -159,9 +159,15 @@ const CONSENT_SCRIPT = `"use strict";
       logo.src = req.client.logo;
       head.append(logo);
     }
-    head.append(el("h1", req.client.name || req.client.id));
+    const unverified = req.client.verified === false;
+    head.append(el("h1", unverified ? "\u201c" + (req.client.name || req.client.id) + "\u201d" : req.client.name || req.client.id));
     app.append(head);
-    if (req.client.host) app.append(el("p", "Application published by " + req.client.host, "muted"));
+    if (unverified) {
+      app.append(el("p", "Unverified application: its name was chosen by whoever registered it.", "warning"));
+      if (req.client.host) app.append(el("p", "Redirects to " + req.client.host, "muted"));
+    } else if (req.client.host) {
+      app.append(el("p", "Application published by " + req.client.host, "muted"));
+    }
     if (https(req.client.uri)) {
       const link = el("a", req.client.uri);
       link.href = req.client.uri;
@@ -194,10 +200,13 @@ const CONSENT_SCRIPT = `"use strict";
           const box = el("input");
           box.type = "checkbox";
           box.value = op.id;
-          box.checked = op.preselected !== false;
+          box.checked = op.preselected !== false || op.alreadyAllowed === true;
+          // Granted by an earlier decision: shown, but not a choice of this one
+          box.disabled = op.alreadyAllowed === true;
           const row = el("label", undefined, "op");
           row.append(box, " ", el("code", op.id));
           if (op.summary) row.append(" — " + op.summary);
+          if (op.alreadyAllowed) row.append(" (already allowed)");
           details.append(row);
           children.push(box);
           boxes.push(box);
@@ -208,7 +217,7 @@ const CONSENT_SCRIPT = `"use strict";
           all.indeterminate = checked > 0 && checked < children.length;
         };
         all.addEventListener("change", () => {
-          for (const box of children) box.checked = all.checked;
+          for (const box of children) if (!box.disabled) box.checked = all.checked;
           sync();
         });
         for (const box of children) box.addEventListener("change", sync);
@@ -236,7 +245,7 @@ const CONSENT_SCRIPT = `"use strict";
       for (const button of actions.querySelectorAll("button")) button.disabled = true;
       status.textContent = "";
       try {
-        const body = { allow, operations: allow ? boxes.filter(box => box.checked).map(box => box.value) : [], csrf: req.csrf };
+        const body = { allow, operations: allow ? boxes.filter(box => box.checked && !box.disabled).map(box => box.value) : [], csrf: req.csrf };
         if (remember) body.remember = remember.checked;
         const res = await call("POST", "/consent/decide", body);
         go(res.redirect);

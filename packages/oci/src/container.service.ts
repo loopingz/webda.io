@@ -15,7 +15,7 @@ import { isAbsolute, join } from "node:path";
 import type { RegistryCredentials } from "./auth.js";
 import { buildImage, type BuiltImage, isPinnedBaseImage, pushImage, writeLayoutArchive } from "./image.js";
 import { formatImageReference, parseImageReference, toTag } from "./reference.js";
-import type { TarEntry } from "./tar.js";
+import { trimSlashes, type TarEntry } from "./tar.js";
 
 /**
  * Parameters of the {@link ContainerDeployer}
@@ -166,7 +166,7 @@ export class ContainerDeployerParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export class ContainerDeployer<T extends ContainerDeployerParameters = ContainerDeployerParameters>
+export class ContainerDeployer<T extends ContainerDeployerParameters = ContainerDeployerParameters, TResult = never>
   extends Service<T>
   implements Deployer
 {
@@ -175,9 +175,9 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
    *
    * @returns the resolved parameters
    */
-  getResolvedParameters(): ContainerDeployerParameters {
+  getResolvedParameters(): T {
     const variables = getDeploymentVariables(this);
-    const resolved: ContainerDeployerParameters = resolveDeploymentVariables({ ...this.parameters }, variables);
+    const resolved: T = resolveDeploymentVariables({ ...this.parameters }, variables);
     // Template resolution serializes the parameters: put back the encrypted secrets it masked
     for (const [host, credentials] of Object.entries(this.parameters.credentials ?? {})) {
       for (const [key, value] of Object.entries(credentials ?? {})) {
@@ -213,7 +213,7 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
    */
   async getLayerEntries(parameters: ContainerDeployerParameters): Promise<TarEntry[]> {
     const { files } = await packageApplication(useApplication(), parameters.package);
-    const prefix = parameters.workdir.replace(/^\/+/, "").replace(/\/+$/, "");
+    const prefix = trimSlashes(parameters.workdir);
     return files.map(file => ({
       path: prefix ? `${prefix}/${file.target}` : file.target,
       type: "file",
@@ -327,7 +327,7 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
    * @returns the pushed digest
    */
   @Command("deploy", { description: "Build and push the OCI image of the application" })
-  async deploy(): Promise<string> {
+  async deploy(): Promise<string | TResult> {
     return this.push();
   }
 }

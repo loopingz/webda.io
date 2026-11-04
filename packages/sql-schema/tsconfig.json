@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022"],
+    "module": "nodenext",
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "declaration": true,
+    "sourceMap": true,
+    "experimentalDecorators": false,
+    "esModuleInterop": true,
+    "moduleResolution": "nodenext",
+    "skipLibCheck": true,
+    "declarationMap": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/node_modules", "lib/**/*", "src/**/*.spec.ts"]
+}

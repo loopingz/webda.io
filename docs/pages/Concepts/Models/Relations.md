@@ -46,6 +46,54 @@ This attribute is used to define a n:m relation between models. It is an array o
 
 This attribute is used to define a n:m relation between models. It is a map of uuid of the targeted model to some attributes.
 
+# Overriding User / Ident
+
+When overriding built-in models such as `Webda/User` or `Webda/Ident`, relation symmetry between query and link attributes must be maintained:
+
+```typescript
+export class AppUser extends User {
+  _idents: ModelRelated<AppIdent, AppUser, "_user">;
+}
+
+export class AppIdent extends Ident {
+  declare _user: ModelLink<AppUser>;
+}
+```
+
+### Validation Rules
+
+During application startup and store initialization (`Store.computeStores()`), Webda validates relationship symmetry:
+
+- **R1**: Target attribute omitted in `ModelRelated` (logged as `DEBUG`).
+- **R2**: Dangling reverse relation where target attribute does not exist on the target model (logged as `WARN`).
+- **R3**: Reverse relation targets an unrelated model (logged as `WARN`).
+- **R4**: Reverse relation targets an ancestor model, and both models resolve to the same backing store (logged as `INFO`).
+- **R5**: Reverse relation targets an ancestor model, but the models resolve to different backing stores (logged as `WARN`).
+
+### Resolving Store Routing Mismatches
+
+If an app defines a custom user (e.g. `App/User`) managed by a dedicated store (e.g. `Users`), but `Webda/Ident._user` targets `Webda/User` which falls back to `Registry`, an R5 warning is logged.
+
+To resolve it:
+1. **Override the reverse link in your custom Ident**:
+   ```typescript
+   export class AppIdent extends Ident {
+     declare _user: ModelLink<AppUser>;
+   }
+   ```
+2. **Let the store manage the base `Webda/User`**:
+   Add `"Webda/User"` to the store's `models` configuration:
+   ```json
+   {
+     "services": {
+       "Users": {
+         "type": "MemoryStore",
+         "models": ["Webda/User", "App/User"]
+       }
+     }
+   }
+   ```
+
 ## See also
 
 - [Model Relationships](../../Modules/models/Relationships.md)

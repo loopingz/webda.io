@@ -132,9 +132,11 @@ export class ObjectSerializer implements Serializer<any> {
    */
   deserializer(obj: any, metadata: any, context: SerializerContext) {
     const res = new (this.constructorType || Object)();
-    Object.assign(res, obj);
+    for (const key of Object.keys(obj).filter(k => k !== "__proto__" && k !== "constructor" && k !== "prototype")) {
+      res[key] = obj[key];
+    }
     for (const key in metadata) {
-      if (key === "type") {
+      if (key === "type" || key === "__proto__" || key === "constructor" || key === "prototype") {
         continue;
       }
       if (

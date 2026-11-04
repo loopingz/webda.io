@@ -1,4 +1,4 @@
-import { Attributes, FilterAttributes, Merge } from "@webda/tsc-esm";
+import { Attributes, FilterAttributes, Merge } from "@webda/utils";
 
 /** Any function signature. */
 type AnyMethod = (...args: any[]) => any;

@@ -680,6 +680,134 @@ class TotpTest extends AuthTest {
     const res: any = await this.inContext(pendingCtx3, () => this.auth.completeSecondFactor(["totp"]));
     assert.strictEqual(res.status, "ok");
     assert.deepStrictEqual(pendingCtx3.getSession().amr, ["totp"]);
+
+    // Step-up needs a user with a second factor
+    await rejectsWith(() => this.inContext(userCtx, () => this.auth.completeSecondFactor(["totp"])), MfaNotEnabled);
+    await rejectsWith(() => this.inContext(mfaUserCtx, () => this.auth.completeSecondFactor(["sms"])), MfaNotEnabled);
+  }
+
+  @test
+  async mfaAtStampedOnLoginAndStepUp() {
+    const { ctx, email, password } = await this.registerUser();
+    await this.op("User.Mfa.Enroll", { method: "dummy" }, ctx);
+    let before = Date.now();
+    await this.op("User.Mfa.Confirm", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    // Confirming proves the factor
+    assert.ok(ctx.getSession().mfaAt >= before);
+
+    // A pending login has no mfaAt, completing it stamps one
+    await this.op("Auth.Logout", {}, ctx);
+    await this.op("Auth.Email.Login", { email, password }, ctx);
+    assert.strictEqual(ctx.getSession().mfaAt, undefined);
+    before = Date.now();
+    const login: any = await this.op("User.Mfa.Verify", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    const session = ctx.getSession();
+    assert.ok(session.mfaAt >= before && session.mfaAt <= Date.now());
+    const claims = await useService("TokenService").verifyAccess(login.accessToken);
+    assert.strictEqual(claims.mfaAt, session.mfaAt);
+
+    // Step-up on a logged cookie session: mfaAt moves, the login (authAt, family) stays
+    const authAt = session.authAt;
+    const family = session.refreshFamily;
+    session.mfaAt = Date.now() - 3600000;
+    this.events = [];
+    let stepUpEvent: any;
+    this.auth.on("Authentication.MfaVerified", evt => {
+      stepUpEvent = evt;
+    });
+    before = Date.now();
+    const stepUp: any = await this.op("User.Mfa.Verify", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    assert.strictEqual(stepUp.status, "ok");
+    assert.ok(stepUp.proof);
+    // The cookie carries the session: no token to rotate
+    assert.strictEqual(stepUp.accessToken, undefined);
+    assert.ok(ctx.getSession().mfaAt >= before);
+    assert.strictEqual(ctx.getSession().authAt, authAt);
+    assert.strictEqual(ctx.getSession().refreshFamily, family);
+    assert.strictEqual(ctx.getSession().mfa, "verified");
+    assert.deepStrictEqual(ctx.getSession().amr, ["pwd", "dummy"]);
+    // A step-up is no new login
+    assert.ok(this.events.includes("Authentication.MfaVerified"));
+    assert.ok(!this.events.includes("Authentication.Login"));
+    assert.strictEqual(stepUpEvent.stepUp, true);
+    assert.strictEqual(stepUpEvent.method, "dummy");
+
+    // Step-up with a recovery code works the same
+    const codes: any = await this.op("User.Mfa.RecoveryCodes", { code: "FIXED_CODE_42" }, ctx);
+    ctx.getSession().mfaAt = Date.now() - 3600000;
+    await this.op("User.Mfa.Recover", { code: codes.recoveryCodes[0] }, ctx);
+    assert.ok(Date.now() - ctx.getSession().mfaAt < 1000);
+    assert.deepStrictEqual(ctx.getSession().amr, ["pwd", "dummy", "recovery"]);
+  }
+
+  @test
+  async bearerStepUpRotatesInTheSameFamily() {
+    const { ctx } = await this.registerUser();
+    await this.op("User.Mfa.Enroll", { method: "dummy" }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    // An access token whose second factor is one hour old
+    const stale = ctx.getSession();
+    stale.mfaAt = Date.now() - 3600000;
+    const tokens = await runAsSystem(() => useService("TokenService").issue(stale));
+    const bearer = await this.ctx();
+    bearer.setSession(await useService("SessionManager").loadFromToken(bearer, tokens.accessToken));
+    assert.ok(bearer.getSession().stateless);
+    assert.strictEqual(bearer.getSession().mfaAt, stale.mfaAt);
+    const authAt = bearer.getSession().authAt;
+
+    const before = Date.now();
+    const stepUp: any = await this.op("User.Mfa.Verify", { method: "dummy", code: "FIXED_CODE_42" }, bearer);
+    assert.strictEqual(stepUp.status, "ok");
+    assert.ok(stepUp.accessToken);
+    assert.ok(stepUp.refreshToken);
+    const claims = await useService("TokenService").verifyAccess(stepUp.accessToken);
+    assert.strictEqual(claims.fam, tokens.family);
+    assert.ok(claims.mfaAt >= before);
+    assert.strictEqual(claims.authAt, authAt);
+    // The new refresh token keeps the new proof time
+    const refreshed: any = await this.op("Auth.Refresh", { refreshToken: stepUp.refreshToken }, bearer);
+    assert.strictEqual((await useService("TokenService").verifyAccess(refreshed.accessToken)).mfaAt, claims.mfaAt);
+  }
+
+  @test
+  async providerSecondFactorStampsMfaAt() {
+    const { ctx } = await this.registerUser("google-mfa@example.com", "password123");
+    await this.op("User.Mfa.Enroll", { method: "dummy" }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    const ident = await Ident.ref(Ident.key("google-mfa@example.com", "email")).get();
+    const googleIdent = new Ident({
+      ...Ident.key("google-mfa", "google"),
+      email: "google-mfa@example.com",
+      verifiedAt: new Date()
+    } as any);
+    googleIdent.setUser(await ident.getUser().get());
+    await Ident.getRepository().create(googleIdent);
+    const oauthCtx = await this.ctx();
+    const before = Date.now();
+    const res = await this.inContext(oauthCtx, () =>
+      this.auth.complete({
+        provider: "google",
+        providerUid: "google-mfa",
+        email: "google-mfa@example.com",
+        emailVerified: true,
+        amr: ["oauth", "dummy"]
+      })
+    );
+    assert.strictEqual(res.status, "ok");
+    assert.ok(oauthCtx.getSession().mfaAt >= before);
+    // Without the second factor the login is pending and carries no mfaAt
+    const pendingCtx = await this.ctx();
+    await this.inContext(pendingCtx, () =>
+      this.auth.complete({
+        provider: "google",
+        providerUid: "google-mfa",
+        email: "google-mfa@example.com",
+        emailVerified: true,
+        amr: ["oauth"]
+      })
+    );
+    assert.ok(pendingCtx.getSession().isPending());
+    assert.strictEqual(pendingCtx.getSession().mfaAt, undefined);
   }
 
   @test

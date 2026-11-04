@@ -1,5 +1,36 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.10...utils-v4.0.0-beta.11) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* Webda/Mailer moved to @webda/mailer
+* **utils:** @webda/tsc-esm is no longer published. Import its types and helpers from @webda/utils, and createClassDecorator, createPropertyDecorator and createMethodDecorator from @webda/decorators.
+
+### Features
+
+* @webda/templates and @webda/mailer, keep only mailer contracts in core ([#58](https://github.com/loopingz/webda.io/issues/58)) ([#984](https://github.com/loopingz/webda.io/issues/984)) ([58e6ee6](https://github.com/loopingz/webda.io/commit/58e6ee6cddf42f58776d18a4c94fc2528846d6e2))
+
+
+### Bug Fixes
+
+* enable strict mode in utils and compiler ([#986](https://github.com/loopingz/webda.io/issues/986)) ([887e421](https://github.com/loopingz/webda.io/commit/887e421e273d70e5e22e41a920101d9a1f97eb0a))
+
+
+### Code Refactoring
+
+* **utils:** merge @webda/tsc-esm into @webda/utils and remove it ([#942](https://github.com/loopingz/webda.io/issues/942)) ([efcf87c](https://github.com/loopingz/webda.io/commit/efcf87c5adb1b697c4cf433545efb09a51459837))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.9...utils-v4.0.0-beta.10) (2026-10-15)
 
 

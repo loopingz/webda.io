@@ -1,6 +1,6 @@
 {
   "name": "@webda/mcp",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-beta.12",
   "description": "MCP transport for Webda.io — exposes operations as Model Context Protocol tools and resources",
   "type": "module",
   "main": "lib/index.js",
@@ -12,21 +12,21 @@
     "lint:fix": "eslint --fix src/"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@webda/workout": "workspace:*"
   },
   "peerDependencies": {
     "@webda/core": "^4.0.0-beta.1"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/compiler": "workspace:^",
     "@webda/core": "workspace:^",
     "@webda/test": "workspace:^",
     "@webda/utils": "workspace:^",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.0.0"
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "files": [
     "lib",

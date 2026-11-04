@@ -24,6 +24,17 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.5...workout-v4.0.0-beta.6) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **utils:** @webda/tsc-esm is no longer published. Import its types and helpers from @webda/utils, and createClassDecorator, createPropertyDecorator and createMethodDecorator from @webda/decorators.
+
+### Code Refactoring
+
+* **utils:** merge @webda/tsc-esm into @webda/utils and remove it ([#942](https://github.com/loopingz/webda.io/issues/942)) ([efcf87c](https://github.com/loopingz/webda.io/commit/efcf87c5adb1b697c4cf433545efb09a51459837))
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.3...workout-v4.0.0-beta.5) (2026-10-08)
 
 

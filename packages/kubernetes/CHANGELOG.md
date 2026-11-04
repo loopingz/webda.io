@@ -137,6 +137,29 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.11...kubernetes-v4.0.0-beta.12) (2026-10-22)
+
+
+### Features
+
+* **kubernetes:** land the KubernetesStore and KubernetesOperator stack ([#956](https://github.com/loopingz/webda.io/issues/956)) ([946be83](https://github.com/loopingz/webda.io/commit/946be839881d712328e5be1bb5328d2802675fa9))
+* **kubernetes:** request timeout and typed API clients ([#945](https://github.com/loopingz/webda.io/issues/945)) ([d1f21bf](https://github.com/loopingz/webda.io/commit/d1f21bff93bd8ac413650343cb09fce8c6be8ef2))
+* **kubernetes:** store watch mode emitting the changes made by others ([#969](https://github.com/loopingz/webda.io/issues/969)) ([09d4a09](https://github.com/loopingz/webda.io/commit/09d4a09646b466bbf71296a9c8c732d6bb3c5800)), closes [#884](https://github.com/loopingz/webda.io/issues/884)
+* opt-in total count for paginated queries (Repository.count, REST/GraphQL total) ([#967](https://github.com/loopingz/webda.io/issues/967)) ([b43e6d1](https://github.com/loopingz/webda.io/commit/b43e6d18820773d24a8b754013dc4dec4c57e1c7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.12
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/ql bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.11
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.10...kubernetes-v4.0.0-beta.11) (2026-10-16)
 
 

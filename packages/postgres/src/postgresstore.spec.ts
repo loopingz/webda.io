@@ -2,7 +2,13 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
 import { AndExpression, escape, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
-import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import {
+  checkAggregation,
+  checkCount,
+  checkCountClassFilter,
+  checkCreateWithoutPrimaryKey,
+  WebdaApplicationTest
+} from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, UpdateConditionFailError, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
@@ -311,6 +317,29 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     } finally {
       await client.query("DROP TABLE IF EXISTS agg_rows");
     }
+  }
+
+  @test
+  async countConformance() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS count_rows");
+    try {
+      const repo = new PostgresRepository<any>(Row as any, ["uuid"], client, "count_rows");
+      await repo.setupTable();
+      await checkCount(repo as any, { native: true });
+    } finally {
+      await client.query("DROP TABLE IF EXISTS count_rows");
+    }
+  }
+
+  @test
+  async countStaysInTheModelHierarchy() {
+    const client = this.store!.getClient();
+    await checkCountClassFilter(
+      new PostgresRepository<any>(Animal as any, ["uuid"], client, "smoke_idents") as any,
+      new PostgresRepository<any>(Dog as any, ["uuid"], client, "smoke_idents") as any,
+      async (repo: any, uuid) => void (await repo.create(new (repo.getRootModel())({ uuid })))
+    );
   }
 
   @test

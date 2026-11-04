@@ -72,8 +72,8 @@ export function writeModule(compiler: Compiler, generated: GeneratedModule): Web
     }
     return mod;
   } catch (err) {
-    useLog("ERROR", "Cannot generate module", err.message);
-    useLog("TRACE", err.stack);
+    useLog("ERROR", "Cannot generate module", err instanceof Error ? err.message : String(err));
+    useLog("TRACE", err instanceof Error ? err.stack : err);
     return undefined;
   }
 }
@@ -96,16 +96,11 @@ export function generateTypescriptLibrary(compiler: Compiler, mod: WebdaModule) 
     .sort()
     .forEach(name => {
       content += `    ${name}: never;\n`;
-      return;
-      // Resolve service type
-      content += `    ${name}: import("${mod.moddas[name].Import.split(":")[0]}").${
-        mod.moddas[name].Import.split(":")[1]
-      };\n`;
     });
-  Object.keys(mod.beans || {})
-    .sort()
-    .forEach(name => {
-      const [file, importName] = mod.beans[name].Import.split(":");
+  Object.entries(mod.beans || {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([name, bean]) => {
+      const [file, importName] = bean.Import.split(":");
       // Add import at the top
       content = `import { ${importName} } from "${file}";\n` + content;
       // Add to services map
@@ -126,7 +121,7 @@ export function generateTypescriptLibrary(compiler: Compiler, mod: WebdaModule) 
   try {
     generateSessionTypes(compiler.project.getAppPath());
   } catch (err) {
-    useLog("ERROR", "Failed to generate session types:", err.message);
+    useLog("ERROR", "Failed to generate session types:", err instanceof Error ? err.message : String(err));
     throw err;
   }
 }

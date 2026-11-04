@@ -11,8 +11,12 @@ import { resolve, join } from "node:path";
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { constants } from "node:os";
+import { enableCompileCache } from "./compilecache.js";
 
 const cwd = process.cwd();
+
+// Cache the compiled modules in <app>/.webda/compile-cache, the CLI child inherits it (opt out: WEBDA_COMPILE_CACHE=false)
+enableCompileCache(cwd);
 
 // Try to find a local @webda/core bin
 let localBin: string | undefined;

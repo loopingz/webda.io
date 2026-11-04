@@ -1,4 +1,5 @@
 import { suite, test } from "@webda/test";
+import { getMetadata } from "@webda/decorators";
 import * as assert from "assert";
 import { vi } from "vitest";
 import {
@@ -11,12 +12,22 @@ import {
   GrpcParameters,
   GraphQLParameters,
   canCallOperation,
+  probeOperation,
   checkOperationPermission,
+  checkOperationMfa,
   registerOperationAuthorizer,
   unregisterOperationAuthorizer,
   listOperationAuthorizers,
-  useCoreEvents
+  toOperationOutput,
+  useCoreEvents,
+  registerOperationTransactionParticipant,
+  unregisterOperationTransactionParticipant,
+  listOperationTransactionParticipants,
+  runWithTransaction,
+  useOperationTransaction,
+  runAsSystem
 } from "../index.js";
+import type { OperationTransactionParticipant } from "../index.js";
 import * as WebdaError from "../errors/errors.js";
 import type { OperationDefinition } from "../index.js";
 import { WebdaApplicationTest } from "../test/index.js";
@@ -29,6 +40,10 @@ import { useApplication } from "../application/hooks.js";
 import { Application } from "../application/application.js";
 import { Session } from "../session/session.js";
 import { registerSchema } from "../schemas/hooks.js";
+import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
+import { scopeAuthorizer } from "../services/scopeauthorizer.js";
+import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
+import { useSystem } from "../contexts/globaloperationcontext.js";
 
 /**
  * Fake operation context that allows setting custom input
@@ -354,6 +369,19 @@ class OperationDecoratorTest extends WebdaApplicationTest {
       vi.useRealTimers();
     }
   }
+
+  @test
+  async decoratorMaxMfaAge() {
+    assert.strictEqual(listOperations()["TestSvc.StepUpOp"].maxMfaAge, "10m");
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const session = new Session();
+    session.login("u1", "ident", { amr: ["pwd", "totp"], mfa: "verified", mfaAt: Date.now() });
+    ctx.setSession(session);
+    assert.strictEqual(await canCallOperation(ctx, "TestSvc.StepUpOp"), true);
+    session.mfaAt = Date.now() - 11 * 60 * 1000;
+    assert.strictEqual(await canCallOperation(ctx, "TestSvc.StepUpOp"), false);
+  }
 }
 
 class DecoratedService extends Service {
@@ -378,6 +406,11 @@ class DecoratedService extends Service {
   @Operation({ id: "FreshOp", permission: "authAt > NOW('-5m')" })
   async freshOp(ctx: OperationContext) {
     ctx.write("fresh");
+  }
+
+  @Operation({ id: "StepUpOp", maxMfaAge: "10m" })
+  async stepUpOp(ctx: OperationContext) {
+    ctx.write("step-up");
   }
 }
 
@@ -749,6 +782,25 @@ class OperationMetadataTest extends WebdaApplicationTest {
 }
 
 /**
+ * A model whose public form depends on the caller: only its owner sees the secret
+ */
+class CallerDTO {
+  constructor(
+    public owner: string,
+    public secret: string
+  ) {}
+
+  /**
+   * @returns the fields the current caller may see
+   */
+  toDTO() {
+    return useContext().getCurrentUserId() === this.owner
+      ? { owner: this.owner, secret: this.secret }
+      : { owner: this.owner };
+  }
+}
+
+/**
  * Service with typed methods (not taking context) for testing the new callOperation behavior
  */
 class ReturnValueService extends Service {
@@ -772,6 +824,37 @@ class ReturnValueService extends Service {
    */
   async getObject(): Promise<{ name: string; count: number }> {
     return { name: "test", count: 42 };
+  }
+
+  /**
+   * Return the received arguments
+   * @param args - the arguments
+   * @returns the arguments
+   */
+  async echoArgs(...args: any[]): Promise<any[]> {
+    return args;
+  }
+
+  /**
+   * Return a model
+   */
+  async getModel(): Promise<CallerDTO> {
+    return new CallerDTO("alice", "s1");
+  }
+
+  /**
+   * Return a query page of models
+   */
+  async getPage(): Promise<{ results: CallerDTO[]; continuationToken: string }> {
+    return { results: [new CallerDTO("alice", "s1"), new CallerDTO("bob", "s2")], continuationToken: "next" };
+  }
+
+  /**
+   * Stream models
+   */
+  async *streamModels(): AsyncGenerator<CallerDTO> {
+    yield new CallerDTO("alice", "s1");
+    yield new CallerDTO("bob", "s2");
   }
 
   /**
@@ -845,6 +928,280 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     session.login("alice", "alice");
     assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Guarded"), true);
     assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+    assert.throws(() => checkOperationMfa(ctx, "ReturnSvc.DoesNotExist"), WebdaError.NotFound);
+  }
+
+  /**
+   * Context with a session in the given MFA state
+   * @param mfa - MFA state, undefined for an anonymous session
+   * @param mfaAt - when the second factor was verified
+   * @returns the context
+   */
+  async mfaContext(mfa?: "none" | "pending" | "verified", mfaAt?: number): Promise<FakeOpContext> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const session = new Session();
+    if (mfa) {
+      session.login("alice", "alice", { amr: mfa === "verified" ? ["pwd", "totp"] : ["pwd"], mfa, mfaAt });
+    }
+    ctx.setSession(session);
+    return ctx;
+  }
+
+  @test
+  async maxMfaAge() {
+    for (const [id, maxMfaAge] of [
+      ["ReturnSvc.StepUpSeconds", 600],
+      ["ReturnSvc.StepUpDuration", "10m"]
+    ] as const) {
+      registerOperation(id, {
+        service: "ReturnSvc",
+        method: "getString",
+        input: "void",
+        output: "void",
+        maxMfaAge
+      } as any);
+      const now = Date.now();
+      // Fresh second factor: allowed
+      let ctx = await this.mfaContext("verified", now - 60000);
+      assert.strictEqual(checkOperationPermission(ctx, id), true);
+      assert.strictEqual(await canCallOperation(ctx, id), true);
+      checkOperationMfa(ctx, id);
+      await callOperation(ctx, id);
+      // Stale second factor: step-up required, with the max age in seconds
+      ctx = await this.mfaContext("verified", now - 11 * 60000);
+      assert.strictEqual(await canCallOperation(ctx, id), false);
+      await assert.rejects(
+        () => callOperation(ctx, id),
+        (err: any) => {
+          assert.ok(err instanceof MfaStepUpRequired);
+          assert.strictEqual(err.getResponseCode(), 401);
+          assert.strictEqual(err.code, "MFA_STEP_UP_REQUIRED");
+          assert.deepStrictEqual(err.details, { maxAge: 600 });
+          return true;
+        }
+      );
+      // Verified by a token issued before mfaAt existed: never fresh
+      ctx = await this.mfaContext("verified");
+      await assert.rejects(() => callOperation(ctx, id), MfaStepUpRequired);
+      // No second factor enrolled: MFA is mandatory
+      ctx = await this.mfaContext("none");
+      assert.strictEqual(await canCallOperation(ctx, id), false);
+      await assert.rejects(
+        () => callOperation(ctx, id),
+        (err: any) => {
+          assert.ok(err instanceof MfaRequired);
+          assert.strictEqual(err.getResponseCode(), 403);
+          assert.strictEqual(err.code, "MFA_REQUIRED");
+          return true;
+        }
+      );
+      // Pending second factor or anonymous: not logged
+      for (const state of ["pending", undefined] as const) {
+        ctx = await this.mfaContext(state);
+        assert.strictEqual(await canCallOperation(ctx, id), false);
+        await assert.rejects(
+          () => callOperation(ctx, id),
+          (err: any) => err instanceof WebdaError.Unauthorized && err.getResponseCode() === 401
+        );
+      }
+    }
+  }
+
+  @test
+  async maxMfaAgeAfterPermission() {
+    registerOperation("ReturnSvc.StepUpGuarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      permission: "userId = 'bob'",
+      maxMfaAge: 600
+    } as any);
+    // The permission query is checked first
+    const ctx = await this.mfaContext("none");
+    await assert.rejects(() => callOperation(ctx, "ReturnSvc.StepUpGuarded"), WebdaError.Forbidden);
+    await assert.rejects(() => callOperation(ctx, "ReturnSvc.StepUpGuarded"), /PermissionDenied/);
+  }
+
+  @test
+  async probeSeparatesScopeFromPermission() {
+    registerOperation("ReturnSvc.ProbeScoped", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    registerOperation("ReturnSvc.ProbeGuarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      permission: "userId = 'alice'"
+    } as any);
+    registerOperationAuthorizer(scopeAuthorizer);
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      const session = new Session();
+      ctx.setSession(session);
+      session.scopes = ["ReturnSvc.Other"];
+      // probeReportsScopeRefusal
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.ProbeScoped"), "insufficient_scope");
+      // probeReportsPermissionDenied
+      session.scopes = undefined;
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.ProbeGuarded"), false);
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+      // probeAllowed
+      assert.strictEqual(await probeOperation(ctx, "ReturnSvc.ProbeScoped"), true);
+      // canCallOperationUnchanged
+      session.scopes = ["ReturnSvc.Other"];
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.ProbeScoped"), false);
+      session.scopes = undefined;
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.ProbeGuarded"), false);
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.ProbeScoped"), true);
+    } finally {
+      unregisterOperationAuthorizer(scopeAuthorizer);
+    }
+  }
+
+  @test
+  async systemCallRunsPipeline() {
+    registerOperation("ReturnSvc.SystemCall", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    const events: string[] = [];
+    const offBefore = useCoreEvents("Webda.BeforeOperation", evt => {
+      events.push(`before:${evt.operationId}`);
+    });
+    const offSuccess = useCoreEvents("Webda.OperationSuccess", evt => {
+      events.push(`success:${evt.operationId}`);
+    });
+    const calls: string[] = [];
+    const authorizer = async (_ctx, operationId) => {
+      calls.push(operationId);
+      return true as const;
+    };
+    registerOperationAuthorizer(authorizer);
+    try {
+      const ctx = useSystem();
+      await callOperation(ctx, "ReturnSvc.SystemCall");
+      assert.deepStrictEqual(events, ["before:ReturnSvc.SystemCall", "success:ReturnSvc.SystemCall"]);
+      assert.deepStrictEqual(calls, ["ReturnSvc.SystemCall"]);
+      assert.strictEqual(ctx.getOutput(), "hello world");
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+      offBefore();
+      offSuccess();
+    }
+  }
+
+  @test
+  async systemCallValidatesInput() {
+    const schema = { type: "object", properties: { amount: { type: "number" } }, required: ["amount"] };
+    useApplication<Application>().getSchemas()["system.input.schema"] = schema;
+    registerSchema("system.input.schema", schema);
+    registerOperation("ReturnSvc.SystemValidated", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "system.input.schema",
+      output: "void"
+    } as any);
+    await assert.rejects(
+      () => callOperation(useSystem({ amount: "x" }), "ReturnSvc.SystemValidated"),
+      (err: any) => err.message.includes("InvalidInput")
+    );
+  }
+
+  @test
+  async systemBypassesPermissionQuery() {
+    registerOperation("ReturnSvc.Guarded2", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      permission: "userId = 'alice'"
+    } as any);
+    assert.strictEqual(await canCallOperation(useSystem(), "ReturnSvc.Guarded2"), true);
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    anonymous.setSession(new Session());
+    assert.strictEqual(await canCallOperation(anonymous, "ReturnSvc.Guarded2"), false);
+  }
+
+  @test
+  async systemPassesMfaGate() {
+    registerOperation("ReturnSvc.MfaGuarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      maxMfaAge: "5m"
+    } as any);
+    assert.strictEqual(await canCallOperation(useSystem(), "ReturnSvc.MfaGuarded"), true);
+    const ctx = useSystem();
+    await callOperation(ctx, "ReturnSvc.MfaGuarded");
+    assert.strictEqual(ctx.getOutput(), "hello world");
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    anonymous.setSession(new Session());
+    assert.strictEqual(await canCallOperation(anonymous, "ReturnSvc.MfaGuarded"), false);
+  }
+
+  @test
+  async authorizerCanRefuseSystem() {
+    registerOperation("ReturnSvc.NoSystem", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    const authorizer = async ctx => (ctx.isGlobalContext() ? "no system" : (true as const));
+    registerOperationAuthorizer(authorizer);
+    try {
+      await assert.rejects(() => callOperation(useSystem(), "ReturnSvc.NoSystem"), WebdaError.Forbidden);
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+    }
+  }
+
+  @test
+  async concurrentSystemCalls() {
+    registerOperation("ReturnSvc.SysString", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    registerOperation("ReturnSvc.SysObject", {
+      service: "ReturnSvc",
+      method: "getObject",
+      input: "void",
+      output: "void"
+    } as any);
+    const call = (id: string) =>
+      runAsSystem(async () => {
+        const ctx = useContext<OperationContext>();
+        await callOperation(ctx, id);
+        return ctx.getOutput();
+      });
+    const [str, obj] = await Promise.all([call("ReturnSvc.SysString"), call("ReturnSvc.SysObject")]);
+    assert.strictEqual(str, "hello world");
+    assert.deepStrictEqual(JSON.parse(obj), { name: "test", count: 42 });
+  }
+
+  @test
+  async nestedRunAsSystemRestoresUser() {
+    const userCtx = new FakeOpContext();
+    await userCtx.init();
+    const result = await runWithContext(userCtx, async () => {
+      await runAsSystem(async () => {});
+      return useContext();
+    });
+    assert.strictEqual(result, userCtx);
   }
 
   @test
@@ -1002,6 +1359,68 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     assert.strictEqual(parsed.count, 42);
   }
 
+  /**
+   * Context of a signed-in user
+   * @param userId - the caller
+   * @returns the context
+   */
+  async userContext(userId: string): Promise<FakeOpContext> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const session = new Session();
+    session.login(userId, userId);
+    ctx.setSession(session);
+    return ctx;
+  }
+
+  @test
+  async callOperationWritesTheDTOForTheCaller() {
+    for (const method of ["getModel", "getPage", "streamModels"]) {
+      registerOperation(`ReturnSvc.${method[0].toUpperCase()}${method.slice(1)}`, {
+        service: "ReturnSvc",
+        method,
+        input: "void",
+        output: "void"
+      });
+    }
+    const call = async (userId: string, id: string) => {
+      const ctx = await this.userContext(userId);
+      await callOperation(ctx, `ReturnSvc.${id}`);
+      return ctx;
+    };
+    assert.deepStrictEqual(JSON.parse((await call("alice", "GetModel")).getOutput()), { owner: "alice", secret: "s1" });
+    assert.deepStrictEqual(JSON.parse((await call("bob", "GetModel")).getOutput()), { owner: "alice" });
+    // A query page: the models inside the wrapper too
+    assert.deepStrictEqual(JSON.parse((await call("bob", "GetPage")).getOutput()), {
+      results: [{ owner: "alice" }, { owner: "bob", secret: "s2" }],
+      continuationToken: "next"
+    });
+    // Streamed chunks
+    const chunks: any[] = [];
+    const streamed = await this.userContext("alice");
+    streamed.write = (chunk: any) => {
+      chunks.push(chunk);
+      return true;
+    };
+    await callOperation(streamed, "ReturnSvc.StreamModels");
+    assert.deepStrictEqual(chunks, [{ owner: "alice", secret: "s1" }, { owner: "bob" }]);
+  }
+
+  @test
+  toOperationOutputKeepsWhatIsNotAModel() {
+    const buffer = Buffer.from("raw");
+    assert.strictEqual(toOperationOutput(buffer), buffer);
+    const date = new Date();
+    assert.strictEqual(toOperationOutput(date), date);
+    for (const value of ["text", 3, null, undefined]) {
+      assert.strictEqual(toOperationOutput(value), value);
+    }
+    // A circular structure is left to the serializer
+    const circular: any = { name: "loop" };
+    circular.self = circular;
+    assert.strictEqual(toOperationOutput(circular).self, circular);
+  }
+
   @test
   async callOperationReturnsVoid() {
     registerOperation("ReturnSvc.DoNothing", {
@@ -1061,6 +1480,87 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     ctx.setInput(JSON.stringify({ name: "Alice", age: 30 }));
     await callOperation(ctx, "ReturnSvc.Greet");
     assert.strictEqual(ctx.getOutput(), "Hello Alice, you are 30 years old");
+  }
+
+  /**
+   * Register `ReturnSvc.<id>` calling echoArgs with the given input schema
+   * @param id - operation id suffix
+   * @param properties - input schema properties
+   * @returns the operation id
+   */
+  registerEchoOperation(id: string, properties: any): string {
+    const schema = { type: "object", properties };
+    const name = `ReturnSvc.${id}.input`;
+    useApplication<Application>().getSchemas()[name] = schema;
+    registerSchema(name, schema);
+    registerOperation(`ReturnSvc.${id}`, { service: "ReturnSvc", method: "echoArgs", input: name, output: "void" });
+    return `ReturnSvc.${id}`;
+  }
+
+  /**
+   * Call an echo operation with URL parameters and a body
+   * @param operationId - the operation
+   * @param params - path/query parameters (strings)
+   * @param body - the request body
+   * @returns the arguments the method received
+   */
+  async echo(operationId: string, params: any, body?: any): Promise<any[]> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters(params);
+    if (body !== undefined) ctx.setInput(JSON.stringify(body));
+    await callOperation(ctx, operationId);
+    return JSON.parse(ctx.getOutput());
+  }
+
+  @test
+  async coercesQueryNumbers() {
+    const op = this.registerEchoOperation("CoerceNumber", { limit: { type: "number" } });
+    assert.deepStrictEqual(await this.echo(op, { limit: "20" }), [20]);
+  }
+
+  @test
+  async rejectsNonNumericQueryValues() {
+    const op = this.registerEchoOperation("CoerceNaN", { limit: { type: "number" } });
+    await assert.rejects(
+      () => this.echo(op, { limit: "abc" }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/limit")
+    );
+  }
+
+  @test
+  async rejectsInfiniteQueryValues() {
+    const op = this.registerEchoOperation("CoerceInfinity", { limit: { type: "number" } });
+    for (const limit of ["Infinity", "-Infinity", "1e999"]) {
+      await assert.rejects(
+        () => this.echo(op, { limit }),
+        (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/limit"),
+        limit
+      );
+    }
+  }
+
+  @test
+  async coercesQueryBooleansFromDigits() {
+    const op = this.registerEchoOperation("CoerceBoolean", { notify: { type: "boolean" } });
+    assert.deepStrictEqual(await this.echo(op, { notify: "1" }), [true]);
+    assert.deepStrictEqual(await this.echo(op, { notify: "0" }), [false]);
+    assert.deepStrictEqual(await this.echo(op, { notify: "true" }), [true]);
+  }
+
+  @test
+  async coercesCommaSeparatedArrays() {
+    const op = this.registerEchoOperation("CoerceArray", { ids: { type: "array", items: { type: "number" } } });
+    assert.deepStrictEqual(await this.echo(op, { ids: "1,2,3" }), [[1, 2, 3]]);
+  }
+
+  @test
+  async neverCoercesTheBody() {
+    const op = this.registerEchoOperation("CoerceBody", { limit: { type: "number" } });
+    await assert.rejects(
+      () => this.echo(op, {}, { limit: "20" }),
+      (err: any) => err instanceof WebdaError.BadRequest && err.message.includes("/limit")
+    );
   }
 
   @test
@@ -1192,6 +1692,57 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
   }
 
   @test
+  async resolveArgsInjectsTheContext() {
+    useApplication<Application>().getSchemas()["Test.Ctx"] = {
+      type: "object",
+      properties: { message: { type: "string" } },
+      "x-webda-arguments": ["context", "message"],
+      "x-webda-context": ["context"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ message: "hi" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Ctx", output: "void" });
+    assert.strictEqual(args.length, 2);
+    assert.strictEqual(args[0], ctx);
+    assert.strictEqual(args[1], "hi");
+  }
+
+  @test
+  async resolveArgsInjectsTheContextInTheMiddle() {
+    useApplication<Application>().getSchemas()["Test.CtxMiddle"] = {
+      type: "object",
+      properties: { text: { type: "string" }, tags: { type: "array", items: { type: "string" } } },
+      "x-webda-arguments": ["text", "ctx", "tags"],
+      "x-webda-context": ["ctx"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ text: "t", tags: ["a"] }));
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      input: "Test.CtxMiddle",
+      output: "void"
+    });
+    assert.deepStrictEqual(args, ["t", ctx, ["a"]]);
+  }
+
+  @test
+  async resolveArgsOnlyContext() {
+    useApplication<Application>().getSchemas()["Test.CtxOnly"] = {
+      type: "object",
+      properties: {},
+      "x-webda-arguments": ["context"],
+      "x-webda-context": ["context"]
+    } as any;
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.CtxOnly", output: "void" });
+    assert.deepStrictEqual(args, [ctx]);
+  }
+
+  @test
   async resolveArgsSinglePropertySchema() {
     const app = useApplication<Application>();
     app.getSchemas()["Test.SingleProp"] = {
@@ -1235,7 +1786,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveArgsInputOverridesParams() {
+  async resolveArgsRejectsBodyConflictingWithParams() {
     const app = useApplication<Application>();
     app.getSchemas()["Test.Override"] = {
       type: "object",
@@ -1249,9 +1800,49 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     await ctx.init();
     ctx.setParameters({ name: "fromParams", value: 1 });
     ctx.setInput(JSON.stringify({ name: "fromBody" }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Override", output: "void" });
-    // Body overrides params for "name", params supplies "value"
-    assert.deepStrictEqual(args, ["fromBody", 1]);
+    // A body value must never replace a path/query parameter
+    await assert.rejects(
+      () => resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Override", output: "void" }),
+      (err: any) => err.getResponseCode?.() === 400 && /\/name conflicts with path parameter/.test(err.message)
+    );
+  }
+
+  @test
+  async resolveArgsAcceptsBodyMatchingParams() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.Same"] = {
+      type: "object",
+      properties: {
+        uuid: { type: "string" },
+        name: { type: "string" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "abc" });
+    ctx.setInput(JSON.stringify({ uuid: "abc", name: "Alice" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Same", output: "void" });
+    assert.deepStrictEqual(args, ["abc", "Alice"]);
+  }
+
+  @test
+  async resolveArgsIgnoresUndefinedParams() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.Undef"] = {
+      type: "object",
+      properties: {
+        parent: { type: "string" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    // Transports may blank a parameter by setting it to undefined
+    ctx.setParameters({ parent: undefined });
+    ctx.setInput(JSON.stringify({ parent: "p1" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Undef", output: "void" });
+    assert.deepStrictEqual(args, ["p1"]);
   }
 
   @test
@@ -1682,6 +2273,47 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
   }
 
   @test
+  async callOperationBodyCannotRetargetPathPrimaryKey() {
+    // PUT /brands/A/... with body { uuid: "B" } must not act on B
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+
+    const Brand = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+
+    await Brand.create({ uuid: "brand-a", name: "A" } as any);
+    await Brand.create({ uuid: "brand-b", name: "B" } as any);
+
+    getStorage().operations["Brand.InstanceRetarget"] = {
+      id: "Brand.InstanceRetarget",
+      model: "Brand",
+      method: "delete",
+      static: false,
+      input: "uuidRequest",
+      output: "void"
+    } as any;
+
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters({ uuid: "brand-a" });
+      ctx.setInput(JSON.stringify({ uuid: "brand-b" }));
+      await assert.rejects(
+        () => callOperation(ctx, "Brand.InstanceRetarget"),
+        (err: any) => err.getResponseCode?.() === 400 && /\/uuid conflicts with path parameter/.test(err.message)
+      );
+      for (const uuid of ["brand-a", "brand-b"]) {
+        const obj = await repo.get(uuid);
+        assert.ok(obj && !obj.isDeleted(), `${uuid} must not be deleted`);
+      }
+    } finally {
+      delete getStorage().operations["Brand.InstanceRetarget"];
+    }
+  }
+
+  @test
   async callOperationModelInstanceNotFound() {
     // Test the instance model method path when object not found (lines 194-196)
     const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
@@ -1780,5 +2412,433 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
     } finally {
       delete getStorage().operations["Brand.StrictInput"];
     }
+  }
+}
+
+/** Parent service declaring one operation */
+class InheritParentService extends Service {
+  /** Parent operation */
+  @Operation()
+  async parentOp(): Promise<void> {}
+}
+
+/** Subclass adding its own operation */
+class InheritChildService extends InheritParentService {
+  /** Child operation */
+  @Operation()
+  async childOp(): Promise<void> {}
+}
+
+@suite
+class OperationMetadataInheritanceTest {
+  @test
+  subclassOperationsDoNotLeakIntoParent() {
+    const names = (target: any) =>
+      ((getMetadata(target)?.["webda.operations"] as any[]) ?? []).map(op => op._methodName).sort();
+    assert.deepStrictEqual(names(InheritParentService), ["parentOp"]);
+    assert.deepStrictEqual(names(InheritChildService), ["childOp", "parentOp"]);
+  }
+}
+
+/**
+ * Calls recorded by the fake transaction participants, shared with TxTestService
+ */
+let txLog: string[] = [];
+
+/**
+ * Fake participant recording its calls in {@link txLog}
+ */
+class FakeParticipant implements OperationTransactionParticipant {
+  seen: { begin?: OperationDefinition; rollback?: unknown; context?: any } = {};
+  /**
+   * @param name - the participant name
+   * @param fail - the call throwing
+   */
+  constructor(
+    public readonly name: string,
+    public fail: { begin?: Error; commit?: Error; rollback?: Error } = {}
+  ) {}
+
+  async begin(context: any, operation?: OperationDefinition): Promise<void> {
+    this.seen.begin = operation;
+    this.seen.context = context;
+    txLog.push(`${this.name}.begin:${operation?.id}:${operation?.transaction}`);
+    if (this.fail.begin) throw this.fail.begin;
+  }
+
+  async commit(): Promise<void> {
+    txLog.push(`${this.name}.commit`);
+    if (this.fail.commit) throw this.fail.commit;
+  }
+
+  async rollback(_context: any, error: unknown): Promise<void> {
+    this.seen.rollback = error;
+    txLog.push(`${this.name}.rollback:${(error as Error)?.message}`);
+    if (this.fail.rollback) throw this.fail.rollback;
+  }
+}
+
+/**
+ * Service whose operations record their execution in {@link txLog}
+ */
+class TxTestService extends Service {
+  static createConfiguration(params: any) {
+    return new ServiceParameters().load(params);
+  }
+
+  static filterParameters(params: any) {
+    return params;
+  }
+
+  async write(): Promise<string> {
+    txLog.push(`method:${useOperationTransaction() !== undefined}`);
+    return "ok";
+  }
+
+  async fail(): Promise<string> {
+    txLog.push("method");
+    throw new Error("method failed");
+  }
+
+  async *stream(): AsyncGenerator<string> {
+    yield "a";
+    txLog.push("after-a");
+    yield "b";
+    txLog.push("after-b");
+  }
+
+  async outer(): Promise<string> {
+    txLog.push("outer");
+    const inner = new FakeOpContext();
+    await inner.init();
+    await callOperation(inner, "TxSvc.Inner");
+    return "outer";
+  }
+}
+
+@suite
+class OperationTransactionTest extends WebdaApplicationTest {
+  participants: FakeParticipant[] = [];
+  offs: (() => void)[] = [];
+
+  getTestConfiguration() {
+    return {
+      services: {
+        TxSvc: {
+          type: "TxTestService"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    app.addModda("Webda/TxTestService", TxTestService);
+  }
+
+  async beforeEach() {
+    await super.beforeEach();
+    txLog = [];
+    for (const [id, method, extra] of [
+      ["TxSvc.Write", "write", {}],
+      ["TxSvc.Fail", "fail", {}],
+      ["TxSvc.Stream", "stream", { generator: true }],
+      ["TxSvc.Outer", "outer", {}],
+      ["TxSvc.Inner", "write", {}],
+      ["TxSvc.NoTx", "write", { transaction: false }]
+    ] as const) {
+      registerOperation(id, { service: "TxSvc", method, input: "void", output: "void", ...extra } as any);
+    }
+    this.offs.push(
+      useCoreEvents("Webda.BeforeOperation", evt => {
+        txLog.push(`before:${evt.operationId}`);
+      }),
+      useCoreEvents("Webda.OperationSuccess", evt => {
+        // Success listeners of the outermost operation run once the transaction is committed
+        const tx = useOperationTransaction();
+        txLog.push(`success:${evt.operationId}${tx && txLog.some(l => l.endsWith(".commit")) ? ":open" : ""}`);
+      }),
+      useCoreEvents("Webda.OperationFailure", evt => {
+        txLog.push(`failure:${evt.operationId}:${evt.error?.message}`);
+      })
+    );
+  }
+
+  async afterEach() {
+    this.participants.forEach(p => unregisterOperationTransactionParticipant(p));
+    this.participants = [];
+    this.offs.forEach(off => off());
+    this.offs = [];
+    await super.afterEach();
+  }
+
+  /**
+   * Register fake participants for the test
+   * @param participants - the participants
+   * @returns the participants
+   */
+  register(...participants: FakeParticipant[]): FakeParticipant[] {
+    participants.forEach(p => registerOperationTransactionParticipant(p));
+    this.participants.push(...participants);
+    return participants;
+  }
+
+  /**
+   * @param operationId - the operation
+   * @returns the operation context after the call
+   */
+  async call(operationId: string): Promise<FakeOpContext> {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await callOperation(ctx, operationId);
+    return ctx;
+  }
+
+  @test
+  async registerAndList() {
+    const [p] = this.register(new FakeParticipant("p"));
+    // Registering twice keeps one entry
+    registerOperationTransactionParticipant(p);
+    assert.deepStrictEqual(listOperationTransactionParticipants(), [p]);
+    unregisterOperationTransactionParticipant(p);
+    assert.deepStrictEqual(listOperationTransactionParticipants(), []);
+  }
+
+  @test
+  async noParticipantNoTransaction() {
+    await this.call("TxSvc.Write");
+    assert.deepStrictEqual(txLog, ["before:TxSvc.Write", "method:false", "success:TxSvc.Write"]);
+  }
+
+  @test
+  async commitBeforeSuccess() {
+    const [p] = this.register(new FakeParticipant("p"));
+    const ctx = await this.call("TxSvc.Write");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Write:undefined",
+      "before:TxSvc.Write",
+      "method:true",
+      "p.commit",
+      "success:TxSvc.Write"
+    ]);
+    assert.strictEqual(p.seen.context, ctx);
+    assert.strictEqual(useOperationTransaction(), undefined, "no transaction outlives the operation");
+  }
+
+  @test
+  async rollbackOnMethodError() {
+    const [p] = this.register(new FakeParticipant("p"));
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    let thrown: unknown;
+    await callOperation(ctx, "TxSvc.Fail").catch(err => (thrown = err));
+    assert.strictEqual((thrown as Error).message, "method failed");
+    assert.strictEqual(p.seen.rollback, thrown, "rollback receives the original error");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Fail:undefined",
+      "before:TxSvc.Fail",
+      "method",
+      "p.rollback:method failed",
+      "failure:TxSvc.Fail:method failed"
+    ]);
+  }
+
+  @test
+  async commitFailureRollsBackTheOthers() {
+    const commitError = new Error("commit failed");
+    this.register(
+      new FakeParticipant("a"),
+      new FakeParticipant("b", { commit: commitError }),
+      new FakeParticipant("c")
+    );
+    await assert.rejects(() => this.call("TxSvc.Write"), /commit failed/);
+    assert.deepStrictEqual(txLog, [
+      "a.begin:TxSvc.Write:undefined",
+      "b.begin:TxSvc.Write:undefined",
+      "c.begin:TxSvc.Write:undefined",
+      "before:TxSvc.Write",
+      "method:true",
+      "a.commit",
+      "b.commit",
+      // Participants are committed in registration order: a stays committed, b and c roll back
+      "b.rollback:commit failed",
+      "c.rollback:commit failed",
+      "failure:TxSvc.Write:commit failed"
+    ]);
+  }
+
+  @test
+  async rollbackFailureKeepsOriginalError() {
+    this.register(new FakeParticipant("a", { rollback: new Error("rollback failed") }), new FakeParticipant("b"));
+    await assert.rejects(() => this.call("TxSvc.Fail"), /method failed/);
+    // A failing rollback does not prevent the next participants from rolling back
+    assert.deepStrictEqual(txLog.slice(-3), [
+      "a.rollback:method failed",
+      "b.rollback:method failed",
+      "failure:TxSvc.Fail:method failed"
+    ]);
+  }
+
+  @test
+  async beginFailure() {
+    this.register(new FakeParticipant("a"), new FakeParticipant("b", { begin: new Error("begin failed") }));
+    await assert.rejects(() => this.call("TxSvc.Write"), /begin failed/);
+    assert.deepStrictEqual(txLog, [
+      "a.begin:TxSvc.Write:undefined",
+      "b.begin:TxSvc.Write:undefined",
+      "a.rollback:begin failed",
+      "b.rollback:begin failed",
+      "failure:TxSvc.Write:begin failed"
+    ]);
+  }
+
+  @test
+  async streamCommitsAfterLastChunk() {
+    this.register(new FakeParticipant("p"));
+    await this.call("TxSvc.Stream");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Stream:undefined",
+      "before:TxSvc.Stream",
+      "after-a",
+      "after-b",
+      "p.commit",
+      "success:TxSvc.Stream"
+    ]);
+  }
+
+  @test
+  async nestedOperationsJoinTheOuterTransaction() {
+    this.register(new FakeParticipant("p"));
+    await this.call("TxSvc.Outer");
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.Outer:undefined",
+      "before:TxSvc.Outer",
+      "outer",
+      "before:TxSvc.Inner",
+      "method:true",
+      "success:TxSvc.Inner",
+      "p.commit",
+      "success:TxSvc.Outer"
+    ]);
+  }
+
+  @test
+  async operationOptOutIsHandedToParticipants() {
+    const [p] = this.register(new FakeParticipant("p"));
+    await this.call("TxSvc.NoTx");
+    assert.strictEqual(p.seen.begin?.transaction, false);
+    assert.deepStrictEqual(txLog, [
+      "p.begin:TxSvc.NoTx:false",
+      "before:TxSvc.NoTx",
+      "method:true",
+      "p.commit",
+      "success:TxSvc.NoTx"
+    ]);
+  }
+
+  @test
+  async operationDecoratorTransactionOption() {
+    class Decorated {
+      @Operation({ transaction: false })
+      async streamed() {}
+    }
+    const ops = (Decorated as any)[Symbol.metadata]["webda.operations"] as any[];
+    assert.strictEqual(ops[0].transaction, false);
+  }
+
+  @test
+  async runWithTransactionOutsideOperation() {
+    const [p] = this.register(new FakeParticipant("p"));
+    const result = await runWithTransaction(async () => {
+      assert.ok(useOperationTransaction());
+      txLog.push("fn");
+      return 42;
+    });
+    assert.strictEqual(result, 42);
+    assert.deepStrictEqual(txLog, ["p.begin:undefined:undefined", "fn", "p.commit"]);
+    txLog = [];
+    await assert.rejects(
+      () =>
+        runWithTransaction(async () => {
+          throw new Error("fn failed");
+        }, [p]),
+      /fn failed/
+    );
+    assert.deepStrictEqual(txLog, ["p.begin:undefined:undefined", "p.rollback:fn failed"]);
+    assert.strictEqual(useOperationTransaction(), undefined);
+  }
+
+  @test
+  async runWithTransactionJoinsCurrent() {
+    const [a] = this.register(new FakeParticipant("a"));
+    const b = new FakeParticipant("b");
+    await runWithTransaction(async () => {
+      // Joining: b is enlisted in the current transaction, a is not begun twice
+      await runWithTransaction(async () => {
+        txLog.push("inner");
+      }, [a, b]);
+      txLog.push("outer");
+    });
+    assert.deepStrictEqual(txLog, [
+      "a.begin:undefined:undefined",
+      "b.begin:undefined:undefined",
+      "inner",
+      "outer",
+      "a.commit",
+      "b.commit"
+    ]);
+  }
+
+  @test
+  async participantsReachTheTransactionWhileFinishing() {
+    const seen: string[] = [];
+    const participant: OperationTransactionParticipant = {
+      name: "reader",
+      begin: async () => {
+        useOperationTransaction()!.set("reader", "state");
+      },
+      commit: async () => {
+        seen.push(`commit:${useOperationTransaction()?.get("reader")}`);
+      },
+      rollback: async () => {
+        seen.push(`rollback:${useOperationTransaction()?.get("reader")}`);
+      }
+    };
+    registerOperationTransactionParticipant(participant);
+    try {
+      await this.call("TxSvc.Write");
+      await assert.rejects(() => this.call("TxSvc.Fail"), /method failed/);
+    } finally {
+      unregisterOperationTransactionParticipant(participant);
+    }
+    assert.deepStrictEqual(seen, ["commit:state", "rollback:state"]);
+  }
+
+  @test
+  async committedParticipantIsNotCommittedTwice() {
+    this.register(new FakeParticipant("p"));
+    await runWithTransaction(async () => {
+      const transaction = useOperationTransaction()!;
+      await transaction.commit();
+      await transaction.commit();
+    });
+    assert.deepStrictEqual(txLog, ["p.begin:undefined:undefined", "p.commit"]);
+  }
+
+  @test
+  async transactionSlots() {
+    this.register(new FakeParticipant("p"));
+    await runWithTransaction(async () => {
+      const tx = useOperationTransaction()!;
+      assert.strictEqual(tx.get("k"), undefined);
+      tx.set("k", 1);
+      assert.strictEqual(tx.get("k"), 1);
+      // A separate async chain started inside the transaction shares it
+      await Promise.resolve().then(() => assert.strictEqual(useOperationTransaction()?.get("k"), 1));
+      // Switching to the system context keeps the transaction: it follows the async chain, not the context
+      assert.strictEqual(
+        runAsSystem(() => useOperationTransaction()),
+        tx
+      );
+    });
   }
 }

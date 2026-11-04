@@ -1,7 +1,15 @@
 # Mailer
 
-Webda defines a Mailer as a service than can send email and resolve templates
+`@webda/core` only keeps the mailer contracts: `AbstractMailer`, `MailerSendOptions` and the `DebugMailer` used by tests.
 
-It can manage `SES` and `smtp`
+The nodemailer based `Mailer` (`Webda/Mailer`, `SES` and `smtp` transports) moved to its own module, see [`@webda/mailer`](../mailer/README.md).
 
-For configuration please refer to [nodemailer](https://nodemailer.com/smtp/)
+## Migration
+
+Install `@webda/mailer` in your application to keep using `Webda/Mailer`, the configuration does not change:
+
+```bash
+pnpm add @webda/mailer
+```
+
+Templates are now rendered with [`@webda/templates`](../templates/README.md) instead of `email-templates`.

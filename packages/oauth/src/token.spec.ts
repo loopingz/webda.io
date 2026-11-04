@@ -19,6 +19,7 @@ class TokenEndpointTest extends OAuthTest {
   /** @override */
   async afterEach() {
     unregisterTestOperations();
+    useService<any>("TokenService").getParameters().refreshReuseInterval = 10;
     const params = useService<any>("OAuthServer").getParameters();
     params.accessTtl = undefined;
     params.refreshTtl = undefined;
@@ -294,6 +295,8 @@ class TokenEndpointTest extends OAuthTest {
 
   @test
   async refreshGrant() {
+    // the grace alone: the replay below comes right after the rotation (reset in afterEach)
+    useService<any>("TokenService").getParameters().refreshReuseInterval = 0;
     const flow = await this.consentFlow({ scope: "Task.* offline_access", operations: ALL_TASK });
     const first = await this.tokenRequest({
       grant_type: "authorization_code",
@@ -335,14 +338,22 @@ class TokenEndpointTest extends OAuthTest {
       client_id: "app"
     });
     assert.strictEqual(same.body.scope, "Task.Get offline_access");
-    // Reusing a rotated token revokes the family
-    const reused = await this.tokenRequest({
+    // Replaying a rotated token while its replacement was never used is a lost answer: rotated once more (grace)
+    const replayed = await this.tokenRequest({
       grant_type: "refresh_token",
       refresh_token: narrowed.body.refresh_token,
       client_id: "app"
     });
+    assert.strictEqual(replayed.status, 200, JSON.stringify(replayed.body));
+    assert.strictEqual(replayed.body.scope, "Task.Get offline_access");
+    // The retired replacement presented anyway: two holders, the family is revoked
+    const reused = await this.tokenRequest({
+      grant_type: "refresh_token",
+      refresh_token: same.body.refresh_token,
+      client_id: "app"
+    });
     assert.strictEqual(reused.body.error, "invalid_grant");
-    assert.strictEqual(await useService("TokenService").verifyAccess(same.body.access_token), undefined);
+    assert.strictEqual(await useService("TokenService").verifyAccess(replayed.body.access_token), undefined);
   }
 
   @test

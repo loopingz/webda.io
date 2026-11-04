@@ -41,6 +41,9 @@ export class FileSize {
       TB: 1024 ** 4,
       PB: 1024 ** 5
     }[unit];
+    if (factor === undefined) {
+      throw new Error(`Invalid file size: ${value}`);
+    }
     this.value = Math.round(num * factor);
   }
 

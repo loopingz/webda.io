@@ -12,10 +12,10 @@
  * `ModuleGenerator.getSchemaNode` does, and the committed artefact reflects
  * it.
  */
-import type { Checker, Project, Symbol as TsSymbol, Type } from "typescript/unstable/sync";
-import { SyntaxKind } from "typescript/unstable/ast";
-import type { ClassDeclaration, Node, TypeNode } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { Checker, Project, Symbol as TsSymbol, Type } from "typescript/sync";
+import { SyntaxKind } from "typescript/ast";
+import type { ClassDeclaration, Node, TypeNode } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import { SchemaConverter } from "./converter.ts";
 import type { JSONSchema7 } from "./types.ts";
 
@@ -168,7 +168,7 @@ function classChain(declaration: ClassDeclaration, checker: Checker, project: Pr
  * @param checker - the checker resolving base types
  * @returns true on a match
  */
-function derivesFrom(type: Type, name: string, checker: Checker): boolean {
+export function derivesFrom(type: Type, name: string, checker: Checker): boolean {
   const seen = new Set<number>();
   const queue: Type[] = [type];
   while (queue.length > 0) {

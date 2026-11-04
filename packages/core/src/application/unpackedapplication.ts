@@ -473,6 +473,8 @@ export class UnpackedApplication extends Application {
         // A schema is a complete document re-emitted by the modules depending on the one declaring it (any
         // `@WebdaSchema` type): replace it whole, deepmerge would concatenate its arrays (`required`, `enum`...)
         merged.schemas = { ...(prev.schemas ?? {}), ...(val.schemas ?? {}) };
+        // A flow too: deepmerge would concatenate its statements
+        merged.flows = { ...(prev.flows ?? {}), ...(val.flows ?? {}) };
         return merged;
       }, module);
     Object.keys(SectionEnum)
@@ -487,6 +489,8 @@ export class UnpackedApplication extends Application {
     module.schemas = value.schemas;
     module.capabilities = value.capabilities;
     module.behaviors = value.behaviors;
+    // Flows compiled from `.flow.ts` files, registered by @webda/workflow
+    module.flows = value.flows;
     this.log("DEBUG", "Merged modules", module);
     await this.loadModule(module);
     return module;

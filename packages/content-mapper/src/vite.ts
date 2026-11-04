@@ -21,7 +21,7 @@ export interface WebdaContentMapperOptions {
  * @returns the vite plugin
  */
 export function webdaContentMapper(options: WebdaContentMapperOptions = {}): Plugin {
-  const include = options.include ?? /^(?!.*node_modules).*(?<!\.d)\.ts$/;
+  const include = options.include ?? /^(?!.*node_modules).*(?<!\.d)\.(ts|wts)$/;
   let session: WarmSession | undefined;
   let root = process.cwd();
   return {

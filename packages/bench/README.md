@@ -113,6 +113,11 @@ The blog is seeded deterministically (`smoke`: 30 posts, `quick`: 1,000 posts, `
 selected by `WEBDA_BENCH_BLOG_STORE` (`memory`, `fs`, `postgres`, `mongodb`); the store modules not under test are not
 loaded, so the application boots as it would be shipped.
 
+`blog.coldboot.init` is also split in `blog.coldboot.resolve` (create and resolve the services) and
+`blog.coldboot.servicesInit` (their `init()`, the slowest services are in its checks). Every phase is measured twice:
+plain `node`, and with `compileCache=true`, the Node compile cache the `webda` launcher enables. To profile one boot:
+`node bench/coldboot-child.mjs` prints the phases and the init time of each service.
+
 ```bash
 pnpm --filter @webda/sample-blog-system run bench
 ```

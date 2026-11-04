@@ -1,4 +1,4 @@
-export type QueryOperation = "query" | "iterate" | "aggregate" | "deleteMany" | "updateMany";
+export type QueryOperation = "query" | "iterate" | "aggregate" | "count" | "deleteMany" | "updateMany";
 
 export interface QueryExecutionInfo {
   operation: QueryOperation;
@@ -8,7 +8,7 @@ export interface QueryExecutionInfo {
   query: string;
   /** Wall-clock duration in ms */
   duration: number;
-  /** Results returned (query / iterate page) or rows affected (bulk) */
+  /** Results returned (query / iterate page), rows counted (count) or rows affected (bulk) */
   count?: number;
   /** True when a continuationToken was returned */
   paginated?: boolean;

@@ -356,6 +356,18 @@ export default class ElasticSearchService<
   }
 
   /**
+   * Validate a property name before embedding it in a Painless script
+   * @param property - property name
+   * @returns validated property name
+   */
+  protected checkProperty(property: string): string {
+    if (!property || !/^[A-Za-z0-9_]+$/.test(property)) {
+      throw new WebdaError.BadRequest(`Invalid property name: ${property}`);
+    }
+    return property;
+  }
+
+  /**
    * Increments one or several properties of an object
    *
    * @param index - the index name
@@ -364,7 +376,8 @@ export default class ElasticSearchService<
    */
   protected async _increments(index: string, uuid: string, parameters: { property: string; value: number }[]) {
     const params: Record<string, number> = {};
-    parameters.forEach(({ value }, i) => {
+    parameters.forEach(({ property, value }, i) => {
+      this.checkProperty(property);
       params[`count${i}`] = value;
     });
     await this._client.update({
@@ -434,6 +447,7 @@ export default class ElasticSearchService<
    * @param item - the item to add
    */
   protected async _addItem(index: string, uuid: string, property: string, item: any) {
+    this.checkProperty(property);
     await this._client.update({
       index,
       id: uuid,
@@ -456,6 +470,7 @@ export default class ElasticSearchService<
    * @param item - the new item
    */
   protected async _setItem(index: string, uuid: string, property: string, idx: number, item: any) {
+    this.checkProperty(property);
     await this._client.update({
       index,
       id: uuid,
@@ -477,6 +492,7 @@ export default class ElasticSearchService<
    * @param element - the position to remove
    */
   protected async _deleteItem(index: string, uuid: string, property: string, element: number) {
+    this.checkProperty(property);
     await this._client.update({
       index,
       id: uuid,
@@ -592,7 +608,7 @@ export default class ElasticSearchService<
     if (typeof query === "string") {
       q = { q: query, index: index };
     } else {
-      q = { index: index, ...query };
+      q = { ...query, index: index };
     }
     q.from = from;
     const result = await this._client.search(q);

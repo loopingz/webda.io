@@ -8,7 +8,7 @@ const isUnicodeSupported = process.platform !== "win32" || Boolean(process.env.W
  * @param millis - Duration in milliseconds
  * @returns Formatted string like "1h 30m" or "45s 123ms"
  */
-function humanizeDuration(millis) {
+function humanizeDuration(millis: number) {
   const totalSeconds = Math.floor(millis / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -33,7 +33,7 @@ function humanizeDuration(millis) {
   return parts.slice(0, 2).join(" "); // Keep only the first two units
 }
 
-const statuses = {
+const statuses: Record<string, string> = {
   info: chalk.blue(isUnicodeSupported ? "ℹ" : "i"),
   success: chalk.green(isUnicodeSupported ? "✔" : "√"),
   warning: chalk.yellow(isUnicodeSupported ? "⚠" : "‼"),
@@ -65,7 +65,7 @@ class SimpleProgress {
   /** Last rendered string, used to diff-render only changed characters */
   lastValue: string = "";
   /** setInterval handle for the spinner animation */
-  interval: ReturnType<typeof setInterval>;
+  interval?: ReturnType<typeof setInterval>;
   /** Current frame index into the spinner frames array */
   spinnerState = 0;
   /** Timestamp (ms) when the progress was started */
@@ -136,7 +136,7 @@ class SimpleProgress {
    * Update the progress value and re-render
    * @param value - New progress value
    */
-  update(value) {
+  update(value: number) {
     this.current = value;
     this.render();
   }
@@ -247,7 +247,7 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
       this.input?.cancel();
     } else if (msg.type.startsWith("progress.")) {
       this.onProgress(msg);
-    } else if (msg.type === "log" && LogFilter(msg.log.level, this.level())) {
+    } else if (msg.type === "log" && msg.log && LogFilter(msg.log.level, this.level())) {
       this.spinner?.clear();
       ConsoleLogger.display(msg, this.format);
       this.spinner?.render();
@@ -264,10 +264,13 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
    * @param msg - Progress message to handle
    */
   async onProgress(msg: WorkerMessage) {
+    const progress = msg.currentProgress !== undefined ? msg.progresses[msg.currentProgress] : undefined;
     if (msg.type === "progress.start") {
       this.spinner ??= new SimpleProgress();
-      this.spinner.title = msg.progresses[msg.currentProgress].title;
-      this.spinner.total = msg.progresses[msg.currentProgress].total;
+      if (progress) {
+        this.spinner.title = progress.title;
+        this.spinner.total = progress.total;
+      }
       this.spinner.start();
     } else if (msg.type === "progress.stop") {
       this.spinner.stop();
@@ -288,9 +291,9 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
           this.format
         );
       }
-    } else if (msg.type === "progress.update") {
-      this.spinner.title = msg.progresses[msg.currentProgress].title;
-      this.spinner.update(msg.progresses[msg.currentProgress].current);
+    } else if (msg.type === "progress.update" && progress) {
+      this.spinner.title = progress.title;
+      this.spinner.update(progress.current);
     }
   }
 
@@ -310,20 +313,24 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
    * @throws Error if @inquirer/prompts is not installed
    */
   async onInput(msg: WorkerMessage) {
+    const input = msg.input;
+    if (!input) {
+      return;
+    }
     try {
       const inquirer = await this.importInquirer();
       if (!inquirer.input) {
         throw new Error("Inquirer is not available, please install it with npm install @inquirer/prompts");
       }
       this.input = inquirer.input({
-        message: msg.input.title,
+        message: input.title,
         validate: (value: string) => {
-          return msg.input.validate(value);
+          return input.validate(value);
         }
       }) as any;
       this.input
         .then((value: string) => {
-          this.output.returnInput(msg.input.uuid, value);
+          this.output.returnInput(input.uuid, value);
         })
         .catch(err => {
           // Ignore the error for now

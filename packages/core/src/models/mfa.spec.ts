@@ -506,6 +506,54 @@ class MfaBehaviorTest extends WebdaApplicationTest {
   }
 
   @test
+  async challengeSendsThroughTheProvider() {
+    this.registerFactors();
+    const sent: string[] = [];
+    registerSecondFactor({
+      method: "sent",
+      startEnrollment: async mfa => {
+        mfa.getFactor("sent");
+      },
+      challenge: async (_mfa, owner) => {
+        sent.push(owner.getUUID());
+        return { sent: true };
+      },
+      check: async (_mfa, code) => code === "sent-code"
+    });
+    const { mfa } = await this.vault("vault-challenge");
+    const actions: string[] = [];
+    registerLoginMfa({
+      model: "Webda/User",
+      attribute: "mfa",
+      run: async (_mfa, action, _method, next) => {
+        actions.push(action);
+        return next();
+      }
+    });
+    await runWithContext(await this.userContext("vault-challenge"), async () => {
+      // No factor yet, a provider without challenge, an unknown method
+      await assert.rejects(() => mfa.challenge("sent"), MfaNotEnabled);
+      await mfa.enroll("good");
+      await assert.rejects(() => mfa.challenge("good"), MfaNotEnabled);
+      await assert.rejects(() => mfa.challenge("unknown"), MfaNotEnabled);
+      // A pending factor can be challenged (resend during enrollment), as an enabled one
+      await mfa.enroll("sent");
+      assert.deepStrictEqual(await mfa.challenge("sent"), { sent: true });
+      await mfa.confirm("sent", "sent-code");
+      assert.deepStrictEqual(await mfa.challenge("sent"), { sent: true });
+      assert.deepStrictEqual(sent, ["vault-challenge", "vault-challenge"]);
+      assert.deepStrictEqual(actions.filter(a => a === "challenge").length, 5);
+    });
+    // A method not allowed on the attribute is refused
+    this.webda.applicationConfiguration.models = { "Webda/User": { behaviors: { mfa: { methods: ["good"] } } } };
+    try {
+      await assert.rejects(() => mfa.sendChallenge("sent"), /not allowed/);
+    } finally {
+      delete this.webda.applicationConfiguration.models;
+    }
+  }
+
+  @test
   async detachedUnknownMethodOrUndeclaredCounters() {
     this.registerFactors();
     await assert.rejects(() => new MFA().startEnrollment("good"), WebdaError.BadRequest);

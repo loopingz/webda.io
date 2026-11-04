@@ -31,6 +31,10 @@ export interface RestExposure {
   pathParams: string[];
   /** Query-string parameters of the route template (`{?q?}`), e.g. `["q"]` for a `GET` query */
   query?: string[];
+  /** Object parameter expanded into the remaining query keys. */
+  queryCatchAll?: string;
+  /** Parameter sent as the whole JSON body. */
+  body?: string;
 }
 
 /** How a relation field of a GraphQL result is turned back into the attribute the REST API sends */
@@ -120,7 +124,7 @@ export interface ModelQueryDescriptor {
   attribute: string;
   model: string;
   /** Attribute of the target model holding this model's id */
-  targetAttribute: string;
+  targetAttribute?: string;
 }
 
 /** What the runtime needs to know about a model */
@@ -210,6 +214,15 @@ export interface CallOptions extends CallContext {
   cache?: CacheMode;
 }
 
+/** Options of a query through the client */
+export interface QueryOptions extends CallOptions {
+  /**
+   * Also ask for the total of the query: ask on the first page only, the next pages of the same query keep the
+   * cached total
+   */
+  count?: boolean;
+}
+
 /** A bidirectional stream, from `connect()` */
 export interface BidiStream<I = unknown, O = unknown> extends AsyncIterable<O> {
   /** Send a message to the server */
@@ -243,6 +256,17 @@ export interface Transport {
 export interface QueryResult<T> {
   results: T[];
   continuationToken?: string;
+  /**
+   * Total of the query, when asked with `count` and allowed by the model: with relation "gte", the total is at least
+   * `value`
+   */
+  total?: QueryTotal;
+}
+
+/** Total of a query: `relation` "eq" for an exact total, "gte" when the server stopped counting at `value` */
+export interface QueryTotal {
+  value: number;
+  relation: "eq" | "gte";
 }
 
 /** A primary key: the string uid, or the key attributes of a composite key */

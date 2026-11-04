@@ -202,7 +202,7 @@ Before input reaches a model, the DomainService (and GraphQL) removes:
 - `__`-prefixed (private) attributes, at any depth;
 - `_`-prefixed (server-managed) **top-level** attributes: `_user`, `_roles`, `_groups`, `_creationDate`... (nested objects keep their `_` keys). A model that genuinely accepts one from clients lists it in its static `getClientWritableAttributes()`; the parent link of a create is kept (and checked against the parent);
 - behavior attributes (changed only through the behavior's actions);
-- the attributes returned by the model's optional static `getProtectedAttributes()`, even when listed as writable. `OwnerModel` protects `_user`, so the owner can never be set or changed by a client;
+- the attributes returned by the model's optional static `getProtectedAttributes(context?)`, even when listed as writable. `OwnerModel` protects `_user`, so the owner can never be set or changed by a client. The caller context is passed, so the list can depend on who asks (see [Per-caller field rules](#per-caller-field-rules));
 - the attributes marked `@readOnly` in the model (read-only in its schemas): server-managed dates and the like.
 
 ```typescript
@@ -230,6 +230,45 @@ On update and patch the key comes from the URL (or the GraphQL `uuid` argument):
 For a `UuidModel` (`uuid` primary key) a client `uuid` is **ignored on create**: the key is always generated, so a create can neither target an existing object nor reveal that a uuid exists. This also means a `User` record cannot be created through REST/GraphQL with a chosen uuid (users are created by the authentication services).
 
 Models with a natural key (e.g. a `slug`) keep the client key. Creating over an existing key is a `409 Conflict` (GraphQL `CONFLICT`), whether the caller can read the existing object or not, and the existing object is left unchanged. This 409 is the one remaining way to learn that a key exists: it is inherent to client-chosen keys. Use generated keys for objects whose existence is sensitive.
+
+### Per-caller field rules
+
+A field some callers may write and others not (an admin sets `roles`, the owner edits the rest) is **protected per caller**: `getProtectedAttributes(context)` receives the caller context on every client write (REST, gRPC, MCP, GraphQL, offline sync), on create, update and patch, and the attributes it returns are dropped from the input before the object is loaded. The request itself succeeds without them, like a `_` attribute sent by a client; the stored value is kept on update and patch.
+
+```typescript
+import { UuidModel } from "@webda/models";
+import type { IOperationContext } from "@webda/core";
+
+export class Account extends UuidModel {
+  owner!: string;
+  name!: string;
+  roles?: string[];
+
+  static isAdmin(context?: IOperationContext): boolean {
+    return context?.getSession()?.roles?.includes("admin") === true;
+  }
+
+  // Only an admin may write `roles`; `owner` is never taken from a client
+  static getProtectedAttributes(context?: IOperationContext): string[] {
+    return Account.isAdmin(context) ? ["owner"] : ["owner", "roles"];
+  }
+
+  prepareCreate(context: IOperationContext): void {
+    this.owner = context.getCurrentUserId();
+  }
+
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    if (!context.getCurrentUserId()) return "Login required";
+    return context.getCurrentUserId() === this.owner || Account.isAdmin(context);
+  }
+}
+```
+
+Treat a missing context as an unknown caller, never as a privileged one: `sanitizeModelInput(model, input)` without a context is what a unit test or a server-side helper calls, and the rule above protects `roles` then. The rule is about the **caller** (its session, user, roles), not the input: it must not read the request body.
+
+To refuse the whole request instead of dropping the field (a `403`), check the input in `canAct(context, "update")` with `await context.getInput()`: the body is the raw client input, so only look at the fields the rule is about. This form depends on the transport carrying the input in the context (REST does), the protected form does not.
+
+There is no per-field hook on the object itself: the v3 `attributePermission(key, value, "WRITE", context)` is not called by any v4 path (`IAttributeLevelPermissionModel` is deprecated). Per-field **read** rules go through `toDTO()` (see [Exposing fields conditionally](#exposing-fields-conditionally--dto-pattern)).
 
 ### Server-managed fields on create
 
@@ -270,6 +309,8 @@ A query (`<Plural>.Query`, the GraphQL list query, relation sub-queries and quer
 2. Every result is checked with `canAct(ctx, "get", row)` and the refused ones are dropped. This also applies when the permission query is not `partial`, so a subclass that overrides `canAct` while inheriting `getPermissionQuery` never leaks objects.
 
 Rows dropped by step 2 are replaced by continuing the scan in the store (next pages, asking only for the missing rows), so a page is full unless the store has no more matches or the scan budget is spent: `SCAN_FACTOR` (10) times the page `LIMIT` rows, between `MIN_SCANNED_ROWS` (100) and `MAX_SCANNED_ROWS` (10000), and at most `MAX_REFILL_PAGES` (100) store pages. When the budget is spent the page can be shorter than its `LIMIT`; it carries a `continuationToken` only if it holds visible results, so an empty page never carries one. Page on the token, not on the page size. A precise `getPermissionQuery` filters in the store and avoids the extra scans.
+
+A query can also return the **total** of its matches (`count: true`, or the GraphQL `total` field), only when `getPermissionQuery` returns `partial: false`: see [Query totals](../../Concepts/Stores/Query-Total.md).
 
 **Continuation tokens are sealed** on every query: the store token is encrypted with the `CryptoService` (random IV, fixed-size padding), because store tokens count or name rows (Postgres/Firestore offsets, memory offsets, Dynamo keys) and would reveal hidden matches. A token is **bound** to the model, the query (its filter and `ORDER BY`, without `LIMIT`/`OFFSET`) and the caller (user id, or "anonymous"), and **expires after one hour** (`CONTINUATION_TOKEN_TTL_MS`). Send it back unchanged in `OFFSET "<token>"` of the same query, as the same caller, within the hour; any other value, another query, another model, another caller or an expired token is a `400`, and paging restarts from the first page. The `LIMIT` is not part of the binding: the same query may page on with another page size. Anonymous callers share one binding: a token continues the same filter for any anonymous caller, which reveals nothing beyond what any of them can page through, as long as `canAct` and `getPermissionQuery` decide on the user id only (not on other session state such as a cart or an IP). Tokens follow the CryptoService key rotation.
 
@@ -378,7 +419,7 @@ Without `getProtectedAttributes`, anyone allowed `"update"` could rewrite the AC
 
 ## Exposing fields conditionally — DTO pattern
 
-Permissions decide whether an object is returned, not which of its fields: `__`-prefixed fields are never sent (REST output, GraphQL types), and `toDTO()` can be overridden for other field-level rules.
+Permissions decide whether an object is returned, not which of its fields: `__`-prefixed fields are never sent (REST output, GraphQL types), and `toDTO()` can be overridden for other field-level rules. Every operation transport (REST, GraphQL, gRPC, MCP) answers a model returned by an operation, alone, in an array or in a plain object such as a query page, with its `toDTO()`, called as the caller (`useContext()` is the request context), so a DTO can depend on who asks.
 
 ## Verify
 

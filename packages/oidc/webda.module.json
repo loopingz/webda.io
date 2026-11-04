@@ -198,6 +198,15 @@
                 "default": "${sub}",
                 "description": "How to build the application principal name, template over claims\n\nA leading `app:` is removed: a Webda issuer `sub` of `app:orders` gives the IAM principal `app:orders`",
                 "type": "string"
+              },
+              "session": {
+                "default": "application",
+                "description": "Session given by a valid token\n\n- `application`: a workload token, the caller is the application `app:<principal>`\n- `user`: an access token (`typ: at+jwt`, RFC 9068) of a Webda `OAuthServer` bound to this application, the\n  caller is its user, restricted to the token scope. The issuer revocations are only seen when the token expires",
+                "enum": [
+                  "application",
+                  "user"
+                ],
+                "type": "string"
               }
             },
             "required": [

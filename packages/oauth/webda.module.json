@@ -36,6 +36,10 @@
                 "description": "Home page",
                 "type": "string"
               },
+              "defaultResource": {
+                "description": "Resource the tokens are bound to when the request names none (RFC 8707): the absolute URI of a registered\nprotected resource",
+                "type": "string"
+              },
               "defaultScope": {
                 "description": "Scope when the request has none",
                 "type": "string"
@@ -64,6 +68,11 @@
                   "type": "string"
                 },
                 "type": "array"
+              },
+              "registered": {
+                "default": false,
+                "description": "Registered dynamically (RFC 7591)",
+                "type": "boolean"
               }
             },
             "required": [
@@ -123,7 +132,7 @@
             "type": "string"
           },
           "issuer": {
-            "description": "Issuer; defaults to the request origin",
+            "description": "Issuer; defaults to the request origin. When set, the access tokens carry it as `iss` with the RFC 9068\n`at+jwt` type, so another application can verify them (see `resources`)",
             "type": "string"
           },
           "loginUrl": {
@@ -134,6 +143,41 @@
             "description": "Refresh token lifetime (s); defaults to TokenService",
             "type": "number"
           },
+          "registration": {
+            "description": "Dynamic client registration (RFC 7591); defaults to `open` when a protected resource is registered, else `off`",
+            "enum": [
+              "open",
+              "off"
+            ],
+            "type": "string"
+          },
+          "registrationIdleTtl": {
+            "default": 7776000,
+            "description": "Lifetime of a registered client since its last use (s)",
+            "type": "number"
+          },
+          "registrationRateLimit": {
+            "default": 20,
+            "description": "Registrations allowed per client IP in the window",
+            "type": "number"
+          },
+          "registrationRateWindow": {
+            "default": 3600,
+            "description": "Window of the registration rate limit (s)",
+            "type": "number"
+          },
+          "registrationRedirectPatterns": {
+            "description": "Globs every redirect URI of a registration must match one of",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "registrationUnusedTtl": {
+            "default": 86400,
+            "description": "Lifetime of a registered client never used (s)",
+            "type": "number"
+          },
           "rememberConsent": {
             "default": true,
             "type": "boolean"
@@ -141,6 +185,14 @@
           "rememberConsentTtl": {
             "default": 7776000,
             "type": "number"
+          },
+          "resources": {
+            "default": [],
+            "description": "Protected resources served by other applications (absolute URIs, RFC 8707): accepted as a `resource` or a client\n`defaultResource`, never chosen by default. Their tokens are verified from the issuer keys, so they require\n`issuer`, an asymmetric `CryptoService` algorithm and its published JWKS (`url`)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "resultUrl": {
             "description": "Result UI; defaults to the built-in page",
@@ -205,6 +257,9 @@
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "resource": {
           "type": "string"
         },
         "expiresAt": {
@@ -289,6 +344,10 @@
               "type": "string"
             },
             "redirectUri": {
+              "type": "string"
+            },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
               "type": "string"
             },
             "reusedAt": {
@@ -385,6 +444,10 @@
             "redirectUri": {
               "type": "string"
             },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
+              "type": "string"
+            },
             "reusedAt": {
               "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
               "type": "number"
@@ -479,6 +542,10 @@
             "redirectUri": {
               "type": "string"
             },
+            "resource": {
+              "description": "Resource the tokens are bound to (RFC 8707)",
+              "type": "string"
+            },
             "reusedAt": {
               "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
               "type": "number"
@@ -505,7 +572,22 @@
         }
       },
       "Actions": {},
-      "Events": [],
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
       "PrimaryKey": [
         "hash"
       ],
@@ -861,7 +943,22 @@
         }
       },
       "Actions": {},
-      "Events": [],
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
       "PrimaryKey": [
         "userCode"
       ],
@@ -1022,11 +1119,238 @@
         }
       },
       "Actions": {},
-      "Events": [],
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
       "PrimaryKey": [
         "uuid"
       ],
       "Identifier": "Webda/OAuthGrant"
+    },
+    "Webda/OAuthRegisteredClient": {
+      "Plural": "OAuthRegisteredClients",
+      "Import": "lib/models.model:OAuthRegisteredClient",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "clientUri": {
+          "type": "string"
+        },
+        "logoUri": {
+          "type": "string"
+        },
+        "redirect_uris": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "lastUsedAt": {
+          "type": "number"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "ip": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Client registered dynamically (RFC 7591), public client without secret",
+          "properties": {
+            "clientUri": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "expiresAt": {
+              "description": "Extended on use",
+              "type": "number"
+            },
+            "ip": {
+              "description": "Address that registered the client",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "type": "number"
+            },
+            "logoUri": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "redirect_uris": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "The `dcr_…` client_id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "expiresAt",
+            "ip",
+            "name",
+            "redirect_uris",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/OAuthRegisteredClient"
     }
   },
   "schemas": {
@@ -1145,6 +1469,10 @@
             },
             "uri": {
               "type": "string"
+            },
+            "verified": {
+              "default": false,
+              "type": "boolean"
             }
           },
           "required": [
@@ -1175,6 +1503,10 @@
         "operations[]$ids[]": {
           "additionalProperties": false,
           "properties": {
+            "alreadyAllowed": {
+              "default": false,
+              "type": "boolean"
+            },
             "id": {
               "type": "string"
             },

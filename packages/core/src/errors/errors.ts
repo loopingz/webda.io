@@ -204,3 +204,18 @@ export class OperationCancelledError extends Error {
     this.name = "OperationCancelledError";
   }
 }
+
+/**
+ * Raised by a service `init()` when the application must not start: `Core` stops its startup instead of logging the
+ * error and starting the other services (an invalid configuration for example)
+ */
+export class FatalInitError extends Error {
+  /**
+   * @param message - the reason
+   * @param options - the error options, with its `cause`
+   */
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "FatalInitError";
+  }
+}

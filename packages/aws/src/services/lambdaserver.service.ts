@@ -5,13 +5,16 @@ import {
   runWithContext,
   Service,
   ServiceParameters,
+  traceRequest,
   useCore,
   useRouter,
   WebContext,
   WebdaError
 } from "@webda/core";
 import type { APIGatewayProxyEvent, Context as LambdaContext, S3Event } from "aws-lambda";
-import { serialize as cookieSerialize } from "cookie";
+import { useLog } from "@webda/workout";
+import { stringifySetCookie } from "cookie";
+import { isIP } from "node:net";
 import type { LambdaCommandEvent } from "./lambdacaller.service.js";
 
 /**
@@ -58,6 +61,10 @@ export class LambdaServerParameters extends ServiceParameters {
    * @default false
    */
   waitForEmptyEventLoop?: boolean;
+  /**
+   * Optional allowlist of service names permitted for `command: "launch"` invocations
+   */
+  allowedLaunchServices?: string[];
 
   /**
    * @override
@@ -170,6 +177,23 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
    * @param commandEvent - the command
    */
   protected async handleLaunch(commandEvent: LambdaCommandEvent) {
+    if (
+      this.parameters.allowedLaunchServices &&
+      !this.parameters.allowedLaunchServices.includes(commandEvent.service)
+    ) {
+      this.log("ERROR", "Service not allowed for launch", commandEvent.service);
+      return;
+    }
+    if (
+      typeof commandEvent.method !== "string" ||
+      commandEvent.method.startsWith("_") ||
+      ["constructor", "init", "resolve", "reinit", "stop", "destroy", "__proto__", "prototype"].includes(
+        commandEvent.method
+      )
+    ) {
+      this.log("ERROR", "Forbidden method on launch", commandEvent.method);
+      return;
+    }
     const args = commandEvent.args || [];
     this.log("INFO", "Executing", commandEvent.method, "on", commandEvent.service, "with", args);
     const service = useCore().getServices()[commandEvent.service];
@@ -200,8 +224,14 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
       this.log("INFO", "Handled AWS event", sourceEvent);
       return;
     }
-    // Manual launch of webda
-    if (sourceEvent.command === "launch" && sourceEvent.service && sourceEvent.method) {
+    // Manual launch of webda (never from an API Gateway HTTP event)
+    if (
+      !sourceEvent.httpMethod &&
+      !sourceEvent.requestContext &&
+      sourceEvent.command === "launch" &&
+      sourceEvent.service &&
+      sourceEvent.method
+    ) {
       await this.handleLaunch(sourceEvent);
       return;
     }
@@ -227,13 +257,12 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
     if (event.queryStringParameters) {
       let sep = "?";
       for (const i in event.queryStringParameters) {
-        // If additional error code it will be contained so need to check for &
-        // May need to add urlencode
-        resourcePath += sep + i + "=" + event.queryStringParameters[i];
+        resourcePath += sep + encodeURIComponent(i) + "=" + encodeURIComponent(String(event.queryStringParameters[i]));
         sep = "&";
       }
     }
     this.log("INFO", method, event.path);
+    const resolvedClientIp = this.getClientIp(event);
     const httpContext = new HttpContext(
       vhost,
       <HttpMethodType>method,
@@ -241,7 +270,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
       <"http" | "https">protocol,
       port,
       headers
-    ).setClientIp(headers["X-Real-Ip"]); // Might use identity.sourceIp
+    ).setClientIp(resolvedClientIp || headers["X-Real-Ip"]);
     // API Gateway stage or custom domain base path: the router matches on the uri relative to it
     this.computePrefix(event, httpContext);
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
@@ -251,55 +280,125 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
     await ctx.init();
     await emitCoreEvent("Webda.NewContext", { context: ctx, info: { http: httpContext } });
 
-    await runWithContext(ctx, async () => {
-      emitCoreEvent("Webda.Request", { context: ctx });
-      if (this.parameters.lambdaRequestHeader && context?.awsRequestId) {
-        ctx.setHeader(this.parameters.lambdaRequestHeader, context.awsRequestId);
-      }
-      const origin = headers.Origin || headers.origin;
-      try {
-        // Set predefined headers for CORS
-        if (origin) {
-          if (!(await useRouter()["checkCORSRequest"](ctx))) {
-            // Prevent CSRF
-            this.log("INFO", "CSRF denied from", origin);
-            ctx.statusCode = 401;
-            return;
+    await traceRequest(
+      {
+        protocol: "http",
+        method,
+        path: event.path || "/",
+        scheme: <"http" | "https">protocol,
+        protocolVersion: this.getProtocolVersion(event),
+        headers: this.lowercaseHeaders(headers),
+        clientIp: this.getClientIp(event)
+      },
+      async handle => {
+        await runWithContext(ctx, async () => {
+          emitCoreEvent("Webda.Request", { context: ctx });
+          if (this.parameters.lambdaRequestHeader && context?.awsRequestId) {
+            ctx.setHeader(this.parameters.lambdaRequestHeader, context.awsRequestId);
           }
-          ctx.setHeader("Access-Control-Allow-Origin", origin);
-          ctx.setHeader("Access-Control-Allow-Credentials", "true");
-        }
-        if (protocol === "https") {
-          // Add the HSTS header
-          ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-        }
-        if (method === "OPTIONS") {
-          // Might want to customize this one
-          ctx.setHeader("Access-Control-Max-Age", 3600);
-          ctx.setHeader(
-            "Access-Control-Allow-Headers",
-            headers["access-control-request-headers"] || headers["Access-Control-Request-Headers"] || "content-type"
-          );
-        }
-        await useRouter().execute(ctx);
-      } catch (err) {
-        if (typeof err === "number") {
-          ctx.statusCode = err;
-        } else if (err instanceof WebdaError.HttpError) {
-          this.log("DEBUG", "Sending error", err.message);
-          ctx.statusCode = err.getResponseCode();
-          // Handle redirect
-          if (err instanceof WebdaError.Redirect) {
-            ctx.setHeader("Location", err.location);
+          const origin = headers.Origin || headers.origin;
+          try {
+            // Set predefined headers for CORS
+            if (origin) {
+              if (!(await useRouter()["checkCORSRequest"](ctx))) {
+                // Prevent CSRF
+                this.log("INFO", "CSRF denied from", origin);
+                ctx.statusCode = 401;
+                ctx.setHeader("Vary", "Origin");
+                return;
+              }
+              // Access-Control-Allow-Origin/-Credentials are set by the Router
+            }
+            if (protocol === "https") {
+              // Add the HSTS header
+              ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+            }
+            if (method === "OPTIONS" && origin) {
+              // Might want to customize this one
+              ctx.setHeader("Access-Control-Max-Age", 3600);
+              // Echo the requested headers and add the Router ones (Router.getCorsAllowedHeaders)
+              const router = useRouter();
+              ctx.setHeader(
+                "Access-Control-Allow-Headers",
+                router.mergeHeaderNames(
+                  headers["access-control-request-headers"] ||
+                    headers["Access-Control-Request-Headers"] ||
+                    "content-type",
+                  router.getCorsAllowedHeaders()
+                )
+              );
+            }
+            await useRouter().execute(ctx);
+          } catch (err) {
+            if (typeof err === "number") {
+              ctx.statusCode = err;
+            } else if (err instanceof WebdaError.HttpError) {
+              this.log("DEBUG", "Sending error", err.message);
+              ctx.statusCode = err.getResponseCode();
+              // Handle redirect
+              if (err instanceof WebdaError.Redirect) {
+                ctx.setHeader("Location", err.location);
+              }
+            } else {
+              this.log("ERROR", err);
+              ctx.statusCode = 500;
+            }
           }
-        } else {
-          this.log("ERROR", err);
-          ctx.statusCode = 500;
+          emitCoreEvent("Webda.Result", { context: ctx });
+        });
+        try {
+          handle.setStatus(ctx.getResponseCode());
+        } catch (err) {
+          useLog("WARN", "Request tracer failed to record the status", err);
         }
       }
-      emitCoreEvent("Webda.Result", { context: ctx });
-    });
+    );
     return this.handleLambdaReturn(ctx);
+  }
+
+  /**
+   * Lowercase the header names of an API Gateway event
+   * @param headers - the event headers
+   * @returns the headers with lowercase names
+   */
+  protected lowercaseHeaders(headers: Record<string, any>): Record<string, string | string[] | undefined> {
+    const result: Record<string, string | string[] | undefined> = {};
+    for (const name in headers) {
+      result[name.toLowerCase()] = headers[name];
+    }
+    return result;
+  }
+
+  /**
+   * Get the HTTP version of the API Gateway request
+   * @param event - the API Gateway event
+   * @returns "1.1" or "2" or undefined if unknown
+   */
+  protected getProtocolVersion(event: APIGatewayProxyEvent): string | undefined {
+    const version = event.requestContext?.protocol;
+    return typeof version === "string" ? version.replace(/^HTTP\//i, "") || undefined : undefined;
+  }
+
+  /**
+   * Resolve the client address: the API Gateway source ip, else the rightmost X-Forwarded-For entry
+   * (API Gateway appends the real client). Never throws.
+   * @param event - the API Gateway event
+   * @returns the address, undefined if unknown or invalid
+   */
+  protected getClientIp(event: APIGatewayProxyEvent): string | undefined {
+    try {
+      const sourceIp = event.requestContext?.identity?.sourceIp;
+      if (typeof sourceIp === "string" && isIP(sourceIp.trim())) {
+        return sourceIp.trim();
+      }
+      const headers = this.lowercaseHeaders(event.headers || {});
+      const forwarded = headers["x-forwarded-for"];
+      const last = (Array.isArray(forwarded) ? forwarded.join(",") : forwarded)?.split(",").pop()?.trim();
+      return last && isIP(last) ? last : undefined;
+    } catch (err) {
+      useLog("WARN", "Cannot resolve the client address", err);
+      return undefined;
+    }
   }
 
   /**
@@ -349,7 +448,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
     const cookies = context.getResponseCookies();
     for (const i in cookies) {
       result.multiValueHeaders["Set-Cookie"].push(
-        cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options || {})
+        stringifySetCookie({ ...(cookies[i].options || {}), name: cookies[i].name, value: cookies[i].value })
       );
     }
     const body = context.getResponseBody();

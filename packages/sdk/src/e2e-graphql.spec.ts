@@ -121,6 +121,11 @@ class SdkGraphQLE2ETest extends SampleAppTest {
     assert.ok(page.results[0] instanceof SdkModel);
     await api.Company.query(`name = 'Acme'`);
     assert.deepStrictEqual(requests, ["POST /graphql createCompany", "POST /graphql Companies"]);
+    // count selects the total: Company has no complete permission query, so it is null and dropped
+    const counted = await api.Company.query(`name = 'Acme'`, { count: true, cache: "no-store" });
+    assert.strictEqual(counted.results.length, 1);
+    assert.strictEqual(counted.total, undefined);
+    requests.pop();
     // Patch: updateCompany merges, the cache is merged and the queries invalidated
     const patched = await api.Company.patch(created.uuid, { name: "Acme Inc" });
     assert.strictEqual(patched.name, "Acme Inc");

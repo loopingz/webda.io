@@ -9,3 +9,4 @@ export * from "./route53.service.js";
 export * from "./s3binary.service.js";
 export * from "./secretsmanager.service.js";
 export * from "./sqsqueue.service.js";
+export * from "./snssmssender.service.js";

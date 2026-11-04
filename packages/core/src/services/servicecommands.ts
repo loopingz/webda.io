@@ -390,6 +390,19 @@ export async function executeServiceCommand(
       continue;
     }
     for (const service of matches) {
+      // A subclass can redeclare an inherited command. Select its closest declaration once, regardless of
+      // the order in which the module loader supplied the parent and child providers.
+      const chain = classChainNames(service);
+      const distance = chain.indexOf(shortName);
+      if (
+        distance >= 0 &&
+        cmdInfo.services.some(provider => {
+          if (!typeMatches(provider) && !instanceMatches(service)) return false;
+          const candidate = chain.indexOf(provider.type.split("/").pop());
+          return candidate >= 0 && candidate < distance;
+        })
+      )
+        continue;
       if (!service[svc.method]) {
         const instanceName = typeof service.getName === "function" ? service.getName() : svc.name;
         useLog("ERROR", `Method '${svc.method}' not found on service '${instanceName}'`);

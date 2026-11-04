@@ -38,6 +38,7 @@ The argument name matches the primary key field. For composite keys (multiple `W
 The list query returns a `PostList` type with:
 - `results` — the array of matching records
 - `continuationToken` — pass this back as `offset` for the next page
+- `total { value relation }` — the total of the query, counted only when selected; `null` when the model does not allow it (see [Query totals](../../Concepts/Stores/Query-Total.md))
 
 ### Filtering with WQL
 

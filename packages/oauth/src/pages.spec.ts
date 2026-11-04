@@ -28,6 +28,13 @@ class PagesTest extends OAuthTest {
   }
 
   @test
+  async pageShowsUnverifiedNotice() {
+    const html = consentHtml("/oauth", "n");
+    assert.ok(html.includes("Unverified application: its name was chosen by whoever registered it."));
+    assert.ok(html.includes("Redirects to "));
+  }
+
+  @test
   async escapeHtml() {
     assert.strictEqual(escapeHtml(`<a href="x">'&`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;");
     assert.strictEqual(escapeHtml(undefined), "");

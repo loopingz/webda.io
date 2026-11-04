@@ -22,6 +22,7 @@ import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { randomUUID } from "node:crypto";
 import { classifyStoredType, UNREADABLE, UNTYPED } from "../application/model-types.js";
+import { checkRelations, logDiagnostic } from "../application/relations-check.js";
 import { useRegistry } from "../models/registry.model.js";
 import {
   DEFAULT_MIGRATION_BATCH,
@@ -453,6 +454,35 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   };
 
   /**
+   * The store listing a model (or its closest ancestor) in its `models`
+   * @param model - the model
+   * @param stores - the candidate stores, every store of the application by default
+   * @returns the store, undefined when none lists it (the `Registry` serves it)
+   */
+  static claimingStore(model: ModelClass, stores?: Store[]): Store | undefined {
+    let currentValue = -1;
+    let currentStore: Store | undefined;
+    for (const store of stores ?? Object.values(useCore().getServices()).filter(s => s instanceof Store)) {
+      const value = store.handleModel(model);
+      if (value < 0 || (value > currentValue && currentValue !== -1)) {
+        continue;
+      }
+      currentValue = value;
+      currentStore = store;
+    }
+    return currentStore;
+  }
+
+  /**
+   * The store serving a model: the one listing it, else the `Registry`
+   * @param model - the model
+   * @returns the store, undefined before the `Registry` exists
+   */
+  static storeOf(model: ModelClass): Store | undefined {
+    return Store.claimingStore(model) ?? useCore().getService<Store>("Registry");
+  }
+
+  /**
    * Compute and register repositories for all known models based on available stores.
    *
    * Called from `Store.init()` so each store's init triggers a recompute.
@@ -468,6 +498,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     const stores = Object.values(useCore().getServices()).filter(s => s instanceof Store);
     const models = Object.values(useApplication().getModels());
     const registry = useCore().getService<Store>("Registry");
+    const modelStores = new Map<string, Store>();
     // Check each available models
     for (const model of models) {
       // Model can be null?
@@ -476,27 +507,40 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         useLog("WARN", `${useModelId(model)} does not have Metadata or PrimaryKey defined`);
         continue;
       }
-      let currentValue = -1;
-      let currentStore: Store = undefined;
-      for (const store of stores) {
-        const value = store.handleModel(model);
-        if (value < 0 || (value > currentValue && currentValue !== -1)) {
-          continue;
-        }
-        currentValue = value;
-        currentStore = store;
-      }
+      let currentStore = Store.claimingStore(model, stores);
       if (!currentStore) {
         useLog("TRACE", `${useModelId(model)} fallback to Registry store`);
         currentStore = registry;
       }
+      modelStores.set(useModelId(model), currentStore);
       // Register the repository
       const repository = currentStore.getRepository(model);
+      (repository as any)._store = currentStore;
       // Optional: repositories of third-party stores may predate aggregation
       repository.configureAggregation?.(currentStore.getAggregationOptions());
       repository.configureMonitoring?.(currentStore.getQueryMonitorOptions());
       registerRepository(model, repository as any);
       useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
+    }
+
+    // Store routing validation (R4 level + R5)
+    const app = useApplication();
+    const diagnostics = checkRelations(app.getModels(), {
+      isFinalModel: (id: string) => app.isFinalModel(id),
+      getStore: (id: string) => {
+        if (modelStores.has(id)) return modelStores.get(id);
+        try {
+          const m = useModel(id);
+          const resolvedId = useModelId(m);
+          return modelStores.get(resolvedId) ?? (m as any).getRepository?.()?._store;
+        } catch {
+          return undefined;
+        }
+      },
+      getStoreName: (store: any) => store?.getName?.() || "Registry"
+    });
+    for (const d of diagnostics) {
+      logDiagnostic(d);
     }
   }
 

@@ -217,7 +217,7 @@ export class AttributeExpression extends Expression {
    * @override
    */
   eval(target: any): any {
-    return target[this.attribute];
+    return Object.prototype.hasOwnProperty.call(target, this.attribute) ? target[this.attribute] : undefined;
   }
 
   /**
@@ -340,10 +340,14 @@ export class LikeExpression extends Expression {
     super();
     this.deps.push(left);
     this.regexp = new RegExp(
-      right
-        .substring(1, right.length - 1)
-        .replace(/([^\\])%/g, "$1.*")
-        .replace(/([^\\])_/g, "$1.?")
+      "^" +
+        right
+          .substring(1, right.length - 1)
+          .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          .replace(/(^|[^\\])%+/g, "$1.*")
+          .replace(/(^|[^\\])_/g, "$1.?")
+          .replace(/\\\\([%_])/g, "$1") +
+        "$"
     );
   }
 
@@ -382,7 +386,7 @@ export class ExistsExpression extends Expression {
    * @override
    */
   eval(target: any): boolean {
-    return target[this.property] !== undefined;
+    return Object.prototype.hasOwnProperty.call(target, this.property) && target[this.property] !== undefined;
   }
 
   /**

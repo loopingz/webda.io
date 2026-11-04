@@ -155,9 +155,12 @@ export function toPackageName(name: string): string {
   const cleaned = name
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^[._-]+|[._-]+$/g, "");
-  return cleaned || "webda-app";
+    .replace(/-+/g, "-");
+  let start = 0;
+  let end = cleaned.length;
+  while (start < end && "._-".includes(cleaned[start])) start++;
+  while (end > start && "._-".includes(cleaned[end - 1])) end--;
+  return cleaned.slice(start, end) || "webda-app";
 }
 
 /**

@@ -2,7 +2,7 @@
 import { Writable } from "node:stream";
 
 import { HttpContext } from "./httpcontext.js";
-import { NotEnumerable } from "@webda/tsc-esm";
+import { NotEnumerable } from "@webda/utils";
 import { PipelineOptions } from "node:stream/promises";
 
 /**

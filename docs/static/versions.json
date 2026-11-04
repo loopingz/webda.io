@@ -1,0 +1,5 @@
+[
+  { "label": "latest (v4 HEAD)", "path": "/" },
+  { "label": "v4", "path": "/v4/" },
+  { "label": "v3", "path": "/v3/" }
+]

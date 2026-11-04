@@ -8,9 +8,10 @@
  * exist in `the packages source tree` versus ~4 plain `Date` fields, so a syntactic pass
  * covers the rare case and misses the common one.
  */
-import { API, type Checker, type Project } from "typescript/unstable/sync";
-import type { Node, SourceFile } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import { API, type Checker, type Project } from "typescript/sync";
+import { serverFS } from "typescript/fs";
+import { SyntaxKind, type Node, type SourceFile } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import type { AnalysisContext } from "./plan.ts";
 
 /**
@@ -45,8 +46,7 @@ export function triviaOf(sf: SourceFile, node: Node): string {
 export function baseNames(sf: SourceFile, cls: any): string[] {
   const out: string[] = [];
   for (const clause of cls.heritageClauses ?? []) {
-    // 95 === SyntaxKind.ExtendsKeyword
-    if (clause.token !== 95) continue;
+    if (clause.token !== SyntaxKind.ExtendsKeyword) continue;
     for (const t of clause.types) {
       const expr = (t as any).expression ?? t;
       out.push(expr?.text ?? textOf(sf, expr));
@@ -69,7 +69,23 @@ export interface Session {
  * @returns the session
  */
 export function openSession(configFile: string, rootDir: string, fs?: any): Session {
-  const api = new API({ cwd: rootDir, ...(fs ? { fs } : {}) });
+  const resolvedFs = fs
+    ? {
+        directoryExists: serverFS.useOS,
+        fileExists: serverFS.useOS,
+        getAccessibleEntries: serverFS.useOS,
+        readFile: serverFS.useOS,
+        realpath: serverFS.useOS,
+        stat: serverFS.useOS,
+        writeFile: serverFS.useOS,
+        removeFile: serverFS.useOS,
+        ...fs,
+        ...(typeof fs.readFile === "function"
+          ? { readFile: (fileName: string) => fs.readFile(fileName) ?? serverFS.useOS }
+          : {})
+      }
+    : undefined;
+  const api = new API({ cwd: rootDir, ...(resolvedFs ? { fs: resolvedFs } : {}) });
   const snapshot = api.createSnapshot({ openProjects: [configFile] });
   const project: Project = snapshot.getProjects()[0];
   if (!project) {
@@ -121,6 +137,5 @@ export function memberName(member: any): string | undefined {
  * @returns true when static
  */
 export function isStatic(member: any): boolean {
-  // 125 === SyntaxKind.StaticKeyword
-  return !!member.modifiers?.some((m: any) => m.kind === 125);
+  return !!member.modifiers?.some((m: any) => m.kind === SyntaxKind.StaticKeyword);
 }

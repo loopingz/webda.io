@@ -111,7 +111,9 @@ class ScopedMfaTest extends AuthTest {
     assert.ok(ops["MfaUser.LoginMfa.Verify"]);
     assert.ok(ops["MfaUser.PaymentMfa.Verify"]);
     assert.strictEqual(ops["Auth.Totp.Verify"], undefined);
-    const login = await this.op("MfaUser.LoginMfa.Enroll", { uuid, method: "totp" }, ctx);
+    // Login MFA can identify its owner through the session; ordinary behavior actions still require a key.
+    const login = await this.op("MfaUser.LoginMfa.Enroll", { method: "totp" }, ctx);
+    await assert.rejects(() => this.op("MfaUser.PaymentMfa.Enroll", { method: "totp" }, ctx), /InvalidInput.*uuid/);
     const payment = await this.op("MfaUser.PaymentMfa.Enroll", { uuid, method: "totp" }, ctx);
     assert.notStrictEqual(login.secret, payment.secret);
     const paymentConfirmed = await this.op(

@@ -63,6 +63,14 @@ describe("WebdaQL validation", () => {
 });
 
 describe("WebdaQL referenced attributes", () => {
+  it("scans long non-comparisons once and still finds subsequent attributes", () => {
+    const name = "$".repeat(100_000);
+    expect(referencedAttributes(name)).toEqual([]);
+    expect(referencedAttributes(name + " AND title = 'x'")).toEqual(["title"]);
+    expect(referencedAttributes(name + " = 'x'")).toEqual([name]);
+    expect(referencedAttributes("title" + " ".repeat(100_000))).toEqual([]);
+    expect(referencedAttributes("title" + " ".repeat(100_000) + "IS NOT NULL")).toEqual(["title"]);
+  });
   it("includes attributes checked with IS NULL / IS NOT NULL", () => {
     expect(referencedAttributes("title IS NULL AND author.name IS NOT NULL AND status = 'x'").sort()).toEqual([
       "author",
@@ -154,5 +162,60 @@ describe("WebdaQL rewriting", () => {
     expect(text).toContain(`this.findWith("createdAt > ? AND title = ?", [id, "x"])`);
     expect(text).toContain(`this.findWith("tilte = :t", { t: id })`);
     expect((text.match(/import \{ escape \}/g) ?? []).length).toBe(1);
+  });
+});
+
+describe("WebdaQL sealed fields", () => {
+  it("warns on a sealed field in a branded query argument, as a warning", () => {
+    const { diagnostics } = run(undefined, "sealed.model.ts");
+    const sealed = diagnostics.filter(
+      d => d.code === WQL_CODES.SEALED_ATTRIBUTE && !/@(Index|Unique)/.test(d.messageText)
+    );
+    expect(sealed.every(d => d.severity === "warning")).toBe(true);
+    expect(sealed.every(d => /sealed field/.test(d.messageText) && /never matches/.test(d.messageText))).toBe(true);
+    // The service call sites: a plain literal and a template; not the query on title only
+    const text = readFileSync(join(fixture, "src", "sealed.model.ts"), "utf8");
+    const at = (d: { start: number; length: number }) => text.slice(d.start, d.start + d.length);
+    expect(sealed.map(at)).toEqual(
+      expect.arrayContaining([`"content = 'x' AND title = 'y'"`, "`content.body = '${id}'`"])
+    );
+    expect(sealed.map(at)).not.toContain(`"title = 'x'"`);
+    // An unknown attribute stays an error, with the sealed field as a suggestion
+    const unknown = diagnostics.filter(d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE);
+    expect(unknown).toHaveLength(1);
+    expect(unknown[0].severity).toBeUndefined();
+    expect(unknown[0].messageText).toContain("Did you mean 'content'?");
+  });
+
+  it("warns on a sealed field in the static getPermissionQuery of a model", () => {
+    const { diagnostics } = run(undefined, "sealed.model.ts");
+    const text = readFileSync(join(fixture, "src", "sealed.model.ts"), "utf8");
+    const sealed = diagnostics
+      .filter(d => d.code === WQL_CODES.SEALED_ATTRIBUTE && !/@(Index|Unique)/.test(d.messageText))
+      .map(d => text.slice(d.start, d.start + d.length));
+    expect(sealed).toContain(`"content = 'x'"`);
+    expect(sealed).toContain("`owner = '${userId}' OR content.body = 'y'`");
+    expect(sealed).not.toContain(`"title = 'z'"`);
+    expect(sealed).toHaveLength(4);
+    // A permission query is not a branded argument: no unknown-attribute error for it
+    expect(diagnostics.filter(d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE)).toHaveLength(1);
+  });
+
+  it("warns on an @Index / @Unique tag on a sealed field", () => {
+    const { diagnostics } = run(undefined, "sealed.model.ts");
+    const text = readFileSync(join(fixture, "src", "sealed.model.ts"), "utf8");
+    const indexed = diagnostics.filter(
+      d => d.code === WQL_CODES.SEALED_ATTRIBUTE && /@(Index|Unique)/.test(d.messageText)
+    );
+    expect(indexed.every(d => d.severity === "warning")).toBe(true);
+    // The sealed fields of IndexedNote: not the plain title, the untagged field nor the anonymous class
+    expect(indexed.map(d => text.slice(d.start, d.start + d.length))).toEqual(["secret", "content"]);
+    expect(indexed[0].messageText).toContain("@Unique indexes the envelopes");
+    expect(indexed[1].messageText).toContain("@Index indexes the envelopes");
+  });
+
+  it("does not warn on models without sealed fields", () => {
+    const { diagnostics } = run();
+    expect(diagnostics.some(d => d.code === WQL_CODES.SEALED_ATTRIBUTE)).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { User } from "./user.model.js";
 import { SimpleUser } from "./simpleuser.model.js";
+import { UserKeys } from "./userkeys.model.js";
 import { WebdaApplicationTest } from "../test/application";
 import { MemoryRepository, registerRepository } from "@webda/models";
 
@@ -46,6 +47,24 @@ class UserTest extends WebdaApplicationTest {
   async userCov() {
     const user = await User.create({}, false);
     assert.deepStrictEqual(user.getRoles(), []);
+  }
+
+  @test
+  async keysHydratedFromRawData() {
+    // Raw keys data (plain JSON) becomes a UserKeys behavior
+    const user = new User({ keys: { publicKeys: [{ kid: "k1" }] } } as any);
+    assert.ok(user.keys instanceof UserKeys);
+    assert.strictEqual(user.keys.publicKeys[0].kid, "k1");
+    // Also when the password and MFA behaviors are already built (their hydration does not run)
+    const { password, mfa } = new User();
+    const copy = new User({ password, mfa, keys: { publicKeys: [{ kid: "k2" }] } } as any);
+    assert.ok(copy.keys instanceof UserKeys);
+    assert.strictEqual(copy.keys.publicKeys[0].kid, "k2");
+    assert.strictEqual((copy.keys as any).parent.instance, copy);
+    // Without keys data: an empty behavior
+    const empty = new User({ password, mfa } as any);
+    assert.ok(empty.keys instanceof UserKeys);
+    assert.deepStrictEqual(empty.keys.publicKeys, []);
   }
 
   @test

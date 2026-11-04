@@ -1,6 +1,6 @@
 {
   "name": "@webda/serialize",
-  "version": "4.0.0-beta.7",
+  "version": "4.0.0-beta.8",
   "description": "Serializer for JS",
   "main": "lib/serializer.js",
   "scripts": {
@@ -53,12 +53,12 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "25.5.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/test": "workspace:^",
-    "skott": "^0.35.8",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0"
+    "skott": "^0.35.12",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7"
   },
   "type": "module",
   "engines": {

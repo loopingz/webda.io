@@ -1,5 +1,5 @@
 import { MemoryRepository, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
-import type { ModelClass } from "@webda/core";
+import type { CountResult, ModelClass } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 import type { AggregationQuery, AggregationResult } from "@webda/ql";
 import { SQLComparisonExpression } from "./comparison.js";
@@ -25,6 +25,8 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
    * @param tableModel - identifier of the model the table was declared for: rows without `__type` (written before
    *   stamping) belong to it. Defaults to the topmost ancestor of `model` carrying metadata.
    * @param dialect - the engine syntax
+   * @param transactionClient - the client of the transaction active in the current async chain, undefined outside
+   *   one: the statements (DDL excepted) run on it rather than on `client`
    */
   constructor(
     model: T,
@@ -34,14 +36,21 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
     separator: string | undefined,
     prepare: (() => Promise<void>) | undefined,
     tableModel: string | undefined,
-    protected readonly dialect: SQLDialect
+    protected readonly dialect: SQLDialect,
+    transactionClient?: () => SQLClient | undefined
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
     super(model, pks, separator, new Map<string, string>() as any);
     this.clientSource = client;
     this.prepare = prepare;
     this.tableModel = tableModel ?? SQLRepository.rootIdentifier(model);
+    this.transactionClient = transactionClient;
   }
+
+  /**
+   * The client of the transaction active in the current async chain, undefined outside one
+   */
+  protected readonly transactionClient?: () => SQLClient | undefined;
 
   /**
    * Awaited before every statement (e.g. to ensure the table exists)
@@ -115,7 +124,8 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
 
   /**
    * Ensure the backing table for this repository's model exists.
-   * Owns the per-model DDL of the store.
+   * Owns the per-model DDL of the store: it runs on the store client, never in an operation transaction (a rollback
+   * would leave the table missing while the store believes it created).
    * @internal Not part of the @webda/models Repository interface.
    */
   async setupTable(): Promise<void> {
@@ -123,14 +133,15 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
   }
 
   /**
-   * Run a statement against the client once {@link prepare} has resolved.
+   * Run a statement once {@link prepare} has resolved: on the transaction of the current async chain when there is
+   * one, otherwise on the store client.
    * @param q - the SQL statement
    * @param values - the statement parameters
    * @returns the raw query result
    */
   protected async execute(q: string, values?: any[]): Promise<{ rows: any[]; rowCount: number }> {
     await this.prepare?.();
-    return this.client.query(q, values);
+    return (this.transactionClient?.() ?? this.client).query(q, values);
   }
 
   /**
@@ -165,6 +176,31 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
   }
 
   /**
+   * SQL text of a top-level field, for write conditions: the JSON key here, a column in a relational table
+   * @param field - the field name
+   * @returns the SQL expression
+   */
+  protected fieldText(field: string): string {
+    return this.dialect.keyText(field);
+  }
+
+  /**
+   * SQL text of the stored `__type` of a row: the JSON key here, the `__type` column in a relational table
+   * @returns the SQL expression
+   */
+  protected typeText(): string {
+    return this.dialect.keyText("__type");
+  }
+
+  /**
+   * Columns identifying a row: `uuid` here, the primary key columns in a relational table
+   * @returns the column names
+   */
+  protected keyColumns(): string[] {
+    return ["uuid"];
+  }
+
+  /**
    * SQL condition restricting rows to this model and its subclasses, whatever form their `__type` has (Webda 3 short,
    * lower-case and aliased types included); rows without a stamp (written before stamping) and rows typed as a
    * strict ancestor of the table model belong to the table model and its ancestors
@@ -177,7 +213,7 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
     }
     // Stored types resolve case-insensitively (`WEBDA/USER` is `Webda/User`)
     const accepted = [...new Set([...ids, ...this.acceptedTypes()].map(name => name.toLowerCase()))];
-    const typeText = this.dialect.keyText("__type");
+    const typeText = this.typeText();
     const typed = `lower(${typeText}) IN (${accepted.map(sqlString).join(", ")})`;
     // Unstamped rows belong to the table model: its repository and its ancestors' see them, a subclass never does
     if (!this.tableModel || !ids.includes(this.tableModel)) {
@@ -309,11 +345,11 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
    */
   getQueryCondition(writeCondition: any, writeConditionField: string, params: any[]): string {
     if (writeCondition === undefined || writeCondition === null) {
-      return ` AND ${this.dialect.keyText(writeConditionField)} IS NULL`;
+      return ` AND ${this.fieldText(writeConditionField)} IS NULL`;
     }
     const condition = writeCondition instanceof Date ? writeCondition.toISOString() : writeCondition;
     params.push(condition);
-    return ` AND ${this.dialect.keyText(writeConditionField)}=${this.dialect.placeholder(params.length)}`;
+    return ` AND ${this.fieldText(writeConditionField)}=${this.dialect.placeholder(params.length)}`;
   }
 
   /**
@@ -754,17 +790,52 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
   }
 
   /**
+   * SQL condition selecting the rows of this model matching a filter: the filter and the class condition
+   * @param filter - the WebdaQL filter
+   * @returns the condition
+   */
+  protected getFilterCondition(filter: WebdaQL.Expression): string {
+    const where = `(${this.duplicateExpression(filter).toString()})`;
+    const classCondition = this.getClassCondition();
+    return classCondition ? `${where} AND ${classCondition}` : where;
+  }
+
+  /**
+   * Translate a count to SQL: one `COUNT(*)` over the filter, or over a sub-select stopped at max + 1 rows so a
+   * capped count reads at most max + 1 rows
+   * @param filter - the WebdaQL filter
+   * @param max - stop after max rows, undefined for an exact count
+   * @returns the statement, its `n` column holds the count
+   */
+  buildCountSQL(filter: WebdaQL.Expression, max?: number): string {
+    const where = this.getFilterCondition(filter);
+    if (max === undefined) {
+      return `SELECT COUNT(*) AS n FROM ${this.table} WHERE ${where}`;
+    }
+    if (!Number.isSafeInteger(max) || max <= 0) {
+      throw new Error(`Invalid count max: ${max}`);
+    }
+    return `SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${this.table} WHERE ${where} LIMIT ${max + 1}) s`;
+  }
+
+  /** @override COUNT(*) over the data JSON column */
+  protected async executeCount(filter: WebdaQL.Expression, max?: number): Promise<CountResult> {
+    const res = await this.execute(this.buildCountSQL(filter, max));
+    // PostgreSQL returns COUNT(*) as a bigint string
+    const n = Number(res.rows[0]?.n ?? 0);
+    return max !== undefined && n > max
+      ? { value: max, relation: "gte", native: true }
+      : { value: n, relation: "eq", native: true };
+  }
+
+  /**
    * SQL condition selecting the rows a statement targets: its WHERE, restricted to the first LIMIT rows when the
    * statement has a LIMIT (DELETE and UPDATE have none on every engine)
    * @param statement - the parsed statement
    * @returns the condition
    */
   protected getStatementCondition(statement: WebdaQL.Query): string {
-    let where = `(${this.duplicateExpression(statement.filter).toString()})`;
-    const classCondition = this.getClassCondition();
-    if (classCondition) {
-      where += ` AND ${classCondition}`;
-    }
+    const where = this.getFilterCondition(statement.filter);
     if (statement.limit === undefined) {
       return where;
     }
@@ -772,7 +843,9 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
       throw new Error(`Invalid LIMIT: ${statement.limit}`);
     }
     // The WHERE is kept on the outer statement: a row that stopped matching since the sub-select is left alone
-    return `${where} AND uuid IN (SELECT uuid FROM ${this.table} WHERE ${where} LIMIT ${statement.limit})`;
+    const columns = this.keyColumns();
+    const keys = columns.length === 1 ? columns[0] : `(${columns.join(", ")})`;
+    return `${where} AND ${keys} IN (SELECT ${columns.join(", ")} FROM ${this.table} WHERE ${where} LIMIT ${statement.limit})`;
   }
 
   /**

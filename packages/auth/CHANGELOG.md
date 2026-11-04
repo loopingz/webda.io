@@ -1,5 +1,33 @@
 # Changelog
 
+## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/auth-v4.0.0-beta.11...auth-v4.0.0-beta.12) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* Webda/Mailer moved to @webda/mailer
+
+### Features
+
+* @webda/templates and @webda/mailer, keep only mailer contracts in core ([#58](https://github.com/loopingz/webda.io/issues/58)) ([#984](https://github.com/loopingz/webda.io/issues/984)) ([58e6ee6](https://github.com/loopingz/webda.io/commit/58e6ee6cddf42f58776d18a4c94fc2528846d6e2))
+* **auth:** add an SMS second factor with a pluggable SmsSender ([#979](https://github.com/loopingz/webda.io/issues/979)) ([05a9bf2](https://github.com/loopingz/webda.io/commit/05a9bf2b825add2a24ff3164cf17bba274912de1)), closes [#61](https://github.com/loopingz/webda.io/issues/61)
+* **auth:** track MFA verification time and enforce step-up freshness (maxMfaAge) ([#963](https://github.com/loopingz/webda.io/issues/963)) ([86cda56](https://github.com/loopingz/webda.io/commit/86cda56d06e3812c3e80a34d2b93488b2254a934))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.12
+    * @webda/models bumped to 4.0.0-beta.12
+    * @webda/utils bumped to 4.0.0-beta.11
+    * @webda/workout bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.12
+    * @webda/content-mapper bumped to 4.0.0-beta.10
+    * @webda/fs bumped to 4.0.0-beta.12
+    * @webda/test bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/auth-v4.0.0-beta.10...auth-v4.0.0-beta.11) (2026-10-16)
 
 

@@ -277,6 +277,9 @@ export class Terminal {
   async router(msg: WorkerMessage): Promise<void> {
     switch (msg.type) {
       case "log":
+        if (!msg.log) {
+          return;
+        }
         return this.log(msg.groups, msg.log.level, ...msg.log.args);
       case "output":
         (msg.data ?? "").split("\n").forEach(line => this.pushHistory(line));
@@ -295,7 +298,9 @@ export class Terminal {
         this.handleTitleMessage(msg);
         break;
       case "input.request":
-        this.inputs.push(msg.input);
+        if (msg.input) {
+          this.inputs.push(msg.input);
+        }
         this.displayScreen();
         break;
       case "input.received":

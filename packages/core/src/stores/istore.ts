@@ -1,4 +1,4 @@
-import { Attributes, FilterAttributes } from "@webda/tsc-esm";
+import { Attributes, FilterAttributes } from "@webda/utils";
 import type { WebdaQLString } from "@webda/ql";
 
 /**

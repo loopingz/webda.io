@@ -11,6 +11,11 @@ function NotEnumerable(_target: any, _context: any) {
 import { gunzipSync, gzipSync } from "zlib";
 
 /**
+ * Object wrapped by the data proxy
+ */
+type ProxyTarget = Record<string | symbol, unknown>;
+
+/**
  * Binary Model is a model that store its data in a binary file
  */
 export class BinaryModel<T = any> extends CoreModel {
@@ -27,45 +32,45 @@ export class BinaryModel<T = any> extends CoreModel {
    * @returns a Proxy wrapping the underlying data that tracks writes
    */
   public get data(): T {
-    const subProxier = prop => {
+    const subProxier = (prop: string | symbol): ProxyHandler<ProxyTarget> => {
       return {
-        set: (target: this, p: string | symbol, value) => {
+        set: (target: ProxyTarget, p: string | symbol, value: unknown) => {
           this.__dataUpdated = true;
           target[p] = value;
           return true;
         },
-        get: (target: this, p: string | symbol) => {
+        get: (target: ProxyTarget, p: string | symbol) => {
           if (Array.isArray(target[p]) || target[p] instanceof Object) {
-            return new Proxy(target[p], subProxier(prop));
+            return new Proxy(target[p] as ProxyTarget, subProxier(prop));
           }
           return target[p];
         },
-        deleteProperty: (t, property) => {
+        deleteProperty: (t: ProxyTarget, property: string | symbol) => {
           delete t[property];
           this.__dataUpdated = true;
           return true;
         }
       };
     };
-    const proxier = {
-      deleteProperty: (t, property) => {
+    const proxier: ProxyHandler<ProxyTarget> = {
+      deleteProperty: (t: ProxyTarget, property: string | symbol) => {
         delete t[property];
         this.__dataUpdated = true;
         return true;
       },
-      set: (target: this, p: string | symbol, value) => {
+      set: (target: ProxyTarget, p: string | symbol, value: unknown) => {
         this.__dataUpdated = true;
         target[p] = value;
         return true;
       },
-      get: (target: this, p: string | symbol) => {
+      get: (target: ProxyTarget, p: string | symbol) => {
         if (Array.isArray(target[p]) || target[p] instanceof Object) {
-          return new Proxy(target[p], subProxier(p));
+          return new Proxy(target[p] as ProxyTarget, subProxier(p));
         }
         return target[p];
       }
     };
-    return new Proxy(this.__data, proxier);
+    return new Proxy(this.__data as ProxyTarget, proxier) as T;
   }
 
   /**

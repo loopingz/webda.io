@@ -358,7 +358,7 @@ export class BenchmarkRunner {
           }
         }
       }
-      let timer: NodeJS.Timeout;
+      let timer: NodeJS.Timeout | undefined;
       await Promise.race([
         Promise.all(running),
         new Promise<void>(resolve => {
@@ -438,13 +438,13 @@ export class BenchmarkRunner {
       failures.push(...(outcome.failures ?? []), ...(verified.failures ?? []));
       notes.push(...(outcome.notes ?? []), ...(verified.notes ?? []));
     } catch (err) {
-      failures.push(`scenario failed: ${err?.message ?? err}`);
+      failures.push(`scenario failed: ${err instanceof Error ? err.message : err}`);
       useLog("ERROR", `[bench] ${scenario.name} failed`, err);
     } finally {
       try {
         await scenario.teardown?.();
       } catch (err) {
-        notes.push(`teardown failed: ${err?.message ?? err}`);
+        notes.push(`teardown failed: ${err instanceof Error ? err.message : err}`);
       }
     }
     notes.push(...errors.messages);

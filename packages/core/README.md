@@ -173,6 +173,17 @@ Applications are configured via `webda.config.json` (version 4):
 }
 ```
 
+### Template variables
+
+`replaceVariables(value, replacements)` and `templateVariables(value, replacements)` substitute
+`${path.to.property}` using own properties of the replacement data. `templateVariables` also adds
+the application project information and `now`. Prefix a placeholder with `\` to keep it literal.
+
+Templates support the string transforms `.toUpperCase()`, `.toLowerCase()`, `.trim()`, `.trimStart()`,
+and `.trimEnd()`. Other JavaScript expressions, arbitrary function calls, and prototype traversal
+are rejected. Compute other values in application code and pass them as replacements.
+Backticks and backslashes outside placeholders are ordinary text.
+
 ## Events
 
 Services emit typed async events. Subscribe with `on()`:
@@ -209,8 +220,7 @@ throw new WebdaError.Redirect("https://example.com/new-location");
 |---------|---------|
 | `@webda/models` | Model base classes, relations, repositories |
 | `@webda/compiler` | TypeScript compiler with schema generation |
-| `@webda/tsc-esm` | ESM-aware TypeScript compiler, decorators |
-| `@webda/utils` | Utilities (debounce, dirty tracking, state machines) |
+| `@webda/utils` | Utilities (debounce, dirty tracking, state machines) and shared TypeScript utility types |
 | `@webda/workout` | Logging infrastructure |
 | `@webda/test` | Multi-framework test decorators (vitest, jest, mocha, bun) |
 | `@webda/ql` | WebdaQL query language |

@@ -116,6 +116,12 @@ New: `audiences`, `hostedDomain`, `allowedEmailDomains`, `trustEmailVerification
 v3 stores idents under `"<providerUid>_<provider>"` keys and passwords in `User.__password`. v4 uses
 `"<providerUid>:<provider>"` keys and the `password` behavior.
 
+:::warning
+Make sure Webda 4 reads the v3 `User` and `Ident` rows **before the first login**: a login that finds no ident creates a
+new user, and the v3 account is orphaned. See
+[Stores: before the first Webda 4 login](./Stores-v3-to-v4.md#before-the-first-webda-4-login).
+:::
+
 1. Keep `compatibility.v3: true` (default). v3 data then works as is: v3 ident keys are read through a legacy key hook,
    an ident is upgraded when it is used to log in and when a user's idents are listed, and a user's `__password` is
    mapped on load.

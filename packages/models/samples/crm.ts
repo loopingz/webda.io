@@ -1,5 +1,5 @@
 import { Actionable, ActionsEnum, WEBDA_ACTIONS } from "../src/actionable";
-import { Model, ModelEvents, UuidModel } from "../src/model";
+import { CanActContext, Model, ModelEvents, UuidModel } from "../src/model";
 import { ModelLinksArray, ModelLinksMap, ModelLinksSimpleArray, ModelParent, ModelRelated } from "../src/relations";
 import { JSONed, PrimaryKeyType, SelfJSONed, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } from "../src/storable";
 
@@ -64,7 +64,7 @@ ref.incrementAttributes({
 });
 ref.setAttribute("amount", 12);
 
-const testJsoned: JSONed<Invoice> = {
+export const testJsoned: JSONed<Invoice> = {
   uuid: "1234",
   amount: 10,
   customer: {
@@ -201,10 +201,11 @@ class User extends UuidModel {
 
   /**
    * Determine whether the given action is permitted for this user.
+   * @param _context - the caller context
    * @param action - the action to check
    * @returns true or a string reason if permitted, false otherwise
    */
-  async canAct(action: ActionsEnum<User>): Promise<boolean | string> {
+  async canAct(_context: CanActContext, action: ActionsEnum<User>): Promise<boolean | string> {
     if (action === "mfa.confirm") {
       return true;
     } else if (action === "mfa.verify" || action === "readonly_mfa.verify") {
@@ -221,10 +222,10 @@ userRepo.incrementAttribute("myUser", "loginCount");
 userRepo.on("Updated", model => {});
 userRepo.on("Login", model => {});
 
-const user = await userRepo.get("myUser");
+await userRepo.get("myUser");
 
 const invoice = new Invoice();
-const customerId = invoice.customer.getPrimaryKey();
+invoice.customer.getPrimaryKey();
 const customer = await invoice.customer.get();
 customer.invoices.query("");
 Invoice.ref("1234");
@@ -265,8 +266,8 @@ class GithubIssue extends Model {
     */
 }
 
-const jsoned: JSONed<GithubIssue> = {
+export const jsoned: JSONed<GithubIssue> = {
   id: 1
 };
 
-const test2 = new GithubIssue().getPrimaryKey();
+new GithubIssue().getPrimaryKey();

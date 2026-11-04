@@ -1,0 +1,55 @@
+{
+  "name": "@webda/sql-schema",
+  "version": "4.0.0-beta.1",
+  "description": "Driver-free relational schema plan (typed columns, foreign keys, junction tables) built from Webda model metadata",
+  "keywords": [
+    "sql",
+    "schema",
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/sql-schema"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "pretest": "npm run build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@webda/models": "workspace:^",
+    "skott": "^0.35.12",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
+  },
+  "peerDependencies": {
+    "@webda/models": "workspace:^"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

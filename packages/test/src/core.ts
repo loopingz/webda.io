@@ -290,7 +290,9 @@ type SuiteMetadata = {
  * @returns The existing or newly created value for `key`.
  */
 export function getBag(metadata: Record<string | symbol, any>, key: string, fallback: any) {
-  metadata[key] ??= fallback;
+  if (!Object.hasOwn(metadata, key)) {
+    metadata[key] = fallback;
+  }
   return metadata[key];
 }
 
@@ -368,7 +370,8 @@ export const suite: ReturnType<typeof createClassDecorator> & {
     bag.settings = settings;
     bag.mode = (settings?.execution as Execution) ?? "default"; // Register with the runner once the class finishes definition
     context.addInitializer(() => {
-      const suiteMeta: SuiteMeta = context.metadata[META.SUITE] as any;
+      const metadata = getMetadata(value);
+      const suiteMeta: SuiteMeta = metadata[META.SUITE]!;
 
       // Build parameter combinations from @params matrix
       const matrix = suiteMeta.paramMatrix;
@@ -414,7 +417,7 @@ export const suite: ReturnType<typeof createClassDecorator> & {
         describe(suiteName, () => {
           const instance = new (value as any)();
           if (hasParams) Object.assign(instance, combo);
-          const lifecycles: LifecycleMeta[] = getBag(context.metadata, META.LIFECYCLE, [] as LifecycleMeta[]);
+          const lifecycles: LifecycleMeta[] = metadata[META.LIFECYCLE] ?? [];
           const wrapper = suiteMeta.wrapper
             ? instance[suiteMeta.wrapper]?.bind(instance)
             : (_type: string, cb: Function) => cb();
@@ -430,7 +433,7 @@ export const suite: ReturnType<typeof createClassDecorator> & {
             .forEach(phase => {
               executers[phase](() => wrapper(phase, instance[phase].bind(instance)));
             });
-          const tests: TestMeta[] = getBag(context.metadata, META.TESTS, [] as TestMeta[]);
+          const tests: TestMeta[] = metadata[META.TESTS] ?? [];
           tests.forEach(t => {
             if (t.settings?.retries !== undefined && framework.type !== "mocha") {
               useLog("WARN", `@retries is Mocha-only, ignored for ${framework.type} (test: ${t.name})`);

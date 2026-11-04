@@ -61,6 +61,11 @@ export type CoreEvents = {
     /** Whether the call ran in dry mode */
     dryRun?: boolean;
   };
+  "Webda.OperationDisabled": {
+    context: OperationContext;
+    operationId: string;
+    flag: string;
+  };
   "Webda.BeforeOperation": {
     context: OperationContext;
     operationId: string;

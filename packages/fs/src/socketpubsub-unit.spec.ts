@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { existsSync, mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { SocketPubSubParameters, SocketPubSubService } from "./socketpubsub.service.js";
+import { makeFrameReader, SocketPubSubParameters, SocketPubSubService } from "./socketpubsub.service.js";
 
 /**
  * Wait for `predicate()` to return true, polling every `intervalMs` for up
@@ -265,5 +265,13 @@ class SocketPubSubUnitTest {
     await waitFor(() => received.length >= 2, 1500);
     assert.deepStrictEqual(received, ["before-death", "after-takeover"]);
     sub.cancel();
+  }
+
+  @test
+  rejectsOversizedFrame() {
+    const reader = makeFrameReader(() => {});
+    const header = Buffer.allocUnsafe(4);
+    header.writeUInt32BE(32 * 1024 * 1024, 0);
+    assert.throws(() => reader(header), /Frame size exceeds maximum allowed/);
   }
 }

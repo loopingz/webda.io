@@ -1,6 +1,6 @@
 {
   "name": "@webda/gcp",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-beta.12",
   "description": "Webda GCP Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -37,10 +37,10 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@google-cloud/firestore": "^8.3.0",
-    "@google-cloud/kms": "^5.4.0",
-    "@google-cloud/pubsub": "^5.3.0",
-    "@google-cloud/storage": "~7.19.0",
+    "@google-cloud/firestore": "^9.4.0",
+    "@google-cloud/kms": "^6.3.0",
+    "@google-cloud/pubsub": "^6.3.2",
+    "@google-cloud/storage": "~8.4.0",
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
     "@webda/utils": "workspace:*",
@@ -50,16 +50,17 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/bench": "workspace:*",
     "@webda/compiler": "workspace:^",
     "@webda/test": "workspace:*",
-    "jscodeshift": "^17.3.0",
-    "skott": "^0.35.8",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "jscodeshift": "^17.4.0",
+    "skott": "^0.35.12",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "type": "module",
   "engines": {

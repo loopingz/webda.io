@@ -94,9 +94,16 @@ const READONLY = 8;
 
 /**
  * Adapter of a DatabaseSync to the SQLClient interface, with a bounded prepared statement cache
+ *
+ * The connection is shared by every service of the database: while a transaction holds it (see
+ * {@link acquireExclusive}), the statements of the other async chains wait for its end instead of running inside it.
  */
 export class SQLiteClient implements SQLClient {
   protected statements = new Map<string, StatementSync>();
+  /**
+   * The transaction holding the connection: `isOwner` tells whether the current async chain runs in it
+   */
+  protected exclusive?: { isOwner: () => boolean; released: Promise<void> };
 
   /**
    * @param db - the open database
@@ -132,6 +139,10 @@ export class SQLiteClient implements SQLClient {
    * @returns the rows, or the number of changed rows
    */
   async query(sql: string, values: any[] = []): Promise<{ rows: any[]; rowCount: number }> {
+    // Checked again in the continuation that runs the statement: no other transaction can begin in between
+    while (this.exclusive && !this.exclusive.isOwner()) {
+      await this.exclusive.released;
+    }
     if (/^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql)) {
       const rows = await this.rows(sql, values);
       return { rows, rowCount: rows.length };
@@ -149,7 +160,41 @@ export class SQLiteClient implements SQLClient {
    * @returns the rows
    */
   async rows(sql: string, values: any[] = []): Promise<any[]> {
+    // Checked again in the continuation that runs the statement: no other transaction can begin in between
+    while (this.exclusive && !this.exclusive.isOwner()) {
+      await this.exclusive.released;
+    }
     return this.run(sql, () => this.statement(sql).all(...values.map(bindable)));
+  }
+
+  /**
+   * @returns true while a transaction holds the connection: reads on it may see uncommitted rows
+   */
+  isHeld(): boolean {
+    return this.exclusive !== undefined;
+  }
+
+  /**
+   * Hold the connection for a transaction: once the transactions of the other async chains ended, the statements of
+   * the chains `isOwner` does not recognize wait until the returned release function is called
+   * @param isOwner - whether the current async chain runs in the transaction
+   * @returns the release function, to call once the transaction is committed or rolled back
+   */
+  async acquireExclusive(isOwner: () => boolean): Promise<() => void> {
+    // Taken in the continuation that saw it free: two waiting transactions never both take it
+    while (this.exclusive) {
+      await this.exclusive.released;
+    }
+    let release!: () => void;
+    const released = new Promise<void>(resolve => (release = resolve));
+    const exclusive = { isOwner, released };
+    this.exclusive = exclusive;
+    return () => {
+      if (this.exclusive === exclusive) {
+        this.exclusive = undefined;
+      }
+      release();
+    };
   }
 
   /**

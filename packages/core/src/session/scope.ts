@@ -31,6 +31,15 @@ export function parseScope(raw: string | undefined): Scope {
 }
 
 /**
+ * @param a - first scope
+ * @param b - second scope
+ * @returns the de-duplicated tokens of `a`, then the new tokens of `b`
+ */
+export function union(a: Scope, b: Scope): Scope {
+  return [...new Set([...a, ...b])];
+}
+
+/**
  * @param scope - scope
  * @returns space-separated scope
  */

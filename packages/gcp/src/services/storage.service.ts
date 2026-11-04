@@ -24,6 +24,7 @@ import { StorageFinder, Throttler } from "@webda/utils";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream, Writable } from "node:stream";
+import { WebdaError } from "@webda/core";
 import { pipeline } from "node:stream/promises";
 
 export type StorageObject = {
@@ -67,7 +68,7 @@ export class StorageParameters extends CloudBinaryParameters {
   /**
    * Bucket to store binaries in
    */
-  bucket: string;
+  bucket!: string;
   /**
    * Specify endpoint for GCS
    */
@@ -125,13 +126,14 @@ export class GCSFinder implements StorageFinder {
     _depth?: number
   ): Promise<void> {
     const { bucket, key } = this.getInfo(path);
-    let pageToken;
+    let pageToken: string | undefined;
     do {
-      const res = await this._storage.bucket(bucket).getFiles(pageToken ? pageToken : { prefix: key });
+      const query = pageToken ? { prefix: key, pageToken } : { prefix: key };
+      const res = await this._storage.bucket(bucket).getFiles(query);
       for (const file of res[0]) {
         processor(`${path}${file.name}`);
       }
-      pageToken = res[1].pageToken;
+      pageToken = res[1]?.pageToken;
     } while (pageToken);
   }
 
@@ -148,7 +150,7 @@ export class GCSFinder implements StorageFinder {
       processor?: (filepath: string) => void;
     }
   ): Promise<string[]> {
-    const res = [];
+    const res: string[] = [];
     await this.walk(currentPath, f => {
       if (options?.filterPattern && !options.filterPattern.test(f)) {
         return;
@@ -222,6 +224,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
+    if (!info.hash) throw new WebdaError.BadRequest("Binary map has no hash");
     return this.getContent(this.getContentUrl(this._getKey(info.hash)));
   }
 
@@ -233,6 +236,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the signed url
    */
   getSignedUrlFromMap(map: BinaryMap, expires: number, _context: OperationContext): Promise<string> {
+    if (!map.hash) throw new WebdaError.BadRequest("Binary map has no hash");
     return this.getSignedUrl({
       key: this._getKey(map.hash),
       expires,
@@ -406,7 +410,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       bufferStream.end(body);
       stream = bufferStream;
     } else {
-      contentType = mime.lookup(body, "application/octet-stream");
+      const detected = mime.lookup(String(body));
+      contentType = typeof detected === "string" ? detected : "application/octet-stream";
       stream = createReadStream(body);
     }
     await pipeline(stream, file.createWriteStream({ contentType, resumable: false }));
@@ -453,14 +458,31 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @inheritdoc
    * @param hash - the binary hash
    * @param uuid - the object uuid
-   * @param property - the object property
+   * @param property - the object property: only the exact usage marker of (model, property, uuid) is removed (see
+   * usageMarker)
+   * @param model - the model identifier of the object
    */
-  async _cleanUsage(hash: string, uuid: string, property?: string) {
-    const suffix = property ? `${property}_${uuid}` : `_${uuid}`;
+  async _cleanUsage(hash: string, uuid: string, property: string, model: string) {
+    if (!property || !model) {
+      // A suffix match would remove the usages of other owners (`my_<uuid>`): the marker must be named exactly
+      this.log("WARN", `Usage of ${uuid} on ${hash} not removed: no attribute or model given`);
+      return;
+    }
+    const marker = this._getKey(hash, this.usageMarker(model, property, uuid));
+    const legacy = this._getKey(hash, this.legacyUsageMarker(property, uuid));
     let files: File[] = (await this.getStorageBucket().getFiles({ prefix: this._getKey(hash, "") }))[0];
-    await Promise.all(files.filter(f => f.name.endsWith(suffix)).map(f => f.delete()));
+    const removed = new Set([marker]);
+    // A legacy marker is shared by every model with this uuid and property: removed only when written for this model
+    const legacyFile = files.find(f => f.name === legacy);
+    if (legacyFile) {
+      const [meta] = await legacyFile.getMetadata();
+      if (meta?.metadata?.webdaModel === model) {
+        removed.add(legacy);
+      }
+    }
+    await Promise.all(files.filter(f => removed.has(f.name)).map(f => f.delete()));
     // If no more usage, delete the data
-    files = files.filter(f => !f.name.endsWith(suffix));
+    files = files.filter(f => !removed.has(f.name));
     if (files.length == 1) {
       await Promise.all(files.map(f => f.delete()));
     }
@@ -488,20 +510,23 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     this.checkMap(<any>object, property);
     await file.getHashes();
 
-    const [exists] = await this.getStorageBucket().file(this._getKey(file.hash)).exists();
+    const hash = file.hash;
+    if (!hash) throw new WebdaError.BadRequest("Binary file has no hash");
+    const [exists] = await this.getStorageBucket().file(this._getKey(hash)).exists();
     // If data already exist no need to upload
     if (!exists) {
-      const url = this.getContentUrl(this._getKey(file.hash));
+      const url = this.getContentUrl(this._getKey(hash));
       await this.putContent(url, await file.get(), {
         metadata: {
           ...file.metadata,
-          proof: file.challenge
+          proof: file.challenge!
         },
         contentLength: file.size,
         contentType: file.mimetype
       });
     }
-    await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    const model = useModelId(object.constructor)!;
+    await this.putMarker(hash, this.usageMarker(model, property, object.getUUID()), model);
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 
@@ -543,8 +568,10 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     property: string,
     info?: BinaryFileInfo & { hash: string; challenge: string },
     context?: OperationContext<any>
-  ): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
-    const body = info ?? (await context.getInput());
+  ): Promise<{ url: string; method: string; headers: { [key: string]: string } } | undefined> {
+    if (!info && !context) throw new WebdaError.BadRequest("Upload information is required");
+    const body = info ?? (await context!.getInput());
+    if (!body.hash || !body.challenge) throw new WebdaError.BadRequest("Upload hash and challenge are required");
     this.checkMap(<any>object, property);
     const uuid = object.getUUID();
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
@@ -574,14 +601,22 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       // Attaching existing data needs the proof of possession: the matching challenge
       if (challenge !== undefined && challenge === body.challenge) {
         await this.uploadSuccess(<any>object, property, body);
-        await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+        await this.putMarker(
+          body.hash,
+          this.usageMarker(useModelId(object.constructor)!, property, uuid),
+          useModelId(object.constructor)!
+        );
         return;
       }
       // A hash alone never attaches: the client has to upload the content it claims to hold
     } else {
       // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
       await this.uploadSuccess(<any>object, property, body);
-      await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+      await this.putMarker(
+        body.hash,
+        this.usageMarker(useModelId(object.constructor)!, property, uuid),
+        useModelId(object.constructor)!
+      );
     }
     const url = await this.getSignedUrl(params);
     return {
@@ -647,8 +682,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   async getMeta({ bucket, key }: StorageObject): Promise<StorageObjectMeta> {
     const [metadata] = await this.getStorageBucket(bucket).file(key).getMetadata();
     return {
-      size: typeof metadata.size === "string" ? parseInt(metadata.size) : metadata.size,
-      contentType: metadata.contentType
+      size: Number(metadata.size ?? 0),
+      contentType: metadata.contentType ?? "application/octet-stream"
     };
   }
 
@@ -660,16 +695,16 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the total size and count of files
    */
   async getBucketSize(bucket?: string, prefix?: string, regex?: RegExp) {
-    let pageToken;
+    let pageToken: string | undefined;
     const throttler = new Throttler();
     bucket ??= this.parameters.bucket;
     let size = 0;
     let count = 0;
-    const dwl = f => {
+    const dwl = (f: File) => {
       return async () => {
         try {
-          const metadata = (await f.getMetadata()).shift();
-          size += Number.parseInt(metadata.size);
+          const metadata = (await f.getMetadata())[0];
+          size += Number.parseInt(String(metadata.size ?? "0"));
           count++;
         } catch {
           // Ignore files removed while computing
@@ -677,7 +712,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       };
     };
     do {
-      const [files, page] = await this.storage.bucket(bucket).getFiles({ maxResults: 1000, pageToken, prefix });
+      const [files, page] = await this.storage.bucket(bucket!).getFiles({ maxResults: 1000, pageToken, prefix });
       files.filter(f => (regex ? f.name.match(regex) : true)).forEach(f => throttler.queue(dwl(f)));
       await throttler.wait();
       pageToken = (<any>page)?.pageToken;
@@ -689,9 +724,47 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
+   * Encode a usage marker part: injective and key-safe. Bytes outside `[A-Za-z0-9.:@-]` (so `_`, `/` and `~` too)
+   * become `~XX`, so `_` only separates parts
+   * @param part - the raw value
+   * @returns the encoded part
+   */
+  protected encodeMarkerPart(part: string): string {
+    return [...Buffer.from(`${part}`)]
+      .map(b => {
+        const c = String.fromCharCode(b);
+        return /[A-Za-z0-9.:@-]/.test(c) ? c : `~${b.toString(16).toUpperCase().padStart(2, "0")}`;
+      })
+      .join("");
+  }
+
+  /**
+   * Name of the usage marker of an object attribute: `@<model>_<attribute>_<uuid>`, each part encoded so that `_`
+   * only separates parts (`@` is no identifier character: never a legacy name). The only place the name is built
+   * @param model - the model identifier of the object
+   * @param property - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the marker name
+   */
+  protected usageMarker(model: string, property: string, uuid: string): string {
+    return "@" + [model, property, uuid].map(p => this.encodeMarkerPart(p)).join("_");
+  }
+
+  /**
+   * Name of the usage markers written before the model was part of the name: `<attribute>_<uuid>`, the model only in
+   * the `webdaModel` metadata. Still counted as usages, removed only for their own model
+   * @param property - the binary attribute
+   * @param uuid - the object uuid
+   * @returns the legacy marker name
+   */
+  protected legacyUsageMarker(property: string, uuid: string): string {
+    return `${property}_${uuid}`;
+  }
+
+  /**
    * Add a usage marker for a binary
    * @param hash - the binary hash
-   * @param uuid - the marker name: `${property}_${uuid}`
+   * @param uuid - the marker name (see usageMarker)
    * @param model - the model identifier of the object
    */
   async putMarker(hash: string, uuid: string, model: string) {

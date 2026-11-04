@@ -34,7 +34,7 @@
     "@webda/models": "workspace:*",
     "deepmerge": "^4.3.1",
     "merge": "^2.1.1",
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.1"
   },
   "publishConfig": {
     "access": "public"
@@ -44,13 +44,13 @@
     "namespace": "WebdaDemo"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
+    "@types/node": "26.6.6",
     "@webda/compiler": "workspace:^",
-    "@webda/tsc-esm": "workspace:*",
-    "jscodeshift": "^17.3.0",
-    "skott": "^0.35.8",
-    "tsx": "^4.21.0",
-    "vite": "^6.0.0"
+    "@webda/utils": "workspace:*",
+    "jscodeshift": "^17.4.0",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "vite": "^8.3.5"
   },
   "type": "module",
   "license": "LGPL-3.0-only"

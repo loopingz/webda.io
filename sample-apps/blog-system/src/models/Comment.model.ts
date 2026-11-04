@@ -1,4 +1,4 @@
-import { UuidModel, BelongTo } from "@webda/models";
+import { UuidModel, ManyToOne } from "@webda/models";
 import type { User } from "./User.model.js";
 import type { Post } from "./Post.model.js";
 import type { IOperationContext } from "@webda/core";
@@ -35,8 +35,8 @@ export class Comment extends UuidModel {
   isEdited!: boolean;
 
   // Relations
-  post!: BelongTo<Post>;
-  author!: BelongTo<User>;
+  post!: ManyToOne<Post>;
+  author!: ManyToOne<User>;
 
   /**
    * The author is server-managed: never taken from client input

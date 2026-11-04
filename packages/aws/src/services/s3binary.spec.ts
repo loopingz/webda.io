@@ -84,8 +84,15 @@ class S3BinaryTest extends WebdaAwsTest {
     // Delete the usage
     await this.binary.delete(user2 as any, "images");
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
-    // Cascade delete remove everything
-    await this.binary.cascadeDelete({ hash: file.hash } as any, user.getUUID());
+    // Cascade delete removes the deleted owner's usages only: the shared data stays
+    const user3 = await User.ref("s3user3").create({} as any);
+    await this.binary.store(user3, "images", new MemoryBinaryFile(Buffer.from("plop"), { name: "plop.txt" }));
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 2);
+    await this.binary.cascadeDelete({ hash: file.hash } as any, user3.getUUID(), "images", "Webda/User");
+    assert.ok(await this.binary._exists(file.hash));
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
+    // The last owner's cascade removes the data
+    await this.binary.cascadeDelete({ hash: file.hash } as any, user.getUUID(), "images", "Webda/User");
     assert.ok(!(await this.binary._exists(file.hash)));
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 0);
   }
@@ -101,12 +108,19 @@ class S3BinaryTest extends WebdaAwsTest {
     assert.strictEqual(res.method, "PUT");
     assert.ok(res.url.includes(`/${Bucket}/${file.hash}/data?`));
     assert.strictEqual(res.headers["Content-MD5"], Buffer.from(file.hash, "hex").toString("base64"));
-    assert.strictEqual((user as any).images.hash, file.hash);
-    // Marker exists but no data yet: still need to upload
+    assert.strictEqual((user as any).images, undefined, "attached only once the upload is complete");
+    // Pending but no data yet: still need to upload, completing is refused
     res = await this.binary.putRedirectUrl(user, "images", info);
     assert.strictEqual(res.method, "PUT");
-    // Data is there with the right challenge: no upload needed
+    await assert.rejects(
+      () => this.binary.completeUpload(user as any, "images", file.hash),
+      (e: any) => e.getResponseCode() === 412
+    );
+    // Uploaded: completing verifies the object and attaches it
     await this.binary.putObject(this.binary._getKey(file.hash), "redirect");
+    await this.binary.completeUpload(user as any, "images", file.hash);
+    assert.strictEqual((user as any).images.hash, file.hash);
+    // Data is there with the right challenge: no upload needed
     const user2 = await User.ref("s3redirect2").create({} as any);
     res = await this.binary.putRedirectUrl(user2, "images", info);
     assert.strictEqual(res, undefined);
@@ -248,7 +262,7 @@ class S3BinaryTest extends WebdaAwsTest {
     };
     try {
       // Errors are logged, not thrown
-      await this.binary.cascadeDelete({ hash: "pp" } as any, "pp");
+      await this.binary.cascadeDelete({ hash: "pp" } as any, "pp", "images", "Webda/User");
     } finally {
       this.binary._s3.deleteObject = original;
     }

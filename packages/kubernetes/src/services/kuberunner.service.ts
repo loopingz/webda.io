@@ -96,6 +96,9 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
       for (const cont of resources.spec.template.spec.containers) {
         cont.env ??= [];
         for (const [envKey, value] of Object.entries(info)) {
+          if (!envKey.startsWith("JOB_")) {
+            continue;
+          }
           cont.env.push({
             name: envKey,
             value

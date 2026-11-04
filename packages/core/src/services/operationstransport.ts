@@ -2,20 +2,9 @@ import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { OperationDefinition } from "../core/icore.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
+import { operationPatternMatches } from "./featureflags.js";
 
-/**
- * Whether an operation id matches a transport pattern
- * @param operationId - the operation identifier
- * @param pattern - `*`, a prefix such as `Service.*`, or an exact id
- * @returns true when it matches
- */
-export function operationPatternMatches(operationId: string, pattern: string): boolean {
-  if (pattern === "*") return true;
-  if (pattern.endsWith(".*")) {
-    return operationId.startsWith(pattern.slice(0, -1));
-  }
-  return operationId === pattern;
-}
+export { operationPatternMatches };
 
 /**
  * Build an operation filter from transport patterns: `!` entries exclude, the others include (all when only exclusions, none when empty)

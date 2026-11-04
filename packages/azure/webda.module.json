@@ -1,0 +1,1817 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/AzureBlobBinary": {
+      "Import": "lib/services/blob.service:AzureBlobBinary",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "contentStorage#2": {
+            "additionalProperties": false,
+            "properties": {
+              "default": {
+                "default": false,
+                "type": "boolean"
+              },
+              "register": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "models": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes",
+            "type": "object"
+          }
+        },
+        "description": "Blob storage settings. Shared keys are optional; managed identity is preferred.",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "connectionString": {
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "container": {
+            "type": "string"
+          },
+          "contentStorage": {
+            "$ref": "#/definitions/contentStorage%232"
+          },
+          "createContainer": {
+            "default": false,
+            "type": "boolean"
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "maxFileSize": {
+            "default": "10 MB",
+            "description": "Define the maximum filesize to accept as direct upload\nGet the max file size in bytes",
+            "returns": "the result number",
+            "type": "number"
+          },
+          "maxUploadSize": {
+            "description": "Maximum size accepted for a direct-to-bucket upload, undefined means no limit",
+            "returns": "the limit in bytes or undefined",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "models": {
+            "$ref": "#/definitions/models",
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
+          },
+          "pendingTimeout": {
+            "type": "number"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "serviceVersion": {
+            "description": "Override the Blob API/SAS version for older Azurite installations.",
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "urlExpiry": {
+            "default": 30,
+            "description": "Lifetime in seconds of the signed URLs",
+            "type": "number"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "container",
+          "models",
+          "type"
+        ],
+        "type": "object",
+        "title": "AzureBlobBinary"
+      },
+      "Configuration": "lib/services/blob.service:AzureBlobBinaryParameters"
+    },
+    "Webda/AzureContainerAppsDeployer": {
+      "Import": "lib/deployers/containerapps.service:AzureContainerAppsDeployer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "PackageOptions": {
+            "additionalProperties": false,
+            "description": "Options of {@link packageApplication}",
+            "properties": {
+              "excludePatterns": {
+                "default": [
+                  "\\.d\\.ts$"
+                ],
+                "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "excludeServices": {
+                "description": "Services to remove from the packaged configuration, like the ones injected by the CLI to run a command",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ignores": {
+                "description": "Additional top-level entries of the application to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "modules": {
+                "$ref": "#/definitions/package%24modules%232",
+                "description": "Dependencies to add or remove from the application production dependencies"
+              }
+            },
+            "type": "object"
+          },
+          "Record<string, Record<string, any>>": {
+            "additionalProperties": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, RegistryCredentials>": {
+            "additionalProperties": {
+              "$ref": "#/definitions/RegistryCredentials"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, any>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, string | SecretString | { keyVaultUrl: string; identity: string; }>": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/secrets%24%5Bkey%3A%20string%5D%233"
+                }
+              ],
+              "x-webda-secret": true
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, string | { secretRef: string; }>": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/containerApp%24env%232%24%5Bkey%3A%20string%5D%232"
+                }
+              ]
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, string>": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "RegistryCredentials": {
+            "additionalProperties": false,
+            "description": "Credentials of a registry, as configured",
+            "properties": {
+              "identityToken": {
+                "description": "Identity token (OAuth2 refresh token) as stored by `docker login` for some registries\n\nCan be encrypted with `webda config encrypt`",
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "password": {
+                "description": "Password or access token used with the user name\n\nCan be encrypted with `webda config encrypt`",
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "token": {
+                "description": "Registry bearer token sent as is, without token exchange\n\nCan be encrypted with `webda config encrypt`",
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "username": {
+                "description": "User name",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "containerApp": {
+            "additionalProperties": false,
+            "properties": {
+              "cpu": {
+                "type": "number"
+              },
+              "env": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20%7B%20secretRef%3A%20string%3B%20%7D%3E"
+              },
+              "ingress": {
+                "anyOf": [
+                  {
+                    "const": false,
+                    "type": "boolean"
+                  },
+                  {
+                    "$ref": "#/definitions/containerApp%24ingress%233"
+                  }
+                ]
+              },
+              "maxReplicas": {
+                "type": "number"
+              },
+              "memory": {
+                "type": "string"
+              },
+              "minReplicas": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string"
+              },
+              "probes": {
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20any%3E"
+                },
+                "type": "array"
+              },
+              "scaleRules": {
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20any%3E"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "containerApp$env#2$[key: string]#2": {
+            "additionalProperties": false,
+            "properties": {
+              "secretRef": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "secretRef"
+            ],
+            "type": "object"
+          },
+          "containerApp$ingress#3": {
+            "additionalProperties": false,
+            "properties": {
+              "external": {
+                "default": false,
+                "type": "boolean"
+              },
+              "targetPort": {
+                "type": "number"
+              },
+              "transport": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "customDomains[]": {
+            "additionalProperties": false,
+            "properties": {
+              "bindingType": {
+                "type": "string"
+              },
+              "certificateId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "validationMethod": {
+                "enum": [
+                  "CNAME",
+                  "HTTP"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "environment": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "logAnalytics#2": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "retentionInDays": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "package$modules#2": {
+            "additionalProperties": false,
+            "properties": {
+              "excludes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "includes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "secrets$[key: string]#3": {
+            "additionalProperties": false,
+            "properties": {
+              "identity": {
+                "type": "string"
+              },
+              "keyVaultUrl": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "identity",
+              "keyVaultUrl"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Azure Container Apps unit parameters. Image tags and Azure resource tags are separate.",
+        "properties": {
+          "baseImage": {
+            "default": "node:22-slim",
+            "description": "Base image, `scratch` for none",
+            "type": "string"
+          },
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "cmd": {
+            "default": [
+              "serve",
+              "--bind",
+              "0.0.0.0"
+            ],
+            "description": "Command of the image, the arguments of the entrypoint",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "containerApp": {
+            "$ref": "#/definitions/containerApp"
+          },
+          "createResourceGroup": {
+            "default": false,
+            "type": "boolean"
+          },
+          "credentials": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20RegistryCredentials%3E",
+            "default": "{}\n\nUse templates to read them from the environment: `{ \"ghcr.io\": { \"username\": \"${env.GHCR_USER}\", \"password\": \"${env.GHCR_TOKEN}\" } }`\n\n`password`, `identityToken` and `token` can be encrypted with `webda config encrypt`",
+            "description": "Credentials per registry host, they take precedence over `~/.docker/config.json`"
+          },
+          "crons": {
+            "default": true,
+            "type": "boolean"
+          },
+          "customDomains": {
+            "items": {
+              "$ref": "#/definitions/customDomains%5B%5D"
+            },
+            "type": "array"
+          },
+          "customResources": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20any%3E"
+                },
+                "type": "array"
+              },
+              {
+                "$ref": "#/definitions/Record%3Cstring%2C%20Record%3Cstring%2C%20any%3E%3E"
+              }
+            ]
+          },
+          "deploymentName": {
+            "type": "string"
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "entrypoint": {
+            "default": [
+              "node",
+              "<workdir>/node_modules/@webda/core/lib/bin/cli.js"
+            ],
+            "description": "Entrypoint of the image",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "env": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {
+              "NODE_ENV": "production"
+            },
+            "description": "Environment variables"
+          },
+          "environment": {
+            "$ref": "#/definitions/environment"
+          },
+          "exposedPorts": {
+            "default": [
+              "18080/tcp"
+            ],
+            "description": "Exposed ports",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "image": {
+            "description": "Repository to push to, without tag: `ghcr.io/my-org/my-app`\n\nRequired to push.",
+            "type": "string"
+          },
+          "insecureRegistries": {
+            "default": [],
+            "description": "Registries reached over plain http, `localhost` and `127.0.0.1` always are",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "labels": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {},
+            "description": "Labels, added to the default OCI ones (version, revision, source, title)"
+          },
+          "location": {
+            "default": "westeurope",
+            "type": "string"
+          },
+          "logAnalytics": {
+            "anyOf": [
+              {
+                "const": false,
+                "type": "boolean"
+              },
+              {
+                "$ref": "#/definitions/logAnalytics%232"
+              }
+            ]
+          },
+          "mtime": {
+            "default": "the SOURCE_DATE_EPOCH environment variable, or 0",
+            "description": "Modification time of the files and creation time of the image, in seconds",
+            "type": "number"
+          },
+          "output": {
+            "default": ".webda/oci/${deployer.name}",
+            "description": "Output of `container build`: an OCI layout folder, or a tar archive when ending with `.tar`\n\nRelative to the application folder. The folder keeps the downloaded base layers between builds.",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/definitions/PackageOptions",
+            "default": {},
+            "description": "Options of the application packaging"
+          },
+          "platforms": {
+            "default": [
+              "linux/amd64"
+            ],
+            "description": "Platforms to build, several platforms produce a multi-platform index",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "registry": {
+            "type": "string"
+          },
+          "registryAuth": {
+            "default": "aad",
+            "enum": [
+              "aad",
+              "identity",
+              "none"
+            ],
+            "type": "string"
+          },
+          "resourceGroup": {
+            "type": "string"
+          },
+          "resourceTags": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E"
+          },
+          "secrets": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20SecretString%20%7C%20%7B%20keyVaultUrl%3A%20string%3B%20identity%3A%20string%3B%20%7D%3E"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tags": {
+            "default": [
+              "${git.version}"
+            ],
+            "description": "Tags of the image\n\nInvalid characters are replaced by `-`, so the snapshot version `1.2.4+20261004120000`\nbecomes `1.2.4-20261004120000`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "templateOutput": {
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "user": {
+            "description": "User the container runs as, the base image one by default",
+            "type": "string"
+          },
+          "workdir": {
+            "default": "/app",
+            "description": "Folder of the application in the image",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "resourceGroup",
+          "subscriptionId",
+          "type"
+        ],
+        "type": "object",
+        "title": "AzureContainerAppsDeployer"
+      },
+      "Configuration": "lib/deployers/containerapps.service:AzureContainerAppsDeployerParameters",
+      "capabilities": [
+        "deployer"
+      ],
+      "commands": {
+        "azure template": {
+          "description": "Generate the Container Apps ARM template",
+          "method": "generate",
+          "args": {
+            "output": {
+              "type": "string"
+            }
+          }
+        },
+        "container push": {
+          "description": "Build and push the image using Azure registry authentication",
+          "method": "push",
+          "args": {}
+        },
+        "deploy": {
+          "description": "Build, publish and deploy the application to Azure Container Apps",
+          "method": "deploy",
+          "args": {}
+        }
+      }
+    },
+    "Webda/AzureFunctionServer": {
+      "Import": "lib/services/functionserver.service:AzureFunctionServer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Azure Functions HTTP adapter settings.",
+        "properties": {
+          "requestIdHeader": {
+            "default": "x-request-id",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "AzureFunctionServer"
+      },
+      "Configuration": "lib/services/functionserver.service:AzureFunctionServerParameters"
+    },
+    "Webda/AzureFunctionsDeployer": {
+      "Import": "lib/deployers/functions.service:AzureFunctionsDeployer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "PackageOptions": {
+            "additionalProperties": false,
+            "description": "Options of {@link packageApplication}",
+            "properties": {
+              "excludePatterns": {
+                "default": [
+                  "\\.d\\.ts$"
+                ],
+                "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "excludeServices": {
+                "description": "Services to remove from the packaged configuration, like the ones injected by the CLI to run a command",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ignores": {
+                "description": "Additional top-level entries of the application to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "modules": {
+                "$ref": "#/definitions/package%24modules%232",
+                "description": "Dependencies to add or remove from the application production dependencies"
+              }
+            },
+            "type": "object"
+          },
+          "Record<string, Record<string, any>>": {
+            "additionalProperties": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, RegistryCredentials>": {
+            "additionalProperties": {
+              "$ref": "#/definitions/RegistryCredentials"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, any>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, string | SecretString>": {
+            "additionalProperties": {
+              "type": "string",
+              "x-webda-secret": true
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, string>": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "RegistryCredentials": {
+            "additionalProperties": false,
+            "description": "Credentials of a registry, as configured",
+            "properties": {
+              "identityToken": {
+                "description": "Identity token (OAuth2 refresh token) as stored by `docker login` for some registries\n\nCan be encrypted with `webda config encrypt`",
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "password": {
+                "description": "Password or access token used with the user name\n\nCan be encrypted with `webda config encrypt`",
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "token": {
+                "description": "Registry bearer token sent as is, without token exchange\n\nCan be encrypted with `webda config encrypt`",
+                "type": "string",
+                "x-webda-secret": true
+              },
+              "username": {
+                "description": "User name",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "package$modules#2": {
+            "additionalProperties": false,
+            "properties": {
+              "excludes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "includes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "triggers#2[]#1": {
+            "additionalProperties": false,
+            "properties": {
+              "connection": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "queueName": {
+                "type": "string"
+              },
+              "type": {
+                "const": "servicebus",
+                "type": "string"
+              }
+            },
+            "required": [
+              "connection",
+              "name",
+              "queueName",
+              "type"
+            ],
+            "type": "object"
+          },
+          "triggers#2[]#2": {
+            "additionalProperties": false,
+            "properties": {
+              "connection": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "const": "blob",
+                "type": "string"
+              }
+            },
+            "required": [
+              "connection",
+              "name",
+              "path",
+              "type"
+            ],
+            "type": "object"
+          },
+          "triggers#2[]#3": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "schedule": {
+                "type": "string"
+              },
+              "type": {
+                "const": "timer",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "schedule",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Azure Functions Flex Consumption unit settings.",
+        "properties": {
+          "appSettings": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20SecretString%3E"
+          },
+          "baseImage": {
+            "default": "node:22-slim",
+            "description": "Base image, `scratch` for none",
+            "type": "string"
+          },
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "cmd": {
+            "default": [
+              "serve",
+              "--bind",
+              "0.0.0.0"
+            ],
+            "description": "Command of the image, the arguments of the entrypoint",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "createResourceGroup": {
+            "default": false,
+            "type": "boolean"
+          },
+          "credentials": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20RegistryCredentials%3E",
+            "default": "{}\n\nUse templates to read them from the environment: `{ \"ghcr.io\": { \"username\": \"${env.GHCR_USER}\", \"password\": \"${env.GHCR_TOKEN}\" } }`\n\n`password`, `identityToken` and `token` can be encrypted with `webda config encrypt`",
+            "description": "Credentials per registry host, they take precedence over `~/.docker/config.json`"
+          },
+          "customResources": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20any%3E"
+                },
+                "type": "array"
+              },
+              {
+                "$ref": "#/definitions/Record%3Cstring%2C%20Record%3Cstring%2C%20any%3E%3E"
+              }
+            ]
+          },
+          "deploymentName": {
+            "type": "string"
+          },
+          "deploymentTimeout": {
+            "type": "number"
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "entrypoint": {
+            "default": [
+              "node",
+              "<workdir>/node_modules/@webda/core/lib/bin/cli.js"
+            ],
+            "description": "Entrypoint of the image",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "env": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {
+              "NODE_ENV": "production"
+            },
+            "description": "Environment variables"
+          },
+          "exposedPorts": {
+            "default": [
+              "18080/tcp"
+            ],
+            "description": "Exposed ports",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "functionApp": {
+            "type": "string"
+          },
+          "image": {
+            "description": "Repository to push to, without tag: `ghcr.io/my-org/my-app`\n\nRequired to push.",
+            "type": "string"
+          },
+          "insecureRegistries": {
+            "default": [],
+            "description": "Registries reached over plain http, `localhost` and `127.0.0.1` always are",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "labels": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {},
+            "description": "Labels, added to the default OCI ones (version, revision, source, title)"
+          },
+          "location": {
+            "default": "westeurope",
+            "type": "string"
+          },
+          "maximumInstanceCount": {
+            "type": "number"
+          },
+          "memory": {
+            "type": "number"
+          },
+          "mtime": {
+            "default": "the SOURCE_DATE_EPOCH environment variable, or 0",
+            "description": "Modification time of the files and creation time of the image, in seconds",
+            "type": "number"
+          },
+          "output": {
+            "default": ".webda/oci/${deployer.name}",
+            "description": "Output of `container build`: an OCI layout folder, or a tar archive when ending with `.tar`\n\nRelative to the application folder. The folder keeps the downloaded base layers between builds.",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/definitions/PackageOptions",
+            "default": {},
+            "description": "Options of the application packaging"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "platforms": {
+            "default": [
+              "linux/amd64"
+            ],
+            "description": "Platforms to build, several platforms produce a multi-platform index",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resourceGroup": {
+            "type": "string"
+          },
+          "resourceTags": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E"
+          },
+          "storageAccount": {
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tags": {
+            "default": [
+              "${git.version}"
+            ],
+            "description": "Tags of the image\n\nInvalid characters are replaced by `-`, so the snapshot version `1.2.4+20261004120000`\nbecomes `1.2.4-20261004120000`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "templateOutput": {
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "triggers": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/triggers%232%5B%5D%231"
+                },
+                {
+                  "$ref": "#/definitions/triggers%232%5B%5D%232"
+                },
+                {
+                  "$ref": "#/definitions/triggers%232%5B%5D%233"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "user": {
+            "description": "User the container runs as, the base image one by default",
+            "type": "string"
+          },
+          "workdir": {
+            "default": "/app",
+            "description": "Folder of the application in the image",
+            "type": "string"
+          },
+          "zipPath": {
+            "default": "dist/azure-functions.zip",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "functionApp",
+          "resourceGroup",
+          "storageAccount",
+          "subscriptionId",
+          "type"
+        ],
+        "type": "object",
+        "title": "AzureFunctionsDeployer"
+      },
+      "Configuration": "lib/deployers/functions.service:AzureFunctionsDeployerParameters",
+      "capabilities": [
+        "deployer"
+      ],
+      "commands": {
+        "azure template": {
+          "description": "Generate the Functions ARM template",
+          "method": "generate",
+          "args": {
+            "output": {
+              "type": "string"
+            }
+          }
+        },
+        "azure package": {
+          "description": "Package the application for Azure Functions",
+          "method": "packageApplication",
+          "args": {}
+        },
+        "deploy": {
+          "description": "Package and deploy to Azure Functions Flex Consumption",
+          "method": "deploy",
+          "args": {}
+        }
+      }
+    },
+    "Webda/AzureFunctionsPackager": {
+      "Import": "lib/deployers/functionspackager.service:AzureFunctionsPackager",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "PackageOptions": {
+            "additionalProperties": false,
+            "description": "Options of {@link packageApplication}",
+            "properties": {
+              "excludePatterns": {
+                "default": [
+                  "\\.d\\.ts$"
+                ],
+                "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "excludeServices": {
+                "description": "Services to remove from the packaged configuration, like the ones injected by the CLI to run a command",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ignores": {
+                "description": "Additional top-level entries of the application to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "modules": {
+                "$ref": "#/definitions/package%232%24modules%232",
+                "description": "Dependencies to add or remove from the application production dependencies"
+              }
+            },
+            "type": "object"
+          },
+          "package#2$modules#2": {
+            "additionalProperties": false,
+            "properties": {
+              "excludes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "includes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "triggers#2[]#1": {
+            "additionalProperties": false,
+            "properties": {
+              "connection": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "queueName": {
+                "type": "string"
+              },
+              "type": {
+                "const": "servicebus",
+                "type": "string"
+              }
+            },
+            "required": [
+              "connection",
+              "name",
+              "queueName",
+              "type"
+            ],
+            "type": "object"
+          },
+          "triggers#2[]#2": {
+            "additionalProperties": false,
+            "properties": {
+              "connection": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "const": "blob",
+                "type": "string"
+              }
+            },
+            "required": [
+              "connection",
+              "name",
+              "path",
+              "type"
+            ],
+            "type": "object"
+          },
+          "triggers#2[]#3": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "schedule": {
+                "type": "string"
+              },
+              "type": {
+                "const": "timer",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "schedule",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "package": {
+            "$ref": "#/definitions/PackageOptions"
+          },
+          "triggers": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/triggers%232%5B%5D%231"
+                },
+                {
+                  "$ref": "#/definitions/triggers%232%5B%5D%232"
+                },
+                {
+                  "$ref": "#/definitions/triggers%232%5B%5D%233"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "zipPath": {
+            "default": "dist/azure-functions.zip",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "AzureFunctionsPackager"
+      },
+      "Configuration": "lib/deployers/functionspackager.service:AzureFunctionsPackagerParameters",
+      "capabilities": [
+        "deployer"
+      ],
+      "commands": {
+        "azure package": {
+          "description": "Package the application for Azure Functions",
+          "method": "package",
+          "args": {}
+        }
+      }
+    },
+    "Webda/AzureKeyVault": {
+      "Import": "lib/services/keyvault.service:AzureKeyVault",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Settings for the Key Vault service and configuration encrypter.",
+        "properties": {
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "keyId": {
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "vaultUrl": {
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type",
+          "vaultUrl"
+        ],
+        "type": "object",
+        "title": "AzureKeyVault"
+      },
+      "Configuration": "lib/services/keyvault.service:AzureKeyVaultParameters"
+    },
+    "Webda/AzureMonitorLogger": {
+      "Import": "lib/services/monitorlogger.service:AzureMonitorLogger",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Azure Monitor Logs Ingestion settings.",
+        "properties": {
+          "batchSize": {
+            "type": "number"
+          },
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "flushInterval": {
+            "type": "number"
+          },
+          "logLevel": {
+            "default": "INFO",
+            "description": "LogLevel as intersection to compare with integer values",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "maxBufferedLogs": {
+            "type": "number"
+          },
+          "ruleId": {
+            "type": "string"
+          },
+          "streamName": {
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "endpoint",
+          "ruleId",
+          "streamName",
+          "type"
+        ],
+        "type": "object",
+        "title": "AzureMonitorLogger"
+      },
+      "Configuration": "lib/services/monitorlogger.service:AzureMonitorLoggerParameters"
+    },
+    "Webda/CosmosStore": {
+      "Import": "lib/services/cosmos.service:CosmosStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "typeCheck#2": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Cosmos DB NoSQL settings. All models in the store share a typed container.",
+        "properties": {
+          "aggregationFallback": {
+            "default": "warn",
+            "description": "What to do when an aggregation on this store cannot run natively and must\nstream every matching object through memory",
+            "enum": [
+              "allow",
+              "warn",
+              "deny"
+            ],
+            "type": "string"
+          },
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "container": {
+            "type": "string"
+          },
+          "createIfNotExists": {
+            "default": false,
+            "type": "boolean"
+          },
+          "database": {
+            "type": "string"
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "maxGroups": {
+            "default": 10000,
+            "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "minimum": 1,
+            "type": "number"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "partitionKey": {
+            "default": "/id",
+            "type": "string"
+          },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "throughput": {
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck%232",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "container",
+          "database",
+          "endpoint",
+          "type"
+        ],
+        "type": "object",
+        "title": "CosmosStore"
+      },
+      "Configuration": "lib/services/cosmos.service:CosmosStoreParameters"
+    },
+    "Webda/ServiceBusPubSub": {
+      "Import": "lib/services/servicebus.service:ServiceBusPubSub",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Service Bus pub/sub settings. Omit subscription to create one temporary subscription per consumer.",
+        "properties": {
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "connectionString": {
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "createIfNotExists": {
+            "default": false,
+            "type": "boolean"
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "subscription": {
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "namespace",
+          "topic",
+          "type"
+        ],
+        "type": "object",
+        "title": "ServiceBusPubSub"
+      },
+      "Configuration": "lib/services/servicebus.service:ServiceBusPubSubParameters"
+    },
+    "Webda/ServiceBusQueue": {
+      "Import": "lib/services/servicebus.service:ServiceBusQueue",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "WaitDelayerDefinition": {
+            "additionalProperties": false,
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
+            "properties": {
+              "interval": {
+                "description": "Base interval in milliseconds passed to the delayer factory.",
+                "type": "number"
+              },
+              "type": {
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "interval",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Service Bus work queue settings.",
+        "properties": {
+          "clientId": {
+            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "type": "string"
+          },
+          "clientSecret": {
+            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "connectionString": {
+            "type": "string",
+            "x-webda-secret": true
+          },
+          "createIfNotExists": {
+            "default": false,
+            "type": "boolean"
+          },
+          "endpoint": {
+            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "type": "string"
+          },
+          "idleDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "default": {
+              "interval": 50,
+              "type": "exponential"
+            },
+            "description": "Delayer between two receives of the main consumer while the queue returns no message\n\nQueues answering immediately when empty (PostgresQueue, AMQPQueue...) would otherwise be polled in a tight\nloop. The delay grows with the consecutive empty receives, up to `maxIdleDelay`; the time spent in the receive\nis deducted, so long-polling queues (SQSQueue, FileQueue, MemoryQueue with a timeout) are not slowed down."
+          },
+          "maxConsumers": {
+            "default": 10,
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "maxIdleDelay": {
+            "default": 250,
+            "description": "Maximum delay between two receives while the queue stays empty, in milliseconds\n\nIt bounds the extra latency of the first message after an idle period, and the polling rate of an idle\nconsumer (4 receives per second at 250ms).",
+            "type": "number"
+          },
+          "maxMessages": {
+            "type": "number"
+          },
+          "maxPendingMessages": {
+            "type": "number"
+          },
+          "maxWaitTimeInMs": {
+            "type": "number"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "queue": {
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "type": "string"
+          },
+          "tenantId": {
+            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "namespace",
+          "queue",
+          "type"
+        ],
+        "type": "object",
+        "title": "ServiceBusQueue"
+      },
+      "Configuration": "lib/services/servicebus.service:ServiceBusQueueParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {}
+}

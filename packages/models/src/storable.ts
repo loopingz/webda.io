@@ -1,4 +1,4 @@
-import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/utils";
 import type { QueryParameters } from "@webda/ql";
 import { WEBDA_DIRTY } from "@webda/utils";
 import type { ModelRefWithCreate, ModelRelated } from "./relations.js";

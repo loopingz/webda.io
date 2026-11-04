@@ -28,6 +28,9 @@ abstract class RoleModel extends Model {
       return ctx.getSession().roles;
     }
     const user = await ctx.getCurrentUser();
+    if (!user) {
+      throw new WebdaError.Forbidden("No user");
+    }
     // Cache roles in session
     ctx.getSession().roles = user.getRoles();
     return ctx.getSession().roles;

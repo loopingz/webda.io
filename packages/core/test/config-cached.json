@@ -73,12 +73,6 @@
     "DefinedMailer": {
       "type": "WebdaTest/Mailer"
     },
-    "TrueMailer": {
-      "type": "Webda/Mailer",
-      "config": {
-        "transport": "ses"
-      }
-    },
     "MemoryIdentsIndexer": {
       "type": "Webda/Aggregator",
       "source": "MemoryIdents",

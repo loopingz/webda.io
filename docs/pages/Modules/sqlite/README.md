@@ -4,7 +4,7 @@ sidebar_label: "@webda/sqlite"
 
 # sqlite
 
-`Webda/SQLiteStore`, `Webda/SQLiteQueue` and `Webda/SQLitePubSub` on Node's built-in `node:sqlite`
+`Webda/SQLiteStore`, `Webda/SQLiteRelationalStore`, `Webda/SQLiteQueue` and `Webda/SQLitePubSub` on Node's built-in `node:sqlite`
 (Node >= 22.13, no third-party dependency), built on [`@webda/sql`](../sql/README.md).
 
 Without a `persistence` block the database lives **in memory** and is lost on `stop()`, like `MemoryStore`.
@@ -13,12 +13,12 @@ backend for tests and development, or a durable backend for CLI tools, single-no
 
 ## When to use it
 
-| Need | Pick |
-| --- | --- |
-| Throw-away data in tests, zero setup, fastest | `MemoryStore` / `MemoryQueue` (`@webda/core`) |
-| A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file | `@webda/sqlite` |
-| One JSON file per object you can read by hand | `@webda/fs` |
-| Several hosts, heavy concurrent traffic | `@webda/postgres` |
+| Need                                                                             | Pick                                          |
+| -------------------------------------------------------------------------------- | --------------------------------------------- |
+| Throw-away data in tests, zero setup, fastest                                    | `MemoryStore` / `MemoryQueue` (`@webda/core`) |
+| A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file | `@webda/sqlite`                               |
+| One JSON file per object you can read by hand                                    | `@webda/fs`                                   |
+| Several hosts, heavy concurrent traffic                                          | `@webda/postgres`                             |
 
 ## Modes
 
@@ -39,6 +39,10 @@ Differences from `MemoryStore.persistence`:
 
 ## Services
 
+- [`SQLiteRelationalStore`](./SQLiteRelationalStore.md): typed tables, primary and foreign keys, junction tables and
+  indexes generated from the model metadata, for the domain models you list explicitly (the JSON `SQLiteStore` stays
+  the `Registry`).
+
 ### SQLiteStore
 
 Parameters of `SQLStore` (`models`, `table`, `tables`, `autoCreateTable`) plus the connection parameters.
@@ -58,25 +62,25 @@ Semantics to know:
 
 ### SQLiteQueue
 
-| Parameter | Default | Role |
-| --- | --- | --- |
-| `table` | `webda_queue` | table, created on init |
-| `visibilityTimeout` | 30 | seconds a received but not deleted message stays invisible |
-| `batchSize` | 10 | messages per receive |
-| `waitTime` | 1 | seconds an empty receive waits (long polling); a send of the same process ends the wait at once |
+| Parameter           | Default       | Role                                                                                            |
+| ------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
+| `table`             | `webda_queue` | table, created on init                                                                          |
+| `visibilityTimeout` | 30            | seconds a received but not deleted message stays invisible                                      |
+| `batchSize`         | 10            | messages per receive                                                                            |
+| `waitTime`          | 1             | seconds an empty receive waits (long polling); a send of the same process ends the wait at once |
 
 A receive locks a batch with one `UPDATE ... RETURNING`; delete acks; an expired visibility timeout makes the
 message visible again. In file mode, messages survive restarts and are shared by the processes of one host.
 
 ### SQLitePubSub
 
-| Parameter | Default | Role |
-| --- | --- | --- |
-| `channel` | service name lowercased | channel |
-| `table` | `webda_pubsub` | message log, created on init |
-| `pollInterval` | 100 | ms between `PRAGMA data_version` checks for other processes |
-| `retention` | 60 | seconds a message is kept for slow consumers |
-| `batchSize` | 100 | messages fetched per poll |
+| Parameter      | Default                 | Role                                                        |
+| -------------- | ----------------------- | ----------------------------------------------------------- |
+| `channel`      | service name lowercased | channel                                                     |
+| `table`        | `webda_pubsub`          | message log, created on init                                |
+| `pollInterval` | 100                     | ms between `PRAGMA data_version` checks for other processes |
+| `retention`    | 60                      | seconds a message is kept for slow consumers                |
+| `batchSize`    | 100                     | messages fetched per poll                                   |
 
 SQLite has no LISTEN/NOTIFY: messages are appended to a log and read through a per-subscriber cursor. Delivery is
 at-most-once per subscriber while subscribed; a subscriber only gets messages published after it subscribed, and

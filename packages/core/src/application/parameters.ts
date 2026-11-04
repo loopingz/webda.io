@@ -1,4 +1,4 @@
-import { NotEnumerable } from "@webda/tsc-esm";
+import { NotEnumerable } from "@webda/utils";
 import { useLog } from "@webda/workout";
 
 /**

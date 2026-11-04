@@ -1,6 +1,6 @@
 {
   "name": "@webda/async",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-beta.12",
   "description": "Async System",
   "main": "lib/index.js",
   "scripts": {
@@ -28,22 +28,22 @@
     "@webda/ql": "workspace:*",
     "@webda/utils": "workspace:*",
     "@webda/workout": "workspace:*",
-    "axios": "^1.14.0",
+    "axios": "^1.21.0",
     "json-schema": "^0.4.0",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.6.0"
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
-    "@types/node": "25.5.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/compiler": "workspace:^",
     "@webda/test": "workspace:*",
-    "jscodeshift": "^17.3.0",
-    "sinon": "^21.0.3",
-    "skott": "^0.35.8",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "jscodeshift": "^17.4.0",
+    "sinon": "^22.1.0",
+    "skott": "^0.35.12",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"
@@ -66,8 +66,7 @@
   },
   "nx": {
     "implicitDependencies": [
-      "@webda/core",
-      "@webda/tsc-esm"
+      "@webda/core"
     ]
   },
   "license": "LGPL-3.0-only"

@@ -1,4 +1,11 @@
-import { getTypeResolver, ModelTypeResolver, setTypeResolver, type ModelClass } from "@webda/models";
+import { loadModelLink } from "../models/polymorphic.js";
+import {
+  getTypeResolver,
+  ModelTypeResolver,
+  setTypeResolver,
+  setModelLinkLoader,
+  type ModelClass
+} from "@webda/models";
 
 /**
  * Label of a row without `__type` in reports
@@ -40,6 +47,8 @@ export function buildModelTypeResolver(app: ModelTypesSource): ModelTypeResolver
 export function installModelTypes(app: ModelTypesSource): ModelTypeResolver {
   const resolver = buildModelTypeResolver(app);
   setTypeResolver(resolver);
+  // Resolve the application and caller at read time, rather than capturing this application.
+  setModelLinkLoader(reference => loadModelLink(reference));
   return resolver;
 }
 

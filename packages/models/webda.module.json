@@ -37,7 +37,22 @@
         }
       },
       "Actions": {},
-      "Events": [],
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
       "PrimaryKey": [],
       "Identifier": "Webda/Model"
     },
@@ -108,7 +123,22 @@
         }
       },
       "Actions": {},
-      "Events": [],
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
       "PrimaryKey": [
         "uuid"
       ],

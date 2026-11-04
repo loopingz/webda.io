@@ -154,8 +154,12 @@ class BrowserOpenerTest {
     assert.deepStrictEqual(browserOpenCommand(url, "darwin"), { command: "open", args: [url] });
     assert.deepStrictEqual(browserOpenCommand(url, "linux"), { command: "xdg-open", args: [url] });
     const win = browserOpenCommand(url, "win32");
-    assert.strictEqual(win.command, "cmd");
-    assert.deepStrictEqual(win.args.slice(0, 3), ["/c", "start", ""]);
-    assert.ok(win.args[3].includes("^&"), "ampersands must be escaped for cmd.exe");
+    assert.deepStrictEqual(win, { command: "explorer.exe", args: [url] });
+    assert.throws(() => browserOpenCommand("file:///C:/Windows/System32/cmd.exe", "win32"), /HTTP or HTTPS/);
+    const hostile = 'https://example.com/?value=" & calc.exe';
+    assert.deepStrictEqual(browserOpenCommand(hostile, "win32"), {
+      command: "explorer.exe",
+      args: [new URL(hostile).href]
+    });
   }
 }

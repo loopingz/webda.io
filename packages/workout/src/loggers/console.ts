@@ -120,7 +120,7 @@ class ConsoleLogger extends WorkerLogger {
         stream
       );
     }
-    if (msg.type === "log" && LogFilter(msg.log.level, level)) {
+    if (msg.type === "log" && msg.log && LogFilter(msg.log.level, level)) {
       ConsoleLogger.display(msg, format, stream);
     }
   }
@@ -147,7 +147,7 @@ class ConsoleLogger extends WorkerLogger {
     format: string = ConsoleLogger.defaultFormat,
     stream: NodeJS.WritableStream = process.stdout
   ) {
-    stream.write(`${this.getColor(msg.log.level)(this.format(msg, format))}\n`);
+    stream.write(`${this.getColor(msg.log?.level ?? "INFO")(this.format(msg, format))}\n`);
   }
 
   /**

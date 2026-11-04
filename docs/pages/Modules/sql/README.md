@@ -28,3 +28,42 @@ The package has no database driver.
    `migrate` command on the class itself (the compiler reads the capability from the class own heritage clause).
 3. Run the shared fixtures of `@webda/sql/lib/test` (`PARITY_ROWS`, `PARITY_QUERIES`) against `MemoryRepository`,
    plus `checkAggregation` and `checkCreateWithoutPrimaryKey` from `@webda/core/lib/test`.
+
+## Relational layer (`src/relational`)
+
+The same package holds the engine-neutral part of the **typed table** stores (`PostgresRelationalStore` and
+`SQLiteRelationalStore`; MySQL / MariaDB and SQL Server are tracked in
+[#1010](https://github.com/loopingz/webda.io/issues/1010) and [#1011](https://github.com/loopingz/webda.io/issues/1011),
+upvote and comment if you need them):
+
+- `RelationalDialect extends SQLDialect`: identifier quoting, the DDL type of each `@webda/sql-schema` column type,
+  rendering of the additive schema steps (`createTable`, `addColumn`, `createIndex`, `addForeignKey`), introspection
+  (`describeSchema`), the schema lock statement, and the JSON operations on a named JSON column.
+- `planSchemaChanges(plan, live, mode)`: the additive steps bringing a database to a `RelationalSchemaPlan` and the
+  drift it never resolves (no drop, no type change, no `NOT NULL`); `SchemaDriftError` for `validate`.
+- `RelationalSchemaManager`: builds the plan from the model metadata, logs its warnings, renders the create DDL, diffs
+  and syncs under the dialect lock, with the registry hooks (`check` before the DDL, `register` after it, both under
+  the lock), runs the `online` steps the dialect keeps out of the transaction (`renderOnlineStep`:
+  `CREATE INDEX CONCURRENTLY`, `NOT VALID` + `VALIDATE CONSTRAINT`), plans and applies the contract phase
+  (`planContract`, `renderContractStep`) and the batched `backfill`.
+- `SchemaVersion` (`Webda/SchemaVersion`): the model of the version registry, stored by the `Registry` catch-all;
+  `SchemaVersionRegistry`: live versions, `compareSchemaPlans` against them, register, heartbeat (`patch()`), retire;
+  `SchemaIncompatibleError` (409) with the expand/contract recipe of every blocking change, `SchemaRegistryError`
+  (fail closed).
+- `TableMapping`: objects to rows (explicit column lists from the model projection, references split for composite
+  keys, junction rows, the extra JSON column) and back.
+- `SQLColumnComparisonExpression`: a WebdaQL comparison rendered for the column type, keeping the in-memory semantics
+  (`n = '1'` matches, `n = 'abc'` does not raise, `!=` is null-safe).
+- `RelationalRepository extends SQLRepository`: the hooks `fieldText()`, `typeText()` and `keyColumns()` point the
+  shared statements at columns; reads select the table columns and fold the junction rows; writes name their columns
+  and replace junction rows in one transaction (`Transact`); foreign key violations become `WebdaError.BadRequest`
+  (insert, update) or `WebdaError.Conflict` (delete).
+- `runTransaction` / `AsyncMutex`: `BEGIN` / `COMMIT` / `ROLLBACK` on one connection; on a connection that is not
+  pooled, the store runs every statement and every transaction through the same mutex.
+
+- `RelationalStoreSupport`: the store behavior each engine store composes (plan at init, `schemaSync` under the
+  version registry, table resolution, repository factory, clean, the `schema show | check | contract | retire |
+backfill` commands) and `loadRelationalParameters`.
+
+See [`PostgresRelationalStore`](../postgres/PostgresRelationalStore.md) and
+[`SQLiteRelationalStore`](../sqlite/SQLiteRelationalStore.md) for the user-facing behavior.

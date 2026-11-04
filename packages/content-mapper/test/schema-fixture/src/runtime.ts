@@ -29,3 +29,15 @@ export class ServiceParameters {
 export class Service<T extends ServiceParameters = ServiceParameters> {
   parameters!: T;
 }
+
+/** Stand-in for `@webda/core`'s abstract operation context. */
+export abstract class IOperationContext {}
+
+/** Stand-in for `@webda/core`'s operation context, given to actions instead of an input. */
+export class OperationContext extends IOperationContext {
+  /**
+   * Write to the output.
+   * @param _value - the value
+   */
+  write(_value: unknown): void {}
+}

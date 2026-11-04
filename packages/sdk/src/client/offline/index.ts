@@ -22,7 +22,7 @@ import type { OfflineExtension, WebdaClient } from "../client.js";
 import { Emitter } from "../emitter.js";
 import { SdkError } from "../errors.js";
 import { pkFromUid, RemoteBackend, type ModelBackend, type RawObject } from "../model-client.js";
-import type { CallOptions, ModelDescriptor, QueryResult, ServerManifest } from "../types.js";
+import type { CallOptions, ModelDescriptor, QueryOptions, QueryResult, ServerManifest } from "../types.js";
 
 /** Resolutions of a conflict, as `OfflineClient.resolve()` takes them (`@webda/versioning`) */
 export type ConflictResolutions = Parameters<OfflineClient["resolve"]>[1];
@@ -212,9 +212,10 @@ export class OfflineBackend implements ModelBackend {
   /**
    * Query the replica: the filter is evaluated locally, `ORDER BY`, `LIMIT` and `OFFSET` are applied on the result
    * @param query - WebdaQL query
+   * @param options - `count` adds the total of the filter, counted on the replica
    * @returns the page
    */
-  async query(query: string): Promise<QueryResult<RawObject>> {
+  async query(query: string, options: QueryOptions = {}): Promise<QueryResult<RawObject>> {
     const { filter, orderBy, limit, offset } = splitQuery(query);
     const replica = await this.support.ready();
     let results: RawObject[] = await replica.collection<RawObject>(this.descriptor.id).query(filter);
@@ -234,7 +235,11 @@ export class OfflineBackend implements ModelBackend {
     const start = offset !== undefined ? Number(offset) || 0 : 0;
     const end = limit !== undefined ? start + limit : results.length;
     const page = results.slice(start, end).map(object => structuredClone(object));
-    return { results: page, ...(end < results.length ? { continuationToken: String(end) } : {}) };
+    return {
+      results: page,
+      ...(end < results.length ? { continuationToken: String(end) } : {}),
+      ...(options.count ? { total: { value: results.length, relation: "eq" as const } } : {})
+    };
   }
 
   /**

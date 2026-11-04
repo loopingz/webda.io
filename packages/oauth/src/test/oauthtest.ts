@@ -103,7 +103,8 @@ export abstract class OAuthTest extends AuthTest {
             "Webda/RevokedAccess",
             "Webda/OAuthCode",
             "Webda/OAuthDeviceCode",
-            "Webda/OAuthGrant"
+            "Webda/OAuthGrant",
+            "Webda/OAuthRegisteredClient"
           ]
         },
         Authentication: { type: "Webda/Authentication" },
@@ -131,6 +132,7 @@ export abstract class OAuthTest extends AuthTest {
     const server = useService<any>("OAuthServer");
     server.lookupFailures.clear();
     server.deviceRequests.clear();
+    server.registrationRequests.clear();
   }
 
   /**

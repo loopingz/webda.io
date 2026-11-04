@@ -1,6 +1,6 @@
 {
   "name": "@webda/ql",
-  "version": "4.0.0-beta.8",
+  "version": "4.0.0-beta.9",
   "description": "WebdaQL module",
   "keywords": [
     "webda"
@@ -26,22 +26,23 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
+    "@webda/utils": "workspace:*",
     "antlr4-c3": "3.1.1",
     "antlr4ts": "0.5.0-alpha.4"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
+    "@types/node": "26.6.6",
     "@webda/test": "workspace:^",
     "antlr4ts-cli": "0.5.0-alpha.4",
-    "c8": "^11.0.0",
-    "jscodeshift": "^17.3.0",
-    "prettier": "^3.8.1",
-    "sinon": "^21.0.3",
-    "skott": "^0.35.8",
-    "tsx": "^4.21.0",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "c8": "^12.0.0",
+    "jscodeshift": "^17.4.0",
+    "prettier": "^3.9.10",
+    "sinon": "^22.1.0",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "files": [
     "lib"

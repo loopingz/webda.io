@@ -83,7 +83,7 @@ export class FileLogger extends WorkerLogger {
    */
   filter(msg: WorkerMessage) {
     if (msg.type === "log") {
-      return LogFilter(msg.log.level, this.level());
+      return msg.log !== undefined && LogFilter(msg.log.level, this.level());
     } else if (msg.type === "title.set" && LogFilter("INFO", this.level())) {
       return true;
     }

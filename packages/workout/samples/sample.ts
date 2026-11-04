@@ -2,7 +2,7 @@ import { useLog, useWorkerOutput } from "../src/core";
 import { Fork } from "../src/fork";
 import { InteractiveConsoleLogger } from "../src/loggers/interactiveconsole";
 
-const consoleLogger = new InteractiveConsoleLogger(useWorkerOutput());
+new InteractiveConsoleLogger(useWorkerOutput());
 //const term = new Terminal(useWorkerOutput());
 
 //const childOutput = new WorkerOutput();

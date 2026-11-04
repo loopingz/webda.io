@@ -11,7 +11,11 @@ import { registerOperationAuthorizer } from "../core/operations.js";
 import { scopeAuthorizer } from "./scopeauthorizer.js";
 import { MfaState, type MfaVerification, Session } from "../session/session.js";
 
-const ACCESS_AUDIENCE = "webda-access";
+/** Audience of the access tokens that are not bound to a resource */
+export const ACCESS_AUDIENCE = "webda-access";
+
+/** JWT `typ` of the access tokens issued for an issuer (RFC 9068) */
+export const ACCESS_TOKEN_TYPE = "at+jwt";
 
 /** Raised for unknown, expired, revoked or reused tokens (403 TOKEN_INVALID) */
 export class TokenInvalid extends WebdaError.HttpError {
@@ -19,6 +23,12 @@ export class TokenInvalid extends WebdaError.HttpError {
   constructor(message: string = "Invalid token") {
     super(message, 403);
   }
+}
+
+/** Requested resource differs from the one the token is bound to (RFC 8707 `invalid_target`) */
+export class InvalidTarget extends WebdaError.BadRequest {
+  /** OAuth error code */
+  code = "invalid_target";
 }
 
 /** Tokens returned by a successful login or refresh */
@@ -34,6 +44,13 @@ export interface IssueOptions {
   clientId?: string;
   /** Granted scope */
   scope?: Scope;
+  /** Resource (RFC 8707) the access tokens are bound to: becomes their audience; kept by the family on refresh */
+  resource?: string;
+  /**
+   * Authorization server issuing the tokens: becomes their `iss`, with the RFC 9068 `at+jwt` type, so another
+   * application can verify them from the issuer keys. Not stored: give it again on refresh
+   */
+  issuer?: string;
   /** Display name of the refresh family */
   name?: string;
   /** Access token lifetime (s), defaults to the `accessTtl` parameter; kept by the family on refresh */
@@ -50,6 +67,11 @@ export interface IssueOptions {
    * @internal set by {@link TokenService.refresh}
    */
   lastUsedAt?: number;
+  /**
+   * The raw refresh token to store, instead of a new random one
+   * @internal set by {@link TokenService.refresh}, which records its hash on the rotated token before issuing it
+   */
+  refreshToken?: string;
 }
 
 /** Claims carried by an access token */
@@ -61,9 +83,13 @@ export interface AccessClaims {
   roles?: string[];
   fam: string;
   mfa: MfaState;
+  /** When the second factor was verified (ms), carried unchanged across refreshes */
+  mfaAt?: number;
   mfaVerifications?: Record<string, MfaVerification>;
   /** When the session was authenticated (ms): checked against the user's last password change */
   authAt?: number;
+  /** Audience: the bound resource, or {@link ACCESS_AUDIENCE} */
+  aud?: string | string[];
   /** Granted scope (space-separated operation globs) */
   scope?: string;
   /** OAuth client the token was issued to */
@@ -96,6 +122,22 @@ export class TokenServiceParameters extends ServiceParameters {
    * @default 10
    */
   revocationCacheTtl: number;
+  /**
+   * Seconds during which a rotated refresh token presented again is rotated once more, as long as the token it was
+   * exchanged for was never used: a client that lost the answer of its refresh (laptop asleep, network drop)
+   * retries with the token it still holds instead of losing its session. The unused replacement is retired; if it
+   * is presented later anyway (two holders), the family is revoked. 0 disables it: any replay revokes the family
+   * @default 86400
+   */
+  refreshGrace: number;
+  /**
+   * Seconds after a rotation during which the rotated refresh token presented again gets another valid token of the
+   * family, without retiring the first replacement nor revoking anything: refreshes racing with the same token (a
+   * client running several instances that share their stored credentials) all succeed. After it, `refreshGrace` and
+   * reuse detection apply. 0 disables it: of concurrent refreshes, only one succeeds and the family is revoked
+   * @default 10
+   */
+  refreshReuseInterval: number;
 
   /**
    * @param params - raw parameters
@@ -107,6 +149,8 @@ export class TokenServiceParameters extends ServiceParameters {
     this.refreshTtl ??= 2592000;
     this.revocationCheck ??= true;
     this.revocationCacheTtl ??= 10;
+    this.refreshGrace ??= 86400;
+    this.refreshReuseInterval ??= 10;
     return this;
   }
 }
@@ -166,6 +210,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * @returns a new raw refresh token
+   */
+  protected newRefreshToken(): string {
+    return randomBytes(32).toString("base64url");
+  }
+
+  /**
    * Issue an access + refresh token pair for a logged session
    *
    * Roles are not persisted: refreshed access tokens carry no roles until they are re-derived.
@@ -184,7 +235,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     }
     const scope = options.scope ? formatScope(options.scope) : undefined;
     const accessTtl = options.accessTtl ?? this.parameters.accessTtl;
-    const refreshToken = randomBytes(32).toString("base64url");
+    const refreshToken = options.refreshToken ?? this.newRefreshToken();
     const now = Date.now();
     await RefreshToken.create({
       hash: this.hash(refreshToken),
@@ -193,11 +244,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       provider: session.provider,
       amr: session.getPersistentAmr(),
       mfa: session.mfa ?? "none",
+      mfaAt: session.mfaAt,
       mfaVerifications: session.mfaVerifications,
       family,
       expiresAt: Date.now() + (options.refreshTtl ?? this.parameters.refreshTtl) * 1000,
       clientId: options.clientId,
       scope,
+      resource: options.resource,
       name: options.name,
       accessTtl: options.accessTtl,
       refreshTtl: options.refreshTtl,
@@ -215,6 +268,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       roles: session.roles,
       fam: family,
       mfa: session.mfa ?? "none",
+      mfaAt: session.mfaAt,
       mfaVerifications: session.mfaVerifications,
       authAt: session.authAt,
       iatMs: Date.now(),
@@ -222,20 +276,29 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       ...(options.clientId ? { client_id: options.clientId } : {})
     };
     const accessToken = await useCrypto().jwtSign(claims, {
-      audience: ACCESS_AUDIENCE,
-      expiresIn: accessTtl
+      audience: options.resource ?? ACCESS_AUDIENCE,
+      expiresIn: accessTtl,
+      ...(options.issuer ? { issuer: options.issuer, header: { typ: ACCESS_TOKEN_TYPE } } : {})
     });
     return { accessToken, refreshToken, expiresIn: accessTtl, family };
   }
 
   /**
    * @param token - access token
+   * @param options - accepted audience(s), defaults to {@link ACCESS_AUDIENCE} (tokens bound to no resource)
+   * @param options.audience - accepted audience(s)
    * @returns claims, or undefined when invalid/expired
    */
-  async verifyAccess(token: string): Promise<AccessClaims | undefined> {
+  async verifyAccess(token: string, options: { audience?: string | string[] } = {}): Promise<AccessClaims | undefined> {
+    const audience = options.audience === undefined ? ACCESS_AUDIENCE : options.audience;
+    // Fail closed: jsonwebtoken skips the audience check on a falsy audience
+    const audiences = Array.isArray(audience) ? audience : [audience];
+    if (!audiences.length || audiences.some(a => typeof a !== "string" || !a)) {
+      return undefined;
+    }
     let claims: AccessClaims;
     try {
-      claims = await useCrypto().jwtVerify(token, { audience: ACCESS_AUDIENCE });
+      claims = await useCrypto().jwtVerify(token, { audience });
     } catch {
       return undefined;
     }
@@ -345,11 +408,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * @param options - client the token must belong to and optional narrower scope
    * @param options.scope - narrower scope to grant
    * @param options.clientId - client the token must belong to
+   * @param options.resource - resource the token must be bound to: the new tokens keep the stored one
+   * @param options.issuer - issuer of the new access tokens, see {@link IssueOptions.issuer}
    * @returns new tokens, the rebuilt session and the granted scope
    */
   async refresh(
     refreshToken: string,
-    options: { scope?: Scope; clientId?: string } = {}
+    options: { scope?: Scope; clientId?: string; resource?: string; issuer?: string } = {}
   ): Promise<IssuedTokens & { session: Session; scope?: Scope }> {
     if (typeof refreshToken !== "string" || !refreshToken) {
       throw new TokenInvalid();
@@ -359,16 +424,36 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       throw new TokenInvalid();
     }
     const stored: RefreshToken = await ref.get();
-    if (stored.revokedAt || stored.expiresAt < Date.now()) {
+    const now = Date.now();
+    if (stored.retiredAt) {
+      // replaced, unused, by a replay of its predecessor within the grace, and presented anyway: two holders
+      await this.revokeFamily(stored.family);
+      throw new TokenInvalid("Refresh token reused");
+    }
+    if (stored.revokedAt) {
+      throw new TokenInvalid();
+    }
+    if (stored.expiresAt < now) {
       throw new TokenInvalid();
     }
     // A token issued to an OAuth client is only refreshed by that client: never by a first-party (client-less) caller
     if ((stored.clientId ?? undefined) !== (options.clientId ?? undefined)) {
       throw new TokenInvalid("Refresh token issued to another client");
     }
-    if (stored.rotatedAt) {
-      await this.revokeFamily(stored.family);
-      throw new TokenInvalid("Refresh token reused");
+    if (options.resource !== undefined && options.resource !== (stored.resource ?? undefined)) {
+      throw new InvalidTarget("Refresh token is bound to another resource");
+    }
+    /** replay within the grace: the unused token it was exchanged for, to retire (undefined when never stored) */
+    let retired: RefreshToken | undefined;
+    /** replay within the reuse interval: another token of the family, the rotated record is left as is */
+    const sibling = !!stored.rotatedAt && now - stored.rotatedAt <= this.parameters.refreshReuseInterval * 1000;
+    if (stored.rotatedAt && !sibling) {
+      const unused = await this.unusedSuccessor(stored, now);
+      if (!unused.ok) {
+        await this.revokeFamily(stored.family);
+        throw new TokenInvalid("Refresh token reused");
+      }
+      retired = unused.record;
     }
     // Checked before the compare-and-set so an invalid narrowing does not burn the refresh token
     const storedScope = stored.scope !== undefined ? parseScope(stored.scope) : undefined;
@@ -379,33 +464,54 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       }
       scope = options.scope;
     }
-    // Compare-and-set: only one caller can move rotatedAt from undefined to a value
-    try {
-      await ref.patch({ rotatedAt: Date.now() } as any, "rotatedAt" as any, undefined);
-    } catch (err) {
-      if (!this.isConditionFailure(err)) {
-        throw err;
+    // The replacement is retired before the rotation: no write may follow it (see below)
+    if (retired) await retired.ref().patch({ retiredAt: now } as any);
+    // The new token is drawn first so the rotated record points at it in the same write
+    const nextToken = this.newRefreshToken();
+    const successor = this.hash(nextToken);
+    // Compare-and-set: only one caller can move rotatedAt from undefined to a value (or, within the grace, replace
+    // the successor it recorded). A sibling records nothing: the replacement of the rotation stays the successor
+    if (!sibling) {
+      try {
+        if (stored.rotatedAt) {
+          await ref.patch({ successor } as any, "successor" as any, stored.successor as any);
+        } else {
+          await ref.patch({ rotatedAt: now, successor } as any, "rotatedAt" as any, undefined);
+        }
+      } catch (err) {
+        if (!this.isConditionFailure(err)) {
+          throw err;
+        }
+        // Lost the race of the first rotation: read again, the rotation that won is within the reuse interval. Not
+        // retried for a replay, nor without reuse interval: treat as reuse and kill the family
+        if (!stored.rotatedAt && this.parameters.refreshReuseInterval > 0) {
+          return this.refresh(refreshToken, options);
+        }
+        await this.revokeFamily(stored.family);
+        throw new TokenInvalid("Refresh token reused");
       }
-      // Lost the race: treat as reuse and kill the family
-      await this.revokeFamily(stored.family);
-      throw new TokenInvalid("Refresh token reused");
     }
     const session = new Session();
     session.login(stored.userId, stored.identId, {
       provider: stored.provider,
       amr: stored.amr,
       mfa: stored.mfa ?? "none",
+      // The proof time of the second factor, not the refresh time: refreshing never makes MFA fresher
+      mfaAt: stored.mfaAt,
       mfaVerifications: stored.mfaVerifications
     });
     const tokens = await this.issue(session, stored.family, {
       clientId: stored.clientId,
       scope,
+      resource: stored.resource,
+      issuer: options.issuer,
       name: stored.name,
       accessTtl: stored.accessTtl,
       refreshTtl: stored.refreshTtl,
       // Written with the new record: a failing write after the rotation would make the client retry a rotated token
       createdAt: stored.createdAt,
-      lastUsedAt: Date.now()
+      lastUsedAt: now,
+      refreshToken: nextToken
     });
     // A revocation may have run between our read and the issue: its scan would have missed the new record
     for await (const _ of RefreshToken.iterate("family = ? AND revokedAt IS NOT NULL LIMIT 1", [stored.family])) {
@@ -415,6 +521,23 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       throw new TokenInvalid("Refresh token revoked");
     }
     return { ...tokens, session, scope };
+  }
+
+  /**
+   * Whether a rotated token presented again may be rotated once more: within `refreshGrace` of its rotation, and
+   * the token it was exchanged for was never used (not rotated, not revoked; a record that was never written, the
+   * issue having failed after the rotation, counts as unused)
+   * @param stored - the rotated token
+   * @param now - ms
+   * @returns ok, with the successor's record to retire when it exists
+   */
+  protected async unusedSuccessor(stored: RefreshToken, now: number): Promise<{ ok: boolean; record?: RefreshToken }> {
+    const grace = this.parameters.refreshGrace * 1000;
+    if (!(grace > 0) || !stored.successor || now - stored.rotatedAt > grace) return { ok: false };
+    const ref = RefreshToken.ref({ hash: stored.successor } as any);
+    if (!(await ref.exists())) return { ok: true };
+    const record: RefreshToken = await ref.get();
+    return record.rotatedAt || record.revokedAt || record.retiredAt ? { ok: false } : { ok: true, record };
   }
 
   /**

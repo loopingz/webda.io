@@ -4,3 +4,10 @@ paths-ignore:
   - packages/ql/src/WebdaQLLexer.ts
   - packages/ql/src/WebdaQLParser*.ts
   - packages/cloudevents/src/models/filters/sql/CESQL*
+  # Codemod input/output fixtures deliberately retain unused imports and shadowed names.
+  - packages/compiler/test/**
+  # Archived method fragments, outside package tsconfig include paths.
+  - packages/compiler/other.ts
+  - packages/mapper/opt.ts
+  # Compiler experiments contain deliberate type errors and overwrite examples.
+  - prototypes/**

@@ -16,8 +16,8 @@
  * A class can be both. Author-written `toJSON` or `__hydrateBehaviors` is never
  * replaced.
  */
-import type { SourceFile } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+import type { SourceFile } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import { classesOf, isStatic, memberName } from "../context.ts";
 import { ValueImports } from "./imports.ts";
 import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";
@@ -81,25 +81,6 @@ function resolveBehaviorClass(ctx: AnalysisContext, sf: SourceFile, typeNode: an
   // `ValueImports`, which promotes or adds the import or refuses.
   void sf;
   return name;
-}
-
-/**
- * Whether a name reaches this file only through a type-only import.
- * @param sf - the file that will contain the generated reference
- * @param name - identifier to be used as a value
- * @returns true when the name is imported for types only
- */
-function isTypeOnlyImport(sf: SourceFile, name: string): boolean {
-  for (const statement of sf.statements) {
-    if (!is.isImportDeclaration(statement)) continue;
-    const clause: any = (statement as any).importClause;
-    const elements = clause?.namedBindings?.elements;
-    if (!elements) continue;
-    for (const element of elements) {
-      if (element.name?.text === name && (clause.isTypeOnly || element.isTypeOnly)) return true;
-    }
-  }
-  return false;
 }
 
 /**

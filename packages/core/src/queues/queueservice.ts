@@ -212,6 +212,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     this.eventPrototype = eventPrototype;
     const consumers = new Set<CancelableLoopPromise>();
     let emptyReceives = 0;
+    let cancelled = false;
     let idle: { timer: NodeJS.Timeout; resolve: () => void } | undefined;
     const idleWait = (ms: number) =>
       new Promise<void>(resolve => {
@@ -232,7 +233,8 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
         // Do not poll an empty queue in a tight loop: wait, minus the time the receive already waited
         emptyReceives++;
         const wait = Math.min(this.parameters.maxIdleDelay ?? DEFAULT_MAX_IDLE_DELAY, this.getIdleDelay(emptyReceives));
-        if (wait - res.speed > 0) {
+        // A receive interrupted by cancel() ends the loop right away
+        if (wait - res.speed > 0 && !cancelled) {
           await idleWait(wait - res.speed);
         }
         return;
@@ -251,6 +253,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     };
     return new CancelableLoopPromise(parentQueueCallback, async () => {
       // Stop waiting for the next receive
+      cancelled = true;
       if (idle) {
         clearTimeout(idle.timer);
         idle.resolve();

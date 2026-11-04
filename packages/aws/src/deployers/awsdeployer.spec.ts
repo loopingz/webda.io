@@ -283,6 +283,8 @@ class AWSDeployerTest extends WebdaApplicationTest {
       mkdirSync(join(dir, "sub"));
       writeFileSync(join(dir, "same.txt"), "same content");
       writeFileSync(join(dir, "sub/changed.html"), "<html></html>");
+      writeFileSync(join(dir, "new.txt"), "new file");
+      writeFileSync(join(dir, "resized.txt"), "a larger local file");
       const uploads = [];
       vi.spyOn(this.deployer, "createBucket").mockResolvedValue();
       let page = 0;
@@ -300,7 +302,12 @@ class AWSDeployerTest extends WebdaApplicationTest {
                 ],
                 NextContinuationToken: "next"
               }
-            : { Contents: [{ Key: "site/sub/changed.html", Size: 13, ETag: '"other"' }] }
+            : {
+                Contents: [
+                  { Key: "site/sub/changed.html", Size: 13, ETag: '"other"' },
+                  { Key: "site/resized.txt", Size: 1, ETag: '"old"' }
+                ]
+              }
         )
         .on(PutObjectCommand)
         .callsFake(async args => {
@@ -322,11 +329,12 @@ class AWSDeployerTest extends WebdaApplicationTest {
       );
       await this.deployer.putFolderOnBucket("bucket", dir, "site/");
       // The unchanged file is skipped
-      assert.deepStrictEqual(
-        uploads.map(u => u.Key),
-        ["site/sub/changed.html"]
-      );
-      assert.strictEqual(uploads[0].ContentType, "text/html; charset=utf-8");
+      assert.deepStrictEqual(uploads.map(u => u.Key).sort(), [
+        "site/new.txt",
+        "site/resized.txt",
+        "site/sub/changed.html"
+      ]);
+      assert.strictEqual(uploads.find(u => u.Key === "site/sub/changed.html").ContentType, "text/html; charset=utf-8");
       assert.strictEqual(uploads[0].Tagging, "Team=webda");
       uploads.length = 0;
       await this.deployer.putFilesOnBucket("bucket", [

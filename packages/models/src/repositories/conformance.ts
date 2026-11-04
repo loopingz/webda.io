@@ -355,3 +355,96 @@ export async function checkAggregation(
     assert.strictEqual(res.native, options.native, `${name}: native flag`);
   }
 }
+
+/**
+ * Hand-computed expectations of `count()` over {@link AGGREGATION_DATASET}; every backend must return exactly these
+ */
+export const COUNT_CASES: {
+  name: string;
+  filter?: string;
+  params?: any[];
+  max?: number;
+  value: number;
+  relation: "eq" | "gte";
+}[] = [
+  { name: "empty filter", value: 7, relation: "eq" },
+  { name: "filter", filter: "done = TRUE", value: 3, relation: "eq" },
+  { name: "filter with parameters", filter: "points >= ? AND done = ?", params: [3, false], value: 1, relation: "eq" },
+  { name: "nested path", filter: "team.name = 'core'", value: 3, relation: "eq" },
+  { name: "null and missing values", filter: "kind IS NULL", value: 2, relation: "eq" },
+  { name: "present values", filter: "score IS NOT NULL", value: 5, relation: "eq" },
+  { name: "nothing matches", filter: "label = 'zulu'", value: 0, relation: "eq" },
+  { name: "max below the total", max: 5, value: 5, relation: "gte" },
+  { name: "max equal to the total", max: 7, value: 7, relation: "eq" },
+  { name: "max above the total", max: 10, value: 7, relation: "eq" },
+  { name: "max below a filtered total", filter: "done = FALSE", max: 1, value: 1, relation: "gte" },
+  {
+    name: "ORDER BY, LIMIT and OFFSET are ignored",
+    filter: `done = FALSE ORDER BY label ASC LIMIT 1 OFFSET "2"`,
+    value: 4,
+    relation: "eq"
+  }
+];
+
+/**
+ * Check a repository counts {@link AGGREGATION_DATASET} exactly like {@link COUNT_CASES}
+ *
+ * The repository must be empty and keyed by `uuid`; the dataset is created in it.
+ * @param repo - the repository to check
+ * @param options - expected native flag, and case names to skip with a documented reason
+ * @param options.native - the expected `native` flag of every result
+ * @param options.skip - names of the cases to skip
+ */
+export async function checkCount(repo: Repository<any>, options: { native: boolean; skip?: string[] }): Promise<void> {
+  repo.configureAggregation({ fallback: "allow" });
+  for (const item of AGGREGATION_DATASET) {
+    await repo.create(structuredClone(item) as any);
+  }
+  for (const { name, filter, params, max, value, relation } of COUNT_CASES) {
+    if (options.skip?.includes(name)) continue;
+    const res = await repo.count(filter, params, max === undefined ? undefined : { max });
+    assert.deepStrictEqual(res, { value, relation, native: options.native }, name);
+  }
+  // Statements are not filters
+  for (const statement of ["DELETE WHERE done = TRUE", "UPDATE SET done = TRUE", "SELECT label WHERE done = TRUE"]) {
+    await assert.rejects(() => repo.count(statement), /not accepted/, statement);
+  }
+  // max is a positive integer
+  for (const max of [0, -1, 1.5, Number.NaN]) {
+    await assert.rejects(() => repo.count("", undefined, { max }), /max/, String(max));
+  }
+}
+
+/**
+ * Check `count()` applies the class filter: a parent repository counts its subclass rows, a subclass repository
+ * does not count its parent rows
+ *
+ * Both repositories must share one empty storage; `create` builds an instance of the given repository's model.
+ * @param parent - repository of the parent model
+ * @param child - repository of a subclass, on the same storage
+ * @param create - create an object with the given uuid through a repository
+ */
+export async function checkCountClassFilter(
+  parent: Repository<any>,
+  child: Repository<any>,
+  create: (repo: Repository<any>, uuid: string) => Promise<void>
+): Promise<void> {
+  await create(parent, "p1");
+  await create(parent, "p2");
+  await create(child, "c1");
+  assert.deepStrictEqual(
+    (({ value, relation }) => ({ value, relation }))(await parent.count()),
+    { value: 3, relation: "eq" },
+    "the parent counts its subclass rows"
+  );
+  assert.deepStrictEqual(
+    (({ value, relation }) => ({ value, relation }))(await child.count()),
+    { value: 1, relation: "eq" },
+    "the subclass does not count its parent rows"
+  );
+  assert.deepStrictEqual(
+    (({ value, relation }) => ({ value, relation }))(await parent.count("", undefined, { max: 2 })),
+    { value: 2, relation: "gte" },
+    "the cap applies after the class filter"
+  );
+}

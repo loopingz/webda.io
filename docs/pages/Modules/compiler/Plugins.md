@@ -152,4 +152,4 @@ modules: [ 'updateImports', 'capabilities' ]
 - [Build](./Build.md) — `webdac build` orchestrates the compilation pipeline
 - [Code Generation](./CodeGen.md) — built-in morpher modules
 - [Module Manifest](./ModuleManifest.md) — the output of the build pipeline
-- [@webda/tsc-esm](../tsc-esm/README.md) — ESM extension-rewriter that runs after compilation
+- [@webda/content-mapper](../content-mapper/README.md) — the TypeScript 7.1 build the morpher output is compiled with

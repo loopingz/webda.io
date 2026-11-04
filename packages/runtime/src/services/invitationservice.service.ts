@@ -28,6 +28,21 @@ type InvitationAuthentication = IAuthenticationService & {
 };
 import type { NotificationService } from "@webda/core";
 
+/**
+ * Invitation metadata stored on a model attribute, keyed by user uuid or by `user_`/`ident_` prefixed ids
+ */
+type InvitationMap = Record<string, unknown>;
+
+/**
+ * Invitation entry stored on the user's map attribute
+ */
+interface UserInvitation {
+  model: string;
+  metadata: Record<string, unknown>;
+  inviter: unknown;
+  pending: boolean;
+}
+
 interface InvitationAnswerBody {
   accept: boolean;
 }
@@ -336,7 +351,9 @@ export class InvitationService<
           }
         },
         responses: {
-          "204": {},
+          "204": {
+            description: "Operation successful"
+          },
           "403": {
             description: "Forbidden"
           }
@@ -374,7 +391,9 @@ export class InvitationService<
           }
         },
         responses: {
-          "204": {},
+          "204": {
+            description: "Operation successful"
+          },
           "403": {
             description: "Forbidden"
           }
@@ -412,19 +431,20 @@ export class InvitationService<
       throw new WebdaError.Gone("Invitation is gone");
     }
     const user = await ctx.getCurrentUser<User>();
-    let metadata = undefined;
+    const pendings = this.getInvitationMap(model, this.parameters.pendingAttribute);
+    let metadata: unknown = undefined;
     ((user as any).getIdents?.() || []).forEach((i: any) => {
-      if (model[this.parameters.pendingAttribute][`ident_${i.uuid}`]) {
-        metadata = model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
-        delete model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
+      if (pendings[`ident_${i.uuid}`]) {
+        metadata = pendings[`ident_${i.uuid}`];
+        delete pendings[`ident_${i.uuid}`];
       }
     });
-    if (model[this.parameters.pendingAttribute][`user_${user.getUUID()}`]) {
-      metadata = model[this.parameters.pendingAttribute][`user_${user.getUUID()}`];
-      delete model[this.parameters.pendingAttribute][`user_${user.getUUID()}`];
+    if (pendings[`user_${user.getUUID()}`]) {
+      metadata = pendings[`user_${user.getUUID()}`];
+      delete pendings[`user_${user.getUUID()}`];
     }
     if (metadata && body.accept) {
-      model[this.parameters.attribute][user.getUUID()] = metadata;
+      this.getInvitationMap(model, this.parameters.attribute)[user.getUUID()] = metadata;
     }
     await this.updateModel(model);
     this.emit("Invitation.Accepted", <EventInvitationAnswered>{
@@ -441,10 +461,23 @@ export class InvitationService<
    * @param model - the model instance to patch
    */
   protected async updateModel(model: CoreModel) {
+    const attributes = model as unknown as Record<string, InvitationMap | undefined>;
     await model.patch({
-      [this.parameters.attribute]: model[this.parameters.attribute],
-      [this.parameters.pendingAttribute]: model[this.parameters.pendingAttribute]
+      [this.parameters.attribute]: attributes[this.parameters.attribute],
+      [this.parameters.pendingAttribute]: attributes[this.parameters.pendingAttribute]
     });
+  }
+
+  /**
+   * Get an invitation map attribute of the model, initializing it if missing
+   *
+   * @param model - the model holding the invitations
+   * @param attribute - name of the attribute (accepted or pending invitations)
+   * @returns the invitation map stored on the model
+   */
+  protected getInvitationMap(model: CoreModel, attribute: string): InvitationMap {
+    const attributes = model as unknown as Record<string, InvitationMap | undefined>;
+    return (attributes[attribute] ??= {});
   }
 
   /**
@@ -459,10 +492,12 @@ export class InvitationService<
     const promises = [];
     const invitedIdents: string[] = [];
     const invitedUsers: string[] = [];
+    const pendings = this.getInvitationMap(model, this.parameters.pendingAttribute);
+    const accepted = this.getInvitationMap(model, this.parameters.attribute);
     for (const ident of body.idents) {
-      if (model[this.parameters.pendingAttribute][`ident_${ident}`]) {
+      if (pendings[`ident_${ident}`]) {
         // Remove from pending on the object
-        delete model[this.parameters.pendingAttribute][`ident_${ident}`];
+        delete pendings[`ident_${ident}`];
         // Remove from pending from the invitation store
         promises.push(
           this.invitationStore.removeAttribute(
@@ -477,7 +512,7 @@ export class InvitationService<
           (async () => {
             const id: any = await this.authenticationService.getIdentModel().get(ident);
             if (id && id.getUser()) {
-              delete model[this.parameters.attribute][id.getUser()];
+              delete accepted[id.getUser()];
               await this.removeInvitationFromUser(id.getUser().toString(), model.getUUID());
               invitedUsers.push(id.getUser().toString());
             }
@@ -486,10 +521,10 @@ export class InvitationService<
       }
     }
     for (const user of body.users) {
-      if (model[this.parameters.pendingAttribute][`user_${user}`]) {
-        delete model[this.parameters.pendingAttribute][`user_${user}`];
-      } else if (model[this.parameters.attribute][user]) {
-        delete model[this.parameters.attribute][user];
+      if (pendings[`user_${user}`]) {
+        delete pendings[`user_${user}`];
+      } else if (accepted[user]) {
+        delete accepted[user];
       }
       promises.push(this.removeInvitationFromUser(user, model.getUUID()));
       invitedUsers.push(user);
@@ -600,7 +635,7 @@ export class InvitationService<
     const invitedIdents: string[] = [];
     const invitedUsers: any[] = [];
     const promises = [];
-    const metadata = {};
+    const metadata: Record<string, unknown> = {};
     this.parameters.mapFields.forEach(f => (metadata[f] = model[f]));
 
     for (const invitation of invitations) {
@@ -696,7 +731,7 @@ export class InvitationService<
    * @param notification - notification payload to pass to the notification service
    */
   async addInvitationToUser(model: CoreModel, user: any, inviter: any, metadata: any, notification: any = {}) {
-    if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUUID()).length) {
+    if ((user[this.parameters.mapAttribute] || []).filter((p: UserInvitation) => p.model === model.getUUID()).length) {
       return;
     }
     await (this.authenticationService.getUserModel().ref(user.getUUID()) as any).upsertItemToCollection(
@@ -766,12 +801,12 @@ export class InvitationService<
     const promises = [];
 
     // If autoAccept is false, just copy the pending invitation in the user
-    evt.user[this.parameters.mapAttribute] ??= [];
-    evt.user[this.parameters.mapAttribute].push(
+    const userAttributes = evt.user as unknown as Record<string, UserInvitation[] | undefined>;
+    (userAttributes[this.parameters.mapAttribute] ??= []).push(
       ...infos
         .filter(m => m.model !== undefined)
-        .map(m => {
-          const metadata = {};
+        .map((m): UserInvitation => {
+          const metadata: Record<string, unknown> = {};
           this.parameters.mapFields.forEach(f => (metadata[f] = m.model[f]));
           return {
             model: m.model.getUUID(),

@@ -25,7 +25,7 @@ export function WaitLinearDelay(pause: number): WaitDelayer {
  * @param time - Duration to wait in milliseconds.
  * @returns A Promise that resolves after `time` ms.
  */
-export async function sleep(time): Promise<void> {
+export async function sleep(time: number): Promise<void> {
   return new Promise(resolve => {
     setTimeout(resolve, time);
   });
@@ -130,7 +130,7 @@ export class WaitDelayerFactories {
  * @returns A Promise that resolves with the value passed to `resolve`, or rejects on timeout.
  */
 export async function WaitFor<T = any>(
-  callback: (resolve: (value?: T) => void, reject?: (reason?: any) => void) => Promise<boolean>,
+  callback: (resolve: (value: T) => void, reject: (reason?: any) => void) => Promise<boolean>,
   retries: number,
   title?: string,
   logger?: Logger,
@@ -143,18 +143,18 @@ export async function WaitFor<T = any>(
     let tries: number = 0;
     const uuid = randomUUID();
     if (logger) {
-      logger.logProgressStart(uuid, retries, title);
+      logger.logProgressStart(uuid, retries, title ?? "");
     }
     while (retries > tries++) {
       if (title && logger) {
         logger.log("DEBUG", "[" + tries + "/" + retries + "]", title);
       }
       if (logger) {
-        logger.logProgressUpdate(tries, uuid, title);
+        logger.logProgressUpdate(tries, uuid, title ?? "");
       }
       if (await callback(mainResolve, mainReject)) {
         if (logger) {
-          logger.logProgressUpdate(retries, uuid, title);
+          logger.logProgressUpdate(retries, uuid, title ?? "");
         }
         return;
       }
@@ -180,9 +180,9 @@ export class CancelablePromise<T = void> extends Promise<T> {
     callback: (resolve: (res: T) => void, reject: (err: any) => void) => void = () => {
       // noop
     },
-    onCancel: () => Promise<void> = undefined
+    onCancel?: () => Promise<void>
   ) {
-    let localReject;
+    let localReject: () => Promise<void> = async () => {};
     // `this` is not available until super() returns, but the executor runs (and may settle) synchronously
     const ref: { self?: CancelablePromise<T> } = {};
     let settled = false;
@@ -277,8 +277,8 @@ export class CancelableLoopPromise extends Promise<void> {
    *   can self-cancel if needed.
    * @param onCancel - Optional async hook called when `cancel()` is invoked.
    */
-  constructor(callback: (canceller: () => Promise<void>) => Promise<void>, onCancel: () => Promise<void> = undefined) {
-    let localReject;
+  constructor(callback: (canceller: () => Promise<void>) => Promise<void>, onCancel?: () => Promise<void>) {
+    let localReject: () => Promise<void> = async () => {};
     let shouldRun = true;
     // `this` is not available until super() returns, but the first iteration starts synchronously
     const ref: { self?: CancelableLoopPromise } = {};
@@ -292,7 +292,7 @@ export class CancelableLoopPromise extends Promise<void> {
           CancelablePromise.unregisterInteruptableProcess(ref.self);
         }
       };
-      const loop = () => {
+      const loop = (): Promise<void> | undefined => {
         if (shouldRun) {
           return callback(localReject).then(loop);
         }

@@ -29,6 +29,9 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
 
   /**
    * Attributes never taken from client input by the DomainService (REST, gRPC, MCP) or GraphQL
+   *
+   * The caller context is available to a subclass that protects attributes from some callers only
+   * (`static getProtectedAttributes(context?: IOperationContext)`)
    * @returns the attribute names
    */
   static getProtectedAttributes(): string[] {
@@ -67,6 +70,15 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    */
   getOwner(): ModelLink<T> {
     return this._user;
+  }
+
+  /**
+   * Recipient of the sealed fields (`SealedField`): the owner by default, override to choose per field
+   * @param field - sealed attribute name
+   * @returns the recipient user id, undefined when there is no owner
+   */
+  getSealedRecipient(field: string): string | undefined | Promise<string | undefined> {
+    return this.getOwner()?.getPrimaryKey()?.toString();
   }
 
   /**

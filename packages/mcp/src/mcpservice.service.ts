@@ -14,14 +14,15 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { isInitializeRequest, isJSONRPCRequest, SUPPORTED_PROTOCOL_VERSIONS } from "@modelcontextprotocol/sdk/types.js";
 import { useLog } from "@webda/workout";
 import { randomUUID } from "node:crypto";
 import { Writable } from "node:stream";
 import { McpAuthenticator, SessionAuthenticator } from "./auth.js";
-import { jsonRpcError, toRequest, writeResponse } from "./bridge.js";
+import { jsonRpcError, jsonRpcErrorResponse, toRequest, writeResponse } from "./bridge.js";
+import { sessionContext, type McpRequestInfo } from "./invoke.js";
 import { ResourceRegistry } from "./resources.js";
-import { createMcpServer } from "./server.js";
+import { challengeScope, createMcpServer, INSUFFICIENT_SCOPE, toolAccess } from "./server.js";
 import { McpSessionEntry, McpSessionManager } from "./sessions.js";
 import { operationsFingerprint, ToolRegistry } from "./tools.js";
 
@@ -96,6 +97,20 @@ export class McpServiceParameters extends OperationsTransportParameters {
    * Name of a service implementing McpAuthenticator; default uses the Webda session
    */
   authenticator?: string;
+  /**
+   * List the tools the token scope does not cover in tools/list; calling them still
+   * answers insufficient_scope so the client can ask for a wider grant
+   * @default false
+   */
+  listOutOfScopeTools: boolean;
+  /**
+   * Request headers passed to the operations a tool call or resource read runs, which see
+   * them through `getHttpContext()` (only these headers, on the MCP request's host and path):
+   * for per-request credentials besides the bearer token. `authorization` and `cookie` are
+   * never forwarded. Over stdio nothing is.
+   * @default []
+   */
+  forwardHeaders: string[];
 
   /**
    * @param params - raw parameters
@@ -114,6 +129,8 @@ export class McpServiceParameters extends OperationsTransportParameters {
     this.maxSessions ??= 1000;
     this.maxOutputBytes ??= 1048576;
     this.stdio ??= {};
+    this.listOutOfScopeTools ??= false;
+    this.forwardHeaders ??= [];
     return this;
   }
 }
@@ -261,9 +278,13 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
 
   /**
    * @param getSession - caller session resolution
+   * @param getRequest - the request of a call reduced to its forwarded headers (none over stdio)
    * @returns a new SDK server over this service's registries
    */
-  createServer(getSession: (extra: { authInfo?: AuthInfo }) => Session): Server {
+  createServer(
+    getSession: (extra: { authInfo?: AuthInfo }) => Session,
+    getRequest?: (extra: { authInfo?: AuthInfo }) => McpRequestInfo | undefined
+  ): Server {
     const pkg = useApplication().getPackageDescription?.() || ({} as any);
     return createMcpServer({
       info: {
@@ -274,8 +295,67 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       resources: this.resourceRegistry,
       maxOutputBytes: this.parameters.maxOutputBytes,
       getSession,
-      beforeRequest: () => this.checkForChanges()
+      getRequest,
+      beforeRequest: () => this.checkForChanges(),
+      listOutOfScopeTools: this.parameters.listOutOfScopeTools
     });
+  }
+
+  /**
+   * @param name - tool name
+   * @returns the operation behind the tool, undefined for an unknown tool
+   */
+  protected toolOperation(name: string): string | undefined {
+    return this.tools.get(name)?.operationId;
+  }
+
+  /**
+   * Refuse a single tools/call whose tool the token scope does not cover with an HTTP 403
+   * `insufficient_scope` challenge: the SDK transport would answer its JSON-RPC error with HTTP 200.
+   * Requests the transport refuses (Origin, protocol version) are left to it.
+   * @param ctx - the request context
+   * @param entry - MCP session of the request
+   * @param session - caller session
+   * @param message - parsed request body
+   * @returns true when the request was answered
+   */
+  protected async challengeOutOfScope(
+    ctx: WebContext,
+    entry: McpSessionEntry,
+    session: Session,
+    message: unknown
+  ): Promise<boolean> {
+    if (!isJSONRPCRequest(message) || message.method !== "tools/call") {
+      return false;
+    }
+    const http = ctx.getHttpContext();
+    const origin = http.getUniqueHeader("origin");
+    if (origin && entry.allowedOrigins?.length && !entry.allowedOrigins.includes(origin)) {
+      return false;
+    }
+    const version = http.getHeaders()["mcp-protocol-version"];
+    if (version !== undefined && !SUPPORTED_PROTOCOL_VERSIONS.includes(String(version))) {
+      return false;
+    }
+    const name = (message.params as any)?.name;
+    const operationId = typeof name === "string" ? this.toolOperation(name) : undefined;
+    if (!operationId || (await toolAccess(sessionContext(session), operationId)) !== "out_of_scope") {
+      return false;
+    }
+    const scope = challengeScope(session, operationId);
+    const metadata = this.authenticator.resourceMetadataUrl?.(ctx);
+    jsonRpcErrorResponse(
+      ctx,
+      403,
+      { code: INSUFFICIENT_SCOPE, message: "insufficient_scope", data: { error: "insufficient_scope", scope } },
+      message.id,
+      {
+        "WWW-Authenticate": `Bearer error="insufficient_scope", scope="${scope}"${
+          metadata ? `, resource_metadata="${metadata}"` : ""
+        }`
+      }
+    );
+    return true;
   }
 
   /**
@@ -316,6 +396,38 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     }
     const hostname = origin.hostname.replace(/^\[(.*)\]$/, "$1").toLowerCase();
     return allowed.some(h => h.replace(/^\[(.*)\]$/, "$1").toLowerCase() === hostname);
+  }
+
+  /**
+   * The request as operations may see it: its host and path, and only the allowlisted
+   * headers (`forwardHeaders`); undefined when none is configured
+   * @param ctx - the MCP HTTP request
+   * @returns the reduced request
+   */
+  protected forwardedRequest(ctx: WebContext): McpRequestInfo | undefined {
+    const names = this.parameters.forwardHeaders
+      .map(h => h.toLowerCase())
+      .filter(h => h !== "authorization" && h !== "cookie");
+    if (!names.length) {
+      return undefined;
+    }
+    const http = ctx.getHttpContext();
+    const headers: Record<string, string> = {};
+    for (const name of names) {
+      const value = http.getHeader(name);
+      // the last value, as getUniqueHeader reads it (without its pop)
+      const last = Array.isArray(value) ? value[value.length - 1] : value;
+      if (typeof last === "string") {
+        headers[name] = last;
+      }
+    }
+    return {
+      hostname: http.getHostName(),
+      protocol: http.getProtocol() === "https:" ? "https" : "http",
+      port: http.getPort(),
+      uri: http.getRelativeUri(),
+      headers
+    };
   }
 
   /**
@@ -369,12 +481,15 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       entry = await this.createHttpSession(ctx, userId, origin);
     }
     this.checkForChanges();
+    if (await this.challengeOutOfScope(ctx, entry, session, parsedBody)) {
+      return;
+    }
     const bearer = (http.getUniqueHeader("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const authInfo: AuthInfo = {
       token: bearer,
       clientId: session?.clientId ?? userId ?? "anonymous",
       scopes: session?.scopes ?? [],
-      extra: { session }
+      extra: { session, request: this.forwardedRequest(ctx) }
     };
     const response = await (entry.transport as WebStandardStreamableHTTPServerTransport).handleRequest(
       toRequest(ctx, body, origin),
@@ -399,10 +514,11 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     requestOrigin: URL | undefined = this.requestOrigin(ctx)
   ): Promise<McpSessionEntry> {
     const origin = requestOrigin?.origin;
+    const allowedOrigins = [...(origin ? [origin] : []), ...this.parameters.allowedOrigins];
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       enableDnsRebindingProtection: true,
-      allowedOrigins: [...(origin ? [origin] : []), ...this.parameters.allowedOrigins],
+      allowedOrigins,
       onsessioninitialized: id => {
         entry.id = id;
         this.sessions.add(entry);
@@ -413,8 +529,12 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       id: "",
       userId,
       lastSeen: Date.now(),
+      allowedOrigins,
       transport,
-      server: this.createServer(extra => extra.authInfo?.extra?.session as Session)
+      server: this.createServer(
+        extra => extra.authInfo?.extra?.session as Session,
+        extra => extra.authInfo?.extra?.request as McpRequestInfo | undefined
+      )
     };
     await entry.server.connect(transport);
     return entry;

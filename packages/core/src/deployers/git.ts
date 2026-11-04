@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { closeSync, constants, openSync, readFileSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
 import type { GitInformation } from "../application/iconfiguration.js";
 
@@ -60,7 +60,18 @@ function uncommittedHash(root: string): string | undefined {
   for (const file of untracked) {
     const path = join(root, file);
     hash.update(`\0${file}\0`);
-    hash.update(lstatSync(path).isSymbolicLink() ? readlinkSync(path) : readFileSync(path));
+    try {
+      hash.update(readlinkSync(path));
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "EINVAL") throw err;
+      // If the file becomes a symlink after readlink, fail rather than reading its target.
+      const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+      try {
+        hash.update(readFileSync(fd));
+      } finally {
+        closeSync(fd);
+      }
+    }
   }
   return hash.digest("hex").substring(0, 8);
 }

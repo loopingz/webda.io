@@ -1,11 +1,12 @@
 ---
 sidebar_label: "@webda/aws"
 ---
+
 # aws
 
 ## Summary
 
-This module allows you to use DynamoDB Store, SQS, CloudWatchLogger and SecretsManager
+This module allows you to use DynamoDB Store, SQS, CloudWatchLogger, SecretsManager and SNS SMS ([SnsSmsSender](SnsSmsSender.md))
 
 ## Lambda Entrypoint
 

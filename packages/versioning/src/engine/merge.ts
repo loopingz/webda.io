@@ -131,6 +131,9 @@ function mergeAt(
     const out: Record<string, unknown> = {};
     const allKeys = new Set([...Object.keys(base), ...Object.keys(ours), ...Object.keys(theirs)]);
     for (const k of allKeys) {
+      if (["__proto__", "constructor", "prototype"].includes(k)) {
+        continue;
+      }
       const childPath = `${path}/${escapeSeg(k)}`;
       const inBase = k in base;
       const inOurs = k in ours;

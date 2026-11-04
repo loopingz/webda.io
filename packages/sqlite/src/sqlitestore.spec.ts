@@ -1,5 +1,11 @@
 import { EventRepository, MemoryRepository, UpdateConditionFailError, useModel } from "@webda/core";
-import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import {
+  checkAggregation,
+  checkCount,
+  checkCountClassFilter,
+  checkCreateWithoutPrimaryKey,
+  WebdaApplicationTest
+} from "@webda/core/lib/test";
 import { AndExpression, escape, parse, PrependCondition, WebdaQLError } from "@webda/ql";
 import { SQLRepository } from "@webda/sql";
 import { AggA, AggB, Animal, Cat, Dog, PARITY_QUERIES, PARITY_ROWS, Row } from "@webda/sql/lib/test";
@@ -193,6 +199,22 @@ abstract class SQLiteStoreSuite extends WebdaApplicationTest {
     const repo = this.repo(Row, "agg_rows");
     await repo.setupTable();
     await checkAggregation(repo as any, { native: true });
+  }
+
+  @test
+  async countConformance() {
+    const repo = this.repo(Row, "count_rows");
+    await repo.setupTable();
+    await checkCount(repo as any, { native: true });
+  }
+
+  @test
+  async countStaysInTheModelHierarchy() {
+    await checkCountClassFilter(
+      this.repo(Animal, "smoke_idents") as any,
+      this.repo(Dog, "smoke_idents") as any,
+      async (repo: any, uuid) => void (await repo.create(new (repo.getRootModel())({ uuid })))
+    );
   }
 
   @test

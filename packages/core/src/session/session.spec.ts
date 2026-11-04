@@ -53,6 +53,54 @@ class SessionTest {
   }
 
   @test
+  mfaAt() {
+    const session = new Session();
+    session.login("u1", "ident", { amr: ["pwd", "totp"], mfa: "verified", mfaAt: 1000 });
+    assert.strictEqual(session.mfaAt, 1000);
+    assert.strictEqual(session.mfaAge(4000), 3000);
+    // A new login without mfaAt drops the previous one
+    session.login("u1", "ident", { amr: ["pwd"], mfa: "none" });
+    assert.strictEqual(session.mfaAt, undefined);
+    assert.strictEqual(session.mfaAge(), Infinity);
+    // mfaAt only describes a verified second factor
+    session.login("u1", "ident", { amr: ["pwd"], mfa: "pending", mfaAt: 1000 });
+    assert.strictEqual(session.mfaAt, undefined);
+    assert.strictEqual(session.mfaAge(), Infinity);
+    session.login("u1", "ident", { amr: ["pwd", "totp"], mfa: "verified", mfaAt: 1000 });
+    session.logout();
+    assert.strictEqual(session.mfaAt, undefined);
+  }
+
+  @test
+  markMfaVerified() {
+    const session = new Session().getProxy();
+    session.login("u1", "ident", { provider: "email", amr: ["pwd", "totp"], mfa: "verified", mfaAt: 1000 });
+    session.authAt = 500;
+    session.refreshFamily = "fam";
+    session.markMfaVerified(["totp", "recovery"], 9000);
+    assert.ok(session.isDirty());
+    assert.strictEqual(session.mfa, "verified");
+    assert.strictEqual(session.mfaAt, 9000);
+    assert.deepStrictEqual(session.amr, ["pwd", "totp", "recovery"]);
+    // Step-up keeps the identity of the session
+    assert.strictEqual(session.userId, "u1");
+    assert.strictEqual(session.identUsed, "ident");
+    assert.strictEqual(session.provider, "email");
+    assert.strictEqual(session.authAt, 500);
+    assert.strictEqual(session.refreshFamily, "fam");
+    assert.strictEqual(session.mfaAge(9500), 500);
+    // Defaults to now
+    const before = Date.now();
+    session.markMfaVerified(["totp"]);
+    assert.ok(session.mfaAt >= before && session.mfaAt <= Date.now());
+    // A session without methods yet starts its list with the verified ones
+    const fresh = new Session();
+    fresh.markMfaVerified(["totp"], 1000);
+    assert.deepStrictEqual(fresh.amr, ["totp"]);
+    assert.strictEqual(fresh.mfaAge(1500), 500);
+  }
+
+  @test
   application() {
     const session = new Session();
     session.login("u1", "ident", {
@@ -134,6 +182,28 @@ class BearerSessionTest extends WebdaApplicationTest {
     const token = (await useService("TokenService").issue(session)).accessToken;
     const bearer = await manager.load(await this.contextWith({ authorization: `Bearer ${token}` }));
     assert.deepStrictEqual(bearer.mfaVerifications, session.mfaVerifications);
+  }
+
+  @test
+  async mfaAtRoundTripsThroughCookiesAndBearer() {
+    const session = new Session();
+    session.login("u1", "a@b.c:email", { amr: ["pwd", "totp"], mfa: "verified", mfaAt: 123456 });
+    const manager = useService("SessionManager");
+    const ctx = await this.newContext();
+    await manager.save(ctx, session);
+    const cookieSession = await manager.load(await this.withCookies(ctx));
+    assert.strictEqual(cookieSession.mfaAt, 123456);
+    const token = (await useService("TokenService").issue(session)).accessToken;
+    const bearer = await manager.load(await this.contextWith({ authorization: `Bearer ${token}` }));
+    assert.strictEqual(bearer.mfaAt, 123456);
+    // Tokens issued before mfaAt existed load as never verified: stale, no crash
+    const legacy = new Session();
+    legacy.login("u1", "a@b.c:email", { amr: ["pwd", "totp"], mfa: "verified" });
+    const legacyToken = (await useService("TokenService").issue(legacy)).accessToken;
+    const old = await manager.load(await this.contextWith({ authorization: `Bearer ${legacyToken}` }));
+    assert.strictEqual(old.mfa, "verified");
+    assert.strictEqual(old.mfaAt, undefined);
+    assert.strictEqual(old.mfaAge(), Infinity);
   }
 
   @test
@@ -532,5 +602,41 @@ class BearerResolverTest extends WebdaApplicationTest {
     this.unregister.pop()();
     assert.strictEqual(useBearerResolvers().length, before);
     assert.ok(!(await this.load("app-token")).isApplication());
+  }
+
+  @test
+  async sendCookieClearsStaleChunksAndSessionModelSaves() {
+    const { SecureCookie } = await import("./cookie.js");
+    const cookiesSent: Record<string, any> = {};
+    const fakeCtx: any = {
+      cookie: (name: string, value: string, opts: any) => {
+        cookiesSent[name] = { value, opts };
+      },
+      getHttpContext: () => ({
+        getCookies: () => ({ webda: "part1", webda2: "part2" })
+      })
+    };
+    SecureCookie.sendCookie(fakeCtx, "webda", "short", { maxAge: 3600 });
+    assert.strictEqual(cookiesSent.webda.value, "short");
+    assert.strictEqual(cookiesSent.webda2.value, "");
+    assert.strictEqual(cookiesSent.webda2.opts.maxAge, 0);
+
+    const manager: any = useService("SessionManager");
+    const prevModel = manager.sessionModel;
+    try {
+      manager.sessionModel = {
+        exists: async () => false,
+        create: async () => {},
+        update: async () => {}
+      };
+      const ctx = await this.newContext();
+      const s: any = new Session();
+      s.uuid = "sess-1";
+      s.login("u1", "a@b.c:email");
+      await manager.save(ctx, s);
+      assert.ok(ctx.getResponseCookies()?.webda);
+    } finally {
+      manager.sessionModel = prevModel;
+    }
   }
 }

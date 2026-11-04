@@ -66,6 +66,32 @@ await new Waiter(async () => {
 }, 200 /* pollMs */, 30000 /* timeoutMs */).wait();
 ```
 
+### TypeScript utility types
+
+`@webda/utils` also holds the shared types and helpers that used to live in `@webda/tsc-esm`:
+
+```typescript
+import type { Attributes, DeepPartial, FilterAttributes, Merge } from "@webda/utils";
+import { NotEnumerable, isMainModule } from "@webda/utils";
+
+class Session {
+  // Kept out of enumeration, so it is skipped by JSON serialisation and Object.keys
+  @NotEnumerable
+  dirty: boolean;
+}
+
+type SessionAttributes = Attributes<Session>; // every non-method key
+```
+
+- **Types** — `Attributes`, `Methods`, `FilterAttributes`, `FilterOutAttributes`, `PickByType`,
+  `OmitByType`, `OmitByTypeRecursive`, `DeepPartial`, `Merge`, `SetOptional`, `ReadonlyKeys`,
+  `IsUnion`, `ArrayElement` and the `Constructor` family.
+- **Helpers** — `NotEnumerable`, `StaticInterface`, `assertUnreachable`, and the Node-only
+  `isMainModule` and `getFileName`.
+
+The decorator factories `createClassDecorator`, `createPropertyDecorator` and
+`createMethodDecorator` come from `@webda/decorators`.
+
 ## Reference
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/utils/`.

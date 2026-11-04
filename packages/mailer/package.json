@@ -1,0 +1,76 @@
+{
+  "name": "@webda/mailer",
+  "version": "4.0.0-beta.12",
+  "description": "Nodemailer based Mailer for Webda, rendering through @webda/templates",
+  "keywords": [
+    "mailer",
+    "nodemailer",
+    "email",
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/mailer"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
+    "pretest": "npm run build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
+  },
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/templates": "workspace:*",
+    "html-to-text": "^10.0.1",
+    "juice": "^12.2.1",
+    "nodemailer": "^10.3.1"
+  },
+  "files": [
+    "lib",
+    "test",
+    "webda.module.json"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@webda/compiler": "workspace:^",
+    "@webda/test": "workspace:*",
+    "@webda/workout": "workspace:*",
+    "jscodeshift": "^17.4.0",
+    "sinon": "^22.1.0",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core",
+      "@webda/templates"
+    ]
+  },
+  "license": "LGPL-3.0-only"
+}

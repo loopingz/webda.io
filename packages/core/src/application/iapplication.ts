@@ -1,4 +1,4 @@
-import type { CustomConstructor } from "@webda/tsc-esm";
+import type { CustomConstructor } from "@webda/utils";
 import type { JSONSchema7 } from "json-schema";
 import type { AbstractService, Modda } from "../services/iservice.js";
 import type { Configuration, PackageDescriptor } from "./iconfiguration.js";

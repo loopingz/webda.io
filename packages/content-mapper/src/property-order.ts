@@ -15,10 +15,10 @@
  * the 7.1 property list is then sorted by it; anything the rebuild does not
  * know about keeps its 7.1 position at the end.
  */
-import type { ClassDeclaration, Node } from "typescript/unstable/ast";
-import { SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
-import type { Symbol as TsSymbol, Type } from "typescript/unstable/sync";
+import type { ClassDeclaration, Node } from "typescript/ast";
+import { SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
+import type { Symbol as TsSymbol, Type } from "typescript/sync";
 import type { AnalysisContext } from "./plan.ts";
 
 /** Modifiers that turn a constructor parameter into a property. */

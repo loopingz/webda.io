@@ -1,10 +1,11 @@
 {
   "name": "@webda/cloudevents",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-beta.12",
   "description": "Discovery and Subscriptions for CloudEvents",
   "keywords": [
     "cloudevents",
-    "webda"
+    "webda",
+    "webda-module"
   ],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": {
@@ -15,8 +16,8 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "build:watch": "tsc -p tsconfig.json --watch",
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && node ../../scripts/add-import-extensions.mjs src && pnpm run lint:fix",
     "pretest": "npm run build",
     "lint": "eslint",
@@ -29,17 +30,24 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/decorators": "workspace:*",
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*",
     "antlr4ts": "0.5.0-alpha.4",
     "cloudevents": "^10.0.0"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/compiler": "workspace:^",
-    "jscodeshift": "^17.3.0",
-    "skott": "^0.35.8",
-    "tsx": "^4.21.0",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0"
+    "@webda/test": "workspace:*",
+    "jscodeshift": "^17.4.0",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "files": [
     "lib",
@@ -48,6 +56,9 @@
   "homepage": "https://webda.io",
   "publishConfig": {
     "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
   },
   "type": "module",
   "engines": {

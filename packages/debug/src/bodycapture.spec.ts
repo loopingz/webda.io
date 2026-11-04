@@ -195,8 +195,8 @@ class NormalizeHeadersTest {
 
   @test
   arrayValuesAreJoined() {
-    const result = normalizeHeaders({ "set-cookie": ["a=1", "b=2"] });
-    assert.deepStrictEqual(result, { "set-cookie": "a=1, b=2" });
+    const result = normalizeHeaders({ "x-multi": ["a=1", "b=2"] });
+    assert.deepStrictEqual(result, { "x-multi": "a=1, b=2" });
   }
 
   @test
@@ -209,5 +209,23 @@ class NormalizeHeadersTest {
   undefinedAndNullValuesAreDropped() {
     const result = normalizeHeaders({ a: undefined, b: null as any, c: "ok" });
     assert.deepStrictEqual(result, { c: "ok" });
+  }
+
+  @test
+  redactsSensitiveHeaders() {
+    const result = normalizeHeaders({
+      Authorization: "Bearer secret",
+      cookie: "sid=123",
+      "Set-Cookie": ["sid=123", "theme=dark"],
+      "X-API-Key": "secret-key",
+      "content-type": "application/json"
+    });
+    assert.deepStrictEqual(result, {
+      Authorization: "[REDACTED]",
+      cookie: "[REDACTED]",
+      "Set-Cookie": "[REDACTED]",
+      "X-API-Key": "[REDACTED]",
+      "content-type": "application/json"
+    });
   }
 }

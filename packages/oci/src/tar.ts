@@ -2,6 +2,19 @@ import { WebdaError } from "@webda/core";
 import { createReadStream, statSync } from "node:fs";
 
 /**
+ * Remove leading and trailing slashes in linear time.
+ * @param path - the path to normalize
+ * @returns the path without outer slashes
+ */
+export function trimSlashes(path: string): string {
+  let start = 0;
+  let end = path.length;
+  while (start < end && path[start] === "/") start++;
+  while (end > start && path[end - 1] === "/") end--;
+  return path.slice(start, end);
+}
+
+/**
  * Size of a tar block
  */
 const BLOCK = 512;
@@ -155,7 +168,7 @@ export function comparePaths(a: string, b: string): number {
 export function withDirectories(entries: TarEntry[], directoryMode: number = 0o755): TarEntry[] {
   const byPath = new Map<string, TarEntry>();
   for (const entry of entries) {
-    const path = entry.path.replace(/^\/+/, "").replace(/\/+$/, "");
+    const path = trimSlashes(entry.path);
     if (!path) {
       continue;
     }

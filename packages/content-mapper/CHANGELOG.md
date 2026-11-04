@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.9...content-mapper-v4.0.0-beta.10) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** instance actions declaring non-context parameters now receive them instead of the operation context. Take the context with a context-typed parameter or useContext().
+
+### Features
+
+* **auth:** track MFA verification time and enforce step-up freshness (maxMfaAge) ([#963](https://github.com/loopingz/webda.io/issues/963)) ([86cda56](https://github.com/loopingz/webda.io/commit/86cda56d06e3812c3e80a34d2b93488b2254a934))
+* **binary:** attach direct uploads on verified client completion ([#944](https://github.com/loopingz/webda.io/issues/944)) ([736942e](https://github.com/loopingz/webda.io/commit/736942eb194f66924ceeaefd14d8515c2d0b84d7))
+* **core:** model actions receive their typed parameters ([#946](https://github.com/loopingz/webda.io/issues/946), phase 1) ([#955](https://github.com/loopingz/webda.io/issues/955)) ([7e8eebd](https://github.com/loopingz/webda.io/commit/7e8eebd47af7748936272c43869152bf1716b485))
+* end-to-end encrypted model fields (SealedField, UserKeys, @webda/sealed-client) ([#941](https://github.com/loopingz/webda.io/issues/941)) ([fbc5bd2](https://github.com/loopingz/webda.io/commit/fbc5bd24b1f60c87c53c33f9d1650634834c894e))
+* **sql-schema:** relational schema plan built from model metadata ([#937](https://github.com/loopingz/webda.io/issues/937)) ([6f50192](https://github.com/loopingz/webda.io/commit/6f5019210a7a3f84bddad061db931c31d98f4524))
+
+
+### Bug Fixes
+
+* **content-mapper:** list Events of an optional [WEBDA_EVENTS]? member under strict ([#978](https://github.com/loopingz/webda.io/issues/978)) ([c303962](https://github.com/loopingz/webda.io/commit/c30396298c8545f9c1ff5d8c4839191afbd7609f))
+* **content-mapper:** record relation aliases, the ModelRelated attribute and [@enum](https://github.com/enum) values ([#940](https://github.com/loopingz/webda.io/issues/940)) ([6e7e701](https://github.com/loopingz/webda.io/commit/6e7e7018343671a1e4a11de0b447bb4a959a997b))
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.8...content-mapper-v4.0.0-beta.9) (2026-10-15)
 
 

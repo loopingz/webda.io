@@ -1,7 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
+import { EventEmitter } from "events";
 import { Readable } from "stream";
+import * as crypto from "crypto";
 import { WebdaApplicationTest } from "../test/index.js";
 import {
   Binary,
@@ -12,10 +14,21 @@ import {
   BinaryParameters,
   BinaryService,
   LocalBinaryFile,
-  MemoryBinaryFile
+  MemoryBinaryFile,
+  normalizeHash,
+  normalizeHashes
 } from "./binary.service.js";
 import { Action } from "../models/decorator.js";
-import { WEBDA_STORAGE } from "@webda/models";
+import {
+  WEBDA_STORAGE,
+  EventRepository,
+  MemoryRepository,
+  Repositories,
+  registerRepository,
+  useRepository
+} from "@webda/models";
+import { useApplication } from "../application/hooks.js";
+import { PhotoHolder, PhotoLike } from "../test/binary-holder.model.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext } from "../contexts/httpcontext.js";
@@ -401,6 +414,135 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
     assert.strictEqual(result.done, false);
     assert.strictEqual(result.url, "https://signed.example/up");
     assert.ok(typeof result.md5 === "string");
+  }
+
+  /**
+   * `maxUploadSize` rejects oversized or undeclared sizes; Binary and Binaries.
+   */
+  @test
+  async challengeRejectsTooBig() {
+    for (const kind of ["binary", "binaries"]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ parameters: { maxUploadSize: 100 } });
+      const b: any = kind === "binary" ? makeBinary(parent, service) : makeBinaries(parent, service);
+      const base = { hash: "deadbeef", challenge: "wb-deadbeef", name: "x", mimetype: "a/b" };
+      await runWithCtx({}, async () => {
+        await assert.rejects(() => b.attachChallenge({ ...base, size: 101 } as any), /too big/i);
+        await assert.rejects(() => b.attachChallenge({ ...base } as any), /size/i);
+        assert.strictEqual(service.putRedirectUrl.callCount, 0);
+        await b.attachChallenge({ ...base, size: 100 } as any);
+        assert.strictEqual(service.putRedirectUrl.callCount, 1);
+      });
+    }
+  }
+
+  /**
+   * No `maxUploadSize` means no size requirement.
+   */
+  @test
+  async challengeNoLimitNoSize() {
+    const parent = { instance: makeFakeParent(), attribute: "image" };
+    const service = makeServiceStub({ parameters: {} });
+    const b = makeBinary(parent, service);
+    await runWithCtx({}, async () => b.attachChallenge({ hash: "deadbeef", challenge: "wb-deadbeef" } as any));
+    assert.strictEqual(service.putRedirectUrl.callCount, 1);
+  }
+
+  /**
+   * Non-finite or negative sizes are rejected, with or without a limit.
+   */
+  @test
+  async challengeRejectsInvalidSize() {
+    for (const parameters of [{}, { maxUploadSize: 100 }]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ parameters });
+      const b = makeBinary(parent, service);
+      const base = { hash: "deadbeef", challenge: "wb-deadbeef" };
+      await runWithCtx({}, async () => {
+        for (const size of [NaN, -1, Infinity, "5"]) {
+          await assert.rejects(() => b.attachChallenge({ ...base, size } as any), WebdaError.BadRequest);
+        }
+      });
+      assert.strictEqual(service.putRedirectUrl.callCount, 0);
+    }
+  }
+
+  /**
+   * Hashes are normalised to lower case: the challenge reaches the service in lower case, `complete` compares and
+   * forwards the lower-case hash. Binary and Binaries.
+   */
+  @test
+  async hashesNormalisedToLowerCase() {
+    for (const kind of ["binary", "binaries"]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ completeUpload: sinon.stub().resolves() });
+      const b: any = kind === "binary" ? makeBinary(parent, service) : makeBinaries(parent, service);
+      await runWithCtx({}, async () => b.attachChallenge({ hash: "DEADBEEF", challenge: "ABCDEF" } as any));
+      assert.strictEqual(service.putRedirectUrl.firstCall.args[2].hash, "deadbeef");
+      assert.strictEqual(service.putRedirectUrl.firstCall.args[2].challenge, "abcdef");
+      await b.complete("ABC");
+      assert.deepStrictEqual(service.completeUpload.firstCall.args, [parent.instance, "image", "abc"]);
+      if (kind === "binary") {
+        b.hash = "abc";
+      } else {
+        b.push(new BinariesItem(b, { hash: "abc", size: 1, name: "a", mimetype: "text/plain" } as any));
+      }
+      // Already linked, whatever the case
+      await b.complete("ABC");
+      assert.strictEqual(service.completeUpload.callCount, 1);
+    }
+  }
+
+  /**
+   * `complete(hash)` asks the service to verify and attach; a no-op when the hash is already linked. Binary and
+   * Binaries.
+   */
+  @test
+  async completeDelegatesToService() {
+    for (const kind of ["binary", "binaries"]) {
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const service = makeServiceStub({ completeUpload: sinon.stub().resolves() });
+      let b: any;
+      if (kind === "binary") {
+        b = makeBinary(parent, service);
+      } else {
+        b = makeBinaries(parent, service);
+      }
+      await b.complete("abc");
+      assert.strictEqual(service.completeUpload.callCount, 1);
+      assert.deepStrictEqual(service.completeUpload.firstCall.args, [parent.instance, "image", "abc"]);
+      // Already linked: nothing to do
+      if (kind === "binary") {
+        b.hash = "abc";
+      } else {
+        b.push(new BinariesItem(b, { hash: "abc", size: 1, name: "a", mimetype: "text/plain" } as any));
+      }
+      await b.complete("abc");
+      assert.strictEqual(service.completeUpload.callCount, 1);
+    }
+    const orphan: any = Object.create(Binary.prototype);
+    orphan[WEBDA_STORAGE] = {};
+    await assert.rejects(() => (orphan as Binary).complete("abc"), /parent not yet wired/);
+    const orphans: any = new BinariesImpl();
+    orphans[WEBDA_STORAGE] = {};
+    await assert.rejects(() => orphans.complete("abc"), /parent not yet wired/);
+  }
+
+  /**
+   * Signed URLs use `urlExpiry`; parameters parse maxUploadSize.
+   */
+  @test
+  async urlUsesExpiry() {
+    const parent = { instance: makeFakeParent(), attribute: "photos" };
+    const service = makeServiceStub({ parameters: { urlExpiry: 3600 } });
+    const b = makeBinaries(parent, service);
+    b.push(new BinariesItem(b, { hash: "p", size: 1, name: "p.bin", mimetype: "text/plain" } as any));
+    await runWithCtx({}, async () => b.getUrl(0));
+    assert.strictEqual(service.getRedirectUrlFromObject.firstCall.args[2], 3600);
+    const p = new BinaryParameters().load({ maxUploadSize: "1 KB" });
+    assert.strictEqual(p.maxUploadSize, 1024);
+    assert.strictEqual(p.urlExpiry, 30);
+    assert.strictEqual(new BinaryParameters().load({}).maxUploadSize, undefined);
   }
 
   /**
@@ -1283,6 +1425,47 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
+   * `getFile` computes the challenge as md5("WEBDA" || bytes), also for content that is not valid UTF-8
+   */
+  @test
+  async getFileChallengeIsByteCorrect() {
+    const svc = this.makeService();
+    const ctx = new OperationContext();
+    await ctx.init();
+    ctx.setParameters({} as any);
+    const bytes = Buffer.from([0xff, 0xfe, 0x00, 0x80, 0xc3]);
+    (ctx as any).getRawInput = async () => bytes;
+    const file = await svc.getFile(ctx);
+    assert.strictEqual(file.hash, crypto.createHash("md5").update(bytes).digest("hex"));
+    assert.strictEqual(file.challenge, crypto.createHash("md5").update("WEBDA").update(bytes).digest("hex"));
+    // The same value as the hashes computed from the stream
+    assert.deepStrictEqual(await new MemoryBinaryFile(bytes).computeHashes(), {
+      hash: file.hash,
+      challenge: file.challenge
+    });
+  }
+
+  /**
+   * Hashes to store are computed from the bytes: a wrong preset hash is rejected, a preset challenge is replaced, a
+   * preset hash in upper case is accepted and normalised
+   */
+  @test
+  async verifiedHashesComputeFromBytes() {
+    const svc: any = this.makeService();
+    const bytes = Buffer.from("verified");
+    const hash = crypto.createHash("md5").update(bytes).digest("hex");
+    const challenge = crypto.createHash("md5").update("WEBDA").update(bytes).digest("hex");
+    await assert.rejects(
+      () => svc.verifiedHashes(new MemoryBinaryFile(bytes, { hash: "0".repeat(32) })),
+      WebdaError.BadRequest
+    );
+    const file = new MemoryBinaryFile(bytes, { hash: hash.toUpperCase(), challenge: "forged" });
+    assert.deepStrictEqual(await svc.verifiedHashes(file), { hash, challenge });
+    assert.strictEqual(file.hash, hash);
+    assert.strictEqual(file.challenge, challenge);
+  }
+
+  /**
    * `getFile` rejects oversized uploads.
    */
   @test
@@ -1426,6 +1609,192 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
     await svc.uploadSuccess(target, "items", file);
     assert.strictEqual(patches.length, 1);
     assert.strictEqual(patches[0].items.length, 1);
+  }
+
+  /**
+   * A collection without a stored value yet starts empty
+   */
+  @test
+  async uploadSuccessStartsAnEmptyCollection() {
+    const svc = this.makeService();
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: { Relations: { behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }] } }
+      },
+      getUUID: () => "u",
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "items", { hash: "first", size: 1, name: "f", mimetype: "t" } as any);
+    assert.deepStrictEqual(
+      patches[0].items.map(i => i.hash),
+      ["first"]
+    );
+  }
+
+  /**
+   * A read error while hashing the content rejects the computation
+   */
+  @test
+  async computeHashesPropagatesStreamErrors() {
+    const file = new MemoryBinaryFile(Buffer.from("x"), { name: "x" });
+    file.get = async () =>
+      new Readable({
+        read() {
+          this.destroy(new Error("read failed"));
+        }
+      });
+    await assert.rejects(() => file.computeHashes(), /read failed/);
+  }
+
+  /**
+   * Hash normalisation lower-cases strings and leaves anything else unchanged
+   */
+  @test
+  normalizeHashesKeepsNonStrings() {
+    assert.strictEqual(normalizeHash("ABC"), "abc");
+    assert.strictEqual(normalizeHash(undefined), undefined);
+    assert.strictEqual(normalizeHash(12 as any), 12);
+    assert.strictEqual(normalizeHashes(undefined), undefined);
+    assert.strictEqual(normalizeHashes("ABC" as any), "ABC");
+    assert.deepStrictEqual(normalizeHashes({ hash: "AB", challenge: "CD", name: "N" } as any), {
+      hash: "ab",
+      challenge: "cd",
+      name: "N"
+    });
+  }
+
+  /**
+   * The dedup runs on the stored copy: a stale instance does not append a hash another request already linked.
+   */
+  @test
+  async uploadSuccessDedupsOnStoredValue() {
+    const svc = this.makeService();
+    const emit = sinon.stub(svc, "emit").resolves();
+    const info: any = { hash: "h1", size: 3, mimetype: "text/plain", name: "a", challenge: "c" };
+    const other = { hash: "h0", size: 1, mimetype: "text/plain", name: "o" };
+    const patches: any[] = [];
+    const stale: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "files", behavior: "Webda/BinariesImpl" }] } } },
+      files: [],
+      ref: () => ({ get: async () => ({ files: [other, { ...info, challenge: undefined }] }) }),
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(stale, "files", { ...info });
+    assert.strictEqual(patches[0].files.length, 2, "the stored items are kept, the hash is not appended");
+    assert.strictEqual(emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess").length, 0);
+    // Not stored yet: the in-memory value is used
+    const fresh: any = {
+      ...stale,
+      ref: () => ({ get: async () => undefined }),
+      files: [other]
+    };
+    patches.length = 0;
+    await svc.uploadSuccess(fresh, "files", { ...info });
+    assert.strictEqual(patches[0].files.length, 2);
+    assert.strictEqual(emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess").length, 1);
+  }
+
+  /**
+   * `isLinked` covers collections and single binaries.
+   */
+  @test
+  async isLinkedHelper() {
+    const svc: any = this.makeService();
+    const collection: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "files", behavior: "Webda/BinariesImpl" }] } } },
+      files: [{ hash: "a" }]
+    };
+    assert.strictEqual(svc.isLinked(collection, "files", "a"), true);
+    assert.strictEqual(svc.isLinked(collection, "files", "b"), false);
+    const single: any = { one: { hash: "a" } };
+    assert.strictEqual(svc.isLinked(single, "one", "a"), true);
+    assert.strictEqual(svc.isLinked(single, "one", "b"), false);
+    assert.strictEqual(svc.isLinked({}, "one", "a"), false);
+  }
+
+  /**
+   * Services without pending uploads answer 404 on completion.
+   */
+  @test
+  async completeUploadDefaultsToNotFound() {
+    const svc = this.makeService();
+    await assert.rejects(
+      () => svc.completeUpload({} as any, "files", "h"),
+      (e: any) => e instanceof WebdaError.NotFound
+    );
+  }
+
+  /**
+   * `uploadSuccess` emits `Binary.UploadSuccess` once per newly linked item, never exposes the challenge,
+   * and stays silent when the item is already linked.
+   */
+  @test
+  async uploadSuccessEmitsOnce() {
+    const svc = this.makeService();
+    const emit = sinon.stub(svc, "emit").resolves();
+    const info: any = { hash: "h1", size: 3, mimetype: "text/plain", name: "a", challenge: "c" };
+    const target: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "files", behavior: "Webda/BinariesImpl" }] } } },
+      files: [],
+      patch: async (data: any) => {
+        target.files = data.files;
+      }
+    };
+    await svc.uploadSuccess(target, "files", { ...info });
+    await svc.uploadSuccess(target, "files", { ...info });
+    const calls = emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess");
+    assert.strictEqual(calls.length, 1);
+    const payload: any = calls[0].args[1];
+    assert.strictEqual(payload.object.hash, "h1");
+    assert.strictEqual(payload.object.challenge, undefined);
+    assert.strictEqual(payload.service, svc);
+    assert.strictEqual(payload.target, target);
+
+    // Single Binary: same hash twice emits once, a new hash emits again
+    const single: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "one", behavior: "Webda/Binary" }] } } },
+      one: undefined,
+      patch: async (data: any) => {
+        single.one = data.one;
+      }
+    };
+    emit.resetHistory();
+    await svc.uploadSuccess(single, "one", { ...info });
+    await svc.uploadSuccess(single, "one", { ...info });
+    await svc.uploadSuccess(single, "one", { ...info, hash: "h2" });
+    assert.strictEqual(emit.getCalls().filter(c => c.args[0] === "Binary.UploadSuccess").length, 2);
+  }
+
+  /**
+   * A model holding a `BinariesImpl` subclass is hydrated with the behavior even when the attribute is unset
+   * (undefined) or a raw empty array, so uploads append and deletes splice. This is how the runtime guarantees
+   * the classification: `__hydrateBehaviors` runs on every load/patch path.
+   */
+  @test
+  async subclassCollectionAppends() {
+    const svc = this.makeService();
+    for (const raw of [undefined, [], null]) {
+      const holder = new PhotoHolder({ photos: raw });
+      assert.ok(holder.photos instanceof PhotoLike);
+      const target: any = holder;
+      await svc.uploadSuccess(target, "photos", { hash: "a", size: 1, mimetype: "t", name: "a" });
+      await svc.uploadSuccess(target, "photos", { hash: "b", size: 1, mimetype: "t", name: "b" });
+      assert.deepStrictEqual(
+        Array.from(holder.photos as any[], (i: any) => i.hash),
+        ["a", "b"]
+      );
+      assert.ok(holder.photos instanceof PhotoLike);
+      await svc.deleteSuccess(target, "photos", 0);
+      assert.deepStrictEqual(
+        Array.from(holder.photos as any[], (i: any) => i.hash),
+        ["b"]
+      );
+    }
   }
 
   /**
@@ -1642,5 +2011,335 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
     const err = new BinaryNotFoundError("h", "store");
     assert.ok(err instanceof WebdaError.CodeError);
     assert.match(err.message, /Binary not found h BinaryService\(store\)/);
+  }
+}
+
+/**
+ * Minimal repository: `Delete` before, `Deleted` after, like the event repository
+ */
+class FakeRepository extends EventEmitter {
+  objects = new Map<string, any>();
+  failDelete = false;
+
+  async get(id: string) {
+    return this.objects.get(id);
+  }
+
+  async emitAsync(event: string, data: any) {
+    for (const listener of this.listeners(event)) {
+      await listener(data);
+    }
+  }
+
+  async delete(id: string) {
+    await this.emitAsync("Delete", { object_id: id });
+    if (this.failDelete) {
+      throw new Error("delete failed");
+    }
+    this.objects.delete(id);
+    await this.emitAsync("Deleted", { object_id: id });
+  }
+}
+
+class CascadeService extends BinaryService {
+  repo = new FakeRepository();
+  cascade = sinon.stub().resolves();
+  async store(): Promise<void> {}
+  async getUsageCount(): Promise<number> {
+    return 0;
+  }
+  async delete(): Promise<void> {}
+  async _get(): Promise<any> {}
+  async cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void> {
+    await this.cascade(info, uuid, attribute, model);
+  }
+  protected getRepository(): any {
+    return this.repo;
+  }
+}
+
+@suite
+class BinaryCascadeTest extends WebdaApplicationTest {
+  makeService(models: any = { "*": ["*"] }): CascadeService {
+    const svc = new CascadeService("cascade", new BinaryParameters().load({ models }));
+    (svc as any).metrics = { upload: { inc() {} }, download: { inc() {} }, delete: { inc() {} } };
+    return svc;
+  }
+
+  holder(files: string[]) {
+    return new PhotoHolder({
+      uuid: "a",
+      photos: files.map(hash => ({ hash, size: 1, mimetype: "t", name: hash }))
+    });
+  }
+
+  @test
+  async deleteCascades() {
+    const svc = this.makeService();
+    svc.repo.objects.set("a", this.holder(["h1", "h2"]));
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("a");
+    assert.deepStrictEqual(
+      svc.cascade
+        .getCalls()
+        .map(c => c.args[0].hash)
+        .sort(),
+      ["h1", "h2"]
+    );
+    assert.strictEqual(svc.cascade.getCall(0).args[1], "a");
+    // The attribute holding the binary: only the exact usage marker of the deleted owner is removed
+    assert.deepStrictEqual(
+      svc.cascade.getCalls().map(c => c.args[2]),
+      ["photos", "photos"]
+    );
+    assert.ok(svc.cascade.getCalls().every(c => typeof c.args[3] === "string" && c.args[3] !== ""));
+    assert.strictEqual((svc as any).pendingDeletes.size, 0);
+  }
+
+  @test
+  async failedDeleteKeepsFiles() {
+    const svc = this.makeService();
+    svc.repo.objects.set("a", this.holder(["h1"]));
+    svc.repo.failDelete = true;
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await assert.rejects(() => svc.repo.delete("a"), /delete failed/);
+    assert.strictEqual(svc.cascade.callCount, 0);
+    // Dropped on the next Delete of the same id
+    svc.repo.failDelete = false;
+    svc.repo.objects.set("a", this.holder([]));
+    await svc.repo.delete("a");
+    assert.strictEqual(svc.cascade.callCount, 0);
+    assert.strictEqual((svc as any).pendingDeletes.size, 0);
+  }
+
+  @test
+  async missingObjectIgnored() {
+    const svc = this.makeService();
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("nope");
+    assert.strictEqual(svc.cascade.callCount, 0);
+  }
+
+  @test
+  async ownership() {
+    const model = { Metadata: { Identifier: "WebdaTest/PhotoHolder" } };
+    const owner = this.makeService({ "WebdaTest/PhotoHolder": ["photos"] });
+    const other = this.makeService({ "Other/Model": ["x"] });
+    const getBinaryStore = sinon.stub(useCore(), "getBinaryStore").returns(owner as any);
+    try {
+      assert.ok((owner as any).ownsAttribute(model, "photos"));
+      assert.ok(!(other as any).ownsAttribute(model, "photos"));
+      // handled by the map but resolved to another service
+      const wildcard = this.makeService();
+      assert.ok(!(wildcard as any).ownsAttribute(model, "photos"));
+    } finally {
+      getBinaryStore.restore();
+    }
+  }
+
+  @test
+  async loadErrorIsLoggedNotSwallowed() {
+    const svc = this.makeService();
+    const log = sinon.stub(svc, "log");
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    // A failing read of an object that exists is reported, and does not block the delete
+    svc.repo.objects.set("a", this.holder(["h1"]));
+    svc.repo.get = async () => {
+      throw new Error("db down");
+    };
+    svc.repo.exists = async (id: string) => svc.repo.objects.has(id);
+    await svc.repo.delete("a");
+    assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
+    // A failing existence check is reported too
+    log.resetHistory();
+    svc.repo.exists = async () => {
+      throw new Error("db down");
+    };
+    await svc.repo.delete("a");
+    assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
+  }
+
+  /**
+   * A real MemoryRepository miss throws an untyped error: it must stay silent
+   */
+  @test
+  async missingObjectIsSilent() {
+    const svc = this.makeService();
+    const log = sinon.stub(svc, "log");
+    const memory = new MemoryRepository(PhotoHolder as any, ["uuid"]);
+    svc.repo.get = (id: string) => memory.get(id as any) as any;
+    svc.repo.exists = (id: string) => memory.exists(id as any);
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("nope");
+    assert.strictEqual(log.callCount, 0);
+    assert.strictEqual(svc.cascade.callCount, 0);
+  }
+
+  @test
+  async failingCascadeIsIsolated() {
+    const svc = this.makeService();
+    const log = sinon.stub(svc, "log");
+    svc.repo.objects.set("a", this.holder(["h1", "h2"]));
+    svc.cascade.onFirstCall().rejects(new Error("boom"));
+    (svc as any).hookDelete(PhotoHolder, ["photos"]);
+    await svc.repo.delete("a");
+    assert.strictEqual(svc.cascade.callCount, 2);
+    assert.ok(log.getCalls().some(c => c.args[0] === "WARN"));
+  }
+
+  /**
+   * A single `Binary` attribute cascades when it holds a hash; an empty one and an unset collection are skipped.
+   * An object without `getUUID` is keyed by its id, an unregistered class by the hooked model's identifier
+   */
+  @test
+  async deleteCascadesSingleBinaries() {
+    const svc = this.makeService();
+    const parent = makeFakeParent();
+    const model = { Metadata: { Identifier: "Test/Single" } };
+    const object = Object.assign(
+      Object.create({
+        constructor: {
+          Metadata: { Relations: { behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }] } }
+        }
+      }),
+      {
+        avatar: makeBinary({ instance: parent, attribute: "avatar" }, svc, { hash: "h3", size: 1 }),
+        empty: makeBinary({ instance: parent, attribute: "empty" }, svc),
+        items: undefined
+      }
+    );
+    svc.repo.objects.set("b", object);
+    (svc as any).hookDelete(model, ["avatar", "empty", "items"]);
+    await svc.repo.delete("b");
+    assert.deepStrictEqual(
+      svc.cascade.getCalls().map(c => [c.args[0].hash, c.args[1], c.args[2], c.args[3]]),
+      [["h3", "b", "avatar", "Test/Single"]]
+    );
+  }
+
+  /**
+   * An attribute no registered service resolves is not owned
+   */
+  @test
+  async ownershipWithoutResolvingService() {
+    const svc = this.makeService({ "WebdaTest/PhotoHolder": ["photos"] });
+    const getBinaryStore = sinon.stub(useCore(), "getBinaryStore").throws(new Error("no binary store"));
+    try {
+      assert.ok(!(svc as any).ownsAttribute({ Metadata: { Identifier: "WebdaTest/PhotoHolder" } }, "photos"));
+    } finally {
+      getBinaryStore.restore();
+    }
+  }
+
+  /**
+   * Outside of an application there is no model to follow; a model whose hook fails is reported and retried
+   */
+  @test
+  async initWithoutApplicationOrFailingHook() {
+    const svc = this.makeService();
+    const getModels = sinon.stub(useApplication(), "getModels").throws(new Error("no application"));
+    try {
+      assert.strictEqual(await svc.init(), svc);
+    } finally {
+      getModels.restore();
+    }
+    const models: any = useApplication().getModels();
+    models["Test/FailingHook"] = {
+      Metadata: { Identifier: "Test/FailingHook", Relations: { behaviors: [{ attribute: "files" }] } }
+    };
+    const log = sinon.stub(svc, "log");
+    const owns = sinon
+      .stub(svc as any, "ownsAttribute")
+      .callsFake((model: any) => model === models["Test/FailingHook"]);
+    const hook = sinon.stub(svc as any, "hookDelete").throws(new Error("no repository"));
+    try {
+      await svc.init();
+      assert.ok(log.getCalls().some(c => c.args[0] === "WARN" && /Test\/FailingHook/.test(c.args[1])));
+      assert.ok(!(svc as any).hookedModels.has("Test/FailingHook"), "retried by a later init");
+      hook.resetBehavior();
+      await svc.init();
+      assert.ok((svc as any).hookedModels.has("Test/FailingHook"));
+    } finally {
+      owns.restore();
+      hook.restore();
+      delete models["Test/FailingHook"];
+    }
+  }
+
+  /**
+   * A `BinariesImpl` subclass serializes as a plain array and, hydrated, exposes its parent
+   */
+  @test
+  photoLikeSerializesAsAnArray() {
+    const holder = this.holder([]);
+    assert.ok(holder.photos instanceof PhotoLike);
+    assert.ok(holder.photos.parent, "the hydrated behavior knows its parent");
+    const photos = new PhotoLike();
+    photos.push({ hash: "h1", size: 1, name: "h1", mimetype: "t" } as any);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(photos)), [
+      { hash: "h1", size: 1, name: "h1", mimetype: "t", metadata: {} }
+    ]);
+  }
+
+  /**
+   * End to end: `init()` discovers the model, filters its behavior attributes, hooks the real event repository
+   * once (a second `init()` does not duplicate it) and a real repository delete cascades the binaries
+   */
+  @test
+  async initHooksRealRepository() {
+    class RealCascadeService extends CascadeService {
+      protected getRepository(model: any): any {
+        return useRepository(model);
+      }
+    }
+    const svc = new RealCascadeService("cascade", new BinaryParameters().load({}));
+    const models: any = useApplication().getModels();
+    const previousMetadata = Object.getOwnPropertyDescriptor(PhotoHolder, "Metadata");
+    const previousRepo = Repositories.get(PhotoHolder);
+    Object.defineProperty(PhotoHolder, "Metadata", {
+      value: {
+        Identifier: "WebdaTest/PhotoHolder",
+        PrimaryKey: ["uuid"],
+        Relations: { behaviors: [{ attribute: "photos", behavior: "Test/PhotoLike" }] }
+      },
+      configurable: true
+    });
+    models["WebdaTest/PhotoHolder"] = PhotoHolder;
+    const stub = sinon.stub(useCore(), "getBinaryStore").returns(svc as any);
+    try {
+      (PhotoHolder as any).registerSerializer(true, "WebdaTest/PhotoHolder");
+      const memory = new MemoryRepository(PhotoHolder as any, ["uuid"]);
+      const repo = new EventRepository(PhotoHolder as any, ["uuid"], memory as any);
+      registerRepository(PhotoHolder as any, repo as any);
+      await memory.create(this.holder(["h1", "h2"]) as any);
+      const on = sinon.spy(repo as any, "on");
+      await svc.init();
+      await svc.init();
+      assert.strictEqual(on.getCalls().filter(c => c.args[0] === "Delete").length, 1);
+      assert.strictEqual(on.getCalls().filter(c => c.args[0] === "Deleted").length, 1);
+      await repo.delete("a" as any);
+      assert.deepStrictEqual(
+        svc.cascade
+          .getCalls()
+          .map(c => c.args[0].hash)
+          .sort(),
+        ["h1", "h2"]
+      );
+      assert.strictEqual(svc.cascade.getCall(0).args[1], "a");
+      assert.deepStrictEqual(
+        svc.cascade.getCalls().map(c => [c.args[2], c.args[3]]),
+        [
+          ["photos", "WebdaTest/PhotoHolder"],
+          ["photos", "WebdaTest/PhotoHolder"]
+        ]
+      );
+    } finally {
+      stub.restore();
+      delete models["WebdaTest/PhotoHolder"];
+      if (previousMetadata) Object.defineProperty(PhotoHolder, "Metadata", previousMetadata);
+      else delete (PhotoHolder as any).Metadata;
+      if (previousRepo) Repositories.set(PhotoHolder as any, previousRepo);
+      else Repositories.delete(PhotoHolder as any);
+    }
   }
 }

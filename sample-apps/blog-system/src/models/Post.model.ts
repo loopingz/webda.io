@@ -1,4 +1,4 @@
-import { BelongTo, Contains, ManyToMany, Model, WEBDA_PRIMARY_KEY, WEBDA_EVENTS, ModelEvents } from "@webda/models";
+import { Contains, ManyToMany, ManyToOne, Model, WEBDA_PRIMARY_KEY, WEBDA_EVENTS, ModelEvents } from "@webda/models";
 import type { User } from "./User.model.js";
 import type { Comment } from "./Comment.model.js";
 import type { Tag } from "./Tag.model.js";
@@ -102,7 +102,7 @@ export class Post extends Model {
   publishedAt?: Date;
 
   // Relations
-  author!: BelongTo<User>;
+  author!: ManyToOne<User>;
   comments!: Contains<Comment>;
   /**
    * PUT|GET /posts/:slug/tags to get all tags for a post with a query

@@ -54,17 +54,100 @@ pnpm add @webda/otel
 }
 ```
 
-| Parameter | Type | Default | Required | Description |
-|---|---|---|---|---|
-| `name` | string | app name | No | Service name reported to OTLP as `service.name` |
-| `traceExporter.type` | `"otlp"` \| `"console"` | `"otlp"` | No | Trace export destination |
-| `traceExporter.enable` | boolean | `true` | No | Enable/disable trace exporting |
-| `traceExporter.sampling` | number | `0.01` | No | Trace sampling rate (0.0–1.0) |
-| `metricExporter.type` | `"otlp"` \| `"console"` | `"otlp"` | No | Metric export destination |
-| `metricExporter.enable` | boolean | `true` | No | Enable/disable metric exporting |
-| `loggerExporter.enable` | boolean | `true` | No | Enable/disable log exporting |
-| `loggerExporter.url` | string | `"http://localhost:4317"` | No | OTLP gRPC endpoint for log export |
-| `diagnostic` | string | `"NONE"` | No | OTel SDK diagnostic level: `NONE`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `ALL` |
+| Parameter                  | Type                    | Default                   | Required | Description                                                                                                                                           |
+| -------------------------- | ----------------------- | ------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                     | string                  | app name                  | No       | Service name reported to OTLP as `service.name`                                                                                                       |
+| `traceExporter.type`       | `"otlp"` \| `"console"` | `"otlp"`                  | No       | Trace export destination                                                                                                                              |
+| `traceExporter.enable`     | boolean                 | `true`                    | No       | Enable/disable trace exporting                                                                                                                        |
+| `traceExporter.sampling`   | number                  | `0.01`                    | No       | Trace sampling rate (0.0–1.0)                                                                                                                         |
+| `metricExporter.type`      | `"otlp"` \| `"console"` | `"otlp"`                  | No       | Metric export destination                                                                                                                             |
+| `metricExporter.enable`    | boolean                 | `true`                    | No       | Enable/disable metric exporting                                                                                                                       |
+| `loggerExporter.enable`    | boolean                 | `true`                    | No       | Enable/disable log exporting                                                                                                                          |
+| `loggerExporter.url`       | string                  | `"http://localhost:4317"` | No       | OTLP gRPC endpoint for log export                                                                                                                     |
+| `diagnostic`               | string                  | `"NONE"`                  | No       | OTel SDK diagnostic level: `NONE`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `ALL`                                                                            |
+| `webTracing.allowedEmails` | string[]                | `[]`                      | No       | Emails allowed to enable web tracing, regular expressions matching the whole email, case-insensitively (`"*"`: any authenticated user). Empty: nobody |
+| `webTracing.duration`      | number                  | `900`                     | No       | Trace token lifetime in seconds                                                                                                                       |
+| `trustedTraceSources`      | string[]                | `[]`                      | No       | IPs or CIDRs whose `traceparent` and `baggage` are always honored                                                                                     |
+
+## Request tracing
+
+Webda starts the server span of every request itself, on every entry point: `HttpServer` (HTTP/1.1, HTTP/2, h2c),
+`GrpcService`, the AWS `LambdaServer` and the `AzureFunctionServer`. The incoming spans of the HTTP instrumentation
+and the AWS Lambda instrumentation are disabled. It records `http.server.request.duration` (seconds) or `rpc.server.duration`
+(milliseconds) for every request, traced or not.
+
+An outside caller cannot force sampling or inject baggage. The incoming W3C `traceparent` and `baggage` are honored
+only in these cases:
+
+| Request                                               | `traceparent`                                                                                                                           | `baggage`                                                        | Span `session.id`       |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------- |
+| From a `trustedTraceSources` address                  | honored (sampled flag too)                                                                                                              | honored, propagated                                              | from baggage if present |
+| Valid, unexpired `X-Webda-Trace` token                | trace and parent ids honored, always recorded (an unsampled parent is treated as sampled); none or invalid: a new root, always recorded | honored, propagated, `session.id` rewritten to the token session | token session           |
+| Anything else (including an invalid or expired token) | ignored: new root, `sampling` ratio                                                                                                     | dropped                                                          | none                    |
+
+The rows are checked in order: a request from a trusted source is handled as trusted even when it carries a token
+(its `session.id` then comes from its baggage only).
+
+The client address is the one `HttpServer` resolves through its `trustedProxies`. `X-Webda-Trace` is never sent on
+outgoing calls; `traceparent`, `tracestate` and `baggage` are.
+
+The tracing headers (`traceparent`, `tracestate`, `baggage`, `X-Webda-Trace`) are added to the CORS allowed
+headers. CORS response headers are only emitted for the origins accepted by a CORS filter: list the UI origins in the
+`website` parameter (exact origins, `https://*.example.com` for subdomains, or `"*"`), for example:
+
+```json
+{
+  "parameters": {
+    "website": ["https://app.example.com"]
+  }
+}
+```
+
+Services with the `cors-filter` capability, or `useRouter().registerCORSFilter()`, can accept more origins.
+
+A `@grpc/grpc-js` server created by the application itself (not `GrpcService`) is still instrumented by the gRPC
+instrumentation, which honors any incoming trace context: do not expose such a server to untrusted callers, or
+disable `@opentelemetry/instrumentation-grpc`.
+
+On AWS Lambda, spans are exported in batches and the runtime may freeze before they are sent: export them with a
+`SimpleSpanProcessor` (override `getSpanProcessors`) or flush the tracer provider at the end of the invocation.
+
+### On-demand web tracing
+
+An allowed user (`webTracing.allowedEmails`, or override `canEnableWebTracing`) calls the `Otel.EnableWebTracing`
+operation:
+
+```http
+POST /otel/tracing
+{ "sessionId": "optional-session-to-join" }
+```
+
+`sessionId` is 1 to 128 characters among `A-Z a-z 0-9 . _ : -` (anything else is a `400`). It answers
+`{ token, sessionId, expiresAt }`. The browser then sends `X-Webda-Trace: <token>`, a sampled
+`traceparent` and `baggage: session.id=<sessionId>` on its requests: every span of those requests carries
+`session.id`, so one session can be searched in the tracing backend. The token is signed with the application keys
+for the `webda-trace` audience: it is not a session token.
+
+### Upgrading
+
+Behaviour changes for existing `@webda/otel` users:
+
+- `trustedTraceSources` defaults to `[]`: an upstream `traceparent` sent by another of your services is no longer
+  honored until its addresses are listed. Otherwise the cross-service traces are split, each service starting its
+  own root.
+- `traceExporter.sampling` now applies to every root span, the auto-instrumented HTTP and database spans included
+  (a `ParentBased` ratio sampler).
+- The incoming SERVER spans of the HTTP instrumentation, and the span previously started by the router, are replaced
+  by the Webda SERVER span described above.
+- On Lambda, an `OPTIONS` request without an `Origin` header no longer gets `Access-Control-Max-Age` and
+  `Access-Control-Allow-Headers`.
+- The Router now emits the CORS response headers itself, for the origins accepted by a CORS filter, and the
+  `website` parameter now registers one (matched on the request `Origin` header).
+
+### Profiling
+
+Continuous profiling is not done in process: run the OpenTelemetry collector eBPF profiler next to the application
+to export OTLP profiles, and correlate them with these traces.
 
 ## Usage
 

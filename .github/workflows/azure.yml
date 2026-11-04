@@ -1,0 +1,51 @@
+name: Azure emulators
+
+on:
+  pull_request:
+    paths:
+      - "packages/azure/**"
+      - "packages/core/**"
+      - "packages/models/**"
+      - "packages/utils/**"
+      - ".github/workflows/azure.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulators:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+        ports:
+          - 10000:10000
+      cosmos:
+        image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+        ports:
+          - 8081:8081
+        env:
+          AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "2"
+          AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "false"
+          AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE: "127.0.0.1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Build Azure and its dependencies
+        run: pnpm -r --workspace-concurrency=1 --filter '@webda/azure...' run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Trust only the local emulator certificate
+        run: curl -fk --retry 90 --retry-delay 2 --retry-connrefused --retry-all-errors https://localhost:8081/_explorer/emulator.pem -o /tmp/cosmos-emulator.pem
+      - name: Test Blob and Cosmos against emulators
+        run: pnpm --filter @webda/azure exec vitest run src/services/emulators.spec.ts --coverage.enabled=false
+        env:
+          AZURE_EMULATOR_TESTS: "true"
+          NODE_EXTRA_CA_CERTS: /tmp/cosmos-emulator.pem

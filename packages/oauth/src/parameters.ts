@@ -16,10 +16,17 @@ export interface OAuthClient {
   defaultScope?: string;
   /** Maximum scope ever granted */
   allowedScopes?: string;
+  /**
+   * Resource the tokens are bound to when the request names none (RFC 8707): the absolute URI of a registered
+   * protected resource
+   */
+  defaultResource?: string;
   /** Device authorization grant allowed */
   deviceFlow?: boolean;
   /** Loaded from a Client ID Metadata Document */
   metadataDocument?: boolean;
+  /** Registered dynamically (RFC 7591) */
+  registered?: boolean;
 }
 
 /** Built-in Webda CLI client */
@@ -47,14 +54,40 @@ export function validateClient(id: string, client: any): void {
   if (!Array.isArray(client.redirect_uris) || !client.redirect_uris.every((u: unknown) => typeof u === "string")) {
     fail("redirect_uris must be an array of strings");
   }
+  if (client.defaultResource !== undefined && !isHttpUrl(client.defaultResource)) {
+    fail("defaultResource must be an absolute http(s) URL");
+  }
+}
+
+/**
+ * @param value - value to check
+ * @returns true when it is an absolute http or https URL
+ */
+function isHttpUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
 }
 
 /** OAuthServer parameters */
 export class OAuthServerParameters extends ServiceParameters {
   /** @default "/oauth" */
   url: string;
-  /** Issuer; defaults to the request origin */
+  /**
+   * Issuer; defaults to the request origin. When set, the access tokens carry it as `iss` with the RFC 9068
+   * `at+jwt` type, so another application can verify them (see `resources`)
+   */
   issuer?: string;
+  /**
+   * Protected resources served by other applications (absolute URIs, RFC 8707): accepted as a `resource` or a client
+   * `defaultResource`, never chosen by default. Their tokens are verified from the issuer keys, so they require
+   * `issuer`, an asymmetric `CryptoService` algorithm and its published JWKS (`url`)
+   * @default []
+   */
+  resources: string[];
   /** Static clients by id; `null` removes a built-in client */
   clients: Record<string, Omit<OAuthClient, "id"> | null>;
   /** @default true */
@@ -91,6 +124,22 @@ export class OAuthServerParameters extends ServiceParameters {
   rememberConsent: boolean;
   /** @default 7776000 */
   rememberConsentTtl: number;
+  /** Lifetime of a registered client never used (s)
+   * @default 86400 */
+  registrationUnusedTtl: number;
+  /** Lifetime of a registered client since its last use (s)
+   * @default 7776000 */
+  registrationIdleTtl: number;
+  /** Dynamic client registration (RFC 7591); defaults to `open` when a protected resource is registered, else `off` */
+  registration?: "open" | "off";
+  /** Globs every redirect URI of a registration must match one of */
+  registrationRedirectPatterns?: string[];
+  /** Registrations allowed per client IP in the window
+   * @default 20 */
+  registrationRateLimit: number;
+  /** Window of the registration rate limit (s)
+   * @default 3600 */
+  registrationRateWindow: number;
   /** Advertised scopes; defaults to the top-level operation groups */
   scopesSupported?: string[];
 
@@ -106,6 +155,7 @@ export class OAuthServerParameters extends ServiceParameters {
     for (const [id, client] of Object.entries(this.clients)) {
       if (client !== null) validateClient(id, client);
     }
+    this.resources ??= [];
     this.clientMetadataDocuments ??= true;
     this.clientMetadataHosts ??= [];
     this.clientMetadataTimeout ??= 5;
@@ -115,6 +165,10 @@ export class OAuthServerParameters extends ServiceParameters {
     this.devicePollInterval ??= 5;
     this.rememberConsent ??= true;
     this.rememberConsentTtl ??= 90 * 24 * 3600;
+    this.registrationUnusedTtl ??= 86400;
+    this.registrationIdleTtl ??= 7776000;
+    this.registrationRateLimit ??= 20;
+    this.registrationRateWindow ??= 3600;
     return this;
   }
 }

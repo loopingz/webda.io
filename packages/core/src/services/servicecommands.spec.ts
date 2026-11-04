@@ -1010,7 +1010,7 @@ class CliConfigurationTest {
   }
 
   @test
-  async subclassServesOnceWhenTheBaseProviderIsExcluded() {
+  async subclassServesOnceWithTheClosestCommandDeclaration() {
     const calls: string[] = [];
     class HttpServer {
       constructor(private name: string) {}
@@ -1034,11 +1034,20 @@ class CliConfigurationTest {
     );
     assert.deepStrictEqual(calls, ["runner:127.0.0.1,3000,wss://other"]);
 
-    // Without the exclusion, the inherited provider runs it a second time: the reason to exclude it
+    // An explicit override wins even when both providers are present, in either module order.
     calls.length = 0;
     const all = collectServiceCommands(cliApp());
     await executeServiceCommand("serve", all.serve, { port: 3000 }, services);
-    assert.strictEqual(calls.length, 2);
+    assert.strictEqual(calls.length, 1);
+
+    // Selecting only the parent provider still runs the subclass instance once.
+    calls.length = 0;
+    await executeServiceCommand("serve", all.serve, { port: 3000 }, services, ["Webda/HttpServer"]);
+    assert.strictEqual(calls.length, 1);
+    calls.length = 0;
+    all.serve.services.reverse();
+    await executeServiceCommand("serve", all.serve, { port: 3000 }, services);
+    assert.strictEqual(calls.length, 1);
 
     // An excluded type is not added to the configuration to run the command
     const config = { services: {} as any };

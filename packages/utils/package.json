@@ -1,6 +1,6 @@
 {
   "name": "@webda/utils",
-  "version": "4.0.0-beta.10",
+  "version": "4.0.0-beta.11",
   "description": "Utils function for NodeJS projects",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
@@ -34,16 +34,17 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@webda/decorators": "workspace:*",
     "@webda/workout": "workspace:*",
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
+    "@types/node": "26.6.6",
     "@webda/test": "workspace:*",
-    "skott": "^0.35.8",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "skott": "^0.35.12",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "files": [
     "lib"

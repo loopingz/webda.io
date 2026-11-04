@@ -87,6 +87,15 @@ The build writes the JSON schema of your configuration to `.webda/config.schema.
 
 Editors such as VS Code then complete and validate service types and their parameters.
 
+Each build also writes `.webda/deployment.schema.json` and adds the reference to every file of the `deployments/`
+folder when it is missing:
+
+- JSON/JSONC files get a `"$schema": "../.webda/deployment.schema.json"` first property, formatting and comments are kept
+- YAML files get a `# yaml-language-server: $schema=../.webda/deployment.schema.json` first line
+
+A stale reference to a Webda schema (wrong path, legacy `.webda-config-schema.json` or
+`.webda-deployment-schema.json`) is updated; any other `$schema` value is left untouched.
+
 ## Working with a coding agent
 
 The generated application includes `AGENTS.md`, `CLAUDE.md` and skills in `.agents/skills/` describing the Webda

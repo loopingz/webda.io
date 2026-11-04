@@ -12,7 +12,7 @@ sidebar_label: Build
 ```mermaid
 flowchart TD
     TS["TypeScript source\nsrc/**/*.ts"]
-    TSC["tsc-esm\n(TypeScript → ES modules)"]
+    TSC["@webda/content-mapper build\n(TypeScript 7.1 → ES modules)"]
     LIB["lib/**/*.js\n(compiled output)"]
     Module["ModuleGenerator\n(analyze compiled program)"]
     Models["Model schemas\n(input/output/stored)"]
@@ -35,7 +35,7 @@ flowchart TD
 **Step-by-step:**
 
 1. **Incremental check** — computes a digest of the source tree; if nothing changed since the last build (and `webda.module.json` is intact), skips recompilation.
-2. **TypeScript compilation** — runs `@webda/tsc-esm` to emit ES module JavaScript into `lib/`.
+2. **TypeScript compilation** — runs the `@webda/content-mapper` two-pass build on TypeScript 7.1 (`"module": "nodenext"`) to emit ES module JavaScript into `lib/`, generated accessors, behaviours and WebdaQL rewrites included.
 3. **Module analysis** — `ModuleGenerator` walks the compiled TypeScript program to discover:
    - Models (`Model`, `UuidModel`, or any subclass)
    - Services (beans, moddas)

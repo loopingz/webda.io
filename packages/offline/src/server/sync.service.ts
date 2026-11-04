@@ -680,7 +680,7 @@ export class SyncService extends Service<SyncServiceParameters> {
       const current = await this.load(modelId, m.ref.key);
       if (m.op === "create") {
         if (current) return this.keyInUse(mutationId, modelId, current);
-        const input = { ...sanitizeModelInput(model, m.patch ?? {}), ...keyFields };
+        const input = { ...sanitizeModelInput(model, m.patch ?? {}, context), ...keyFields };
         const candidate = new model();
         candidate["load"](input);
         await checkModelPermission(candidate, context, "create", model);
@@ -717,8 +717,8 @@ export class SyncService extends Service<SyncServiceParameters> {
         const before = this.toSynced(modelId, current).object;
         const after = applyDelta(before, m.patch);
         // Server-managed attributes keep their stored value; client-writable ones come from `after`
-        const writable = sanitizeModelInput(model, after);
-        const writableBefore = sanitizeModelInput(model, before);
+        const writable = sanitizeModelInput(model, after, context);
+        const writableBefore = sanitizeModelInput(model, before, context);
         const managed = Object.fromEntries(Object.entries(before).filter(([key]) => !(key in writableBefore)));
         const data: any = { ...managed, ...writable, ...keyFields, _rev: m.baseRev + 1 };
         const error = this.invalid(modelId, data);

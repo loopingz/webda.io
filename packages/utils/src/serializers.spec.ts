@@ -242,7 +242,7 @@ plop: test
       try {
         readlinkSync(__dirname + "/../test/link");
       } catch (err) {
-        symlinkSync(__dirname + "/../../core/templates", __dirname + "/../test/link");
+        symlinkSync(__dirname + "/../../mailer/test/templates", __dirname + "/../test/link");
       }
       try {
         readlinkSync(__dirname + "/../test/linkFile");

@@ -138,6 +138,18 @@ Errors are `AggregationError`s with a `code`: `AGGREGATION_NOT_NATIVE` (fallback
 WebdaQL also parses the same request as a `SELECT … GROUP BY` statement, see
 [Statements](../../Modules/ql/Statements.md#aggregation-select--group-by).
 
+## Count
+
+`Model.count()` (or `useRepository(Model).count()`) counts the objects matching a filter, natively on Memory, File,
+PostgreSQL, SQLite and MongoDB, otherwise in memory under `aggregationFallback`. `max` caps the count:
+
+```typescript
+await Task.count("status = ?", ["open"], { max: 10000 }); // { value: 1234, relation: "eq", native: true }
+```
+
+`ORDER BY`, `LIMIT` and `OFFSET` are ignored. Clients get a permission-safe total through the query `count` option,
+see [Query totals](./Query-Total.md).
+
 ## Slow queries
 
 Webda monitors query execution times across all repositories and logs warnings whenever a query exceeds a configurable threshold.

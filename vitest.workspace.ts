@@ -46,10 +46,6 @@ export default defineWorkspace([
     test: { name: "test", root: "packages/test" }
   },
   {
-    extends: "packages/tsc-esm/vitest.config.ts",
-    test: { name: "tsc-esm", root: "packages/tsc-esm" }
-  },
-  {
     extends: "packages/utils/vitest.config.ts",
     test: { name: "utils", root: "packages/utils" }
   },

@@ -1,14 +1,35 @@
 # Stores: v3 to v4
 
-With the Memory, File and Postgres stores, Webda 4 reads the data Webda 3 wrote, on the same database, without a manual step.
-You run `webda migrate` when you choose: it rewrites the Webda 3 types to the Webda 4 format, can be resumed, and is
-safe to run again.
+With the Memory, File, PostgreSQL, SQLite, MongoDB and DynamoDB stores, Webda 4 reads the data Webda 3 wrote, on the
+same database, without a manual step. You run `webda migrate` when you choose: it rewrites the Webda 3 types to the
+Webda 4 format, can be resumed, and is safe to run again.
 
-:::note
-The Memory, File and Postgres stores implement this today. The MongoDB, DynamoDB and Firestore stores arrive in
-follow-up releases: until then those stores are not read transparently or migrated yet. The authentication data
-(idents, users) has its own command, `webda auth migrate`.
-:::
+| Store                          | Webda 3 types read | `webda migrate` | Startup check         |
+| ------------------------------ | ------------------ | --------------- | --------------------- |
+| `MemoryStore`, `FileStore`     | yes                | yes             | scan, up to `maxRows` |
+| `PostgresStore`, `SQLiteStore` | yes                | yes             | exact (`GROUP BY`)    |
+| `MongoStore`                   | yes                | yes             | exact (`$group`)      |
+| `DynamoStore`                  | yes                | yes             | scan, up to `maxRows` |
+| `FireStore`                    | not filtered       | no              | no                    |
+
+`FireStore` neither stamps nor filters `__type`: its documents stay visible whatever type Webda 3 stored, and they
+load as the model of their collection. The authentication data (idents, users) has its own command,
+`webda auth migrate`.
+
+## Before the first Webda 4 login
+
+Start Webda 4 on a copy of the database first, and read the startup check and `webda migrate --dry-run`: they list
+the legacy, untyped and unknown types of every store. A row whose type no model resolves (a deleted or renamed
+model without `@WebdaAlias`, a model moved to another store) is invisible to queries.
+
+This matters most for the authentication models. When the `User` and `Ident` rows of an existing account are not
+found, the first login on Webda 4 creates a **new user** and new idents: the passkeys, tokens and objects of the
+Webda 3 user stay on the old one, and the two have to be merged by hand. Before you open Webda 4 to your users:
+
+1. check that the startup check reports no unknown type for the stores of `User` and `Ident`, declaring a
+   `@WebdaAlias` where needed;
+2. run `webda migrate`, then `webda auth migrate` (see [Authentication: v3 to v4](./Authentication-v3-to-v4.md));
+3. check that each store still reads the table or collection Webda 3 wrote (see [Postgres tables](#postgres-tables)).
 
 ## Postgres tables
 
@@ -40,6 +61,16 @@ first model is `MyApp/User extends Webda/User`, a row stored as `webda/user` or 
 the queries of `MyApp/User` and its ancestors see it, and `webda migrate` rewrites it to `MyApp/User`
 (`webda/user → MyApp/User`). The startup check counts it as a legacy type.
 
+## MongoDB and DynamoDB
+
+A `MongoStore` keeps every model of the store in its `collection`. A `DynamoStore` keeps them in its `table`, unless
+`tables` maps a model elsewhere. Untyped documents and items belong to the first model of `models` stored in the
+collection or table. MongoDB matches the stored types in the query itself, case-insensitively. DynamoDB cannot compare
+case-insensitively, so it filters the scanned items in memory, as it already did for the subclasses.
+
+Saving a document of a legacy type writes its current identifier: MongoDB in the same update, DynamoDB with a second
+update conditioned on the type it replaces.
+
 ## `webda migrate`
 
 ```bash
@@ -66,8 +97,9 @@ Store Users: migration types
 - Resuming in another process and the lease between processes need a persistent Registry shared by every runner: a
   Registry kept in memory only protects the runners of one process, and its progress is lost when it stops.
 - Running it again scans every row again and reports 0 updates.
-- `webda migrate` runs on the stores that declare the `migrate` command: the Memory, File and Postgres stores. A `Store`
-  subclass of your own only gets it if it declares the `migrate` command itself; other stores are not migrated yet.
+- `webda migrate` runs on the stores that declare the `migrate` command: the Memory, File, PostgreSQL, SQLite, MongoDB
+  and DynamoDB stores. A `Store` subclass of your own only gets it if it declares the `migrate` command itself; other
+  stores are not migrated.
 
 ## Renamed models: `@WebdaAlias`
 

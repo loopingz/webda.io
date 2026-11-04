@@ -138,6 +138,20 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
   }
 
   /**
+   * Check if the caller can do `action` on this object, asked by the static {@link Model.canAct}
+   *
+   * Nothing is allowed by default: override it to grant access. Declaring it on the base class types every
+   * override, so an override with its parameters swapped (`canAct(action, context)`) does not compile.
+   *
+   * @param _context - the caller context
+   * @param _action - the action name ("get", "create", "update", "delete", an action name, "attribute.action")
+   * @returns `true` when allowed, otherwise a refusal (a reason string or `false`)
+   */
+  canAct(_context: CanActContext, _action: string): CanActResult {
+    return false;
+  }
+
+  /**
    * Model events
    */
   [WEBDA_EVENTS]?: ModelEvents<this>;

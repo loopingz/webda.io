@@ -102,6 +102,11 @@ class SdkRestE2ETest extends SampleAppTest {
     assert.strictEqual(page.results[0].uuid, created.uuid);
     await api.Company.query(`name = 'Acme'`);
     assert.deepStrictEqual(SdkRestE2ETest.requests, ["POST /companies", "PUT /companies"]);
+    // count is sent to the server; Company has no complete permission query, so no total comes back
+    const counted = await api.Company.query(`name = 'Acme'`, { count: true, cache: "no-store" });
+    assert.strictEqual(counted.results.length, 1);
+    assert.strictEqual(counted.total, undefined);
+    SdkRestE2ETest.requests.pop();
     // Patch: the entity is merged, the queries invalidated, change emitted
     const patched = await api.Company.patch(created.uuid, { name: "Acme Inc" });
     assert.strictEqual(patched.name, "Acme Inc");

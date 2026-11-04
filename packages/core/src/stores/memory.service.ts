@@ -5,7 +5,7 @@ import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
 import { GunzipConditional } from "@webda/utils";
 import { Store, StoreParameters } from "./store.js";
-import { EventRepository, MemoryRepository, type ModelClass, type Repository } from "@webda/models";
+import { EventRepository, MemoryRepository, TypeIndexedMap, type ModelClass, type Repository } from "@webda/models";
 import { InstanceCache } from "../cache/cache.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { Command } from "../services/command.js";
@@ -157,8 +157,12 @@ class LDJSONMemoryStreamReader extends Writable {
   }
 }
 
-/** Map subclass that triggers persistence on every write */
-class MemoryModelMap extends Map<string, string> {
+/**
+ * Storage map that triggers persistence on every write
+ *
+ * Indexed by stored type: a query of one model never parses the documents of the other models of the store.
+ */
+class MemoryModelMap extends TypeIndexedMap {
   persistence: () => void;
   /**
    * Set a value and trigger persistence callback

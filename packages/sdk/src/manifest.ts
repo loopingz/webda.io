@@ -9,7 +9,7 @@ import {
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import type { JSONSchema7 } from "json-schema";
-import type { GraphQLExposure, HttpMethod, OperationKind, OperationStreaming } from "./client/types.js";
+import type { GraphQLExposure, HttpMethod, OperationKind, OperationStreaming, RestExposure } from "./client/types.js";
 import { describeGraphQL } from "./manifest-graphql.js";
 
 /** A method marked `@Shared()` on a model, as the compiler recorded it */
@@ -29,7 +29,7 @@ export interface SdkManifestOperation {
   input: string;
   output: string;
   streaming: OperationStreaming;
-  rest?: { method: HttpMethod; path: string; pathParams: string[]; query?: string[] };
+  rest?: RestExposure;
   /** Where and how the `GraphQLService` exposes the operation, read from its schema */
   graphql?: GraphQLExposure;
   /** The rpc of the operation, named as `generateProto()` does */
@@ -221,20 +221,28 @@ export class SdkManifestBuilder {
   protected restRoutes(rest: RESTOperationsTransport): Map<string, SdkManifestOperation["rest"]> {
     const routes = new Map<string, SdkManifestOperation["rest"]>();
     this.ensureRoutes(rest);
+    const operations = listFullOperations();
     for (const [url, infos] of Object.entries(useRouter().getRoutes())) {
       // `{?q?}` lists the query-string parameters of the template
       const query = /\{\?([^}]*)\}/.exec(url)?.[1];
+      const queryNames = query?.split(",") ?? [];
+      const queryCatchAll = queryNames.find(name => /[*+]$/.test(name))?.slice(0, -1);
       const path = url.replace(/\{\?[^}]*\}/, "");
       const pathParams = [...path.matchAll(/\{([^}]+)\}/g)].map(match => match[1]);
       for (const info of infos as any[]) {
         for (const method of info.methods as string[]) {
           const operationId = info.openapi?.[method.toLowerCase()]?.operationId;
           if (!operationId || routes.has(operationId)) continue;
+          const hint = operations[operationId]?.rest;
           routes.set(operationId, {
             method: method.toLowerCase() as HttpMethod,
             path,
             pathParams,
-            ...(query ? { query: query.split(",").map(name => name.replace(/\?$/, "")) } : {})
+            ...(query
+              ? { query: queryNames.filter(name => !/[*+]$/.test(name)).map(name => name.replace(/\?$/, "")) }
+              : {}),
+            ...(queryCatchAll ? { queryCatchAll } : {}),
+            ...(hint && hint.body ? { body: hint.body } : {})
           });
         }
       }
@@ -243,10 +251,10 @@ export class SdkManifestBuilder {
   }
 
   /**
-   * The relations of a model, with the `targetAttribute` of its queries resolved to a real attribute of the target:
-   * the module metadata records the type name of `ModelRelated<Target, This, "attribute">` there (`Company` for
-   * `company`, `User` for `_user`), so the back-reference is taken from the target's parent relation when it points
-   * here, else matched on the target schema ignoring case
+   * Copy relations, resolving legacy query target type names to real attributes.
+   * Current metadata records the third argument of `ModelRelated<Target, This, "attribute">`;
+   * older metadata recorded the second argument instead. Preserve explicit attributes and
+   * use the target's parent or a case-insensitive schema match for legacy metadata.
    * @param id - the model id
    * @param relations - its metadata relations (frozen)
    * @param models - every model class, by id
@@ -257,13 +265,14 @@ export class SdkManifestBuilder {
     for (const query of copy.queries ?? []) {
       const target = models[query.model]?.Metadata;
       if (!target) continue;
+      const properties = Object.keys(target.Schemas?.Output?.properties ?? target.Schemas?.Input?.properties ?? {});
+      if (query.targetAttribute && properties.includes(query.targetAttribute)) continue;
       const parent = target.Relations?.parent;
       if (parent?.model === id) {
         query.targetAttribute = parent.attribute;
         continue;
       }
-      const properties = Object.keys(target.Schemas?.Output?.properties ?? target.Schemas?.Input?.properties ?? {});
-      if (properties.includes(query.targetAttribute)) continue;
+      if (!query.targetAttribute) continue;
       const wanted = query.targetAttribute.toLowerCase();
       const match = properties.find(
         property => property.toLowerCase() === wanted || property.toLowerCase() === `_${wanted}`

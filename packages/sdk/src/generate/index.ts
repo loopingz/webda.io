@@ -75,7 +75,9 @@ export function generateIndex(manifest: SdkManifest, names: GeneratorNames, mode
   lines.push(
     `export { SdkError, HttpTransport, EntityCache, MemoryCacheStorage, WebStorageCacheStorage } from ${quote(names.clientModule)};`
   );
-  lines.push(`export type { ClientOptions, CallOptions, Transport, QueryResult } from ${quote(names.clientModule)};`);
+  lines.push(
+    `export type { ClientOptions, CallOptions, Transport, QueryOptions, QueryResult, QueryTotal } from ${quote(names.clientModule)};`
+  );
   lines.push("");
   lines.push(`/** The client of the ${manifest.namespace} application */`);
   lines.push("export interface Client extends WebdaClient<Operations> {");

@@ -157,6 +157,35 @@ This is why we chose a compound suffix over a novel extension. Any tool that is 
 mapper-aware — including the mapper's _own_ resident program, see §6 — still sees valid
 TypeScript.
 
+### Update in `7.1.0-dev.20261102.1`: `TS18066` and the two supported modes
+
+In `typescript@7.1.0-dev.20261102.1`, `tsgo` changed `contentmapper.HasReservedSourceExtension`
+from an exact match (`ext == ".ts"`) to a suffix match (`strings.HasSuffix(ext, ".ts")`),
+emitting:
+
+```
+error TS18066: Content mapper file extension '.model.ts' cannot be registered
+because it ends in a built-in extension.
+```
+
+Wait-free builds and tests via `runTwoPass` (`typescript/sync` virtual filesystem) and
+`@webda/content-mapper/vite` are unaffected because `FileSystemCallbacks.readFile` intercepts
+`.model.ts` and `.service.ts` regardless of extension. For `tsc` CLI and `tsc --lsp` editor
+support, `@webda/content-mapper` supports two modes so projects can choose their trade-off:
+
+1. **Compound `.model.ts` / `.service.ts` with `patchTsc()` (default):**
+   `patchTsc()` in `@webda/content-mapper` (or `node lib/patch-tsc.js`) locates
+   `contentmapper.HasReservedSourceExtension` and `project.(*configFileRegistryBuilder).IsContentMapperPackageAllowed`
+   via the Go 1.20+ `pclntab` symbol table in the native `tsc` binary and relaxes both checks.
+   The rest of `tsgo`'s pipeline continues to route `.model.ts` and `.service.ts` through the
+   content mapper while preserving graceful degradation across ESLint, Prettier, Vitest and GitHub.
+2. **Custom `.model.wts` / `.service.wts` with `outputExtensions` (unmodified `tsc`):**
+   Projects that cannot patch the `tsc` binary can name files `*.model.wts` / `*.service.wts`
+   and declare `typescript.contentMapper.outputExtensions` (`{ ".model.wts": ".model.js", ".service.wts": ".service.js" }`).
+   Because `outputExtensions` rewrites the output extension to `.model.js` / `.service.js`,
+   all ESM import specifiers (`import { User } from "./user.model.js"`) remain identical. Both
+   `discoverWebdaObjects` and `webdaContentMapper` (Vite/Vitest) accept `.wts` alongside `.ts`.
+
 ### Mappers emit declarations, not JavaScript
 
 For a mapped input, `tsc` emits only a declaration file, and currently with a mangled name:
@@ -299,11 +328,11 @@ it over a ts-morph `Project` built from `sample-app/tsconfig.json`, then `webdac
 If someone creates `user.ts` instead of `user.model.ts`, the mapper never runs and the same
 silent bug appears. What changes is frequency and detectability:
 
-|                             | in-place codegen              | content mapper              |
-| --------------------------- | ----------------------------- | --------------------------- |
-| when it can happen          | **every edit**                | only when creating a file   |
-| what the guard must do      | re-run the generator and diff | check a filename            |
-| missing `--runExternalCode` | n/a                           | **hard error** (`TS18068`)  |
+|                             | in-place codegen              | content mapper             |
+| --------------------------- | ----------------------------- | -------------------------- |
+| when it can happen          | **every edit**                | only when creating a file  |
+| what the guard must do      | re-run the generator and diff | check a filename           |
+| missing `--runExternalCode` | n/a                           | **hard error** (`TS18068`) |
 
 ## 8. Guardrails
 
@@ -716,16 +745,16 @@ the TypeScript 6 worker, so the target is calibrated rather than hypothetical.
 > wrong target, because the committed file is not what `@webda/schema` computes — it is what
 > `webdac build` computes, and that runs the generator with a checker that does not own the
 > nodes it converts (§11). Measured: 18 of the 68 schemas in the corpus cannot be reproduced
-> by *either* implementation running correctly.
+> by _either_ implementation running correctly.
 >
 > So the harness now scores three outcomes rather than two, and every divergence has to be
 > demonstrated, not declared:
 >
-> | outcome                | meaning                                                              |
-> | ---------------------- | -------------------------------------------------------------------- |
-> | identical              | byte-for-byte against the committed artefact                         |
-> | known divergence       | differs, and the harness *proves* why — see below                    |
-> | mismatch               | unexplained; exit code 1                                             |
+> | outcome          | meaning                                           |
+> | ---------------- | ------------------------------------------------- |
+> | identical        | byte-for-byte against the committed artefact      |
+> | known divergence | differs, and the harness _proves_ why — see below |
+> | mismatch         | unexplained; exit code 1                          |
 >
 > The load-bearing check is a cross-check against the TypeScript 6 oracle: when the port and
 > the oracle agree and only the artefact differs, the artefact is stale. That is verified per
@@ -790,12 +819,12 @@ Four differences account for every mismatch found, and all four fail **silently*
 produces a valid schema that is quietly wrong, which is exactly the failure class the hard
 constraint exists for.
 
-| symptom                                    | cause                                                                                       |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| every `enum` reordered                     | `UnionType.getTypes()` returns constituents alphabetically, not by type id                  |
-| descriptions missing on inline object types | `getDocumentationComment` no longer walks a type literal up to its parent property          |
-| descriptions missing on documented bases    | it no longer inherits through `extends` / `implements`                                      |
-| `{@link X}` flattened to `X`               | links are rendered rather than returned in source form                                       |
+| symptom                                     | cause                                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| every `enum` reordered                      | `UnionType.getTypes()` returns constituents alphabetically, not by type id         |
+| descriptions missing on inline object types | `getDocumentationComment` no longer walks a type literal up to its parent property |
+| descriptions missing on documented bases    | it no longer inherits through `extends` / `implements`                             |
+| `{@link X}` flattened to `X`                | links are rendered rather than returned in source form                             |
 
 The first is restored by sorting on `Type.id`: both checkers canonicalise a union by id, and
 ids are issued as types are created, so for the literals of one union that ordering **is**
@@ -908,7 +937,7 @@ Two more silent divergences, on top of the four from 7.1:
 7.1's union ordering was the subtlest bug in either stage. `UnionType.getTypes()` returns
 constituents alphabetically, so the order has to be reconstructed, and sorting on `Type.id`
 appears to do it — ids are issued as types are created. It is wrong, and it fails
-*intermittently*: ids depend on what the session queried first, so `"SUCCESS" | "ERROR"`
+_intermittently_: ids depend on what the session queried first, so `"SUCCESS" | "ERROR"`
 came back reversed whenever something earlier in the batch had already interned `"ERROR"`.
 The score moved depending on which requests shared a worker.
 
@@ -941,13 +970,13 @@ there is no provenance to look them up by. Reproducing them means reproducing th
 **discovery** as well as the conversion, and the worker answers one request with the whole
 map. Two sorts share it:
 
-- **`<Namespace>/<Name>`** for a type tagged `@WebdaSchema`. Found across the *whole
-  program*, dependencies included — the 6.x walk tests the tag before it tests whether the
+- **`<Namespace>/<Name>`** for a type tagged `@WebdaSchema`. Found across the _whole
+  program_, dependencies included — the 6.x walk tests the tag before it tests whether the
   file belongs to the project, which is why `@webda/core`'s `BinaryFile` reappears in every
   downstream module under that application's namespace. Restricting the walk to project
   sources silently drops it.
 - **`<Root>.<method>.input` / `.output`** for `@Action` or `@Operation` methods. The root is
-  *not* computed uniformly, and the inconsistency is load-bearing rather than incidental: a
+  _not_ computed uniformly, and the inconsistency is load-bearing rather than incidental: a
   model uses its namespaced name, a modda or bean uses its **raw class name**, a behaviour
   uses its `@WebdaBehavior` payload. `.webda/operations.json` depends on the middle case —
   it recovers service operations by matching `^([^.]+)\.` against the short class name, so a
@@ -959,26 +988,26 @@ It is a hand-built wrapper whose properties are one generated document per param
 stripped of its `$schema`. Everything odd about it follows from that, and all of it is in
 the committed artefact:
 
-|                     | `.input`                              | `.output`              |
-| ------------------- | ------------------------------------- | ---------------------- |
-| `$schema`           | absent                                | present                |
-| `additionalProperties` | absent                             | `false`                |
-| key order           | declaration order                     | sorted                 |
-| `required`          | declaration order, omitted when empty | sorted                 |
+|                        | `.input`                              | `.output` |
+| ---------------------- | ------------------------------------- | --------- |
+| `$schema`              | absent                                | present   |
+| `additionalProperties` | absent                                | `false`   |
+| key order              | declaration order                     | sorted    |
+| `required`             | declaration order, omitted when empty | sorted    |
 
 Every parameter is included, with no filter for `context` / `ctx`, so an `OperationContext`
 argument is expanded in full — `Writable`, `Promise<any>` and `Error` definitions and all.
-That is strange for something called an operation *input*, and it is reproduced rather than
+That is strange for something called an operation _input_, and it is reproduced rather than
 improved, because improving it is a separate decision.
 
 #### One more syntactic rule, found by the harness
 
 A property written `T | undefined` is optional **even though the checker says otherwise**.
 Most Webda packages compile with `strict: false`, where `string | undefined` folds back to
-`string`; `@webda/schema` therefore checks the *syntax* of the declaration rather than the
+`string`; `@webda/schema` therefore checks the _syntax_ of the declaration rather than the
 type. Missing it made `Location` required in `Binary.downloadUrl.output`.
 
-The rule applies to properties only. A *parameter* written `| undefined` is still
+The rule applies to properties only. A _parameter_ written `| undefined` is still
 positionally required, and the two paths genuinely differ — both are pinned by tests.
 
 #### The three divergences
@@ -989,7 +1018,7 @@ model. The third is a new member of the same family: 6.x left `OperationContext<
 substitutes it and emits the real shape.
 
 The harness accepts that one under a rule that is safe in a single direction: the reference
-said "anything", so the port can only be *narrowing* a contract that validated everything.
+said "anything", so the port can only be _narrowing_ a contract that validated everything.
 The reverse — the port loosening a contract — is never accepted, which is the case that
 would matter.
 
@@ -1020,10 +1049,10 @@ artefact that should not have been compared at all.
 
 #### Thirteen modules are not comparable, for two different reasons
 
-| reason                              | count | which                                                                                 |
-| ----------------------------------- | ----: | ------------------------------------------------------------------------------------- |
-| pre-format: no `$schema`, `moddas` are bare strings | 11 | amqp, async, aws, cloudevents, elasticsearch, gcp, google-auth, hawk, kubernetes, mongodb, otel |
-| no installed dependencies           |     2 | `test/compiler`, `test/compiler-operations`                                            |
+| reason                                              | count | which                                                                                           |
+| --------------------------------------------------- | ----: | ----------------------------------------------------------------------------------------------- |
+| pre-format: no `$schema`, `moddas` are bare strings |    11 | amqp, async, aws, cloudevents, elasticsearch, gcp, google-auth, hawk, kubernetes, mongodb, otel |
+| no installed dependencies                           |     2 | `test/compiler`, `test/compiler-operations`                                                     |
 
 The first set was never produced by the generator being replaced — ten of the eleven are
 also `!`-excluded in `pnpm-workspace.yaml` as "not yet ready". The second are compiler test
@@ -1038,7 +1067,7 @@ differently. Both sets are skipped with the reason printed, not silently dropped
   mostly uses the lowercase spelling — so `createdAt` and `updatedAt` were appearing in
   Input schemas that should exclude them.
 - **`@enum` payloads are invisible in 6.x.** `parseEnumTag` calls `parseJSDocTypeExpression`
-  with `mayOmitBraces: true`, so `@enum ["draft", "published"]` is parsed as a *type* and
+  with `mayOmitBraces: true`, so `@enum ["draft", "published"]` is parsed as a _type_ and
   the comment is empty. 7.1 returns the raw payload. Reproduced deliberately: letting it
   through would start populating `enum` from the tag, which is arguably what the author
   meant and is also a behaviour change. `@type` is unaffected — `parseTypeTag` requires
@@ -1047,7 +1076,7 @@ differently. Both sets are skipped with the reason printed, not silently dropped
   `WebdaSample/TestBean` — the same unresolved-parameters defect in a package the list had
   never seen. Replaced by a shape check keyed on the invariant that actually holds: the
   reference is missing the `type` property every `ServiceParameters` subclass inherits.
-- **`anyOf` order is not always recoverable.** For *literals* it is — that is what the
+- **`anyOf` order is not always recoverable.** For _literals_ it is — that is what the
   primitive-rank table and syntax order reconstruct. For object types drawn from library
   declarations it is not: 6.x ordered them by when each type happened to be created across
   the whole program. `ConnectionOptions.ALPNProtocols` puts `Uint8Array` ahead of `string[]`
@@ -1063,12 +1092,12 @@ Three kinds of divergence are recognised — unresolved parameters, relation ser
 generic substitution — plus `anyOf` reordering. Each is checked structurally on every run.
 Two deliberate regressions confirm the harness is not a rubber stamp:
 
-| injected fault                      | result                                    |
-| ----------------------------------- | ----------------------------------------- |
-| drop the automatic `default: false` | 24/48, 15/35, 67/76 — exit 1              |
-| silently drop two real properties   | 27/48 — exit 1                            |
+| injected fault                      | result                       |
+| ----------------------------------- | ---------------------------- |
+| drop the automatic `default: false` | 24/48, 15/35, 67/76 — exit 1 |
+| silently drop two real properties   | 27/48 — exit 1               |
 
-The second is the important one. Accepting a *removed* property is the most dangerous rule
+The second is the important one. Accepting a _removed_ property is the most dangerous rule
 in the classifier, so it is allowed only when the reference schema for that property was
 literally `{}` — it constrained nothing, so nothing it expressed can have been lost. A
 property with a real schema disappearing still fails.
@@ -1098,7 +1127,7 @@ The two majors never meet. `@webda/compiler` spawns `lib/schema/worker-cli.js` a
 subprocess and exchanges JSON — the same shape `@webda/content-mapper` already uses to
 drive `tsgo`. One spawn per build, batched, because opening the program is the expensive
 part: 34 requests in 351ms for `packages/core`. `@webda/content-mapper` is deliberately
-*not* a declared dependency of the compiler — it peers on `typescript@>=7.1.0-dev`, which
+_not_ a declared dependency of the compiler — it peers on `typescript@>=7.1.0-dev`, which
 would collide with the compiler's own TypeScript 6 the moment a package manager tried to
 satisfy it. `WEBDA_SCHEMA_WORKER` points at the worker directly, which is how the whole
 monorepo was exercised without first adding the package to twelve applications.
@@ -1110,14 +1139,14 @@ from **discovery**, so the two can disagree about which schemas exist at all —
 build catches that. Measured across six packages, the build changes exactly the entries
 the harness predicts, with no key added or removed:
 
-| package                 | harness predicts | build changes |
-| ----------------------- | ---------------: | ------------: |
-| `packages/core`         |                2 |             2 |
-| `packages/fs`           |                0 |             0 |
-| `packages/postgres`     |                3 |             3 |
-| `packages/runtime`      |                1 |             1 |
-| `sample-app`            |               18 |            18 |
-| `sample-apps/blog-system` |             10 |            10 |
+| package                   | harness predicts | build changes |
+| ------------------------- | ---------------: | ------------: |
+| `packages/core`           |                2 |             2 |
+| `packages/fs`             |                0 |             0 |
+| `packages/postgres`       |                3 |             3 |
+| `packages/runtime`        |                1 |             1 |
+| `sample-app`              |               18 |            18 |
+| `sample-apps/blog-system` |               10 |            10 |
 
 It immediately found two defects the harness had been hiding:
 
@@ -1125,7 +1154,7 @@ It immediately found two defects the harness had been hiding:
   `packages/postgres` were never compared — the gap had been fixed for models and not for
   services. The build changed three entries where the score claimed one.
 - **The port titled a default-exported service `"default"`.** With the skip removed, the
-  title came from the *requested* name rather than the declaration's. Both fixed.
+  title came from the _requested_ name rather than the declaration's. Both fixed.
 
 #### What has not been done
 
@@ -1206,7 +1235,7 @@ The ten `webdac`-built packages were moved to `nodenext` in a follow-up, under t
 compiler, so the extension change could be proven independently of the emitter change.
 
 **It was not a drop-in.** `rewriteRelativeImportExtensions` rewrites `.ts` to `.js`; it never
-*adds* an extension. The packages wrote extensionless imports under `bundler` resolution and
+_adds_ an extension. The packages wrote extensionless imports under `bundler` resolution and
 `tsc-esm`'s writer appended `.js` after emit, by regex. So the sources had to change, and they
 now use `.js` — the repo convention — which needs no rewrite flag at all.
 
@@ -1259,18 +1288,18 @@ ignored and everything else is reported.
 
 Across `core`, `runtime`, `sample-app` and `blog-system`:
 
-| count | cause                                         | effect if shipped                        |
-| ----: | --------------------------------------------- | ---------------------------------------- |
-|  32+1 | accessor not generated                        | `Date` / relation coercion missing       |
-|    20 | `toJSON()` not generated                      | accessor-backed fields vanish from JSON  |
-|     8 | constructor differs                           | includes a `ReferenceError`, below       |
-|     3 | `__hydrateBehaviors` differs                  | behaviours not wired on hydration        |
-|     1 | `ModelRelated` initialiser not generated      | relation is `undefined`                  |
-|     1 | `ModelLink` setter body differs               | not yet analysed                         |
-|    50 | import differences                            | 13 are a TS6 bug, below                  |
+| count | cause                                    | effect if shipped                       |
+| ----: | ---------------------------------------- | --------------------------------------- |
+|  32+1 | accessor not generated                   | `Date` / relation coercion missing      |
+|    20 | `toJSON()` not generated                 | accessor-backed fields vanish from JSON |
+|     8 | constructor differs                      | includes a `ReferenceError`, below      |
+|     3 | `__hydrateBehaviors` differs             | behaviours not wired on hydration       |
+|     1 | `ModelRelated` initialiser not generated | relation is `undefined`                 |
+|     1 | `ModelLink` setter body differs          | not yet analysed                        |
+|    50 | import differences                       | 13 are a TS6 bug, below                 |
 
 Stages 4–5 verified the generators against a small fixture, not against the shipped output of
-real packages, which is where these hid. Every row is a *silent* failure: the code compiles
+real packages, which is where these hid. Every row is a _silent_ failure: the code compiles
 and loads, and the data is wrong.
 
 Three details worth recording:
@@ -1279,7 +1308,7 @@ Three details worth recording:
   symbol-keyed properties, so without the injected `toJSON` that merges `WEBDA_STORAGE`, every
   generated accessor's value is dropped from serialisation.
 - **tsgo crashes on `Binary`, and TS6 is wrong about it too.** `Binary`'s constructor calls
-  `super()` inside `if`/`else`. tsgo emits the decorator `__runInitializers(this, …)` *before*
+  `super()` inside `if`/`else`. tsgo emits the decorator `__runInitializers(this, …)` _before_
   `super()` — `new Binary()` throws `ReferenceError`, verified. TS6 does not crash only because
   it silently drops the initialisers, so `@Action` decorators registering `addInitializer`
   never run for `Binary`. A single top-level `super()` would fix both; that is a change to
@@ -1336,15 +1365,15 @@ Done, in the order the measurements forced:
 The switch changes shipped behaviour, and every change is a correction, verified against the
 output it replaces:
 
-| TypeScript 6 behaviour                                    | consequence                                   |
-| --------------------------------------------------------- | --------------------------------------------- |
-| `AuditEntry.timestamp: number` coerced to `Date`          | a numeric timestamp became a `Date`           |
-| `new ModelLink(T)` on a type parameter                    | `ReferenceError` on first raw-uuid assignment |
-| `[WEBDA_STORAGE]` injected into `Binary`                  | `new Binary(attribute, model)` lost its service |
-| base-chain guard keyed on class name                      | `User extends WebdaUser` not a model; relations `undefined` |
-| value imports synthesised from symlinked paths            | `../../../models/lib/relations.js` breaks once installed |
-| `.d.ts` referencing unimported `PrimaryKeyType`, bare `BelongTo` | invalid declarations                  |
-| strict naming violation logged, build still succeeded     | the guard never stopped a build               |
+| TypeScript 6 behaviour                                           | consequence                                                 |
+| ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| `AuditEntry.timestamp: number` coerced to `Date`                 | a numeric timestamp became a `Date`                         |
+| `new ModelLink(T)` on a type parameter                           | `ReferenceError` on first raw-uuid assignment               |
+| `[WEBDA_STORAGE]` injected into `Binary`                         | `new Binary(attribute, model)` lost its service             |
+| base-chain guard keyed on class name                             | `User extends WebdaUser` not a model; relations `undefined` |
+| value imports synthesised from symlinked paths                   | `../../../models/lib/relations.js` breaks once installed    |
+| `.d.ts` referencing unimported `PrimaryKeyType`, bare `BelongTo` | invalid declarations                                        |
+| strict naming violation logged, build still succeeded            | the guard never stopped a build                             |
 
 Module generation still reproduces four TS6 bugs exactly, because `webda.module.json` is a
 committed artefact and changing it is its own decision: dependency models never resolve
@@ -1398,14 +1427,14 @@ scripts in `scripts/` also use the classic API; none is built or referenced.
   Type-checked on 2026-09-29 under 7.1 and 6.0.2, with the removed `@webda/shell` dependency
   stripped, the counts are identical:
 
-  | package | errors | | package | errors |
-  | --- | ---: | --- | --- | ---: |
-  | `aws` | 598 | | `mongodb` | 27 |
-  | `async` | 196 | | `otel` | 22 |
-  | `gcp` | 100 | | `amqp` | 18 |
-  | `elasticsearch` | 64 | | `google-auth` | 8 |
-  | `hawk` | 61 | | `iam` | no `package.json` |
-  | `kubernetes` | 30 | | | |
+  | package         | errors |     | package       |            errors |
+  | --------------- | -----: | --- | ------------- | ----------------: |
+  | `aws`           |    598 |     | `mongodb`     |                27 |
+  | `async`         |    196 |     | `otel`        |                22 |
+  | `gcp`           |    100 |     | `amqp`        |                18 |
+  | `elasticsearch` |     64 |     | `google-auth` |                 8 |
+  | `hawk`          |     61 |     | `iam`         | no `package.json` |
+  | `kubernetes`    |     30 |     |               |                   |
 
   They are the v4 API port — `getWebda`, `emitSync`, `@testdeck/mocha`, `WebdaSimpleTest`, the
   `@webda/shell` dependency seven of them still declare — and belong to whoever revives each
@@ -1434,9 +1463,9 @@ Done on 2026-09-29:
   the `tsc` executable it finds there as its language server. Generated accessors still need the
   `contentMappers` entry described in the compiler plugin page.
 - **`.release-please-manifest.json`** no longer lists `packages/ts-plugin` or `packages/schema`.
-- **`@webda/tsc-esm`** lost its binary in stage 8 and is now only a library of shared types and
-  decorator helpers; its README and description say so, and `debug` and `postgres`, which never
-  imported it, no longer depend on it.
+- **`@webda/tsc-esm`** lost its binary in stage 8. What remained, a library of shared types and
+  decorator helpers, was then merged into `@webda/utils` (the `create*Decorator` helpers are
+  imported from `@webda/decorators`), and the package was removed.
 - **`webdac code`** walked zero files: `WebdaMorpher` built `new Project(undefined)`. It now opens
   `<appPath>/tsconfig.json` and honours `--module`. Three of its five modules — `accessors`,
   `loadParameters` and `unserializer` — wrote into the sources what the build now generates, or

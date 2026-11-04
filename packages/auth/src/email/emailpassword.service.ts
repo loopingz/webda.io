@@ -1,7 +1,7 @@
 import {
   type AuthResult,
   Ident,
-  type Mailer,
+  type AbstractMailer,
   Operation,
   Password,
   Route,
@@ -13,7 +13,9 @@ import {
   useContext,
   useDynamicService,
   useModelMetadata,
+  type EscrowBlob,
   type User,
+  type UserKeys,
   type WebContext,
   WebdaError
 } from "@webda/core";
@@ -71,6 +73,11 @@ export class EmailPasswordParameters extends ServiceParameters {
    * @default "/auth/email"
    */
   url: string;
+  /**
+   * Optional canonical origin (e.g. "https://api.example.com") used to build emailed verification and recovery links
+   * instead of trusting the request Host header
+   */
+  baseUrl?: string;
   /** Only these email domains may use this provider (see ProviderEmailPolicy) */
   allowedEmailDomains?: string[];
   /** Whether the verification of the email is believed (see ProviderEmailPolicy) */
@@ -220,6 +227,9 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   buildLink(path: string, token: string): string {
     const ctx = useContext<any>();
     const relative = `${this.parameters.url}${path}?token=${encodeURIComponent(token)}`;
+    if (this.parameters.baseUrl) {
+      return `${this.parameters.baseUrl.replace(/\/+$/, "")}${relative}`;
+    }
     return ctx?.getHttpContext ? ctx.getHttpContext().getAbsoluteUrl(relative) : relative;
   }
 
@@ -236,12 +246,12 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     token: string
   ): Promise<void> {
     const ctx = useContext<any>();
-    await useDynamicService<Mailer>(this.parameters.mailer).send({
+    await useDynamicService<AbstractMailer>(this.parameters.mailer).send({
       to,
       locale: ctx?.getLocale?.(),
       template,
       replacements: { url, token, to }
-    } as any);
+    });
   }
 
   /**
@@ -665,25 +675,49 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
 
   /**
    * Change the current user's password: revokes the refresh tokens and ends the other sessions of the user, the
-   * calling cookie session is re-stamped and stays logged in
+   * calling cookie session is re-stamped and stays logged in.
+   *
+   * A user with end-to-end encryption keys (`User.keys`) and a password escrow must send the escrow of the new
+   * password with the change (412 otherwise): both are stored together, so the escrow always opens with the login
+   * password. The client builds it with `KeyVault.createPasswordEscrow` of `@webda/sealed-client`; an escrow made for
+   * another key than the active one is refused (412) before the password changes. A user whose keys have no password
+   * escrow may send one to create it.
    * @param current - current password
    * @param next - new password
+   * @param escrow - password escrow of the keyring key under the new password
    */
   @Operation({
     id: "Auth.Password.Change",
     input: "EmailPasswordProvider.changePassword.input",
     rest: { method: "post", path: "auth/password/change" }
   })
-  async changePassword(current: string, next: string): Promise<void> {
+  async changePassword(current: string, next: string, escrow?: EscrowBlob): Promise<void> {
     const ctx = useContext<any>();
-    if (!ctx.getSession()?.isLogged()) {
+    const session = ctx.getSession();
+    if (!session?.isLogged() || session.mfa === "pending") {
       throw new WebdaError.Unauthorized("Login required");
     }
     const user: User | undefined = await ctx.getCurrentUser();
+    const auth = useAuthentication();
+    const ident = (await runAsSystem(() => auth.getIdentModel().ref(session.identUsed).get()))!;
+    if (await this.countAttempt(ident)) {
+      throw new Throttled();
+    }
+    const keys: UserKeys | undefined = (user as any).keys;
+    if (escrow) {
+      if (!keys?.isSetup()) {
+        throw new WebdaError.BadRequest("No encryption keys to escrow");
+      }
+      // Validated now, stored with the new password hash by the change below
+      keys.replaceEscrow("password", escrow);
+    } else if (keys?.isSetup() && keys.hasEscrow("password")) {
+      throw new WebdaError.PreconditionFailed("The password escrow of the new password is required");
+    }
     await runAsSystem(() => (user as any).password.change(current, next));
+    await runAsSystem(() => ident.ref().setAttribute("_loginAttempts", 0));
     // Every session authenticated before the change ends, except this one (a Bearer caller logs in again)
-    ctx.getSession().authAt = Date.now();
-    await useAuthentication().emit("Authentication.PasswordUpdate", {
+    session.authAt = Date.now();
+    await auth.emit("Authentication.PasswordUpdate", {
       context: ctx,
       user,
       password: (user as any).password.__hash

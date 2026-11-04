@@ -153,6 +153,10 @@ class ConfigurationSchemaTest {
     const configSchema = FileUtils.load(configSchemaPath);
     assert.strictEqual(configSchema.properties.$schema.type, "string");
     assert.ok(configSchema.definitions.ServicesType);
+    assert.deepStrictEqual(configSchema.properties.services.properties["Test/MyBean"], {
+      $ref: "#/definitions/BeanType$Test$MyBean"
+    });
+    assert.strictEqual(configSchema.properties.services["Test/MyBean"], undefined);
 
     const deploymentSchema = FileUtils.load(deploymentSchemaPath);
     assert.strictEqual(deploymentSchema.properties.$schema.type, "string");

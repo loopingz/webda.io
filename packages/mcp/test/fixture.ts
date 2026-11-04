@@ -6,7 +6,8 @@ import {
   WebdaError,
   registerOperation,
   registerSchema,
-  useApplication
+  useApplication,
+  useContext
 } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
@@ -121,6 +122,22 @@ export class McpFixtureService extends Service {
       throw new WebdaError.BadRequest("Kind is not supported");
     }
     throw new Error("database password leaked in message");
+  }
+
+  /**
+   * @returns what the operation sees of the HTTP request carrying the call
+   */
+  headers() {
+    const http = useContext<WebContext>().getHttpContext?.();
+    return {
+      http: http !== undefined,
+      key: http?.getUniqueHeader("x-example-key") ?? null,
+      other: http?.getUniqueHeader("x-other") ?? null,
+      authorization: http?.getUniqueHeader("authorization") ?? null,
+      cookie: http?.getUniqueHeader("cookie") ?? null,
+      user: http?.getUniqueHeader("x-test-user") ?? null,
+      path: http?.getRelativeUri() ?? null
+    };
   }
 
   /**

@@ -41,6 +41,24 @@ class AsyncEventsTest extends AsyncTest {
   }
 
   @test
+  async rejectsMissingAndUnknownQueues() {
+    const emitter = await this.addService(EmitterService, {});
+    const eventService = useDynamicService<EventService>("AsyncEvents");
+    await eventService.pushEvent(emitter, "Test", undefined, { value: 1 });
+    const queue = useDynamicService<Queue>("EventQueue");
+    assert.strictEqual(await queue.size(), 1);
+    for (const message of await queue.receiveMessage()) await queue.deleteMessage(message.ReceiptHandle);
+    await assert.rejects(() => eventService.pushEvent(emitter, "Test", "missing", {}), /Unknown async event queue/);
+    const previous = eventService._defaultQueue;
+    try {
+      eventService._defaultQueue = "";
+      assert.throws(() => eventService.bindAsyncListener(emitter, "Other", () => {}), /requires a queue/);
+    } finally {
+      eventService._defaultQueue = previous;
+    }
+  }
+
+  @test
   async simple() {
     const emitter = this.registerService(new EmitterService("emitter", new ServiceParameters()));
     let eventsCount = 0;

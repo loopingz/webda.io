@@ -227,6 +227,11 @@ const CONSENT_SCRIPT = `"use strict";
     } else {
       app.append(el("p", "Nothing to grant"));
     }
+    if (req.resources && req.resources.length) {
+      const line = el("p", "Access is limited to: ", "muted");
+      req.resources.forEach((resource, i) => line.append(i ? ", " : "", el("code", resource)));
+      app.append(line);
+    }
     if (req.offlineAccess) {
       app.append(el("p", "This application stays signed in (refresh token) until you revoke its access.", "muted"));
     }

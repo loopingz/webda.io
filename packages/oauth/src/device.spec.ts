@@ -1,7 +1,14 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { vi } from "vitest";
-import { useService } from "@webda/core";
+import {
+  HttpContext,
+  RefreshToken,
+  registerProtectedResource,
+  unregisterProtectedResource,
+  useService
+} from "@webda/core";
+import type { WebContext } from "@webda/core";
 import { OAuthTest, query, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
 import { OAuthDeviceCode, OAuthGrant } from "./models.model.js";
 import { DEVICE_GRANT } from "./oauthserver.service.js";
@@ -390,5 +397,47 @@ class DeviceFlowTest extends OAuthTest {
     vi.spyOn(Date, "now").mockReturnValue(now + 600_001);
     await OAuthDeviceCode.ref(start.body.user_code.replace("-", "")).patch({ expiresAt: now + 3_600_000 } as any);
     assert.ok((await this.op(fresh, "OAuth.Device.Lookup", { userCode: start.body.user_code })).redirect);
+  }
+
+  @test
+  async deviceFamilyMintsClientResources() {
+    registerProtectedResource({ path: "/mcp" });
+    const clients = useService<any>("OAuthServer").getParameters().clients;
+    const ctx = await this.newWebContext<WebContext>(new HttpContext("test.webda.io", "GET", "/", "http", 80, {}));
+    const mcp = `${useService<any>("OAuthServer").issuer(ctx)}/mcp`;
+    clients["webda-cli"].resources = [mcp];
+    try {
+      const start = await this.form("/oauth/device_authorization", {
+        client_id: "webda-cli",
+        scope: "Task.* offline_access"
+      });
+      const b = await this.browser();
+      await this.login(b, "u1");
+      await this.op(b, "OAuth.Device.Lookup", { userCode: start.body.user_code });
+      const req = await this.op(b, "OAuth.Consent.Get");
+      assert.deepStrictEqual(req.resources, [mcp]);
+      await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf: req.csrf });
+      await this.advancePoll(start.body.device_code);
+      const tokens = await this.poll(start.body.device_code);
+      assert.strictEqual(tokens.status, 200, JSON.stringify(tokens.body));
+      const service = useService("TokenService");
+      const app = await service.verifyAccess(tokens.body.access_token);
+      assert.strictEqual(app?.aud, "webda-access");
+      const stored = await RefreshToken.query(`family = '${app!.fam}'`);
+      assert.deepStrictEqual(stored.results[0].resources, [mcp]);
+      const bound = await this.tokenRequest({
+        grant_type: "refresh_token",
+        refresh_token: tokens.body.refresh_token,
+        client_id: "webda-cli",
+        resource: mcp
+      });
+      assert.strictEqual(bound.status, 200, JSON.stringify(bound.body));
+      const claims = await service.verifyAccess(bound.body.access_token, { audience: mcp });
+      assert.strictEqual(claims?.aud, mcp);
+      assert.strictEqual(claims?.fam, app!.fam);
+    } finally {
+      delete clients["webda-cli"].resources;
+      unregisterProtectedResource("/mcp");
+    }
   }
 }

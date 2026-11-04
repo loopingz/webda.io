@@ -73,6 +73,13 @@
                 "default": false,
                 "description": "Registered dynamically (RFC 7591)",
                 "type": "boolean"
+              },
+              "resources": {
+                "description": "Other protected resources (absolute URIs, RFC 8707 §2.2) every grant of the client may mint access tokens for,\nbesides the one it is bound to: a refresh or code exchange naming one gets a token with that audience from the\nsame refresh-token family. Registered protected resources only, never a resource of another application",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -262,6 +269,12 @@
         "resource": {
           "type": "string"
         },
+        "resources": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
         "expiresAt": {
           "type": "number"
         },
@@ -350,6 +363,13 @@
               "description": "Resource the tokens are bound to (RFC 8707)",
               "type": "string"
             },
+            "resources": {
+              "description": "Other resources the family may mint access tokens for (RFC 8707 §2.2)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "reusedAt": {
               "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
               "type": "number"
@@ -447,6 +467,13 @@
             "resource": {
               "description": "Resource the tokens are bound to (RFC 8707)",
               "type": "string"
+            },
+            "resources": {
+              "description": "Other resources the family may mint access tokens for (RFC 8707 §2.2)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "reusedAt": {
               "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
@@ -546,6 +573,13 @@
               "description": "Resource the tokens are bound to (RFC 8707)",
               "type": "string"
             },
+            "resources": {
+              "description": "Other resources the family may mint access tokens for (RFC 8707 §2.2)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "reusedAt": {
               "description": "Set when the code is presented again: the exchange that recorded the family revokes it",
               "type": "number"
@@ -626,6 +660,12 @@
         },
         "hostname": {
           "type": "string"
+        },
+        "resources": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
         },
         "expiresAt": {
           "type": "number"
@@ -711,6 +751,13 @@
             "requestedScope": {
               "type": "string"
             },
+            "resources": {
+              "description": "Other resources the family may mint access tokens for (RFC 8707 §2.2), from the client configuration",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "secretHash": {
               "type": "string"
             },
@@ -812,6 +859,13 @@
             "requestedScope": {
               "type": "string"
             },
+            "resources": {
+              "description": "Other resources the family may mint access tokens for (RFC 8707 §2.2), from the client configuration",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "secretHash": {
               "type": "string"
             },
@@ -912,6 +966,13 @@
             },
             "requestedScope": {
               "type": "string"
+            },
+            "resources": {
+              "description": "Other resources the family may mint access tokens for (RFC 8707 §2.2), from the client configuration",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "secretHash": {
               "type": "string"
@@ -1438,6 +1499,13 @@
           "description": "The decision can be remembered",
           "type": "boolean"
         },
+        "resources": {
+          "description": "Protected resources (absolute URIs) the tokens may be issued for: the one they are bound to first, then the others\nthe family may mint tokens for; empty for the application audience only",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "user": {
           "$ref": "#/definitions/user",
           "description": "Signed-in user"
@@ -1448,6 +1516,7 @@
         "csrf",
         "flow",
         "operations",
+        "resources",
         "user"
       ],
       "type": "object",

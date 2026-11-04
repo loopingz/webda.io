@@ -399,6 +399,9 @@ class AuthorizeTest extends OAuthTest {
     assert.strictEqual(await read(await useCrypto().encrypt({ ...pending, codeChallenge: undefined })), undefined);
     assert.strictEqual(await read(await useCrypto().encrypt({ ...pending, flow: "device" })), undefined);
     assert.ok(await read(await useCrypto().encrypt({ ...pending, flow: "device", userCode: "BCDFGHJK" })));
+    assert.ok(await read(await useCrypto().encrypt({ ...pending, resources: ["https://a.example/mcp"] })));
+    assert.strictEqual(await read(await useCrypto().encrypt({ ...pending, resources: "https://a" })), undefined);
+    assert.strictEqual(await read(await useCrypto().encrypt({ ...pending, resources: [1] })), undefined);
     assert.strictEqual(await read(await useCrypto().encrypt("string")), undefined);
     // Clear
     const clear = await this.ctx();

@@ -150,7 +150,10 @@ to remove it. Redirect rules: an `http` loopback URI (`127.0.0.1`, `localhost`, 
 other URI, including custom schemes, must match **exactly**.
 
 A static client gets tokens bound to no resource (the application audience) unless it sends `resource` or sets
-`defaultResource` to the absolute URI of a protected resource (see [MCP](#mcp)).
+`defaultResource` to the absolute URI of a protected resource (see [MCP](#mcp)). `resources` lists other protected
+resources every grant of the client may also get tokens for, from the same refresh token (see
+[several resources](#several-resources-one-refresh-token)): a first-party client signed in without a resource can
+reach the application's MCP endpoint without a second sign-in.
 
 ### Client ID Metadata Documents
 
@@ -298,6 +301,24 @@ Each MCP endpoint is a **resource** identified by `publicUrl` + the `McpService`
 - A resource-bound token is only accepted by its MCP endpoint: it is not a general API bearer token, and the MCP
   endpoint refuses application tokens (`401 invalid_token`).
 
+### Several resources, one refresh token
+
+A grant may allow several resources of the application (RFC 8707 §2.2), so that one refresh-token family mints access
+tokens for each of them instead of one sign-in per resource. Each access token still has a single audience.
+
+- `/authorize` accepts several `resource` parameters: the first one is the resource the grant is bound to, the others
+  may be minted from it. The client configuration `resources` adds to every grant of the client, whatever the
+  request: `"webda-cli": { ..., "resources": ["https://api.example.com/mcp"] }` lets the CLI, signed in without a
+  resource, get MCP tokens too.
+- The code exchange and the refresh accept `resource` = any resource of the grant, and return an access token with
+  that audience. Without `resource`, the token has the audience the grant is bound to (the application one for a
+  static client without `defaultResource`); the chosen audience is not kept by the family. Any other resource is
+  refused with `invalid_target`, without consuming the refresh token.
+- One family: the rotation is unchanged and revoking the family (`/revoke`, the connected-apps operations) revokes the
+  tokens of every resource. The scope is the grant's one whatever the resource.
+- The consent page lists the resources of the grant. A grant with the resource of another application (`resources`
+  of the server, see below) is bound to that one only: it is never combined with another resource.
+
 The metadata is served at `/.well-known/oauth-protected-resource`, with `scopes_supported` (by default the same `*`,
 `<Group>.*` and `offline_access` the authorization server advertises; set `scopesSupported` on the authenticator to
 override). Tools outside the token scope are hidden from `tools/list`; calling one answers `403` with an
@@ -332,7 +353,8 @@ cookies do not cross registrable domains, Bearer tokens do.
 
 - The client requests one token per API with `resource=https://api.example.com` (RFC 8707): the token audience is
   that API, the scope lists its operations. A remote resource is only used when the client names it, or as its
-  `defaultResource`; it is never chosen by default and does not open dynamic registration.
+  `defaultResource`; it is never chosen by default, does not open dynamic registration and is never combined with
+  another resource in one grant (`invalid_target`).
 - With `issuer` set, every access token carries `iss` and the JWT type `at+jwt` (RFC 9068). The metadata advertises
   `jwks_uri`, the `CryptoService` JWKS.
 - `resources` requires `issuer`, an asymmetric `CryptoService` `jwt.algorithm` and its JWKS `url`: the startup fails

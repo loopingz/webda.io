@@ -74,6 +74,7 @@ class PagesTest extends OAuthTest {
     const res = await this.get(await this.browser(), "/oauth/consent");
     assert.match(res.text, /data-api="\/oauth"/);
     assert.match(res.text, /consent\/decide/);
+    assert.match(res.text, /req\.resources/);
     assert.match(res.text, /credentials: "same-origin"/);
     assert.match(res.text, /Only continue if you started this sign-in yourself on /);
     assert.match(res.text, /Nothing to grant/);

@@ -474,4 +474,70 @@ class McpOAuthEndToEndTest extends OAuthTest {
     }
     await widened.close();
   }
+
+  @test
+  async oneFamilyForTheApiAndMcp() {
+    // A first-party client (the Webda CLI) signed in without a resource also talks to the MCP endpoint: the client
+    // configuration allows the MCP resource, one family mints the tokens of both audiences
+    const { resource, as } = await this.discover();
+    const clients = (useService("OAuthServer") as any).getParameters().clients;
+    clients.app.resources = [resource];
+    const redirectUri = "http://127.0.0.1:43124/callback";
+    const operations = (token: string) =>
+      fetch(`${this.base}/operations/Task.Whoami`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: "{}"
+      });
+    const mcp = (token: string) =>
+      fetch(`${this.base}/mcp`, {
+        method: "POST",
+        headers: { ...MCP_HEADERS, authorization: `Bearer ${token}` },
+        body: JSON.stringify(INITIALIZE)
+      });
+    try {
+      const { tokens, request } = await this.authorize(as, {
+        clientId: "app",
+        redirectUri,
+        scope: "Task.* offline_access"
+      });
+      assert.deepStrictEqual(request.resources, [resource]);
+      assert.strictEqual(this.audience(tokens.access_token), "webda-access");
+      // The application token: the general API accepts it, the MCP endpoint refuses it
+      assert.strictEqual((await operations(tokens.access_token)).status, 200);
+      assert.strictEqual((await mcp(tokens.access_token)).status, 401);
+      // The same family mints an MCP token: the MCP endpoint accepts it, the general API refuses it
+      const refresh = await this.postForm(as.token_endpoint, {
+        grant_type: "refresh_token",
+        refresh_token: tokens.refresh_token,
+        client_id: "app",
+        resource
+      });
+      const bound: Tokens = await refresh.json();
+      assert.strictEqual(refresh.status, 200, JSON.stringify(bound));
+      assert.strictEqual(this.audience(bound.access_token), resource);
+      assert.strictEqual(bound.scope, tokens.scope);
+      const client = await this.mcpClient(bound.access_token);
+      assert.deepStrictEqual((await client.callTool({ name: "Task.Whoami", arguments: {} })).structuredContent, {
+        userId: "u1"
+      });
+      await client.close();
+      assert.strictEqual((await operations(bound.access_token)).status, 401);
+      // Another resource is refused
+      const other = await this.postForm(as.token_endpoint, {
+        grant_type: "refresh_token",
+        refresh_token: bound.refresh_token,
+        client_id: "app",
+        resource: `${this.base}/other`
+      });
+      assert.strictEqual((await other.json()).error, "invalid_target");
+      // Revoking the family kills both
+      const revoke = await this.postForm(as.revocation_endpoint, { token: bound.refresh_token, client_id: "app" });
+      assert.strictEqual(revoke.status, 200);
+      assert.strictEqual((await operations(tokens.access_token)).status, 401);
+      assert.strictEqual((await mcp(bound.access_token)).status, 401);
+    } finally {
+      delete clients.app.resources;
+    }
+  }
 }

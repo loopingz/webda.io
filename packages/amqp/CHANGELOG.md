@@ -168,6 +168,30 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/amqp-v4.0.0-beta.12...amqp-v4.0.0-beta.13) (2026-11-04)
+
+
+### Features
+
+* **core:** refuse to start when a [@webda](https://github.com/webda) package is loaded twice ([#965](https://github.com/loopingz/webda.io/issues/965)) ([b67f2d4](https://github.com/loopingz/webda.io/commit/b67f2d43192591f25e6c99a6fe575e64d3a519d2))
+
+
+### Bug Fixes
+
+* **security:** address medium and low security review findings (AGY-018 to AGY-036) ([#1050](https://github.com/loopingz/webda.io/issues/1050)) ([8de0715](https://github.com/loopingz/webda.io/commit/8de0715354ba3dd7f6afbca406eb8269ab6d748c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/utils bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.13
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/amqp-v4.0.0-beta.11...amqp-v4.0.0-beta.12) (2026-10-22)
 
 

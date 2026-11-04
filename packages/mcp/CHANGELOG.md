@@ -1,5 +1,33 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-beta.12...mcp-v4.0.0-beta.13) (2026-11-04)
+
+
+### Features
+
+* **core:** Add a dry mode for Operations ([#767](https://github.com/loopingz/webda.io/issues/767)) ([#910](https://github.com/loopingz/webda.io/issues/910)) ([1f445d7](https://github.com/loopingz/webda.io/commit/1f445d76002d83f56cbca5ac11e808763f4d58f1))
+* **core:** feature flags on operations ([#766](https://github.com/loopingz/webda.io/issues/766)) ([#909](https://github.com/loopingz/webda.io/issues/909)) ([e016771](https://github.com/loopingz/webda.io/commit/e0167716ce45c6780c561578b2d92a1c7463316b))
+* **mcp:** forward allowlisted request headers to the operations a tools/call runs ([#1048](https://github.com/loopingz/webda.io/issues/1048)) ([ae08808](https://github.com/loopingz/webda.io/commit/ae0880835f10ba23510a2c4c9963e781da986e9e)), closes [#1047](https://github.com/loopingz/webda.io/issues/1047)
+
+
+### Bug Fixes
+
+* **mcp:** bind MCP sessions to authenticated user identity ([#1039](https://github.com/loopingz/webda.io/issues/1039)) ([aed512f](https://github.com/loopingz/webda.io/commit/aed512f02d7a936ecf1faae9cb8cf938a1c9fab2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+    * @webda/utils bumped to 4.0.0-beta.12
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.13
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-beta.11...mcp-v4.0.0-beta.12) (2026-10-22)
 
 

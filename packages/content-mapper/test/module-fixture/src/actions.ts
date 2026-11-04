@@ -1,6 +1,7 @@
 import { Action, Operation } from "./decorators.js";
 
 const dynamicAge = "1h";
+const dynamicName = "dynamic";
 
 // Not a model (nothing here extends @webda/models): only read by
 // buildModelActions directly, to check the `@Action({ name })` option.
@@ -28,9 +29,17 @@ export class Jobs {
 
   @Action({ maxMfaAge: dynamicAge })
   computedAge() {}
-}
 
-const dynamicName = "dynamic";
+  // Feature flag: a string literal names the flag, `true` means the operation id; anything else is ignored
+  @Action({ featureFlag: "beta-reports" })
+  report() {}
+
+  @Action({ featureFlag: true })
+  static rebuild() {}
+
+  @Action({ featureFlag: dynamicName })
+  computedFlag() {}
+}
 
 /**
  * A decorator used without a call

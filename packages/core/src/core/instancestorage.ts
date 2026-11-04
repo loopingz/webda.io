@@ -33,6 +33,10 @@ export type InstanceStorage = Partial<{
   loginMfa: LoginMfaPolicy;
   // Crons registered from other sources than @Cron (see CronService.register)
   crons: CronDefinition[];
+  // Feature flag providers (see registerFeatureFlagProvider)
+  featureFlagProviders: { provider: any; priority: number }[];
+  // Feature flags pattern mappings (see registerOperationFeatureFlag)
+  operationFeatureFlags: { pattern: string; flag: string }[];
 }>;
 
 // Test are transpiling and creating several instances of 'instancestorage.ts'
@@ -67,6 +71,8 @@ export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn
       router: undefined,
       interruptables: new Set(),
       operationAuthorizers: new Set(),
+      featureFlagProviders: [],
+      operationFeatureFlags: [],
       ...instanceStorage
     },
     fn

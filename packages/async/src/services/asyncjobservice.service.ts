@@ -2,6 +2,7 @@ import {
   callOperation,
   canCallOperation,
   Command,
+  isOperationEnabled,
   CronDefinition,
   CronService,
   listFullOperations,
@@ -463,6 +464,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   async checkOperation(context: OperationContext, operationId: string): Promise<void> {
     const operation = listFullOperations()[operationId];
     if (!operation) {
+      throw new WebdaError.NotFound(`${operationId} Unknown`);
+    }
+    // A disabled operation cannot be told apart from an unknown one
+    if (!(await isOperationEnabled(context, operationId, operation))) {
       throw new WebdaError.NotFound(`${operationId} Unknown`);
     }
     // Probe first so a forbidden operation answers Forbidden before any input validation

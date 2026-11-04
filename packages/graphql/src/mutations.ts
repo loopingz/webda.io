@@ -6,6 +6,7 @@ import {
   checkOperationPermission,
   createModel,
   getParentRelation,
+  isOperationEnabled,
   listOperationAuthorizers,
   loadModelForAction,
   prepareCreateInput,
@@ -110,9 +111,6 @@ export async function enforceModelOperationPermission(
     return;
   }
   const session = context.getSession?.();
-  if (session?.mfa === "pending") {
-    throw permissionDenied();
-  }
   const primaryId = `${model.name}.${action.charAt(0).toUpperCase() + action.slice(1)}`;
   const op =
     storage.operations?.[primaryId] ?? ({ id: primaryId, input: "void", output: "void" } as OperationDefinition);
@@ -120,6 +118,13 @@ export async function enforceModelOperationPermission(
     isGlobalContext: () => false,
     getSession: () => session
   });
+  // A disabled operation cannot be told apart from a missing one: checked first, like core checkOperation
+  if (!(await isOperationEnabled(opContext, primaryId, op))) {
+    throw notFound();
+  }
+  if (session?.mfa === "pending") {
+    throw permissionDenied();
+  }
   try {
     checkOperationMfa(opContext, primaryId, op);
   } catch {

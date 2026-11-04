@@ -942,6 +942,9 @@ export class DomainService<
             path: bindRestInput(path, method, app.getSchema(info.input), hint.body).path,
             ...(hint.body ? { body: hint.body } : {})
           };
+          if (actions[name].featureFlag !== undefined) {
+            info.featureFlag = actions[name].featureFlag;
+          }
           registerOperation(id, info);
         });
 
@@ -1017,6 +1020,7 @@ export class DomainService<
           output: hasSchema(outputSchema) ? outputSchema : "void",
           summary: `${actionCap} on ${name}.${behaviorRel.attribute}`,
           tags: [name],
+          featureFlag: actionMeta.featureFlag,
           rest: {
             method,
             path: bindRestInput(path, method, app.getSchema(requestSchema), restHint.body).path,

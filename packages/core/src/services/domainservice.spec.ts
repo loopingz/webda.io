@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import bcrypt from "bcryptjs";
 import { DomainServiceParameters, DomainService, stripPrivateFields } from "./domainservice.service.js";
-import { callOperation, listOperations } from "../core/operations.js";
+import { callOperation, canCallOperation, listOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { useApplication, useModel } from "../application/hooks.js";
@@ -760,6 +760,28 @@ class DomainServiceTest extends WebdaApplicationTest {
       delete metadata.Actions["countTest"];
       delete schemas[name];
       delete getStorage().operations["Hardware.CountTest"];
+    }
+  }
+
+  @test
+  async modelActionFeatureFlag() {
+    // `@Action({ featureFlag })`: the flag reaches the registered operation, which is off until a provider enables it
+    const { Classroom } = this.setupClassroomRepos();
+    const metadata = useModelMetadata(Classroom);
+    metadata.Actions["flaggedTest"] = { handler: "test", featureFlag: "classroom-flag" } as any;
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      const op: any = listOperations()["Classroom.FlaggedTest"];
+      assert.strictEqual(op.featureFlag, "classroom-flag");
+      assert.deepStrictEqual(op.featureFlags, ["classroom-flag"]);
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.newSession().login("test", "test");
+      assert.strictEqual(await canCallOperation(ctx, "Classroom.FlaggedTest"), false);
+    } finally {
+      delete metadata.Actions["flaggedTest"];
+      delete getStorage().operations["Classroom.FlaggedTest"];
     }
   }
 

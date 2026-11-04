@@ -329,6 +329,10 @@ export interface ModelMetadata {
       };
       methods?: string[];
       openapi?: any;
+      /**
+       * Feature flag gating the action
+       */
+      featureFlag?: string | true;
     };
   };
   /**

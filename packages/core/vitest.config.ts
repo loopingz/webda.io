@@ -72,6 +72,7 @@ export default defineConfig({
       "src/services/audit.spec.ts",
       "src/services/audit-read.spec.ts",
       "src/services/operationstransport.spec.ts",
+      "src/services/featureflags.spec.ts",
       "src/services/httpserver.spec.ts",
       "src/services/requesttracer.spec.ts",
       "src/services/clientcertificatefilter.spec.ts",

@@ -4,6 +4,7 @@ import { WebdaApplicationTest } from "../test/index.js";
 import { RESTOperationsTransport, RESTOperationsTransportParameters } from "./restoperationstransport.service.js";
 import { useRouter } from "./hooks.js";
 import { callOperation, listOperations, Operation } from "../core/operations.js";
+import { registerOperationFeatureFlag, unregisterOperationFeatureFlag } from "../services/featureflags.js";
 import * as WebdaError from "../errors/errors.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
@@ -148,6 +149,49 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       title: "parent",
       filters: {}
     });
+  }
+
+  @test
+  async openApiDocumentsTheFeatureFlagsOfAnOperation() {
+    // The spec is static: a flagged operation stays in it, annotated with its flag(s)
+    const transport: any = await this.bindingTransport();
+    const storage = useInstanceStorage();
+    const operations = storage.operations!;
+    const operation = (id: string, extra: any = {}) => ({
+      id,
+      service: "RestBindingService",
+      method: "mixed",
+      input: "void",
+      output: "void",
+      ...extra
+    });
+    operations["Flagged.Plain"] = operation("Flagged.Plain");
+    operations["Flagged.Code"] = operation("Flagged.Code", { featureFlag: "flagged-code" });
+    operations["Flagged.Both"] = operation("Flagged.Both", { featureFlag: "flagged-both" });
+    registerOperationFeatureFlag("Flagged.Both", "flagged-mapped");
+    try {
+      transport.exposeServiceOperations({
+        "Flagged.Plain": operations["Flagged.Plain"],
+        "Flagged.Code": operations["Flagged.Code"],
+        "Flagged.Both": operations["Flagged.Both"]
+      });
+      const doc: any = { openapi: "3.0.0", info: { title: "Test", version: "1.0.0" }, paths: {}, tags: [] };
+      useRouter().completeOpenAPI(doc);
+      assert.strictEqual(doc.paths["/v2/flagged/plain"].put["x-webda-feature-flag"], undefined);
+      assert.strictEqual(doc.paths["/v2/flagged/code"].put["x-webda-feature-flag"], "flagged-code");
+      assert.deepStrictEqual(doc.paths["/v2/flagged/both"].put["x-webda-feature-flag"], [
+        "flagged-both",
+        "flagged-mapped"
+      ]);
+      // The route exists but a disabled operation answers like an unknown one
+      await assert.rejects(
+        () => this.routerHttp({ method: "PUT", url: "/v2/flagged/code", body: {} }),
+        (err: WebdaError.NotFound) => err instanceof WebdaError.NotFound && /Flagged.Code Unknown/.test(err.message)
+      );
+    } finally {
+      unregisterOperationFeatureFlag("Flagged.Both", "flagged-mapped");
+      for (const id of ["Flagged.Plain", "Flagged.Code", "Flagged.Both"]) delete operations[id];
+    }
   }
 
   @test

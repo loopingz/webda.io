@@ -604,6 +604,13 @@ export function buildModelActions(
       if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
         name = initializer.text;
       }
+      if (key === "featureFlag") {
+        if (is.isStringLiteral(initializer)) {
+          meta.featureFlag = initializer.text;
+        } else if (initializer.kind === SyntaxKind.TrueKeyword) {
+          meta.featureFlag = true;
+        }
+      }
     });
     if (name !== methodName) meta.handler = methodName;
     actions[name] = meta;
@@ -1207,6 +1214,13 @@ export function buildBehaviorActions(
           }
         }
         if (Object.keys(rest).length > 0) meta.rest = rest;
+      }
+      if (key === "featureFlag") {
+        if (is.isStringLiteral(initializer)) {
+          meta.featureFlag = initializer.text;
+        } else if (initializer.kind === SyntaxKind.TrueKeyword) {
+          meta.featureFlag = true;
+        }
       }
     });
     actions[methodName] = meta;

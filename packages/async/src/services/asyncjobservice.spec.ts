@@ -7,9 +7,11 @@ import {
   OperationContext,
   Queue,
   registerOperation,
+  registerOperationFeatureFlag,
   runWithContext,
   Service,
   registerOperationAuthorizer,
+  unregisterOperationFeatureFlag,
   ServiceParameters,
   unregisterOperationAuthorizer,
   useApplication,
@@ -857,6 +859,18 @@ class AsyncJobServiceTest extends AsyncTest {
     await assert.rejects(() => service.launchOperation(context), WebdaError.Forbidden);
     context.getParameters().operationId = "User.Onboard2";
     await assert.rejects(() => service.launchOperation(context), WebdaError.NotFound);
+    // A disabled operation is unknown: refused at schedule time and left out of the listing
+    registerOperationFeatureFlag("User.Revoke", "async-off");
+    try {
+      context.getParameters().operationId = "User.Revoke";
+      await assert.rejects(() => service.launchOperation(context), WebdaError.NotFound);
+      context.getSession<any>().role = "hr";
+      context.getParameters().full = false;
+      await service.listOperations(context);
+      assert.deepStrictEqual(JSON.parse(context.getOutput()), ["User.Onboard"]);
+    } finally {
+      unregisterOperationFeatureFlag("User.Revoke", "async-off");
+    }
     context.getSession<any>().role = "hr";
     context.getParameters().operationId = "User.Revoke";
     await assert.rejects(() => service.launchOperation(context), WebdaError.BadRequest);

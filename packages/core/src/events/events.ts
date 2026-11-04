@@ -49,6 +49,8 @@ export type CoreEvents = {
     operationId: string;
     /** Object the operation targeted, when it has one */
     subject?: OperationSubject;
+    /** Whether the call ran in dry mode */
+    dryRun?: boolean;
   };
   "Webda.OperationFailure": {
     context: OperationContext;
@@ -56,6 +58,8 @@ export type CoreEvents = {
     error: Error;
     /** Object the operation targeted, when it has one */
     subject?: OperationSubject;
+    /** Whether the call ran in dry mode */
+    dryRun?: boolean;
   };
   "Webda.OperationDisabled": {
     context: OperationContext;
@@ -65,6 +69,15 @@ export type CoreEvents = {
   "Webda.BeforeOperation": {
     context: OperationContext;
     operationId: string;
+    /** Whether the call runs in dry mode */
+    dryRun?: boolean;
+  };
+  "Webda.OperationDryRun": {
+    context: OperationContext;
+    operationId: string;
+    arguments: unknown[];
+    /** Object the operation targeted, when it has one */
+    subject?: OperationSubject;
   };
   "Webda.Configuration.Applying": { configuration: { [key: string]: any }; delta: { [key: string]: any } };
   "Webda.Configuration.Applied": { configuration: { [key: string]: any }; delta: { [key: string]: any } };

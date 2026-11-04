@@ -13,6 +13,7 @@ export * from "./contexts/operationcontext.js";
 export * from "./contexts/simplecontext.js";
 export * from "./contexts/icontext.js";
 export * from "./contexts/execution.js";
+export * from "./contexts/dryrun.js";
 export * from "./contexts/webcontext.js";
 export * from "./contexts/httpcontext.js";
 export * from "./contexts/clientcertificate.js";

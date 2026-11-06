@@ -319,6 +319,9 @@ class JSONCParserTest {
     result.a = { type: "A2" };
     assert.strictEqual(Object.entries(result)[0][1].type, "A2");
     delete result.a;
+    assert.strictEqual(result.a, undefined);
+    // Deleting a missing property succeeds and leaves the remaining tree intact.
+    assert.strictEqual(delete result.a, true);
     assert.deepStrictEqual(Object.keys(result), ["b"]);
     assert.ok(!("a" in result));
     assert.match(result.toString(), /"b"/);

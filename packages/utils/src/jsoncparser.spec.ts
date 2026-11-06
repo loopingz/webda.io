@@ -5,6 +5,55 @@ import { JSONCParser } from "./jsoncparser.js";
 @suite
 class JSONCParserTest {
   @test
+  plainDataByDefault() {
+    const source = '{ /* comment */ "nested": { "list": [{ "value": 1 }, null] }, }';
+    const result = JSONCParser.parse(source);
+    assert.deepStrictEqual(result, { nested: { list: [{ value: 1 }, null] } });
+    // structuredClone rejects proxies, including any hidden in nested objects or arrays.
+    assert.deepStrictEqual(structuredClone(result), result);
+    assert.strictEqual(result.$$target, undefined);
+    assert.strictEqual(result.nested, result.nested);
+    assert.deepStrictEqual(JSONCParser.parse('[/* comment */ {"value": 1},]'), [{ value: 1 }]);
+    assert.strictEqual(JSONCParser.stringify(null), "null");
+  }
+
+  @test
+  editArrayPreservesComments() {
+    const source = '[\n  // item\n  {"value": 1}\n]';
+    const result = JSONCParser.parse(source, { edit: true });
+    result[0].value = 2;
+    assert.strictEqual(JSONCParser.stringify(result), source.replace('"value": 1', '"value": 2'));
+  }
+
+  @test
+  editProxyDoesNotCopySubtrees() {
+    const result = JSONCParser.parse(
+      JSON.stringify({
+        schemas: Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [`Model${i}`, { type: "object" }]))
+      }),
+      { edit: true }
+    );
+    const prototype = Object.getPrototypeOf(result.$$target);
+    const toJSON = prototype.toJSON;
+    prototype.toJSON = () => {
+      assert.fail("Reading or writing an edit proxy must not deep-copy the tree");
+    };
+    try {
+      const proxy = result.$$target.toProxy();
+      assert.strictEqual(proxy.schemas.Model999.type, "object");
+      proxy.schemas.Added = { type: "string" };
+      delete proxy.schemas.Model0;
+      assert.ok("Added" in proxy.schemas);
+      assert.ok(!("Model0" in proxy.schemas));
+      assert.strictEqual(Object.keys(proxy.schemas).length, 1000);
+      assert.strictEqual(Object.getOwnPropertyDescriptor(proxy.schemas, "Added").value.type, "string");
+    } finally {
+      prototype.toJSON = toJSON;
+    }
+    assert.strictEqual(JSON.parse(JSON.stringify(result)).schemas.Added.type, "string");
+  }
+
+  @test
   async parseFalseKeyword() {
     const result = JSONCParser.parse("false");
     assert.strictEqual(result, false);
@@ -52,7 +101,7 @@ class JSONCParserTest {
     assert.strictEqual(result.ratio, 0.5);
     assert.deepStrictEqual(Array.from(result.list), [1.25, -35]);
     // Decimals survive a stringify round trip
-    assert.strictEqual(JSONCParser.stringify(JSONCParser.parse('{"a": 1.5}')), '{"a": 1.5}');
+    assert.strictEqual(JSONCParser.stringify(JSONCParser.parse('{"a": 1.5}', { edit: true })), '{"a": 1.5}');
   }
 
   @test
@@ -107,7 +156,7 @@ class JSONCParserTest {
   @test
   async parseAndStringifyPreservesFormat() {
     const input = '{\n  "name": "test",\n  "value": 42\n}';
-    const parsed = JSONCParser.parse(input);
+    const parsed = JSONCParser.parse(input, { edit: true });
     const output = JSONCParser.stringify(parsed);
     // Should preserve formatting
     assert.ok(output.includes("\n"));
@@ -187,7 +236,7 @@ class JSONCParserTest {
   @test
   async modifyArrayAndPreserveFormat() {
     // Parse, modify, and stringify to test array formatting preservation
-    const parsed = JSONCParser.parse("[1, 2]");
+    const parsed = JSONCParser.parse("[1, 2]", { edit: true });
     parsed.push(3);
     const output = JSONCParser.stringify(parsed);
     assert.ok(output.includes("3"));
@@ -195,7 +244,7 @@ class JSONCParserTest {
 
   @test
   async arrayPop() {
-    const parsed = JSONCParser.parse("[1, 2, 3]");
+    const parsed = JSONCParser.parse("[1, 2, 3]", { edit: true });
     const value = parsed.pop();
     assert.strictEqual(value, 3);
     assert.strictEqual(parsed.length, 2);
@@ -203,7 +252,7 @@ class JSONCParserTest {
 
   @test
   async arrayShift() {
-    const parsed = JSONCParser.parse("[1, 2, 3]");
+    const parsed = JSONCParser.parse("[1, 2, 3]", { edit: true });
     const value = parsed.shift();
     assert.strictEqual(value, 1);
     assert.strictEqual(parsed.length, 2);
@@ -211,7 +260,7 @@ class JSONCParserTest {
 
   @test
   async arrayUnshift() {
-    const parsed = JSONCParser.parse("[2, 3]");
+    const parsed = JSONCParser.parse("[2, 3]", { edit: true });
     parsed.unshift(1);
     assert.strictEqual(parsed[0], 1);
     assert.strictEqual(parsed.length, 3);
@@ -219,7 +268,7 @@ class JSONCParserTest {
 
   @test
   async arraySplice() {
-    const parsed = JSONCParser.parse("[1, 2, 3, 4]");
+    const parsed = JSONCParser.parse("[1, 2, 3, 4]", { edit: true });
     const removed = parsed.splice(1, 2, 10, 20);
     assert.deepStrictEqual(removed, [2, 3]);
     assert.deepStrictEqual(Array.from(parsed), [1, 10, 20, 4]);
@@ -253,7 +302,7 @@ class JSONCParserTest {
   async proxyKeysReflectWrites() {
     // Keys added or removed through the proxy must be visible to Object.keys/entries/in,
     // not only to JSON.stringify (Core iterates configuration services with Object.entries)
-    const result = JSONCParser.parse('{\n  // comment\n  "a": { "type": "A" }\n}');
+    const result = JSONCParser.parse('{\n  // comment\n  "a": { "type": "A" }\n}', { edit: true });
     result.b = { type: "B" };
     assert.deepStrictEqual(Object.keys(result), ["a", "b"]);
     assert.ok("b" in result);
@@ -284,7 +333,9 @@ class JSONCParserTest {
   @test
   async assignProxyValues() {
     // Values read from the proxy (objects, arrays, null) can be written back elsewhere in the tree
-    const result = JSONCParser.parse('{\n  // comment\n  "a": { "type": "A", "list": [1, 2] },\n  "n": null\n}');
+    const result = JSONCParser.parse('{\n  // comment\n  "a": { "type": "A", "list": [1, 2] },\n  "n": null\n}', {
+      edit: true
+    });
     result.b = result.a;
     result.c = result.a.list;
     result.d = null;
@@ -294,7 +345,7 @@ class JSONCParserTest {
     assert.strictEqual(result.d, null);
     assert.strictEqual(result.e.nested.type, "A");
     assert.deepStrictEqual(Array.from(result.e.list), [1, 2]);
-    assert.deepStrictEqual(JSONCParser.parse(result.toString()).toJSON(), {
+    assert.deepStrictEqual(JSONCParser.parse(result.toString()), {
       a: { type: "A", list: [1, 2] },
       n: null,
       b: { type: "A", list: [1, 2] },

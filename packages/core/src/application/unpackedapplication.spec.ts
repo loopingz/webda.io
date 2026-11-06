@@ -11,6 +11,30 @@ import { useApplication } from "./hooks.js";
 @suite
 class UnpackedApplicationTest extends WebdaApplicationTest {
   @test
+  async jsoncConfigurationLoadsPlainData() {
+    const root = mkdtempSync(join(tmpdir(), "webda-jsonc-config-"));
+    const file = join(root, "webda.config.jsonc");
+    try {
+      writeFileSync(file, '{ // runtime configuration\n "version": 4, "$import": ["import.jsonc"] }');
+      writeFileSync(join(root, "import.jsonc"), '{ // imported configuration\n "parameters": { "list": [1, 2] } }');
+      const app: any = new UnpackedApplication(file);
+      app.findModules = async () => [];
+      await app.loadConfiguration(file);
+      const config = app.baseConfiguration;
+      assert.strictEqual(config.$$target, undefined);
+      assert.strictEqual(config.cachedModules.$$target, undefined);
+      assert.deepStrictEqual(structuredClone(config), config);
+      assert.deepStrictEqual(config.parameters.list, [1, 2]);
+      const schema = { type: "object", properties: { token: { type: "string" } } };
+      config.cachedModules.schemas["Test/Plain"] = schema;
+      assert.strictEqual(app.getSchema("Test/Plain"), schema);
+      assert.strictEqual(app.getSchema("Test/Plain"), app.getSchema("Test/Plain"));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  @test
   async findModulesFilesIsSorted() {
     // The modules are merged in this order: it must not depend on the file system timing.
     // A symlinked package takes longer to resolve than a folder, so it is found last without sorting,

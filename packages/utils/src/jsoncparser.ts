@@ -1,5 +1,11 @@
 const COMMENTS = Symbol("comments");
 
+/** Options for reading JSONC data or editing it while preserving comments. */
+export interface JSONCParseOptions {
+  /** Return comment-preserving proxies for editing and saving (default: false). */
+  edit?: boolean;
+}
+
 /** Base class for all nodes in a JSONC abstract syntax tree, carrying associated comment metadata. */
 abstract class JSONCNode {
   /**
@@ -158,59 +164,58 @@ class JSONCObject extends JSONCNode {
   toProxy(): Record<string | symbol, any> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
-    return new Proxy(this.toJSON(), {
-      get: (target, prop) => {
-        if (prop == "toString") {
-          // eslint-disable-next-line
-          return function () {
-            return self.toString();
-          };
+    return new Proxy(
+      {},
+      {
+        get: (target, prop) => {
+          if (prop == "toString") {
+            // eslint-disable-next-line
+            return function () {
+              return self.toString();
+            };
+          }
+          if (prop == "toJSON") {
+            // eslint-disable-next-line
+            return function () {
+              return self.toJSON();
+            };
+          }
+          if (prop === "$$target") {
+            return self;
+          }
+          const property = self.properties.find(p => p.key.name === prop);
+          return property ? property.value.toProxy() : undefined;
+        },
+        set: (target, prop, value) => {
+          const property = self.properties.find(p => p.key.name === prop);
+          const newValue = JSONCNode.fromValue(value);
+          if (property) {
+            newValue.cloneComments(property.value);
+            property.value = newValue;
+          } else {
+            self.addProperty(new JSONCProperty(new JSONCKey(prop as string), newValue));
+          }
+          return true;
+        },
+        deleteProperty: (target, prop) => {
+          const index = self.properties.findIndex(p => p.key.name === prop);
+          if (index !== -1) {
+            self.properties.splice(index, 1);
+          }
+          return true;
+        },
+        // Enumerate the JSONC tree so Object.keys/entries, for...in and `in` see writes.
+        ownKeys: () => self.properties.map(p => p.key.name),
+        has: (target, prop) => self.properties.some(p => p.key.name === prop),
+        getOwnPropertyDescriptor: (target, prop) => {
+          const property = self.properties.find(p => p.key.name === prop);
+          if (!property) {
+            return undefined;
+          }
+          return { value: property.value.toProxy(), writable: true, enumerable: true, configurable: true };
         }
-        if (prop == "toJSON") {
-          // eslint-disable-next-line
-          return function () {
-            return self.toJSON();
-          };
-        }
-        if (prop === "$$target") {
-          return self;
-        }
-        const property = self.properties.find(p => p.key.name === prop);
-        return property ? property.value.toProxy() : undefined;
-      },
-      set: (target, prop, value) => {
-        const property = self.properties.find(p => p.key.name === prop);
-        const newValue = JSONCNode.fromValue(value);
-        if (property) {
-          newValue.cloneComments(property.value);
-          property.value = newValue;
-        } else {
-          self.addProperty(new JSONCProperty(new JSONCKey(prop as string), newValue));
-        }
-        // Keep the snapshot target in sync so the proxy invariants hold for the traps below
-        Reflect.set(target, prop, newValue.toJSON());
-        return true;
-      },
-      deleteProperty: (target, prop) => {
-        const index = self.properties.findIndex(p => p.key.name === prop);
-        if (index !== -1) {
-          self.properties.splice(index, 1);
-        }
-        Reflect.deleteProperty(target, prop);
-        return true;
-      },
-      // Enumerate the JSONC tree, not the snapshot taken when the proxy was created,
-      // so Object.keys/entries, for...in and `in` see keys written through the proxy
-      ownKeys: () => self.properties.map(p => p.key.name),
-      has: (target, prop) => self.properties.some(p => p.key.name === prop),
-      getOwnPropertyDescriptor: (target, prop) => {
-        const property = self.properties.find(p => p.key.name === prop);
-        if (!property) {
-          return undefined;
-        }
-        return { value: property.value.toProxy(), writable: true, enumerable: true, configurable: true };
       }
-    });
+    );
   }
 
   /**
@@ -349,6 +354,14 @@ class JSONCArrayProxy extends Array {
     array.elements.forEach(el => {
       super.push(el.toProxy());
     });
+  }
+
+  /**
+   * Serialize the array with its original comments and formatting.
+   * @returns the formatted JSONC string
+   */
+  toString(): string {
+    return this.array.toString();
   }
 
   /**
@@ -515,15 +528,14 @@ class JSONCArray extends JSONCNode {
 }
 
 /**
- * Parse a JSONC string into an AST of JSONCNode objects and return a proxy for manipulation.
+ * Parse a JSONC string into an AST of JSONCNode objects.
  *
  * @param jsoncString - the JSONC source string
- * @returns a proxy object for the parsed tree
+ * @returns the root node of the parsed tree
  */
-function parseJsoncToTree(jsoncString: string): any {
+function parseJsoncToTree(jsoncString: string): JSONCValue | JSONCObject | JSONCArray {
   let i = 0;
-  const res = parseValue();
-  return res instanceof JSONCNode ? res.toProxy() : res;
+  return parseValue();
 
   /**
    * Parse the next JSON value (object, array, string, keyword, or number) at position `i`.
@@ -794,22 +806,31 @@ function parseJsoncToTree(jsoncString: string): any {
 /**
  * JSON with Comments (JSONC) parser and serializer.
  *
- * Parses JSONC strings into comment-aware proxy objects that preserve comments and
- * whitespace when serialized back with `stringify`.
+ * Returns plain data by default. Edit mode preserves comments and whitespace when
+ * serialized back with `stringify`.
  */
 export class JSONCParser {
   /**
-   * Parse a JSONC string into a proxy object.
+   * Parse a JSONC string into plain data, or a comment-preserving proxy in edit mode.
    *
-   * The returned object behaves like a plain JavaScript object/array but retains
+   * In edit mode, the returned object behaves like a JavaScript object/array but retains
    * comment and whitespace metadata so that a subsequent `stringify` call reproduces
    * the original formatting.
    *
    * @param jsoncString - The JSONC source string to parse.
-   * @returns A proxy object representing the parsed value.
+   * @param options - Set `edit: true` to retain comments and formatting for saving.
+   * @returns The parsed value.
    */
-  static parse(jsoncString: string) {
-    return parseJsoncToTree(jsoncString);
+  static parse(jsoncString: string, options: JSONCParseOptions = {}) {
+    if (options.edit) {
+      return parseJsoncToTree(jsoncString).toProxy();
+    }
+    try {
+      // Most callers supply ordinary JSON; avoid building a comment tree for it.
+      return JSON.parse(jsoncString);
+    } catch {
+      return parseJsoncToTree(jsoncString).toJSON();
+    }
   }
 
   /**
@@ -825,7 +846,7 @@ export class JSONCParser {
    * @returns The serialized string.
    */
   static stringify(tree: any, replacer?: (key: string, value: any) => any, space?: string | number): string {
-    return tree instanceof JSONCNode || tree["$$target"] instanceof JSONCNode
+    return tree instanceof JSONCNode || tree?.["$$target"] instanceof JSONCNode || tree instanceof JSONCArrayProxy
       ? tree.toString()
       : JSON.stringify(tree, replacer, space);
   }

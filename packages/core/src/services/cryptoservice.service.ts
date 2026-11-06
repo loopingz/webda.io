@@ -1307,7 +1307,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     exclude?: string | string[]
   ): Promise<number> {
     const filename = resolve(useApplication().getPath(), file);
-    const data = FileUtils.load(filename);
+    const data = FileUtils.load(filename, undefined, { edit: true });
     const before = JSON.stringify(data);
     const settings = CryptoService.getEncryptionSettings(data);
     const plain = CryptoService.findFileSecrets(JSON.parse(before), exclude).filter(f => f.reason === "plain");

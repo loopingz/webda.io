@@ -31,6 +31,40 @@ const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../test/jso
 const PACKAGE_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../";
 @suite
 class UtilsTest {
+  @test
+  jsoncLoadModes() {
+    const source = '{\n  // keep this comment\n  "nested": { "list": [1, 2], "value": "before" }\n}';
+    for (const extension of ["jsonc", "jsonc.gz"]) {
+      const file = path.join(tmpdir(), `webda-load-modes.${extension}`);
+      try {
+        writeFileSync(file, extension.endsWith(".gz") ? gzipSync(source) : source);
+        for (const plain of [FileUtils.load(file), JSONUtils.loadFile(file), JSONUtils.parse(source)]) {
+          assert.deepStrictEqual(plain, { nested: { list: [1, 2], value: "before" } });
+          assert.deepStrictEqual(structuredClone(plain), plain);
+        }
+        for (const editable of [
+          FileUtils.load(file, undefined, { edit: true }),
+          JSONUtils.loadFile(file, { edit: true }),
+          JSONUtils.parse(source, { edit: true })
+        ]) {
+          assert.ok(editable.$$target);
+          editable.nested.value = "after";
+          FileUtils.save(editable, file);
+          const content = extension.endsWith(".gz")
+            ? gunzipSync(readFileSync(file)).toString()
+            : readFileSync(file, "utf-8");
+          assert.strictEqual(content, source.replace("before", "after"));
+          assert.strictEqual(FileUtils.load(file).nested.value, "after");
+        }
+      } finally {
+        FileUtils.clean(file);
+      }
+    }
+    const json = JSONUtils.parse('{"nested":{"list":[1,2]}}');
+    assert.deepStrictEqual(structuredClone(json), { nested: { list: [1, 2] } });
+    assert.strictEqual(json.toJSON, undefined);
+  }
+
   @test("LoadJSON File")
   fileJson() {
     const { __dirname } = getCommonJS(import.meta.url);
@@ -321,7 +355,7 @@ plop: test
     }`;
     try {
       writeFileSync(file, JSONC_SOURCE);
-      const content = FileUtils.load(file);
+      const content = FileUtils.load(file, undefined, { edit: true });
       content.test2.plop4 = "bouzouf2";
       content.test4.p.v = "bouzouf2";
       FileUtils.save(content, file);
@@ -369,7 +403,9 @@ plop: test
       testMap: { [key: string]: string };
       testMapRenamed: { [key: string]: string };
       testMapRenamed2: { [key: string]: string };
-    } = FileUtils.load(getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/" + file);
+    } = FileUtils.load(getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/" + file, undefined, {
+      edit: true
+    });
 
     obj.test = "unitTest";
     obj.testToAdd = "plop";
@@ -415,13 +451,17 @@ plop: test
   @test
   jsoncComments() {
     UtilsTest.testComments("comment.jsonc", (value: string) => {
-      return JSONUtils.parse(value).toJSON();
+      return JSONUtils.parse(value);
     });
   }
 
   @test
   jsoncComments2() {
-    const data = FileUtils.load(getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/comment2.jsonc");
+    const data = FileUtils.load(
+      getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/comment2.jsonc",
+      undefined,
+      { edit: true }
+    );
     data.$schema = "http://...";
     data.a = "cdcdcd";
     data.cc = "dd";

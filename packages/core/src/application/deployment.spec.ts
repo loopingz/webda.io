@@ -39,6 +39,22 @@ function createAppFolder(deployments: Record<string, any> = {}): string {
 @suite
 class DeploymentTest {
   @test
+  loadJsoncDeploymentAsPlainData() {
+    const dir = createAppFolder();
+    try {
+      writeFileSync(
+        join(dir, "deployments", "Production.jsonc"),
+        '{ // deployment\n "parameters": { "list": ["a", "b"] } }'
+      );
+      const deployment = loadDeployment(dir, "Production");
+      assert.strictEqual(deployment.$$target, undefined);
+      assert.deepStrictEqual(structuredClone(deployment), { parameters: { list: ["a", "b"] } });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
   loadDeploymentFile() {
     const dir = createAppFolder({ Production: { parameters: { apiUrl: "https://api" } } });
     try {

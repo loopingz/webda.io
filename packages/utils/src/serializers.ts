@@ -6,8 +6,11 @@ import { createGunzip, gunzipSync, gzipSync } from "zlib";
 import { useLog } from "@webda/workout";
 import { YAMLProxy } from "./yamlproxy.js";
 import { JSONCParser as JSONC } from "./jsoncparser.js";
+import type { JSONCParseOptions } from "./jsoncparser.js";
 import { dirname, sep } from "node:path";
 import { defaultFileContentStorage } from "./content.js";
+
+export type { JSONCParseOptions } from "./jsoncparser.js";
 
 /** Options controlling directory traversal behaviour. */
 type WalkerOptionsType = {
@@ -235,7 +238,8 @@ export const FileUtils: StorageFinder & {
    * ```
    */
   save: (object: any, filename: string, format?: Format) => void;
-  load: (filename: string, format?: Format) => any;
+  /** Load plain JSON/JSONC data; use `edit: true` to preserve JSONC comments when saving. */
+  load: (filename: string, format?: Format, options?: JSONCParseOptions) => any;
   loadConfigurationFile: (filename: string, allowImports?: boolean) => any;
   getConfigurationFile: (filename: string) => string;
   clean: (...files: string[]) => void;
@@ -416,10 +420,11 @@ export const FileUtils: StorageFinder & {
    *
    * @param filename - Absolute or relative path to the file (`.yaml`, `.yml`, `.json`, `.jsonc`, or any with `.gz`).
    * @param format - Override the format instead of inferring it from the extension.
+   * @param options - Set `edit: true` to preserve JSONC comments and formatting when saving.
    * @returns The parsed object.
    * @throws If the file does not exist or the format cannot be determined.
    */
-  load: (filename, format?: Format) => {
+  load: (filename, format?: Format, options: JSONCParseOptions = {}) => {
     if (!existsSync(filename)) {
       throw new Error(`File '${filename}' does not exist.`);
     }
@@ -434,8 +439,8 @@ export const FileUtils: StorageFinder & {
     if (format === "yaml") {
       return YAMLProxy.parse(content);
     } else if (format === "json") {
-      if (filename.endsWith("c")) {
-        return JSONC.parse(content);
+      if (filename.toLowerCase().endsWith(".jsonc")) {
+        return JSONC.parse(content, options);
       }
       return JSON.parse(content);
     }
@@ -537,14 +542,14 @@ export const JSONUtils = {
     }
   },
   /**
-   * Parse a JSON data
+   * Parse JSON or JSONC into plain data by default.
    *
    * @param value to parse
+   * @param options - Set `edit: true` to preserve comments and formatting.
    * @returns object parsed
    */
-  parse: (value: string) => {
-    // Auto clean any noise
-    return JSONC.parse(value);
+  parse: (value: string, options: JSONCParseOptions = {}) => {
+    return JSONC.parse(value, options);
   },
   /**
    * Deep-clone an object via JSON round-trip serialization.
@@ -559,9 +564,10 @@ export const JSONUtils = {
    * Load a JSON file. Shorthand for `FileUtils.load(filename, "json")`.
    *
    * @param filename - Path to the JSON file to load.
+   * @param options - Set `edit: true` to preserve comments and formatting when saving.
    * @returns The parsed object.
    */
-  loadFile: (filename: string) => FileUtils.load(filename, "json"),
+  loadFile: (filename: string, options: JSONCParseOptions = {}) => FileUtils.load(filename, "json", options),
   /**
    * Save an object as a JSON file. Shorthand for `FileUtils.save(object, filename, "json")`.
    *

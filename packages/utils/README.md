@@ -51,8 +51,15 @@ const ms2 = Duration.parse("1h");    // → 3600000
 const label = Duration.format(90000); // → "1m30s"
 
 // FileUtils — load JSON, JSONC, or YAML transparently
-const config = FileUtils.load("./webda.config.jsonc");  // parses comments
-const data = JSONUtils.load("./data.json");
+const config = FileUtils.load("./webda.config.jsonc");  // plain data, comments ignored
+const data = JSONUtils.loadFile("./data.json");
+
+// Opt into edit mode when saving JSONC back with its comments and formatting
+const editable = FileUtils.load("./webda.config.jsonc", undefined, { edit: true });
+editable.parameters.port = 8080;
+FileUtils.save(editable, "./webda.config.jsonc");
+// Also available as JSONUtils.loadFile(filename, { edit: true })
+// and JSONUtils.parse(source, { edit: true }).
 
 // JSONUtils.stringify — pretty-print with sorted keys
 const pretty = JSONUtils.stringify({ b: 2, a: 1 }, undefined, 2);
@@ -65,6 +72,10 @@ await new Waiter(async () => {
   return status === "COMPLETE";
 }, 200 /* pollMs */, 30000 /* timeoutMs */).wait();
 ```
+
+JSONC loading and parsing now return plain objects and arrays by default. Code that
+edits a JSONC file and saves it back must pass `{ edit: true }` to retain comments
+and formatting. YAML loading is unchanged.
 
 ### TypeScript utility types
 

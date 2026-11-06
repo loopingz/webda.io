@@ -156,6 +156,8 @@ interface PendingLogin {
   redirect?: string;
   /** redirect_uri sent to the provider: the code exchange must use the same */
   redirectUri: string;
+  /** User ID of the session that started the login, if any */
+  userId?: string;
   /** Expiry timestamp (ms) */
   expires: number;
 }
@@ -589,6 +591,7 @@ export abstract class OAuthProvider<
       typeof pending.state !== "string" ||
       typeof pending.verifier !== "string" ||
       typeof pending.nonce !== "string" ||
+      pending.userId !== ctx.getCurrentUserId() ||
       !(Date.now() <= pending.expires)
     ) {
       return undefined;
@@ -645,6 +648,7 @@ export abstract class OAuthProvider<
         nonce: randomSecret(24),
         redirect,
         redirectUri: this.getRedirectUri(ctx),
+        userId: ctx.getCurrentUserId(),
         expires: Date.now() + PENDING_TTL * 1000
       };
       const url = await this.getAuthorizationUrl({

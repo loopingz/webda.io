@@ -5,7 +5,7 @@ import { Action, Operation } from "./decorators.js";
  */
 export class Audited {
   @Action({ rest: { route: "{id}", method: "GET", other: "x" }, description: "Read", summary: "S" })
-  read() {}
+  read(id: string) {}
 
   @Operation()
   write() {}
@@ -22,6 +22,12 @@ export class Audited {
 export class Named extends Audited {
   @Action({ rest: { unknown: "x" }, maxMfaAge: "5m" })
   own() {}
+
+  @Action({ featureFlag: "named-flag" })
+  flagged() {}
+
+  @Action({ featureFlag: true })
+  selfFlagged() {}
 }
 
 /**

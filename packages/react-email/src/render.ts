@@ -1,55 +1,15 @@
-import { pretty as prettify, toPlainText } from "@react-email/render";
-import { Suspense, createElement, type ReactElement } from "react";
+import { pretty as prettify, render, toPlainText } from "@react-email/render";
+import { createElement, type ReactElement } from "react";
 import type { EmailComponent } from "./loader.js";
 
 /**
- * The part of `react-dom/server` used here (react-dom ships no typings)
- */
-interface ReactDomServer {
-  renderToReadableStream(
-    element: ReactElement,
-    options: { progressiveChunkSize: number; onError: (error: unknown) => void }
-  ): Promise<ReadableStream<Uint8Array> & { allReady: Promise<void> }>;
-}
-
-const REACT_DOM_SERVER = "react-dom/server";
-
-/**
- * The doctype `@react-email/render` puts in front of the html
- */
-const DOCTYPE =
-  '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">';
-
-/**
- * Render a React element to html like `render` of `@react-email/render`, but failing on a render error
- *
- * `@react-email/render` does not pass `onError`: a component throwing in its body makes React fall back to
- * client rendering, so the render resolves with an empty boundary and only logs the error. Here the first
- * error is thrown instead, and nothing is logged.
+ * Render a React element to html
  *
  * @param element - the element
  * @returns the html document
  */
 export async function renderToHtml(element: ReactElement): Promise<string> {
-  const server: ReactDomServer = await import(REACT_DOM_SERVER);
-  const errors: unknown[] = [];
-  const stream = await server.renderToReadableStream(createElement(Suspense, null, element), {
-    progressiveChunkSize: Number.POSITIVE_INFINITY,
-    onError: function onError(error: unknown) {
-      errors.push(error);
-    }
-  });
-  await stream.allReady;
-  let html = "";
-  const decoder = new TextDecoder("utf-8");
-  for await (const chunk of stream as unknown as AsyncIterable<Uint8Array>) {
-    html += decoder.decode(chunk, { stream: true });
-  }
-  html += decoder.decode();
-  if (errors.length > 0) {
-    throw errors[0];
-  }
-  return `${DOCTYPE}${html.replace(/<!DOCTYPE.*?>/, "")}`;
+  return render(element);
 }
 
 /**

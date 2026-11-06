@@ -59,9 +59,11 @@ export interface ColumnPlan {
 }
 
 /**
- * `ON DELETE` behavior of a foreign key
+ * `ON DELETE` clause of a foreign key, in SQL
+ *
+ * Derived from the `DeletePolicy` of the relation (`@webda/models`), see {@link foreignKeyAction}
  */
-export type DeletePolicy = "CASCADE" | "RESTRICT" | "SET NULL" | "NO ACTION";
+export type ForeignKeyAction = "CASCADE" | "RESTRICT" | "SET NULL" | "NO ACTION";
 
 /**
  * A foreign key constraint
@@ -76,7 +78,7 @@ export interface ForeignKeyPlan {
     table: string;
     columns: string[];
   };
-  onDelete: DeletePolicy;
+  onDelete: ForeignKeyAction;
 }
 
 /**
@@ -98,7 +100,7 @@ export interface IndexPlan {
  * - `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`
  * - `linksMap`: `ModelLinksMap`
  * - `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage
- * - `map`: `ModelsMapped`, denormalized copies: no storage
+ * - `map`: `ModelsMapped`, denormalized copies: no storage, the relational stores fill them on read
  */
 export type RelationKind = "parent" | "link" | "linksSimpleArray" | "linksArray" | "linksMap" | "query" | "map";
 
@@ -123,9 +125,13 @@ export interface RelationPlan {
    */
   target?: string;
   /**
-   * For a `query`: the attribute of the target model linking back to this model
+   * For a `query` or a `map`: the attribute of the target model linking back to this model
    */
   targetAttribute?: string;
+  /**
+   * For a `map`: the attributes of the target copied into each item
+   */
+  attributes?: string[];
   /**
    * `OneToOne`: one row at most per target
    */
@@ -133,7 +139,7 @@ export interface RelationPlan {
   /**
    * `ON DELETE` of the constraint, when one is created
    */
-  onDelete?: DeletePolicy;
+  onDelete?: ForeignKeyAction;
   /**
    * Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled
    */

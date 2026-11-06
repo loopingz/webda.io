@@ -25,7 +25,7 @@
  * reproduced and commented rather than corrected. Changing any of it is a
  * separate, visible commit.
  */
-import { IndexKind, ObjectFlags, SignatureKind, SymbolFlags, TypeFlags } from "typescript/unstable/sync";
+import { IndexKind, ObjectFlags, SignatureKind, SymbolFlags, TypeFlags } from "typescript/sync";
 import type {
   Checker,
   LiteralType,
@@ -35,10 +35,10 @@ import type {
   Type,
   TypeReference,
   UnionOrIntersectionType
-} from "typescript/unstable/sync";
-import { ModifierFlags, SyntaxKind } from "typescript/unstable/ast";
-import type { Expression, Node } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
+} from "typescript/sync";
+import { ModifierFlags, SyntaxKind } from "typescript/ast";
+import type { Expression, Node } from "typescript/ast";
+import * as is from "typescript/ast/is";
 import { applyDocs, SEALED_KEYWORD, SECRET_KEYWORD } from "./annotations.ts";
 import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
 
@@ -1483,7 +1483,9 @@ function initializerOf(node: Node | undefined): Expression | undefined {
  */
 function literalOf(expression: Expression | undefined): { type: string; const: boolean | null | string } | undefined {
   if (!expression) return undefined;
-  const inner = is.skipOuterExpressions(expression);
+  const inner = (is as unknown as { skipOuterExpressions(node: Expression): Expression }).skipOuterExpressions(
+    expression
+  );
   switch (inner.kind) {
     case SyntaxKind.TrueKeyword:
       return { type: "boolean", const: true };

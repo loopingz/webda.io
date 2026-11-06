@@ -13,7 +13,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-> Kubernetes integration for Webda — `KubeRunner` dispatches async jobs as Kubernetes batch Jobs, `KubernetesSecretsStore` reads model data from K8s Secrets, and `CronJobDeployer` manages CronJob lifecycle.
+> Kubernetes integration for Webda — `KubeRunner` dispatches async jobs as Kubernetes batch Jobs, `KubernetesSecretsStore` reads model data from K8s Secrets, `CronJobDeployer` manages CronJob lifecycle, and `KnativeDeployer` deploys the application as a Knative (or Cloud Run) Service.
 
 ## When to use it
 
@@ -23,6 +23,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 - You read Kubernetes resources from a service: typed API clients and a self-restarting informer for custom resources.
 - You store configuration-like models as Kubernetes custom resources (`KubernetesStore`), editable with kubectl/GitOps.
 - You reconcile those models like a Kubernetes controller (`KubernetesOperator`).
+- You deploy the application as a scale-to-zero HTTP service on Knative Serving or Google Cloud Run (`KnativeDeployer`).
 
 ## Install
 
@@ -57,6 +58,56 @@ pnpm add @webda/kubernetes
 | `jobResources` | object \| string | —       | Yes*     | Full Kubernetes Job manifest (object or path to YAML file) overriding the default template |
 | `config`       | string \| object | —       | No       | Kubernetes config path or inline `K8sConfiguration` (defaults to in-cluster config)        |
 | `context`      | string           | —       | No       | Kubernetes context name (from kubeconfig) to use                                           |
+
+### KnativeDeployer (Knative Serving / Cloud Run)
+
+A deployment unit generating and applying a `serving.knative.dev/v1` Service for the application image,
+usually chained to the `Webda/ContainerDeployer` of `@webda/oci`:
+
+```jsonc title="deployments/production.jsonc"
+{
+  "units": [
+    { "name": "image", "type": "Webda/ContainerDeployer", "image": "ghcr.io/acme/api" },
+    {
+      "name": "knative",
+      "type": "Webda/KnativeDeployer",
+      "containerDeployer": "image",
+      "namespace": "apps",
+      "minScale": 1,
+      "env": { "NODE_ENV": "production" }
+    }
+  ]
+}
+```
+
+```bash
+webda -d production knative manifest   # print the Service without touching the cluster
+webda -d production deploy             # push the image, create or server-side apply the Service, wait for Ready
+webda -d production knative status     # URL, revisions, traffic
+webda -d production knative delete --yes
+```
+
+| Parameter                          | Type             | Default             | Description                                                                                        |
+| ---------------------------------- | ---------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| `image` / `containerDeployer`      | string           | —                   | Image to deploy, or the `ContainerDeployer` unit pushing it (the revision is pinned to its digest) |
+| `namespace` / `name`               | string           | `default` / package | Target namespace, Service name sanitized to DNS-1123                                               |
+| `minScale` / `maxScale` / `target` | number           | `0` / — / —         | Autoscaling annotations                                                                            |
+| `containerConcurrency`             | number           | `0`                 | Concurrent requests per replica, `0` for unlimited                                                 |
+| `env` / `envFrom` / `resources`    | object           | `{}` / `[]` / —     | Container settings                                                                                 |
+| `port` / `healthPath`              | number / string  | `8080` / `/healthz` | Listening port (injected as `PORT`) and readiness probe path (enabled through `WEBDA_HEALTH_PATH`) |
+| `traffic`                          | array            | latest 100%         | Traffic split between revisions                                                                    |
+| `revisionSuffix`                   | string           | `${git.short}`      | Deterministic revision names                                                                       |
+| `platform`                         | string           | `knative`           | `cloudrun` adjusts the manifest for `gcloud run services replace`                                  |
+| `triggers`                         | array            | `[]`                | Knative Eventing `Trigger`s delivering a Broker to the `Webda/CloudEventsReceiver` route (`path`)  |
+| `template` / `output`              | object \| string | —                   | Deep-merged overrides, file the manifest is written to                                             |
+| `config` / `context` / `timeout`   |                  | kubeconfig          | Cluster access, as the other services                                                              |
+
+The application needs no Knative-specific configuration: the `HttpServer` listens on `$PORT`, answers the
+readiness probe on `healthPath` and drains its in-flight requests on `SIGTERM`. With `triggers`, `knative manifest`
+prints an `eventing.knative.dev/v1` Trigger per entry after the Service (multi-document YAML), `deploy` applies them
+once the Service is Ready and `knative delete` removes them; the events reach the `Webda/CloudEventsReceiver` of
+`@webda/cloudevents`. See the [Knative deployment guide](https://webda.io/docs/Deployments/Knative) for the Cloud
+Run differences, the cold-start guidance, the stateless rules and the Eventing contract.
 
 ## Usage
 

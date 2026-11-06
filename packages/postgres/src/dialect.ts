@@ -1,6 +1,8 @@
 import type { JSONType, SQLDialect } from "@webda/sql";
 import { sqlString } from "@webda/sql";
 
+const KEY = /^[A-Za-z0-9_]+$/;
+
 /**
  * PostgreSQL JSONB syntax: `uuid VARCHAR(255)` key, `data jsonb` document, `$n` placeholders
  */
@@ -19,21 +21,22 @@ export class PostgresDialect implements SQLDialect {
 
   /** @override */
   jsonText(path: string[]): string {
-    return `data#>>'{${path.join(",")}}'`;
+    return `data#>>'{${this.checkPath(path).join(",")}}'`;
   }
 
   /** @override */
   jsonValue(path: string[]): string {
-    return `data#>'{${path.join(",")}}'`;
+    return `data#>'{${this.checkPath(path).join(",")}}'`;
   }
 
   /** @override */
   jsonValueOrNull(path: string[]): string {
-    return `NULLIF(data #> '{${path.join(",")}}', 'null'::jsonb)`;
+    return `NULLIF(data #> '{${this.checkPath(path).join(",")}}', 'null'::jsonb)`;
   }
 
   /** @override */
   keyText(key: string): string {
+    this.checkKey(key);
     return `data->>'${key}'`;
   }
 
@@ -116,31 +119,39 @@ export class PostgresDialect implements SQLDialect {
   increment(entries: { property: string; value: number }[], updateDate: string, args: any[]): string {
     let data = "data";
     for (const p of entries) {
+      this.checkKey(p.property);
       args.push(p.value);
       data = `jsonb_set(${data}, '{${p.property}}', (COALESCE(data->>'${p.property}','0')::int + $${args.length})::text::jsonb)::jsonb`;
     }
-    return `jsonb_set(${data}, '{_lastUpdate}', '"${updateDate}"'::jsonb)`;
+    return `jsonb_set(${data}, '{_lastUpdate}', ${sqlString(`"${updateDate}"`)}::jsonb)`;
   }
 
   /** @override */
   setCollectionItem(attr: string, itemParam: number, index: number | undefined, updateDate: string): string {
+    this.checkKey(attr);
     let q = `jsonb_set(jsonb_set(data::jsonb, array['${attr}'],`;
     if (index === undefined) {
       q += `COALESCE((data->'${attr}')::jsonb, '[]'::jsonb) || jsonb_build_array($${itemParam}::jsonb))::jsonb`;
     } else {
-      q += `jsonb_set(COALESCE((data->'${attr}')::jsonb, '[]'::jsonb), '{${index}}', $${itemParam}::jsonb)::jsonb)`;
+      q += `jsonb_set(COALESCE((data->'${attr}')::jsonb, '[]'::jsonb), '{${this.checkIndex(index)}}', $${itemParam}::jsonb)::jsonb)`;
     }
-    return `${q}, '{_lastUpdate}', '"${updateDate}"'::jsonb)`;
+    return `${q}, '{_lastUpdate}', ${sqlString(`"${updateDate}"`)}::jsonb)`;
   }
 
   /** @override */
   removeCollectionItem(attr: string, index: number, updateDate: string): string {
-    return `jsonb_set(jsonb_set(data::jsonb, array['${attr}'], COALESCE(((data->'${attr}')::jsonb - ${index}), '[]'::jsonb))::jsonb, '{_lastUpdate}', '"${updateDate}"'::jsonb)`;
+    this.checkKey(attr);
+    return `jsonb_set(jsonb_set(data::jsonb, array['${attr}'], COALESCE(((data->'${attr}')::jsonb - ${this.checkIndex(index)}), '[]'::jsonb))::jsonb, '{_lastUpdate}', ${sqlString(`"${updateDate}"`)}::jsonb)`;
   }
 
   /** @override */
   collectionItemCondition(attr: string, index: number | undefined, field: string, valueParam: number): string {
-    return `(data#>>'{${attr}, ${index}}')::jsonb->>'${field}'=$${valueParam}`;
+    this.checkKey(attr);
+    this.checkKey(field);
+    if (index === undefined) {
+      return `(data#>>'{${attr}, undefined}')::jsonb->>'${field}'=$${valueParam}`;
+    }
+    return `(data#>>'{${attr}, ${this.checkIndex(index)}}')::jsonb->>'${field}'=$${valueParam}`;
   }
 
   /**
@@ -196,5 +207,36 @@ export class PostgresDialect implements SQLDialect {
    */
   decode(value: any): any {
     return value;
+  }
+
+  /**
+   * @param key - a key segment written inside a JSON path literal
+   */
+  protected checkKey(key: string): void {
+    if (!KEY.test(key)) {
+      throw new Error(`Invalid attribute: ${key}`);
+    }
+  }
+
+  /**
+   * @param path - path segments written inside a JSON path literal
+   * @returns the validated segments
+   */
+  protected checkPath(path: string[]): string[] {
+    for (const segment of path) {
+      this.checkKey(segment);
+    }
+    return path;
+  }
+
+  /**
+   * @param index - an array index written inside a JSON path literal
+   * @returns the validated index
+   */
+  protected checkIndex(index: number): number {
+    if (!Number.isInteger(index) || index < 0) {
+      throw new Error(`Invalid index: ${index}`);
+    }
+    return index;
   }
 }

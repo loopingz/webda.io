@@ -17,9 +17,9 @@
  *   own tsconfig without `runExternalCode`, so content mappers are inert there
  *   and no recursion is possible; the files are simply read as authored.
  */
-import { API, type Checker, type Program, type Project } from "typescript/unstable/sync";
-import { createFileSystemLayer } from "typescript/unstable/fs";
-import type { SourceFile } from "typescript/unstable/ast";
+import { API, type Checker, type Program, type Project } from "typescript/sync";
+import { createFileSystemLayer } from "typescript/fs";
+import type { SourceFile } from "typescript/ast";
 import { baseNames, textOf, triviaOf } from "./context.ts";
 import { defaultGenerators } from "./defaults.ts";
 import { mergePlan, type Edit, type GeneratedDiagnostic, type Generator } from "./plan.ts";
@@ -166,7 +166,11 @@ export class WarmSession {
     const produced = ctx.sourceFiles.length ? this.generators.flatMap(g => g.analyze(ctx as any)) : [];
     const { plan } = mergePlan(produced);
     const edits: Edit[] = plan.get(fileName) ?? [];
-    const diagnostics = produced.filter(f => f.fileName === fileName).flatMap(f => f.diagnostics ?? []);
+    // The protocol has no severity: a warning reaches the editor as the others do (the build tells them apart)
+    const diagnostics = produced
+      .filter(f => f.fileName === fileName)
+      .flatMap(f => f.diagnostics ?? [])
+      .map(({ severity: _severity, ...diagnostic }) => diagnostic);
     const analyzeMs = ms(t1);
 
     const t2 = process.hrtime.bigint();

@@ -191,6 +191,58 @@ class MemoryRepositoryLegacyTypesTest {
   }
 
   @test
+  storedTypeHelpersForDocumentStores() {
+    // A table whose root, Dog, extends Animal: Animal-typed rows belong to Dog, as untyped rows
+    this.setup(true);
+    const repo = (model: any) => new MemoryRepository(model, ["uuid"], "_", new Map()).setTableRoot(Dog as any) as any;
+    assert.deepStrictEqual(repo(Dog).tableRootAncestorTypes(), ["Zoo/Animal", "Animal", "zoo/animal", "animal"]);
+    assert.deepStrictEqual(repo(Animal).tableRootAncestorTypes(), ["Zoo/Animal", "Animal", "zoo/animal", "animal"]);
+    assert.deepStrictEqual(repo(Puppy).tableRootAncestorTypes(), [], "a subclass of the root owns no untyped row");
+    assert.deepStrictEqual(repo(Plant).tableRootAncestorTypes(), []);
+    assert.deepStrictEqual(
+      new MemoryRepository(Dog as any, ["uuid"], "_", new Map()).tableRootAncestorTypes(),
+      [],
+      "no table root"
+    );
+    assert.deepStrictEqual(repo(Dog).legacyTypeRewrites(), {
+      "zoo/animal": "Zoo/Dog",
+      animal: "Zoo/Dog",
+      "zoo/dog": "Zoo/Dog",
+      dog: "Zoo/Dog",
+      "zoo/puppy": "Zoo/Puppy",
+      puppy: "Zoo/Puppy"
+    });
+    assert.deepStrictEqual(repo(Plant).legacyTypeRewrites(), {
+      "zoo/plant": "Zoo/Plant",
+      plant: "Zoo/Plant",
+      "zoo/flora": "Zoo/Plant",
+      flora: "Zoo/Plant"
+    });
+    assert.deepStrictEqual(new MemoryRepository(Loose as any, ["uuid"], "_", new Map()).legacyTypeRewrites(), {});
+    // Without a table root, only the forms of the model family are rewritten
+    assert.deepStrictEqual(new MemoryRepository(Plant as any, ["uuid"], "_", new Map()).legacyTypeRewrites(), {
+      "zoo/plant": "Zoo/Plant",
+      plant: "Zoo/Plant",
+      "zoo/flora": "Zoo/Plant",
+      flora: "Zoo/Plant"
+    });
+  }
+
+  @test
+  storedTypeHelpersWithClassesUnknownToTheResolver() {
+    // The application resolver knows Dog only: Animal, an ancestor, and Puppy, the table root, fall back to their
+    // own identifier
+    setTypeResolver(new ModelTypeResolver({ "Zoo/Dog": Dog } as any, { namespace: "Zoo" }));
+    const dogs = new MemoryRepository(Dog as any, ["uuid"], "_", new Map()).setTableRoot(Puppy as any) as any;
+    assert.deepStrictEqual(dogs.tableRootAncestorTypes(), ["Zoo/Dog", "Dog", "zoo/dog", "dog", "Zoo/Animal"]);
+    assert.deepStrictEqual(dogs.legacyTypeRewrites(), {
+      "zoo/animal": "Zoo/Puppy",
+      "zoo/dog": "Zoo/Dog",
+      dog: "Zoo/Dog"
+    });
+  }
+
+  @test
   async unresolvedStoredTypeIsKeptOnSave() {
     this.setup(true);
     this.seed({ u1: { __type: "Gone/Thing", name: "unknown" }, a1: { __type: "Zoo/Animal", name: "current" } });

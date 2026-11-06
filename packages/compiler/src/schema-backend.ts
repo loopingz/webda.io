@@ -56,6 +56,8 @@ export interface EmitReport {
   written: number;
   /** Edits per generator. */
   editCounts: Record<string, number>;
+  /** Generator warnings against the authored sources (a query on a sealed field): logged, the build goes on. */
+  warnings?: string[];
 }
 
 /** One build's answer. */

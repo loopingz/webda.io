@@ -31,6 +31,10 @@ export interface RestExposure {
   pathParams: string[];
   /** Query-string parameters of the route template (`{?q?}`), e.g. `["q"]` for a `GET` query */
   query?: string[];
+  /** Object parameter expanded into the remaining query keys. */
+  queryCatchAll?: string;
+  /** Parameter sent as the whole JSON body. */
+  body?: string;
 }
 
 /** How a relation field of a GraphQL result is turned back into the attribute the REST API sends */

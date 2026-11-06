@@ -20,7 +20,7 @@ export interface ActionOptions {
   /** Mark the action as global (class-level) rather than instance-level. */
   global?: boolean;
   /**
-   * Behavior-only override for the REST route registration.
+   * REST URI template and HTTP verb. Instance actions implicitly include the model primary key.
    *
    *   - `route: "."` ⇒ `/<plural>/{uuid}/<attribute>` (no extra segment)
    *   - `route: "url"` ⇒ `/<plural>/{uuid}/<attribute>/url`
@@ -29,6 +29,10 @@ export interface ActionOptions {
    * `method` overrides the HTTP verb; defaults to `"PUT"` when omitted.
    */
   rest?: {
+    /** URI template relative to the model collection (or behavior attribute). */
+    path?: string;
+    /** Use the whole JSON body as this method parameter. */
+    body?: string;
     route?: string;
     method?: string;
   };
@@ -41,6 +45,12 @@ export interface ActionOptions {
    * `OperationDefinition.maxMfaAge`. Read by the compiler: use a string or number literal
    */
   maxMfaAge?: number | string;
+  /**
+   * Feature flag gating the operation. When the flag is off for the caller
+   * the operation answers NotFound and is left out of listings.
+   * `true` uses the operation id as flag name.
+   */
+  featureFlag?: string | true;
 }
 
 /**

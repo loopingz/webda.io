@@ -1,5 +1,5 @@
 import { Model, WEBDA_PRIMARY_KEY } from "@webda/models";
-import type { MfaState } from "@webda/core";
+import type { MfaState, MfaVerification } from "@webda/core";
 
 /** Identity captured at consent time */
 export interface GrantIdentity {
@@ -8,6 +8,8 @@ export interface GrantIdentity {
   provider?: string;
   amr: string[];
   mfa: MfaState;
+  mfaAt?: number;
+  mfaVerifications?: Record<string, MfaVerification>;
 }
 
 /**
@@ -25,6 +27,8 @@ export class OAuthCode extends Model {
   name?: string;
   /** Resource the tokens are bound to (RFC 8707) */
   resource?: string;
+  /** Other resources the family may mint access tokens for (RFC 8707 §2.2) */
+  resources?: string[];
   expiresAt: number;
   /** Set when exchanged */
   usedAt?: number;
@@ -49,6 +53,8 @@ export class OAuthDeviceCode extends Model {
   grantedScope?: string;
   name?: string;
   hostname?: string;
+  /** Other resources the family may mint access tokens for (RFC 8707 §2.2), from the client configuration */
+  resources?: string[];
   expiresAt: number;
   lastPolledAt?: number;
   /** Current polling interval (s), raised by slow_down */

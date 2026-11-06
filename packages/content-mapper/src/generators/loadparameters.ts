@@ -18,7 +18,8 @@
  * Unlike the morpher this writes nothing to disk — the method is injected into
  * the compiler's view of the file in pass 2.
  */
-import { SymbolFlags, isTypeParameter } from "typescript/unstable/sync";
+import { SymbolFlags, isTypeParameter } from "typescript/sync";
+import { SyntaxKind } from "typescript/ast";
 import { classesOf, memberName } from "../context.ts";
 import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";
 
@@ -38,7 +39,7 @@ const SERVICE_BASE = "Service";
  */
 function parametersTypeName(ctx: AnalysisContext, sf: any, cls: any): string | undefined {
   for (const clause of cls.heritageClauses ?? []) {
-    if (clause.token !== 95) continue; // ExtendsKeyword
+    if (clause.token !== SyntaxKind.ExtendsKeyword) continue;
     for (const t of clause.types) {
       const args = (t as any).typeArguments;
       if (!args?.length) continue;

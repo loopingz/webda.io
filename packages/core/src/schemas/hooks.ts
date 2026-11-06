@@ -77,9 +77,15 @@ export function validateModelSchema(
  * Register a schema
  * @param name - the name to use
  * @param schema - the schema object
+ * @param replace - replace a previously registered schema and invalidate its cached validators
  */
-export function registerSchema(name: string, schema: object): void {
+export function registerSchema(name: string, schema: object, replace: boolean = false): void {
   const ajv = getAjv();
+  if (replace) {
+    ajv.removeSchema(name);
+    ajv.removeSchema(name + "?");
+    delete ajv.rawSchema[name + "?"];
+  }
   ajv.addSchema(schema, name);
   ajv.rawSchema[name] = schema;
 }

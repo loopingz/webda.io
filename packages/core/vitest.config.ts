@@ -8,6 +8,8 @@ export default defineConfig({
   plugins: [webdaContentMapper()],
   test: {
     allowOnly: true,
+    // Integration fixtures use the compiled core while specs exercise its sources.
+    env: { WEBDA_ALLOW_DUPLICATE_PACKAGES: "1" },
     testTimeout: 20000,
     hookTimeout: 60000,
     coverage: {
@@ -21,6 +23,7 @@ export default defineConfig({
     setupFiles: ["./vitest.chdir.mts"],
     reporters: "verbose",
     include: [
+      "src/rest/binding.spec.ts",
       "src/bin/*.spec.ts",
       "src/application/*.spec.ts",
       "src/cache/*.spec.ts",
@@ -46,6 +49,7 @@ export default defineConfig({
       "src/rest/operationstransport.spec.ts",
       "src/rest/rest-behaviors.spec.ts",
       "src/rest/router-alias.spec.ts",
+      "src/rest/router-cors.spec.ts",
       "src/rest/router-prefix.spec.ts",
       "src/rest/websocket.spec.ts",
       "src/rest/reststream.spec.ts",
@@ -68,8 +72,11 @@ export default defineConfig({
       "src/services/audit.spec.ts",
       "src/services/audit-read.spec.ts",
       "src/services/operationstransport.spec.ts",
+      "src/services/featureflags.spec.ts",
       "src/services/httpserver.spec.ts",
+      "src/services/requesttracer.spec.ts",
       "src/services/clientcertificatefilter.spec.ts",
+      "src/services/cluster.service.spec.ts",
       "src/services/notificationservice.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",

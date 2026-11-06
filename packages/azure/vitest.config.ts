@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   clearScreen: false,
   test: {
+    clearMocks: false,
     coverage: {
       enabled: true,
       provider: "v8",

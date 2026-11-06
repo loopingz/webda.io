@@ -1,8 +1,8 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
-import * as is from "typescript/unstable/ast/is";
-import type { ClassDeclaration } from "typescript/unstable/ast";
+import * as is from "typescript/ast/is";
+import type { ClassDeclaration } from "typescript/ast";
 import { openSession, type Session } from "../context.ts";
 import { generateActionInput } from "./action.ts";
 import { generateModelSchemas } from "./model.ts";
@@ -323,6 +323,25 @@ describe("top-level schemas", () => {
     rootDir: join(fixture, "src"),
     outDir: join(fixture, "lib"),
     namespace: "Test"
+  });
+
+  it("exports URI bindings from literal decorator options with typed inputs and return-only outputs", () => {
+    expect(schemas["Test/RestDesk.list.input"]["x-webda-rest"]).toEqual({
+      method: "get",
+      template: "tickets/{projectId}{?tags?,filters*}",
+      path: ["projectId"],
+      query: [
+        { name: "tags", required: false },
+        { name: "filters", required: false, catchAll: true },
+        { name: "limit", required: false }
+      ],
+      body: []
+    });
+    expect(schemas["Test/RestDesk.create.input"]["x-webda-rest"]).toMatchObject({
+      body: ["ticket"],
+      bodyParameter: "ticket"
+    });
+    expect(schemas["Test/RestDesk.list.output"].type).toBe("array");
   });
 
   it("publishes a @WebdaSchema type under its namespaced name", () => {

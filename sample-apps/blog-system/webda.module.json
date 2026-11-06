@@ -317,7 +317,9 @@
           {
             "attribute": "comments",
             "model": "WebdaSample/Comment",
-            "type": "LINKS_ARRAY"
+            "type": "LINKS_ARRAY",
+            "onDelete": "CASCADE",
+            "ownership": "CONTAINS"
           },
           {
             "attribute": "tags",
@@ -986,7 +988,7 @@
               "type": "string"
             },
             "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model.",
+              "description": "Alias for ModelLink - defines a relation to another model\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`",
               "type": "string"
             }
           },
@@ -1013,7 +1015,7 @@
               "type": "string"
             },
             "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model.",
+              "description": "Alias for ModelLink - defines a relation to another model\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`",
               "type": "string"
             }
           },
@@ -1040,7 +1042,7 @@
               "type": "string"
             },
             "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model.",
+              "description": "Alias for ModelLink - defines a relation to another model\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`",
               "type": "string"
             }
           },

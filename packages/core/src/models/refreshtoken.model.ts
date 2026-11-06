@@ -42,8 +42,10 @@ export class RefreshToken extends Model {
   clientId?: string;
   /** Granted scope (space-separated) */
   scope?: string;
-  /** Resource (RFC 8707) the access tokens are bound to */
+  /** Resource (RFC 8707) the access tokens are bound to by default */
   resource?: string;
+  /** Other resources (RFC 8707) the family may mint access tokens for, one audience per token */
+  resources?: string[];
   /** Display name, e.g. "webda-cli on remi-mbp" */
   name?: string;
   /** Creation of the family, ms since epoch: carried across rotations */

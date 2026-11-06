@@ -55,7 +55,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ (inputs.lane || 'latest') == 'v3' && '20' || '22' }}
+          # Every lane builds on Node 22: the v3 docs depend on mermaid 12, which needs Node 22.12 or newer
+          node-version: 22
 
       # docs is a workspace package, so this installs its dependencies too;
       # typedoc resolves cross-package types through each package's compiled lib/

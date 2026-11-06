@@ -1,5 +1,6 @@
 import {
   callOperation,
+  emitCoreEvent,
   canCallOperation,
   OperationContext,
   registerOperation,
@@ -9,12 +10,13 @@ import {
   unregisterOperationAuthorizer,
   useApplication,
   useCore,
+  useSystem,
   WebdaError
 } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { IAMTest } from "../test/fixture.js";
-import { isIAMActive } from "./active.js";
+import { IAM_ALLOWED_OPERATION, isIAMActive } from "./active.js";
 import { PolicyCompileError } from "./conditions.js";
 import { IAMPolicy } from "./iampolicy.model.js";
 import { IAMPolicyAttachment } from "./iampolicyattachment.model.js";
@@ -148,6 +150,18 @@ class IAMServiceTest extends IAMTest {
   }
 
   @test
+  async dryRunCompletionPreservesTheAmbientAuthorizationDecision() {
+    const context = new OperationContext();
+    for (const event of ["Webda.OperationSuccess", "Webda.OperationFailure"] as const) {
+      context.setExtension(IAM_ALLOWED_OPERATION, "Tasks.Update");
+      await emitCoreEvent(event, { context, operationId: "Tasks.Update", dryRun: true } as any);
+      assert.strictEqual(context.getExtension(IAM_ALLOWED_OPERATION), "Tasks.Update");
+      await emitCoreEvent(event, { context, operationId: "Tasks.Update" } as any);
+      assert.strictEqual(context.getExtension(IAM_ALLOWED_OPERATION), undefined);
+    }
+  }
+
+  @test
   async allowsAttachedGroupAndRefusesOthers() {
     const editor = { uuid: "u1", groups: ["editors"] };
     await this.call(new IAMContext(editor, { status: "draft" }), "Tasks.Update");
@@ -233,6 +247,13 @@ class IAMServiceTest extends IAMTest {
       () => this.call(new IAMContext({ uuid: "u9" }, { status: "draft" }), "Tasks.Update"),
       WebdaError.Forbidden
     );
+  }
+
+  @test
+  async systemIsAllowed() {
+    // The system has no user to load and no attachment: IAM lets it through, like the permission query
+    await callOperation(useSystem({ status: "archived" }), "Tasks.Delete");
+    assert.strictEqual(await canCallOperation(useSystem(), "Tasks.Delete"), true);
   }
 
   @test

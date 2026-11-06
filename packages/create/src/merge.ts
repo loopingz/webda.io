@@ -19,6 +19,9 @@ export function deepMerge<T>(target: T, source: unknown): T {
   }
   const out: Record<string, unknown> = structuredClone(target);
   for (const [key, value] of Object.entries(source)) {
+    if (["__proto__", "constructor", "prototype"].includes(key)) {
+      continue;
+    }
     out[key] = key in out ? deepMerge(out[key], value) : structuredClone(value);
   }
   return out as T;

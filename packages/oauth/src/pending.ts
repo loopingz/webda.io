@@ -25,6 +25,8 @@ export interface PendingRequest {
   hostname?: string;
   /** Resource the tokens are bound to (RFC 8707), validated (code flow) */
   resource?: string;
+  /** Other resources the family may mint access tokens for (RFC 8707 §2.2), validated */
+  resources?: string[];
   /** Device user code (device flow) */
   userCode?: string;
   /** User the request is bound to: the signed-in user when consent is first shown */
@@ -56,6 +58,8 @@ function isPendingRequest(value: any): value is PendingRequest {
     optional(value.codeChallenge) &&
     optional(value.hostname) &&
     optional(value.resource) &&
+    (value.resources === undefined ||
+      (Array.isArray(value.resources) && value.resources.every((r: unknown) => typeof r === "string"))) &&
     optional(value.userCode) &&
     optional(value.userId) &&
     (value.flow !== "code" || (typeof value.redirectUri === "string" && typeof value.codeChallenge === "string")) &&

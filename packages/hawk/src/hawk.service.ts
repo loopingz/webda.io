@@ -18,6 +18,18 @@ import * as Hawk from "hawk";
 import type { ApiKey } from "./apikey.model.js";
 
 /**
+ * Reject regular expressions that are overly long or contain nested quantifiers (ReDoS)
+ * @param pattern - regex source string
+ * @returns compiled anchored RegExp or undefined if unsafe
+ */
+export function compileSafeAnchoredRegExp(pattern: string): RegExp | undefined {
+  if (typeof pattern !== "string" || pattern.length > 512 || /\([^()]*[+*?][^()]*\)[+*?{]/.test(pattern)) {
+    return undefined;
+  }
+  return new RegExp(`^(?:${pattern})$`);
+}
+
+/**
  * Hawk Credentials representation
  */
 export interface HawkCredentials {
@@ -223,7 +235,14 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
    * @param url - the url to redirect to
    */
   async redirectWithCSRF(context: WebContext, url: string) {
-    if (!this.parameters.redirectUris.some(u => url.startsWith(u))) {
+    const updatedUrl = new URL(url);
+    const isAllowed = this.parameters.redirectUris.some(u => {
+      const allowed = new URL(u);
+      return `${updatedUrl.origin}${updatedUrl.pathname}/`.startsWith(
+        `${allowed.origin}${allowed.pathname.replace(/\/?$/, "/")}`
+      );
+    });
+    if (!isAllowed) {
       throw new WebdaError.Forbidden("Invalid redirect");
     }
     const sessionKey = this.parameters.dynamicSessionKey;
@@ -239,7 +258,6 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
     if (typeof secret !== "string") {
       throw new WebdaError.Forbidden("Invalid session key");
     }
-    const updatedUrl = new URL(url);
     const [key, data] = secret.split(".");
     updatedUrl.searchParams.set("csrf", await this.cryptoService.hmac(data, key));
     context.redirect(updatedUrl.toString());
@@ -277,7 +295,8 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
       }
       // Origin can be matched by a special regexp too
       for (const pattern of origins[key].patterns) {
-        if (origin.match(pattern)) {
+        const regex = compileSafeAnchoredRegExp(pattern);
+        if (regex && regex.test(origin)) {
           return true;
         }
       }
@@ -345,6 +364,8 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
         }
         throw new WebdaError.Forbidden("Bad Hawk credentials");
       }
+    } else {
+      return false;
     }
     return true;
   }

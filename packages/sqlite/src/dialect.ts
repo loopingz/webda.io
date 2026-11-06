@@ -9,7 +9,20 @@ const KEY = /^[A-Za-z0-9_]+$/;
  * @returns the path, e.g. `$.list[1].v`
  */
 export function jsonPath(path: string[]): string {
-  return "$" + path.map(segment => (/^\d+$/.test(segment) ? `[${segment}]` : `.${segment}`)).join("");
+  return (
+    "$" +
+    path
+      .map(segment => {
+        if (/^\d+$/.test(segment)) {
+          return `[${segment}]`;
+        }
+        if (!KEY.test(segment)) {
+          throw new Error(`Invalid attribute: ${segment}`);
+        }
+        return `.${segment}`;
+      })
+      .join("")
+  );
 }
 
 /**

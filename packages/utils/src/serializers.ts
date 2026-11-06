@@ -7,7 +7,7 @@ import { useLog } from "@webda/workout";
 import { YAMLProxy } from "./yamlproxy.js";
 import { JSONCParser as JSONC } from "./jsoncparser.js";
 import type { JSONCParseOptions } from "./jsoncparser.js";
-import { dirname } from "node:path";
+import { dirname, sep } from "node:path";
 import { defaultFileContentStorage } from "./content.js";
 
 export type { JSONCParseOptions } from "./jsoncparser.js";
@@ -391,8 +391,9 @@ export const FileUtils: StorageFinder & {
     const data = FileUtils.load(FileUtils.getConfigurationFile(filename));
     if (allowImports && data && typeof data === "object") {
       const processImport = (importItem: string) => {
+        const baseDir = resolve(dirname(filename));
         const importFile = resolve(join(dirname(filename), importItem));
-        if (!importFile.endsWith(importItem)) {
+        if (!importFile.startsWith(baseDir + sep) || !importFile.endsWith(importItem)) {
           useLog(
             "WARN",
             `FileUtils.loadConfigurationFile: Ignoring import with invalid path '${importItem}' in '${filename}'`

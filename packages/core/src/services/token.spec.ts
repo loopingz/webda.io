@@ -32,6 +32,7 @@ class TokenServiceTest extends WebdaApplicationTest {
     this.service.getParameters().revocationCheck = true;
     this.service.getParameters().revocationCacheTtl = 10;
     this.service.getParameters().refreshGrace = 86400;
+    this.service.getParameters().refreshReuseInterval = 10;
     vi.useRealTimers();
     for await (const entry of RevokedAccess.iterate("")) {
       await entry.ref().delete();
@@ -141,8 +142,9 @@ class TokenServiceTest extends WebdaApplicationTest {
 
   @test
   async rotationAndReuse() {
-    // strict reuse detection: no grace
+    // strict reuse detection: no grace, no reuse interval
     this.service.getParameters().refreshGrace = 0;
+    this.service.getParameters().refreshReuseInterval = 0;
     const first = await this.service.issue(this.session());
     const second = await this.service.refresh(first.refreshToken);
     assert.notStrictEqual(second.refreshToken, first.refreshToken);
@@ -154,6 +156,8 @@ class TokenServiceTest extends WebdaApplicationTest {
 
   @test
   async replayWithinTheGraceRotatesAgainWhenTheSuccessorWasNeverUsed() {
+    // the grace alone: the replays below come right after the rotation
+    this.service.getParameters().refreshReuseInterval = 0;
     // the client lost the answer of its refresh (laptop asleep, network drop) and retries with the same token
     const first = await this.service.issue(this.session(), undefined, { clientId: "c" });
     const second = await this.service.refresh(first.refreshToken, { clientId: "c" });
@@ -175,6 +179,8 @@ class TokenServiceTest extends WebdaApplicationTest {
 
   @test
   async replayWithinTheGraceWhenTheSuccessorWasNeverStored() {
+    // the grace alone: the replays below come right after the rotation
+    this.service.getParameters().refreshReuseInterval = 0;
     // the rotation succeeded but writing its successor failed: the client retries with the same token
     const first = await this.service.issue(this.session());
     const issue = vi.spyOn(this.service, "issue").mockRejectedValueOnce(new Error("store down"));
@@ -194,6 +200,8 @@ class TokenServiceTest extends WebdaApplicationTest {
 
   @test
   async aRetiredSuccessorPresentedLaterRevokesTheFamily() {
+    // the grace alone: the replays below come right after the rotation
+    this.service.getParameters().refreshReuseInterval = 0;
     // two holders of the family's tokens (the replay was not the same client): detected at the next refresh
     const first = await this.service.issue(this.session());
     const second = await this.service.refresh(first.refreshToken);
@@ -205,6 +213,8 @@ class TokenServiceTest extends WebdaApplicationTest {
 
   @test
   async replayAfterTheSuccessorWasUsedRevokesTheFamily() {
+    // the grace alone: the replays below come right after the rotation
+    this.service.getParameters().refreshReuseInterval = 0;
     const first = await this.service.issue(this.session());
     const second = await this.service.refresh(first.refreshToken);
     const third = await this.service.refresh(second.refreshToken);
@@ -229,6 +239,8 @@ class TokenServiceTest extends WebdaApplicationTest {
 
   @test
   async concurrentReplaysWithinTheGraceAreAReuse() {
+    // the grace alone: the replays below come right after the rotation
+    this.service.getParameters().refreshReuseInterval = 0;
     // two replays at once are two holders: at most one gets tokens, and the family is revoked
     const first = await this.service.issue(this.session());
     await this.service.refresh(first.refreshToken);
@@ -270,7 +282,60 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
-  async concurrentRefresh() {
+  async concurrentRefreshesAllKeepAWorkingSession() {
+    // several instances of a client sharing their stored credentials refresh at the same time
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c" });
+    const results = await Promise.all([
+      this.service.refresh(t.refreshToken, { clientId: "c" }),
+      this.service.refresh(t.refreshToken, { clientId: "c" }),
+      this.service.refresh(t.refreshToken, { clientId: "c" })
+    ]);
+    assert.strictEqual(new Set(results.map(r => r.refreshToken)).size, 3);
+    const svc: any = this.service;
+    const stored = await RefreshToken.ref({ hash: svc.hash(t.refreshToken) } as any).get();
+    for (const r of results) {
+      assert.ok(await this.service.verifyAccess(r.accessToken));
+      const record = await RefreshToken.ref({ hash: svc.hash(r.refreshToken) } as any).get();
+      assert.strictEqual(record.family, stored.family);
+      assert.strictEqual(record.retiredAt, undefined);
+      // every branch keeps rotating
+      assert.ok(await this.service.refresh(r.refreshToken, { clientId: "c" }));
+    }
+  }
+
+  @test
+  async replayWithinTheReuseIntervalKeepsTheReplacement() {
+    const first = await this.service.issue(this.session());
+    const second = await this.service.refresh(first.refreshToken);
+    const third = await this.service.refresh(first.refreshToken);
+    const svc: any = this.service;
+    const stored = await RefreshToken.ref({ hash: svc.hash(first.refreshToken) } as any).get();
+    // the rotated record still points at the first replacement, which is not retired
+    assert.strictEqual(stored.successor, svc.hash(second.refreshToken));
+    assert.strictEqual((await RefreshToken.ref({ hash: stored.successor } as any).get()).retiredAt, undefined);
+    assert.ok(await this.service.refresh(second.refreshToken));
+    assert.ok(await this.service.refresh(third.refreshToken));
+  }
+
+  @test
+  async replayAfterTheReuseIntervalFallsBackToTheGrace() {
+    const first = await this.service.issue(this.session());
+    const second = await this.service.refresh(first.refreshToken);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 11_000);
+      const third = await this.service.refresh(first.refreshToken);
+      // the grace retired the unused replacement: presenting it is a reuse
+      await assert.rejects(() => this.service.refresh(second.refreshToken), TokenInvalid);
+      await assert.rejects(() => this.service.refresh(third.refreshToken), TokenInvalid);
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  @test
+  async concurrentRefreshWithoutReuseInterval() {
+    this.service.getParameters().refreshReuseInterval = 0;
     const t = await this.service.issue(this.session());
     const results = await Promise.allSettled([
       this.service.refresh(t.refreshToken),
@@ -677,6 +742,61 @@ class TokenServiceTest extends WebdaApplicationTest {
     );
     // not burnt by the rejection
     assert.ok(await this.service.refresh(first.refreshToken, { clientId: "c" }));
+  }
+
+  @test
+  async familyMintsSeveralResources() {
+    const mcp = "https://app.example/mcp";
+    const first = await this.service.issue(this.session(), undefined, { clientId: "c", resources: [mcp] });
+    // The primary audience is the application one
+    const claims = await this.service.verifyAccess(first.accessToken);
+    assert.strictEqual(claims?.aud, "webda-access");
+    const stored = await RefreshToken.query(`family = '${claims!.fam}'`);
+    assert.strictEqual(stored.results[0].resource, undefined);
+    assert.deepStrictEqual(stored.results[0].resources, [mcp]);
+    // The same family mints a token for an allowed resource
+    const second = await this.service.refresh(first.refreshToken, { clientId: "c", resource: mcp });
+    assert.strictEqual(await this.service.verifyAccess(second.accessToken), undefined);
+    const bound = await this.service.verifyAccess(second.accessToken, { audience: mcp });
+    assert.strictEqual(bound?.aud, mcp);
+    assert.strictEqual(bound?.fam, claims!.fam);
+    // Without resource, the primary is minted again: the chosen audience is not sticky
+    const third = await this.service.refresh(second.refreshToken, { clientId: "c" });
+    assert.strictEqual((await this.service.verifyAccess(third.accessToken))?.aud, "webda-access");
+    const rotated = await RefreshToken.query(`hash = '${(this.service as any).hash(third.refreshToken)}'`);
+    assert.strictEqual(rotated.results[0].resource, undefined);
+    assert.deepStrictEqual(rotated.results[0].resources, [mcp]);
+    // Another resource is refused, without burning the token
+    await assert.rejects(
+      () => this.service.refresh(third.refreshToken, { clientId: "c", resource: "https://other/mcp" }),
+      (err: any) => err instanceof InvalidTarget
+    );
+    const fourth = await this.service.refresh(third.refreshToken, { clientId: "c", resource: mcp });
+    // Revoking the family kills the tokens of every resource
+    await this.service.revokeFamily(claims!.fam);
+    assert.strictEqual(await this.service.verifyAccess(third.accessToken), undefined);
+    assert.strictEqual(await this.service.verifyAccess(fourth.accessToken, { audience: mcp }), undefined);
+    await assert.rejects(() => this.service.refresh(fourth.refreshToken, { clientId: "c" }), TokenInvalid);
+  }
+
+  @test
+  async issueWithAudienceOfAllowedResource() {
+    const mcp = "https://app.example/mcp";
+    const t = await this.service.issue(this.session(), undefined, { clientId: "c", resources: [mcp], audience: mcp });
+    assert.strictEqual(await this.service.verifyAccess(t.accessToken), undefined);
+    const claims = await this.service.verifyAccess(t.accessToken, { audience: mcp });
+    assert.strictEqual(claims?.aud, mcp);
+    // The family primary stays the application audience
+    const stored = await RefreshToken.query(`family = '${claims!.fam}'`);
+    assert.strictEqual(stored.results[0].resource, undefined);
+    const again = await this.service.refresh(t.refreshToken, { clientId: "c" });
+    assert.strictEqual((await this.service.verifyAccess(again.accessToken))?.aud, "webda-access");
+    // An audience outside the family's resources is refused
+    await assert.rejects(
+      () =>
+        this.service.issue(this.session(), undefined, { clientId: "c", resources: [mcp], audience: "https://x/mcp" }),
+      (err: any) => err instanceof InvalidTarget
+    );
   }
 
   @test

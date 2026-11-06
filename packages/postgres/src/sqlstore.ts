@@ -4,7 +4,15 @@ import type { SQLClient } from "@webda/sql";
 import { PostgresDialect } from "./dialect.js";
 
 export { SQLComparisonExpression, SQLRepository, SQLStore, SQLStoreParameters, sqlString } from "@webda/sql";
-export type { SQLClient, SQLDatabase, SQLDialect, SQLResult } from "@webda/sql";
+export { SQLTransactionAbortedError, SQLTransactionState } from "@webda/sql";
+export type {
+  SQLClient,
+  SQLDatabase,
+  SQLDialect,
+  SQLResult,
+  SQLTransactionConnection,
+  SQLTransactionMode
+} from "@webda/sql";
 
 /**
  * PostgreSQL-backed repository for a single model class: SQLRepository bound to the JSONB dialect.
@@ -23,6 +31,8 @@ export class PostgresRepository<T extends ModelClass> extends SQLRepository<T> {
    * @param prepare - awaited before every statement (e.g. to ensure the table exists)
    * @param tableModel - identifier of the model the table was declared for: rows without `__type` (written before
    *   stamping) belong to it. Defaults to the topmost ancestor of `model` carrying metadata.
+   * @param transactionClient - the client of the transaction active in the current async chain, undefined outside
+   *   one (see PostgresStore `transaction`)
    */
   constructor(
     model: T,
@@ -31,8 +41,9 @@ export class PostgresRepository<T extends ModelClass> extends SQLRepository<T> {
     table: string,
     separator?: string,
     prepare?: () => Promise<void>,
-    tableModel?: string
+    tableModel?: string,
+    transactionClient?: () => SQLClient | undefined
   ) {
-    super(model, pks, client, table, separator, prepare, tableModel, new PostgresDialect());
+    super(model, pks, client, table, separator, prepare, tableModel, new PostgresDialect(), transactionClient);
   }
 }

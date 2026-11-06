@@ -1,4 +1,4 @@
-import { useApplication, useInstanceStorage } from "@webda/core";
+import { useApplication, useInstanceStorage, useRouter } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { buildSdkManifest, createIdFilter, globToRegExp, grpcNaming, SdkManifestBuilder } from "./manifest.js";
@@ -6,6 +6,37 @@ import { SampleAppTest } from "../test/sample-app.js";
 
 @suite
 class SdkManifestTest extends SampleAppTest {
+  @test
+  async recordsQueryCatchAllAndWholeBodyBindingsFromTheRegisteredRoute() {
+    const operations = useInstanceStorage().operations;
+    const path = "/binding/{id}{?notify?,filters*}";
+    operations["Binding.Send"] = {
+      id: "Binding.Send",
+      input: "void",
+      output: "void",
+      method: "send",
+      rest: { method: "post", path, body: "payload" }
+    };
+    useRouter().addRouteToRouter(path, {
+      executor: "RESTService",
+      methods: ["POST"],
+      openapi: { post: { operationId: "Binding.Send" } }
+    });
+    try {
+      assert.deepStrictEqual(this.generator.manifest().operations["Binding.Send"].rest, {
+        method: "post",
+        path: "/binding/{id}",
+        pathParams: ["id"],
+        query: ["notify"],
+        queryCatchAll: "filters",
+        body: "payload"
+      });
+    } finally {
+      delete operations["Binding.Send"];
+      delete useRouter().getRoutes()[path];
+    }
+  }
+
   @test
   async describesEveryNonHiddenOperationWithItsRoute() {
     const manifest = this.generator.manifest();
@@ -93,7 +124,11 @@ class SdkManifestTest extends SampleAppTest {
     assert.strictEqual(user.plural, "Users");
     assert.deepStrictEqual(user.primaryKey, ["uuid"]);
     assert.deepStrictEqual(user.ancestors, ["Webda/User"]);
-    assert.deepStrictEqual(user.relations.parent, { attribute: "company", model: "WebdaDemo/Company" });
+    assert.deepStrictEqual(user.relations.parent, {
+      attribute: "company",
+      model: "WebdaDemo/Company",
+      onDelete: "CASCADE"
+    });
     // The metadata names the target attribute after its type (`User`): resolved to the real parent attribute
     assert.deepStrictEqual(
       user.relations.queries!.find(q => q.attribute === "computers"),

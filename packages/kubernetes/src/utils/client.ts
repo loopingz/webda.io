@@ -66,7 +66,9 @@ export interface K8sConfiguration {
 function timeoutMiddleware(timeout: number): k8s.Middleware {
   return {
     pre: async context => {
-      context.setSignal(AbortSignal.timeout(timeout));
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(new Error(`Request timeout after ${timeout}ms`)), timeout).unref();
+      context.setSignal(controller.signal);
       return context;
     },
     post: async context => context

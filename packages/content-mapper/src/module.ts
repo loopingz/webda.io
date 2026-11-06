@@ -20,11 +20,11 @@ import { SchemaConverter } from "./schema/converter.ts";
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/unstable/ast";
-import { getJSDocTags, getTextOfJSDocComment, SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
-import { SymbolFlags } from "typescript/unstable/sync";
-import type { Symbol as TsSymbol, Type } from "typescript/unstable/sync";
+import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/ast";
+import { getJSDocTags, getTextOfJSDocComment, SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
+import { SymbolFlags } from "typescript/sync";
+import type { Symbol as TsSymbol, Type } from "typescript/sync";
 import {
   classTree,
   dependencyModelName,
@@ -35,18 +35,27 @@ import {
   outputTarget,
   packageOf,
   reflectAttributes,
-  relationTypeOf,
   type DiscoveredObject,
   type DiscoveryOptions,
   type ReflectedAttribute,
   type Section
 } from "./module-discovery.ts";
+import { compileFlows, formatFlowError } from "./flows/compile.ts";
+import type { CompiledFlow } from "./flows/types.ts";
 import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order, ts6PropertyOrder } from "./property-order.ts";
+import {
+  backfillRelations,
+  relationPolicyOf,
+  resolveRelationType,
+  type DeletePolicy,
+  type RelationDependent
+} from "./relations.ts";
 import { generateModelSchemas } from "./schema/model.ts";
 import { generateTopLevelSchemas } from "./schema/project.ts";
 import { findParametersNode, findStaticParametersDeclaration, generateServiceSchema } from "./schema/service.ts";
 import type { JSONSchema7 } from "./schema/types.ts";
+import { literalOption } from "./schema/rest.ts";
 
 /** Value of `$schema` in every generated module. */
 export const WEBDA_MODULE_SCHEMA = "https://webda.io/schemas/webda.module.v4.json";
@@ -81,8 +90,10 @@ export interface ServiceEntry {
 
 /** Relations recorded for a model, in TypeScript 6 insertion order. */
 export interface ModuleRelations {
-  parent?: { attribute: string; model?: string };
-  links?: { attribute: string; model?: string; type: string }[];
+  /** `onDelete`: policy applied to this model when the parent is deleted, `CASCADE` by default. */
+  parent?: { attribute: string; model?: string; onDelete?: DeletePolicy };
+  /** `onDelete` is omitted for the default `NONE`; `ownership` marks a `Contains`. */
+  links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: "CONTAINS" }[];
   /** Polymorphic references, optionally constrained to exact model identifiers. */
   polymorphicLinks?: { attribute: string; models?: string[] }[];
   queries?: { attribute: string; model?: string; targetAttribute?: string }[];
@@ -94,6 +105,12 @@ export interface ModuleRelations {
     targetAttributes: string[];
   }[];
   behaviors?: { attribute: string; behavior: string }[];
+  /** Attributes tagged `@Index` / `@Unique`, those sharing a `name` forming one composite index. */
+  indexes?: { attribute: string; unique?: boolean; name?: string }[];
+  /** Models declaring this model as their parent. */
+  children?: string[];
+  /** Relations of other models targeting this model, with a policy other than `NONE`. */
+  dependents?: RelationDependent[];
 }
 
 /** A model entry. */
@@ -145,6 +162,10 @@ export interface WebdaModuleJson {
   schemas: Record<string, JSONSchema7>;
   behaviors: Record<string, BehaviorEntry>;
   capabilities?: Record<string, string>;
+  /**
+   * Flows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`): present only when there is one
+   */
+  flows?: Record<string, CompiledFlow>;
 }
 
 /** A Webda class declared in a file that does not follow the naming convention. */
@@ -196,7 +217,7 @@ export interface ModuleResult {
 }
 
 /** Suffixes the content mapper is registered for. */
-const MAPPED_SUFFIXES = [".model.ts", ".service.ts"];
+const MAPPED_SUFFIXES = [".model.ts", ".service.ts", ".flow.ts", ".model.wts", ".service.wts", ".flow.wts"];
 
 /** Suffix suggested for a section when a file has none of {@link MAPPED_SUFFIXES}. */
 const SECTION_SUFFIX: Record<string, string> = {
@@ -575,9 +596,20 @@ export function buildModelActions(
         meta[key] = initializer.text;
       }
       readMaxMfaAge(key, initializer, meta);
+      if (["rest", "methods", "openapi"].includes(key)) {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
+      }
       // `@Action({ name })` exposes the action under another name than the method
       if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
         name = initializer.text;
+      }
+      if (key === "featureFlag") {
+        if (is.isStringLiteral(initializer)) {
+          meta.featureFlag = initializer.text;
+        } else if (initializer.kind === SyntaxKind.TrueKeyword) {
+          meta.featureFlag = true;
+        }
       }
     });
     if (name !== methodName) meta.handler = methodName;
@@ -1160,6 +1192,10 @@ export function buildBehaviorActions(
       if (key === "global") {
         throw new Error(`Behavior ${identifier}: @Action({ global: true }) is not allowed (method "${methodName}").`);
       }
+      if (key === "methods" || key === "openapi") {
+        const value = literalOption(initializer);
+        if (value !== undefined) meta[key] = value;
+      }
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
@@ -1173,10 +1209,18 @@ export function buildBehaviorActions(
             is.isStringLiteral((restProperty as any).initializer)
           ) {
             const restKey = (restProperty as any).name.text;
-            if (restKey === "route" || restKey === "method") rest[restKey] = (restProperty as any).initializer.text;
+            if (["route", "method", "path", "body"].includes(restKey))
+              rest[restKey] = (restProperty as any).initializer.text;
           }
         }
         if (Object.keys(rest).length > 0) meta.rest = rest;
+      }
+      if (key === "featureFlag") {
+        if (is.isStringLiteral(initializer)) {
+          meta.featureFlag = initializer.text;
+        } else if (initializer.kind === SyntaxKind.TrueKeyword) {
+          meta.featureFlag = true;
+        }
       }
     });
     actions[methodName] = meta;
@@ -1212,6 +1256,20 @@ function behaviorOfTypeReference(
   const declaration = declarationsOf(ctx, symbol).find(d => is.isClassDeclaration(d) || is.isClassExpression(d));
   if (!declaration) return undefined;
   return behaviorIdentifier(declaration, namespace);
+}
+
+/**
+ * The `@Index` / `@Unique` JSDoc tag of a property: the relational stores index the attribute, uniquely with
+ * `@Unique`; a payload names the composite index the attribute belongs to (`@Index byAuthorDate`).
+ * @param member - the property declaration
+ * @returns the index, undefined without a tag
+ */
+function indexTagOf(member: Node): { unique?: boolean; name?: string } | undefined {
+  const unique = findTag(member, "Unique");
+  const tag = unique ?? findTag(member, "Index");
+  if (!tag) return undefined;
+  const name = (getTextOfJSDocComment(tag.comment) ?? "").trim().split(/\s+/)[0];
+  return { ...(unique ? { unique: true } : {}), ...(name ? { name } : {}) };
 }
 
 /**
@@ -1289,18 +1347,31 @@ function processModels(
         if (!member) continue;
       }
       if (isSkippedProperty(ctx, member)) continue;
+      const index = indexTagOf(member);
+      if (index) {
+        relations.indexes ??= [];
+        relations.indexes.push({ attribute: property.name, ...index });
+      }
       const typeNode = member.type;
       if (!typeNode || !is.isTypeReferenceNode(typeNode)) continue;
 
       const attribute = property.name;
       const typeArguments: any[] = (typeNode as any).typeArguments ?? [];
-      const typeName = relationTypeOf(text(ctx, (typeNode as any).typeName));
+      const { type: typeName, contains } = resolveRelationType(ctx, typeNode);
+      const policyOf = (kind: "PARENT" | "CONTAINS" | "LINK"): DeletePolicy | undefined => {
+        const { onDelete, error } = relationPolicyOf(member, kind, `${name}.${attribute}`);
+        if (error) errors.push(error);
+        return onDelete;
+      };
       const addLink = (type: string) => {
         relations.links ??= [];
+        const onDelete = policyOf(contains ? "CONTAINS" : "LINK");
         relations.links.push({
           attribute,
           model: modelOf(typeArguments[0]) ?? instantiatedModelOf(property, declaration),
-          type
+          type,
+          ...(onDelete ? { onDelete } : {}),
+          ...(contains ? { ownership: "CONTAINS" as const } : {})
         });
       };
       switch (typeName) {
@@ -1313,18 +1384,18 @@ function processModels(
                 `(BelongTo) at most, use ModelLink (ManyToOne) for the other`
             );
           }
-          relations.parent = { attribute, model };
+          relations.parent = { attribute, model, onDelete: policyOf("PARENT") };
           break;
         }
         case "ModelRelated": {
           relations.queries ??= [];
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find query model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          const targetAttribute = typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined;
           relations.queries.push({
             attribute,
             model,
-            // ModelRelated<T, L, K>: K is the attribute of T linking back
-            targetAttribute: typeArguments[2] ? text(ctx, typeArguments[2]).replace(/"/g, "") : undefined
+            ...(targetAttribute !== undefined ? { targetAttribute } : {})
           });
           break;
         }
@@ -1332,9 +1403,16 @@ function processModels(
           relations.maps ??= [];
           const model = modelOf(typeArguments[0]);
           if (!model) errors.push(`Cannot find map model ${text(ctx, typeArguments[0])} for ${name}.${attribute}`);
+          // @CascadeDelete, or its synonym @OnDelete CASCADE: deleting this model deletes the mapped models
+          const mapPolicy = policyOf("LINK");
+          if (mapPolicy && mapPolicy !== "CASCADE") {
+            errors.push(
+              `${name}.${attribute}: @OnDelete ${mapPolicy} is not allowed on a ModelsMapped, use CASCADE or NONE`
+            );
+          }
           const map = {
             attribute,
-            cascadeDelete: findTag(member, "CascadeDelete") !== undefined,
+            cascadeDelete: mapPolicy === "CASCADE",
             model,
             targetLink: text(ctx, typeArguments[1]).replace(/"/g, ""),
             targetAttributes: text(ctx, typeArguments[2])
@@ -1416,6 +1494,8 @@ function processModels(
     const ancestors = entries[name].Ancestors;
     if (ancestors.length) entries[ancestors[0]]?.Subclasses.push(name);
   }
+  // Reverse index on the targets: children and dependents
+  backfillRelations(Object.fromEntries(Object.entries(entries).map(([name, entry]) => [name, entry.Relations])));
   return entries;
 }
 
@@ -1744,7 +1824,10 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     }
   }
   try {
-    Object.assign(module.schemas, generateTopLevelSchemas(ctx, discovery));
+    const primaryKeys = Object.fromEntries(
+      models.map(({ object, declaration }) => [object.name, buildModelPrimaryKey(ctx, declaration) ?? ["uuid"]])
+    );
+    Object.assign(module.schemas, generateTopLevelSchemas(ctx, { ...discovery, primaryKeys }));
   } catch (error) {
     errors.push(`schemas: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -1799,6 +1882,11 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     const aliases = buildModelAliases(declaration, namespace).filter(alias => alias !== object.name);
     if (aliases.length) entry.Aliases = aliases;
   }
+
+  // Flows: a forbidden construct fails the build, as it is a diagnostic in the editor
+  const flows = compileFlows(ctx);
+  if (Object.keys(flows.flows).length) module.flows = flows.flows;
+  errors.push(...flows.errors.map(error => formatFlowError(ctx, error)));
 
   // An alias naming another model would make its rows ambiguous: the build fails instead
   for (const [name, entry] of Object.entries(module.models)) {

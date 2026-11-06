@@ -21,6 +21,7 @@ import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
 import { STORE_CAPABILITY } from "../stores/capability.js";
 import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
+import { runDryRun } from "../contexts/dryrun.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise, FileUtils, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
 import {
@@ -62,6 +63,8 @@ export interface OperationCall {
   parameters: Record<string, any>;
   /** Parsed input body */
   input?: any;
+  /** Whether dry run is requested */
+  dryRun?: boolean;
 }
 
 export type OperationHandler = (call: OperationCall) => Promise<void>;
@@ -278,6 +281,10 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
   });
 
   const cli = yargs(normalizedArgv).scriptName("webda").usage("$0 <command> <action> [options]");
+  cli.option("dry-run", {
+    type: "boolean",
+    describe: "Run operation in dry mode"
+  });
 
   for (const [group, operations] of groups) {
     cli.command(group.toLowerCase(), `${group} operations`, groupY => {
@@ -297,7 +304,8 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
             await handler({
               id: op.id,
               parameters: extractParameters(args, op, ops),
-              input: hasInput ? extractInput(args, op, ops!) : undefined
+              input: hasInput ? extractInput(args, op, ops!) : undefined,
+              dryRun: args["dry-run"] ? true : undefined
             });
           }
         );
@@ -1274,6 +1282,10 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         default: true,
         description: "Route console.log/info/warn/error/debug/trace to the logger"
       });
+      cli.option("dry-run", {
+        type: "boolean",
+        describe: "Run operation in dry mode"
+      });
 
       // Add --watch flag only if compiler is available
       if (hasCompiler) {
@@ -1310,7 +1322,8 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
                     call: {
                       id: op.id,
                       parameters: extractParameters(args, op, ops!),
-                      input: hasInput ? extractInput(args, op, ops!) : undefined
+                      input: hasInput ? extractInput(args, op, ops!) : undefined,
+                      dryRun: args["dry-run"] ? true : undefined
                     }
                   };
                 }
@@ -1386,7 +1399,8 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
 
         // Call the method with input properties as positional arguments
         const inputArgs = call.input ? Object.values(call.input) : [];
-        const result = await service[methodName](...inputArgs);
+        const executeCall = async () => service[methodName](...inputArgs);
+        const result = await (call.dryRun ? runDryRun(executeCall) : executeCall());
         if (result !== undefined) {
           useOutput(typeof result === "string" ? result : JSON.stringify(result, undefined, 2));
         }

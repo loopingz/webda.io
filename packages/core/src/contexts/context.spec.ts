@@ -734,6 +734,16 @@ class ExecutionContextTest {
     assert.ok(ctx);
     assert.strictEqual(ctx.isGlobalContext(), true);
   }
+
+  @test
+  async getInputStripsDangerousKeys() {
+    const ctx = new WebContextMock(new HttpContext("test.webda.io", "POST", "/test"));
+    ctx.getHttpContext().setBody('{"constructor":"bad","prototype":"bad","safe":"ok"}');
+    const res = await ctx.getInput();
+    assert.strictEqual(res.safe, "ok");
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(res, "constructor"), false);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(res, "prototype"), false);
+  }
 }
 
 @suite

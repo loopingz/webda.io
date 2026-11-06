@@ -1,3 +1,4 @@
+import { registerWebdaPackage } from "@webda/utils";
 export * from "./metrics/metrics.js";
 import * as WebdaError from "./errors/errors.js";
 export { WebdaError };
@@ -12,15 +13,18 @@ export * from "./contexts/operationcontext.js";
 export * from "./contexts/simplecontext.js";
 export * from "./contexts/icontext.js";
 export * from "./contexts/execution.js";
+export * from "./contexts/dryrun.js";
 export * from "./contexts/webcontext.js";
 export * from "./contexts/httpcontext.js";
 export * from "./contexts/clientcertificate.js";
 export * from "./contexts/streamingcontext.js";
 export * from "./contexts/websocketcontext.js";
 export * from "./contexts/globalcontext.js";
+export * from "./contexts/globaloperationcontext.js";
 export * from "./core/icore.js";
 export * from "./core/instancestorage.js";
 export * from "./core/operations.js";
+export * from "./core/transactions.js";
 export * from "./core/asyncqueue.js";
 export * from "./core/core.js";
 export * from "./core/hooks.js";
@@ -92,6 +96,8 @@ export * from "./deployers/packager.service.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";
 export * from "./services/abstractmailer.js";
+export * from "./services/requesttracer.js";
+export * from "./services/subnetchecker.js";
 export * from "./configurations/kubernetesconfiguration.service.js";
 export * from "./services/iauthentication.js";
 export * from "./services/domainservice.service.js";
@@ -119,6 +125,8 @@ export * from "./configurations/fileconfiguration.service.js";
 export * from "./services/audit.model.js";
 export * from "./services/service.js";
 export * from "./services/clientcertificatefilter.service.js";
+export * from "./services/cluster.service.js";
+export * from "./services/storecluster.service.js";
 export * from "./services/binary.service.js";
 export * from "./configurations/configuration.service.js";
 export * from "./rest/irest.js";
@@ -139,6 +147,8 @@ export * from "./application/iconfiguration.js";
 export * from "./application/iapplication.js";
 export * from "./models/types.js";
 export * from "./cache/cache.js";
+export * from "./services/featureflags.js";
+export * from "./services/featureflags.service.js";
 export { escape, WebdaQLError } from "@webda/ql";
 export type { WebdaQLStatement, WebdaQLString } from "@webda/ql";
 
@@ -172,3 +182,6 @@ export {
   type PublicKeyEntry,
   type SealedEnvelope
 } from "./sealed/index.js";
+
+// Refuse a second copy of the package, see registerWebdaPackage
+registerWebdaPackage("@webda/core", import.meta.url);

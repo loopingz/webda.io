@@ -1,6 +1,6 @@
 {
   "name": "@webda/templates",
-  "version": "4.0.0-beta.12",
+  "version": "4.0.0-beta.13",
   "description": "Template engines registry and rendering for Webda",
   "keywords": [
     "templates",
@@ -44,18 +44,18 @@
     "namespace": "Webda"
   },
   "devDependencies": {
-    "@types/mustache": "^4.2.5",
-    "@types/node": "25.5.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@types/mustache": "^4.2.6",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/compiler": "workspace:^",
     "@webda/test": "workspace:*",
     "@webda/workout": "workspace:*",
-    "jscodeshift": "^17.3.0",
-    "skott": "^0.35.8",
-    "tsx": "^4.21.0",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "jscodeshift": "^17.4.0",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "type": "module",
   "engines": {

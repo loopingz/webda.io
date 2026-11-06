@@ -6,3 +6,4 @@ export * from "./http.js";
 export * from "./model.js";
 export * from "./model-client.js";
 export * from "./client.js";
+export * from "./tracing.js";

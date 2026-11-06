@@ -14,6 +14,12 @@ import { UuidModel } from "../models/index.js";
 
 /** @WebdaModel */
 export class Author extends UuidModel {
+  /** @Unique */
+  email: string;
+  /** @Index byName */
+  name: string;
+  /** @Index byName */
+  birthday: string;
   posts: OneToMany<Post, Author, "author">;
 }
 

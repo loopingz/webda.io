@@ -47,8 +47,12 @@ export function isIAMOperation(operationId: string): boolean {
  * @param evt - the operation event
  * @param evt.context - the operation context
  * @param evt.operationId - the operation id
+ * @param evt.dryRun - whether call was in dry mode
  */
-function clearAllowedOperation(evt: { context: OperationContext; operationId: string }): void {
+function clearAllowedOperation(evt: { context: OperationContext; operationId: string; dryRun?: boolean }): void {
+  if (evt.dryRun) {
+    return;
+  }
   if (evt.context?.getExtension?.(IAM_ALLOWED_OPERATION) === evt.operationId) {
     evt.context.setExtension(IAM_ALLOWED_OPERATION, undefined);
   }
@@ -332,7 +336,8 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
     operationId: string,
     options: { input?: any; probe: boolean }
   ): Promise<true | string> {
-    if (!this.isInScope(operationId)) {
+    // The system (useSystem(), runAsSystem) has no user to load: allowed, as for the operation permission query
+    if (!this.isInScope(operationId) || context.isGlobalContext()) {
       return true;
     }
     if (!this.engine) {
@@ -369,7 +374,7 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
       if (operationId === "IAMPolicy.Create") {
         // The whole document: a stored policy that cannot compile would freeze every rebuild
         validatePolicyDocument(input);
-      } else if (input.statements !== undefined) {
+      } else if (operationId === "IAMPolicy.Update" || input.statements !== undefined) {
         validateStatements(input.statements);
       }
       if (operationId === "IAMPolicy.Create" && this.configNames.has(input.name)) {

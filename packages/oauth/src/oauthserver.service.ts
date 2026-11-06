@@ -143,6 +143,11 @@ export interface ConsentRequest {
   user: { id: string; name?: string };
   /** Hostname of the device requesting access */
   hostname?: string;
+  /**
+   * Protected resources (absolute URIs) the tokens may be issued for: the one they are bound to first, then the others
+   * the family may mint tokens for; empty for the application audience only
+   */
+  resources: string[];
   /** Requested operations the user can call, by first segment */
   operations: {
     group: string;
@@ -222,6 +227,10 @@ function identityOf(session: Session): GrantIdentity {
     identId: session.identUsed,
     provider: session.provider,
     amr: session.amr ?? [],
+    ...(session.mfaAt !== undefined ? { mfaAt: session.mfaAt } : {}),
+    ...(session.mfaVerifications && Object.keys(session.mfaVerifications).length > 0
+      ? { mfaVerifications: session.mfaVerifications }
+      : {}),
     mfa: session.mfa ?? "none"
   };
 }
@@ -663,13 +672,11 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       return fail("invalid_scope", (err as Error).message);
     }
     let resource: string | undefined;
+    let resources: string[] | undefined;
     try {
-      // A repeated resource is refused (the router keeps a single value of a repeated query parameter)
+      // The router keeps a single value of a repeated query parameter: every resource is read from the URL
       const url = new URL(ctx.getHttpContext().getUrl(), "http://localhost");
-      if (url.searchParams.getAll("resource").length > 1) {
-        throw new OAuthError("invalid_target", "A single resource is supported");
-      }
-      resource = this.resolveResource(ctx, client, p("resource"));
+      ({ resource, resources } = this.resolveResources(ctx, client, url.searchParams.getAll("resource")));
     } catch (err) {
       return fail("invalid_target", (err as Error).message);
     }
@@ -682,13 +689,14 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       scope: formatScope(scope),
       hostname: this.cleanHostname(p("hostname")),
       resource,
+      resources,
       csrf: randomToken(24),
       expires: Date.now() + PENDING_TTL * 1000
     };
     const prompt = p("prompt");
     const session = ctx.getSession();
-    // A bearer (scoped) session cannot drive the authorization endpoint: consent comes from a browser session
-    if (!session?.isLogged() || session.scopes !== undefined) {
+    // A bearer (scoped) or MFA-pending session cannot drive the authorization endpoint
+    if (!session?.isLogged() || session.mfa === "pending" || session.scopes !== undefined) {
       if (prompt === "none") return fail("login_required", "Login required");
       if (!(await writePending(ctx, PENDING_COOKIE, this.pendingPath(ctx), pending))) {
         return fail("invalid_request", "Authorization request is too large");
@@ -759,6 +767,48 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     if (!client.id.startsWith("dcr_") && !client.metadataDocument) return undefined;
     if (known.length > 1) throw new OAuthError("invalid_target", "A resource parameter is required");
     return known[0];
+  }
+
+  /**
+   * Resources of an authorization request (RFC 8707 §2.2): the one the tokens are bound to, from the first `resource`
+   * parameter (see {@link resolveResource}), and the others the family may mint access tokens for: the further
+   * `resource` parameters and the `resources` of the client configuration, each a registered protected resource. The
+   * consent for a resource of another application differs, so such a resource is never combined with another one
+   * @param ctx - web context
+   * @param client - requesting client
+   * @param requested - `resource` parameters, in order
+   * @returns the bound resource and the other ones, in request order then configuration order
+   * @throws OAuthError invalid_target when a resource is not registered, cannot be chosen or is combined with one of
+   * another application
+   */
+  protected resolveResources(
+    ctx: WebContext,
+    client: OAuthClient,
+    requested: string[]
+  ): { resource?: string; resources?: string[] } {
+    const resource = this.resolveResource(ctx, client, requested[0]);
+    const known = resolveProtectedResources(this.issuer(ctx));
+    const others = new Set<string>();
+    for (const target of [...requested.slice(1), ...(client.resources ?? [])]) {
+      if (target === resource) continue;
+      if (!known.includes(target) && !this.parameters.resources.includes(target)) {
+        throw new OAuthError("invalid_target", "Unknown resource");
+      }
+      others.add(target);
+    }
+    if (!others.size) return { resource };
+    if ([resource, ...others].some(r => this.isRemoteResource(ctx, r))) {
+      throw new OAuthError("invalid_target", "A resource of another application is not combined with another one");
+    }
+    return { resource, resources: [...others] };
+  }
+
+  /**
+   * @param pending - pending request
+   * @returns the resources of its grant: the bound one first, then the others
+   */
+  protected grantResources(pending: PendingRequest): string[] {
+    return [...(pending.resource !== undefined ? [pending.resource] : []), ...(pending.resources ?? [])];
   }
 
   /**
@@ -882,11 +932,14 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         name: client.name,
         logo: client.logo,
         uri: client.client_uri,
-        host: client.registered ? this.redirectHost(pending.redirectUri) : this.metadataHost(client),
+        host: client.registered
+          ? this.redirectHost(pending.redirectUri)
+          : this.metadataHost(client, pending.redirectUri),
         verified: !client.registered
       },
       user: { id: userId },
       hostname: pending.hostname,
+      resources: this.grantResources(pending),
       operations: [...groups.values()],
       offlineAccess: requested.includes(OFFLINE_ACCESS),
       rememberable: pending.flow === "code" && !remote && this.parameters.rememberConsent,
@@ -896,10 +949,16 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
 
   /**
    * @param client - requesting client
+   * @param redirectUri - redirect URI of the pending request
    * @returns the host publishing a metadata document client, undefined for the others
    */
-  protected metadataHost(client: OAuthClient): string | undefined {
-    return client.metadataDocument ? new URL(client.id).host : undefined;
+  protected metadataHost(client: OAuthClient, redirectUri?: string): string | undefined {
+    if (!client.metadataDocument) return undefined;
+    const docHost = new URL(client.id).host;
+    const redirHost = this.redirectHost(redirectUri);
+    return redirHost && redirHost !== docHost && redirHost !== "local application"
+      ? `${docHost} (redirects to ${redirHost})`
+      : docHost;
   }
 
   /**
@@ -1000,8 +1059,9 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    */
   protected async requirePending(ctx: WebContext): Promise<PendingRequest> {
     const session = ctx.getSession();
-    // A bearer (scoped) session cannot consent: consent comes from a browser session
-    if (!session?.isLogged() || session.scopes !== undefined) throw new WebdaError.Unauthorized("Login required");
+    // A bearer (scoped) or MFA-pending session cannot consent: consent comes from a browser session
+    if (!session?.isLogged() || session.mfa === "pending" || session.scopes !== undefined)
+      throw new WebdaError.Unauthorized("Login required");
     const pending = await readPending(ctx, PENDING_COOKIE);
     if (!pending) throw new WebdaError.BadRequest("No pending authorization request");
     if (pending.userId === undefined) {
@@ -1099,6 +1159,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       identity,
       name: await this.familyName(pending),
       resource: pending.resource,
+      resources: pending.resources,
       expiresAt: Date.now() + this.parameters.codeTtl * 1000
     } as any);
     return code;
@@ -1367,17 +1428,14 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     ) {
       throw invalidCode();
     }
-    // RFC 8707 §2.2: the resource of the token request, when given, is the one consented to
-    if (body.resource !== undefined && body.resource !== (stored.resource ?? undefined)) {
-      throw new OAuthError("invalid_target", "Requested resource differs from the authorized one");
-    }
-    const issued = await this.issueTokens(
-      stored.identity,
-      stored.clientId,
-      parseScope(stored.scope),
-      stored.name,
-      stored.resource ?? undefined
-    );
+    // RFC 8707 §2.2: the resource of the token request, when given, chooses the audience among the consented ones
+    // (TokenService refuses another with InvalidTarget); the family stays bound to the authorized one
+    const issued = await this.issueTokens(stored.identity, stored.clientId, parseScope(stored.scope), {
+      name: stored.name,
+      resource: stored.resource ?? undefined,
+      resources: stored.resources ?? undefined,
+      audience: body.resource
+    });
     // Recorded only while the code is not marked reused: a concurrent presentation that marked it first could not
     // see the family, so revoke it here (the tokens are returned but no longer valid)
     try {
@@ -1479,12 +1537,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       if (!this.isConditionFailure(err) && (await ref.exists())) throw err;
       throw invalid();
     }
-    const issued = await this.issueTokens(
-      stored.identity!,
-      stored.clientId,
-      parseScope(stored.grantedScope!),
-      stored.name
-    );
+    const issued = await this.issueTokens(stored.identity!, stored.clientId, parseScope(stored.grantedScope!), {
+      name: stored.name,
+      resources: stored.resources ?? undefined
+    });
     return issued.response;
   }
 
@@ -1506,28 +1562,31 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
    * @param identity - identity captured at consent
    * @param clientId - client
    * @param scope - granted scope
-   * @param name - display name of the family
-   * @param resource - resource the tokens are bound to (RFC 8707), none by default
+   * @param options - issue options
+   * @param options.name - display name of the family
+   * @param options.resource - resource the tokens are bound to (RFC 8707), none by default
+   * @param options.resources - other resources the family may mint access tokens for (RFC 8707 §2.2)
+   * @param options.audience - audience of this access token when it is one of `resources`
    * @returns the family and the response
    */
   protected async issueTokens(
     identity: GrantIdentity,
     clientId: string,
     scope: Scope,
-    name?: string,
-    resource?: string
+    options: { name?: string; resource?: string; resources?: string[]; audience?: string } = {}
   ): Promise<{ family: string; response: TokenResponse }> {
     const session = new Session();
     session.login(identity.userId, identity.identId, {
       provider: identity.provider,
       amr: identity.amr,
-      mfa: identity.mfa
+      mfa: identity.mfa,
+      mfaAt: identity.mfaAt,
+      mfaVerifications: identity.mfaVerifications
     });
     const tokens = await this.tokenService().issue(session, undefined, {
       clientId,
       scope,
-      name,
-      resource,
+      ...options,
       issuer: this.tokenIssuer(),
       accessTtl: this.parameters.accessTtl,
       refreshTtl: this.parameters.refreshTtl
@@ -1753,6 +1812,8 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       const client = await this.deviceClient(body.client_id);
       if (!client) throw new OAuthError("unauthorized_client", "The client may not use the device authorization grant");
       const scope = this.requestedScope(client, body.scope);
+      // Bound to no resource; the client configuration may allow others
+      const { resources } = this.resolveResources(ctx, client, []);
       const secret = randomToken(32);
       const ttl = this.parameters.deviceCodeTtl;
       const userCode = await this.createDeviceCode({
@@ -1761,6 +1822,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
         requestedScope: formatScope(scope),
         status: "pending",
         hostname: this.cleanHostname(body.hostname),
+        resources,
         expiresAt: Date.now() + ttl * 1000,
         interval: this.parameters.devicePollInterval
       });
@@ -1851,6 +1913,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
       clientId: device.clientId,
       scope: device.requestedScope,
       hostname: device.hostname,
+      resources: device.resources ?? undefined,
       userCode: device.userCode,
       userId: session.userId,
       csrf: randomToken(24),

@@ -182,6 +182,7 @@ export default class AMQPPubSubService<
             } catch (err) {
               this.metrics.errors.inc();
               this.log("ERROR", `Message ${msg?.properties?.messageId}`, err);
+              this.getChannel().nack(msg, false, false);
             } finally {
               end();
             }

@@ -1,0 +1,71 @@
+{
+  "name": "@webda/workflow",
+  "version": "4.0.0-beta.13",
+  "description": "Durable workflows of operations for Webda",
+  "keywords": [
+    "workflow",
+    "webda",
+    "webda-module"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/workflow"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
+    "pretest": "npm run build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
+  },
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/models": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*"
+  },
+  "files": [
+    "lib",
+    "webda.module.json"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@webda/compiler": "workspace:^",
+    "@webda/content-mapper": "workspace:*",
+    "@webda/test": "workspace:*",
+    "jscodeshift": "^17.4.0",
+    "skott": "^0.35.12",
+    "tsx": "^4.23.15",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core"
+    ]
+  },
+  "license": "LGPL-3.0-only"
+}

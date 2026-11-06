@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { serialize as cookieSerialize } from "cookie";
+import { stringifySetCookie } from "cookie";
 import { CookieOptions, SecureCookie, WebContext } from "../index.js";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import { WebContextMock } from "../contexts/context.spec.js";
@@ -68,7 +68,10 @@ class CookieTest extends WebdaInternalSimpleTest {
     assert.strictEqual(Object.keys(this._ctx.getResponseCookies()).length, 5);
     for (let i = 1; i < 5; i++) {
       const cookie = this._ctx.getResponseCookies()[`test${i > 1 ? i : ""}`];
-      assert.strictEqual(cookieSerialize(cookie.name, cookie.value, cookie.options || {}).length, 4096);
+      assert.strictEqual(
+        stringifySetCookie({ ...(cookie.options || {}), name: cookie.name, value: cookie.value }).length,
+        4096
+      );
     }
     const ctx = await this.newContext();
     const cookies = this._ctx.getResponseCookies();

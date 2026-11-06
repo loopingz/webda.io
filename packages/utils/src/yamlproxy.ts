@@ -107,13 +107,17 @@ function createYAMLNode(item: any): any {
  */
 function setYAMLNodes(target: Record<string, any>, node: yaml.YAMLMap<any, any> | null) {
   node?.items.forEach((attr: yaml.Pair<any, any>) => {
+    const key = attr.key.value;
+    if (["__proto__", "constructor", "prototype"].includes(key)) {
+      return;
+    }
     if (yaml.isScalar(attr.value)) {
-      target[attr.key.value] = attr.value.value;
+      target[key] = attr.value.value;
     } else if (yaml.isSeq(attr.value)) {
-      target[attr.key.value] = new YAMLArray(attr);
+      target[key] = new YAMLArray(attr);
       //this[attr.key.value] = new YAMLArray(attr);
     } else if (yaml.isMap(attr.value)) {
-      target[attr.key.value] = new YAMLMap(attr);
+      target[key] = new YAMLMap(attr);
     }
   });
 }

@@ -44,8 +44,21 @@ export interface IssueOptions {
   clientId?: string;
   /** Granted scope */
   scope?: Scope;
-  /** Resource (RFC 8707) the access tokens are bound to: becomes their audience; kept by the family on refresh */
+  /**
+   * Resource (RFC 8707) the access tokens are bound to: becomes their audience unless `audience` chooses another;
+   * kept by the family on refresh
+   */
   resource?: string;
+  /**
+   * Other resources (RFC 8707 §2.2) the family may mint access tokens for: a refresh naming one of them gets a token
+   * with that audience, from the same family; kept by the family on refresh
+   */
+  resources?: string[];
+  /**
+   * Audience of this access token when it is not `resource`: one of `resources`. The family keeps `resource` as its
+   * default audience
+   */
+  audience?: string;
   /**
    * Authorization server issuing the tokens: becomes their `iss`, with the RFC 9068 `at+jwt` type, so another
    * application can verify them from the issuer keys. Not stored: give it again on refresh
@@ -130,6 +143,14 @@ export class TokenServiceParameters extends ServiceParameters {
    * @default 86400
    */
   refreshGrace: number;
+  /**
+   * Seconds after a rotation during which the rotated refresh token presented again gets another valid token of the
+   * family, without retiring the first replacement nor revoking anything: refreshes racing with the same token (a
+   * client running several instances that share their stored credentials) all succeed. After it, `refreshGrace` and
+   * reuse detection apply. 0 disables it: of concurrent refreshes, only one succeeds and the family is revoked
+   * @default 10
+   */
+  refreshReuseInterval: number;
 
   /**
    * @param params - raw parameters
@@ -142,6 +163,7 @@ export class TokenServiceParameters extends ServiceParameters {
     this.revocationCheck ??= true;
     this.revocationCacheTtl ??= 10;
     this.refreshGrace ??= 86400;
+    this.refreshReuseInterval ??= 10;
     return this;
   }
 }
@@ -226,6 +248,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     }
     const scope = options.scope ? formatScope(options.scope) : undefined;
     const accessTtl = options.accessTtl ?? this.parameters.accessTtl;
+    const resources = options.resources?.length ? [...new Set(options.resources)] : undefined;
+    const audience = this.audienceOf(options.resource, resources, options.audience);
     const refreshToken = options.refreshToken ?? this.newRefreshToken();
     const now = Date.now();
     await RefreshToken.create({
@@ -242,6 +266,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       clientId: options.clientId,
       scope,
       resource: options.resource,
+      resources,
       name: options.name,
       accessTtl: options.accessTtl,
       refreshTtl: options.refreshTtl,
@@ -267,11 +292,28 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       ...(options.clientId ? { client_id: options.clientId } : {})
     };
     const accessToken = await useCrypto().jwtSign(claims, {
-      audience: options.resource ?? ACCESS_AUDIENCE,
+      audience,
       expiresIn: accessTtl,
       ...(options.issuer ? { issuer: options.issuer, header: { typ: ACCESS_TOKEN_TYPE } } : {})
     });
     return { accessToken, refreshToken, expiresIn: accessTtl, family };
+  }
+
+  /**
+   * Audience of an access token of a family (RFC 8707 §2.2)
+   * @param resource - default resource of the family, none for the application audience
+   * @param resources - other resources the family may mint tokens for
+   * @param requested - resource asked for this token, the default one when absent
+   * @returns the audience
+   * @throws InvalidTarget when the requested resource is neither the default nor one of the others
+   */
+  protected audienceOf(resource: string | undefined, resources: string[] | undefined, requested?: string): string {
+    const bound = resource ?? undefined;
+    const target = requested ?? bound;
+    if (target !== bound && !resources?.includes(target!)) {
+      throw new InvalidTarget("Token family is not bound to the requested resource");
+    }
+    return target ?? ACCESS_AUDIENCE;
   }
 
   /**
@@ -399,7 +441,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
    * @param options - client the token must belong to and optional narrower scope
    * @param options.scope - narrower scope to grant
    * @param options.clientId - client the token must belong to
-   * @param options.resource - resource the token must be bound to: the new tokens keep the stored one
+   * @param options.resource - resource of the new access token: the one the family is bound to, or one of the other
+   * resources it may mint tokens for; the family keeps its bound one
    * @param options.issuer - issuer of the new access tokens, see {@link IssueOptions.issuer}
    * @returns new tokens, the rebuilt session and the granted scope
    */
@@ -431,12 +474,13 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     if ((stored.clientId ?? undefined) !== (options.clientId ?? undefined)) {
       throw new TokenInvalid("Refresh token issued to another client");
     }
-    if (options.resource !== undefined && options.resource !== (stored.resource ?? undefined)) {
-      throw new InvalidTarget("Refresh token is bound to another resource");
-    }
+    // Checked before the compare-and-set so an invalid resource does not burn the refresh token
+    this.audienceOf(stored.resource, stored.resources, options.resource);
     /** replay within the grace: the unused token it was exchanged for, to retire (undefined when never stored) */
     let retired: RefreshToken | undefined;
-    if (stored.rotatedAt) {
+    /** replay within the reuse interval: another token of the family, the rotated record is left as is */
+    const sibling = !!stored.rotatedAt && now - stored.rotatedAt <= this.parameters.refreshReuseInterval * 1000;
+    if (stored.rotatedAt && !sibling) {
       const unused = await this.unusedSuccessor(stored, now);
       if (!unused.ok) {
         await this.revokeFamily(stored.family);
@@ -459,20 +503,26 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     const nextToken = this.newRefreshToken();
     const successor = this.hash(nextToken);
     // Compare-and-set: only one caller can move rotatedAt from undefined to a value (or, within the grace, replace
-    // the successor it recorded)
-    try {
-      if (stored.rotatedAt) {
-        await ref.patch({ successor } as any, "successor" as any, stored.successor as any);
-      } else {
-        await ref.patch({ rotatedAt: now, successor } as any, "rotatedAt" as any, undefined);
+    // the successor it recorded). A sibling records nothing: the replacement of the rotation stays the successor
+    if (!sibling) {
+      try {
+        if (stored.rotatedAt) {
+          await ref.patch({ successor } as any, "successor" as any, stored.successor as any);
+        } else {
+          await ref.patch({ rotatedAt: now, successor } as any, "rotatedAt" as any, undefined);
+        }
+      } catch (err) {
+        if (!this.isConditionFailure(err)) {
+          throw err;
+        }
+        // Lost the race of the first rotation: read again, the rotation that won is within the reuse interval. Not
+        // retried for a replay, nor without reuse interval: treat as reuse and kill the family
+        if (!stored.rotatedAt && this.parameters.refreshReuseInterval > 0) {
+          return this.refresh(refreshToken, options);
+        }
+        await this.revokeFamily(stored.family);
+        throw new TokenInvalid("Refresh token reused");
       }
-    } catch (err) {
-      if (!this.isConditionFailure(err)) {
-        throw err;
-      }
-      // Lost the race: treat as reuse and kill the family
-      await this.revokeFamily(stored.family);
-      throw new TokenInvalid("Refresh token reused");
     }
     const session = new Session();
     session.login(stored.userId, stored.identId, {
@@ -487,6 +537,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       clientId: stored.clientId,
       scope,
       resource: stored.resource,
+      resources: stored.resources,
+      audience: options.resource,
       issuer: options.issuer,
       name: stored.name,
       accessTtl: stored.accessTtl,

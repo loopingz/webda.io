@@ -331,7 +331,7 @@ class JSONCKey extends JSONCNode {
    * @returns the formatted key string
    */
   toString() {
-    return this[COMMENTS].prefix + `"${this.name}"` + this[COMMENTS].suffix;
+    return this[COMMENTS].prefix + JSON.stringify(this.name) + this[COMMENTS].suffix;
   }
 }
 

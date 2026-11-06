@@ -27,6 +27,8 @@ export interface RestParameters {
     | {
         method: "get" | "post" | "put" | "delete" | "patch";
         path: string;
+        /** Method parameter receiving the whole JSON body. */
+        body?: string;
         responses?: {
           [statusCode: string]: {
             description?: string;
@@ -202,9 +204,56 @@ export interface OperationDefinition {
    */
   generator?: boolean;
   /**
+   * Run the operation in a transaction of the registered participants (e.g. a SQL store with
+   * `transaction: "operation"`)
+   *
+   * `false` opts the operation out, e.g. a long streaming read that should not hold a connection; undefined lets the
+   * participants decide. A nested operation always joins the transaction of the outermost one.
+   */
+  transaction?: boolean;
+  /**
    * Additional transport hints for future extensibility
    */
   extensions?: Record<string, unknown>;
+  /**
+   * Feature flag gating the operation. When the flag is off for the caller
+   * the operation answers NotFound and is left out of listings.
+   * `true` uses the operation id as flag name.
+   */
+  featureFlag?: string | true;
+  /**
+   * Feature flags gating the operation (from definition + pattern mappings)
+   */
+  featureFlags?: string[];
+  /**
+   * How the operation behaves when the call runs in dry mode
+   * - "execute": it has no side effects, so it runs normally (default for read-only operations)
+   * - "delegate": the method is called and handles dry mode itself through `useDryRun()` ("dryable")
+   * - "skip": the method is NOT called; the call is validated, logged and reported (default for everything else)
+   */
+  dryRun?: "execute" | "delegate" | "skip";
+}
+
+/**
+ * Target object of an operation, used by listeners such as the audit log
+ */
+export type OperationSubject = {
+  /** Model identifier as known by useApplication().getModelId() */
+  model: string;
+  /** Primary key of the model instance */
+  key: string;
+};
+
+/**
+ * Result returned when an operation is skipped in dry mode
+ */
+export interface DryRunResult {
+  dryRun: true;
+  operationId: string;
+  /** Arguments resolved by resolveArguments; fields marked @Masked or secrets are masked */
+  arguments: unknown[];
+  /** Subject from subjectOf() when one can be found */
+  subject?: OperationSubject;
 }
 
 /**

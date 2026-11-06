@@ -155,6 +155,47 @@ class ResourceUnitTest {
     assert.strictEqual(headers["cache-control"], svc.getParameters().cacheControl);
     assert.strictEqual(headers["Location"], "http://host/r/");
   }
+
+  @test
+  async serveChecksPathTraversalAndSymlinks() {
+    const mod = await import("./resource.service.js");
+    const tmpDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-resource-serve-"));
+    const outsideDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-resource-outside-"));
+    try {
+      nodeFs.writeFileSync(nodePath.join(tmpDir, "index.html"), "<h1>ok</h1>");
+      nodeFs.mkdirSync(nodePath.join(tmpDir, "subdir"));
+      nodeFs.writeFileSync(nodePath.join(outsideDir, "secret.txt"), "secret");
+      nodeFs.symlinkSync(nodePath.join(outsideDir, "secret.txt"), nodePath.join(tmpDir, "link.txt"));
+
+      const svc: any = new (mod.ResourceService as any)(
+        "ResourceServe",
+        new ResourceServiceParameters({ url: "/s", folder: tmpDir, indexFallback: false, allowHiddenFiles: true })
+      );
+      svc.addRoute = () => {};
+      svc.resolve();
+      await svc.init();
+
+      const makeCtx = (resource?: string) => ({
+        parameter: (k: string) => (k === "resource" ? resource : undefined),
+        writeHead: () => {},
+        pipeline: (stream: any) =>
+          new Promise<void>((resolve, reject) => {
+            stream.on("data", () => {});
+            stream.on("end", () => resolve());
+            stream.on("error", reject);
+          })
+      });
+
+      await svc._serve(makeCtx("index.html"));
+      await assert.rejects(async () => svc._serve(makeCtx("../secret.txt")), /Unauthorized/);
+      await assert.rejects(async () => svc._serve(makeCtx("missing.html")), /Resource not found/);
+      await assert.rejects(async () => svc._serve(makeCtx("subdir")), /Resource not found/);
+      await assert.rejects(async () => svc._serve(makeCtx("link.txt")), /Unauthorized/);
+    } finally {
+      nodeFs.rmSync(tmpDir, { recursive: true, force: true });
+      nodeFs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  }
 }
 
 export { ResourceUnitTest };

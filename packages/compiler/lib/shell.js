@@ -138,7 +138,6 @@ const argv = yargs(process.argv.slice(2))
     .help().argv;
 const { appPath } = argv;
 const targetDir = resolve(appPath || ".");
-const command = argv._[0];
 new InteractiveConsoleLogger(useWorkerOutput());
 Fork(async () => {
     if (isCodeCommand(argv)) {
@@ -256,10 +255,10 @@ Fork(async () => {
                             getModules: () => mod,
                             completeNamespace: (name) => (name.includes("/") ? name : `${namespace}/${name}`)
                         };
-                        generateConfigurationSchemas(app, undefined, undefined, undefined, configPath, project.getAppPath("deployments"));
+                        generateConfigurationSchemas(app, undefined, undefined, undefined, configPath);
                     }
                     catch (err) {
-                        useWorkerOutput().log("WARN", "Cannot generate configuration schemas", err.message);
+                        useWorkerOutput().log("WARN", "Cannot generate configuration schemas", err instanceof Error ? err.message : String(err));
                     }
                     // Generate operations.json
                     try {
@@ -272,7 +271,7 @@ Fork(async () => {
                         useWorkerOutput().log("INFO", "Generated .webda/operations.json");
                     }
                     catch (err) {
-                        useWorkerOutput().log("WARN", "Cannot generate operations.json", err.message);
+                        useWorkerOutput().log("WARN", "Cannot generate operations.json", err instanceof Error ? err.message : String(err));
                     }
                     // Build-hook dispatch: if any configured service declares a `build`
                     // command, spawn `webda build` to run the hooks.

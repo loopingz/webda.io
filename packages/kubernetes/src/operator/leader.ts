@@ -95,20 +95,27 @@ export class LeaderElector {
     clearTimeout(this.timer);
     if (!this.leading) return;
     try {
-      const lease = await this.api.readNamespacedLease({ name: this.options.name, namespace: this.options.namespace });
-      if (lease.spec?.holderIdentity === this.options.identity) {
-        // An empty holder lets another candidate take over without waiting for the expiry
-        lease.spec.holderIdentity = undefined;
-        await this.api.replaceNamespacedLease({
-          name: this.options.name,
-          namespace: this.options.namespace,
-          body: lease
-        });
-      }
+      await this.release();
     } catch (err) {
       this.callbacks.onError?.(err);
     }
     await this.setLeading(false);
+  }
+
+  /**
+   * Clear the holder of the lease when this candidate holds it
+   */
+  async release(): Promise<void> {
+    const lease = await this.api.readNamespacedLease({ name: this.options.name, namespace: this.options.namespace });
+    if (lease.spec?.holderIdentity === this.options.identity) {
+      // An empty holder lets another candidate take over without waiting for the expiry
+      lease.spec.holderIdentity = undefined;
+      await this.api.replaceNamespacedLease({
+        name: this.options.name,
+        namespace: this.options.namespace,
+        body: lease
+      });
+    }
   }
 
   /**
@@ -142,7 +149,7 @@ export class LeaderElector {
    * Create, renew or take over the lease
    * @returns whether this candidate holds the lease
    */
-  protected async tryAcquireOrRenew(): Promise<boolean> {
+  async tryAcquireOrRenew(): Promise<boolean> {
     const { name, namespace, identity } = this.options;
     const now = new k8s.V1MicroTime(Date.now());
     const leaseDurationSeconds = Math.ceil(this.leaseDuration / 1000);

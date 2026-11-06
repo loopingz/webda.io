@@ -194,4 +194,11 @@ class YAMLProxyTest {
     obj.root.key = "changed";
     assert.strictEqual(YAMLProxy.stringify(obj), yaml.replace("value", "changed"));
   }
+
+  @test
+  ignoresPrototypePollutionKeys() {
+    const obj = YAMLProxy.parse("__proto__:\n  polluted: true\nconstructor: bad\nsafe: 1\n");
+    assert.strictEqual(obj.safe, 1);
+    assert.strictEqual(({} as any).polluted, undefined);
+  }
 }

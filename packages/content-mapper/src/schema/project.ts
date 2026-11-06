@@ -17,18 +17,21 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { ClassDeclaration, MethodDeclaration, Node } from "typescript/unstable/ast";
-import { ModifierFlags, SyntaxKind } from "typescript/unstable/ast";
-import * as is from "typescript/unstable/ast/is";
-import { getJSDocTags, getTextOfJSDocComment } from "typescript/unstable/ast";
+import type { ClassDeclaration, MethodDeclaration, Node } from "typescript/ast";
+import { ModifierFlags, SyntaxKind } from "typescript/ast";
+import * as is from "typescript/ast/is";
+import { getJSDocTags, getTextOfJSDocComment } from "typescript/ast";
 import type { AnalysisContext } from "../plan.ts";
 import { discoverWebdaObjects } from "../module-discovery.ts";
 import { generateActionInput, generateActionOutput } from "./action.ts";
 import { SchemaConverter } from "./converter.ts";
 import type { JSONSchema7 } from "./types.ts";
+import { actionRestOption, bindActionRest } from "./rest.ts";
 
 /** What is needed to build the whole map. */
 export interface TopLevelSchemaOptions {
+  /** Instance primary keys, for REST templates that contain implicit key fields. */
+  primaryKeys?: Record<string, string[]>;
   /** Application root. */
   appPath: string;
   /** Source root; classes outside it belong to dependencies. */
@@ -65,7 +68,23 @@ export function generateTopLevelSchemas(
     // Model actions are exposed, and their schemas named, after `@Action({ name })`
     const name = (honorName && actionNameOption(method)) || methodName(method);
     if (!name) continue;
-    schemas[`${root}.${name}.input`] = generateActionInput(method, converterOptions);
+    const input = generateActionInput(method, converterOptions);
+    const rest = actionRestOption(method);
+    const isStatic = method.modifiers?.some(m => m.kind === SyntaxKind.StaticKeyword);
+    const keys = honorName && !isStatic ? (options.primaryKeys?.[root] ?? ["uuid"]) : [];
+    const conflict = keys.find(key => Object.hasOwn(input.properties!, key));
+    if (conflict)
+      throw new Error(
+        `${root}.${name}: parameter "${conflict}" conflicts with the object primary key, rename the action parameter`
+      );
+    if (rest && !input["x-webda-stream"]) {
+      try {
+        bindActionRest(input, rest, keys);
+      } catch (error) {
+        throw new Error(`${root}.${name}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    schemas[`${root}.${name}.input`] = input;
     const output = generateActionOutput(method, converterOptions);
     // A method whose return type cannot be resolved contributes no entry at
     // all: `@webda/compiler` stores `undefined`, which `JSON.stringify` drops.

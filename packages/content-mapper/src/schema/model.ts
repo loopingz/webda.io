@@ -17,9 +17,9 @@
  * artefact, so it has to be reproduced exactly — see
  * `ModuleGenerator.generateModelSchemas`.
  */
-import { SignatureKind } from "typescript/unstable/sync";
-import type { Checker, Project, Signature, Type } from "typescript/unstable/sync";
-import type { ClassDeclaration, Node } from "typescript/unstable/ast";
+import { SignatureKind } from "typescript/sync";
+import type { Checker, Project, Signature, Type } from "typescript/sync";
+import type { ClassDeclaration, Node } from "typescript/ast";
 import { SchemaConverter } from "./converter.ts";
 import type { JSONSchema7 } from "./types.ts";
 

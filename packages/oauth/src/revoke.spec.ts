@@ -21,6 +21,7 @@ class RevokeTest extends OAuthTest {
   /** @override */
   async afterEach() {
     unregisterTestOperations();
+    useService<any>("TokenService").getParameters().refreshReuseInterval = 10;
     await super.afterEach();
   }
 
@@ -140,6 +141,8 @@ class RevokeTest extends OAuthTest {
 
   @test
   async aReplayWithinTheGraceKeepsOneSession() {
+    // the grace alone: the replay below comes right after the rotation (reset in afterEach)
+    useService<any>("TokenService").getParameters().refreshReuseInterval = 0;
     // the client lost the answer of its refresh and retries: the family is still one session, with the new token
     const b = await this.browser();
     const t = await this.fullTokens({ scope: "Task.* offline_access", browser: b });

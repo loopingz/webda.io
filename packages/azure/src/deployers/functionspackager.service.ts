@@ -11,7 +11,6 @@ import {
   Service,
   ServiceParameters,
   useApplication,
-  useCore,
   writeZip,
   ZipEntry
 } from "@webda/core";
@@ -131,7 +130,7 @@ export class AzureFunctionsPackager extends Service<AzureFunctionsPackagerParame
   @Command("azure package", { description: "Package the application for Azure Functions" })
   async package(): Promise<AzureFunctionsPackageResult> {
     const options = resolveDeploymentVariables(this.parameters, getDeploymentVariables(this));
-    const crons = CronService.loadAnnotations(useCore().getServices()).map(cron => ({
+    const crons = CronService.resolveCrons().map(cron => ({
       id: CronService.getExportId(cron),
       schedule: cron.cron
     }));

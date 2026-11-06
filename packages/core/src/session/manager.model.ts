@@ -349,7 +349,7 @@ export class CookieSessionManager<
           ttl: Date.now() + this.parameters.cookie.maxAge * 1000
         });
       }
-      SecureCookie.save(
+      await SecureCookie.save(
         this.parameters.cookie.name,
         context,
         {},
@@ -358,7 +358,7 @@ export class CookieSessionManager<
       );
       return;
     }
-    SecureCookie.save(
+    await SecureCookie.save(
       this.parameters.cookie.name,
       context,
       storedSession,

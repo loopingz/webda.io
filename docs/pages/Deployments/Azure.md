@@ -53,7 +53,7 @@ webda -d azure deploy
 | `logAnalytics`                             | `{}`                                   | Workspace name/retention overrides; `false` disables workspace creation                                                       |
 | `resourceTags`                             | deployment and git version             | Azure resource tags; OCI `tags` remain image tags                                                                             |
 | `secrets`                                  | `{}`                                   | String, `SecretString`, or `{keyVaultUrl, identity}` per secret                                                               |
-| `crons`                                    | `true`                                 | Export declared cron methods as scheduled jobs                                                                                |
+| `crons`                                    | `true`                                 | Export declared crons as scheduled jobs                                                                                       |
 | `customResources`                          | `[]`                                   | Additional ARM resource objects, or a named map of them                                                                       |
 | `deploymentName`                           | unit name and timestamp                | ARM deployment history name                                                                                                   |
 

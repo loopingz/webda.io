@@ -1,10 +1,17 @@
 import { QueryValidator } from "@webda/ql";
-import { OperationDefinition, OperationDefinitionInfo, OperationStreaming } from "./icore.js";
+import {
+  OperationDefinition,
+  OperationDefinitionInfo,
+  OperationStreaming,
+  type OperationSubject,
+  type DryRunResult
+} from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import { WebContext } from "../contexts/webcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
-import { useApplication, useModel } from "../application/hooks.js";
+import { useApplication, useModel, useParameters } from "../application/hooks.js";
 import { useDynamicService, useModelMetadata, useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
 import { isGeneratorFunction } from "node:util/types";
@@ -15,13 +22,21 @@ import { runWithContext, useContext } from "../contexts/execution.js";
 import { checkStaticModelPermission, loadModelForAction } from "../models/permissions.js";
 import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
 import { Duration } from "@webda/utils";
+import { bindRestInput, resolveInputSchema } from "../rest/binding.js";
+import { listOperationTransactionParticipants, OperationTransaction, useOperationTransaction } from "./transactions.js";
+import type { OperationTransactionParticipant } from "./transactions.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
+import { getOperationFeatureFlags, isFeatureEnabled, isOperationEnabled } from "../services/featureflags.js";
+import { useMetric } from "../metrics/metrics.js";
+import { Counter } from "prom-client";
 
 /**
  * Check if an operation can be executed with the current context
  * Not checking the input use `checkOperation` instead to check everything
+ *
+ * The system (`useSystem()`, `runAsSystem`) passes the operation `permission` query; the authorizers still apply
  * @param context - the execution context
  * @param operationId - the operation identifier
  * @throws OperationError if operation is unknown
@@ -35,6 +50,9 @@ export function checkOperationPermission(
 ): boolean {
   if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
+  }
+  if (context.isGlobalContext()) {
+    return true;
   }
   if (operation.permission) {
     operation.permissionQuery ??= new QueryValidator(operation.permission);
@@ -63,7 +81,8 @@ export function checkOperationMfa(
   if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
   }
-  if (operation.maxMfaAge === undefined) {
+  // The system has no session to verify
+  if (operation.maxMfaAge === undefined || context.isGlobalContext()) {
     return;
   }
   operation.maxMfaAgeSeconds ??= new Duration(operation.maxMfaAge).toSeconds();
@@ -186,6 +205,9 @@ export async function probeOperation(
     return false;
   }
   try {
+    if (!(await isOperationEnabled(context, operationId, operation))) {
+      return false;
+    }
     if (!checkOperationPermission(context, operationId, operation)) {
       return false;
     }
@@ -313,15 +335,7 @@ async function* validatedStream(operationId: string, schema: string, source: Asy
   }
 }
 
-/**
- * Target object of an operation, used by listeners such as the audit log
- */
-export type OperationSubject = {
-  /** Model identifier, e.g. `WebdaSample/Post` */
-  model: string;
-  /** Canonical primary key, see `serializeSubjectKey` */
-  key: string;
-};
+export type { OperationSubject, DryRunResult };
 
 /**
  * Serialize a primary key to the canonical string identifying an operation subject.
@@ -514,9 +528,19 @@ function subjectOf(context: OperationContext, operationId: string, args: any[], 
  * schema validation rejects it with the field name.
  * @param value - the string received in the URL
  * @param schema - the property schema
+ * @param root - input schema carrying referenced definitions
  * @returns the converted value, or the string
  */
-function coerceParameterValue(value: string, schema: any): any {
+function coerceParameterValue(value: any, schema: any, root: any = schema): any {
+  schema = resolveInputSchema(schema, root);
+  if (schema?.anyOf || schema?.oneOf) {
+    const choices = schema.anyOf ?? schema.oneOf;
+    schema = choices.find(s => s.type && s.type !== "null") ?? schema;
+  }
+  if (schema?.type === "array" && Array.isArray(value)) {
+    return value.map(item => coerceParameterValue(item, schema.items, root));
+  }
+  if (typeof value !== "string") return value;
   switch (schema?.type) {
     case "number":
     case "integer": {
@@ -529,7 +553,7 @@ function coerceParameterValue(value: string, schema: any): any {
       if (value === "false" || value === "0") return false;
       return value;
     case "array":
-      return value === "" ? [] : value.split(",").map(item => coerceParameterValue(item, schema.items));
+      return value === "" ? [] : value.split(",").map(item => coerceParameterValue(item, schema.items, root));
     default:
       return value;
   }
@@ -553,17 +577,31 @@ function coerceParameterValue(value: string, schema: any): any {
  * @param merged - merged params + body object to coerce in place
  * @param params - the path/query parameters
  * @param body - the request body
+ * @param operation - operation whose REST template identifies query catch-all fields
  */
 function coerceParametersToSchema(
   schema: any,
   merged: Record<string, any>,
   params: Record<string, any>,
-  body: Record<string, any>
+  body: Record<string, any>,
+  operation: OperationDefinition
 ): void {
   if (!schema?.properties) return;
+  const rest = operation.rest;
+  const catchAll = rest && bindRestInput(rest.path, rest.method, schema).binding.query.find(q => q.catchAll)?.name;
   for (const [name, propSchema] of Object.entries(schema.properties as Record<string, any>)) {
-    if (!(name in params) || body[name] !== undefined || typeof merged[name] !== "string") continue;
-    merged[name] = coerceParameterValue(merged[name], propSchema);
+    if (!(name in params) || body[name] !== undefined) continue;
+    if (catchAll === name && merged[name] && typeof merged[name] === "object" && !Array.isArray(merged[name])) {
+      const resolvedSchema = resolveInputSchema(propSchema, schema);
+      merged[name] = Object.fromEntries(
+        Object.entries(merged[name]).map(([key, value]) => [
+          key,
+          coerceParameterValue(value, resolvedSchema?.properties?.[key] ?? resolvedSchema?.additionalProperties, schema)
+        ])
+      );
+    } else {
+      merged[name] = coerceParameterValue(merged[name], propSchema, schema);
+    }
   }
 }
 
@@ -605,7 +643,15 @@ async function getOperationInput(
   } catch {
     // No input (e.g., GET request)
   }
-  const body = typeof input === "object" && input !== null ? input : {};
+  const operation = useInstanceStorage().operations[operationId];
+  const bodyParameter = context instanceof WebContext && operation?.rest && operation.rest.body;
+  const body = bodyParameter
+    ? input === undefined
+      ? {}
+      : { [bodyParameter]: input }
+    : typeof input === "object" && input !== null
+      ? input
+      : {};
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || body[key] === undefined || isSameParameterValue(value, body[key])) {
       continue;
@@ -623,7 +669,31 @@ async function getOperationInput(
 async function checkOperation(context: OperationContext, operationId: string) {
   context.setExtension("operationResolvedInput", undefined);
   const operations = useInstanceStorage().operations;
-  if (!checkOperationPermission(context, operationId, operations[operationId])) {
+  const operation = operations[operationId];
+  if (!operation) {
+    throw new WebdaError.NotFound(`${operationId} Unknown`);
+  }
+  const flags = getOperationFeatureFlags(operationId, operation);
+  if (flags.length > 0) {
+    for (const flag of flags) {
+      const enabled = await isFeatureEnabled(flag, { context, operationId });
+      if (!enabled) {
+        context.setExtension("operationDisabled", true);
+        emitCoreEvent("Webda.OperationDisabled", { context, operationId, flag });
+        try {
+          useMetric<Counter>(Counter, {
+            name: "operation_disabled_total",
+            help: "Total number of disabled operation calls",
+            labelNames: ["operation", "flag"]
+          })?.inc?.({ operation: operationId, flag });
+        } catch {
+          // Metrics optional / not initialized
+        }
+        throw new WebdaError.NotFound(`${operationId} Unknown`);
+      }
+    }
+  }
+  if (!checkOperationPermission(context, operationId, operation)) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
   checkOperationMfa(context, operationId, operations[operationId]);
@@ -647,7 +717,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
       // place so `resolveArguments` sees the typed value too.
       const app = useApplication();
       const inputSchema = app.getSchema(operations[operationId].input);
-      coerceParametersToSchema(inputSchema, merged, params, body);
+      coerceParametersToSchema(inputSchema, merged, params, body, operations[operationId]);
       validateSchema(operations[operationId].input, merged);
       context.setExtension("operationResolvedInput", merged);
     }
@@ -714,6 +784,188 @@ export async function resolveArguments(context: OperationContext, operation: Ope
 }
 
 /**
+ * Longest pattern accepted by pattern matching
+ */
+const MAX_PATTERN_LENGTH = 1024;
+
+/**
+ * Convert a glob-like pattern to a RegExp for operation id matching.
+ * `*` matches any characters, `?` matches a single character.
+ * @param pattern - pattern to convert
+ * @returns regular expression
+ */
+function globToRegExp(pattern: string): RegExp {
+  if (pattern.length > MAX_PATTERN_LENGTH) {
+    throw new Error("Operation pattern too long");
+  }
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*")
+    .replace(/\?/g, ".");
+  return new RegExp(`^${escaped}$`);
+}
+
+/**
+ * Check if an operation id matches a glob pattern (e.g. "Billing.*", "User.Delete", "*")
+ * @param pattern - glob pattern
+ * @param operationId - operation id
+ * @returns true if matches
+ */
+export function matchesOperationPattern(pattern: string, operationId: string): boolean {
+  if (pattern === "*" || pattern === operationId) {
+    return true;
+  }
+  return globToRegExp(pattern).test(operationId);
+}
+
+/**
+ * Check if an operation id matches any pattern in a list
+ * @param patterns - array of glob patterns
+ * @param operationId - operation id
+ * @returns true if any pattern matches
+ */
+export function matchesAnyPattern(patterns: string[] | undefined, operationId: string): boolean {
+  if (!patterns || !Array.isArray(patterns) || patterns.length === 0) {
+    return false;
+  }
+  return patterns.some(pattern => matchesOperationPattern(pattern, operationId));
+}
+
+/**
+ * Decide whether an operation is read-only:
+ * - op.mcp?.readOnly if explicitly set (boolean)
+ * - otherwise op.rest?.method === "get" (case-insensitive)
+ * - otherwise /\.(Get|Query)$/.test(id)
+ *
+ * @param id - operation id
+ * @param op - operation definition
+ * @returns true if the operation is read-only
+ */
+export function isReadOnlyOperation(id: string, op?: Partial<OperationDefinition>): boolean {
+  if (op?.mcp && typeof op.mcp === "object" && op.mcp.readOnly !== undefined) {
+    return !!op.mcp.readOnly;
+  }
+  if (
+    op?.rest &&
+    typeof op.rest === "object" &&
+    typeof op.rest.method === "string" &&
+    op.rest.method.toLowerCase() === "get"
+  ) {
+    return true;
+  }
+  return /\.(Get|Query)$/.test(id);
+}
+
+/**
+ * Decide whether an operation call should run in dry-run mode.
+ *
+ * Resolution order:
+ * 1. Already dry: if context.getExtension("dryRun") === true, nested operations stay dry.
+ * 2. Enforce: if operation matches parameters.dryRun.enforce, always dry (wins over exclude).
+ * 3. Exclude: if operation matches parameters.dryRun.exclude, turns off sources 4 & 5 (never overrides enforce).
+ * 4. Global switch: parameters.dryRun.enabled === true.
+ * 5. Per-call request:
+ *    - context.getExtension("requestedDryRun") === true
+ *    - REST header `X-Webda-Dry-Run: true` when parameters.dryRun.allowRequest === true
+ *
+ * @param context - execution context
+ * @param operationId - operation id
+ * @returns true if the call should run in dry mode
+ */
+export function resolveDryRun(context: OperationContext, operationId: string): boolean {
+  if (context?.getExtension?.("dryRun") === true) {
+    return true;
+  }
+
+  let dryRunConfig: any;
+  try {
+    dryRunConfig = useParameters()?.dryRun;
+  } catch {
+    // Outside an application or during bootstrap
+  }
+
+  // 1. Enforce
+  if (matchesAnyPattern(dryRunConfig?.enforce, operationId)) {
+    return true;
+  }
+
+  // Check exclude: turns off sources 2 and 3
+  const isExcluded = matchesAnyPattern(dryRunConfig?.exclude, operationId);
+  if (isExcluded) {
+    return false;
+  }
+
+  // 2. Global switch
+  if (dryRunConfig?.enabled === true) {
+    return true;
+  }
+
+  // 3. Per-call request
+  if (context?.getExtension?.("requestedDryRun") === true) {
+    return true;
+  }
+
+  if (dryRunConfig?.allowRequest === true) {
+    const httpCtx = (context as any)?.getHttpContext?.();
+    const header = httpCtx?.getHeader?.("x-webda-dry-run") ?? (context as any)?.getHeader?.("x-webda-dry-run");
+    if (header === "true" || (Array.isArray(header) && header[0] === "true")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+const SECRET_REGEX = /password|secret|token|credential|authorization/i;
+const SECRET_MASK = "********";
+
+/**
+ * Mask sensitive values in an argument (passwords, tokens, SecretString, etc.)
+ * @param val - value to mask
+ * @param seen - tracking set for circular reference protection
+ * @returns masked value
+ */
+export function maskValue(val: unknown, seen = new WeakSet<object>()): unknown {
+  if (val === null || val === undefined) {
+    return val;
+  }
+  if (typeof val === "object" && val !== null && "getValue" in val && typeof (val as any).getValue === "function") {
+    return SECRET_MASK;
+  }
+  if (typeof val !== "object") {
+    return val;
+  }
+  if (val instanceof Date || val instanceof RegExp) {
+    return val;
+  }
+  if (seen.has(val)) {
+    return "[Circular]";
+  }
+  seen.add(val);
+  if (Array.isArray(val)) {
+    return val.map(item => maskValue(item, seen));
+  }
+  const result: Record<string, unknown> = {};
+  for (const [key, propVal] of Object.entries(val)) {
+    if (SECRET_REGEX.test(key)) {
+      result[key] = SECRET_MASK;
+    } else {
+      result[key] = maskValue(propVal, seen);
+    }
+  }
+  return result;
+}
+
+/**
+ * Mask secrets in an array of arguments
+ * @param args - array of arguments
+ * @returns array with secrets masked
+ */
+export function maskArguments(args: unknown[]): unknown[] {
+  return args.map(arg => maskValue(arg));
+}
+
+/**
  * Public form of an operation result, the one every transport serializes: a value with `toDTO()` (a model) is replaced
  * by its DTO, arrays and plain objects (a query page, a wrapper) are walked, anything else is kept as is
  *
@@ -747,10 +999,38 @@ export function toOperationOutput(value: any, seen: WeakSet<object> = new WeakSe
  * Call an operation within the framework
  *
  * The result is written in its public form ({@link toOperationOutput}), built as the caller.
+ * When transaction participants are registered (see {@link registerOperationTransactionParticipant}), the outermost
+ * operation runs in a transaction: begun after the checks and before `Webda.BeforeOperation`, committed once the
+ * method resolved (a streamed result fully written) and before `Webda.OperationSuccess`, rolled back before
+ * `Webda.OperationFailure`. Nested operations join it.
  * @param context - the execution context
  * @param operationId - the operation identifier
+ * @returns once the operation finished
  */
 export async function callOperation(context: OperationContext, operationId: string): Promise<void> {
+  const participants = listOperationTransactionParticipants();
+  // A nested operation joins the transaction of the outermost one
+  const transaction =
+    participants.length > 0 && !useOperationTransaction() ? new OperationTransaction(context) : undefined;
+  if (transaction) {
+    return transaction.run(() => executeOperation(context, operationId, transaction, participants));
+  }
+  return executeOperation(context, operationId);
+}
+
+/**
+ * Run an operation: checks, events, method call and result writing
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @param transaction - the transaction to drive, undefined when the operation does not own one
+ * @param participants - the participants to enlist in the transaction
+ */
+async function executeOperation(
+  context: OperationContext,
+  operationId: string,
+  transaction?: OperationTransaction,
+  participants: OperationTransactionParticipant[] = []
+): Promise<void> {
   const operations = useInstanceStorage().operations;
   useLog("DEBUG", "Call operation", operationId);
   let callArgs: any[] = [];
@@ -758,12 +1038,32 @@ export async function callOperation(context: OperationContext, operationId: stri
   // A nested operation declares its own subject; restore the caller's after
   const callerSubject = context.getExtension(DECLARED_SUBJECT);
   context.setExtension(DECLARED_SUBJECT, undefined);
+
+  const isDry = resolveDryRun(context, operationId);
+  const prevRequestedDry = context.getExtension("requestedDryRun");
+  if (isDry) {
+    context.setExtension("dryRun", true);
+    try {
+      context.setHeader?.("X-Webda-Dry-Run", "true");
+    } catch {
+      // Stream or context does not support setHeader
+    }
+  } else if (prevRequestedDry === true) {
+    context.setExtension("requestedDryRun", false);
+  }
+
   try {
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
     context.setExtension("operationContext", operations[operationId].context || {});
+    if (transaction) {
+      transaction.operation = operations[operationId];
+      for (const participant of participants) {
+        await transaction.enlist(participant);
+      }
+    }
     await Promise.all([
-      emitCoreEvent("Webda.BeforeOperation", { context, operationId })
+      emitCoreEvent("Webda.BeforeOperation", { context, operationId, dryRun: isDry || undefined })
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
 
@@ -775,16 +1075,51 @@ export async function callOperation(context: OperationContext, operationId: stri
     // methods that still use the context-based calling convention.
     callArgs = args.length > 0 ? args : [context];
 
+    const opDef = operations[operationId];
+    const dryRunMode = opDef.dryRun ?? (isReadOnlyOperation(operationId, opDef) ? "execute" : "skip");
+
+    if (isDry && dryRunMode === "skip") {
+      const maskedArgs = maskArguments(args);
+      useLog("INFO", `DRY RUN ${operationId}`, ...maskedArgs);
+      const subject = subjectOf(context, operationId, callArgs);
+      await emitCoreEvent("Webda.OperationDryRun", {
+        context,
+        operationId,
+        arguments: maskedArgs,
+        subject
+      });
+      const dryResult: DryRunResult = {
+        dryRun: true,
+        operationId,
+        arguments: maskedArgs,
+        ...(subject ? { subject } : {})
+      };
+      const streaming = getOperationStreaming(opDef);
+      if (streaming === "server" || streaming === "bidi" || opDef.generator) {
+        context.setExtension("operationStreaming", true);
+      }
+      context.write(dryResult);
+      // Nothing was written, the transaction still has to end: commit it like a normal call
+      await transaction?.commit();
+      await Promise.all([
+        emitCoreEvent("Webda.OperationSuccess", {
+          context,
+          operationId,
+          subject,
+          dryRun: true
+        })
+      ]);
+      return;
+    }
+
     // Call the method with resolved arguments, wrapped in runWithContext
     // so that useContext() returns the operation context inside the method.
-    if (operations[operationId].service) {
-      result = await runWithContext(context, () =>
-        useService(operations[operationId].service as any)[operations[operationId].method](...callArgs)
-      );
-    } else if (operations[operationId].model) {
-      const modelClass = useModel(operations[operationId].model);
-      const method = operations[operationId].method;
-      if (operations[operationId].static === false) {
+    if (opDef.service) {
+      result = await runWithContext(context, () => useService(opDef.service as any)[opDef.method](...callArgs));
+    } else if (opDef.model) {
+      const modelClass = useModel(opDef.model);
+      const method = opDef.method;
+      if (opDef.static === false) {
         // Instance method — load the model instance as the caller (a missing object and an object the caller may
         // not read answer the same NotFound; a refused method is Forbidden) and call the method on it
         // The first argument should be the primary key (uuid)
@@ -825,28 +1160,41 @@ export async function callOperation(context: OperationContext, operationId: stri
       }
     }
 
+    // Commit before the success listeners run: they only ever see committed data
+    await transaction?.commit();
+
     await Promise.all([
       emitCoreEvent("Webda.OperationSuccess", {
         context,
         operationId,
-        subject: subjectOf(context, operationId, callArgs, result)
+        subject: subjectOf(context, operationId, callArgs, result),
+        dryRun: isDry || undefined
       })
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})
     ]);
   } catch (err) {
-    await Promise.all([
-      emitCoreEvent("Webda.OperationFailure", {
-        context,
-        operationId,
-        error: err,
-        subject: subjectOf(context, operationId, callArgs)
-      })
-      //emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
-    ]);
+    // Roll back before the failure listeners run; a rollback error is logged and never hides the original error
+    await transaction?.rollback(err);
+    if (!context.getExtension("operationDisabled")) {
+      await Promise.all([
+        emitCoreEvent("Webda.OperationFailure", {
+          context,
+          operationId,
+          error: err,
+          subject: subjectOf(context, operationId, callArgs),
+          dryRun: isDry || undefined
+        })
+        //emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
+      ]);
+    }
     throw err;
   } finally {
+    context.setExtension("operationDisabled", undefined);
     context.setExtension("event", undefined);
     context.setExtension(DECLARED_SUBJECT, callerSubject);
+    if (!isDry && prevRequestedDry === true) {
+      context.setExtension("requestedDryRun", prevRequestedDry);
+    }
   }
 }
 
@@ -859,7 +1207,8 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
   const operations = useInstanceStorage().operations;
   Object.keys(operations).forEach(o => {
     list[o] = {
-      ...operations[o]
+      ...operations[o],
+      featureFlags: getOperationFeatureFlags(o, operations[o])
     };
     delete list[o].service;
     delete list[o].method;
@@ -873,7 +1222,15 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
  * @returns operations map with all fields
  */
 export function listFullOperations(): { [key: string]: OperationDefinition } {
-  return { ...useInstanceStorage().operations };
+  const list = {};
+  const operations = useInstanceStorage().operations;
+  Object.keys(operations).forEach(o => {
+    list[o] = {
+      ...operations[o],
+      featureFlags: getOperationFeatureFlags(o, operations[o])
+    };
+  });
+  return list;
 }
 
 /**
@@ -888,6 +1245,10 @@ export function registerOperation(
   // Check operation naming convention
   if (!operationId.match(/^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/)) {
     throw new Error(`OperationId ${operationId} must match ^([A-Z][A-Za-z0-9]*.)*([A-Z][a-zA-Z0-9]*)$`);
+  }
+
+  if (definition.featureFlag === true) {
+    definition.featureFlag = operationId;
   }
 
   // Check if service and method exist
@@ -905,12 +1266,14 @@ export function registerOperation(
     throw new Error(`Operation ${operationId} must have a service or a model`);
   }
   const operations = useInstanceStorage().operations;
+  const dryRunDefault = isReadOnlyOperation(operationId, definition as OperationDefinition) ? "execute" : "skip";
   // Add the operation, defaulting input/output to "void" if not provided
   operations[operationId] = {
     ...definition,
     id: operationId,
     input: definition.input ?? "void",
-    output: definition.output ?? "void"
+    output: definition.output ?? "void",
+    dryRun: definition.dryRun ?? dryRunDefault
   } as OperationDefinitionInfo;
   ["input", "output"]
     .filter(key => operations[operationId][key] && operations[operationId][key] !== "void")
@@ -991,6 +1354,23 @@ interface OperationParameters {
    * MCP transport hints
    */
   mcp?: OperationDefinition["mcp"];
+  /**
+   * Run the operation in a transaction of the registered participants, `false` to opt out
+   */
+  transaction?: boolean;
+  /**
+   * Feature flag gating the operation. When the flag is off for the caller
+   * the operation answers NotFound and is left out of listings.
+   * `true` uses the operation id as flag name.
+   */
+  featureFlag?: string | true;
+  /**
+   * How the operation behaves when the call runs in dry mode
+   * - "execute": it has no side effects, so it runs normally (default for read-only operations)
+   * - "delegate": the method is called and handles dry mode itself through `useDryRun()` ("dryable")
+   * - "skip": the method is NOT called; the call is validated, logged and reported (default for everything else)
+   */
+  dryRun?: OperationDefinition["dryRun"];
 }
 
 function Operation<T = {}>(
@@ -1004,7 +1384,10 @@ function Operation(target: (this: OperationTarget, ...args: any) => any, context
  */
 function Operation(...args: any[]) {
   const annotate = (target: AnyMethod, context: ClassMethodDecoratorContext, options: any = {}) => {
-    context.metadata!["webda.operations"] ??= [];
+    // A subclass sees its parent's metadata through the prototype: copy it before adding, never push into the parent's
+    if (!Object.hasOwn(context.metadata!, "webda.operations")) {
+      context.metadata!["webda.operations"] = [...((context.metadata!["webda.operations"] as any[]) ?? [])];
+    }
     (context.metadata!["webda.operations"] as any[]).push({
       id: context.name,
       ...options,

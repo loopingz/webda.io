@@ -42,7 +42,7 @@ class SealedFieldTest extends WebdaApplicationTest {
       Identifier: MODEL,
       Ancestors: [],
       Subclasses: [],
-      Relations: {},
+      Relations: { behaviors: [{ attribute: "content", behavior: "Webda/Sealed" }] },
       PrimaryKey: ["uuid"],
       Events: [],
       Schemas: {},
@@ -328,6 +328,36 @@ class SealedFieldTest extends WebdaApplicationTest {
         (err: any) => err instanceof SealedFormatError && message.test(err.message)
       );
       assert.ok(!note.content.isSet());
+    }
+  }
+
+  @test
+  async setRefusesOversizedEnvelope() {
+    const note = this.note("alice");
+    await SealedNote.getRepository().create(note);
+    const env = await this.clientSeal(this.alice, note.uuid);
+    // Default cap: 1 MiB of ciphertext, checked before the ciphertext is decoded
+    assert.strictEqual(note.content.getParameters().maxSize, 1048576);
+    assert.strictEqual(new SealedField().getParameters().maxSize, 1048576);
+    await assert.rejects(
+      () => note.content.set({ ...env, ct: "A".repeat(1048577) }),
+      (err: any) => err instanceof SealedFormatError && /larger than 1048576 characters/.test(err.message)
+    );
+    assert.ok(!note.content.isSet());
+    // Configured per attribute: models.<Model>.behaviors.<attribute>.maxSize
+    this.webda.applicationConfiguration.models = { [MODEL]: { behaviors: { content: { maxSize: 64 } } } };
+    try {
+      assert.strictEqual(note.content.getParameters().maxSize, 64);
+      assert.ok(env.ct.length > 64);
+      await assert.rejects(
+        () => note.content.set(env),
+        (err: any) => err instanceof SealedFormatError && /larger than 64 characters/.test(err.message)
+      );
+      this.webda.applicationConfiguration.models = { [MODEL]: { behaviors: { content: { maxSize: env.ct.length } } } };
+      await note.content.set(env);
+      assert.deepStrictEqual(envelopeOf(note.content), env);
+    } finally {
+      delete this.webda.applicationConfiguration.models;
     }
   }
 

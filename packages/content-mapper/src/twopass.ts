@@ -20,7 +20,10 @@ import { openSession } from "./context.ts";
 import { accessorsGenerator, type AccessorOptions } from "./generators/accessors.ts";
 import { loadParametersGenerator } from "./generators/loadparameters.ts";
 import { defaultGenerators } from "./defaults.ts";
-import { applyEdits, mergePlan, type Edit, type Generator } from "./plan.ts";
+import { applyEdits, mergePlan, type Edit, type GeneratedDiagnostic, type Generator } from "./plan.ts";
+
+/** A generator diagnostic with the file it was reported against. */
+export type FileDiagnostic = GeneratedDiagnostic & { fileName: string };
 
 export interface TwoPassOptions extends AccessorOptions {
   /** Absolute tsconfig path. */
@@ -40,6 +43,8 @@ export interface TwoPassResult {
   injected: Map<string, string>;
   /** Diagnostics from pass 2, i.e. against the generated code. */
   diagnostics: any[];
+  /** What the generators reported against the authored sources in pass 1 (the editor shows these too). */
+  generated: FileDiagnostic[];
   /** Emitted output captured from the virtual filesystem. */
   emitted: Map<string, string>;
   /** Overlapping edits between generators, if any. */
@@ -74,6 +79,7 @@ export function runTwoPass(options: TwoPassOptions): TwoPassResult {
     session.dispose();
   }
   const { plan, conflicts } = mergePlan(all);
+  const generated = all.flatMap(f => (f.diagnostics ?? []).map(d => ({ fileName: f.fileName, ...d })));
   const pass1Ms = Number(process.hrtime.bigint() - t0) / 1e6;
 
   // Materialise the injected text once, so pass 2's readFile is a lookup.
@@ -94,7 +100,9 @@ export function runTwoPass(options: TwoPassOptions): TwoPassResult {
   let diagnostics: any[] = [];
   try {
     diagnostics = [...session2.ctx.program.getSemanticDiagnostics()];
-    if (options.emit && !diagnostics.length) session2.ctx.program.emit();
+    if (options.emit && !diagnostics.length) {
+      diagnostics.push(...session2.ctx.program.emit().diagnostics);
+    }
   } finally {
     session2.dispose();
   }
@@ -103,6 +111,7 @@ export function runTwoPass(options: TwoPassOptions): TwoPassResult {
   return {
     injected,
     diagnostics,
+    generated,
     emitted,
     conflicts,
     editCounts,

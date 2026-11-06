@@ -603,4 +603,40 @@ class BearerResolverTest extends WebdaApplicationTest {
     assert.strictEqual(useBearerResolvers().length, before);
     assert.ok(!(await this.load("app-token")).isApplication());
   }
+
+  @test
+  async sendCookieClearsStaleChunksAndSessionModelSaves() {
+    const { SecureCookie } = await import("./cookie.js");
+    const cookiesSent: Record<string, any> = {};
+    const fakeCtx: any = {
+      cookie: (name: string, value: string, opts: any) => {
+        cookiesSent[name] = { value, opts };
+      },
+      getHttpContext: () => ({
+        getCookies: () => ({ webda: "part1", webda2: "part2" })
+      })
+    };
+    SecureCookie.sendCookie(fakeCtx, "webda", "short", { maxAge: 3600 });
+    assert.strictEqual(cookiesSent.webda.value, "short");
+    assert.strictEqual(cookiesSent.webda2.value, "");
+    assert.strictEqual(cookiesSent.webda2.opts.maxAge, 0);
+
+    const manager: any = useService("SessionManager");
+    const prevModel = manager.sessionModel;
+    try {
+      manager.sessionModel = {
+        exists: async () => false,
+        create: async () => {},
+        update: async () => {}
+      };
+      const ctx = await this.newContext();
+      const s: any = new Session();
+      s.uuid = "sess-1";
+      s.login("u1", "a@b.c:email");
+      await manager.save(ctx, s);
+      assert.ok(ctx.getResponseCookies()?.webda);
+    } finally {
+      manager.sessionModel = prevModel;
+    }
+  }
 }

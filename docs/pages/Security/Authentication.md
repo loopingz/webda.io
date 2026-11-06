@@ -144,7 +144,7 @@ All operations are exposed through the REST API with the path shown (relative to
 | (GET link)                     | `GET auth/email/recover?token=...`    | `token`                                   | 302 to `redirects.recover?token=...` (token not consumed), invalid: `redirects.failure?reason=`       |
 | `Auth.Password.StartRecovery`  | `POST auth/password/recovery`         | `email`                                   | always 204 (never reveals accounts)                                                                   |
 | `Auth.Password.Recover`        | `POST auth/password/recover`          | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in           |
-| `Auth.Password.Change`         | `POST auth/password/change`           | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`            |
+| `Auth.Password.Change`         | `POST auth/password/change`           | `current`, `next`, `escrow?`              | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`            |
 | `Auth.<Provider>.Token`        | `POST auth/<provider>/token`          | `token`                                   | OAuth providers, e.g. `Auth.Google.Token`: the login result (see [OAuth providers](#oauth-providers)) |
 | (GET link)                     | `GET <url>?redirect=...`              | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
 | (GET link)                     | `GET <url>/callback`                  | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
@@ -328,7 +328,10 @@ for the certificate's linked user, for that request. See [Client certificates (m
   one grace: within `refreshGrace` seconds of the rotation (default 86400), while the token it was exchanged for was
   never used, the replay is rotated once more and that unused replacement is retired. A client that lost the answer
   of its refresh (laptop asleep, connection dropped) keeps its session this way; a retired token presented later (two
-  holders) revokes the family. `refreshGrace: 0` restores strict detection. `TokenService.issue()` refuses a session
+  holders) revokes the family. `refreshGrace: 0` restores strict detection. Before the grace, within
+  `refreshReuseInterval` seconds of the rotation (default 10), the rotated token gets another valid token of the
+  family and nothing is retired or revoked: refreshes racing with the same token, such as several instances of a
+  client sharing stored credentials, all keep a working session. `refreshReuseInterval: 0` makes a race a reuse. `TokenService.issue()` refuses a session
   whose MFA is pending, and the MFA state is persisted with the refresh token.
 - `Auth.Logout` revokes the family; access tokens already issued remain valid until they expire.
 
@@ -342,6 +345,11 @@ later than `authAt`. A failing read also yields an anonymous session. So:
 - `Auth.Password.Recover` revokes every refresh token of the user and ends all of its cookie sessions and access tokens.
 - `Auth.Password.Change` does the same for every other session; the calling cookie session is re-stamped and stays
   logged in. A Bearer caller must log in again (its refresh token is revoked too).
+
+A user with [end-to-end encryption keys](../Concepts/Models/SealedFields.md) and a password escrow must send the
+escrow of the new password as `escrow` (built by `KeyVault.createPasswordEscrow` of `@webda/sealed-client`): the
+change is refused with 412 without it, and the escrow is stored with the new password hash in the same write. A user
+whose keys have no password escrow may send one to create it; `escrow` without keys is a 400.
 
 Sessions without `authAt` (created before this check existed, or by custom code calling `session.login()`) are not
 checked.

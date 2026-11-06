@@ -150,6 +150,7 @@ describe("GraphQLTransport", () => {
       results: { select: { uuid: 1, name: 1 } },
       continuationToken: 1
     });
+    expect(() => projectSelection(USER, ["name { evil }"])).toThrow(/Invalid GraphQL selection field/);
   });
 
   it("sends queries with their variables and reshapes the field", async () => {

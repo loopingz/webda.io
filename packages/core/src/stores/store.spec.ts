@@ -769,6 +769,26 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   }
 
   @test
+  async storeOfIsTheClaimingStoreOrTheRegistry() {
+    const multi = new MemoryStore("multi", { models: ["WebdaTest/Ident", "Webda/User"] });
+    const users = new MemoryStore("users", { models: ["Webda/SimpleUser"] });
+    this.registerService(multi.resolve(), "multi");
+    this.registerService(users.resolve(), "users");
+    try {
+      const simpleUser = useApplication().getModel("Webda/SimpleUser");
+      assert.strictEqual(Store.storeOf(useApplication().getModel("WebdaTest/Ident")), multi);
+      // The closest hierarchy depth wins: SimpleUser is a subclass of User in multi, listed by users
+      assert.strictEqual(Store.storeOf(simpleUser), users);
+      assert.strictEqual(Store.claimingStore(simpleUser, [multi]), multi);
+      assert.strictEqual(Store.claimingStore(useApplication().getModel("WebdaTest/Task")), undefined);
+      assert.strictEqual(Store.storeOf(useApplication().getModel("WebdaTest/Task")), useCore().getService("Registry"));
+    } finally {
+      delete useCore().getServices()["multi"];
+      delete useCore().getServices()["users"];
+    }
+  }
+
+  @test
   async walksSubclassHierarchyForNonStrictStore() {
     // Webda/User has Webda/SimpleUser as a subclass (verified via webda.module.json).
     // In non-strict mode the recursive walk should add the subclass at depth 1.

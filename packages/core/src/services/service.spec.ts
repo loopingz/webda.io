@@ -10,6 +10,7 @@ import {
   ServiceParameters,
   useApplication,
   useRouter,
+  useSystem,
   WebdaError
 } from "../index.js";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
@@ -365,6 +366,75 @@ class ServiceTest extends WebdaApplicationTest {
       "ERROR_Listener error",
       "INFO_Long listener"
     ]);
+  }
+}
+
+/**
+ * A service whose operation schemas the build names after the class
+ */
+class ClassSchemaService extends Service {
+  calls: any[][] = [];
+  /**
+   * @param name - a name
+   * @param count - a count
+   * @returns the arguments
+   */
+  @Operation()
+  async greet(name: string, count: number) {
+    this.calls.push([name, count]);
+    return `${name}:${count}`;
+  }
+}
+
+/**
+ * A subclass without schemas of its own
+ */
+class SubClassSchemaService extends ClassSchemaService {}
+
+@suite
+class OperationSchemaNameTest extends WebdaApplicationTest {
+  /**
+   * The schemas the build writes for ClassSchemaService
+   */
+  async beforeAll() {
+    await super.beforeAll();
+    const schemas = useApplication().getSchemas();
+    schemas["ClassSchemaService.greet.input"] = {
+      type: "object",
+      properties: { name: { type: "string" }, count: { type: "number" } },
+      required: ["name", "count"]
+    };
+    schemas["ClassSchemaService.greet.output"] = { type: "string" };
+  }
+
+  @test
+  async renamedServiceUsesItsClassSchemas() {
+    const service = this.registerService(new ClassSchemaService("Renamed", new ServiceParameters().load({})));
+    service.initOperations();
+    const op: any = listOperations()["Renamed.Greet"];
+    assert.strictEqual(op.input, "ClassSchemaService.greet.input");
+    assert.strictEqual(op.output, "ClassSchemaService.greet.output");
+    const ctx = useSystem({ name: "a", count: 2 });
+    await callOperation(ctx, "Renamed.Greet");
+    assert.deepStrictEqual(service.calls, [["a", 2]]);
+    // Validated against the class schema
+    await assert.rejects(() => callOperation(useSystem({ name: "a" }), "Renamed.Greet"), WebdaError.BadRequest);
+  }
+
+  @test
+  renamedSubclassUsesItsAncestorSchemas() {
+    const service = this.registerService(new SubClassSchemaService("Sub", new ServiceParameters().load({})));
+    service.initOperations();
+    assert.strictEqual((listOperations()["Sub.Greet"] as any).input, "ClassSchemaService.greet.input");
+  }
+
+  @test
+  serviceNamedSchemaWins() {
+    useApplication().getSchemas()["Named.greet.input"] = { type: "object", properties: { name: { type: "string" } } };
+    const service = this.registerService(new ClassSchemaService("Named", new ServiceParameters().load({})));
+    service.initOperations();
+    assert.strictEqual((listOperations()["Named.Greet"] as any).input, "Named.greet.input");
+    assert.strictEqual((listOperations()["Named.Greet"] as any).output, "ClassSchemaService.greet.output");
   }
 }
 

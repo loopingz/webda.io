@@ -1,5 +1,13 @@
 import { suite, test, timeout } from "@webda/test";
-import { CronService, SecretString, Service, ServiceParameters, useApplication, useDynamicService } from "@webda/core";
+import {
+  CronDefinition,
+  CronService,
+  SecretString,
+  Service,
+  ServiceParameters,
+  useApplication,
+  useDynamicService
+} from "@webda/core";
 import { expect, vi } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -128,8 +136,8 @@ class AzureDeployersTest extends AzureTest {
   @test async containerAppsTemplateAndSecureDeployment() {
     const apps = useDynamicService<AzureContainerAppsDeployer>("Apps");
     const cron = vi
-      .spyOn(CronService, "loadAnnotations")
-      .mockReturnValue([{ cron: "0 * * * * *", serviceName: "Cron", method: "run", args: [], description: "" }] as any);
+      .spyOn(CronService, "resolveCrons")
+      .mockReturnValue([new CronDefinition("0 * * * * *", {}, "Cron", "run", "", "Cron.Run")]);
     const template = apps.generateTemplate("test.azurecr.io/webda@sha256:123");
     const app = template.resources.find(resource => resource.type === "Microsoft.App/containerApps")!;
     expect(app.properties.template.containers[0].image).toContain("@sha256:123");

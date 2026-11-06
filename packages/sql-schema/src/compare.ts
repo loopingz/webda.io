@@ -1,5 +1,5 @@
 import { isWidening, sameType, typeToString } from "./columns.js";
-import type { ColumnPlan, DeletePolicy, IndexPlan, RelationPlan, RelationalSchemaPlan, TablePlan } from "./plan.js";
+import type { ColumnPlan, ForeignKeyAction, IndexPlan, RelationPlan, RelationalSchemaPlan, TablePlan } from "./plan.js";
 
 /**
  * Severity of a change between a live plan and the next one
@@ -391,9 +391,9 @@ function compareEnum(table: string, live: ColumnPlan, next: ColumnPlan, add: Add
 }
 
 /**
- * Delete policies behaving the same: both refuse the delete of a referenced row
+ * Foreign key actions behaving the same: both refuse the delete of a referenced row
  */
-const EQUIVALENT_POLICIES = new Set<DeletePolicy | undefined>(["NO ACTION", "RESTRICT"]);
+const EQUIVALENT_POLICIES = new Set<ForeignKeyAction | undefined>(["NO ACTION", "RESTRICT"]);
 
 /**
  * @param live - the live plan

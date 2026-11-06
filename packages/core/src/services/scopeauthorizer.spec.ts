@@ -122,5 +122,11 @@ class ScopeAuthorizerTest extends WebdaApplicationTest {
     ctx.getHttpContext().headers["authorization"] = `Bearer ${token}`;
     const loaded = await useService("SessionManager").load(ctx);
     assert.deepStrictEqual(loaded.scopes, ["Scoped.Read"]);
+
+    // Presenting a Bearer access token inside the session cookie must be rejected as anonymous
+    const cookieCtx = await this.newContext();
+    cookieCtx.getHttpContext().cookies = { webda: token };
+    const fromCookie = await useService("SessionManager").load(cookieCtx);
+    assert.strictEqual(fromCookie.isLogged(), false);
   }
 }

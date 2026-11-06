@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "parameters": {},
+  "services": {
+    "WorkflowService": {
+      "type": "Webda/WorkflowService",
+      "worker": false
+    }
+  }
+}

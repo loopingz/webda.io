@@ -21,6 +21,12 @@ export interface OAuthClient {
    * protected resource
    */
   defaultResource?: string;
+  /**
+   * Other protected resources (absolute URIs, RFC 8707 §2.2) every grant of the client may mint access tokens for,
+   * besides the one it is bound to: a refresh or code exchange naming one gets a token with that audience from the
+   * same refresh-token family. Registered protected resources only, never a resource of another application
+   */
+  resources?: string[];
   /** Device authorization grant allowed */
   deviceFlow?: boolean;
   /** Loaded from a Client ID Metadata Document */
@@ -56,6 +62,9 @@ export function validateClient(id: string, client: any): void {
   }
   if (client.defaultResource !== undefined && !isHttpUrl(client.defaultResource)) {
     fail("defaultResource must be an absolute http(s) URL");
+  }
+  if (client.resources !== undefined && (!Array.isArray(client.resources) || !client.resources.every(isHttpUrl))) {
+    fail("resources must be an array of absolute http(s) URLs");
   }
 }
 

@@ -17,6 +17,7 @@
  */
 import { accessorsGenerator, type AccessorOptions } from "./generators/accessors.ts";
 import { behaviorsGenerator } from "./generators/behaviors.ts";
+import { flowsGenerator } from "./generators/flows.ts";
 import { qlValidatorGenerator } from "./generators/qlvalidator.ts";
 import type { Generator } from "./plan.ts";
 
@@ -35,6 +36,7 @@ export function defaultGenerators(options: DefaultGeneratorOptions = {}): Genera
   return [
     accessorsGenerator({ accessorsForAll: options.accessorsForAll, storageModule: options.storageModule }),
     behaviorsGenerator({ storageModule: options.storageModule }),
-    qlValidatorGenerator({ qlModule: options.qlModule })
+    qlValidatorGenerator({ qlModule: options.qlModule }),
+    flowsGenerator()
   ];
 }

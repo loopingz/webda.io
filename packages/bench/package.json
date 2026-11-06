@@ -1,6 +1,6 @@
 {
   "name": "@webda/bench",
-  "version": "4.0.0-beta.12",
+  "version": "4.0.0-beta.13",
   "description": "Benchmark framework for Webda abstractions: Store, Queue and Pub/Sub suites shared by every backend",
   "keywords": [
     "webda",
@@ -38,14 +38,14 @@
     "@webda/workout": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "25.5.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "@webda/test": "workspace:*",
     "@webda/utils": "workspace:^",
-    "skott": "^0.35.8",
-    "typescript": "7.1.0-dev.20260929.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.2"
+    "skott": "^0.35.12",
+    "typescript": "7.1.0-dev.20261102.1",
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   },
   "files": [
     "lib"

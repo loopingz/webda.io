@@ -296,6 +296,179 @@ describe("compareSchemaPlans", () => {
   });
 });
 
+/**
+ * One case per row of the compatibility table of #1016: the change between the live version and the new plan, and
+ * the categories expected (other than SAFE)
+ */
+const TABLE: [
+  row: string,
+  live: SchemaModelMetadata[],
+  next: SchemaModelMetadata[],
+  expected: Pick<SchemaChange, "category" | "code">[],
+  options?: { v1?: RelationalSchemaOptions; v2?: RelationalSchemaOptions }
+][] = [
+  [
+    "new table, junction, nullable column, index: SAFE",
+    post({ title: { type: "string" } }),
+    [
+      ...post(
+        { title: { type: "string" }, summary: { type: "string" }, owner: { type: "string" }, tags: { type: "array" } },
+        relate(["owner", "User"], ["tags", "Tag", "ModelLinksSimpleArray"])
+      ),
+      model("MyApp/Tag", {})
+    ],
+    []
+  ],
+  [
+    "new column NOT NULL without a default: SAFE, created nullable",
+    post({ title: { type: "string" } }),
+    post({ title: { type: "string" }, summary: { type: "string" } }, { required: ["uuid", "summary"] }),
+    []
+  ],
+  [
+    "property type change string -> number: BLOCK",
+    post({ s: { type: "string" } }),
+    post({ s: { type: "number" } }),
+    [block("TYPE_CHANGED")]
+  ],
+  [
+    "property type change number -> boolean: BLOCK",
+    post({ n: { type: "number" } }),
+    post({ n: { type: "boolean" } }),
+    [block("TYPE_CHANGED")]
+  ],
+  [
+    "property type change Date -> string: BLOCK",
+    post({ at: { type: "string", format: "date-time" } }),
+    post({ at: { type: "string" } }),
+    [block("TYPE_CHANGED")]
+  ],
+  [
+    "property type change scalar -> object: BLOCK",
+    post({ m: { type: "string" } }),
+    post({ m: { type: "object" } }),
+    [block("TYPE_CHANGED")]
+  ],
+  [
+    "storage change integer -> number: BLOCK",
+    post({ c: { type: "integer" } }),
+    post({ c: { type: "number" } }),
+    [block("TYPE_CHANGED")]
+  ],
+  [
+    "widening VARCHAR(50) -> VARCHAR(100) and TEXT: SAFE",
+    post({ t: { type: "string", maxLength: 50 } }),
+    post({ t: { type: "string", maxLength: 100 } }),
+    []
+  ],
+  [
+    "widening VARCHAR(50) -> TEXT: SAFE",
+    post({ t: { type: "string", maxLength: 50 } }),
+    post({ t: { type: "string" } }),
+    []
+  ],
+  [
+    "narrowing TEXT -> VARCHAR(n): BLOCK",
+    post({ t: { type: "string" } }),
+    post({ t: { type: "string", maxLength: 50 } }),
+    [block("TYPE_NARROWED")]
+  ],
+  [
+    "enum values added: WARN",
+    post({ s: { type: "string", enum: ["a"] } }),
+    post({ s: { type: "string", enum: ["a", "b"] } }),
+    [{ category: "WARN", code: "ENUM_VALUES_ADDED" }]
+  ],
+  [
+    "enum values removed: BLOCK",
+    post({ s: { type: "string", enum: ["a", "b"] } }),
+    post({ s: { type: "string", enum: ["a"] } }),
+    [block("ENUM_VALUES_REMOVED")]
+  ],
+  [
+    "field becomes required: SAFE",
+    post({ t: { type: "string" } }),
+    post({ t: { type: "string" } }, { required: ["uuid", "t"] }),
+    []
+  ],
+  [
+    "field becomes optional: BLOCK",
+    post({ t: { type: "string" } }, { required: ["uuid", "t"] }),
+    post({ t: { type: "string" } }),
+    [block("FIELD_OPTIONAL")]
+  ],
+  [
+    "field removed: SAFE, column kept",
+    post({ t: { type: "string" }, gone: { type: "string" } }),
+    post({ t: { type: "string" } }),
+    []
+  ],
+  [
+    "field renamed: WARN, remove + add",
+    post({ title: { type: "string" } }),
+    post({ headline: { type: "string" } }),
+    [{ category: "WARN", code: "POSSIBLE_RENAME" }]
+  ],
+  [
+    "relation kind change LINK -> LINKS_SIMPLE_ARRAY: BLOCK",
+    post({ owner: { type: "string" } }, relate(["owner", "User"])),
+    post({ owner: { type: "array" } }, relate(["owner", "User", "ModelLinksSimpleArray"])),
+    [block("RELATION_KIND_CHANGED")]
+  ],
+  [
+    "relation kind change ModelLink -> ModelParent: BLOCK",
+    post({ owner: { type: "string" } }, relate(["owner", "User"])),
+    post({ owner: { type: "string" } }, relate(["owner", "User", "ModelParent"])),
+    [block("RELATION_KIND_CHANGED"), block("DELETE_POLICY_CHANGED")]
+  ],
+  [
+    "relation target change: BLOCK",
+    post({ owner: { type: "string" } }, relate(["owner", "User"])),
+    post({ owner: { type: "string" } }, relate(["owner", "Team"])),
+    [block("RELATION_TARGET_CHANGED")]
+  ],
+  [
+    "primary key change: BLOCK",
+    [model("MyApp/Post", { slug: { type: "string" } })],
+    [model("MyApp/Post", { slug: { type: "string" } }, { PrimaryKey: ["slug"] })],
+    [block("PRIMARY_KEY_CHANGED")]
+  ],
+  [
+    "hierarchy change, subclass moved to its own table: BLOCK",
+    [model("MyApp/Animal", {}), model("MyApp/Dog", {}, { Ancestors: ["MyApp/Animal"] })],
+    [model("MyApp/Animal", {}), model("MyApp/Dog", {}, { Ancestors: ["MyApp/Animal"] })],
+    [block("MODEL_TABLE_CHANGED")],
+    { v2: { tables: { "MyApp/Dog": "dogs" } } }
+  ],
+  [
+    "new subclass: SAFE",
+    [model("MyApp/Animal", {})],
+    [model("MyApp/Animal", {}), model("MyApp/Dog", { bark: { type: "boolean" } }, { Ancestors: ["MyApp/Animal"] })],
+    []
+  ],
+  [
+    "new unique index: WARN",
+    post({ owner: { type: "string" } }, relate(["owner", "User"])),
+    post({ owner: { type: "string" } }, relate(["owner", "User", "OneToOne"])),
+    [{ category: "WARN", code: "UNIQUE_INDEX_ADDED" }]
+  ],
+  [
+    "columnNaming / extraColumn option change: BLOCK",
+    post({ t: { type: "string" } }),
+    post({ t: { type: "string" } }),
+    [block("OPTIONS_CHANGED")],
+    { v2: { extraColumn: false } }
+  ]
+];
+
+describe("compatibility table", () => {
+  it.each(TABLE)("%s", (_row, live, next, expected, options) => {
+    expect(diff(live, next, options).sort((a, b) => a.code.localeCompare(b.code))).toEqual(
+      [...expected].sort((a, b) => a.code.localeCompare(b.code))
+    );
+  });
+});
+
 describe("planHash", () => {
   it("identifies a plan regardless of key order and warnings", () => {
     const plan = buildSchemaPlan(post({ title: { type: "string" } }));

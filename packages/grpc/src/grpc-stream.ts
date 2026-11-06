@@ -39,6 +39,7 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   private onCancelHandler?: () => void;
   private chunk: Buffer | null = null;
   private failed = false;
+  private statusListener?: (status: number) => void;
   private request: IncomingMessage | Http2ServerRequest;
   private response: ServerResponse | Http2ServerResponse;
   private definition: GrpcMethodDef<RequestType, ResponseType>;
@@ -108,6 +109,14 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   }
 
   /**
+   * Observe the status the response ends with (trailers sent)
+   * @param listener - called with the gRPC status code
+   */
+  onStatus(listener: (status: number) => void): void {
+    this.statusListener = listener;
+  }
+
+  /**
    * Stop processing the stream and end it with an error status
    * @param status - gRPC status code
    * @param message - status message
@@ -174,6 +183,11 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
    * @returns void
    */
   end(status: number = 0, message?: string): void {
+    try {
+      this.statusListener?.(status);
+    } catch {
+      // an observer never breaks the response
+    }
     const trailers: Record<string, string> = { "grpc-status": String(status) };
     if (message) {
       trailers["grpc-message"] = encodeURIComponent(message);

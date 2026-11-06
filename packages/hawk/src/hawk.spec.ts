@@ -279,7 +279,7 @@ class HawkServiceTest extends WebdaApplicationTest {
   @test
   async validOriginNoMatch() {
     const origin = "https://localhost:3000";
-    this.key.origins = [origin];
+    this.key.origins = [origin, "regexp://(a+)+"];
     await this.key.save();
     // Reset cache
     this.clearCache();
@@ -328,6 +328,9 @@ class HawkServiceTest extends WebdaApplicationTest {
     ctx.getParameters().url = "http://test.webda.io";
     await assert.rejects(() => test._redirect(ctx), WebdaError.Forbidden);
     test.getParameters().redirectUris.push("http://test.webda.io");
+    ctx.getParameters().url = "http://test.webda.io.evil.com";
+    await assert.rejects(() => test._redirect(ctx), WebdaError.Forbidden);
+    ctx.getParameters().url = "http://test.webda.io";
     await test._redirect(ctx);
     const saved = Reflect.get(ctx.getSession(), "bouzouf");
     Reflect.set(ctx.getSession(), "bouzouf", 123);
@@ -372,6 +375,15 @@ class HawkServiceTest extends WebdaApplicationTest {
     delete this.context.getSession()["myCSRF"];
     this.context.setExtension("HawkReviewed", false);
     await assert.rejects(() => test.checkRequest(this.context), WebdaError.Forbidden);
+    // Non-session Hawk id when keyModel is absent must be rejected
+    this.context.setHttpContext(
+      new HttpContext("test.webda.io", "GET", url, "http", 80, {
+        host: "test.webda.io",
+        authorization: 'Hawk id="other", ts="1", nonce="abc", mac="xyz"'
+      })
+    );
+    this.context.setExtension("HawkReviewed", false);
+    assert.strictEqual(await test.checkRequest(this.context), false);
     // Simulate pre-reviewed
     this.context.setExtension("HawkReviewed", true);
     await test.checkRequest(this.context);

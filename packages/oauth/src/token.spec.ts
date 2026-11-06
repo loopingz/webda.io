@@ -19,6 +19,7 @@ class TokenEndpointTest extends OAuthTest {
   /** @override */
   async afterEach() {
     unregisterTestOperations();
+    useService<any>("TokenService").getParameters().refreshReuseInterval = 10;
     const params = useService<any>("OAuthServer").getParameters();
     params.accessTtl = undefined;
     params.refreshTtl = undefined;
@@ -294,6 +295,8 @@ class TokenEndpointTest extends OAuthTest {
 
   @test
   async refreshGrant() {
+    // the grace alone: the replay below comes right after the rotation (reset in afterEach)
+    useService<any>("TokenService").getParameters().refreshReuseInterval = 0;
     const flow = await this.consentFlow({ scope: "Task.* offline_access", operations: ALL_TASK });
     const first = await this.tokenRequest({
       grant_type: "authorization_code",

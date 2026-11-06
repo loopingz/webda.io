@@ -72,6 +72,27 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-beta.12...runtime-v4.0.0-beta.13) (2026-11-04)
+
+
+### Bug Fixes
+
+* remediate CodeQL security and quality alerts ([#995](https://github.com/loopingz/webda.io/issues/995)) ([3ce3fb3](https://github.com/loopingz/webda.io/commit/3ce3fb31f879f0508b2cb83b34bd554c47b294e4))
+* **security:** address medium and low security review findings (AGY-018 to AGY-036) ([#1050](https://github.com/loopingz/webda.io/issues/1050)) ([8de0715](https://github.com/loopingz/webda.io/commit/8de0715354ba3dd7f6afbca406eb8269ab6d748c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.13
+    * @webda/models bumped to 4.0.0-beta.13
+    * @webda/ql bumped to 4.0.0-beta.10
+    * @webda/workout bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.13
+    * @webda/test bumped to 4.0.0-beta.9
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-beta.11...runtime-v4.0.0-beta.12) (2026-10-22)
 
 

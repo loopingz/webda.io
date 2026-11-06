@@ -20,7 +20,7 @@ import { randomUUID } from "node:crypto";
 import { Writable } from "node:stream";
 import { McpAuthenticator, SessionAuthenticator } from "./auth.js";
 import { jsonRpcError, jsonRpcErrorResponse, toRequest, writeResponse } from "./bridge.js";
-import { sessionContext } from "./invoke.js";
+import { sessionContext, type McpRequestInfo } from "./invoke.js";
 import { ResourceRegistry } from "./resources.js";
 import { challengeScope, createMcpServer, INSUFFICIENT_SCOPE, toolAccess } from "./server.js";
 import { McpSessionEntry, McpSessionManager } from "./sessions.js";
@@ -103,6 +103,14 @@ export class McpServiceParameters extends OperationsTransportParameters {
    * @default false
    */
   listOutOfScopeTools: boolean;
+  /**
+   * Request headers passed to the operations a tool call or resource read runs, which see
+   * them through `getHttpContext()` (only these headers, on the MCP request's host and path):
+   * for per-request credentials besides the bearer token. `authorization` and `cookie` are
+   * never forwarded. Over stdio nothing is.
+   * @default []
+   */
+  forwardHeaders: string[];
 
   /**
    * @param params - raw parameters
@@ -122,6 +130,7 @@ export class McpServiceParameters extends OperationsTransportParameters {
     this.maxOutputBytes ??= 1048576;
     this.stdio ??= {};
     this.listOutOfScopeTools ??= false;
+    this.forwardHeaders ??= [];
     return this;
   }
 }
@@ -269,9 +278,13 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
 
   /**
    * @param getSession - caller session resolution
+   * @param getRequest - the request of a call reduced to its forwarded headers (none over stdio)
    * @returns a new SDK server over this service's registries
    */
-  createServer(getSession: (extra: { authInfo?: AuthInfo }) => Session): Server {
+  createServer(
+    getSession: (extra: { authInfo?: AuthInfo }) => Session,
+    getRequest?: (extra: { authInfo?: AuthInfo }) => McpRequestInfo | undefined
+  ): Server {
     const pkg = useApplication().getPackageDescription?.() || ({} as any);
     return createMcpServer({
       info: {
@@ -282,6 +295,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       resources: this.resourceRegistry,
       maxOutputBytes: this.parameters.maxOutputBytes,
       getSession,
+      getRequest,
       beforeRequest: () => this.checkForChanges(),
       listOutOfScopeTools: this.parameters.listOutOfScopeTools
     });
@@ -385,6 +399,38 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
   }
 
   /**
+   * The request as operations may see it: its host and path, and only the allowlisted
+   * headers (`forwardHeaders`); undefined when none is configured
+   * @param ctx - the MCP HTTP request
+   * @returns the reduced request
+   */
+  protected forwardedRequest(ctx: WebContext): McpRequestInfo | undefined {
+    const names = this.parameters.forwardHeaders
+      .map(h => h.toLowerCase())
+      .filter(h => h !== "authorization" && h !== "cookie");
+    if (!names.length) {
+      return undefined;
+    }
+    const http = ctx.getHttpContext();
+    const headers: Record<string, string> = {};
+    for (const name of names) {
+      const value = http.getHeader(name);
+      // the last value, as getUniqueHeader reads it (without its pop)
+      const last = Array.isArray(value) ? value[value.length - 1] : value;
+      if (typeof last === "string") {
+        headers[name] = last;
+      }
+    }
+    return {
+      hostname: http.getHostName(),
+      protocol: http.getProtocol() === "https:" ? "https" : "http",
+      port: http.getPort(),
+      uri: http.getRelativeUri(),
+      headers
+    };
+  }
+
+  /**
    * Handle GET/POST/DELETE on the MCP endpoint
    * @param ctx - the request context
    */
@@ -443,7 +489,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       token: bearer,
       clientId: session?.clientId ?? userId ?? "anonymous",
       scopes: session?.scopes ?? [],
-      extra: { session }
+      extra: { session, request: this.forwardedRequest(ctx) }
     };
     const response = await (entry.transport as WebStandardStreamableHTTPServerTransport).handleRequest(
       toRequest(ctx, body, origin),
@@ -485,7 +531,10 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       lastSeen: Date.now(),
       allowedOrigins,
       transport,
-      server: this.createServer(extra => extra.authInfo?.extra?.session as Session)
+      server: this.createServer(
+        extra => extra.authInfo?.extra?.session as Session,
+        extra => extra.authInfo?.extra?.request as McpRequestInfo | undefined
+      )
     };
     await entry.server.connect(transport);
     return entry;

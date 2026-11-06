@@ -383,8 +383,8 @@ class SealedEndToEndTest extends WebdaApplicationTest {
     assert.deepStrictEqual(
       [...new Set(calls.map(c => c.replace(userPath, "<user>").replace(ctx.uuid, "<note>")))].sort(),
       [
-        "DELETE <user>/keys.removeEscrow",
-        "DELETE <user>/keys.revokeDevice",
+        "DELETE <user>/keys.removeEscrow?kind=recovery",
+        `DELETE <user>/keys.revokeDevice?id=${devices[1].id}`,
         "GET <user>",
         "GET <user>/keys.getKeyring",
         "POST <user>/keys.getEscrow",

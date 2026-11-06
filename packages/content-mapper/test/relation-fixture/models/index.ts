@@ -30,6 +30,11 @@ export type OneToOne<T> = ModelLink<T>;
 export type OneToMany<T, L, K extends string> = ModelRelated<T, L, K>;
 export type ManyToMany<T, K extends object = object> = ModelLinksArray<T, K>;
 export type Contains<T> = ManyToMany<T>;
+export class ModelsMapped<T, K extends string, L extends string> {
+  target?: T;
+  link?: K;
+  attributes?: L;
+}
 
 export interface Storable {}
 export type ModelLinkData<K extends object = object> = { model: string; key: string | number | Record<string, string | number> } & K;

@@ -110,11 +110,11 @@ export type UnpackedConfiguration = {
    */
   parameters?: {
     /**
-     * Allow you to authorize one or several websites
-     * If you use "*" then the API is open to direct call and any origins
-     * You can also serve one static website by having a
+     * Origins allowed to call the API from a browser (CORS), matched on the request `Origin` header
      *
-     * {@link WebsiteOriginFilter}
+     * Exact origins, `https://*.example.com` for the subdomains, or "*" for any origin
+     *
+     * {@link CorsOriginFilter}
      */
     website?: string | string[];
     /**
@@ -141,6 +141,19 @@ export type UnpackedConfiguration = {
      * It cannot hold encrypted values.
      */
     configurationEncryption?: ConfigurationEncryption;
+    /**
+     * Dry run configuration for operations
+     */
+    dryRun?: {
+      /** Run every operation in dry mode */
+      enabled?: boolean;
+      /** Operation id patterns that always run dry (glob, e.g. "Billing.*", "User.Delete") */
+      enforce?: string[];
+      /** Operation id patterns never put in dry mode by enabled/request flags */
+      exclude?: string[];
+      /** Accept the per-request X-Webda-Dry-Run header */
+      allowRequest?: boolean;
+    };
     /**
      * Allow any other type of parameters
      */

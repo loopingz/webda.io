@@ -131,6 +131,13 @@ class OIDCVerifierTest extends OIDCTest {
     assert.strictEqual(minimal.userId, "u1");
     assert.strictEqual(minimal.scopes, undefined);
     assert.strictEqual(minimal.clientId, undefined);
+    // An OAuth client token without scope defaults to empty scopes (least privilege), and invalid mfa claims normalize to "none"
+    const clientNoScope = await this.load(
+      await this.userToken({ scope: undefined, client_id: "my", mfa: "bogus" as any, mfaAt: "bad" as any })
+    );
+    assert.deepStrictEqual(clientNoScope.scopes, []);
+    assert.strictEqual(clientNoScope.mfa, "none");
+    assert.strictEqual(clientNoScope.mfaAt, undefined);
   }
 
   @test

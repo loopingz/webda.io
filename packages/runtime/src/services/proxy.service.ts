@@ -23,23 +23,25 @@ import type { Duplex } from "stream";
  * @returns formatted header string terminated by CRLFCRLF
  */
 export function createHttpHeader(line: string, headers: http.IncomingHttpHeaders | http.OutgoingHttpHeaders): string {
+  const clean = (v: unknown) => String(v).replace(/[\r\n]+/g, "");
   return (
     Object.keys(headers)
       .reduce(
         (head, key) => {
           const value = headers[key];
+          const safeKey = clean(key);
 
           if (!Array.isArray(value)) {
-            head.push(key + ": " + value);
+            head.push(safeKey + ": " + clean(value));
             return head;
           }
 
           for (let i = 0; i < value.length; i++) {
-            head.push(key + ": " + value[i]);
+            head.push(safeKey + ": " + clean(value[i]));
           }
           return head;
         },
-        <string[]>[line]
+        <string[]>[clean(line)]
       )
       .join("\r\n") + "\r\n\r\n"
   );

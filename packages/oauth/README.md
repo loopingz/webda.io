@@ -12,6 +12,8 @@ operations, and the issued access token can only call those.
 - Built-in consent, device and result pages, replaceable by your own UI.
 - One login for several applications: tokens bound to the `resources` of other applications, verified there by
   `@webda/oidc`.
+- One refresh token for several resources of the application (RFC 8707 §2.2): a grant allowed several `resource`s,
+  or a client configured with `resources`, mints an access token for any of them from the same family.
 
 See the full documentation in [docs/pages/Modules/oauth/README.md](../../docs/pages/Modules/oauth/README.md).
 

@@ -7,6 +7,20 @@ const globalContext = new GlobalContext();
 process["webdaContexts"] ??= new AsyncLocalStorage<{ context: Context; previousContext: Context }>();
 const storage = process["webdaContexts"];
 /**
+ * Create the context used by runAsSystem, registered by globaloperationcontext.ts
+ */
+let systemContextFactory: () => Context;
+
+/**
+ * Set the factory of the context used by runAsSystem
+ *
+ * This file cannot import the OperationContext classes: operationcontext.ts imports it
+ * @param factory - creates a new system context
+ */
+export function setSystemContextFactory(factory: () => Context) {
+  systemContextFactory = factory;
+}
+/**
  * Get current execution context
  * @returns the result
  */
@@ -45,12 +59,14 @@ function attachModels(models: any[], context: Context) {
 /**
  * Run this function as system
  *
+ * Inside it, useContext() returns a new GlobalOperationContext: an operation context that callOperation accepts
+ *
  * @param run - the function to run
  * @param attach - whether to attach to current context
  * @returns the list of results
  */
 export function runAsSystem<T>(run: () => T, attach: IContextAware[] = []): T {
-  return runWithContext(globalContext, run, attach);
+  return runWithContext(systemContextFactory?.() ?? globalContext, run, attach);
 }
 /**
  * Run this function as user

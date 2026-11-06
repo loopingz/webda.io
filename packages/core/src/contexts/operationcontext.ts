@@ -182,6 +182,10 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
       }
       if (obj !== null && typeof obj === "object") {
         Object.keys(obj).forEach(key => {
+          if (["__proto__", "constructor", "prototype"].includes(key)) {
+            delete obj[key];
+            return;
+          }
           obj[key] =
             Array.isArray(sanitizedOptions.raw) && sanitizedOptions.raw.includes(path + key)
               ? obj[key]

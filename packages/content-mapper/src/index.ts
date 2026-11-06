@@ -30,12 +30,25 @@ export { behaviorsGenerator, BEHAVIOR_PARENT_KEY } from "./generators/behaviors.
 export type { BehaviorOptions } from "./generators/behaviors.ts";
 export { loadParametersGenerator } from "./generators/loadparameters.ts";
 export { qlValidatorGenerator, WQL_CODES } from "./generators/qlvalidator.ts";
+export { flowsGenerator } from "./generators/flows.ts";
+export { compileFlows, formatFlowError } from "./flows/compile.ts";
+export type { FlowCompileError, FlowCompileResult } from "./flows/compile.ts";
+export { FLOW_ERROR } from "./flows/types.ts";
+export type { CompiledFlow, FlowCron, OperationTarget } from "./flows/types.ts";
 export type { QlValidatorOptions } from "./generators/qlvalidator.ts";
 
 export { buildMappedText, SpanMapKind } from "./spans.ts";
 export type { MappedText, SpanMapping } from "./spans.ts";
 
-export { buildModelMetadata, buildRelations, discoverWebdaObjects, reflectAttributes } from "./module-discovery.ts";
+export {
+  backfillModelRelations,
+  buildModelMetadata,
+  buildRelations,
+  discoverWebdaObjects,
+  reflectAttributes
+} from "./module-discovery.ts";
+export { DELETE_POLICIES } from "./relations.ts";
+export type { DeletePolicy, RelationDependent } from "./relations.ts";
 export type {
   DiscoveredObject,
   DiscoveryOptions,
@@ -45,6 +58,8 @@ export type {
   Section
 } from "./module-discovery.ts";
 
+export { generateWebdaModule } from "./module.ts";
+export type { ModuleOptions, ModuleResult, WebdaModuleJson } from "./module.ts";
 export { WarmSession } from "./session.ts";
 export type { TransformOutcome, TransformTiming, WarmSessionOptions } from "./session.ts";
 
@@ -65,3 +80,13 @@ export { findParametersNode, generateServiceSchema } from "./schema/service.ts";
 export type { ServiceSchemaOptions } from "./schema/service.ts";
 export { SchemaConversionError } from "./schema/types.ts";
 export type { JSONSchema7 } from "./schema/types.ts";
+
+export {
+  findGoFunctionFileOffset,
+  findTextSectionFileOffset,
+  findTscBinary,
+  HAS_RESERVED_EXTENSION_SYMBOL,
+  IS_PACKAGE_ALLOWED_SYMBOL,
+  patchTsc
+} from "./patch-tsc.ts";
+export type { PatchTscOptions, PatchTscResult } from "./patch-tsc.ts";

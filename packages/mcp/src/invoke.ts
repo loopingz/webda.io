@@ -1,4 +1,4 @@
-import { callOperation, Session, SimpleOperationContext, WebdaError } from "@webda/core";
+import { callOperation, HttpContext, Session, SimpleOperationContext, WebdaError } from "@webda/core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
@@ -34,6 +34,27 @@ export class McpOperationContext extends SimpleOperationContext {
    * Called for every streamed chunk with its 1-based index
    */
   onChunk?: (chunk: unknown, index: number) => void;
+  /**
+   * The MCP HTTP request, reduced to its forwarded headers (see McpService `forwardHeaders`)
+   */
+  protected httpContext?: HttpContext;
+
+  /**
+   * @param http - the reduced MCP HTTP request
+   * @returns this
+   */
+  setHttpContext(http: HttpContext | undefined): this {
+    this.httpContext = http;
+    return this;
+  }
+
+  /**
+   * The MCP HTTP request carrying only its forwarded headers; undefined over stdio or when none is forwarded
+   * @returns the reduced request
+   */
+  getHttpContext(): HttpContext | undefined {
+    return this.httpContext;
+  }
 
   /**
    * @param output - chunk or result
@@ -62,6 +83,21 @@ export class McpOperationContext extends SimpleOperationContext {
 }
 
 /**
+ * The parts of an MCP HTTP request an operation may see: where it was sent and the
+ * headers McpService forwards (never `authorization` or `cookie`)
+ */
+export interface McpRequestInfo {
+  hostname: string;
+  protocol: "http" | "https";
+  port: number | string;
+  uri: string;
+  /**
+   * Forwarded headers, lowercase names
+   */
+  headers: Record<string, string>;
+}
+
+/**
  * Options to run an operation for MCP
  */
 export interface RunOptions {
@@ -77,6 +113,10 @@ export interface RunOptions {
    * Abort signal of the MCP request
    */
   signal?: AbortSignal;
+  /**
+   * The HTTP request of the call, reduced to the forwarded headers
+   */
+  request?: McpRequestInfo;
   /**
    * Streaming chunk callback
    */
@@ -114,6 +154,11 @@ export async function runOperation(
   ctx.setInput(Buffer.from(JSON.stringify(options.input ?? {})));
   ctx.signal = options.signal;
   ctx.onChunk = options.onChunk;
+  if (options.request) {
+    const { hostname, protocol, port, uri, headers } = options.request;
+    // a copy: HttpContext.getUniqueHeader pops multi-valued headers
+    ctx.setHttpContext(new HttpContext(hostname, "POST", uri, protocol, port, { ...headers }));
+  }
   await callOperation(ctx, operationId);
   if (ctx.getExtension("operationStreaming")) {
     return { value: ctx.chunks, streamed: true };

@@ -17,9 +17,17 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import * as is from "typescript/unstable/ast/is";
+import * as is from "typescript/ast/is";
 import type { AnalysisContext } from "./plan.ts";
 import { classPropertiesInTs6Order } from "./property-order.ts";
+import {
+  backfillRelations,
+  LINK_KINDS,
+  relationPolicyOf,
+  resolveRelationType,
+  type DeletePolicy,
+  type RelationDependent
+} from "./relations.ts";
 
 /** Sections recorded in `webda.module.json`. */
 export type Section = "models" | "moddas" | "deployers" | "beans";
@@ -199,7 +207,7 @@ export function outputTarget(fileName: string, options: DiscoveryOptions): strin
   // Import paths are written to webda.module.json: keep them platform independent
   return relative(options.appPath, join(options.outDir, fromRoot))
     .replace(/\\/g, "/")
-    .replace(/\.tsx?$/, "");
+    .replace(/\.(tsx?|wts)$/, "");
 }
 
 /**
@@ -271,7 +279,7 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
       } else if (chainExtends(ctx, chain, "@webda/core", "Service")) {
         // Beans are Services carrying the @Bean decorator.
         const decorated = cls.modifiers?.some(
-          (modifier: any) => modifier.kind === 171 && /(^|\W)Bean(\W|$)/.test(ctx.textOf(sf, modifier))
+          (modifier: any) => is.isDecorator(modifier) && /(^|\W)Bean(\W|$)/.test(ctx.textOf(sf, modifier))
         );
         if (!decorated) continue;
         section = "beans";
@@ -652,56 +660,37 @@ function constraintOf(ctx: AnalysisContext, type: any): any {
 
 /** Relations recorded for a model. */
 export interface ModelRelations {
-  /** Owning model, from a `ModelParent<T>` attribute. */
-  parent?: { attribute: string; model: string };
+  /** Owning model, from a `ModelParent<T>` attribute, and the policy applied to the model when it is deleted. */
+  parent?: { attribute: string; model: string; onDelete: DeletePolicy };
   /**
    * Outgoing links, from the `ModelLink*` family.
    *
    * `model` is absent when the target is a type parameter, as on a generic
    * base class — the link is still real and is recorded without it.
+   * `onDelete` is absent for the default `NONE`; `ownership` marks a `Contains`.
    */
-  links?: { attribute: string; model?: string; type: string }[];
+  links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: "CONTAINS" }[];
   /** Polymorphic references, optionally constrained to exact model identifiers. */
   polymorphicLinks?: { attribute: string; models?: string[] }[];
   /** Reverse lookups, from `ModelRelated<T, U, "attr">`. */
-  queries?: { attribute: string; model: string; targetAttribute: string }[];
+  queries?: { attribute: string; model: string; targetAttribute?: string }[];
   /** Behaviour-typed attributes. */
   behaviors?: { attribute: string; behavior: string }[];
+  /** Models declaring this model as their parent, filled by {@link backfillModelRelations}. */
+  children?: string[];
+  /** Relations targeting this model with a delete policy, filled by {@link backfillModelRelations}. */
+  dependents?: RelationDependent[];
 }
 
 /**
- * Relation type aliases of `@webda/models` and the relation type each one is.
- *
- * Relations are recognised by the written type name, so an alias has to be
- * mapped to the type it resolves to. `ManyToMany<T, K = object>` always
- * resolves to `ModelLinksArray` (`object extends object`), and `Contains<T>`
- * is `ManyToMany<T>`.
+ * Fill `children` and `dependents` on the targets, once the relations of every model are built
+ * @param relations - the relations of each model, by identifier; updated in place
  */
-export const RELATION_TYPE_ALIASES: Record<string, string> = {
-  BelongTo: "ModelParent",
-  RelateTo: "ModelLink",
-  ManyToOne: "ModelLink",
-  OneToOne: "ModelLink",
-  OneToMany: "ModelRelated",
-  ManyToMany: "ModelLinksArray",
-  Contains: "ModelLinksArray"
-};
-
-/**
- * @param typeName - a written type name
- * @returns the relation type it is: the alias target, or the name itself
- */
-export function relationTypeOf(typeName: string): string {
-  return RELATION_TYPE_ALIASES[typeName] ?? typeName;
+export function backfillModelRelations(relations: Record<string, ModelRelations>): void {
+  backfillRelations(relations);
 }
 
-/** `ModelLink*` type names and the link kind each records. */
-const LINK_KINDS: Record<string, string> = {
-  ModelLink: "LINK",
-  ModelLinksMap: "LINKS_MAP",
-  ModelLinksArray: "LINKS_ARRAY",
-  ModelLinksSimpleArray: "LINKS_SIMPLE_ARRAY"
-};
+export { LINK_KINDS, RELATION_TYPE_ALIASES, relationTypeOf } from "./relations.ts";
 
 /**
  * Build a model's `Relations` entry.
@@ -737,7 +726,8 @@ export function buildRelations(
     const typeNode = (member as any).type;
     if (!typeNode || !is.isTypeReferenceNode(typeNode)) continue;
 
-    const typeName = relationTypeOf(ctx.textOf(owner, (typeNode as any).typeName));
+    const { type: typeName, contains } = resolveRelationType(ctx, typeNode);
+    const where = `${cls.name.text}.${attribute}`;
     const typeArguments = (typeNode as any).typeArguments ?? [];
     if (typeName === "ModelLinksAny") {
       const targets = polymorphicTargetTypes(ctx, property, cls);
@@ -765,22 +755,26 @@ export function buildRelations(
     // dropping it loses the link entirely.
     if (typeName === "ModelParent") {
       if (!model) continue;
-      relations.parent = { attribute, model };
+      // An invalid tag is reported by the module generator; here it keeps the default
+      relations.parent = { attribute, model, onDelete: relationPolicyOf(member, "PARENT", where).onDelete! };
     } else if (typeName === "ModelRelated") {
       if (!model) continue;
       relations.queries ??= [];
+      const targetAttribute = typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : undefined;
       relations.queries.push({
         attribute,
         model,
-        // ModelRelated<T, L, K>: K is the attribute of T linking back
-        targetAttribute: typeArguments[2] ? ctx.textOf(owner, typeArguments[2]).replace(/"/g, "") : ""
+        ...(targetAttribute !== undefined ? { targetAttribute } : {})
       });
     } else if (LINK_KINDS[typeName]) {
       relations.links ??= [];
+      const { onDelete } = relationPolicyOf(member, contains ? "CONTAINS" : "LINK", where);
       relations.links.push({
         attribute,
         ...(model ? { model } : {}),
-        type: LINK_KINDS[typeName]
+        type: LINK_KINDS[typeName],
+        ...(onDelete ? { onDelete } : {}),
+        ...(contains ? { ownership: "CONTAINS" as const } : {})
       });
     }
   }

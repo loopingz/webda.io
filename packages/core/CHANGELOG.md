@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.13...core-v4.0.0-beta.14) (2026-11-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **utils:** JSONC load and parse helpers now return plain data by default. Pass { edit: true } when comments and formatting must survive edits.
+
+### Performance Improvements
+
+* **utils:** make JSONC editing opt-in ([#1058](https://github.com/loopingz/webda.io/issues/1058)) ([8e03c9f](https://github.com/loopingz/webda.io/commit/8e03c9f1bc1cf4efaf724c0a7f407a7196a85c06))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.14
+    * @webda/models bumped to 4.0.0-beta.14
+    * @webda/ql bumped to 4.0.0-beta.11
+    * @webda/utils bumped to 4.0.0-beta.13
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.14
+
 ## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.12...core-v4.0.0-beta.13) (2026-11-04)
 
 

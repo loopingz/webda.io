@@ -186,6 +186,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.13...aws-v4.0.0-beta.14) (2026-11-06)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.14
+    * @webda/core bumped to 4.0.0-beta.14
+    * @webda/ql bumped to 4.0.0-beta.11
+    * @webda/utils bumped to 4.0.0-beta.13
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.14
+    * @webda/compiler bumped to 4.0.0-beta.14
+
 ## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.12...aws-v4.0.0-beta.13) (2026-11-04)
 
 

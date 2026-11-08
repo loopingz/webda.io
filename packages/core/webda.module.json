@@ -1673,6 +1673,167 @@
         }
       }
     },
+    "Webda/MigrationStore": {
+      "Import": "lib/stores/migrationstore.service:MigrationStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "typeCheck": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Configuration parameters for {@link MigrationStore}",
+        "properties": {
+          "aggregationFallback": {
+            "default": "warn",
+            "description": "What to do when an aggregation on this store cannot run natively and must\nstream every matching object through memory",
+            "enum": [
+              "allow",
+              "warn",
+              "deny"
+            ],
+            "type": "string"
+          },
+          "autoStart": {
+            "default": true,
+            "description": "Automatically start or resume the migration in the background on `init()` when elected cluster leader",
+            "type": "boolean"
+          },
+          "batchSize": {
+            "default": 500,
+            "description": "Number of items to read and copy per batch during background backfill",
+            "type": "number"
+          },
+          "explicitModels": {
+            "default": false,
+            "description": "Whether `models` was explicitly configured on the MigrationStore parameters",
+            "internal": true,
+            "type": "boolean"
+          },
+          "leaseDuration": {
+            "default": 60000,
+            "description": "Duration in ms of the distributed Registry lease held by the active migration runner",
+            "type": "number"
+          },
+          "maxGroups": {
+            "default": 10000,
+            "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "minimum": 1,
+            "type": "number"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "slowQueryLogLevel": {
+            "default": "WARN",
+            "description": "Log level used for slow queries",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "slowQueryMaxLength": {
+            "default": 1024,
+            "description": "Maximum length of the query string written to logs / events (longer queries are truncated)",
+            "type": "number"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Duration in ms above which a query is considered slow.\nSet to 0 to disable slow query detection.",
+            "type": "number"
+          },
+          "source": {
+            "description": "Name of the original (source) Store service to migrate from",
+            "type": "string"
+          },
+          "statusRefreshInterval": {
+            "default": 5000,
+            "description": "Interval in ms after which non-leader instances refresh the migration status from the Registry",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "target": {
+            "description": "Name of the destination (target) Store service to migrate to",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
+          },
+          "verify": {
+            "default": true,
+            "description": "Run a verification pass comparing source items against target before marking the migration `COMPLETED`",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "type"
+        ],
+        "type": "object",
+        "title": "MigrationStore"
+      },
+      "Configuration": "lib/stores/migrationstore.service:MigrationStoreParameters",
+      "commands": {
+        "migrate-store": {
+          "description": "Inspect status or run store-to-store data migration",
+          "method": "migrateStoreCommand",
+          "args": {
+            "action": {
+              "type": "string",
+              "default": "run"
+            },
+            "batch": {
+              "type": "number"
+            }
+          },
+          "phase": "initialized"
+        }
+      }
+    },
     "Webda/MultiNotificationService": {
       "Import": "lib/services/notificationservice.service:default",
       "Schema": {

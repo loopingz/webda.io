@@ -70,6 +70,7 @@ class MigrationStoreTest extends WebdaApplicationTest {
       verify?: boolean;
       statusRefreshInterval?: number;
       models?: string[];
+      explicitModels?: boolean;
     } = {}
   ): Promise<{
     source: MemoryStore;
@@ -105,7 +106,8 @@ class MigrationStoreTest extends WebdaApplicationTest {
       autoStart: options.autoStart ?? false,
       batchSize: options.batchSize ?? 2,
       verify: options.verify ?? true,
-      statusRefreshInterval: options.statusRefreshInterval ?? 5000
+      statusRefreshInterval: options.statusRefreshInterval ?? 5000,
+      ...(options.explicitModels ? { models } : {})
     } as any);
     this.registerService(migration, "MigratingUsers");
     migration.resolve();
@@ -152,6 +154,13 @@ class MigrationStoreTest extends WebdaApplicationTest {
     } as any);
     this.registerService(sameStore, "SameStore");
     assert.throws(() => sameStore.resolve(), /source and target must be distinct stores/);
+
+    const { migration } = await this.createStores({
+      autoStart: false,
+      models: ["Webda/User"],
+      explicitModels: true
+    });
+    assert.deepStrictEqual(migration.getParameters().models, ["Webda/User"]);
   }
 
   @test
@@ -270,43 +279,69 @@ class MigrationStoreTest extends WebdaApplicationTest {
     await repo.delete("u8");
     assert.strictEqual(await targetUserRepo.exists("u8"), false);
     assert.strictEqual(await sourceUserRepo.exists("u8"), false);
+
+    // Calling runMigration again when already COMPLETED (without force) is a no-op
+    const noopStatus = await migration.runMigration();
+    assert.strictEqual(noopStatus.state, "COMPLETED");
   }
 
   @test
   async resumesInterruptedMigrationFromRegistryProgress() {
-    const { migration } = await this.createStores({ autoStart: false, batchSize: 2, models: ["Webda/User"] });
+    const { migration } = await this.createStores({
+      autoStart: false,
+      batchSize: 2,
+      models: ["Webda/User", "Webda/Ident"]
+    });
     const sourceUserRepo = migration.getSourceRepository(User);
     const targetUserRepo = migration.getTargetRepository(User);
+    const sourceIdentRepo = migration.getSourceRepository(Ident);
+    const targetIdentRepo = migration.getTargetRepository(Ident);
 
-    for (let i = 1; i <= 5; i++) {
-      await sourceUserRepo.create({ uuid: `r${i}`, displayName: `User ${i}` } as any);
+    // 1 User (1 page < batchSize -> completed: true) and 3 Idents (2 pages -> aborts after 1st page of Idents)
+    await sourceUserRepo.create({ uuid: "r1", displayName: "User 1" } as any);
+    for (let i = 1; i <= 3; i++) {
+      await sourceIdentRepo.create({ providerUid: `id${i}`, provider: "email" } as any);
     }
 
-    // Abort right after the first page progress is emitted
-    const onFirstPage = () => {
-      migration.off("MigrationStore.Progress", onFirstPage);
-      (migration as any).abortRequested = true;
+    // Abort right after the 2nd page progress is emitted (User completed, Ident on page 1 with continuationToken)
+    let progressCount = 0;
+    const onProgress = () => {
+      progressCount++;
+      if (progressCount === 2) {
+        migration.off("MigrationStore.Progress", onProgress);
+        (migration as any).abortRequested = true;
+      }
     };
-    migration.on("MigrationStore.Progress", onFirstPage);
+    migration.on("MigrationStore.Progress", onProgress);
 
     const partialStatus = await migration.runMigration({ batchSize: 2 });
     assert.strictEqual(partialStatus.state, "MIGRATING");
-    assert.strictEqual(partialStatus.scanned, 2);
-    assert.strictEqual(partialStatus.migrated, 2);
+    assert.strictEqual(partialStatus.models["Webda/User"].completed, true);
+    assert.strictEqual(partialStatus.models["Webda/Ident"].completed, false);
     assert.ok(partialStatus.continuationToken, "continuationToken should be saved in Registry");
-    assert.strictEqual(await targetUserRepo.exists("r1"), true);
-    assert.strictEqual(await targetUserRepo.exists("r2"), true);
-    assert.strictEqual(await targetUserRepo.exists("r3"), false);
+    assert.strictEqual(await targetIdentRepo.exists({ providerUid: "id1", provider: "email" } as any), true);
+    assert.strictEqual(await targetIdentRepo.exists({ providerUid: "id2", provider: "email" } as any), true);
+    assert.strictEqual(await targetIdentRepo.exists({ providerUid: "id3", provider: "email" } as any), false);
 
-    // Resume migration: should pick up from continuationToken and finish remaining 3 items
+    // Format status with completed=true, completed=false with token, and completed=false without token
+    const formattedWithToken = migration.formatStatus(partialStatus);
+    assert.ok(formattedWithToken.includes("token="));
+    const formattedStart = migration.formatStatus({
+      ...partialStatus,
+      models: {
+        "Webda/Ident": { model: "Webda/Ident", scanned: 0, migrated: 0, skipped: 0, completed: false }
+      }
+    });
+    assert.ok(formattedStart.includes("token=start"));
+
+    // Resume migration: skips completed Webda/User and finishes remaining Ident item
     const finalStatus = await migration.runMigration({ batchSize: 2 });
     assert.strictEqual(finalStatus.state, "COMPLETED");
-    assert.strictEqual(finalStatus.scanned, 5);
-    assert.strictEqual(finalStatus.migrated, 5);
-    assert.strictEqual(finalStatus.verified, 5);
-    for (let i = 1; i <= 5; i++) {
-      assert.strictEqual(await targetUserRepo.exists(`r${i}`), true);
-    }
+    assert.strictEqual(finalStatus.scanned, 4);
+    assert.strictEqual(finalStatus.migrated, 4);
+    assert.strictEqual(finalStatus.verified, 4);
+    assert.strictEqual(await targetUserRepo.exists("r1"), true);
+    assert.strictEqual(await targetIdentRepo.exists({ providerUid: "id3", provider: "email" } as any), true);
   }
 
   @test
@@ -383,19 +418,53 @@ class MigrationStoreTest extends WebdaApplicationTest {
 
     // Before leader election, neither node has run the migration
     assert.strictEqual(node1.isCompleted(), false);
-    assert.strictEqual(node2.isCompleted(), false);
+    assert.strictEqual((await node2.waitForCompletion()).state, "PENDING");
 
-    // Elect Node 1 as cluster leader -> triggers automatic background migration
+    // Seed a short active lease held by a previous runner so Node 1 schedules a retry timer first
+    const registryId = "storeMigration.MigratingUsers.transfer";
+    await useRegistry().put(registryId, {
+      store: "MigratingUsers",
+      source: "SourceUsers",
+      target: "TargetUsers",
+      state: "MIGRATING",
+      models: {},
+      owner: "previous-leader",
+      leaseUntil: Date.now() + 25
+    });
+
+    // Elect Node 1 as cluster leader -> hits MigrationAlreadyRunning, schedules retryTimer
     cluster.setLeader(true);
+    await node1.waitForCompletion();
+
+    // Wait for retryTimer (25ms+) to fire and complete the migration
+    await new Promise(resolve => setTimeout(resolve, 60));
     const status = await node1.waitForCompletion();
     assert.strictEqual(status.state, "COMPLETED");
     assert.strictEqual(node1.isCompleted(), true);
+
+    // Calling startLeaderMigration again when already completed is a no-op
+    (node1 as any).startLeaderMigration();
 
     // Wait >10ms so Node 2's statusRefreshInterval elapses on next read
     await new Promise(resolve => setTimeout(resolve, 20));
     const node2UserRepo = node2.getRepository(User);
     assert.strictEqual((await node2UserRepo.get("k1")).displayName, "Cluster 1");
     assert.strictEqual(node2.isCompleted(), true);
+
+    // Test leadership loss callback (stopLeaderMigration + clearRetryTimer while timer/promise active)
+    (node1 as any).retryTimer = setTimeout(() => {}, 10000);
+    (node1 as any).backgroundPromise = Promise.resolve(status);
+    cluster.setLeader(false);
+    await (node1 as any).stopLeaderMigration();
+
+    // Test executeLeaderMigration catching an unexpected error
+    const origRun = node1.runMigration.bind(node1);
+    node1.runMigration = async () => {
+      throw new Error("unexpected failure");
+    };
+    const errStatus = await (node1 as any).executeLeaderMigration();
+    assert.strictEqual(errStatus.state, "COMPLETED");
+    node1.runMigration = origRun;
 
     await node1.stop();
     await node2.stop();
@@ -414,6 +483,7 @@ class MigrationStoreTest extends WebdaApplicationTest {
       source: "SourceUsers",
       target: "TargetUsers",
       state: "MIGRATING",
+      models: {},
       owner: "other-runner",
       leaseUntil: Date.now() + 60000
     });
@@ -422,6 +492,8 @@ class MigrationStoreTest extends WebdaApplicationTest {
       () => migration.runMigration(),
       (err: unknown) => err instanceof MigrationAlreadyRunning
     );
+    // CLI run command returns 1 when runMigration throws
+    assert.strictEqual(await migration.migrateStoreCommand("run", 2), 1);
 
     // Release the lease and run via CLI command
     await useRegistry().patch(registryId, { leaseUntil: 0 }, "owner", "other-runner");
@@ -431,12 +503,18 @@ class MigrationStoreTest extends WebdaApplicationTest {
     assert.strictEqual(migration.isCompleted(), true);
     assert.strictEqual(await migration.migrateStoreCommand("force", 2), 0);
 
+    // Also test runMigration with verify: false
+    const unverifiedStatus = await migration.runMigration({ force: true, verify: false });
+    assert.strictEqual(unverifiedStatus.state, "COMPLETED");
+    assert.strictEqual(unverifiedStatus.verified, 0);
+
     // Verify module metadata exposes Webda/MigrationStore and its command
     const modda: any = useApplication().getModules().moddas["Webda/MigrationStore"];
     assert.ok(modda, "Webda/MigrationStore should be registered in webda.module.json");
     assert.ok(modda.commands["migrate-store"], "migrate-store command should be registered");
 
-    // Clean data resets both stores and Registry entry
+    // Clean data resets both stores and Registry entry (calling twice covers both exists=true and exists=false)
+    await migration.__clean();
     await migration.__clean();
     assert.strictEqual(migration.isCompleted(), false);
     assert.strictEqual((await migration.getStatus()).state, "PENDING");
@@ -452,22 +530,25 @@ class MigrationStoreTest extends WebdaApplicationTest {
     await sourceUserRepo.create({ uuid: "b1", displayName: "Batch 1" });
     await sourceUserRepo.create({ uuid: "b2", displayName: "Batch 1" });
     await sourceUserRepo.create({ uuid: "b3", displayName: "Batch 2" });
+    await sourceUserRepo.create({ uuid: "b4", displayName: "Batch 1" });
 
     // Bulk updateMany while migrating copies updated items to target
     const updatedCount = await repo.updateMany(
       "UPDATE SET displayName = 'Updated Batch' WHERE displayName = 'Batch 1'"
     );
-    assert.strictEqual(updatedCount, 2);
+    assert.strictEqual(updatedCount, 3);
     assert.strictEqual((await targetUserRepo.get("b1")).displayName, "Updated Batch");
     assert.strictEqual((await targetUserRepo.get("b2")).displayName, "Updated Batch");
 
-    // Bulk deleteMany while migrating deletes from both source and target
-    const deletedCount = await repo.deleteMany("DELETE WHERE uuid = 'b2'");
-    assert.strictEqual(deletedCount, 1);
+    // Bulk deleteMany while migrating deletes multiple items from both source and target
+    const deletedCount = await repo.deleteMany("DELETE WHERE uuid IN ['b2', 'b4']");
+    assert.strictEqual(deletedCount, 2);
     assert.strictEqual(await sourceUserRepo.exists("b2"), false);
     assert.strictEqual(await targetUserRepo.exists("b2"), false);
+    assert.strictEqual(await sourceUserRepo.exists("b4"), false);
+    assert.strictEqual(await targetUserRepo.exists("b4"), false);
 
-    // Simulate a broken target upsert during verification to trigger FAILED state
+    // Simulate a broken target upsert during backfill so verification detects missing item and enters FAILED state
     const origUpsert = targetUserRepo.upsert.bind(targetUserRepo);
     targetUserRepo.upsert = async () => {
       // No-op so b3 is never written to target

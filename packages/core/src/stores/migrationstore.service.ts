@@ -21,9 +21,9 @@ import {
 import * as WebdaQL from "@webda/ql";
 import type { AggregationResult, QueryParameters } from "@webda/ql";
 import type { ArrayElement } from "@webda/utils";
-import { useModel, useModelId } from "../application/hooks.js";
+import { useModelId } from "../application/hooks.js";
 import { InstanceCache } from "../cache/cache.js";
-import { useCore, useModelMetadata } from "../core/hooks.js";
+import { useModelMetadata } from "../core/hooks.js";
 import * as WebdaError from "../errors/errors.js";
 import { useOutput } from "../loggers/hooks.js";
 import { useRegistry } from "../models/registry.model.js";
@@ -191,11 +191,8 @@ export class MigrationStoreParameters extends StoreParameters {
  * @param repo - repository to unwrap
  * @returns the inner AbstractRepository
  */
-function unwrapRepository<T extends ModelClass>(repo: Repository<T>): AbstractRepository<T> {
-  if (repo instanceof EventRepository) {
-    return Reflect.get(repo, "repository") as AbstractRepository<T>;
-  }
-  return repo as unknown as AbstractRepository<T>;
+export function unwrapRepository<T extends ModelClass>(repo: Repository<T>): AbstractRepository<T> {
+  return Reflect.get(repo, "repository") as AbstractRepository<T>;
 }
 
 /**
@@ -226,7 +223,7 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
     separator: string = "#"
   ) {
     super(model, pks, separator);
-    this.modelId = useModelId(model) ?? model.name;
+    this.modelId = useModelId(model)!;
   }
 
   /**
@@ -271,6 +268,50 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
     } else {
       await repo.create(full);
     }
+  }
+
+  /**
+   * Execute a create/upsert write on the primary repository and mirror the resulting item to the secondary repository
+   * @param write - write callback executed against the primary repository
+   * @returns the created or upserted model instance
+   */
+  protected async mirrorWrite(
+    write: (repo: AbstractRepository<T>) => Promise<InstanceType<T>>
+  ): Promise<InstanceType<T>> {
+    await this.store.ensureFreshStatus();
+    if (this.store.isCompleted()) {
+      const item = await write(this.targetRepo);
+      await this.syncFullItem(this.sourceRepo, this.getPrimaryKey(item), item);
+      return item;
+    }
+    const item = await write(this.sourceRepo);
+    const pk = this.getPrimaryKey(item);
+    this.store.markKeyTouched(this.modelId, pk.toString());
+    await this.syncFullItem(this.targetRepo, pk, item);
+    return item;
+  }
+
+  /**
+   * Execute an in-place mutation on the primary repository and copy-on-write the full resulting item to the secondary repository
+   * @param primaryKey - primary key of the mutated item
+   * @param mutate - mutation callback executed against the primary repository
+   * @returns result of the primary mutation
+   */
+  protected async mirrorMutation<R>(
+    primaryKey: PrimaryKeyType<InstanceType<T>>,
+    mutate: (repo: AbstractRepository<T>) => Promise<R>
+  ): Promise<R> {
+    await this.store.ensureFreshStatus();
+    const pk = this.getPrimaryKey(primaryKey);
+    if (this.store.isCompleted()) {
+      const res = await mutate(this.targetRepo);
+      await this.syncFullItem(this.sourceRepo, pk, await this.targetRepo.get(pk));
+      return res;
+    }
+    const res = await mutate(this.sourceRepo);
+    this.store.markKeyTouched(this.modelId, pk.toString());
+    await this.syncFullItem(this.targetRepo, pk, await this.sourceRepo.get(pk));
+    return res;
   }
 
   /** @override */
@@ -322,32 +363,7 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
 
   /** @override */
   async create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>> {
-    await this.store.ensureFreshStatus();
-    if (this.store.isCompleted()) {
-      const created = await this.targetRepo.create(data, save);
-      await this.sourceRepo.upsert(created);
-      return created;
-    }
-    const created = await this.sourceRepo.create(data, save);
-    const keyStr = this.getPrimaryKey(created).toString();
-    this.store.markKeyTouched(this.modelId, keyStr);
-    await this.targetRepo.upsert(created);
-    return created;
-  }
-
-  /** @override */
-  async upsert(data: Helpers<InstanceType<T>>): Promise<InstanceType<T>> {
-    await this.store.ensureFreshStatus();
-    if (this.store.isCompleted()) {
-      const upserted = await this.targetRepo.upsert(data);
-      await this.sourceRepo.upsert(upserted);
-      return upserted;
-    }
-    const upserted = await this.sourceRepo.upsert(data);
-    const keyStr = this.getPrimaryKey(upserted).toString();
-    this.store.markKeyTouched(this.modelId, keyStr);
-    await this.targetRepo.upsert(upserted);
-    return upserted;
+    return this.mirrorWrite(repo => repo.create(data, save));
   }
 
   /** @override */
@@ -356,18 +372,7 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
     conditionField?: K | null,
     condition?: PropertyPathType<InstanceType<T>, K>
   ): Promise<void> {
-    await this.store.ensureFreshStatus();
-    const pk = this.getPrimaryKey(data);
-    if (this.store.isCompleted()) {
-      await this.targetRepo.update(data, conditionField, condition);
-      const full = (await this.targetRepo.get(pk)) ?? data;
-      await this.syncFullItem(this.sourceRepo, pk, full);
-      return;
-    }
-    await this.sourceRepo.update(data, conditionField, condition);
-    this.store.markKeyTouched(this.modelId, pk.toString());
-    const full = (await this.sourceRepo.get(pk)) ?? data;
-    await this.syncFullItem(this.targetRepo, pk, full);
+    return this.mirrorMutation(this.getPrimaryKey(data), repo => repo.update(data, conditionField, condition));
   }
 
   /** @override */
@@ -377,30 +382,7 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
     conditionField?: K | null,
     condition?: unknown
   ): Promise<void> {
-    await this.store.ensureFreshStatus();
-    const pk = this.getPrimaryKey(primaryKey);
-    if (this.store.isCompleted()) {
-      await this.targetRepo.patch(primaryKey, data, conditionField, condition);
-      try {
-        const full = await this.targetRepo.get(pk);
-        if (full) {
-          await this.syncFullItem(this.sourceRepo, pk, full);
-        }
-      } catch {
-        // Item deleted concurrently
-      }
-      return;
-    }
-    await this.sourceRepo.patch(primaryKey, data, conditionField, condition);
-    this.store.markKeyTouched(this.modelId, pk.toString());
-    try {
-      const full = await this.sourceRepo.get(pk);
-      if (full) {
-        await this.syncFullItem(this.targetRepo, pk, full);
-      }
-    } catch {
-      // Item deleted concurrently
-    }
+    return this.mirrorMutation(primaryKey, repo => repo.patch(primaryKey, data, conditionField, condition));
   }
 
   /** @override */
@@ -428,65 +410,9 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
     conditionField?: K | null,
     condition?: unknown
   ): Promise<void | Record<string, number>> {
-    await this.store.ensureFreshStatus();
-    const pk = this.getPrimaryKey(primaryKey);
-    if (this.store.isCompleted()) {
-      const res = await this.targetRepo.incrementAttributes(primaryKey, info, conditionField, condition);
-      try {
-        const full = await this.targetRepo.get(pk);
-        if (full) {
-          await this.sourceRepo.upsert(full);
-        }
-      } catch {
-        // Item deleted concurrently
-      }
-      return res;
-    }
-    const res = await this.sourceRepo.incrementAttributes(primaryKey, info, conditionField, condition);
-    this.store.markKeyTouched(this.modelId, pk.toString());
-    try {
-      const full = await this.sourceRepo.get(pk);
-      if (full) {
-        await this.targetRepo.upsert(full);
-      }
-    } catch {
-      // Item deleted concurrently
-    }
-    return res;
-  }
-
-  /** @override */
-  async setAttribute<L extends PropertyPaths<InstanceType<T>>, K extends PropertyPaths<InstanceType<T>>>(
-    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
-    attribute: K,
-    value: PropertyPathType<InstanceType<T>, K>,
-    conditionField?: L | null,
-    condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
-  ): Promise<void> {
-    await this.store.ensureFreshStatus();
-    const pk = this.getPrimaryKey(primaryKey);
-    if (this.store.isCompleted()) {
-      await this.targetRepo.setAttribute(primaryKey, attribute, value, conditionField, condition);
-      try {
-        const full = await this.targetRepo.get(pk);
-        if (full) {
-          await this.sourceRepo.upsert(full);
-        }
-      } catch {
-        // Item deleted concurrently
-      }
-      return;
-    }
-    await this.sourceRepo.setAttribute(primaryKey, attribute, value, conditionField, condition);
-    this.store.markKeyTouched(this.modelId, pk.toString());
-    try {
-      const full = await this.sourceRepo.get(pk);
-      if (full) {
-        await this.targetRepo.upsert(full);
-      }
-    } catch {
-      // Item deleted concurrently
-    }
+    return this.mirrorMutation(primaryKey, repo =>
+      repo.incrementAttributes(primaryKey, info, conditionField, condition)
+    );
   }
 
   /** @override */
@@ -496,30 +422,7 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
     conditionField?: L | null,
     condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
   ): Promise<void> {
-    await this.store.ensureFreshStatus();
-    const pk = this.getPrimaryKey(uuid);
-    if (this.store.isCompleted()) {
-      await this.targetRepo.removeAttribute(uuid, attribute, conditionField, condition);
-      try {
-        const full = await this.targetRepo.get(pk);
-        if (full) {
-          await this.syncFullItem(this.sourceRepo, pk, full);
-        }
-      } catch {
-        // Item deleted concurrently
-      }
-      return;
-    }
-    await this.sourceRepo.removeAttribute(uuid, attribute, conditionField, condition);
-    this.store.markKeyTouched(this.modelId, pk.toString());
-    try {
-      const full = await this.sourceRepo.get(pk);
-      if (full) {
-        await this.syncFullItem(this.targetRepo, pk, full);
-      }
-    } catch {
-      // Item deleted concurrently
-    }
+    return this.mirrorMutation(uuid, repo => repo.removeAttribute(uuid, attribute, conditionField, condition));
   }
 
   /** @override */
@@ -536,44 +439,9 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
       ? (object & ArrayElement<InstanceType<T>[K]>)[L]
       : ArrayElement<InstanceType<T>[K]>
   ): Promise<void> {
-    await this.store.ensureFreshStatus();
-    const pk = this.getPrimaryKey(uuid);
-    if (this.store.isCompleted()) {
-      await this.targetRepo.upsertItemToCollection(
-        uuid,
-        collection,
-        item,
-        index,
-        itemWriteConditionField,
-        itemWriteCondition
-      );
-      try {
-        const full = await this.targetRepo.get(pk);
-        if (full) {
-          await this.sourceRepo.upsert(full);
-        }
-      } catch {
-        // Item deleted concurrently
-      }
-      return;
-    }
-    await this.sourceRepo.upsertItemToCollection(
-      uuid,
-      collection,
-      item,
-      index,
-      itemWriteConditionField,
-      itemWriteCondition
+    return this.mirrorMutation(uuid, repo =>
+      repo.upsertItemToCollection(uuid, collection, item, index, itemWriteConditionField, itemWriteCondition)
     );
-    this.store.markKeyTouched(this.modelId, pk.toString());
-    try {
-      const full = await this.sourceRepo.get(pk);
-      if (full) {
-        await this.targetRepo.upsert(full);
-      }
-    } catch {
-      // Item deleted concurrently
-    }
   }
 
   /** @override */
@@ -587,42 +455,9 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
     itemWriteConditionField?: L,
     itemWriteCondition?: ArrayElement<InstanceType<T>[K]>[L]
   ): Promise<void> {
-    await this.store.ensureFreshStatus();
-    const pk = this.getPrimaryKey(uuid);
-    if (this.store.isCompleted()) {
-      await this.targetRepo.deleteItemFromCollection(
-        uuid,
-        collection,
-        index,
-        itemWriteConditionField,
-        itemWriteCondition
-      );
-      try {
-        const full = await this.targetRepo.get(pk);
-        if (full) {
-          await this.sourceRepo.upsert(full);
-        }
-      } catch {
-        // Item deleted concurrently
-      }
-      return;
-    }
-    await this.sourceRepo.deleteItemFromCollection(
-      uuid,
-      collection,
-      index,
-      itemWriteConditionField,
-      itemWriteCondition
+    return this.mirrorMutation(uuid, repo =>
+      repo.deleteItemFromCollection(uuid, collection, index, itemWriteConditionField, itemWriteCondition)
     );
-    this.store.markKeyTouched(this.modelId, pk.toString());
-    try {
-      const full = await this.sourceRepo.get(pk);
-      if (full) {
-        await this.targetRepo.upsert(full);
-      }
-    } catch {
-      // Item deleted concurrently
-    }
   }
 }
 
@@ -701,9 +536,6 @@ export class MigrationStore<
    * and claim model routing from both underlying stores.
    */
   computeParameters(): void {
-    if (!(this.parameters instanceof MigrationStoreParameters)) {
-      Reflect.set(this, "parameters", new MigrationStoreParameters().load(this.parameters));
-    }
     if (!this.sourceStore || !(this.sourceStore instanceof Store)) {
       throw new WebdaError.FatalInitError(
         `MigrationStore ${this.getName()}: source '${this.parameters.source}' is not a valid Store`
@@ -725,11 +557,12 @@ export class MigrationStore<
     }
 
     if (!this.parameters.explicitModels) {
-      const sourceModels = this.sourceStore.getParameters().models ?? [];
-      const targetModels = this.targetStore.getParameters().models ?? [];
-      const combined = [...new Set([...sourceModels, ...targetModels])];
-      const nonDefault = combined.filter(m => m !== "Webda/RegistryEntry");
-      this.parameters.models = nonDefault.length > 0 ? nonDefault : combined;
+      this.parameters.models = [
+        ...new Set([
+          ...(this.sourceStore.getParameters().models as string[]),
+          ...(this.targetStore.getParameters().models as string[])
+        ])
+      ];
     }
 
     super.computeParameters();
@@ -778,11 +611,9 @@ export class MigrationStore<
     await Promise.all([this.sourceStore.___cleanData(), this.targetStore.___cleanData()]);
     this.touchedKeys.clear();
     this.deletedKeys.clear();
-    if (this.hasRegistry()) {
-      const id = this.transferRegistryId();
-      if (await useRegistry().exists(id)) {
-        await useRegistry().delete(id);
-      }
+    const id = this.transferRegistryId();
+    if (await useRegistry().exists(id)) {
+      await useRegistry().delete(id);
     }
     this.cachedStatus = this.createInitialStatus();
     this.lastStatusRefresh = Date.now();
@@ -803,9 +634,6 @@ export class MigrationStore<
    */
   markKeyTouched(modelId: string, key: string): void {
     this.deletedKeys.get(modelId)?.delete(key);
-    if (!this.isRunningLocally) {
-      return;
-    }
     let set = this.touchedKeys.get(modelId);
     if (!set) {
       set = new Set();
@@ -875,8 +703,8 @@ export class MigrationStore<
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
-    const pks = (meta?.PrimaryKey ?? ["uuid"]) as (keyof InstanceType<T> & string)[];
-    const separator = meta?.PrimaryKeySeparator ?? "#";
+    const pks = meta.PrimaryKey as (keyof InstanceType<T> & string)[];
+    const separator = meta.PrimaryKeySeparator ?? "#";
     return new EventRepository<T>(model, pks, new MigrationRepository<T>(model, pks, this, separator), separator);
   }
 
@@ -887,8 +715,7 @@ export class MigrationStore<
     if (this.isCompleted() || this.isRunningLocally) {
       return;
     }
-    const interval = this.parameters.statusRefreshInterval ?? 5000;
-    if (Date.now() - this.lastStatusRefresh >= interval) {
+    if (Date.now() - this.lastStatusRefresh >= this.parameters.statusRefreshInterval!) {
       await this.refreshStatus();
     }
   }
@@ -899,17 +726,10 @@ export class MigrationStore<
    */
   async refreshStatus(): Promise<MigrationStoreStatus> {
     this.lastStatusRefresh = Date.now();
-    if (!this.hasRegistry()) {
-      return structuredClone(this.cachedStatus);
-    }
     const id = this.transferRegistryId();
-    try {
-      if (await useRegistry().exists(id)) {
-        const entry = await useRegistry().get<Partial<MigrationStoreStatus>>(id);
-        this.cachedStatus = this.toStatus(entry);
-      }
-    } catch (err) {
-      this.log("WARN", `Failed to read migration status from Registry (${id}): ${(err as Error)?.message ?? err}`);
+    if (await useRegistry().exists(id)) {
+      const entry = await useRegistry().get<Partial<MigrationStoreStatus>>(id);
+      this.cachedStatus = this.toStatus(entry);
     }
     return structuredClone(this.cachedStatus);
   }
@@ -919,9 +739,6 @@ export class MigrationStore<
    * @returns the current MigrationStoreStatus
    */
   async getStatus(): Promise<MigrationStoreStatus> {
-    if (this.isRunningLocally) {
-      return structuredClone(this.cachedStatus);
-    }
     return this.refreshStatus();
   }
 
@@ -959,21 +776,17 @@ export class MigrationStore<
     } catch (err) {
       if (err instanceof MigrationAlreadyRunning) {
         await this.refreshStatus();
-        const delay = Math.max(50, (this.cachedStatus.leaseUntil ?? Date.now() + 250) - Date.now() + 25);
+        const delay = Math.max(20, this.cachedStatus.leaseUntil! - Date.now() + 10);
         this.log("DEBUG", `Migration lease for ${this.getName()} held by another runner, retrying in ${delay}ms`);
-        if (!this.abortRequested) {
-          this.clearRetryTimer();
-          this.retryTimer = setTimeout(() => {
-            this.retryTimer = undefined;
-            if (!this.abortRequested && !this.isCompleted()) {
-              this.startLeaderMigration();
-            }
-          }, delay);
-          this.retryTimer.unref?.();
-        }
+        this.clearRetryTimer();
+        this.retryTimer = setTimeout(() => {
+          this.retryTimer = undefined;
+          this.startLeaderMigration();
+        }, delay);
+        this.retryTimer.unref?.();
         return undefined;
       }
-      this.log("ERROR", `Background store migration failed on ${this.getName()}: ${(err as Error)?.message ?? err}`);
+      this.log("ERROR", `Background store migration failed on ${this.getName()}: ${(err as Error).message}`);
       return this.cachedStatus;
     }
   }
@@ -985,11 +798,7 @@ export class MigrationStore<
     this.abortRequested = true;
     this.clearRetryTimer();
     if (this.backgroundPromise) {
-      try {
-        await this.backgroundPromise;
-      } catch {
-        // Errors are already logged and reflected in status
-      }
+      await this.backgroundPromise;
     }
   }
 
@@ -1004,22 +813,6 @@ export class MigrationStore<
   }
 
   /**
-   * Resolve the runtime model class of a deserialized item if it is a subclass with Webda Metadata
-   * @param item - deserialized model instance
-   * @param fallback - repository root model class
-   * @returns resolved ModelClass
-   */
-  protected resolveRuntimeModel(item: unknown, fallback: ModelClass): ModelClass {
-    if (item && typeof item === "object") {
-      const ctor = (item as { constructor?: ModelClass }).constructor;
-      if (typeof ctor === "function" && useModelMetadata(ctor)) {
-        return ctor;
-      }
-    }
-    return fallback;
-  }
-
-  /**
    * Run or resume the store-to-store migration from `source` to `target`.
    *
    * Acquires an exclusive, renewable lease in the Registry (`storeMigration.<name>.transfer`),
@@ -1031,15 +824,9 @@ export class MigrationStore<
    * @returns the resulting MigrationStoreStatus
    */
   async runMigration(options: RunMigrationOptions = {}): Promise<MigrationStoreStatus> {
-    const batchSize = Math.max(
-      1,
-      Math.floor(Number(options.batchSize ?? this.parameters.batchSize ?? DEFAULT_MIGRATION_BATCH))
-    );
-    const leaseDuration = Math.max(
-      100,
-      Math.floor(Number(options.leaseDuration ?? this.parameters.leaseDuration ?? DEFAULT_MIGRATION_LEASE))
-    );
-    const verify = options.verify ?? this.parameters.verify ?? true;
+    const batchSize = Math.max(1, Math.floor(Number(options.batchSize ?? this.parameters.batchSize)));
+    const leaseDuration = Math.max(100, Math.floor(Number(options.leaseDuration ?? this.parameters.leaseDuration)));
+    const verify = options.verify ?? this.parameters.verify;
     const force = !!options.force;
 
     const lease = await this.acquireTransferLease(leaseDuration);
@@ -1052,21 +839,21 @@ export class MigrationStore<
         return structuredClone(this.cachedStatus);
       }
 
-      const models = this.getMigratedModels();
+      const models = this.getModels();
       const now = Date.now();
       const isResuming =
         !force &&
         (this.cachedStatus.state === "MIGRATING" ||
           this.cachedStatus.state === "VERIFYING" ||
           this.cachedStatus.state === "FAILED") &&
-        Object.keys(this.cachedStatus.models ?? {}).length > 0;
+        Object.keys(this.cachedStatus.models).length > 0;
 
       const modelProgressMap: Record<string, ModelMigrationProgress> = isResuming
         ? structuredClone(this.cachedStatus.models)
         : {};
 
       for (const model of models) {
-        const modelId = useModelId(model) ?? model.name;
+        const modelId = useModelId(model)!;
         modelProgressMap[modelId] ??= {
           model: modelId,
           scanned: 0,
@@ -1084,7 +871,7 @@ export class MigrationStore<
       await this.saveTransferStatus(lease, {
         state: "MIGRATING",
         models: modelProgressMap,
-        startedAt: isResuming ? (this.cachedStatus.startedAt ?? now) : now,
+        startedAt: isResuming ? this.cachedStatus.startedAt : now,
         completedAt: undefined,
         error: undefined,
         ...(isResuming ? {} : { scanned: 0, migrated: 0, skipped: 0, verified: 0 })
@@ -1099,19 +886,14 @@ export class MigrationStore<
 
       // Phase 1: Backfill each model page-by-page
       for (const model of models) {
-        if (this.abortRequested) {
-          await this.releaseTransferLease(lease, {});
-          return structuredClone(this.cachedStatus);
-        }
-
-        const modelId = useModelId(model) ?? model.name;
+        const modelId = useModelId(model)!;
         const progress = modelProgressMap[modelId];
-        if (progress.completed && !force) {
+        if (progress.completed) {
           continue;
         }
 
         const sourceRepo = this.getSourceRepository(model);
-        const defaultTargetRepo = this.getTargetRepository(model);
+        const targetRepo = this.getTargetRepository(model);
         let token = progress.continuationToken;
 
         do {
@@ -1136,25 +918,12 @@ export class MigrationStore<
             const pk = sourceRepo.getPrimaryKey(item);
             const pkStr = pk.toString();
 
-            // Never resurrect an item that was deleted concurrently during backfill
-            if (this.isKeyDeleted(modelId, pkStr)) {
-              progress.skipped++;
-              continue;
-            }
-
-            // Resolve the target repository for the item's runtime class (handles polymorphic subclasses)
-            const runtimeModel = this.resolveRuntimeModel(item, model);
-            const targetRepo = runtimeModel === model ? defaultTargetRepo : this.getTargetRepository(runtimeModel);
-
-            // If a live dual-write already touched this key or it already exists in target (and not forced),
-            // do not overwrite it with a potentially older page snapshot
-            if (this.isKeyTouched(modelId, pkStr) || (!force && (await targetRepo.exists(pk)))) {
-              progress.skipped++;
-              continue;
-            }
-
-            // Double-check the item was not deleted from source while the batch was in flight
-            if (this.isKeyDeleted(modelId, pkStr) || !(await sourceRepo.exists(pk))) {
+            // Skip items deleted concurrently, touched by live dual-writes, or already present in target
+            if (
+              this.isKeyDeleted(modelId, pkStr) ||
+              this.isKeyTouched(modelId, pkStr) ||
+              (!force && (await targetRepo.exists(pk)))
+            ) {
               progress.skipped++;
               continue;
             }
@@ -1194,22 +963,12 @@ export class MigrationStore<
         });
 
         for (const model of models) {
-          if (this.abortRequested) {
-            await this.releaseTransferLease(lease, { verified: verifiedCount });
-            return structuredClone(this.cachedStatus);
-          }
-
-          const modelId = useModelId(model) ?? model.name;
+          const modelId = useModelId(model)!;
           const sourceRepo = this.getSourceRepository(model);
-          const defaultTargetRepo = this.getTargetRepository(model);
+          const targetRepo = this.getTargetRepository(model);
           let token: string | undefined;
 
           do {
-            if (this.abortRequested) {
-              await this.releaseTransferLease(lease, { verified: verifiedCount });
-              return structuredClone(this.cachedStatus);
-            }
-
             const queryStr = token ? `LIMIT ${batchSize} OFFSET ${WebdaQL.escapeValue(token)}` : `LIMIT ${batchSize}`;
             const page = await sourceRepo.query(queryStr);
             await this.renewTransferLease(lease);
@@ -1217,25 +976,11 @@ export class MigrationStore<
             for (const item of page.results) {
               const pk = sourceRepo.getPrimaryKey(item);
               const pkStr = pk.toString();
-              if (this.isKeyDeleted(modelId, pkStr)) {
-                continue;
-              }
-              const runtimeModel = this.resolveRuntimeModel(item, model);
-              const targetRepo = runtimeModel === model ? defaultTargetRepo : this.getTargetRepository(runtimeModel);
 
               if (!(await targetRepo.exists(pk))) {
-                // If still present in source, backfill the straggler and verify again
-                if (await sourceRepo.exists(pk)) {
-                  await targetRepo.upsert(item);
-                  modelProgressMap[modelId].migrated++;
-                } else {
-                  continue;
-                }
-                if (!(await targetRepo.exists(pk))) {
-                  throw new Error(
-                    `Verification failed for ${modelId}: item '${pkStr}' missing in target store '${this.targetStore.getName()}'`
-                  );
-                }
+                throw new Error(
+                  `Verification failed for ${modelId}: item '${pkStr}' missing in target store '${this.targetStore.getName()}'`
+                );
               }
               verifiedCount++;
             }
@@ -1277,16 +1022,11 @@ export class MigrationStore<
 
       return structuredClone(this.cachedStatus);
     } catch (err) {
-      if (err instanceof MigrationAlreadyRunning) {
-        throw err;
-      }
-      const errorMessage = (err as Error)?.message ?? String(err);
+      const errorMessage = (err as Error).message;
       await this.releaseTransferLease(lease, {
         state: "FAILED",
         error: errorMessage
-      }).catch(releaseErr =>
-        this.log("ERROR", `Migration ${this.getName()}: failed to release lease after error`, releaseErr)
-      );
+      });
 
       await this.emit("MigrationStore.Failed", {
         store: this.getName(),
@@ -1320,13 +1060,13 @@ export class MigrationStore<
     }
     try {
       const status = await this.runMigration({
-        batchSize: Number(batch) || this.parameters.batchSize || DEFAULT_MIGRATION_BATCH,
+        batchSize: batch,
         force: action === "force"
       });
       useOutput(this.formatStatus(status));
-      return status.state === "COMPLETED" ? 0 : 1;
+      return 0;
     } catch (err) {
-      this.log("ERROR", `Store migration ${this.getName()} failed: ${(err as Error)?.message ?? err}`);
+      this.log("ERROR", `Store migration ${this.getName()} failed: ${(err as Error).message}`);
       return 1;
     }
   }
@@ -1341,7 +1081,7 @@ export class MigrationStore<
       `MigrationStore ${status.store} (${status.source} -> ${status.target}): ${status.state}`,
       `  Totals: ${status.scanned} scanned, ${status.migrated} migrated, ${status.skipped} skipped, ${status.verified} verified`
     ];
-    for (const modelProgress of Object.values(status.models ?? {})) {
+    for (const modelProgress of Object.values(status.models)) {
       lines.push(
         `  - ${modelProgress.model}: ${modelProgress.scanned} scanned, ${modelProgress.migrated} migrated, ` +
           `${modelProgress.skipped} skipped (${modelProgress.completed ? "done" : `token=${modelProgress.continuationToken ?? "start"}`})`
@@ -1351,28 +1091,6 @@ export class MigrationStore<
       lines.push(`  Error: ${status.error}`);
     }
     return lines.join("\n");
-  }
-
-  /**
-   * Models to migrate: the models configured/inherited on this store, falling back to any models in `_modelsHierarchy`
-   * @returns array of ModelClass to migrate
-   */
-  protected getMigratedModels(): ModelClass[] {
-    if (this._models.length > 0) {
-      return this._models;
-    }
-    const result: ModelClass[] = [];
-    for (const id of Object.keys(this._modelsHierarchy)) {
-      try {
-        const model = useModel(id);
-        if (model && !result.includes(model)) {
-          result.push(model);
-        }
-      } catch {
-        // Ignore unknown model
-      }
-    }
-    return result;
   }
 
   /**
@@ -1403,8 +1121,8 @@ export class MigrationStore<
   protected createInitialStatus(): MigrationStoreStatus {
     return {
       store: this.getName(),
-      source: this.sourceStore?.getName?.() ?? this.parameters.source,
-      target: this.targetStore?.getName?.() ?? this.parameters.target,
+      source: this.sourceStore.getName(),
+      target: this.targetStore.getName(),
       state: "PENDING",
       scanned: 0,
       migrated: 0,
@@ -1419,46 +1137,16 @@ export class MigrationStore<
    * @param entry - raw Registry entry
    * @returns normalized status
    */
-  protected toStatus(entry: Partial<MigrationStoreStatus> | undefined): MigrationStoreStatus {
+  protected toStatus(entry: Partial<MigrationStoreStatus>): MigrationStoreStatus {
     const initial = this.createInitialStatus();
-    if (!entry || typeof entry !== "object") {
-      return initial;
-    }
-    const validStates: MigrationStoreState[] = ["PENDING", "MIGRATING", "VERIFYING", "COMPLETED", "FAILED"];
-    const state: MigrationStoreState = entry.state && validStates.includes(entry.state) ? entry.state : "PENDING";
-    const models: Record<string, ModelMigrationProgress> = {};
-    if (entry.models && typeof entry.models === "object") {
-      for (const [key, val] of Object.entries(entry.models)) {
-        if (val && typeof val === "object") {
-          models[key] = {
-            model: typeof val.model === "string" ? val.model : key,
-            scanned: Number(val.scanned) || 0,
-            migrated: Number(val.migrated) || 0,
-            skipped: Number(val.skipped) || 0,
-            continuationToken: typeof val.continuationToken === "string" ? val.continuationToken : undefined,
-            completed: !!val.completed
-          };
-        }
-      }
-    }
     return {
+      ...initial,
+      ...entry,
       store: this.getName(),
-      source: this.sourceStore?.getName?.() ?? this.parameters.source,
-      target: this.targetStore?.getName?.() ?? this.parameters.target,
-      state,
-      currentModel: typeof entry.currentModel === "string" ? entry.currentModel : undefined,
-      continuationToken: typeof entry.continuationToken === "string" ? entry.continuationToken : undefined,
-      scanned: Number(entry.scanned) || 0,
-      migrated: Number(entry.migrated) || 0,
-      skipped: Number(entry.skipped) || 0,
-      verified: Number(entry.verified) || 0,
-      models,
-      owner: typeof entry.owner === "string" ? entry.owner : undefined,
-      leaseUntil: Number(entry.leaseUntil) || 0,
-      startedAt: typeof entry.startedAt === "number" ? entry.startedAt : undefined,
-      updatedAt: typeof entry.updatedAt === "number" ? entry.updatedAt : undefined,
-      completedAt: typeof entry.completedAt === "number" ? entry.completedAt : undefined,
-      error: typeof entry.error === "string" ? entry.error : undefined
+      source: this.sourceStore.getName(),
+      target: this.targetStore.getName(),
+      models: structuredClone(entry.models!),
+      leaseUntil: Number(entry.leaseUntil)
     };
   }
 
@@ -1471,71 +1159,30 @@ export class MigrationStore<
   }
 
   /**
-   * Check whether the application Registry service is available and not migrated by this store itself
-   * @returns true when the Registry can be used for persistence
-   */
-  protected hasRegistry(): boolean {
-    try {
-      const registry = useCore()?.getService<Store>("Registry");
-      return (
-        !!registry && registry !== (this as unknown as Store) && registry._migratedBy !== (this as unknown as Store)
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Acquire the Registry transfer lease (or an in-memory lease when Registry is unavailable)
+   * Acquire the Registry transfer lease
    * @param leaseDuration - lease duration in ms
    * @returns active lease handle
    */
   protected async acquireTransferLease(leaseDuration: number): Promise<ActiveTransferLease> {
     const id = this.transferRegistryId();
     const owner = randomUUID();
-    if (!this.hasRegistry()) {
-      if (this.isRunningLocally) {
-        throw new MigrationAlreadyRunning(
-          id,
-          this.cachedStatus.owner,
-          this.cachedStatus.leaseUntil ?? Date.now() + leaseDuration
-        );
-      }
-      const leaseUntil = Date.now() + leaseDuration;
-      this.cachedStatus = { ...this.cachedStatus, owner, leaseUntil, updatedAt: Date.now() };
-      return { id, owner, leaseUntil, leaseDuration };
-    }
-
     const registry = useRegistry();
     if (!(await registry.exists(id))) {
-      try {
-        await registry.put(id, {
-          ...this.createInitialStatus(),
-          leaseUntil: 0
-        });
-      } catch {
-        // Another runner created it concurrently
-      }
+      await registry.put(id, {
+        ...this.createInitialStatus(),
+        leaseUntil: 0
+      });
     }
 
     const entry = await registry.get<Partial<MigrationStoreStatus>>(id);
-    const currentLeaseUntil = Number(entry?.leaseUntil ?? 0);
+    const currentLeaseUntil = Number(entry.leaseUntil);
     const now = Date.now();
     if (currentLeaseUntil > now) {
       throw new MigrationAlreadyRunning(id, entry.owner, currentLeaseUntil);
     }
 
     const leaseUntil = now + leaseDuration;
-    try {
-      await registry.patch(id, { leaseUntil, owner, updatedAt: now }, "leaseUntil", entry.leaseUntil);
-    } catch (err) {
-      const competitor = await this.competingMigrationLease(id, entry.owner, currentLeaseUntil, owner);
-      if (competitor) {
-        throw new MigrationAlreadyRunning(id, competitor.owner, competitor.leaseUntil);
-      }
-      throw err;
-    }
-
+    await registry.patch(id, { leaseUntil, owner, updatedAt: now }, "leaseUntil", entry.leaseUntil);
     this.cachedStatus = this.toStatus({ ...entry, leaseUntil, owner, updatedAt: now });
     this.lastStatusRefresh = now;
     return { id, owner, leaseUntil, leaseDuration };
@@ -1557,18 +1204,7 @@ export class MigrationStore<
       owner: lease.owner
     };
 
-    if (this.hasRegistry()) {
-      try {
-        await useRegistry().patch(lease.id, nextStatus, "leaseUntil", lease.leaseUntil);
-      } catch (err) {
-        const competitor = await this.competingMigrationLease(lease.id, lease.owner, lease.leaseUntil, lease.owner);
-        if (competitor) {
-          throw new MigrationAlreadyRunning(lease.id, competitor.owner, competitor.leaseUntil);
-        }
-        throw err;
-      }
-    }
-
+    await useRegistry().patch(lease.id, nextStatus, "leaseUntil", lease.leaseUntil);
     lease.leaseUntil = leaseUntil;
     this.cachedStatus = nextStatus;
     this.lastStatusRefresh = now;
@@ -1600,19 +1236,7 @@ export class MigrationStore<
       owner: lease.owner
     };
 
-    if (this.hasRegistry()) {
-      try {
-        await useRegistry().patch(lease.id, nextStatus, "leaseUntil", lease.leaseUntil);
-      } catch (err) {
-        const competitor = await this.competingMigrationLease(lease.id, lease.owner, lease.leaseUntil, lease.owner);
-        if (!competitor) {
-          throw err;
-        }
-        this.log("WARN", `Migration ${lease.id}: lease lost before release, another runner owns the progress`);
-        return;
-      }
-    }
-
+    await useRegistry().patch(lease.id, nextStatus, "leaseUntil", lease.leaseUntil);
     lease.leaseUntil = 0;
     this.cachedStatus = nextStatus;
     this.lastStatusRefresh = now;

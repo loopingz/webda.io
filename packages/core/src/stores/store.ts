@@ -431,6 +431,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   _modelMetadatas: Map<string, ModelMetadata> = new Map();
   /** Store the manager hierarchy with their depth */
   _modelsHierarchy: { [key: string]: number } = {};
+  /** MigrationStore currently wrapping this store as source or target */
+  _migratedBy?: Store;
 
   /**
    * Override the resolved model class for this store at runtime. Used by
@@ -462,7 +464,15 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   static claimingStore(model: ModelClass, stores?: Store[]): Store | undefined {
     let currentValue = -1;
     let currentStore: Store | undefined;
-    for (const store of stores ?? Object.values(useCore().getServices()).filter(s => s instanceof Store)) {
+    const candidateStores = stores ?? Object.values(useCore().getServices()).filter(s => s instanceof Store);
+    for (const store of candidateStores) {
+      if (
+        store._migratedBy &&
+        candidateStores.includes(store._migratedBy) &&
+        store._migratedBy.handleModel(model) >= 0
+      ) {
+        continue;
+      }
       const value = store.handleModel(model);
       if (value < 0 || (value > currentValue && currentValue !== -1)) {
         continue;

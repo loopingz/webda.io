@@ -211,7 +211,7 @@ export class RelationalSchemaManager {
       await hooks.register?.();
       return [];
     }
-    let applied: SchemaStep[] = [];
+    const applied: SchemaStep[] = [];
     const deferred: { step: SchemaStep; online: OnlineStatements }[] = [];
     await runTransaction(client, async tx => {
       const lock = this.options.dialect.schemaLock(this.options.name);
@@ -223,11 +223,16 @@ export class RelationalSchemaManager {
       for (const d of drift) {
         this.options.log("WARN", `${this.options.name}: ${d.message}`);
       }
+      // An online index (`inside` empty) is registered in `livePlans` under the lock before `CONCURRENTLY` runs after COMMIT
+      const liveIndexes = new Set(livePlans.flatMap(l => l.plan.indexes.map(i => i.name)));
       for (const step of steps) {
         const online =
           (step.kind === "createIndex" || step.kind === "addForeignKey") && step.online
             ? this.options.dialect.renderOnlineStep?.(step)
             : undefined;
+        if (step.kind === "createIndex" && online && !online.inside.length && liveIndexes.has(step.index.name)) {
+          continue;
+        }
         for (const statement of online ? online.inside : this.options.dialect.renderStep(step)) {
           await tx.query(statement);
         }
@@ -236,8 +241,8 @@ export class RelationalSchemaManager {
         } else {
           this.options.log("INFO", `${this.options.name}: ${describeStep(step)}`);
         }
+        applied.push(step);
       }
-      applied = steps;
       await hooks.register?.();
     });
     for (const { step, online } of deferred) {

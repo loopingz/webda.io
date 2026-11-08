@@ -162,6 +162,11 @@ describe("RelationalSchemaManager with the version hooks", () => {
       logs.some(l => l.includes("add foreign key fk_app_post_author failed online and is left out: still invalid"))
     ).toBe(true);
     expect(invalid.statements.filter(q => q.startsWith("DROP"))).toEqual([]);
+    // A concurrent sync while the first version is still building its online index after COMMIT skips it
+    const second = client();
+    const secondSteps = await m.sync(second, "alter", { live: [{ version: "1", plan: m.plan! }] });
+    expect(secondSteps.some(s => s.kind === "createIndex" && s.online)).toBe(false);
+    expect(second.statements.some(q => q.startsWith("CONCURRENTLY"))).toBe(false);
   });
 
   it("runs online steps inside the transaction when the dialect has no online rendering", async () => {

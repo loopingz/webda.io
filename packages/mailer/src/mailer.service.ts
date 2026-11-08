@@ -44,7 +44,7 @@ export class MailerParameters extends ServiceParameters {
   /**
    * Define the default sender
    */
-  sender: string;
+  sender?: string;
   /**
    * Rendering options
    */
@@ -70,6 +70,134 @@ export class MailerParameters extends ServiceParameters {
    * Credentials inside can be encrypted with `webda config encrypt`
    */
   SES?: any;
+  /**
+   * SMTP server hostname or IP address
+   */
+  host?: string;
+  /**
+   * SMTP port to connect to (defaults to 587 if secure is false or 465 if true)
+   */
+  port?: number;
+  /**
+   * If true the connection uses TLS when connecting to server; if false then TLS is used if server supports the STARTTLS extension
+   */
+  secure?: boolean;
+  /**
+   * Turns off STARTTLS support if true
+   */
+  ignoreTLS?: boolean;
+  /**
+   * Forces the client to use STARTTLS if true
+   */
+  requireTLS?: boolean;
+  /**
+   * Attempts to upgrade the connection to TLS when advertised by the server
+   */
+  opportunisticTLS?: boolean;
+  /**
+   * Optional hostname of the client, used for identifying to the server
+   */
+  name?: string;
+  /**
+   * Local interface to bind to for network connections
+   */
+  localAddress?: string;
+  /**
+   * Milliseconds to wait for the connection to establish
+   */
+  connectionTimeout?: number;
+  /**
+   * Milliseconds to wait for the greeting after connection is established
+   */
+  greetingTimeout?: number;
+  /**
+   * Milliseconds of inactivity to allow before timing out the socket
+   */
+  socketTimeout?: number;
+  /**
+   * Milliseconds to wait for DNS resolution
+   */
+  dnsTimeout?: number;
+  /**
+   * Authentication data for the transport (`auth.pass` can be encrypted with `webda config encrypt`)
+   */
+  auth?: any;
+  /**
+   * Preferred authentication method
+   */
+  authMethod?: string;
+  /**
+   * Additional node.js TLSSocket options to be passed to the socket constructor
+   */
+  tls?: any;
+  /**
+   * Proxy URL for SMTP connections
+   */
+  proxy?: string;
+  /**
+   * DKIM configuration options
+   */
+  dkim?: any;
+  /**
+   * Well-known service name for nodemailer
+   */
+  service?: string;
+  /**
+   * Connection URL for SMTP configuration
+   */
+  url?: string;
+  /**
+   * Use pooled connections instead of creating a new connection for every email
+   */
+  pool?: boolean;
+  /**
+   * Count of maximum simultaneous connections to make against the SMTP server
+   */
+  maxConnections?: number;
+  /**
+   * Limits the message count to be sent using a single connection
+   */
+  maxMessages?: number;
+  /**
+   * Defines the time measuring period in milliseconds for rate limiting
+   */
+  rateDelta?: number;
+  /**
+   * Limits the message count to be sent in rateDelta time
+   */
+  rateLimit?: number;
+  /**
+   * Use sendmail transport
+   */
+  sendmail?: boolean;
+  /**
+   * Path to the sendmail command
+   */
+  path?: string;
+  /**
+   * Extra arguments for the sendmail command
+   */
+  args?: string[];
+  /**
+   * Line ending style ("unix" or "windows") for sendmail or stream transport
+   */
+  newline?: string;
+  /**
+   * Return a Buffer instead of a stream for streamTransport
+   */
+  buffer?: boolean;
+  /**
+   * Return a JSON string representation of the message
+   */
+  jsonTransport?: boolean;
+  /**
+   * Skip JSON encoding in jsonTransport
+   */
+  skipEncoding?: boolean;
+  /**
+   * Return a stream instead of sending the message
+   */
+  streamTransport?: boolean;
 
   /**
    * Load and apply defaults to the mailer parameters
@@ -156,6 +284,17 @@ export class Mailer<T extends MailerParameters = MailerParameters> extends Abstr
   }
 
   /**
+   * Create or refresh the nodemailer transport from the current service parameters
+   */
+  protected createTransporter(): void {
+    // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
+    // Encrypted values (auth.pass, SES credentials...) are unwrapped to plain strings for nodemailer
+    this._transporter = nodemailer.createTransport(
+      <nodemailer.TransportOptions>SecretString.unwrap({ ...this.parameters })
+    );
+  }
+
+  /**
    * Initialize the nodemailer transport from the service parameters
    *
    * @returns this instance after transport creation
@@ -165,11 +304,13 @@ export class Mailer<T extends MailerParameters = MailerParameters> extends Abstr
     // email-templates@13 `juiceSettings` default: only TABLE gets width/height attributes from CSS
     // juice reads `tableElements` from its module object, it cannot be set per call
     juice.tableElements = <any>["TABLE"];
-    // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
-    // Encrypted values (auth.pass, SES credentials...) are unwrapped to plain strings for nodemailer
-    this._transporter = nodemailer.createTransport(
-      <nodemailer.TransportOptions>SecretString.unwrap({ ...this.parameters })
-    );
+    this.createTransporter();
+    this.parameters.load = (params: any = {}) => {
+      MailerParameters.prototype.load.call(this.parameters, params);
+      this.templatesSource = undefined;
+      this.createTransporter();
+      return this.parameters;
+    };
     return this;
   }
 

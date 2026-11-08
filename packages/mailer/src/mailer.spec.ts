@@ -65,7 +65,10 @@ class MailerTestBase extends WebdaApplicationTest {
     return {
       TrueMailer: {
         type: "Webda/Mailer",
-        templates: "test/templates"
+        templates: "test/templates",
+        host: "smtp.loopingz-infra.svc.cluster.local",
+        port: 25,
+        secure: false
       }
     };
   }
@@ -138,6 +141,31 @@ class MailerTest extends MailerTestBase {
     assert.strictEqual(params.templates, "ts");
     assert.strictEqual(params.templatesEngine, "b");
     assert.strictEqual(params.templateService, "TemplateService");
+  }
+
+  @test
+  async transportParametersSurviveSchemaFilteringAndReload() {
+    assert.strictEqual(this.mailer.parameters.host, "smtp.loopingz-infra.svc.cluster.local");
+    assert.strictEqual(this.mailer.parameters.port, 25);
+    assert.strictEqual(this.mailer.parameters.secure, false);
+    useCore().updateConfiguration({
+      services: {
+        TrueMailer: {
+          host: "127.0.0.1",
+          port: 2525,
+          secure: false,
+          sender: "noreply@webda.io"
+        }
+      }
+    });
+    assert.strictEqual(this.mailer.parameters.host, "127.0.0.1");
+    assert.strictEqual(this.mailer.parameters.port, 2525);
+    assert.strictEqual(this.mailer.parameters.sender, "noreply@webda.io");
+    assert.strictEqual(this.mailer._transporter.options.host, "127.0.0.1");
+    assert.strictEqual(this.mailer._transporter.options.port, 2525);
+    assert.strictEqual(this.mailer._transporter.options.secure, false);
+    this.mailer.parameters.load();
+    assert.strictEqual(this.mailer._transporter.options.host, "127.0.0.1");
   }
 
   @test

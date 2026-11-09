@@ -9,6 +9,7 @@
         "description": "Parameters for the TestBean service",
         "properties": {
           "service": {
+            "description": "Service",
             "enum": [
               "Registry",
               "CryptoService",
@@ -132,7 +133,7 @@
           "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Author",
               "type": "string"
             },
             "content": {
@@ -153,7 +154,7 @@
               "type": "boolean"
             },
             "post": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Post",
               "type": "string"
             },
             "updatedAt": {
@@ -185,7 +186,7 @@
           "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Author",
               "type": "string"
             },
             "content": {
@@ -200,7 +201,7 @@
               "type": "boolean"
             },
             "post": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Post",
               "type": "string"
             },
             "uuid": {
@@ -224,7 +225,7 @@
           "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Author",
               "type": "string"
             },
             "content": {
@@ -245,7 +246,7 @@
               "type": "boolean"
             },
             "post": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Post",
               "type": "string"
             },
             "updatedAt": {
@@ -465,11 +466,11 @@
           "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Author",
               "type": "string"
             },
             "comments": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Comments",
               "items": {
                 "allOf": [
                   {
@@ -605,11 +606,11 @@
           "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Author",
               "type": "string"
             },
             "comments": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Comments",
               "items": {
                 "allOf": [
                   {
@@ -776,11 +777,11 @@
           "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Author",
               "type": "string"
             },
             "comments": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Comments",
               "items": {
                 "allOf": [
                   {
@@ -984,11 +985,11 @@
               "type": "string"
             },
             "post": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Post",
               "type": "string"
             },
             "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`",
+              "description": "Tag",
               "type": "string"
             }
           },
@@ -1011,11 +1012,11 @@
               "type": "string"
             },
             "post": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Post",
               "type": "string"
             },
             "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`",
+              "description": "Tag",
               "type": "string"
             }
           },
@@ -1038,11 +1039,11 @@
               "type": "string"
             },
             "post": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Post",
               "type": "string"
             },
             "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`",
+              "description": "Tag",
               "type": "string"
             }
           },
@@ -1545,11 +1546,11 @@
               "type": "string"
             },
             "follower": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Follower",
               "type": "string"
             },
             "following": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Following",
               "type": "string"
             }
           },
@@ -1572,11 +1573,11 @@
               "type": "string"
             },
             "follower": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Follower",
               "type": "string"
             },
             "following": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Following",
               "type": "string"
             }
           },
@@ -1599,11 +1600,11 @@
               "type": "string"
             },
             "follower": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Follower",
               "type": "string"
             },
             "following": {
-              "description": "Alias for a many-to-one relation (foreign key link).",
+              "description": "Following",
               "type": "string"
             }
           },
@@ -1839,7 +1840,14 @@
     },
     "TestBean.version.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "/version",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "TestBean.version.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1888,6 +1896,17 @@
         "model": {
           "type": "string"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "/ql/complete",
+        "path": [],
+        "query": [],
+        "body": [
+          "query",
+          "caret",
+          "model"
+        ]
       }
     },
     "TestBean.completeQL.output": {

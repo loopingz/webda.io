@@ -240,9 +240,21 @@ export const MODELS: ModelsManifest = {
 
 /** A recorded request */
 export interface Recorded {
+  /**
+   * Method
+   */
   method: string;
+  /**
+   * URL
+   */
   url: string;
+  /**
+   * Body
+   */
   body?: any;
+  /**
+   * Headers
+   */
   headers: Record<string, string>;
 }
 
@@ -250,10 +262,17 @@ export interface Recorded {
  * A fake server: records the requests and answers with handlers by `METHOD path`
  */
 export class FakeServer {
+  /**
+   * Requests
+   */
   requests: Recorded[] = [];
+  /**
+   * Handlers
+   */
   handlers: Array<{ method: string; pattern: RegExp; handler: (match: RegExpExecArray, req: Recorded) => any }> = [];
 
   /**
+   * Perform on
    * @param method - HTTP method
    * @param pattern - path pattern, with `:name` parameters
    * @param handler - returns the body (a Response for full control)
@@ -300,6 +319,7 @@ export class FakeServer {
 }
 
 /**
+ * Return a stream of it, split in small chunks
  * @param text - body
  * @param size - chunk size in bytes
  * @returns a stream of it, split in small chunks
@@ -307,6 +327,10 @@ export class FakeServer {
 export function chunked(text: string, size: number = 7): ReadableStream<Uint8Array> {
   const bytes = new TextEncoder().encode(text);
   return new ReadableStream({
+    /**
+     * Start operation
+     * @param controller - the controller
+     */
     start(controller) {
       for (let i = 0; i < bytes.length; i += size) controller.enqueue(bytes.slice(i, i + size));
       controller.close();

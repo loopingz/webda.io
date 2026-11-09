@@ -46,6 +46,7 @@ const THINGS: Record<string, { slug: string; label: string }> = {
  */
 export class McpFixtureService extends Service {
   /**
+   * Load parameters
    * @param params - raw parameters
    * @returns parameters
    */
@@ -54,6 +55,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return the text
    * @param text - text to echo
    * @returns the text
    */
@@ -62,6 +64,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return a scalar
    * @returns a scalar
    */
   version() {
@@ -69,11 +72,13 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return nothing
    * @returns nothing
    */
   noop() {}
 
   /**
+   * Return a secret, only for alice
    * @returns a secret, only for alice
    */
   secret() {
@@ -81,6 +86,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Count operation
    * @param n - number of chunks
    * @yields one chunk per step with the total
    */
@@ -91,6 +97,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return an object carrying server-only fields
    * @returns an object carrying server-only fields
    */
   priv() {
@@ -98,6 +105,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Perform priv stream
    * @yields chunks carrying server-only fields
    */
   async *privStream() {
@@ -115,6 +123,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Fail operation
    * @param kind - "client" throws a 400, anything else a plain Error
    */
   fail(kind: string) {
@@ -125,6 +134,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return what the operation sees of the HTTP request carrying the call
    * @returns what the operation sees of the HTTP request carrying the call
    */
   headers() {
@@ -141,6 +151,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return a large payload
    * @returns a large payload
    */
   big() {
@@ -157,6 +168,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return a record whose JSON is mostly two-byte characters
    * @param slug - key
    * @returns a record whose JSON is mostly two-byte characters
    */
@@ -165,6 +177,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Get the thing
    * @param slug - thing key
    * @returns the thing
    */
@@ -176,6 +189,7 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * Return never, throws a plain error
    * @returns never, throws a plain error
    */
   brokenQuery(): never {
@@ -202,6 +216,7 @@ export class McpFixtureService extends Service {
  */
 export class HeaderAuthenticator extends Service implements McpAuthenticator {
   /**
+   * Load parameters
    * @param params - raw parameters
    * @returns parameters
    */
@@ -210,6 +225,7 @@ export class HeaderAuthenticator extends Service implements McpAuthenticator {
   }
 
   /**
+   * Authenticate operation
    * @param ctx - request context
    * @returns a session for the header user, anonymous otherwise
    */
@@ -281,6 +297,7 @@ export const FIXTURE_SERVICES = {
  */
 export class McpFixtureTest extends WebdaApplicationTest {
   /**
+   * Get the configuration
    * @returns the configuration
    */
   getTestConfiguration(): any {
@@ -288,6 +305,7 @@ export class McpFixtureTest extends WebdaApplicationTest {
   }
 
   /**
+   * Perform tweak app
    * @param app - test application
    */
   async tweakApp(app: TestApplication): Promise<void> {

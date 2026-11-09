@@ -62,29 +62,77 @@ export const WEBDA_MODULE_SCHEMA = "https://webda.io/schemas/webda.module.v4.jso
 
 /** One `@Command` argument. */
 export interface CommandArgDefinition {
+  /**
+   * Type
+   */
   type: "string" | "number" | "boolean";
+  /**
+   * Whether required is enabled
+   */
   required?: boolean;
+  /**
+   * Default
+   */
   default?: string | number | boolean;
+  /**
+   * Alias
+   */
   alias?: string;
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Deprecated
+   */
   deprecated?: string;
 }
 
 /** One `@Command` / `@BuildCommand`. */
 export interface CommandDefinition {
+  /**
+   * Description
+   */
   description: string;
+  /**
+   * Method
+   */
   method: string;
+  /**
+   * Args
+   */
   args: Record<string, CommandArgDefinition>;
+  /**
+   * Requires
+   */
   requires?: string[];
+  /**
+   * Phase
+   */
   phase?: "application" | "resolved" | "initialized";
 }
 
 /** A modda, bean or deployer entry. */
 export interface ServiceEntry {
+  /**
+   * Import
+   */
   Import: string;
+  /**
+   * Schema
+   */
   Schema: JSONSchema7;
+  /**
+   * Configuration
+   */
   Configuration?: string;
+  /**
+   * Capabilities
+   */
   capabilities?: string[];
+  /**
+   * Commands
+   */
   commands?: Record<string, CommandDefinition>;
 }
 
@@ -96,7 +144,13 @@ export interface ModuleRelations {
   links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: "CONTAINS" }[];
   /** Polymorphic references, optionally constrained to exact model identifiers. */
   polymorphicLinks?: { attribute: string; models?: string[] }[];
+  /**
+   * Queries
+   */
   queries?: { attribute: string; model?: string; targetAttribute?: string }[];
+  /**
+   * Maps
+   */
   maps?: {
     attribute: string;
     cascadeDelete: boolean;
@@ -104,6 +158,9 @@ export interface ModuleRelations {
     targetLink: string;
     targetAttributes: string[];
   }[];
+  /**
+   * Behaviors
+   */
   behaviors?: { attribute: string; behavior: string }[];
   /** Attributes tagged `@Index` / `@Unique`, those sharing a `name` forming one composite index. */
   indexes?: { attribute: string; unique?: boolean; name?: string }[];
@@ -115,20 +172,59 @@ export interface ModuleRelations {
 
 /** A model entry. */
 export interface ModelEntry {
+  /**
+   * Plural
+   */
   Plural: string;
+  /**
+   * Import
+   */
   Import: string;
+  /**
+   * Relations
+   */
   Relations: ModuleRelations;
+  /**
+   * Ancestors
+   */
   Ancestors: string[];
+  /**
+   * Subclasses
+   */
   Subclasses: string[];
+  /**
+   * Reflection
+   */
   Reflection: Record<string, ReflectedAttribute>;
+  /**
+   * Schemas
+   */
   Schemas: Record<string, JSONSchema7>;
+  /**
+   * Actions
+   */
   Actions: Record<string, Record<string, unknown>>;
   /** `@Shared()` methods, only when the model declares some. */
   Shared?: Record<string, SharedMethodEntry>;
+  /**
+   * Events
+   */
   Events: string[];
+  /**
+   * Primary key
+   */
   PrimaryKey: string[];
+  /**
+   * Primary key separator
+   */
   PrimaryKeySeparator?: string;
+  /**
+   * Identifier
+   */
   Identifier: string;
+  /**
+   * Aliases
+   */
   Aliases?: string[];
 }
 
@@ -147,20 +243,53 @@ export const DEFAULT_SHARED_IMPORTS = ["@webda/utils", "@webda/ql"];
 
 /** A behaviour entry. */
 export interface BehaviorEntry {
+  /**
+   * Identifier
+   */
   Identifier: string;
+  /**
+   * Import
+   */
   Import: string;
+  /**
+   * Actions
+   */
   Actions: Record<string, Record<string, unknown>>;
 }
 
 /** `webda.module.json`. */
 export interface WebdaModuleJson {
+  /**
+   * $schema
+   */
   $schema: string;
+  /**
+   * Beans
+   */
   beans: Record<string, ServiceEntry>;
+  /**
+   * Deployers
+   */
   deployers: Record<string, ServiceEntry>;
+  /**
+   * Moddas
+   */
   moddas: Record<string, ServiceEntry>;
+  /**
+   * Models
+   */
   models: Record<string, ModelEntry>;
+  /**
+   * Schemas
+   */
   schemas: Record<string, JSONSchema7>;
+  /**
+   * Behaviors
+   */
   behaviors: Record<string, BehaviorEntry>;
+  /**
+   * Capabilities
+   */
   capabilities?: Record<string, string>;
   /**
    * Flows compiled from the `.flow.ts` files, by flow id (`<Class>.<Method>`): present only when there is one
@@ -725,12 +854,14 @@ export function buildModelShared(
       if (!problems.includes(problem)) problems.push(problem);
     };
     /**
+     * Node
      * @param node - a node
      * @returns true when the node is declared inside the method (parameter, local, type parameter)
      */
     const isLocal = (node: Node): boolean =>
       sourceFileOf(node)?.fileName === sf.fileName && node.pos >= method.pos && node.end <= method.end;
     /**
+     * Name
      * @param name - a member name node of `this.<name>` or `<Model>.<name>`
      * @param isStatic - static access
      */
@@ -765,6 +896,7 @@ export function buildModelShared(
       );
     };
     /**
+     * Node
      * @param node - an identifier used as a value or a type
      */
     const checkIdentifier = (node: Node) => {
@@ -810,6 +942,7 @@ export function buildModelShared(
       }
     };
     /**
+     * Node
      * @param node - current node
      */
     const visit = (node: Node): void => {
@@ -1288,9 +1421,21 @@ function isSkippedProperty(ctx: AnalysisContext, member: Node): boolean {
 
 /** A local model, in TypeScript 6 program-walk order. */
 interface ModelTarget {
+  /**
+   * Object
+   */
   object: DiscoveredObject;
+  /**
+   * Declaration
+   */
   declaration: ClassDeclaration;
+  /**
+   * Type
+   */
   type: Type;
+  /**
+   * Tags
+   */
   tags: Record<string, string>;
 }
 

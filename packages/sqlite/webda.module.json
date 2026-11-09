@@ -24,6 +24,7 @@
             "description": "Database connection metadata",
             "properties": {
               "name": {
+                "description": "Name",
                 "type": "string"
               }
             },
@@ -156,6 +157,7 @@
             "description": "Database connection metadata",
             "properties": {
               "name": {
+                "description": "Name",
                 "type": "string"
               }
             },
@@ -329,6 +331,7 @@
             "description": "Database connection metadata",
             "properties": {
               "name": {
+                "description": "Name",
                 "type": "string"
               }
             },
@@ -385,6 +388,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -441,7 +445,8 @@
             "type": "string"
           },
           "database": {
-            "$ref": "#/definitions/SQLDatabase"
+            "$ref": "#/definitions/SQLDatabase",
+            "description": "Database"
           },
           "extraColumn": {
             "anyOf": [
@@ -725,6 +730,7 @@
             "description": "Database connection metadata",
             "properties": {
               "name": {
+                "description": "Name",
                 "type": "string"
               }
             },
@@ -781,6 +787,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -815,7 +822,8 @@
             "type": "number"
           },
           "database": {
-            "$ref": "#/definitions/SQLDatabase"
+            "$ref": "#/definitions/SQLDatabase",
+            "description": "Database"
           },
           "maxGroups": {
             "default": 10000,

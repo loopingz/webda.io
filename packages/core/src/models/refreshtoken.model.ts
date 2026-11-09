@@ -6,6 +6,9 @@ import type { MfaState, MfaVerification } from "../session/session.js";
  * @WebdaModel
  */
 export class RefreshToken extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["hash"] as const;
   /** SHA-256 hex of the token */
   hash: string;

@@ -29,6 +29,9 @@ export interface ResolvedCoercion {
 
 /** A class that qualifies for accessor generation. */
 export interface ClassPlan {
+  /**
+   * Class name
+   */
   className: string;
   /** Whether the class is a Webda model (drives `toJSON` generation). */
   isModel: boolean;
@@ -36,12 +39,21 @@ export interface ClassPlan {
   hasToJSON: boolean;
   /** Insertion offset for generated members (just before the closing `}`). */
   membersEnd: number;
+  /**
+   * Fields
+   */
   fields: ResolvedCoercion[];
 }
 
 /** The full rewrite plan for one source file. */
 export interface FilePlan {
+  /**
+   * File name
+   */
   fileName: string;
+  /**
+   * Classes
+   */
   classes: ClassPlan[];
   /** Offset at which a generated import statement should be inserted. */
   importInsertPos: number;
@@ -57,11 +69,17 @@ export interface FilePlan {
 
 /** Defines the widened setter type for a coercible property type. */
 export interface CoercionRule {
+  /**
+   * Setter type
+   */
   setterType: string;
   /** Expression template for the setter body; `$v` is the incoming value. */
   coerce: (v: string) => string;
 }
 
+/**
+ * Coercion registry type definition
+ */
 export type CoercionRegistry = Record<string, CoercionRule>;
 
 /**

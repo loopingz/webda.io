@@ -7,9 +7,21 @@ import { createHash } from "node:crypto";
  * Cache statistics for tracking performance metrics.
  */
 export interface CacheStats {
+  /**
+   * Hits
+   */
   hits: number;
+  /**
+   * Misses
+   */
   misses: number;
+  /**
+   * Evictions
+   */
   evictions: number;
+  /**
+   * Sets
+   */
   sets: number;
 }
 
@@ -96,6 +108,9 @@ export interface CacheOptions {
  * Supports LRU eviction when maxSize is configured.
  */
 export class CacheStorage extends Map<string, { value: any; timestamp: number }> {
+  /**
+   * Stats
+   */
   stats: CacheStats = { hits: 0, misses: 0, evictions: 0, sets: 0 };
 
   /** Create a new CacheStorage.
@@ -236,6 +251,9 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
  * The instance key is produced by `classKeyGenerator`.
  */
 export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
+  /**
+   * Gc timer
+   */
   private gcTimer?: NodeJS.Timeout;
 
   /** Create a new CacheMap.
@@ -371,6 +389,9 @@ export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
  * Host object for cache storage.
  */
 interface CacheHost {
+  /**
+   * Caches
+   */
   caches?: CacheMap;
 }
 

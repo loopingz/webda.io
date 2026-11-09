@@ -14,6 +14,9 @@ export interface CoercionRule {
   setterType: string;
 }
 
+/**
+ * Coercion registry type definition
+ */
 export type CoercionRegistry = Record<string, CoercionRule>;
 
 /**

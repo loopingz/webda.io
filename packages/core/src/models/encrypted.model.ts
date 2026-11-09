@@ -1,6 +1,7 @@
 import { useDynamicService } from "../core/hooks.js";
 
 /**
+ * Return the CryptoService
  * @returns the CryptoService
  * @throws Error when no CryptoService is available
  */
@@ -35,6 +36,7 @@ export class EncryptedField<T = any> {
   __ciphertext?: string;
 
   /**
+   * Check whether set
    * @returns true when a value is stored
    */
   isSet(): boolean {

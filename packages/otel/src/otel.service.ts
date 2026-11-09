@@ -51,6 +51,7 @@ const SESSION_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
  */
 export class OtelLogger extends WorkerLogger {
   /**
+   * Create a new OtelLogger instance
    * @param logger - the OpenTelemetry logger to emit to
    * @param output - the WorkerOutput to listen to
    */
@@ -98,6 +99,9 @@ export class OtelServiceParameters extends ServiceParameters {
      */
     sampling: number;
   };
+  /**
+   * Metric exporter
+   */
   metricExporter?: {
     type: "console" | "otlp";
     /**
@@ -127,6 +131,7 @@ export class OtelServiceParameters extends ServiceParameters {
     url?: string | SecretString;
   };
   /**
+   * Diagnostic
    * @default NONE
    */
   diagnostic?: "NONE" | "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE" | "ALL";
@@ -198,17 +203,38 @@ export class OtelServiceParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class OtelService<T extends OtelServiceParameters = OtelServiceParameters> extends Service<T> {
+  /**
+   * SDK
+   */
   sdk: NodeSDK;
+  /**
+   * Stubs
+   */
   stubs?: Map<
     object,
     {
       [key: string]: Function;
     }
   >;
+  /**
+   * OTEL logger
+   */
   otelLogger: OtelLogger;
+  /**
+   * Logger exporter
+   */
   loggerExporter: LogRecordExporter;
+  /**
+   * Logger provider
+   */
   loggerProvider: LoggerProvider;
+  /**
+   * Request tracer
+   */
   requestTracer?: OtelRequestTracer;
+  /**
+   * Instrumentations
+   */
   instrumentations?: Instrumentation[];
 
   /**

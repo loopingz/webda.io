@@ -57,6 +57,7 @@ const RELATION_TYPES = new Set([
 ]);
 
 /**
+ * Return the relation type it is: the alias target, or the name itself
  * @param typeName - a written type name
  * @returns the relation type it is: the alias target, or the name itself
  */
@@ -79,6 +80,7 @@ export interface RelationType {
 }
 
 /**
+ * Return its last identifier: `ModelLink` for `models.ModelLink`
  * @param node - a type name
  * @returns its last identifier: `ModelLink` for `models.ModelLink`
  */
@@ -87,6 +89,7 @@ function nameOf(node: any): string {
 }
 
 /**
+ * Return the type reference an alias declaration of the name stands for, undefined when it is not an alias of one
  * @param ctx - analysis context
  * @param typeName - a type name
  * @returns the type reference an alias declaration of the name stands for, undefined when it is not an alias of one
@@ -132,6 +135,7 @@ export function resolveRelationType(ctx: AnalysisContext, typeNode: any): Relati
 }
 
 /**
+ * Find tag
  * @param member - a property declaration
  * @param tagName - a JSDoc tag name
  * @returns the tag, undefined when the property does not have it
@@ -207,8 +211,17 @@ export interface RelationDependent {
    * Model declaring the relation
    */
   model: string;
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Type
+   */
   type: string;
+  /**
+   * On delete
+   */
   onDelete: DeletePolicy;
 }
 
@@ -216,10 +229,25 @@ export interface RelationDependent {
  * The relations of a model, as read by {@link backfillRelations}
  */
 export interface PolicyRelations {
+  /**
+   * Parent
+   */
   parent?: { attribute: string; model?: string; onDelete?: DeletePolicy };
+  /**
+   * Links
+   */
   links?: { attribute: string; model?: string; type: string; onDelete?: DeletePolicy; ownership?: "CONTAINS" }[];
+  /**
+   * Maps
+   */
   maps?: { attribute: string; model?: string; targetLink: string; cascadeDelete: boolean }[];
+  /**
+   * Children
+   */
   children?: string[];
+  /**
+   * Dependents
+   */
   dependents?: RelationDependent[];
 }
 

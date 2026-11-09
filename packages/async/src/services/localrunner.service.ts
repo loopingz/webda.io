@@ -43,7 +43,13 @@ export class LocalRunnerParameters extends RunnerParameters {
  * Type of action returned by LocalRunner
  */
 export interface ProcessAction {
+  /**
+   * Agent
+   */
   agent: AgentInfo;
+  /**
+   * PID
+   */
   pid: number;
 }
 
@@ -66,6 +72,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
   }
 
   /**
+   * Return the process information
    * @inheritdoc
    * @param action - the action to launch
    * @param info - the job information

@@ -16,16 +16,43 @@ const { terminal: term } = termkit;
  * Connect to an already-running debug server started with `webda debug`.
  */
 export class DebugTui {
+  /**
+   * Client
+   */
   private client: DebugClient;
+  /**
+   * Panels
+   */
   private panels: Panel[] = [];
+  /**
+   * Logs panel
+   */
   private logsPanel: LogsPanel;
+  /**
+   * Active tab
+   */
   private activeTab = 0;
+  /**
+   * Running
+   */
   private running = false;
   /** Called once the TUI stopped (user quit) */
   onStop?: () => void;
+  /**
+   * Render timer
+   */
   private renderTimer?: ReturnType<typeof setInterval>;
+  /**
+   * Last refresh
+   */
   private lastRefresh = "";
+  /**
+   * WS unsubscribe
+   */
   private wsUnsubscribe?: () => void;
+  /**
+   * App info
+   */
   private appInfo: any = null;
 
   /**

@@ -4,6 +4,9 @@ import { Readable } from "stream";
 import { HttpError, UnsupportedMediaType } from "../errors/errors.js";
 import type { ClientCertificate } from "./clientcertificate.js";
 
+/**
+ * HTTP method type type definition
+ */
 export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 /**
  * All methods supported by Webda
@@ -30,6 +33,9 @@ export function getCharset(contentType?: string): string | undefined {
   return charset || undefined;
 }
 
+/**
+ * Headers request type definition
+ */
 type HeadersRequest = IncomingHttpHeaders & {
   // Permit any property starting with 'x-'.
   [headerName: `x-${string}`]: string;
@@ -63,14 +69,41 @@ export class HttpContext {
    * Get the client ip if available
    */
   clientIp: string;
+  /**
+   * Path
+   */
   path: string;
+  /**
+   * Search
+   */
   search: string;
+  /**
+   * Protocol
+   */
   protocol: "http:" | "https:";
+  /**
+   * Port
+   */
   port: string;
+  /**
+   * Headers
+   */
   headers: HeadersRequest;
+  /**
+   * Origin
+   */
   origin: string;
+  /**
+   * Host
+   */
   host: string;
+  /**
+   * Body
+   */
   body: Buffer | Readable | undefined;
+  /**
+   * Cookies
+   */
   cookies: any;
   /**
    * Client certificate presented with the request (mTLS), if any
@@ -171,7 +204,7 @@ export class HttpContext {
   }
 
   /**
-   *
+   * Get the href
    * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/href
    * @returns the result string
    */
@@ -180,7 +213,7 @@ export class HttpContext {
   }
 
   /**
-   *
+   * Set the prefix
    * @param prefix uri to not consider
    */
   setPrefix(prefix: string): void {

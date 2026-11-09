@@ -40,6 +40,9 @@ export class KubernetesConfigurationService<
   // TODO Cannot use Omit here because of @webda/compiler neither a Type due to its limitation
   T extends KubernetesConfigurationParameters = KubernetesConfigurationParameters
 > extends ConfigurationService<T> {
+  /**
+   * Source paths
+   */
   sourcePaths: Record<string, string> = {};
 
   /**

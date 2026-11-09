@@ -28,12 +28,25 @@ import { bindRestInput } from "../rest/binding.js";
  * @see Inject
  */
 class Injector {
+  /**
+   * Parameter
+   */
   parameter: string;
+  /**
+   * Value
+   */
   value: ServiceName;
+  /**
+   * Property
+   */
   property: string;
+  /**
+   * Whether optional is enabled
+   */
   optional: boolean;
 
   /**
+   * Create a new Injector instance
    * @param property annotated
    * @param parameterOrName to inject from
    * @param defaultValue in case of a parameter
@@ -182,7 +195,7 @@ abstract class Service<
    */
   protected metrics?: {};
   /**
-   *
+   * Create a new Service instance
    *
    * @class Service
    * @param {Webda} webda - The main instance of Webda
@@ -532,6 +545,7 @@ abstract class Service<
   }
 
   /**
+   * Clean up internal test data
    * @private
    * @returns the result
    */
@@ -540,7 +554,7 @@ abstract class Service<
   }
 
   /**
-   *
+   * Log operation
    * @param level to log
    * @param args - additional arguments
    */

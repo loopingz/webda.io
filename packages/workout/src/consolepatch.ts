@@ -12,6 +12,9 @@ const CONSOLE_LEVELS = {
   trace: "TRACE"
 } as const satisfies Record<string, WorkerLogLevel>;
 
+/**
+ * Console method names patched by `patchConsole`
+ */
 type PatchedMethod = keyof typeof CONSOLE_LEVELS;
 
 /** Original console methods while patched, undefined otherwise */
@@ -39,6 +42,11 @@ export function patchConsole(output?: WorkerOutput): () => void {
   let emitting = false;
   for (const method of Object.keys(CONSOLE_LEVELS) as PatchedMethod[]) {
     saved[method] = console[method];
+    /**
+     * Route console calls through the WorkerOutput log bus
+     * @param args - arguments forwarded to the logger
+     * @returns result of the original console method when re-entrant
+     */
     console[method] = function patchedConsole(...args: any[]) {
       if (emitting) {
         return saved[method].apply(console, args);

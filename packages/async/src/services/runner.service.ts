@@ -29,10 +29,25 @@ export class RunnerParameters extends ServiceParameters {
  * Agent Information
  */
 export interface AgentInfo {
+  /**
+   * Hostname
+   */
   hostname: string;
+  /**
+   * Platform
+   */
   platform: string;
+  /**
+   * Release
+   */
   release: string;
+  /**
+   * Memory
+   */
   memory: number;
+  /**
+   * Type
+   */
   type: string;
 }
 
@@ -40,6 +55,9 @@ export interface AgentInfo {
  * Node Agent information
  */
 export interface NodeAgentInfo extends AgentInfo {
+  /**
+   * Node version
+   */
   nodeVersion: string;
 }
 

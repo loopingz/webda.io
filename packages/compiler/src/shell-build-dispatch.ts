@@ -14,7 +14,13 @@ export const WEBDA_BUILD_DISPATCH_ENV = "WEBDA_BUILD_DISPATCH";
  * Module JSON shape (subset) used by the build-dispatch check.
  */
 interface ModuleLike {
+  /**
+   * Moddas
+   */
   moddas?: { [type: string]: { commands?: { build?: unknown } } };
+  /**
+   * Beans
+   */
   beans?: { [type: string]: { commands?: { build?: unknown } } };
 }
 

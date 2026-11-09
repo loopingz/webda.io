@@ -2,10 +2,25 @@ import { WebdaError } from "@webda/core";
 
 /** ARM template shape shared by Azure deployers and contributors. */
 export interface AzureTemplate {
+  /**
+   * $schema
+   */
   $schema: string;
+  /**
+   * Content version
+   */
   contentVersion: string;
+  /**
+   * Parameters
+   */
   parameters: Record<string, { type: string }>;
+  /**
+   * Resources
+   */
   resources: Record<string, any>[];
+  /**
+   * Outputs
+   */
   outputs: Record<string, any>;
 }
 

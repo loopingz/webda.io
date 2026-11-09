@@ -10,15 +10,22 @@ export const MAX_IDENTIFIER_LENGTH = 63;
  * The column type of a schema property
  */
 export interface ScalarMapping {
+  /**
+   * Type
+   */
   type: ColumnType;
   /**
    * The schema itself allows null (`type: ["string", "null"]`, `anyOf` with a null branch)
    */
   nullable: boolean;
+  /**
+   * Enum
+   */
   enum?: string[];
 }
 
 /**
+ * Check whether null schema
  * @param schema - a schema
  * @returns whether it only accepts null
  */
@@ -86,6 +93,7 @@ export function mapScalar(
 }
 
 /**
+ * Map string
  * @param schema - a string schema
  * @param reflectedType - the TypeScript type of the field
  * @returns the mapping
@@ -113,6 +121,7 @@ function mapString(schema: JSONSchemaLike, reflectedType: string | undefined): O
 }
 
 /**
+ * Return whether they are the same
  * @param a - a column type
  * @param b - another column type
  * @returns whether they are the same
@@ -122,6 +131,7 @@ export function sameType(a: ColumnType, b: ColumnType): boolean {
 }
 
 /**
+ * Return its text form: `varchar(200)`, `text`, ...
  * @param type - a column type
  * @returns its text form: `varchar(200)`, `text`, ...
  */
@@ -210,6 +220,7 @@ export function constraintName(prefix: string, table: string, columns: string[])
 }
 
 /**
+ * Return the identifier, cut with a hash suffix when longer than {
  * @param name - an identifier
  * @returns the identifier, cut with a hash suffix when longer than {@link MAX_IDENTIFIER_LENGTH}
  */

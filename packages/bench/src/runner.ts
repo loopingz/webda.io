@@ -220,6 +220,7 @@ export class BenchmarkRunner {
   protected reporters: Reporter[];
 
   /**
+   * Create a new BenchmarkRunner instance
    * @param options - suite, backend, profile...
    */
   constructor(protected options: BenchmarkRunnerOptions) {

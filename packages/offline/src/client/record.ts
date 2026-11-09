@@ -1,6 +1,9 @@
 import type { MergeResult } from "@webda/versioning";
 import type { SyncRef } from "../protocol/index.js";
 
+/**
+ * Record state type definition
+ */
 export type RecordState = "synced" | "dirty" | "created" | "deleted" | "conflict" | "error";
 
 /**
@@ -9,6 +12,9 @@ export type RecordState = "synced" | "dirty" | "created" | "deleted" | "conflict
 export interface LocalRecord {
   /** `refId(ref)` */
   id: string;
+  /**
+   * Ref
+   */
   ref: SyncRef;
   /** Last server-confirmed snapshot, null for a local create */
   base: any | null;
@@ -16,6 +22,9 @@ export interface LocalRecord {
   baseRev: number;
   /** Local value, null for a local delete */
   current: any | null;
+  /**
+   * State
+   */
   state: RecordState;
   /** Mutation id of the change in flight, kept until settled so retries are idempotent */
   pendingMutationId?: string;
@@ -44,6 +53,7 @@ export function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 /**
+ * Clone operation
  * @param value - a JSON value
  * @returns a deep copy
  */

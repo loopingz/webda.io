@@ -322,12 +322,12 @@
               },
               "httpOnly": {
                 "default": true,
-                "description": "Enables the [`HttpOnly` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.6).\nWhen enabled, clients will not allow client-side JavaScript to see the cookie in `document.cookie`.",
+                "description": "Whether HTTP only is enabled",
                 "type": "boolean"
               },
               "maxAge": {
                 "default": "7d",
-                "description": "Get the max age in seconds, defaulting to 7 days",
+                "description": "Set max age\nGet the max age in seconds, defaulting to 7 days",
                 "minimum": 1,
                 "returns": "the result number",
                 "type": "number"
@@ -338,12 +338,12 @@
               },
               "path": {
                 "default": "/",
-                "description": "Specifies the value for the [`Path` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.4).\nWhen no path is set, the path is considered the [\"default path\"](https://tools.ietf.org/html/rfc6265#section-5.1.4).",
+                "description": "Path",
                 "type": "string"
               },
               "sameSite": {
                 "default": "lax",
-                "description": "Specifies the value for the [`SameSite` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).\n\n- `true` will set the `SameSite` attribute to `Strict` for strict same site enforcement.\n- `'lax'` will set the `SameSite` attribute to `Lax` for lax same site enforcement.\n- `'none'` will set the `SameSite` attribute to `None` for an explicit cross-site cookie.\n- `'strict'` will set the `SameSite` attribute to `Strict` for strict same site enforcement.\n\nMore information about enforcement levels can be found in [the specification](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).",
+                "description": "Same site",
                 "enum": [
                   "none",
                   "strict",
@@ -408,7 +408,9 @@
                 "description": "Issuer of the token",
                 "type": "string"
               },
-              "keyid": {},
+              "keyid": {
+                "description": "Keyid"
+              },
               "secretOrPublicKey": {
                 "anyOf": [
                   {
@@ -577,7 +579,9 @@
                 "description": "Issuer of the token",
                 "type": "string"
               },
-              "keyid": {},
+              "keyid": {
+                "description": "Keyid"
+              },
               "secretOrPublicKey": {
                 "anyOf": [
                   {
@@ -608,6 +612,7 @@
             "properties": {
               "modulusLength": {
                 "default": 2048,
+                "description": "Modulus length",
                 "type": "number"
               },
               "namedCurve": {
@@ -660,6 +665,7 @@
               },
               "type": {
                 "default": "spki",
+                "description": "Type",
                 "enum": [
                   "spki",
                   "pkcs1"
@@ -742,10 +748,12 @@
           },
           "symetricCipher": {
             "default": "aes-256-ctr",
+            "description": "Symetric cipher",
             "type": "string"
           },
           "symetricKeyLength": {
             "default": 256,
+            "description": "Symetric key length",
             "type": "number"
           },
           "type": {
@@ -1550,6 +1558,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -1685,6 +1694,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -1995,6 +2005,7 @@
           },
           "url": {
             "default": "/metrics",
+            "description": "URL",
             "type": "string"
           },
           "openapi": {
@@ -2199,6 +2210,7 @@
                 "default": "all methods",
                 "description": "Methods the alias applies to",
                 "items": {
+                  "description": "HTTP method type type definition",
                   "enum": [
                     "GET",
                     "OPTIONS",
@@ -2612,9 +2624,11 @@
           "description": "Represents a single audit log entry",
           "properties": {
             "error": {
+              "description": "Error",
               "type": "string"
             },
             "operationId": {
+              "description": "Operation ID",
               "type": "string"
             },
             "subjectKey": {
@@ -2627,13 +2641,16 @@
             },
             "success": {
               "default": false,
+              "description": "Whether success is enabled",
               "type": "boolean"
             },
             "timestamp": {
+              "description": "Timestamp",
               "format": "date-time",
               "type": "string"
             },
             "userId": {
+              "description": "User ID",
               "type": "string"
             },
             "uuid": {
@@ -2656,9 +2673,11 @@
           "description": "Represents a single audit log entry",
           "properties": {
             "error": {
+              "description": "Error",
               "type": "string"
             },
             "operationId": {
+              "description": "Operation ID",
               "type": "string"
             },
             "subjectKey": {
@@ -2671,13 +2690,16 @@
             },
             "success": {
               "default": false,
+              "description": "Whether success is enabled",
               "type": "boolean"
             },
             "timestamp": {
+              "description": "Timestamp",
               "format": "date-time",
               "type": "string"
             },
             "userId": {
+              "description": "User ID",
               "type": "string"
             },
             "uuid": {
@@ -2700,9 +2722,11 @@
           "description": "Represents a single audit log entry",
           "properties": {
             "error": {
+              "description": "Error",
               "type": "string"
             },
             "operationId": {
+              "description": "Operation ID",
               "type": "string"
             },
             "subjectKey": {
@@ -2715,13 +2739,16 @@
             },
             "success": {
               "default": false,
+              "description": "Whether success is enabled",
               "type": "boolean"
             },
             "timestamp": {
+              "description": "Timestamp",
               "format": "date-time",
               "type": "string"
             },
             "userId": {
+              "description": "User ID",
               "type": "string"
             },
             "uuid": {
@@ -3227,6 +3254,7 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "description": "Owner model implementation",
           "properties": {
             "_user": {
               "description": "Default owner of the object",
@@ -3254,6 +3282,7 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "description": "Owner model implementation",
           "properties": {
             "_user": {
               "description": "Default owner of the object",
@@ -3281,6 +3310,7 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "description": "Owner model implementation",
           "properties": {
             "_user": {
               "description": "Default owner of the object",
@@ -3425,12 +3455,15 @@
               "description": "Verification of one MFA operation on one owner, with its original timestamp.",
               "properties": {
                 "method": {
+                  "description": "Method",
                   "type": "string"
                 },
                 "owner": {
+                  "description": "Owner",
                   "type": "string"
                 },
                 "verifiedAt": {
+                  "description": "Verified at",
                   "type": "number"
                 }
               },
@@ -3576,12 +3609,15 @@
               "description": "Verification of one MFA operation on one owner, with its original timestamp.",
               "properties": {
                 "method": {
+                  "description": "Method",
                   "type": "string"
                 },
                 "owner": {
+                  "description": "Owner",
                   "type": "string"
                 },
                 "verifiedAt": {
+                  "description": "Verified at",
                   "type": "number"
                 }
               },
@@ -3727,12 +3763,15 @@
               "description": "Verification of one MFA operation on one owner, with its original timestamp.",
               "properties": {
                 "method": {
+                  "description": "Method",
                   "type": "string"
                 },
                 "owner": {
+                  "description": "Owner",
                   "type": "string"
                 },
                 "verifiedAt": {
+                  "description": "Verified at",
                   "type": "number"
                 }
               },
@@ -4169,8 +4208,11 @@
           "additionalProperties": false,
           "description": "Persistent session data stored in a model with a TTL",
           "properties": {
-            "session": {},
+            "session": {
+              "description": "Session"
+            },
             "ttl": {
+              "description": "TTL",
               "type": "number"
             },
             "uuid": {
@@ -4192,8 +4234,11 @@
           "additionalProperties": false,
           "description": "Persistent session data stored in a model with a TTL",
           "properties": {
-            "session": {},
+            "session": {
+              "description": "Session"
+            },
             "ttl": {
+              "description": "TTL",
               "type": "number"
             },
             "uuid": {
@@ -4215,8 +4260,11 @@
           "additionalProperties": false,
           "description": "Persistent session data stored in a model with a TTL",
           "properties": {
-            "session": {},
+            "session": {
+              "description": "Session"
+            },
             "ttl": {
+              "description": "TTL",
               "type": "number"
             },
             "uuid": {
@@ -4456,64 +4504,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -4900,64 +4966,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -5348,64 +5432,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -5893,64 +5995,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -6325,64 +6445,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -6761,64 +6899,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/keys%24publicKeys%5B%5D%24jwk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -7420,64 +7576,82 @@
           "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
           "properties": {
             "alg": {
+              "description": "Alg",
               "type": "string"
             },
             "crv": {
+              "description": "Crv",
               "type": "string"
             },
             "d": {
+              "description": "D",
               "type": "string"
             },
             "dp": {
+              "description": "Dp",
               "type": "string"
             },
             "dq": {
+              "description": "Dq",
               "type": "string"
             },
             "e": {
+              "description": "E",
               "type": "string"
             },
             "ext": {
               "default": false,
+              "description": "Whether ext is enabled",
               "type": "boolean"
             },
             "k": {
+              "description": "K",
               "type": "string"
             },
             "key_ops": {
+              "description": "Key ops",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "kty": {
+              "description": "Kty",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "string"
             },
             "oth": {
+              "description": "Oth",
               "items": {
                 "$ref": "#/definitions/epk%24oth%5B%5D"
               },
               "type": "array"
             },
             "p": {
+              "description": "P",
               "type": "string"
             },
             "q": {
+              "description": "Q",
               "type": "string"
             },
             "qi": {
+              "description": "Qi",
               "type": "string"
             },
             "use": {
+              "description": "Use",
               "type": "string"
             },
             "x": {
+              "description": "X",
               "type": "string"
             },
             "y": {
+              "description": "Y",
               "type": "string"
             }
           },
@@ -7586,64 +7760,82 @@
           "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
           "properties": {
             "alg": {
+              "description": "Alg",
               "type": "string"
             },
             "crv": {
+              "description": "Crv",
               "type": "string"
             },
             "d": {
+              "description": "D",
               "type": "string"
             },
             "dp": {
+              "description": "Dp",
               "type": "string"
             },
             "dq": {
+              "description": "Dq",
               "type": "string"
             },
             "e": {
+              "description": "E",
               "type": "string"
             },
             "ext": {
               "default": false,
+              "description": "Whether ext is enabled",
               "type": "boolean"
             },
             "k": {
+              "description": "K",
               "type": "string"
             },
             "key_ops": {
+              "description": "Key ops",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "kty": {
+              "description": "Kty",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "string"
             },
             "oth": {
+              "description": "Oth",
               "items": {
                 "$ref": "#/definitions/jwk%24oth%5B%5D"
               },
               "type": "array"
             },
             "p": {
+              "description": "P",
               "type": "string"
             },
             "q": {
+              "description": "Q",
               "type": "string"
             },
             "qi": {
+              "description": "Qi",
               "type": "string"
             },
             "use": {
+              "description": "Use",
               "type": "string"
             },
             "x": {
+              "description": "X",
               "type": "string"
             },
             "y": {
+              "description": "Y",
               "type": "string"
             }
           },
@@ -7838,64 +8030,82 @@
           "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
           "properties": {
             "alg": {
+              "description": "Alg",
               "type": "string"
             },
             "crv": {
+              "description": "Crv",
               "type": "string"
             },
             "d": {
+              "description": "D",
               "type": "string"
             },
             "dp": {
+              "description": "Dp",
               "type": "string"
             },
             "dq": {
+              "description": "Dq",
               "type": "string"
             },
             "e": {
+              "description": "E",
               "type": "string"
             },
             "ext": {
               "default": false,
+              "description": "Whether ext is enabled",
               "type": "boolean"
             },
             "k": {
+              "description": "K",
               "type": "string"
             },
             "key_ops": {
+              "description": "Key ops",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "kty": {
+              "description": "Kty",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "string"
             },
             "oth": {
+              "description": "Oth",
               "items": {
                 "$ref": "#/definitions/publicKeys%5B%5D%24jwk%24oth%5B%5D"
               },
               "type": "array"
             },
             "p": {
+              "description": "P",
               "type": "string"
             },
             "q": {
+              "description": "Q",
               "type": "string"
             },
             "qi": {
+              "description": "Qi",
               "type": "string"
             },
             "use": {
+              "description": "Use",
               "type": "string"
             },
             "x": {
+              "description": "X",
               "type": "string"
             },
             "y": {
+              "description": "Y",
               "type": "string"
             }
           },
@@ -8014,64 +8224,82 @@
           "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
           "properties": {
             "alg": {
+              "description": "Alg",
               "type": "string"
             },
             "crv": {
+              "description": "Crv",
               "type": "string"
             },
             "d": {
+              "description": "D",
               "type": "string"
             },
             "dp": {
+              "description": "Dp",
               "type": "string"
             },
             "dq": {
+              "description": "Dq",
               "type": "string"
             },
             "e": {
+              "description": "E",
               "type": "string"
             },
             "ext": {
               "default": false,
+              "description": "Whether ext is enabled",
               "type": "boolean"
             },
             "k": {
+              "description": "K",
               "type": "string"
             },
             "key_ops": {
+              "description": "Key ops",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "kty": {
+              "description": "Kty",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "string"
             },
             "oth": {
+              "description": "Oth",
               "items": {
                 "$ref": "#/definitions/publicKeys%5B%5D%24jwk%24oth%5B%5D"
               },
               "type": "array"
             },
             "p": {
+              "description": "P",
               "type": "string"
             },
             "q": {
+              "description": "Q",
               "type": "string"
             },
             "qi": {
+              "description": "Qi",
               "type": "string"
             },
             "use": {
+              "description": "Use",
               "type": "string"
             },
             "x": {
+              "description": "X",
               "type": "string"
             },
             "y": {
+              "description": "Y",
               "type": "string"
             }
           },
@@ -8339,64 +8567,82 @@
           "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
           "properties": {
             "alg": {
+              "description": "Alg",
               "type": "string"
             },
             "crv": {
+              "description": "Crv",
               "type": "string"
             },
             "d": {
+              "description": "D",
               "type": "string"
             },
             "dp": {
+              "description": "Dp",
               "type": "string"
             },
             "dq": {
+              "description": "Dq",
               "type": "string"
             },
             "e": {
+              "description": "E",
               "type": "string"
             },
             "ext": {
               "default": false,
+              "description": "Whether ext is enabled",
               "type": "boolean"
             },
             "k": {
+              "description": "K",
               "type": "string"
             },
             "key_ops": {
+              "description": "Key ops",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "kty": {
+              "description": "Kty",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "string"
             },
             "oth": {
+              "description": "Oth",
               "items": {
                 "$ref": "#/definitions/jwk%24oth%5B%5D"
               },
               "type": "array"
             },
             "p": {
+              "description": "P",
               "type": "string"
             },
             "q": {
+              "description": "Q",
               "type": "string"
             },
             "qi": {
+              "description": "Qi",
               "type": "string"
             },
             "use": {
+              "description": "Use",
               "type": "string"
             },
             "x": {
+              "description": "X",
               "type": "string"
             },
             "y": {
+              "description": "Y",
               "type": "string"
             }
           },

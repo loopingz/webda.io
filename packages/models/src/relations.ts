@@ -46,7 +46,13 @@ export function assignNonSymbols(target: any, source: any) {
  */
 export class ModelRef<T extends Storable> {
   // [RelationParent]?: Storable;
+  /**
+   * [relation key]
+   */
   [RelationKey]?: PrimaryKeyType<T>;
+  /**
+   * [relation repository]
+   */
   [RelationRepository]?: Repository<ModelClass<T>>;
 
   /**
@@ -322,6 +328,9 @@ export class ModelRelated<
   L extends Storable,
   K extends Extract<FilterAttributes<T, ModelLinker<L>>, string> | "" = ""
 > {
+  /**
+   * Repo source
+   */
   private repoSource: Repository<any>;
 
   /** Create a new ModelRelated
@@ -394,6 +403,9 @@ export class ModelRelated<
  * @typeParam K - The relation role identifier
  */
 export interface ModelLinker<T extends Storable = any, K extends "Link" | "Related" | "Links" | "CustomLinks" = any> {
+  /**
+   * [relation role]
+   */
   readonly [RelationRole]: K;
 }
 /**
@@ -412,8 +424,17 @@ export interface ModelLinker<T extends Storable = any, K extends "Link" | "Relat
  * ```
  */
 export class ModelLink<T extends Storable> implements ModelLinker {
+  /**
+   * [relation role]
+   */
   readonly [RelationRole]: "Link" = "Link" as const;
+  /**
+   * [relation key]
+   */
   protected [RelationKey]: PrimaryKeyType<T>;
+  /**
+   * [relation model]
+   */
   readonly [RelationModel]: ModelClass<T>;
 
   /** Create a new ModelLink
@@ -543,11 +564,23 @@ export type ModelParent<T extends Storable> = ModelLink<T>;
  * The array contains uuid of the linked objects
  */
 export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
+  /**
+   * [relation role]
+   */
   [RelationRole]: "Links" = "Links" as const;
+  /**
+   * [relation attributes]
+   */
   [RelationAttributes]: object;
+  /**
+   * [relation repository]
+   */
   protected [RelationRepository]: Repository<ModelClass<T>>;
 
   // COMPOSITION: Internal array instead of extending Array
+  /**
+   * Items
+   */
   private items: ModelRef<T>[] = [];
 
   /** Create a new ModelLinksSimpleArray
@@ -562,6 +595,12 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
     // Return a Proxy to support indexed access like an array
     return new Proxy(this, {
+      /**
+       * Perform get
+       * @param target - the target
+       * @param prop - the prop
+       * @returns the result
+       */
       get(target, prop) {
         // Handle numeric indices
         if (typeof prop === "string" && /^\d+$/.test(prop)) {
@@ -570,6 +609,13 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
         // Handle all other properties normally
         return (target as any)[prop];
       },
+      /**
+       * Perform set
+       * @param target - the target
+       * @param prop - the prop
+       * @param value - the value
+       * @returns the result
+       */
       set(target, prop, value) {
         // Handle numeric indices
         if (typeof prop === "string" && /^\d+$/.test(prop)) {
@@ -833,6 +879,9 @@ type ModelRefCustomProperties<T extends Storable, K extends object> = ModelRef<T
  * ```
  */
 class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
+  /**
+   * [relation data]
+   */
   protected [RelationData]: K;
 
   /** Create a new ModelRefCustom
@@ -877,11 +926,20 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
  * ```
  */
 export class ModelLinksArray<T extends Storable, K extends object> implements ModelLinker {
+  /**
+   * [relation role]
+   */
   [RelationRole]: "CustomLinks" = "CustomLinks" as const;
   //[RelationParent]: T;
+  /**
+   * [relation attributes]
+   */
   [RelationAttributes]: K;
 
   // COMPOSITION: Internal array instead of extending Array
+  /**
+   * Items
+   */
   private items: ModelRefCustomProperties<T, K>[] = [];
 
   /** Create a new ModelLinksCustomArray
@@ -901,6 +959,12 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
     // Return a Proxy to support indexed access like an array
     return new Proxy(this, {
+      /**
+       * Perform get
+       * @param target - the target
+       * @param prop - the prop
+       * @returns the result
+       */
       get(target, prop) {
         // Handle numeric indices
         if (typeof prop === "string" && /^\d+$/.test(prop)) {
@@ -909,6 +973,13 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
         // Handle all other properties normally
         return (target as any)[prop];
       },
+      /**
+       * Perform set
+       * @param target - the target
+       * @param prop - the prop
+       * @param value - the value
+       * @returns the result
+       */
       set(target, prop, value) {
         // Handle numeric indices
         if (typeof prop === "string" && /^\d+$/.test(prop)) {
@@ -1230,8 +1301,17 @@ export type Contains<T extends Storable> = ManyToMany<T>;
  * `linkA` is a {@link ModelParent}: deleting the model it targets deletes the junction (`CASCADE`).
  */
 export class JunctionLink<T extends Storable, K extends Storable> implements Storable {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["linkA", "linkB"] as const;
+  /**
+   * Link a
+   */
   linkA: ModelParent<T>;
+  /**
+   * Link b
+   */
   linkB: ModelLink<K>;
   /**
    * Return the composite primary key (linkA + linkB)

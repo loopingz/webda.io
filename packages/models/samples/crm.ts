@@ -6,29 +6,62 @@ import { JSONed, PrimaryKeyType, SelfJSONed, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } f
 /** Customer identified by country + identifier with related invoices. */
 class Customer extends Model {
   // Define the primary key for the Customer model
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["country", "identifier"] as const;
 
   // Delare events
+  /**
+   * [webda events]
+   */
   [WEBDA_EVENTS]: ModelEvents<this> & {
     Created: { customer: Customer };
     Updated: { customer: Customer };
   };
 
   // Define the attributes of the Customer model
+  /**
+   * Country
+   */
   country: string;
+  /**
+   * Identifier
+   */
   identifier: string;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Email
+   */
   email: PrimaryKeyType<Email>;
+  /**
+   * Categories
+   */
   categories: string[];
 
   // Define the relations of the Customer model
+  /**
+   * Invoices
+   */
   invoices: ModelRelated<Invoice>;
 }
 
 /** Invoice linked to a customer with line-item product relations. */
 class Invoice extends UuidModel {
+  /**
+   * Amount
+   */
   amount: number;
+  /**
+   * Customer
+   */
   customer: ModelParent<Customer>;
+  /**
+   * Items
+   */
   items: ModelLinksMap<
     Product,
     {
@@ -37,8 +70,17 @@ class Invoice extends UuidModel {
     },
     "name" | "description"
   >;
+  /**
+   * Items2
+   */
   items2: ModelLinksMap<Product, { quantity: number; price: number }>;
+  /**
+   * Items3
+   */
   items3: ModelLinksArray<Product, { name: string; description: string }>;
+  /**
+   * Items4
+   */
   items4: ModelLinksSimpleArray<Product>;
 }
 
@@ -97,28 +139,61 @@ export const testJsoned: JSONed<Invoice> = {
 
 /** Product with inventory tracking and sales counters. */
 export class Product extends UuidModel {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Price
+   */
   price: number;
+  /**
+   * Description
+   */
   description: string;
+  /**
+   * In stock
+   */
   inStock: number;
+  /**
+   * Total sold
+   */
   totalSold: number;
 }
 
 /** Contact identified by email address. */
 class Contact extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["email"] as const;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Email
+   */
   email: string;
 }
 
 /** Email message with recipients and linked contacts. */
 class Email extends UuidModel {
+  /**
+   * Recipents
+   */
   recipents: string[];
+  /**
+   * Contacts
+   */
   contacts: ModelLinksSimpleArray<Contact>;
 }
 
 /** Multi-factor authentication value object with verify/confirm actions. */
 export class MFA implements Actionable {
+  /**
+   * [webda actions]
+   */
   [WEBDA_ACTIONS]: {
     verify: {
       description: "Verify a MFA code";
@@ -127,6 +202,9 @@ export class MFA implements Actionable {
       description: "Confirm a MFA code";
     };
   };
+  /**
+   * Secret
+   */
   secret: string;
   /**
    * Verify a MFA code.
@@ -166,6 +244,9 @@ export class MFA implements Actionable {
 
 /** Read-only MFA variant that disables the confirm action. */
 class ReadonlyMFA extends MFA {
+  /**
+   * [webda actions]
+   */
   [WEBDA_ACTIONS]: MFA[typeof WEBDA_ACTIONS] & {
     confirm: {
       disabled: true;
@@ -175,20 +256,41 @@ class ReadonlyMFA extends MFA {
 
 /** User model with MFA, login tracking, and action-based authorization. */
 class User extends UuidModel {
+  /**
+   * [webda events]
+   */
   [WEBDA_EVENTS]: ModelEvents<this> & {
     Login: { user: User };
     Logout: { user: User };
   };
+  /**
+   * [webda actions]
+   */
   [WEBDA_ACTIONS]: UuidModel[typeof WEBDA_ACTIONS] & {
     logout: {
       description: "Logout the user";
     };
   };
 
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Email
+   */
   email: string;
+  /**
+   * MFA
+   */
   mfa: MFA;
+  /**
+   * Readonly MFA
+   */
   readonly_mfa: ReadonlyMFA;
+  /**
+   * Login count
+   */
   loginCount: number;
 
   /**
@@ -240,7 +342,13 @@ Customer.ref({
 
 /** GitHub issue model identified by numeric id. */
 class GithubIssue extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["id"] as const;
+  /**
+   * Unique identifier
+   */
   id: number;
 
   /**

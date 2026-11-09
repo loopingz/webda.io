@@ -7,6 +7,9 @@ export const WEBDA_STORAGE: unique symbol = Symbol.for("webda.storage");
 
 /** Base class for Webda models. */
 export class Model {
+  /**
+   * [webda storage]
+   */
   [WEBDA_STORAGE]: Record<string, any> = {};
 
   /**
@@ -20,6 +23,9 @@ export class Model {
 
 /** A type that absorbs raw values through a tagged `set` method. */
 export class MFA {
+  /**
+   * Secret
+   */
   private secret: string = "";
 
   /**

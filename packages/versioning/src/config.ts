@@ -1,5 +1,8 @@
 import type { Path, Strategy } from "./types.js";
 
+/**
+ * Versioning config type definition
+ */
 export type VersioningConfig = {
   /**
    * Per-path string strategy override. Keys are exact JSON Pointers in v1

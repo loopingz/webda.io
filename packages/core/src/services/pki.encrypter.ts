@@ -113,8 +113,17 @@ function checkKey(key: KeyObject, kid: string): KeyObject {
  * Parsed `pki` encrypted value
  */
 export interface PkiValue {
+  /**
+   * Kid
+   */
   kid: string;
+  /**
+   * Wrapped key
+   */
   wrappedKey: string;
+  /**
+   * Ciphertext
+   */
   ciphertext: string;
 }
 
@@ -149,10 +158,17 @@ export class PkiKeyring {
    * Absolute directory of the private keys
    */
   readonly privateKeysDir: string;
+  /**
+   * Public keys
+   */
   protected publicKeys = new Map<string, KeyObject>();
+  /**
+   * Private keys
+   */
   protected privateKeys = new Map<string, KeyObject>();
 
   /**
+   * Create a new PkiKeyring instance
    * @param options - the encrypter options
    * @param appPath - the application path, relative directories resolve against it
    */
@@ -314,6 +330,9 @@ export class PkiKeyring {
  * Format: `v1:<kid>:<base64(wrappedKey)>:<base64(iv | tag | ciphertext)>`, the kid is authenticated.
  */
 export class PkiEncrypter implements StringEncrypter {
+  /**
+   * Keyring
+   */
   protected keyring: PkiKeyring;
   /**
    * Serialized configuration of the keyring, to keep its cache when unchanged

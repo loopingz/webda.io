@@ -2,7 +2,10 @@ import { HttpError } from "./errors.js";
 
 /** Too many attempts (429) */
 export class Throttled extends HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new Throttled instance
+   * @param message - error message
+   */
   constructor(message: string = "Too many attempts") {
     super(message, 429);
   }
@@ -10,7 +13,10 @@ export class Throttled extends HttpError {
 
 /** The MFA code is invalid or already used (401) */
 export class InvalidMfaCode extends HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new InvalidMfaCode instance
+   * @param message - error message
+   */
   constructor(message: string = "Invalid MFA code") {
     super(message, 401);
   }
@@ -18,7 +24,10 @@ export class InvalidMfaCode extends HttpError {
 
 /** MFA is not enabled, or not with this method (400) */
 export class MfaNotEnabled extends HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new MfaNotEnabled instance
+   * @param message - error message
+   */
   constructor(message: string = "MFA is not enabled") {
     super(message, 400);
   }
@@ -26,7 +35,10 @@ export class MfaNotEnabled extends HttpError {
 
 /** MFA is already enabled with this method (409) */
 export class MfaAlreadyEnabled extends HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new MfaAlreadyEnabled instance
+   * @param message - error message
+   */
   constructor(message: string = "MFA is already enabled") {
     super(message, 409);
   }
@@ -34,7 +46,10 @@ export class MfaAlreadyEnabled extends HttpError {
 
 /** The operation requires a second factor and the session has none enrolled (403) */
 export class MfaRequired extends HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new MfaRequired instance
+   * @param message - error message
+   */
   constructor(message: string = "MFA is required") {
     super(message, 403);
   }
@@ -45,8 +60,12 @@ export class MfaRequired extends HttpError {
  * `details.maxAge` is the freshness the operation requires, in seconds
  */
 export class MfaStepUpRequired extends HttpError {
+  /**
+   * Details
+   */
   declare details: { maxAge: number };
   /**
+   * Create a new MfaStepUpRequired instance
    * @param maxAge - required freshness in seconds
    * @param message - error message
    */

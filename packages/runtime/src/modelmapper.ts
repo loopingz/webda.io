@@ -6,18 +6,51 @@ import { Service } from "../services/service";
 import { ServiceParameters } from "../interfaces";
 import { Model } from "@webda/models";
 
+/**
+ * Mapper interface
+ */
 export interface Mapper {
+  /**
+   * Model attribute
+   */
   modelAttribute: string;
+  /**
+   * Model
+   */
   model: ModelClass<Model>;
+  /**
+   * Attributes
+   */
   attributes: string[];
+  /**
+   * Attribute
+   */
   attribute: string;
 }
 
+/**
+ * Model mapper info interface
+ */
 interface ModelMapperInfo {
+  /**
+   * Model attribute
+   */
   modelAttribute: string;
+  /**
+   * Model
+   */
   model: ModelClass<Model>;
+  /**
+   * Attributes
+   */
   attributes: string[];
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Type
+   */
   type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
 }
 
@@ -27,6 +60,9 @@ interface ModelMapperInfo {
  * Ensure each ModelMapped properties is in-sync with their respective model
  */
 export class ModelMapper extends Service {
+  /**
+   * Mappers
+   */
   mappers: {
     [key: string]: ModelMapperInfo[];
   } = {};

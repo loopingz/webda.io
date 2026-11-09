@@ -6,6 +6,9 @@ import { getTemplateEngine, registerTemplateEngine } from "./engines.js";
  * Mustache template engine
  */
 export class MustacheEngine implements TemplateEngine {
+  /**
+   * Extensions
+   */
   extensions = ["mustache"];
 
   /**

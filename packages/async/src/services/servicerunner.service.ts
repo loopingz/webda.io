@@ -41,9 +41,13 @@ export type ActionLogTarget = { patch(data: { logs: string[] }): Promise<any> };
  * Keep log in memory and save it to the action object every 5s
  */
 export class ActionMemoryLogger extends MemoryLogger {
+  /**
+   * Timeout
+   */
   protected timeout?: NodeJS.Timeout;
 
   /**
+   * Create a new ActionMemoryLogger instance
    * @param output - the worker output to listen to
    * @param level - the log level
    * @param limit - the maximum number of logs
@@ -140,6 +144,7 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
   }
 
   /**
+   * Return the service action
    * @inheritdoc
    * @param action - the action to launch
    * @param info - the job information

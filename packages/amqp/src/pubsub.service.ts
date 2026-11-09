@@ -22,8 +22,12 @@ export class AMQPPubSubParameters extends ServiceParameters {
    * @default ""
    */
   subscription: string;
+  /**
+   * Exchange
+   */
   exchange?: {
     /**
+     * Type
      * @default fanout
      */
     type?: string;
@@ -79,11 +83,21 @@ export default class AMQPPubSubService<
   T = any,
   K extends AMQPPubSubParameters = AMQPPubSubParameters
 > extends PubSubService<T, K> {
+  /**
+   * Channel
+   */
   channel?: amqplib.Channel;
+  /**
+   * Conn
+   */
   conn?: amqplib.ChannelModel;
+  /**
+   * Exchange
+   */
   exchange: amqplib.Replies.AssertExchange;
 
   /**
+   * Get the active AMQP channel
    * @returns the active AMQP channel
    * @throws CodeError when the service is not connected
    */

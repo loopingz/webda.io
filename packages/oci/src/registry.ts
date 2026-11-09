@@ -50,6 +50,7 @@ export interface FetchedManifest {
  */
 export class RegistryError extends Error {
   /**
+   * Create a new RegistryError instance
    * @param message - the message
    * @param status - HTTP status
    */
@@ -87,6 +88,7 @@ export class RegistryClient {
   protected fetch: typeof fetch;
 
   /**
+   * Create a new RegistryClient instance
    * @param registry - registry from the image reference
    * @param options - the options
    */

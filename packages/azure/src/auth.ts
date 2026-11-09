@@ -4,7 +4,13 @@ import { AzureServiceParameters, getAzureCredential } from "./services/azure-par
 
 /** Azure authentication shared by ARM deployment, ACR publishing and OneDeploy. */
 export class AzureAuth {
+  /**
+   * Credential
+   */
   protected credential?: TokenCredential;
+  /**
+   * Arm token
+   */
   protected armToken?: AccessToken;
   /**
    * Initialize the Azure integration.

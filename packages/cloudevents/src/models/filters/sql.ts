@@ -38,6 +38,9 @@ import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImpl
  * Implementations SHOULD reject subscriptions with invalid CloudEvents SQL expressions.
  */
 export interface SqlFilter {
+  /**
+   * SQL
+   */
   sql: string;
 }
 
@@ -174,6 +177,9 @@ const functions: { [key in FunctionName]: (...args: any[]) => any } = {
  * Represent the query expression or subset
  */
 export abstract class Expression {
+  /**
+   * Deps
+   */
   protected deps: Expression[] = [];
   /** Create a new Expression. */
   constructor() {}
@@ -232,9 +238,12 @@ export class AttributeExpression extends Expression {
  * Represent a function expression
  */
 export class FunctionExpression extends Expression {
+  /**
+   * Args
+   */
   public readonly args: Expression[];
   /**
-   *
+   * Create a new FunctionExpression instance
    * @param functionName to execute
    * @param args to call with the function
    */
@@ -325,9 +334,12 @@ export class UnaryNumericExpression extends Expression {
  * Represent a LIKE expression
  */
 export class LikeExpression extends Expression {
+  /**
+   * Regexp
+   */
   regexp: RegExp;
   /**
-   *
+   * Create a new LikeExpression instance
    * @param left part of the expression
    * @param right part of the expression the regexp with % and _
    * @param invert if NOT LIKE is used
@@ -375,7 +387,7 @@ export class LikeExpression extends Expression {
  */
 export class ExistsExpression extends Expression {
   /**
-   *
+   * Create a new ExistsExpression instance
    * @param property to check
    */
   constructor(public readonly property: string) {
@@ -401,9 +413,12 @@ export class ExistsExpression extends Expression {
  * Represent a IN expression
  */
 export class InExpression extends Expression {
+  /**
+   * Static content
+   */
   staticContent?: any[];
   /**
-   *
+   * Create a new InExpression instance
    * @param left part of the expression
    * @param right part of the expression
    * @param invert if NOT IN
@@ -442,7 +457,7 @@ export class InExpression extends Expression {
  */
 export class BinaryMultiplicativeExpression extends Expression {
   /**
-   *
+   * Create a new BinaryMultiplicativeExpression instance
    * @param left part of the expression
    * @param right part of the expression
    * @param operator - the arithmetic operator
@@ -483,7 +498,7 @@ export class BinaryMultiplicativeExpression extends Expression {
  */
 export class BinaryAdditiveExpression extends Expression {
   /**
-   *
+   * Create a new BinaryAdditiveExpression instance
    * @param left part of the expression
    * @param right part of the expression
    * @param operator - the additive operator
@@ -517,7 +532,7 @@ export class BinaryAdditiveExpression extends Expression {
  */
 export class BinaryComparisonExpression extends Expression {
   /**
-   *
+   * Create a new BinaryComparisonExpression instance
    * @param left part of the expression
    * @param right part of the expression
    * @param operator to use
@@ -564,7 +579,7 @@ export class BinaryComparisonExpression extends Expression {
  */
 export class BinaryLogicExpression extends Expression {
   /**
-   *
+   * Create a new BinaryLogicExpression instance
    * @param left part of the expression
    * @param right part of the expression
    * @param operator to use
@@ -823,11 +838,20 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
  * SQL Filter implementation
  */
 export class SqlFilterImplementation extends FilterImplementation<SqlFilter> {
+  /**
+   * Lexer
+   */
   lexer: CESQLParserLexer;
+  /**
+   * Tree
+   */
   tree: any;
+  /**
+   * Query
+   */
   query: Expression;
   /**
-   *
+   * Create a new SqlFilterImplementation instance
    * @param definition {sql: "CESQL Expression"}
    */
   constructor(definition: SqlFilter) {

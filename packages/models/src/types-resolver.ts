@@ -103,6 +103,7 @@ export class ModelTypeResolver {
   protected readonly accepted = new Map<ModelClass, string[]>();
 
   /**
+   * Create a new ModelTypeResolver instance
    * @param models - models by identifier (an application model map), or a list of classes carrying Metadata
    * @param options - namespace and exact mode
    */
@@ -182,6 +183,7 @@ export class ModelTypeResolver {
   }
 
   /**
+   * Return true when the class is one of the models of this resolver
    * @param model - a class
    * @returns true when the class is one of the models of this resolver
    */
@@ -190,6 +192,7 @@ export class ModelTypeResolver {
   }
 
   /**
+   * Get its current identifier, undefined when the class is not known
    * @param model - a class
    * @returns its current identifier, undefined when the class is not known
    */
@@ -212,6 +215,7 @@ export class ModelTypeResolver {
   }
 
   /**
+   * Resolve stored type
    * @param stored - the stored value
    * @returns the model, undefined when unknown or ambiguous
    */
@@ -262,6 +266,7 @@ export class ModelTypeResolver {
   }
 
   /**
+   * Return the resolution of a match
    * @param stored - the stored value
    * @param model - the matched model
    * @returns the resolution of a match
@@ -300,6 +305,7 @@ export class ModelTypeResolver {
   }
 
   /**
+   * Return the current identifiers of the model and its transitive subclasses
    * @param model - the model
    * @returns the current identifiers of the model and its transitive subclasses
    */
@@ -378,6 +384,7 @@ export function setTypeResolver(resolver: ModelTypeResolver | undefined): void {
 }
 
 /**
+ * Return the installed resolver, if any
  * @returns the installed resolver, if any
  */
 export function useTypeResolver(): ModelTypeResolver | undefined {
@@ -402,6 +409,7 @@ export function getTypeResolver(model?: ModelClass): ModelTypeResolver {
 }
 
 /**
+ * Resolve stored type
  * @param stored - a stored `__type`
  * @returns the model it resolves to with the installed resolver
  */
@@ -410,6 +418,7 @@ export function resolveStoredType(stored: string): ModelClass | undefined {
 }
 
 /**
+ * Return every stored string resolving to the model or a transitive subclass
  * @param model - the model
  * @returns every stored string resolving to the model or a transitive subclass
  */
@@ -418,6 +427,7 @@ export function acceptedTypes(model: ModelClass): string[] {
 }
 
 /**
+ * Return true when the row belongs to the model
  * @param model - the model
  * @param stored - the stored `__type`
  * @param tableRoot - the model owning the untyped rows

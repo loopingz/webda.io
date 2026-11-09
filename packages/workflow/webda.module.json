@@ -765,12 +765,15 @@
               "description": "An error, as seen by the flow: plain data",
               "properties": {
                 "code": {
+                  "description": "Code",
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "operation": {
+                  "description": "Operation",
                   "type": "string"
                 }
               },
@@ -872,9 +875,33 @@
               "additionalProperties": false,
               "description": "Who launched a workflow: the steps run as this identity",
               "properties": {
+                "clientId": {
+                  "description": "OAuth client id of the launcher session, when applicable",
+                  "type": "string"
+                },
                 "identId": {
                   "description": "Ident used by the launcher to log in",
                   "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA state of the launcher session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "mfaAt": {
+                  "description": "MFA verification timestamp of the launcher session",
+                  "type": "number"
+                },
+                "scopes": {
+                  "description": "Granted scopes of the launcher session, when restricted",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "system": {
                   "default": false,
@@ -1053,12 +1080,15 @@
               "description": "An error, as seen by the flow: plain data",
               "properties": {
                 "code": {
+                  "description": "Code",
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "operation": {
+                  "description": "Operation",
                   "type": "string"
                 }
               },
@@ -1160,9 +1190,33 @@
               "additionalProperties": false,
               "description": "Who launched a workflow: the steps run as this identity",
               "properties": {
+                "clientId": {
+                  "description": "OAuth client id of the launcher session, when applicable",
+                  "type": "string"
+                },
                 "identId": {
                   "description": "Ident used by the launcher to log in",
                   "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA state of the launcher session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "mfaAt": {
+                  "description": "MFA verification timestamp of the launcher session",
+                  "type": "number"
+                },
+                "scopes": {
+                  "description": "Granted scopes of the launcher session, when restricted",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "system": {
                   "default": false,
@@ -1341,12 +1395,15 @@
               "description": "An error, as seen by the flow: plain data",
               "properties": {
                 "code": {
+                  "description": "Code",
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "operation": {
+                  "description": "Operation",
                   "type": "string"
                 }
               },
@@ -1448,9 +1505,33 @@
               "additionalProperties": false,
               "description": "Who launched a workflow: the steps run as this identity",
               "properties": {
+                "clientId": {
+                  "description": "OAuth client id of the launcher session, when applicable",
+                  "type": "string"
+                },
                 "identId": {
                   "description": "Ident used by the launcher to log in",
                   "type": "string"
+                },
+                "mfa": {
+                  "description": "MFA state of the launcher session",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "verified"
+                  ],
+                  "type": "string"
+                },
+                "mfaAt": {
+                  "description": "MFA verification timestamp of the launcher session",
+                  "type": "number"
+                },
+                "scopes": {
+                  "description": "Granted scopes of the launcher session, when restricted",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "system": {
                   "default": false,
@@ -1913,12 +1994,15 @@
               "description": "An error, as seen by the flow: plain data",
               "properties": {
                 "code": {
+                  "description": "Code",
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "operation": {
+                  "description": "Operation",
                   "type": "string"
                 }
               },
@@ -2090,12 +2174,15 @@
               "description": "An error, as seen by the flow: plain data",
               "properties": {
                 "code": {
+                  "description": "Code",
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "operation": {
+                  "description": "Operation",
                   "type": "string"
                 }
               },
@@ -2267,12 +2354,15 @@
               "description": "An error, as seen by the flow: plain data",
               "properties": {
                 "code": {
+                  "description": "Code",
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "operation": {
+                  "description": "Operation",
                   "type": "string"
                 }
               },

@@ -1,6 +1,9 @@
 import { spawnSync } from "node:child_process";
 import type { PackageManager } from "./options.js";
 
+/**
+ * Runner type definition
+ */
 export type Runner = (
   cmd: string,
   args: string[],

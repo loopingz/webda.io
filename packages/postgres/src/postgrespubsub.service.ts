@@ -55,8 +55,17 @@ export class PostgresPubSubParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Subscriber interface
+ */
 interface Subscriber<T> {
+  /**
+   * Callback
+   */
   callback: (event: T) => Promise<void>;
+  /**
+   * Proto
+   */
   proto?: { new (): T };
 }
 

@@ -58,6 +58,7 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   }
 
   /**
+   * Return the plan type, undefined for an unknown declaration
    * @param declared - the declared type of a column, as `PRAGMA table_info` gives it
    * @returns the plan type, undefined for an unknown declaration
    */
@@ -117,6 +118,7 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   }
 
   /**
+   * Return the quoted, comma-separated list
    * @param columns - column names
    * @returns the quoted, comma-separated list
    */
@@ -125,6 +127,7 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   }
 
   /**
+   * Return its definition, always nullable
    * @param column - a column
    * @returns its definition, always nullable
    */
@@ -133,6 +136,7 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   }
 
   /**
+   * Create table statement
    * @param table - a table
    * @param foreignKeys - its foreign keys
    * @returns its `CREATE TABLE IF NOT EXISTS` statement: columns, primary key, enum checks and foreign keys
@@ -227,6 +231,7 @@ export class SQLiteRelationalDialect extends SQLiteDialect implements Relational
   }
 
   /**
+   * Return the JSON path literal
    * @param path - validated segments
    * @returns the JSON path literal
    */

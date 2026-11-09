@@ -76,10 +76,17 @@ export function sameModelLink(left: ModelLinkData, right: ModelLinkData): boolea
 
 /** Reference whose get() always delegates to the application's permission-aware loader. */
 export class ModelAnyRef<T extends Storable = Storable> {
+  /**
+   * Model
+   */
   declare readonly model: string;
+  /**
+   * Key
+   */
   declare readonly key: PolymorphicKey;
 
   /**
+   * Create a new ModelAnyRef instance
    * @param reference - serialized reference and custom properties
    */
   constructor(reference: ModelLinkData) {
@@ -106,7 +113,10 @@ export class ModelAnyRef<T extends Storable = Storable> {
     return (await loader({ model: this.model, key: this.key })) as T;
   }
 
-  /** @returns the stored identity and custom properties */
+  /**
+   * Serialize this instance to a JSON-compatible value
+   * @returns the stored identity and custom properties
+   */
   toJSON(): ModelLinkData {
     return { ...this };
   }
@@ -123,21 +133,46 @@ export class ModelLinksAny<K extends object = object, T extends Storable = Stora
   T,
   "CustomLinks"
 > {
+  /**
+   * [relation role]
+   */
   readonly [RelationRole] = "CustomLinks" as const;
+  /**
+   * Items
+   */
   private items: ModelAnyRefWithData<K, T>[] = [];
+  /**
+   * Targets
+   */
   private targets: Set<ModelClass<T>>;
 
   /**
+   * Create a new ModelLinksAny instance
    * @param targets - optional exact target classes, supplied by the content mapper for the second generic argument
    */
   constructor(targets: readonly ModelClass<T>[] = []) {
     // A Set preserves class values when the collection is wrapped in a deep dirty-tracking proxy.
     this.targets = new Set(targets);
     return new Proxy(this, {
+      /**
+       * Perform get
+       * @param target - the target
+       * @param property - the property
+       * @param receiver - the receiver
+       * @returns the result
+       */
       get(target, property, receiver) {
         if (typeof property === "string" && /^(0|[1-9]\d*)$/.test(property)) return target.items[Number(property)];
         return Reflect.get(target, property, receiver);
       },
+      /**
+       * Perform set
+       * @param target - the target
+       * @param property - the property
+       * @param value - the value
+       * @param receiver - the receiver
+       * @returns the result
+       */
       set(target, property, value, receiver) {
         if (typeof property === "string" && /^(0|[1-9]\d*)$/.test(property)) {
           const index = Number(property);
@@ -150,7 +185,10 @@ export class ModelLinksAny<K extends object = object, T extends Storable = Stora
     });
   }
 
-  /** @returns number of references */
+  /**
+   * Get number of references
+   * @returns number of references
+   */
   get length(): number {
     return this.items.length;
   }
@@ -199,12 +237,16 @@ export class ModelLinksAny<K extends object = object, T extends Storable = Stora
     return changed;
   }
 
-  /** @returns last reference, removing it */
+  /**
+   * Pop operation
+   * @returns last reference, removing it
+   */
   pop(): ModelAnyRefWithData<K, T> | undefined {
     return this.items.pop();
   }
 
   /**
+   * Return reference at the index
    * @param index - array index (negative counts from the end)
    * @returns reference at the index
    */
@@ -213,6 +255,7 @@ export class ModelLinksAny<K extends object = object, T extends Storable = Stora
   }
 
   /**
+   * Map operation
    * @param callback - mapper
    * @returns mapped results
    */
@@ -221,6 +264,7 @@ export class ModelLinksAny<K extends object = object, T extends Storable = Stora
   }
 
   /**
+   * Filter operation
    * @param predicate - reference predicate
    * @returns matching references
    */
@@ -228,12 +272,18 @@ export class ModelLinksAny<K extends object = object, T extends Storable = Stora
     return this.items.filter(predicate);
   }
 
-  /** @returns serialized references, never target objects */
+  /**
+   * Serialize this instance to a JSON-compatible value
+   * @returns serialized references, never target objects
+   */
   toJSON(): ModelLinkData<K>[] {
     return this.items.map(item => item.toJSON() as ModelLinkData<K>);
   }
 
-  /** @returns reference iterator */
+  /**
+   * Return the iterator for this instance
+   * @returns reference iterator
+   */
   [Symbol.iterator](): Iterator<ModelAnyRefWithData<K, T>> {
     return this.items[Symbol.iterator]();
   }

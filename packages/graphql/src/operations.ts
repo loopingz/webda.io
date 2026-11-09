@@ -28,6 +28,7 @@ export const GRAPHQL_NAME = /^[_A-Za-z][_0-9A-Za-z]*$/;
 const HIGH_WATER = 16;
 
 /**
+ * Return its PascalCase name without dots (`TaskService.Summary` → `TaskServiceSummary`)
  * @param id - operation id
  * @returns its PascalCase name without dots (`TaskService.Summary` → `TaskServiceSummary`)
  */
@@ -39,6 +40,7 @@ export function operationTypeName(id: string): string {
 }
 
 /**
+ * Return its GraphQL field name (`TaskService.Summary` → `taskServiceSummary`)
  * @param id - operation id
  * @returns its GraphQL field name (`TaskService.Summary` → `taskServiceSummary`)
  */
@@ -48,6 +50,7 @@ export function operationFieldName(id: string): string {
 }
 
 /**
+ * Check whether read only operation
  * @param op - operation
  * @returns true when it only reads (REST GET, or MCP readOnly)
  */
@@ -114,14 +117,33 @@ export function publicCopy(value: unknown): unknown {
 export class GraphQLOperationContext extends StreamingOperationContext {
   /** Last value written by a non-streamed operation */
   result: unknown;
+  /**
+   * Message
+   */
   private readonly message: Buffer;
+  /**
+   * Queue
+   */
   private readonly queue = new AsyncQueue<unknown>();
+  /**
+   * Pending
+   */
   private pending = 0;
+  /**
+   * Wakers
+   */
   private wakers: (() => void)[] = [];
+  /**
+   * Finished
+   */
   private finished = false;
+  /**
+   * Failure
+   */
   private failure?: unknown;
 
   /**
+   * Create a new GraphQLOperationContext instance
    * @param parent - the GraphQL request context
    * @param input - the operation input (from the field arguments)
    * @param transform - turns a streamed chunk into what the subscriber receives
@@ -234,6 +256,7 @@ export class GraphQLOperationContext extends StreamingOperationContext {
   }
 
   /**
+   * Return the chunks, for a subscription field (return() cancels the operation)
    * @returns the chunks, for a subscription field (return() cancels the operation)
    */
   chunks(): AsyncIterableIterator<unknown> {

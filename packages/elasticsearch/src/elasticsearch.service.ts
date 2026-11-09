@@ -115,6 +115,7 @@ export class ElasticSearchServiceParameters extends ServiceParameters {
  */
 export class ESUnknownIndexError extends WebdaError.CodeError {
   /**
+   * Create a new ESUnknownIndexError instance
    * @param index - the unknown index name
    */
   constructor(index: string) {
@@ -130,8 +131,17 @@ export class ESUnknownIndexError extends WebdaError.CodeError {
 export default class ElasticSearchService<
   T extends ElasticSearchServiceParameters = ElasticSearchServiceParameters
 > extends Service<T> {
+  /**
+   * Client
+   */
   _client: Client;
+  /**
+   * Refresh mode
+   */
   _refreshMode: boolean | "wait_for" = false;
+  /**
+   * Indexes
+   */
   protected indexes: { [key: string]: IndexInfo } = {};
 
   /**

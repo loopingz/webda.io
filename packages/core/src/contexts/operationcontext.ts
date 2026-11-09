@@ -53,6 +53,9 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   private user: IUser;
 
+  /**
+   * Parameters
+   */
   parameters: Parameters;
 
   /**
@@ -119,7 +122,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   }
 
   /**
-   *
+   * Set the extension
    * @param name to add
    * @param extension object to store
    * @returns this for chaining

@@ -110,7 +110,17 @@
       "required": [
         "order",
         "amount"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "/invoices",
+        "path": [],
+        "query": [],
+        "body": [
+          "order",
+          "amount"
+        ]
+      }
     },
     "Billing.createInvoice.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -155,7 +165,17 @@
       "required": [
         "order",
         "amount"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "/checkout",
+        "path": [],
+        "query": [],
+        "body": [
+          "order",
+          "amount"
+        ]
+      }
     },
     "Orders.checkout.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

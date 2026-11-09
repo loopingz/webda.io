@@ -247,6 +247,11 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
 
   return {
     name: "qlvalidator",
+    /**
+     * Perform analyze
+     * @param ctx - the ctx
+     * @returns the result
+     */
     analyze(ctx: AnalysisContext): FileEdits[] {
       const out: FileEdits[] = [];
 

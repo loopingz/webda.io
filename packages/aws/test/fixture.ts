@@ -50,9 +50,13 @@ export async function checkLocalStack() {
  * Test service receiving the AWS events dispatched by the LambdaServer
  */
 export class AWSEventsHandler extends Service {
+  /**
+   * Last events
+   */
   static lastEvents: any[] = [];
 
   /**
+   * Get the events received so far
    * @returns the events received so far
    */
   getEvents() {
@@ -60,6 +64,7 @@ export class AWSEventsHandler extends Service {
   }
 
   /**
+   * Check whether AWS event handled
    * @returns true, handle every event
    */
   isAWSEventHandled() {

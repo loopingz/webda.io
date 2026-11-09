@@ -11,6 +11,9 @@ import { useApplication } from "../application/hooks.js";
 export class FileConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters
 > extends ConfigurationService<T> {
+  /**
+   * Source paths
+   */
   sourcePaths: Record<string, string> = {};
 
   /**

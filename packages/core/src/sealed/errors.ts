@@ -1,6 +1,7 @@
 /** Malformed sealed envelope, keyring or escrow blob: unknown version, bad encoding or unsupported KDF. */
 export class SealedFormatError extends Error {
   /**
+   * Create a new SealedFormatError instance
    * @param message - error message
    */
   constructor(message: string) {
@@ -12,6 +13,7 @@ export class SealedFormatError extends Error {
 /** A private key of the keyring does not match the public key served for it (public key pinning failed). */
 export class KeyringPinError extends Error {
   /**
+   * Create a new KeyringPinError instance
    * @param message - error message
    */
   constructor(message = "Keyring private key does not match the pinned public key") {

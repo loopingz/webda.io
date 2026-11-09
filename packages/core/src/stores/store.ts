@@ -79,6 +79,9 @@ export class UpdateConditionFailError extends WebdaError.CodeError {
   }
 }
 
+/**
+ * Event store interface
+ */
 interface EventStore {
   /**
    * Target object
@@ -228,13 +231,37 @@ export interface StoreFindResult<T> {
  * @internal — Store-internal contract. App code uses `Repository<T>` from `@webda/models`.
  */
 export interface StoreInterface<T = any> {
+  /**
+   * Create operation
+   */
   create(uuid: PrimaryKey<any>, object: any): Promise<any>;
+  /**
+   * Perform get
+   */
   get(uuid: PrimaryKey<any>): Promise<any>;
+  /**
+   * Update operation
+   */
   update(uuid: PrimaryKey<any>, object: any): Promise<any>;
+  /**
+   * Delete operation
+   */
   delete(uuid: PrimaryKey<any>): Promise<void>;
+  /**
+   * Perform exists
+   */
   exists(uuid: PrimaryKey<any>): Promise<boolean>;
+  /**
+   * Set the attribute
+   */
   setAttribute(uuid: PrimaryKey<any>, attribute: string, value: any): Promise<void>;
+  /**
+   * Remove attribute
+   */
   removeAttribute(uuid: PrimaryKey<any>, attribute: string): Promise<void>;
+  /**
+   * Perform upsert item to collection
+   */
   upsertItemToCollection(
     uuid: PrimaryKey<any>,
     collection: string,
@@ -243,6 +270,9 @@ export interface StoreInterface<T = any> {
     itemWriteConditionField?: string,
     itemWriteCondition?: any
   ): Promise<void>;
+  /**
+   * Delete item from collection
+   */
   deleteItemFromCollection(
     uuid: PrimaryKey<any>,
     collection: string,
@@ -250,9 +280,21 @@ export interface StoreInterface<T = any> {
     itemWriteConditionField?: string,
     itemWriteCondition?: any
   ): Promise<void>;
+  /**
+   * Find operation
+   */
   find(query: WebdaQLString<T>): Promise<StoreFindResult<any>>;
+  /**
+   * Query operation
+   */
   query(query: WebdaQLString<T>): Promise<StoreFindResult<any>>;
+  /**
+   * Perform iterate
+   */
   iterate(query: WebdaQLString<T>): AsyncGenerator;
+  /**
+   * Perform increment attributes
+   */
   incrementAttributes(uuid: PrimaryKey<any>, info: { property: string; value?: number }[]): Promise<Date>;
 }
 
@@ -317,6 +359,7 @@ export class StoreParameters extends ServiceParameters {
    */
   typeCheck?: {
     /**
+     * Whether enabled is enabled
      * @default true
      */
     enabled?: boolean;
@@ -802,6 +845,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
+   * Return the Registry entry of the migration
    * @param name - migration name
    * @returns the Registry entry of the migration
    */
@@ -810,6 +854,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
+   * Get the stored progress, undefined when the migration never ran
    * @param name - migration name
    * @returns the stored progress, undefined when the migration never ran
    */

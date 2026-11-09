@@ -12,6 +12,7 @@ import { IdentConflict } from "../errors.js";
  */
 
 /**
+ * Return the v3 key `"<providerUid>_<provider>"`
  * @param providerUid - uid on the provider
  * @param provider - provider name
  * @returns the v3 key `"<providerUid>_<provider>"`
@@ -30,6 +31,7 @@ export function splitLegacyKey(uuid: string): { providerUid: string; provider: s
 }
 
 /**
+ * Convert to date
  * @param value - a v3 date (ISO string, timestamp or Date)
  * @returns the date, undefined when absent or unreadable
  */
@@ -42,6 +44,7 @@ function toDate(value: any): Date | undefined {
 }
 
 /**
+ * Convert to timestamp
  * @param value - a v3 timestamp (number, ISO string or Date)
  * @returns the timestamp in ms, undefined when absent or unreadable
  */

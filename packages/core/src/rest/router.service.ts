@@ -49,8 +49,17 @@ export interface RouteAliasDefinition {
  * Entry structure for URI template matching
  */
 export interface TemplateMatchEntry {
+  /**
+   * URI template parse
+   */
   _uriTemplateParse?: any;
+  /**
+   * Query params
+   */
   _queryParams?: { name: string; required: boolean }[];
+  /**
+   * Query catch all
+   */
   _queryCatchAll?: string;
 }
 
@@ -58,9 +67,21 @@ export interface TemplateMatchEntry {
  * Compiled route alias representation for router internal matching
  */
 export interface CompiledAlias extends TemplateMatchEntry {
+  /**
+   * Raw URL
+   */
   rawUrl: string;
+  /**
+   * URL
+   */
   url: string;
+  /**
+   * Definition
+   */
   definition: RouteAliasDefinition;
+  /**
+   * Target
+   */
   target: ReturnType<typeof compileAliasTarget>;
 }
 
@@ -221,9 +242,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   protected routes: Map<string, RouteInfo[]> = new Map();
   /**
-   *
+   * Path map
    */
   protected pathMap: { url: string; config: RouteInfo }[];
+  /**
+   * Models
+   */
   protected models: Map<string, string> = new Map();
   /**
    * Route aliases configuration
@@ -557,6 +581,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
+   * Init URI templates
    * @hidden
    * @param config - the configuration
    */
@@ -1225,7 +1250,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   @Command("openapi", { description: "Export the OpenAPI definition", requires: ["router", "rest-domain"] })
   openapi(
-    /** @alias o @description Output file path (stdout if omitted) */
+    /**
+     * Output
+     * @alias o @description Output file path (stdout if omitted)
+     */
     output?: string,
     /** @description Include hidden routes */
     includeHidden?: boolean

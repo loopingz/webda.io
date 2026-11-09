@@ -67,11 +67,29 @@ export interface CompletionResult {
  * Minimal JSON Schema 7 subset for schema flattening without external dependencies
  */
 export interface JSONSchema7Like {
+  /**
+   * Type
+   */
   type?: string | string[];
+  /**
+   * Properties
+   */
   properties?: Record<string, JSONSchema7Like | boolean>;
+  /**
+   * Enum
+   */
   enum?: (string | number | boolean)[];
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Items
+   */
   items?: JSONSchema7Like | boolean | (JSONSchema7Like | boolean)[];
+  /**
+   * $ref
+   */
   $ref?: string;
   [key: string]: any;
 }
@@ -171,10 +189,25 @@ function isIdentifierOrKeyword(type: number): boolean {
  * Context of a caret located inside a string literal
  */
 interface StringLiteralContext {
+  /**
+   * Whether inside is enabled
+   */
   inside: boolean;
+  /**
+   * Start
+   */
   start: number;
+  /**
+   * End
+   */
   end: number;
+  /**
+   * Prefix
+   */
   prefix: string;
+  /**
+   * Range
+   */
   range: [number, number];
 }
 

@@ -6,6 +6,7 @@ import { listOperationAuthorizers } from "@webda/core";
 export const IAM_AUTHORIZER = Symbol("IAMAuthorizer");
 
 /**
+ * Check whether IAM active
  * @returns true while a registered IAMService authorizer has its policies loaded (initialized and not stopped)
  */
 export function isIAMActive(): boolean {

@@ -14,6 +14,13 @@ const libDir = resolve(root, "lib");
 const libToSrc = {
   name: "auth-lib-to-src",
   enforce: "pre" as const,
+  /**
+   * Resolve ID
+   * @param source - the source
+   * @param importer - the importer
+   * @param options - the options
+   * @returns the result
+   */
   async resolveId(this: any, source: string, importer?: string, options?: any) {
     let file: string | undefined;
     if (source.startsWith("file://")) {

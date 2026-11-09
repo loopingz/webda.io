@@ -25,7 +25,13 @@ export class PostTag extends Model {
   createdAt!: Date;
 
   // Relations to actual objects
+  /**
+   * Post
+   */
   post!: ManyToOne<Post>;
+  /**
+   * Tag
+   */
   tag!: RelateTo<Tag>;
 
   /**

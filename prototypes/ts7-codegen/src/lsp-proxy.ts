@@ -130,6 +130,9 @@ function realServerPath(): string {
  * Stream splitter for LSP's `Content-Length` framing.
  */
 class LspFramer {
+  /**
+   * Buffer
+   */
   private buffer = Buffer.alloc(0);
 
   /**

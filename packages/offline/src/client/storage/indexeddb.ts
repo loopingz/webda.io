@@ -5,6 +5,7 @@ const RECORDS = "records";
 const META = "meta";
 
 /**
+ * Return its result
  * @param request - an IndexedDB request
  * @returns its result
  */
@@ -16,6 +17,7 @@ function done<T>(request: IDBRequest<T>): Promise<T> {
 }
 
 /**
+ * Return resolves when committed
  * @param tx - a transaction
  * @returns resolves when committed
  */
@@ -31,9 +33,13 @@ function committed(tx: IDBTransaction): Promise<void> {
  * Browser storage: one object store of records (indexed by model and pending flag) and one of metadata
  */
 export class IndexedDBStorage implements StorageAdapter {
+  /**
+   * Database client
+   */
   protected db?: Promise<IDBDatabase>;
 
   /**
+   * Create a new IndexedDBStorage instance
    * @param name - database name
    * @param factory - IndexedDB factory, `globalThis.indexedDB` by default
    */
@@ -43,6 +49,7 @@ export class IndexedDBStorage implements StorageAdapter {
   ) {}
 
   /**
+   * Open operation
    * @returns the opened database
    */
   protected open(): Promise<IDBDatabase> {
@@ -74,6 +81,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
+   * Return the record without the index helper field
    * @param row - a stored row
    * @returns the record without the index helper field
    */
@@ -84,7 +92,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Get the record, undefined when missing
    * @param id - the id
    * @returns the record, undefined when missing
    */
@@ -94,7 +102,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Put records
    * @param records - the records
    */
   async putRecords(records: LocalRecord[]): Promise<void> {
@@ -114,7 +122,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Delete records
    * @param ids - the ids
    */
   async deleteRecords(ids: string[]): Promise<void> {
@@ -125,7 +133,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Return every record of the model
    * @param model - the model
    * @returns every record of the model
    */
@@ -136,7 +144,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Return every record not synced
    * @returns every record not synced
    */
   async scanPending(): Promise<LocalRecord[]> {
@@ -146,7 +154,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Get the value, undefined when missing
    * @param key - the key
    * @returns the value, undefined when missing
    */
@@ -156,7 +164,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Set the meta
    * @param key - the key
    * @param value - the value
    */
@@ -169,7 +177,7 @@ export class IndexedDBStorage implements StorageAdapter {
   }
 
   /**
-   *
+   * Clear operation
    */
   async clear(): Promise<void> {
     const db = await this.open();

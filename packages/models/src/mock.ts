@@ -9,6 +9,9 @@
  */
 const MOCK_META = "webda:mock";
 
+/**
+ * Mock kind type definition
+ */
 export type MockKind =
   | "uuid"
   | "email"
@@ -34,11 +37,17 @@ export type MockKind =
   | "linkNew"
   | (string & {}); // forward-compat escape via @Mock({ kind, … })
 
+/**
+ * Mock meta type definition
+ */
 export type MockMeta = {
   kind: MockKind;
   options?: Record<string, unknown>;
 };
 
+/**
+ * Field meta map type definition
+ */
 type FieldMetaMap = Record<string, MockMeta>;
 
 /**

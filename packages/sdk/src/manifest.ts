@@ -24,11 +24,23 @@ export interface SharedMethod {
 
 /** An operation of the manifest */
 export interface SdkManifestOperation {
+  /**
+   * Unique identifier
+   */
   id: string;
   /** Schema ref or `void`; `<ref>?` is a partial input (ignoreRequired) */
   input: string;
+  /**
+   * Output
+   */
   output: string;
+  /**
+   * Streaming
+   */
   streaming: OperationStreaming;
+  /**
+   * REST
+   */
   rest?: RestExposure;
   /** Where and how the `GraphQLService` exposes the operation, read from its schema */
   graphql?: GraphQLExposure;
@@ -36,23 +48,59 @@ export interface SdkManifestOperation {
   grpc?: { service: string; rpc: string };
   /** Model id when the operation is CRUD, an action or a behavior of a model */
   model?: string;
+  /**
+   * Kind
+   */
   kind?: OperationKind;
+  /**
+   * Action
+   */
   action?: { name: string; global?: boolean };
+  /**
+   * Behavior
+   */
   behavior?: { attribute: string; action: string };
   /** WebdaQL on the session, informational */
   permission?: string;
+  /**
+   * Summary
+   */
   summary?: string;
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Tags
+   */
   tags?: string[];
+  /**
+   * Whether deprecated is enabled
+   */
   deprecated?: boolean;
 }
 
 /** A model of the manifest */
 export interface SdkManifestModel {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Short name
+   */
   shortName: string;
+  /**
+   * Plural
+   */
   plural: string;
+  /**
+   * Primary key
+   */
   primaryKey: string[];
+  /**
+   * Primary key separator
+   */
   primaryKeySeparator?: string;
   /** Ref into `schemas` of what the server sends (`Metadata.Schemas.Output ?? Input`) */
   schema: string;
@@ -73,10 +121,19 @@ export interface SdkManifestModel {
  * the models, their schemas and what the application serves
  */
 export interface SdkManifest {
+  /**
+   * Version
+   */
   version: 1;
   /** Application namespace, e.g. `WebdaDemo` */
   namespace: string;
+  /**
+   * Operations
+   */
   operations: Record<string, SdkManifestOperation>;
+  /**
+   * Models
+   */
   models: Record<string, SdkManifestModel>;
   /** Every referenced schema, local `definitions` hoisted */
   schemas: Record<string, JSONSchema7>;
@@ -106,6 +163,7 @@ export interface SdkManifestBuilderOptions {
 }
 
 /**
+ * Return the matching regular expression
  * @param pattern - a glob with `*`
  * @returns the matching regular expression
  */
@@ -119,6 +177,7 @@ export function globToRegExp(pattern: string): RegExp {
 }
 
 /**
+ * Create ID filter
  * @param include - include globs, every id when empty
  * @param exclude - exclude globs
  * @returns a filter on operation ids
@@ -167,11 +226,13 @@ const initialized = new WeakSet<object>();
  */
 export class SdkManifestBuilder {
   /**
+   * Create a new SdkManifestBuilder instance
    * @param options - what to describe
    */
   constructor(protected options: SdkManifestBuilderOptions = {}) {}
 
   /**
+   * Return the configured services, by constructor name
    * @returns the configured services, by constructor name
    */
   protected services(): Record<string, any> {
@@ -179,6 +240,7 @@ export class SdkManifestBuilder {
   }
 
   /**
+   * Return the first configured service of that class, by duck typing on the class chain
    * @param name - constructor name (`GraphQLService`, `GrpcService`, `SyncService`)
    * @returns the first configured service of that class, by duck typing on the class chain
    */
@@ -196,6 +258,7 @@ export class SdkManifestBuilder {
   }
 
   /**
+   * Return the REST transport, when configured
    * @returns the REST transport, when configured
    */
   protected restTransport(): RESTOperationsTransport | undefined {
@@ -283,6 +346,7 @@ export class SdkManifestBuilder {
   }
 
   /**
+   * Return the model id the operation works on
    * @param op - an operation definition
    * @returns the model id the operation works on
    */
@@ -299,6 +363,7 @@ export class SdkManifestBuilder {
   }
 
   /**
+   * Build operation
    * @returns the manifest
    */
   build(): SdkManifest {
@@ -310,6 +375,7 @@ export class SdkManifestBuilder {
     const routes = describe("rest") && rest ? this.restRoutes(rest) : new Map<string, SdkManifestOperation["rest"]>();
     const schemas: Record<string, JSONSchema7> = {};
     /**
+     * Ref
      * @param ref - a schema ref, `void` or `<ref>?`
      * @returns the schema, recorded in the manifest with its hoisted definitions
      */
@@ -455,6 +521,7 @@ export class SdkManifestBuilder {
 }
 
 /**
+ * Build SDK manifest
  * @param options - what to describe
  * @returns the manifest of the current application
  */

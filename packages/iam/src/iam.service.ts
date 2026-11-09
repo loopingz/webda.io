@@ -33,6 +33,7 @@ import { IAMPolicyAttachment } from "./iampolicyattachment.model.js";
 export const IAM_OPERATIONS = ["IAMPolicy.*", "IAMPolicies.*", "IAMPolicyAttachment.*", "IAMPolicyAttachments.*"];
 
 /**
+ * Check whether IAM operation
  * @param operationId - the operation id
  * @returns true for an operation of the IAM models
  */
@@ -64,6 +65,7 @@ function clearAllowedOperation(evt: { context: OperationContext; operationId: st
 const RELOAD_EVENTS = ["Created", "Updated", "Patched", "Deleted"] as const;
 
 /**
+ * Configuration parameters for IAMService
  * @inheritdoc
  */
 export class IAMServiceParameters extends ServiceParameters {
@@ -111,6 +113,7 @@ export class IAMServiceParameters extends ServiceParameters {
 }
 
 /**
+ * Return its repository, or undefined when no store holds it
  * @param model - a model class
  * @returns its repository, or undefined when no store holds it
  */
@@ -123,6 +126,7 @@ function tryRepository(model: any): any {
 }
 
 /**
+ * Return a deep-frozen plain clone
  * @param value - a value
  * @returns a deep-frozen plain clone
  * @throws when the value cannot be serialized: the authorizer then refuses (fail closed), an empty substitute could
@@ -286,6 +290,7 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
   }
 
   /**
+   * Check whether in scope
    * @param operationId - the operation id
    * @returns true when IAM governs the operation
    */

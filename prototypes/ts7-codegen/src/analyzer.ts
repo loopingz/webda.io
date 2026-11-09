@@ -25,9 +25,21 @@ import {
 
 /** Resolved, defaulted options. */
 interface Resolved {
+  /**
+   * Model bases
+   */
   modelBases: Set<string>;
+  /**
+   * Whether accessors for all is enabled
+   */
   accessorsForAll: boolean;
+  /**
+   * Storage module
+   */
   storageModule: string;
+  /**
+   * Coercions
+   */
   coercions: CoercionRegistry;
 }
 

@@ -44,6 +44,9 @@ function fingerprintSecrets(value: any): any {
   return value;
 }
 
+/**
+ * Core states type definition
+ */
 export type CoreStates =
   | "initial"
   | "loading"
@@ -110,6 +113,9 @@ export class Core implements ICore {
    * Configuration service name
    */
   configurationService?: string;
+  /**
+   * Application configuration
+   */
   applicationConfiguration: Configuration;
   /**
    * Last error of the services that could not be created, by service name

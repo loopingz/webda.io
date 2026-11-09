@@ -3,9 +3,13 @@
  * automatically anchoring each pattern with `^` and `$` if not already present.
  */
 export class RegExpValidator {
+  /**
+   * Validators
+   */
   protected validators: RegExp[];
 
   /**
+   * Create a new RegExpValidator instance
    * @param info - One or more regex pattern strings to validate against.
    */
   constructor(info: string | string[]) {
@@ -60,9 +64,13 @@ export class RegExpValidator {
  * ```
  */
 export class RegExpStringValidator extends RegExpValidator {
+  /**
+   * String validators
+   */
   stringValidators: string[];
 
   /**
+   * Create a new RegExpStringValidator instance
    * @param info - One or more values. Entries prefixed with `regex:` are treated as regex
    *   patterns (with the prefix stripped); all others are treated as exact-match strings.
    */

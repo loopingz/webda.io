@@ -43,12 +43,18 @@ function resolveCompilerLayout(): { root: string; lib: string } | undefined {
 
 const COMPILER_LAYOUT = resolveCompilerLayout();
 
+/**
+ * Model graph binary definition type definition
+ */
 export type ModelGraphBinaryDefinition = {
   attribute: string;
   cardinality: "ONE" | "MANY";
   metadata?: string;
 };
 
+/**
+ * Model graph behavior definition type definition
+ */
 export type ModelGraphBehaviorDefinition = {
   /** Property name on the parent model. */
   attribute: string;
@@ -62,6 +68,9 @@ export type ModelGraphBehaviorDefinition = {
  */
 export type { DeletePolicy } from "@webda/content-mapper";
 
+/**
+ * Model relation type definition
+ */
 export type ModelRelation = {
   attribute: string;
   model: string;
@@ -193,6 +202,9 @@ export type ModelGraph = {
   behaviors?: ModelGraphBehaviorDefinition[];
 };
 
+/**
+ * Model metadata interface
+ */
 export interface ModelMetadata {
   /** Typed runtime parameter schema, separate from instance schemas. */
   Schema?: JSONSchema7;
@@ -486,6 +498,9 @@ export type CommandDefinition = {
   phase?: "application" | "resolved" | "initialized";
 };
 
+/**
+ * Service metadata type definition
+ */
 export type ServiceMetadata = {
   /**
    * File to import
@@ -617,6 +632,9 @@ export interface FlowMetadata {
    * `target: { class, method }`, resolved at startup to the configured service
    */
   body: any[];
+  /**
+   * Source
+   */
   source: "code";
   /**
    * Launch schedules, from `@Cron` on the method
@@ -720,6 +738,9 @@ export interface WebdaPackageDescriptor {
   [key: string]: any;
 }
 
+/**
+ * Package descriptor author type definition
+ */
 export type PackageDescriptorAuthor =
   | string
   | {
@@ -955,7 +976,13 @@ export interface ProjectInformation {
 
 /** Represents a Webda project on disk, providing access to package metadata and project paths */
 export class WebdaProject {
+  /**
+   * Namespace
+   */
   namespace: string;
+  /**
+   * Package description
+   */
   packageDescription: PackageDescriptor;
   /** Create a new WebdaProject.
    * @param folder - path to the project root

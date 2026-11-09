@@ -85,11 +85,29 @@ export class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchL
   extends Service<T>
   implements CloudFormationContributor
 {
+  /**
+   * Log group name
+   */
   _logGroupName: string;
+  /**
+   * Log stream name
+   */
   _logStreamName: string;
+  /**
+   * Seq token
+   */
   _seqToken: string;
+  /**
+   * Log stream
+   */
   _logStream: any;
+  /**
+   * Cloudwatch
+   */
   _cloudwatch: CloudWatchLogs;
+  /**
+   * Buffered logs
+   */
   _bufferedLogs: any[] = [];
   /**
    * Listener on the worker output

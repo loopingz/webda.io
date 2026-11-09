@@ -15,12 +15,19 @@ import type { CustomResource, CustomResources } from "./resources.js";
  * metadata only (finalizers, operator conditions) and the writes of this process emit nothing.
  */
 export class ResourceWatcher {
+  /**
+   * Informer
+   */
   protected informer?: KubernetesInformer<CustomResource>;
   /** data of each known object, to detect the changes of the model data */
   protected rows = new Map<string, string>();
+  /**
+   * Repositories
+   */
   protected repositories = new Map<string, { events: Repository<any>; raw: KubernetesRepository<any> }>();
 
   /**
+   * Create a new ResourceWatcher instance
    * @param store - the store
    * @param root - the model owning the resources
    * @param resources - the resources, with the tracker of this process writes

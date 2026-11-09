@@ -30,9 +30,13 @@ import type { AnalysisContext, Edit } from "../plan.ts";
 
 /** Collects the import edits one file needs. */
 export class ValueImports {
+  /**
+   * Edits
+   */
   private readonly edits = new Map<string, Edit>();
 
   /**
+   * Create a new ValueImports instance
    * @param ctx - analysis context
    * @param sf - the file the generated code goes into
    * @param source - generator name, recorded on the edits
@@ -202,8 +206,20 @@ export class ValueImports {
 
 /** One import binding, with enough of its syntax to rewrite it. */
 interface ImportBinding {
+  /**
+   * Declaration
+   */
   declaration: any;
+  /**
+   * Clause
+   */
   clause: any;
+  /**
+   * Element
+   */
   element: any | undefined;
+  /**
+   * Whether type only is enabled
+   */
   typeOnly: boolean;
 }

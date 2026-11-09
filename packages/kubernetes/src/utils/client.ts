@@ -52,9 +52,21 @@ export function getKubeConfig(params: KubernetesParameters): k8s.KubeConfig {
  * Kubernetes configuration as found in a kubeconfig file
  */
 export interface K8sConfiguration {
+  /**
+   * Clusters
+   */
   clusters: k8s.Cluster[];
+  /**
+   * Contexts
+   */
   contexts: k8s.Context[];
+  /**
+   * Current context
+   */
   currentContext: string;
+  /**
+   * Users
+   */
   users: k8s.User[];
 }
 

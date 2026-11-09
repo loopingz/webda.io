@@ -82,8 +82,17 @@ export function stripFragment(): void {
 
 /** Minimal storage interface (localStorage / sessionStorage). */
 export interface StorageLike {
+  /**
+   * Get the item
+   */
   getItem(key: string): string | null;
+  /**
+   * Set the item
+   */
   setItem(key: string, value: string): void;
+  /**
+   * Remove item
+   */
   removeItem(key: string): void;
 }
 

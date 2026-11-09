@@ -7,14 +7,33 @@ import { DebugClient } from "../client.js";
  * configuration, capabilities, schema, and metrics.
  */
 export class ServicesPanel extends ScrollablePanel {
+  /**
+   * Name
+   */
   name = "Services";
+  /**
+   * Services
+   */
   private services: any[] = [];
+  /**
+   * Configuration
+   */
   private config: any = {};
+  /**
+   * Visible rows
+   */
   private visibleRows = 0;
+  /**
+   * Detail mode
+   */
   private detailMode = false;
+  /**
+   * Detail scroll
+   */
   private detailScroll = 0;
 
   /**
+   * Create a new ServicesPanel instance
    * @param client - Debug API client
    */
   constructor(private client: DebugClient) {
@@ -191,8 +210,18 @@ export class ServicesPanel extends ScrollablePanel {
 
     const lines: { render: (t: any, w: number) => void }[] = [];
 
+    /**
+     * Add text line
+     * @param text - the text
+     * @param style - the style
+     */
     const addText = function addTextLine(text: string, style?: string) {
       lines.push({
+        /**
+         * Render text
+         * @param t - the t
+         * @param w - the w
+         */
         render: function renderText(t: any, w: number) {
           if (style === "bold") t.bold(text.substring(0, w));
           else if (style === "dim") t.dim(text.substring(0, w));
@@ -201,8 +230,16 @@ export class ServicesPanel extends ScrollablePanel {
         }
       });
     };
+    /**
+     * Add empty line
+     */
     const addEmpty = function addEmptyLine() {
-      lines.push({ render: function renderEmpty() {} });
+      lines.push({
+        /**
+         * Render empty
+         */
+        render: function renderEmpty() {}
+      });
     };
 
     addText(`  Service: ${svc.name}`, "bold");

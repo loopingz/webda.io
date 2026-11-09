@@ -58,8 +58,17 @@ export interface MappedSource {
  * The rows of a junction table for one owner row
  */
 export interface JunctionWrite {
+  /**
+   * Table
+   */
   table: TablePlan;
+  /**
+   * Relation
+   */
   relation: RelationPlan;
+  /**
+   * Rows
+   */
   rows: Record<string, unknown>[];
 }
 
@@ -67,14 +76,24 @@ export interface JunctionWrite {
  * A model object as columns and junction rows
  */
 export interface RowWrite {
+  /**
+   * Columns
+   */
   columns: string[];
+  /**
+   * Values
+   */
   values: unknown[];
+  /**
+   * Junctions
+   */
   junctions: JunctionWrite[];
 }
 
 const NUMBER_KINDS = new Set(["bigint", "double", "decimal"]);
 
 /**
+ * Return its local calendar day as `YYYY-MM-DD`
  * @param date - a date
  * @returns its local calendar day as `YYYY-MM-DD`
  */
@@ -87,15 +106,37 @@ function localDay(date: Date): string {
  * Maps the JSON of the models of one table to its columns and junction rows, and back
  */
 export class TableMapping {
+  /**
+   * Type column
+   */
   readonly typeColumn: string;
+  /**
+   * Extra column
+   */
   readonly extraColumn: string | undefined;
+  /**
+   * Primary key
+   */
   readonly primaryKey: string[];
+  /**
+   * By field
+   */
   private readonly byField = new Map<string, ColumnPlan[]>();
+  /**
+   * Relations
+   */
   private readonly relations = new Map<string, RelationPlan>();
+  /**
+   * Junction tables
+   */
   private readonly junctionTables = new Map<string, TablePlan>();
+  /**
+   * Mapped sources
+   */
   private mappedSources?: Map<string, MappedSource>;
 
   /**
+   * Create a new TableMapping instance
    * @param plan - the plan
    * @param table - the table of the models
    * @param isA - whether a model is a subclass of another (the plan does not keep the hierarchy): the projections are
@@ -130,6 +171,7 @@ export class TableMapping {
   }
 
   /**
+   * Resolve operation
    * @param path - an attribute path
    * @returns where the attribute lives
    */
@@ -158,6 +200,7 @@ export class TableMapping {
   }
 
   /**
+   * Return the columns the model reads and writes, those of the table root for an unknown model
    * @param model - a model identifier
    * @returns the columns the model reads and writes, those of the table root for an unknown model
    */
@@ -170,6 +213,7 @@ export class TableMapping {
   }
 
   /**
+   * Read columns
    * @returns every column of the table, in table order
    */
   readColumns(): string[] {
@@ -177,6 +221,7 @@ export class TableMapping {
   }
 
   /**
+   * Return the junction tables of the models of the table
    * @returns the junction tables of the models of the table
    */
   junctions(): { table: TablePlan; relation: RelationPlan }[] {
@@ -203,6 +248,7 @@ export class TableMapping {
   }
 
   /**
+   * Return where its items come from, undefined when its model is not planned here or does not link to this table
    * @param relation - a `map` relation of the table
    * @returns where its items come from, undefined when its model is not planned here or does not link to this table
    */
@@ -240,6 +286,7 @@ export class TableMapping {
   }
 
   /**
+   * Encode operation
    * @param value - a JSON value
    * @param column - the column receiving it
    * @returns the value to bind
@@ -269,6 +316,7 @@ export class TableMapping {
   }
 
   /**
+   * Decode operation
    * @param value - a column value
    * @param column - its column
    * @param decodeJson - decoder of the JSON columns of the engine
@@ -390,6 +438,7 @@ export class TableMapping {
   }
 
   /**
+   * Return the value of the column: the key part of a composite reference, the encoded value otherwise
    * @param value - the serialized attribute
    * @param column - a field or reference column
    * @returns the value of the column: the key part of a composite reference, the encoded value otherwise
@@ -407,6 +456,7 @@ export class TableMapping {
   }
 
   /**
+   * Return the owner columns of its junction rows
    * @param junction - a junction table
    * @param keyValues - the owner object (its primary key fields)
    * @returns the owner columns of its junction rows
@@ -422,6 +472,7 @@ export class TableMapping {
   }
 
   /**
+   * Return the junction rows
    * @param json - the owner object
    * @param value - the serialized relation attribute
    * @param table - the junction table
@@ -519,6 +570,7 @@ export class TableMapping {
   }
 
   /**
+   * Return the attribute value: keys, items or a map of items
    * @param table - the junction table
    * @param relation - the relation
    * @param rows - its rows for one owner

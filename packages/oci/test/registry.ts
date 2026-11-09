@@ -19,7 +19,13 @@ async function readBody(request: IncomingMessage): Promise<Buffer> {
  * In-memory OCI registry for tests, with optional bearer token authentication
  */
 export class FakeRegistry {
+  /**
+   * Server
+   */
   server: Server;
+  /**
+   * Port
+   */
   port: number;
   /**
    * Blobs per repository
@@ -29,6 +35,9 @@ export class FakeRegistry {
    * Manifests per repository, by tag and by digest
    */
   manifests = new Map<string, Map<string, { bytes: Buffer; mediaType: string }>>();
+  /**
+   * Uploads
+   */
   uploads = new Map<string, string>();
   /**
    * Requests received, `METHOD path`
@@ -40,6 +49,7 @@ export class FakeRegistry {
   scopes: string[] = [];
 
   /**
+   * Create a new FakeRegistry instance
    * @param auth - require a bearer token obtained with these credentials
    * @param auth.username - user name expected by the token service
    * @param auth.password - password expected by the token service

@@ -11,6 +11,7 @@
         "definitions": {
           "contentStorage#2": {
             "additionalProperties": false,
+            "description": "Content storage",
             "properties": {
               "default": {
                 "default": false,
@@ -37,33 +38,38 @@
         "description": "Blob storage settings. Shared keys are optional; managed identity is preferred.",
         "properties": {
           "account": {
+            "description": "Account",
             "type": "string"
           },
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
           "connectionString": {
+            "description": "Connection string",
             "type": "string",
             "x-webda-secret": true
           },
           "container": {
+            "description": "Container",
             "type": "string"
           },
           "contentStorage": {
-            "$ref": "#/definitions/contentStorage%232"
+            "$ref": "#/definitions/contentStorage%232",
+            "description": "Content storage"
           },
           "createContainer": {
             "default": false,
+            "description": "Create container",
             "type": "boolean"
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "maxFileSize": {
@@ -85,9 +91,11 @@
             "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
           },
           "pendingTimeout": {
+            "description": "Pending timeout",
             "type": "number"
           },
           "prefix": {
+            "description": "Prefix",
             "type": "string"
           },
           "serviceVersion": {
@@ -95,11 +103,11 @@
             "type": "string"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "type": {
@@ -250,6 +258,7 @@
           },
           "containerApp": {
             "additionalProperties": false,
+            "description": "Container app",
             "properties": {
               "cpu": {
                 "type": "number"
@@ -350,6 +359,7 @@
           },
           "environment": {
             "additionalProperties": false,
+            "description": "Environment",
             "properties": {
               "id": {
                 "type": "string"
@@ -415,11 +425,11 @@
             "type": "string"
           },
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
@@ -436,10 +446,12 @@
             "type": "array"
           },
           "containerApp": {
-            "$ref": "#/definitions/containerApp"
+            "$ref": "#/definitions/containerApp",
+            "description": "Container app"
           },
           "createResourceGroup": {
             "default": false,
+            "description": "Create resource group",
             "type": "boolean"
           },
           "credentials": {
@@ -449,9 +461,11 @@
           },
           "crons": {
             "default": true,
+            "description": "Crons",
             "type": "boolean"
           },
           "customDomains": {
+            "description": "Custom domains",
             "items": {
               "$ref": "#/definitions/customDomains%5B%5D"
             },
@@ -468,13 +482,15 @@
               {
                 "$ref": "#/definitions/Record%3Cstring%2C%20Record%3Cstring%2C%20any%3E%3E"
               }
-            ]
+            ],
+            "description": "Custom resources"
           },
           "deploymentName": {
+            "description": "Deployment name",
             "type": "string"
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "entrypoint": {
@@ -496,7 +512,8 @@
             "description": "Environment variables"
           },
           "environment": {
-            "$ref": "#/definitions/environment"
+            "$ref": "#/definitions/environment",
+            "description": "Environment"
           },
           "exposedPorts": {
             "default": [
@@ -527,6 +544,7 @@
           },
           "location": {
             "default": "westeurope",
+            "description": "Location",
             "type": "string"
           },
           "logAnalytics": {
@@ -538,7 +556,8 @@
               {
                 "$ref": "#/definitions/logAnalytics%232"
               }
-            ]
+            ],
+            "description": "Log analytics"
           },
           "mtime": {
             "default": "the SOURCE_DATE_EPOCH environment variable, or 0",
@@ -566,10 +585,12 @@
             "type": "array"
           },
           "registry": {
+            "description": "Registry",
             "type": "string"
           },
           "registryAuth": {
             "default": "aad",
+            "description": "Registry auth",
             "enum": [
               "aad",
               "identity",
@@ -578,16 +599,19 @@
             "type": "string"
           },
           "resourceGroup": {
+            "description": "Resource group",
             "type": "string"
           },
           "resourceTags": {
-            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E"
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "description": "Resource tags"
           },
           "secrets": {
-            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20SecretString%20%7C%20%7B%20keyVaultUrl%3A%20string%3B%20identity%3A%20string%3B%20%7D%3E"
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20SecretString%20%7C%20%7B%20keyVaultUrl%3A%20string%3B%20identity%3A%20string%3B%20%7D%3E",
+            "description": "Secrets"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tags": {
@@ -601,10 +625,11 @@
             "type": "array"
           },
           "templateOutput": {
+            "description": "Template output",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "type": {
@@ -668,6 +693,7 @@
         "properties": {
           "requestIdHeader": {
             "default": "x-request-id",
+            "description": "Request ID header",
             "type": "string"
           },
           "type": {
@@ -881,7 +907,8 @@
         "description": "Azure Functions Flex Consumption unit settings.",
         "properties": {
           "appSettings": {
-            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20SecretString%3E"
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20SecretString%3E",
+            "description": "App settings"
           },
           "baseImage": {
             "default": "node:22-slim",
@@ -889,11 +916,11 @@
             "type": "string"
           },
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
@@ -911,6 +938,7 @@
           },
           "createResourceGroup": {
             "default": false,
+            "description": "Create resource group",
             "type": "boolean"
           },
           "credentials": {
@@ -929,16 +957,19 @@
               {
                 "$ref": "#/definitions/Record%3Cstring%2C%20Record%3Cstring%2C%20any%3E%3E"
               }
-            ]
+            ],
+            "description": "Custom resources"
           },
           "deploymentName": {
+            "description": "Deployment name",
             "type": "string"
           },
           "deploymentTimeout": {
+            "description": "Deployment timeout",
             "type": "number"
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "entrypoint": {
@@ -970,6 +1001,7 @@
             "type": "array"
           },
           "functionApp": {
+            "description": "Function app",
             "type": "string"
           },
           "image": {
@@ -991,12 +1023,15 @@
           },
           "location": {
             "default": "westeurope",
+            "description": "Location",
             "type": "string"
           },
           "maximumInstanceCount": {
+            "description": "Maximum instance count",
             "type": "number"
           },
           "memory": {
+            "description": "Memory",
             "type": "number"
           },
           "mtime": {
@@ -1015,6 +1050,7 @@
             "description": "Options of the application packaging"
           },
           "plan": {
+            "description": "Plan",
             "type": "string"
           },
           "platforms": {
@@ -1028,16 +1064,19 @@
             "type": "array"
           },
           "resourceGroup": {
+            "description": "Resource group",
             "type": "string"
           },
           "resourceTags": {
-            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E"
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "description": "Resource tags"
           },
           "storageAccount": {
+            "description": "Storage account",
             "type": "string"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tags": {
@@ -1051,13 +1090,15 @@
             "type": "array"
           },
           "templateOutput": {
+            "description": "Template output",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "triggers": {
+            "description": "Triggers",
             "items": {
               "anyOf": [
                 {
@@ -1069,7 +1110,8 @@
                 {
                   "$ref": "#/definitions/triggers%232%5B%5D%233"
                 }
-              ]
+              ],
+              "description": "Azure trigger type definition"
             },
             "type": "array"
           },
@@ -1088,6 +1130,7 @@
           },
           "zipPath": {
             "default": "dist/azure-functions.zip",
+            "description": "Zip path",
             "type": "string"
           },
           "openapi": {
@@ -1262,11 +1305,14 @@
             "type": "object"
           }
         },
+        "description": "Configuration parameters for AzureFunctionsPackager",
         "properties": {
           "package": {
-            "$ref": "#/definitions/PackageOptions"
+            "$ref": "#/definitions/PackageOptions",
+            "description": "Package"
           },
           "triggers": {
+            "description": "Triggers",
             "items": {
               "anyOf": [
                 {
@@ -1278,7 +1324,8 @@
                 {
                   "$ref": "#/definitions/triggers%232%5B%5D%233"
                 }
-              ]
+              ],
+              "description": "Azure trigger type definition"
             },
             "type": "array"
           },
@@ -1288,6 +1335,7 @@
           },
           "zipPath": {
             "default": "dist/azure-functions.zip",
+            "description": "Zip path",
             "type": "string"
           },
           "openapi": {
@@ -1321,27 +1369,28 @@
         "description": "Settings for the Key Vault service and configuration encrypter.",
         "properties": {
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "keyId": {
+            "description": "Key ID",
             "type": "string"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "type": {
@@ -1349,6 +1398,7 @@
             "type": "string"
           },
           "vaultUrl": {
+            "description": "Vault URL",
             "type": "string"
           },
           "openapi": {
@@ -1373,27 +1423,29 @@
         "description": "Azure Monitor Logs Ingestion settings.",
         "properties": {
           "batchSize": {
+            "description": "Batch size",
             "type": "number"
           },
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "flushInterval": {
+            "description": "Flush interval",
             "type": "number"
           },
           "logLevel": {
             "default": "INFO",
-            "description": "LogLevel as intersection to compare with integer values",
+            "description": "Log level",
             "enum": [
               "ERROR",
               "WARN",
@@ -1404,20 +1456,23 @@
             "type": "string"
           },
           "maxBufferedLogs": {
+            "description": "Max buffered logs",
             "type": "number"
           },
           "ruleId": {
+            "description": "Rule ID",
             "type": "string"
           },
           "streamName": {
+            "description": "Stream name",
             "type": "string"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "type": {
@@ -1452,6 +1507,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -1476,29 +1532,33 @@
             "type": "string"
           },
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
           "container": {
+            "description": "Container",
             "type": "string"
           },
           "createIfNotExists": {
             "default": false,
+            "description": "Create if not exists",
             "type": "boolean"
           },
           "database": {
+            "description": "Database",
             "type": "string"
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "key": {
+            "description": "Key",
             "type": "string",
             "x-webda-secret": true
           },
@@ -1525,6 +1585,7 @@
           },
           "partitionKey": {
             "default": "/id",
+            "description": "Partition key",
             "type": "string"
           },
           "slowQueryLogLevel": {
@@ -1555,14 +1616,15 @@
             "type": "boolean"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "throughput": {
+            "description": "Throughput",
             "type": "number"
           },
           "type": {
@@ -1597,41 +1659,46 @@
         "description": "Service Bus pub/sub settings. Omit subscription to create one temporary subscription per consumer.",
         "properties": {
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
           "connectionString": {
+            "description": "Connection string",
             "type": "string",
             "x-webda-secret": true
           },
           "createIfNotExists": {
             "default": false,
+            "description": "Create if not exists",
             "type": "boolean"
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "namespace": {
+            "description": "Namespace",
             "type": "string"
           },
           "subscription": {
+            "description": "Subscription",
             "type": "string"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "topic": {
+            "description": "Topic",
             "type": "string"
           },
           "type": {
@@ -1682,24 +1749,26 @@
         "description": "Service Bus work queue settings.",
         "properties": {
           "clientId": {
-            "description": "Service principal or user-assigned managed identity client id; defaults to AZURE_CLIENT_ID.",
+            "description": "Client ID",
             "type": "string"
           },
           "clientSecret": {
-            "description": "Service principal secret; defaults to AZURE_CLIENT_SECRET. Prefer managed/workload identity.",
+            "description": "Client secret",
             "type": "string",
             "x-webda-secret": true
           },
           "connectionString": {
+            "description": "Connection string",
             "type": "string",
             "x-webda-secret": true
           },
           "createIfNotExists": {
             "default": false,
+            "description": "Create if not exists",
             "type": "boolean"
           },
           "endpoint": {
-            "description": "Service-specific endpoint override, for example Azurite. This is not an identity authority URL.",
+            "description": "Endpoint",
             "type": "string"
           },
           "idleDelayer": {
@@ -1721,26 +1790,31 @@
             "type": "number"
           },
           "maxMessages": {
+            "description": "Max messages",
             "type": "number"
           },
           "maxPendingMessages": {
+            "description": "Max pending messages",
             "type": "number"
           },
           "maxWaitTimeInMs": {
+            "description": "Max wait time in ms",
             "type": "number"
           },
           "namespace": {
+            "description": "Namespace",
             "type": "string"
           },
           "queue": {
+            "description": "Queue",
             "type": "string"
           },
           "subscriptionId": {
-            "description": "Subscription containing the resources; defaults to AZURE_SUBSCRIPTION_ID.",
+            "description": "Subscription ID",
             "type": "string"
           },
           "tenantId": {
-            "description": "Microsoft Entra tenant; defaults to AZURE_TENANT_ID.",
+            "description": "Tenant ID",
             "type": "string"
           },
           "type": {

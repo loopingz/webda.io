@@ -1,5 +1,8 @@
 import type { MockKind } from "@webda/models";
 
+/**
+ * Infer context type definition
+ */
 export type InferContext = {
   fieldName: string;
   declaredType?: string;

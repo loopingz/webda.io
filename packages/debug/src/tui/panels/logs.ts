@@ -23,12 +23,33 @@ interface LogEntry {
  * WebSocket and allows searching with `/`.
  */
 export class LogsPanel implements Panel {
+  /**
+   * Name
+   */
   name = "Logs";
+  /**
+   * Entries
+   */
   private entries: LogEntry[] = [];
+  /**
+   * Cursor
+   */
   private cursor = 0;
+  /**
+   * Scroll offset
+   */
   private scrollOffset = 0;
+  /**
+   * Visible rows
+   */
   private visibleRows = 0;
+  /**
+   * Search query
+   */
   private searchQuery = "";
+  /**
+   * Search mode
+   */
   private searchMode = false;
   /** Current minimum log level filter */
   private levelFilter = 2; // Index into LOG_LEVELS, default INFO
@@ -38,6 +59,7 @@ export class LogsPanel implements Panel {
   private static readonly STATE_FILE = join(".webda", "debug-state.json");
 
   /**
+   * Create a new LogsPanel instance
    * @param client - Debug API client
    */
   constructor(private client: DebugClient) {

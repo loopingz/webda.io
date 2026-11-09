@@ -27,6 +27,9 @@ export default class GCPPubSubService<
   T = any,
   K extends GCPPubSubParameters = GCPPubSubParameters
 > extends PubSubService<T, K> {
+  /**
+   * Pubsub
+   */
   pubsub?: PubSub;
 
   /**

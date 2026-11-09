@@ -41,6 +41,9 @@ export class Tag extends Model {
   color?: string;
 
   // Relations
+  /**
+   * Posts
+   */
   posts!: OneToMany<Post, Tag, "tags">; // Posts associated with this tag
 
   /**

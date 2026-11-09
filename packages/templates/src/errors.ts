@@ -12,6 +12,7 @@ export const TEMPLATE_NOT_FOUND = "TEMPLATE_NOT_FOUND";
  */
 export class TemplateNotFoundError extends WebdaError.CodeError {
   /**
+   * Create a new TemplateNotFoundError instance
    * @param name - the template name
    */
   constructor(name: string) {
@@ -24,6 +25,7 @@ export class TemplateNotFoundError extends WebdaError.CodeError {
  */
 export class TemplateEngineNotFoundError extends WebdaError.CodeError {
   /**
+   * Create a new TemplateEngineNotFoundError instance
    * @param name - the engine name
    */
   constructor(name: string) {

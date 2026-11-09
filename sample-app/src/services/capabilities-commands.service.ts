@@ -14,9 +14,15 @@ export class TestCommandService extends Service implements RequestFilter {
    */
   @Command("greet", { description: "Greet a user by name" })
   async greet(
-    /** @alias n */
+    /**
+     * Name
+     * @alias n
+     */
     name: string = "world",
-    /** @alias v */
+    /**
+     * Verbose
+     * @alias v
+     */
     verbose: boolean = false
   ): Promise<void> {
     // Test command implementation
@@ -30,9 +36,15 @@ export class TestCommandService extends Service implements RequestFilter {
    */
   @Command("deploy", { description: "Deploy a resource" })
   async deploy(
-    /** @alias t */
+    /**
+     * Target
+     * @alias t
+     */
     target: string,
-    /** @alias d */
+    /**
+     * Dry run
+     * @alias d
+     */
     dryRun: boolean = false
   ): Promise<void> {
     // Deploy command implementation

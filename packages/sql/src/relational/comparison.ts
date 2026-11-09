@@ -71,6 +71,7 @@ export function columnLiteral(value: unknown, type: ColumnType): string {
  */
 export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression {
   /**
+   * Create a new SQLColumnComparisonExpression instance
    * @param operator - the comparison operator
    * @param column - the quoted column
    * @param value - the compared value
@@ -88,6 +89,7 @@ export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression 
   }
 
   /**
+   * Return a string representation of this instance
    * @returns the SQL condition
    */
   toString(): string {
@@ -116,6 +118,7 @@ export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression 
   }
 
   /**
+   * Return the column as the text the model holds: itself for a text kind, the ISO form of a time kind, a cast
    * @param column - the quoted column
    * @returns the column as the text the model holds: itself for a text kind, the ISO form of a time kind, a cast
    *   otherwise
@@ -134,6 +137,7 @@ export class SQLColumnComparisonExpression extends WebdaQL.ComparisonExpression 
  */
 export class SQLConditionExpression extends WebdaQL.Expression<"SQL"> {
   /**
+   * Create a new SQLConditionExpression instance
    * @param sql - the condition
    */
   constructor(protected readonly sql: string) {
@@ -149,6 +153,7 @@ export class SQLConditionExpression extends WebdaQL.Expression<"SQL"> {
   }
 
   /**
+   * Return a string representation of this instance
    * @returns the SQL condition
    */
   toString(): string {
@@ -156,6 +161,7 @@ export class SQLConditionExpression extends WebdaQL.Expression<"SQL"> {
   }
 
   /**
+   * Check whether dynamic
    * @returns false: the values are already rendered
    */
   isDynamic(): boolean {

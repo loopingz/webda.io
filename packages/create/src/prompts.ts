@@ -16,8 +16,17 @@ import {
  * Questions asked in interactive mode; abstracted for tests
  */
 export interface Prompter {
+  /**
+   * Perform text
+   */
   text(message: string, initial: string): Promise<string>;
+  /**
+   * Perform select
+   */
   select<T extends string>(message: string, options: T[], initial: T): Promise<T>;
+  /**
+   * Perform multiselect
+   */
   multiselect<T extends string>(message: string, options: T[], initial: T[]): Promise<T[]>;
 }
 
@@ -34,9 +43,22 @@ function answer<T>(value: T | symbol): T {
 }
 
 export const clackPrompter: Prompter = {
+  /**
+   * Perform text
+   * @param message - the message
+   * @param initial - the initial
+   * @returns the result
+   */
   async text(message, initial) {
     return answer(await clack.text({ message, initialValue: initial })) as any;
   },
+  /**
+   * Perform select
+   * @param message - the message
+   * @param options - the options
+   * @param initial - the initial
+   * @returns the result
+   */
   async select(message, options, initial) {
     return answer(
       await clack.select({
@@ -46,6 +68,13 @@ export const clackPrompter: Prompter = {
       })
     ) as any;
   },
+  /**
+   * Perform multiselect
+   * @param message - the message
+   * @param options - the options
+   * @param initial - the initial
+   * @returns the result
+   */
   async multiselect(message, options, initial) {
     return answer(
       await clack.multiselect({

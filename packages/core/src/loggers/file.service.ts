@@ -15,9 +15,12 @@ import { ServicePartialParameters } from "../services/iservice.js";
 export class FileLoggerService<
   T extends FileLoggerServiceParameters = FileLoggerServiceParameters
 > extends LoggerService<T> {
+  /**
+   * Workout logger
+   */
   workoutLogger: FileLogger;
   /**
-   *
+   * Resolve operation
    * @returns the result
    */
   resolve() {

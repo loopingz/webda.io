@@ -40,8 +40,17 @@ import { createRequire } from "node:module";
  * Operation entry from operations.json
  */
 export interface OperationEntry {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Input
+   */
   input: string;
+  /**
+   * Output
+   */
   output: string;
 }
 
@@ -49,7 +58,13 @@ export interface OperationEntry {
  * Format of the .webda/operations.json file
  */
 export interface OperationsFile {
+  /**
+   * Operations
+   */
   operations: Record<string, OperationEntry>;
+  /**
+   * Schemas
+   */
   schemas: Record<string, JSONSchema7>;
 }
 
@@ -67,6 +82,9 @@ export interface OperationCall {
   dryRun?: boolean;
 }
 
+/**
+ * Operation handler type definition
+ */
 export type OperationHandler = (call: OperationCall) => Promise<void>;
 
 /**

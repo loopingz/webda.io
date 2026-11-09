@@ -282,6 +282,7 @@ export default class PostgresQueueService<
   }
 
   /**
+   * Check whether wait
    * @returns true if a receive can wait for a notification: consuming, with LISTEN active
    */
   protected canWait(): boolean {

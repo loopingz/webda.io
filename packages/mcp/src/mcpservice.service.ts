@@ -113,6 +113,7 @@ export class McpServiceParameters extends OperationsTransportParameters {
   forwardHeaders: string[];
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this with defaults applied
    */
@@ -150,6 +151,12 @@ export function reserveStdout(
   const original = stdout.write;
   const write = original.bind(stdout) as (chunk: any, encoding?: any) => boolean;
   const protocol = new Writable({
+    /**
+     * Write operation
+     * @param chunk - the chunk
+     * @param encoding - the encoding
+     * @param callback - the callback
+     */
     write(chunk, encoding, callback) {
       if (write(chunk, encoding)) {
         callback();
@@ -174,12 +181,33 @@ export function reserveStdout(
  * @WebdaModda
  */
 export class McpService<T extends McpServiceParameters = McpServiceParameters> extends OperationsTransport<T> {
+  /**
+   * Tools
+   */
   protected tools: ToolRegistry;
+  /**
+   * Resource registry
+   */
   protected resourceRegistry?: ResourceRegistry;
+  /**
+   * Sessions
+   */
   protected sessions: McpSessionManager;
+  /**
+   * Fingerprint
+   */
   protected fingerprint: string = "";
+  /**
+   * Authenticator
+   */
   protected authenticator: McpAuthenticator;
+  /**
+   * Evict timer
+   */
   protected evictTimer?: NodeJS.Timeout;
+  /**
+   * Stdio servers
+   */
   protected stdioServers: Server[] = [];
 
   /**
@@ -201,6 +229,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
   exposeOperation(_operationId: string, _definition: OperationDefinition): void {}
 
   /**
+   * Resolve operation
    * @returns this once the authenticator is resolved
    */
   resolve(): this {
@@ -277,6 +306,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
   }
 
   /**
+   * Create server
    * @param getSession - caller session resolution
    * @param getRequest - the request of a call reduced to its forwarded headers (none over stdio)
    * @returns a new SDK server over this service's registries
@@ -302,6 +332,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
   }
 
   /**
+   * Return the operation behind the tool, undefined for an unknown tool
    * @param name - tool name
    * @returns the operation behind the tool, undefined for an unknown tool
    */

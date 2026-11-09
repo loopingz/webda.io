@@ -39,6 +39,7 @@ export class McpOAuthAuthenticatorParameters extends ServiceParameters {
   publicUrl?: string;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this with defaults applied
    */
@@ -65,6 +66,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   implements McpAuthenticator
 {
   /**
+   * Create configuration
    * @param params - raw parameters
    * @returns typed parameters
    */
@@ -120,6 +122,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   }
 
   /**
+   * Return `publicUrl` + path when configured, else the request based absolute URL
    * @param ctx - web context
    * @param path - application path
    * @returns `publicUrl` + path when configured, else the request based absolute URL
@@ -130,6 +133,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   }
 
   /**
+   * Return the absolute protected resource metadata URL for the resource the request targets
    * @param ctx - web context
    * @returns the absolute protected resource metadata URL for the resource the request targets
    */
@@ -138,6 +142,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   }
 
   /**
+   * Return the absolute URL of an application path, keeping the request prefix
    * @param ctx - web context
    * @param path - application path
    * @returns the absolute URL of an application path, keeping the request prefix
@@ -156,6 +161,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   }
 
   /**
+   * Return the MCP endpoint path the request targets
    * @param ctx - web context
    * @returns the MCP endpoint path the request targets
    */
@@ -169,6 +175,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   }
 
   /**
+   * Return the metadata path for it: suffixed form when several resources share this authenticator
    * @param resource - MCP endpoint path
    * @returns the metadata path for it: suffixed form when several resources share this authenticator
    */
@@ -212,6 +219,7 @@ export class McpOAuthAuthenticator<T extends McpOAuthAuthenticatorParameters = M
   }
 
   /**
+   * Authenticate operation
    * @param ctx - web context
    * @returns the bearer session
    * @throws Unauthorized with a `WWW-Authenticate` challenge when there is no valid bearer token for this resource

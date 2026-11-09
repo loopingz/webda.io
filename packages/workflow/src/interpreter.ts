@@ -14,7 +14,13 @@ export interface ScheduledTask {
    * Task key: `<statement id>@<iteration path>`
    */
   key: string;
+  /**
+   * Operation
+   */
   operation: string;
+  /**
+   * Input
+   */
   input: any;
   /**
    * Flow defaults merged with the task options
@@ -35,6 +41,7 @@ export type RunResult =
  */
 class FlowThrow {
   /**
+   * Create a new FlowThrow instance
    * @param error - the flow error
    */
   constructor(public error: FlowError) {}
@@ -71,6 +78,7 @@ export function statementIdOf(key: string): string {
  */
 class Replay {
   /**
+   * Create a new Replay instance
    * @param def - the flow
    * @param journal - finished task outcomes
    */

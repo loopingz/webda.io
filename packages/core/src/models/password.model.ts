@@ -7,6 +7,7 @@ import type { User } from "./user.model.js";
 /** Rule a candidate password must satisfy */
 export interface PasswordPolicy {
   /**
+   * Validate operation
    * @param password - candidate password
    * @param user - user setting it, when known
    * @returns true when acceptable
@@ -35,7 +36,10 @@ export function usePasswordPolicy(): PasswordPolicy {
 
 /** Raised when a password does not satisfy the active policy (400 PASSWORD_POLICY) */
 export class PasswordPolicyError extends WebdaError.HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new PasswordPolicyError instance
+   * @param message - error message
+   */
   constructor(message: string = "Password does not match the policy") {
     super(message, 400);
     this.code = "PASSWORD_POLICY";
@@ -67,6 +71,7 @@ export class Password {
   }
 
   /**
+   * Check whether it has password
    * @returns true when a password is set
    */
   hasPassword(): boolean {

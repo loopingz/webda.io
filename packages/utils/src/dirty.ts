@@ -13,9 +13,13 @@ type Constructor<T = object> = new (...args: any[]) => T;
  * back to its original value automatically removes it from the dirty set.
  */
 export class DirtyState {
+  /**
+   * Original values
+   */
   private originalValues: Record<string, any> = {};
 
   /**
+   * Create a new DirtyState instance
    * @param parent - the object being tracked
    * @param fields - Initial set of dirty field names
    */
@@ -143,16 +147,36 @@ function createDeepDirtyProxy<V extends object>(
   markDirty: (fullPath: string) => void
 ): V {
   return new Proxy(value, {
+    /**
+     * Perform set
+     * @param innerTarget - the inner target
+     * @param innerProp - the inner prop
+     * @param innerValue - the inner value
+     * @returns the result
+     */
     set(innerTarget: any, innerProp: string | symbol, innerValue: any) {
       markDirty(`${pathPrefix}.${String(innerProp)}`);
       innerTarget[innerProp] = innerValue;
       return true;
     },
+    /**
+     * Delete property
+     * @param innerTarget - the inner target
+     * @param innerProp - the inner prop
+     * @returns the result
+     */
     deleteProperty(innerTarget: any, innerProp: string | symbol) {
       markDirty(`${pathPrefix}.${String(innerProp)}`);
       delete innerTarget[innerProp];
       return true;
     },
+    /**
+     * Perform get
+     * @param innerTarget - the inner target
+     * @param innerProp - the inner prop
+     * @param receiver - the receiver
+     * @returns the result
+     */
     get(innerTarget: any, innerProp: string | symbol, receiver: any) {
       const innerValue = innerTarget[innerProp];
       if (typeof innerValue === "function" && innerProp !== "constructor") {
@@ -222,6 +246,9 @@ export function DirtyMixIn<T extends Constructor>(
         }
       });
     }
+    /**
+     * [webda dirty]
+     */
     [WEBDA_DIRTY]: DirtyState = new DirtyState(this, new Set());
 
     /**
@@ -265,6 +292,13 @@ export function track<T extends object>(
 ): T & { dirty: DirtyState; [WEBDA_DIRTY]: DirtyState } {
   const dirtyState = new DirtyState(obj, new Set());
   return new Proxy(obj as any, {
+    /**
+     * Perform set
+     * @param target - the target
+     * @param p - the p
+     * @param value - the value
+     * @returns the result
+     */
     set(target: any, p: string | symbol, value: any) {
       const oldValue = target[p];
       dirtyState.add(p.toString(), oldValue, value);
@@ -272,6 +306,12 @@ export function track<T extends object>(
       target[p] = value;
       return true;
     },
+    /**
+     * Perform get
+     * @param target - the target
+     * @param p - the p
+     * @returns the result
+     */
     get(target: any, p: string | symbol) {
       if (p === dirtyProperty) {
         return dirtyState;

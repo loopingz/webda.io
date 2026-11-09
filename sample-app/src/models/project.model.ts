@@ -37,32 +37,69 @@ abstract class CoreModel extends Model {
  * Abstract class should not be exported as model
  */
 export abstract class AbstractProject<T> extends CoreModel {
+  /**
+   * Acls
+   */
   acls: ResourceAcl;
   protected abstract method1(arg1: string, arg2: CoreModel, arg3: Store): Store;
 }
 
+/**
+ * Test interface
+ */
 export interface Test {
+  /**
+   * Test2
+   */
   test2: string;
 }
 
 /**
- *
+ * Test doc2 interface
  */
 export interface TestDoc2 {
+  /**
+   * N
+   */
   n: number;
 }
 
 /**
+ * Project implementation
  * @WebdaModel
  */
 export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2 {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
+  /**
+   * Company
+   */
   company: ModelParent<Company>;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Type
+   */
   type: string;
+  /**
+   * Unique identifier
+   */
   uuid: string;
+  /**
+   * N
+   */
   n: number;
+  /**
+   * Test2
+   */
   test2: string;
+  /**
+   * Test
+   */
   test: Date;
   /** Create a new Project.
    * @param myparam - optional parameter
@@ -153,12 +190,16 @@ export class AnotherSubProject<T, K extends Array<any> = any[]> extends Project 
 class SubSubProject2 extends AnotherSubProject<Test, TestDoc2[]> {}
 
 /**
+ * Sub sub project3 implementation
  * @WebdaIgnore
  */
 export class SubSubProject3 extends AnotherSubProject<Test, TestDoc2[]> {}
 
 /** Concrete sub-sub-project with custom actions for testing action exposure. */
 export class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
+  /**
+   * Attribute1
+   */
   attribute1: string;
   /**
    * Sample action taking a string parameter.

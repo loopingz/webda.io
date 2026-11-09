@@ -3,6 +3,7 @@ import { ModelLink } from "@webda/models";
 import type { User } from "./user.model.js";
 
 /**
+ * Contact implementation
  * @WebdaModel Contact
  * Not sure what this jsdoc does
  *
@@ -31,6 +32,7 @@ export default class Contact extends CoreModel {
    */
   age: number;
   /**
+   * Custom
    * @SchemaIgnore
    */
   custom: string;

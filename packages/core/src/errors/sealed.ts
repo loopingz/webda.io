@@ -2,7 +2,10 @@ import { HttpError } from "./errors.js";
 
 /** The recipient of a sealed value has no usable public key: unknown user, or no active key (412) */
 export class SealedKeyMissingError extends HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new SealedKeyMissingError instance
+   * @param message - error message
+   */
   constructor(message: string = "Recipient has no public key") {
     super(message, 412);
   }
@@ -15,7 +18,10 @@ export class SealedKeyMissingError extends HttpError {
  * maps the isomorphic error to this one at the boundary. Only this class is exported from the package root.
  */
 export class SealedFormatError extends HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new SealedFormatError instance
+   * @param message - error message
+   */
   constructor(message: string = "Malformed sealed data") {
     super(message, 400);
   }

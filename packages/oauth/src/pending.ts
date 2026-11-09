@@ -38,6 +38,7 @@ export interface PendingRequest {
 }
 
 /**
+ * Check whether pending request
  * @param value - decrypted cookie
  * @returns true when it has the shape of a pending request
  */

@@ -6,15 +6,39 @@ import { useLog } from "@webda/workout";
  * Format for exported operations
  */
 export interface OperationsExportFormat {
+  /**
+   * Operations
+   */
   operations: { [key: string]: OperationEntry };
+  /**
+   * Schemas
+   */
   schemas: { [key: string]: JSONSchema7 };
 }
 
+/**
+ * Operation entry interface
+ */
 export interface OperationEntry {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Input
+   */
   input: string;
+  /**
+   * Output
+   */
   output: string;
+  /**
+   * REST
+   */
   rest?: { method: string; path: string; body?: string };
+  /**
+   * Feature flag
+   */
   featureFlag?: string | true;
 }
 
@@ -222,6 +246,7 @@ function actionRest(
 }
 
 /**
+ * Return capitalized name
  * @param name - method or attribute name
  * @returns capitalized name
  */

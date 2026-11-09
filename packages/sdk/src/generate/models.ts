@@ -4,6 +4,7 @@ import { docComment, propertyKey, quote } from "./naming.js";
 import { actionBodyType, outputType, type GeneratorNames } from "./operations.js";
 
 /**
+ * Return the PascalCase action name of the operation id
  * @param name - a method or attribute name
  * @returns the PascalCase action name of the operation id
  */
@@ -12,6 +13,7 @@ function capitalize(name: string): string {
 }
 
 /**
+ * Return the relation attributes with their generated types
  * @param manifest - the manifest
  * @param model - the model
  * @param names - the names
@@ -61,6 +63,7 @@ export function relationTypes(
 }
 
 /**
+ * Return the attributes revived as `Date`
  * @param schema - the model schema
  * @returns the attributes revived as `Date`
  */

@@ -7,13 +7,29 @@ import { DebugClient } from "../client.js";
  * Press Enter for detail view with implementor, schemas, and code.
  */
 export class OperationsPanel extends ScrollablePanel {
+  /**
+   * Name
+   */
   name = "Operations";
+  /**
+   * Operations
+   */
   private operations: any[] = [];
+  /**
+   * Visible rows
+   */
   private visibleRows = 0;
+  /**
+   * Detail mode
+   */
   private detailMode = false;
+  /**
+   * Detail scroll
+   */
   private detailScroll = 0;
 
   /**
+   * Create a new OperationsPanel instance
    * @param client - Debug API client
    */
   constructor(private client: DebugClient) {
@@ -178,6 +194,10 @@ export class OperationsPanel extends ScrollablePanel {
     if (!op) return;
 
     const lines: string[] = [];
+    /**
+     * Add line
+     * @param text - the text
+     */
     const add = function addLine(text: string) {
       lines.push(text);
     };

@@ -5,6 +5,9 @@ import { MFA } from "./mfa.model.js";
 import { UserKeys } from "./userkeys.model.js";
 import { type ModelClass, type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
+/**
+ * User events type definition
+ */
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
   Logout: { user: T };
@@ -17,6 +20,9 @@ export type UserEvents<T> = ModelEvents<T> & {
 export class User extends UuidModel {
   /** Default policy of the inherited login MFA attribute. */
   static BehaviorParameters: Record<string, Record<string, unknown>> = { mfa: { purpose: "login" } };
+  /**
+   * [webda events]
+   */
   [WEBDA_EVENTS]: UserEvents<this>;
   /** Create a new User
    * @param data - initial data

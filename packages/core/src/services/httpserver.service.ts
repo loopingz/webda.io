@@ -192,6 +192,9 @@ export class HttpServerParameters extends ServiceParameters {
   }
 }
 
+/**
+ * HTTP server events type definition
+ */
 export type HttpServerEvents = {
   /** Emitted when new result is sent */
   "Webda.Result": { context: WebContext };
@@ -226,6 +229,9 @@ export class HttpServer<
       }
     }
   ];
+  /**
+   * Server
+   */
   server: Server | Http2SecureServer | Http2Server;
   /**
    * Resolvers of the pending serve() promises, settled when the service stops
@@ -246,6 +252,9 @@ export class HttpServer<
   protected inflight = 0;
   /** In TLS mode, the server answering plain HTTP with a redirect */
   protected redirectServer?: Server;
+  /**
+   * Subnet checker
+   */
   protected subnetChecker: (address: string) => boolean;
   /** Whether this server uses HTTP/2 */
   protected isHttp2 = false;
@@ -521,11 +530,18 @@ export class HttpServer<
       // Node.js pipeline() emits ERR_STREAM_PREMATURE_CLOSE as uncaughtException
       // when piping to ServerResponse. Suppress this specific error.
       if (!process.listeners("uncaughtExceptionMonitor").find((l: any) => l._webda)) {
+        /**
+         * Perform Webda monitor
+         */
         const monitor = function _webdaMonitor() {};
         (monitor as any)._webda = true;
         process.on("uncaughtExceptionMonitor", monitor);
       }
       if (!process.listeners("uncaughtException").find((l: any) => l._webda)) {
+        /**
+         * Perform Webda handler
+         * @param err - the err
+         */
         const handler = function _webdaHandler(err: any) {
           if (err?.code === "ERR_STREAM_PREMATURE_CLOSE") return;
           useLog("ERROR", "Uncaught exception", err);

@@ -13,19 +13,22 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Queues to post async events to",
+            "default": {},
+            "description": "Queues",
             "type": "object"
           }
         },
+        "description": "Configuration parameters for EventService",
         "inheritdoc": true,
         "properties": {
           "queues": {
             "$ref": "#/definitions/queues",
-            "description": "Queues to post async events to"
+            "default": {},
+            "description": "Queues"
           },
           "sync": {
             "default": false,
-            "description": "Make the event sending asynchronous",
+            "description": "Whether sync is enabled",
             "type": "boolean"
           },
           "type": {
@@ -50,6 +53,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Configuration parameters for AsyncJobService",
         "inheritdoc": true,
         "properties": {
           "asyncActionModel": {
@@ -169,6 +173,16 @@
           "AbortSignal": {
             "additionalProperties": false,
             "description": "The **`AbortSignal`** interface represents a signal object that allows you to communicate with an asynchronous operation (such as a fetch request) and abort it if required via an AbortController object.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal)",
+            "properties": {
+              "onabort": {
+                "const": null,
+                "description": "[MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/abort_event)",
+                "type": "null"
+              }
+            },
+            "required": [
+              "onabort"
+            ],
             "type": "object"
           },
           "ProcessEnv": {
@@ -392,6 +406,10 @@
                   {
                     "items": {
                       "anyOf": [
+                        {
+                          "const": null,
+                          "type": "null"
+                        },
                         {
                           "type": "number"
                         },
@@ -871,6 +889,9 @@
       },
       "Actions": {
         "status": {
+          "openapi": {
+            "hidden": true
+          },
           "handler": "statusAction"
         }
       },
@@ -1071,7 +1092,6 @@
             "job",
             "logLevel",
             "logs",
-            "operationId",
             "results",
             "status",
             "statusDetails",
@@ -1186,7 +1206,6 @@
             "job",
             "logLevel",
             "logs",
-            "operationId",
             "results",
             "status",
             "statusDetails",
@@ -1301,7 +1320,6 @@
             "job",
             "logLevel",
             "logs",
-            "operationId",
             "results",
             "status",
             "statusDetails",
@@ -1314,6 +1332,9 @@
       },
       "Actions": {
         "status": {
+          "openapi": {
+            "hidden": true
+          },
           "handler": "statusAction"
         }
       },
@@ -1736,6 +1757,9 @@
       },
       "Actions": {
         "status": {
+          "openapi": {
+            "hidden": true
+          },
           "handler": "statusAction"
         }
       },

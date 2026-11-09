@@ -29,6 +29,7 @@ import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compile
 import { bindRestInput, resolveInputSchema, inputSchemaToOpenAPI } from "./binding.js";
 
 /**
+ * Return its length in bytes
  * @param data - a raw WebSocket message
  * @returns its length in bytes
  */
@@ -201,6 +202,9 @@ export class RESTOperationsTransport<
   private webSocketServer?: WebSocketServer;
   /** HTTP servers the upgrade listener is already attached to */
   private webSocketServers: WeakSet<Server> = new WeakSet();
+  /**
+   * Web socket events
+   */
   private webSocketEvents = false;
 
   /**

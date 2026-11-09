@@ -59,7 +59,13 @@ export class TemplateService<T extends TemplateServiceParameters = TemplateServi
     render: Counter;
     errors: Counter;
   };
+  /**
+   * Renderer
+   */
   protected renderer: TemplateRenderer;
+  /**
+   * Configuring
+   */
   protected configuring: Promise<void>[] = [];
 
   /**
@@ -237,7 +243,13 @@ export class TemplateService<T extends TemplateServiceParameters = TemplateServi
 }
 
 declare module "@webda/core" {
+  /**
+   * Services map interface
+   */
   interface ServicesMap {
+    /**
+     * Template service
+     */
     TemplateService: TemplateService;
   }
 }

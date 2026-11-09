@@ -131,6 +131,7 @@ export class OAuthProviderParameters extends ServiceParameters {
   trustEmailVerification?: boolean | string[];
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -172,6 +173,7 @@ const PENDING_TTL = 600;
 const REDIRECT_MAX = 1024;
 
 /**
+ * Return the code of a WebdaError.HttpError, undefined for anything else
  * @param err - any error
  * @returns the code of a WebdaError.HttpError, undefined for anything else
  */
@@ -225,6 +227,7 @@ export function sanitizeTokens(tokens: OAuthTokens): OAuthTokens {
 }
 
 /**
+ * Configure with query
  * @param url - absolute or relative url
  * @param params - query parameters to add
  * @returns the url with the parameters appended
@@ -237,6 +240,7 @@ function withQuery(url: string, params: Record<string, string>): string {
 }
 
 /**
+ * Parse HTTP URL
  * @param url - candidate
  * @returns the parsed url when it is an absolute http(s) url without credentials
  */
@@ -264,6 +268,7 @@ function sameSecret(a: string, b: string): boolean {
 }
 
 /**
+ * Return a random base64url string
  * @param bytes - entropy
  * @returns a random base64url string
  */
@@ -293,6 +298,9 @@ export abstract class OAuthProvider<
   extends Service<T, E>
   implements AuthProvider
 {
+  /**
+   * Parameters
+   */
   static Parameters = OAuthProviderParameters;
 
   /** Unique provider name, used in ident keys ("google") */
@@ -339,6 +347,7 @@ export abstract class OAuthProvider<
   }
 
   /**
+   * Return false when the provider works without client secret (public clients)
    * @returns false when the provider works without client secret (public clients)
    */
   protected requiresClientSecret(): boolean {
@@ -346,6 +355,7 @@ export abstract class OAuthProvider<
   }
 
   /**
+   * Get the name of the pending login cookie
    * @returns the name of the pending login cookie
    */
   protected getCookieName(): string {
@@ -405,6 +415,7 @@ export abstract class OAuthProvider<
   }
 
   /**
+   * Get public info
    * @returns public info
    */
   getPublicInfo(): ProviderInfo {
@@ -487,6 +498,7 @@ export abstract class OAuthProvider<
   }
 
   /**
+   * Check identity
    * @param identity - identity returned by the subclass
    * @returns the identity
    * @throws TokenInvalid when it has no subject
@@ -499,6 +511,7 @@ export abstract class OAuthProvider<
   }
 
   /**
+   * Return the identity, always attributed to this provider
    * @param identity - identity returned by the subclass
    * @returns the identity, always attributed to this provider
    */
@@ -534,6 +547,7 @@ export abstract class OAuthProvider<
   }
 
   /**
+   * Get the callback url sent to the provider
    * @param ctx - web context
    * @returns the callback url sent to the provider
    */
@@ -610,6 +624,7 @@ export abstract class OAuthProvider<
   }
 
   /**
+   * Fail operation
    * @param ctx - web context
    * @param reason - failure code
    */

@@ -46,7 +46,8 @@
         "description": "Parameters for the custom service with introspection support.",
         "properties": {
           "introspection": {
-            "$ref": "#/definitions/Partial%3CServiceParameters%3E"
+            "$ref": "#/definitions/Partial%3CServiceParameters%3E",
+            "description": "Introspection"
           },
           "type": {
             "description": "Type of the service",
@@ -107,6 +108,7 @@
             "description": "Make all properties in T optional",
             "properties": {
               "test": {
+                "description": "Test",
                 "type": "string"
               }
             },
@@ -116,6 +118,7 @@
         "description": "Parameters for AnotherService with interface-based configuration.",
         "properties": {
           "anotherParameter": {
+            "description": "Another parameter",
             "type": "string"
           },
           "interfaceParam": {
@@ -149,6 +152,7 @@
         "description": "Parameters for the reusable service requiring a mandatory field.",
         "properties": {
           "mandatoryField": {
+            "description": "Mandatory field",
             "type": "string"
           },
           "type": {
@@ -180,6 +184,7 @@
             "description": "Make all properties in T optional",
             "properties": {
               "test": {
+                "description": "Test",
                 "type": "string"
               }
             },
@@ -189,9 +194,11 @@
         "description": "Extended parameters adding a bounded numeric field for the fourth service.",
         "properties": {
           "anotherParameter": {
+            "description": "Another parameter",
             "type": "string"
           },
           "fourthParameter": {
+            "description": "Fourth parameter",
             "maximum": 1000,
             "minimum": 100,
             "type": "number"
@@ -312,6 +319,7 @@
             "description": "Make all properties in T optional",
             "properties": {
               "test": {
+                "description": "Test",
                 "type": "string"
               }
             },
@@ -321,6 +329,7 @@
         "description": "Parameters for AnotherService with interface-based configuration.",
         "properties": {
           "anotherParameter": {
+            "description": "Another parameter",
             "type": "string"
           },
           "interfaceParam": {
@@ -511,7 +520,7 @@
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -564,7 +573,7 @@
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -599,7 +608,8 @@
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
             "acls": {
-              "$ref": "#/definitions/ResourceAcl"
+              "$ref": "#/definitions/ResourceAcl",
+              "description": "Acls"
             }
           },
           "required": [
@@ -719,33 +729,39 @@
           "description": "Test of TypeParams",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -802,33 +818,39 @@
           "description": "Test of TypeParams",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -867,29 +889,36 @@
           "description": "Test of TypeParams",
           "properties": {
             "acls": {
-              "$ref": "#/definitions/ResourceAcl"
+              "$ref": "#/definitions/ResourceAcl",
+              "description": "Acls"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -950,6 +979,7 @@
           "description": "Open model: the explicit opt-in, everyone may do everything",
           "properties": {
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -971,6 +1001,7 @@
           "description": "Open model: the explicit opt-in, everyone may do everything",
           "properties": {
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -992,6 +1023,7 @@
           "description": "Open model: the explicit opt-in, everyone may do everything",
           "properties": {
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -1098,10 +1130,11 @@
           "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -1118,10 +1151,11 @@
           "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -1138,10 +1172,11 @@
           "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -1292,24 +1327,28 @@
           "definitions": {
             "mapAny": {
               "additionalProperties": {},
+              "description": "Map any",
               "type": "object"
             },
             "mapBoolean": {
               "additionalProperties": {
                 "type": "boolean"
               },
+              "description": "Map boolean",
               "type": "object"
             },
             "mapNumber": {
               "additionalProperties": {
                 "type": "number"
               },
+              "description": "Map number",
               "type": "object"
             },
             "mapObject": {
               "additionalProperties": {
                 "$ref": "#/definitions/mapObject%24%5Bkey%3A%20string%5D"
               },
+              "description": "Map object",
               "type": "object"
             },
             "mapObject$[key: string]": {
@@ -1340,29 +1379,37 @@
               "type": "object"
             }
           },
+          "description": "Company implementation",
           "properties": {
             "mapAny": {
-              "$ref": "#/definitions/mapAny"
+              "$ref": "#/definitions/mapAny",
+              "description": "Map any"
             },
             "mapBoolean": {
-              "$ref": "#/definitions/mapBoolean"
+              "$ref": "#/definitions/mapBoolean",
+              "description": "Map boolean"
             },
             "mapNumber": {
-              "$ref": "#/definitions/mapNumber"
+              "$ref": "#/definitions/mapNumber",
+              "description": "Map number"
             },
             "mapObject": {
-              "$ref": "#/definitions/mapObject"
+              "$ref": "#/definitions/mapObject",
+              "description": "Map object"
             },
             "mapString": {
               "$ref": "#/definitions/mapString",
               "description": "Test of maps for GraphQL"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "permissions": {
               "SchemaOptional": true,
+              "description": "Permissions",
               "items": {
+                "description": "Permission type definition",
                 "enum": [
                   "PRODUCT_1",
                   "PRODUCT_2",
@@ -1392,24 +1439,28 @@
           "definitions": {
             "mapAny": {
               "additionalProperties": {},
+              "description": "Map any",
               "type": "object"
             },
             "mapBoolean": {
               "additionalProperties": {
                 "type": "boolean"
               },
+              "description": "Map boolean",
               "type": "object"
             },
             "mapNumber": {
               "additionalProperties": {
                 "type": "number"
               },
+              "description": "Map number",
               "type": "object"
             },
             "mapObject": {
               "additionalProperties": {
                 "$ref": "#/definitions/mapObject%24%5Bkey%3A%20string%5D"
               },
+              "description": "Map object",
               "type": "object"
             },
             "mapObject$[key: string]": {
@@ -1440,29 +1491,37 @@
               "type": "object"
             }
           },
+          "description": "Company implementation",
           "properties": {
             "mapAny": {
-              "$ref": "#/definitions/mapAny"
+              "$ref": "#/definitions/mapAny",
+              "description": "Map any"
             },
             "mapBoolean": {
-              "$ref": "#/definitions/mapBoolean"
+              "$ref": "#/definitions/mapBoolean",
+              "description": "Map boolean"
             },
             "mapNumber": {
-              "$ref": "#/definitions/mapNumber"
+              "$ref": "#/definitions/mapNumber",
+              "description": "Map number"
             },
             "mapObject": {
-              "$ref": "#/definitions/mapObject"
+              "$ref": "#/definitions/mapObject",
+              "description": "Map object"
             },
             "mapString": {
               "$ref": "#/definitions/mapString",
               "description": "Test of maps for GraphQL"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "permissions": {
               "SchemaOptional": true,
+              "description": "Permissions",
               "items": {
+                "description": "Permission type definition",
                 "enum": [
                   "PRODUCT_1",
                   "PRODUCT_2",
@@ -1492,24 +1551,28 @@
           "definitions": {
             "mapAny": {
               "additionalProperties": {},
+              "description": "Map any",
               "type": "object"
             },
             "mapBoolean": {
               "additionalProperties": {
                 "type": "boolean"
               },
+              "description": "Map boolean",
               "type": "object"
             },
             "mapNumber": {
               "additionalProperties": {
                 "type": "number"
               },
+              "description": "Map number",
               "type": "object"
             },
             "mapObject": {
               "additionalProperties": {
                 "$ref": "#/definitions/mapObject%24%5Bkey%3A%20string%5D"
               },
+              "description": "Map object",
               "type": "object"
             },
             "mapObject$[key: string]": {
@@ -1540,29 +1603,37 @@
               "type": "object"
             }
           },
+          "description": "Company implementation",
           "properties": {
             "mapAny": {
-              "$ref": "#/definitions/mapAny"
+              "$ref": "#/definitions/mapAny",
+              "description": "Map any"
             },
             "mapBoolean": {
-              "$ref": "#/definitions/mapBoolean"
+              "$ref": "#/definitions/mapBoolean",
+              "description": "Map boolean"
             },
             "mapNumber": {
-              "$ref": "#/definitions/mapNumber"
+              "$ref": "#/definitions/mapNumber",
+              "description": "Map number"
             },
             "mapObject": {
-              "$ref": "#/definitions/mapObject"
+              "$ref": "#/definitions/mapObject",
+              "description": "Map object"
             },
             "mapString": {
               "$ref": "#/definitions/mapString",
               "description": "Test of maps for GraphQL"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "permissions": {
               "SchemaOptional": true,
+              "description": "Permissions",
               "items": {
+                "description": "Permission type definition",
                 "enum": [
                   "PRODUCT_1",
                   "PRODUCT_2",
@@ -1656,16 +1727,18 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Computer implementation",
           "properties": {
             "_loanTo": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Loan to",
               "type": "string"
             },
             "_user": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "User",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -1686,16 +1759,18 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Computer implementation",
           "properties": {
             "_loanTo": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Loan to",
               "type": "string"
             },
             "_user": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "User",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -1716,16 +1791,18 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Computer implementation",
           "properties": {
             "_loanTo": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Loan to",
               "type": "string"
             },
             "_user": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "User",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -1820,16 +1897,19 @@
           "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Classroom",
               "type": "string"
             },
             "modelId": {
+              "description": "Model ID",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "serialNumber": {
+              "description": "Serial number",
               "type": "string"
             },
             "uuid": {
@@ -1854,16 +1934,19 @@
           "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Classroom",
               "type": "string"
             },
             "modelId": {
+              "description": "Model ID",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "serialNumber": {
+              "description": "Serial number",
               "type": "string"
             },
             "uuid": {
@@ -1888,16 +1971,19 @@
           "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Classroom",
               "type": "string"
             },
             "modelId": {
+              "description": "Model ID",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "serialNumber": {
+              "description": "Serial number",
               "type": "string"
             },
             "uuid": {
@@ -2110,6 +2196,7 @@
               "type": "object"
             }
           },
+          "description": "Contact implementation",
           "properties": {
             "age": {
               "description": "Contact age",
@@ -2184,6 +2271,7 @@
           "SchemaAdditionalProperties": "Allow mine",
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
+          "description": "Contact implementation",
           "properties": {
             "age": {
               "description": "Contact age",
@@ -2337,6 +2425,7 @@
               "type": "object"
             }
           },
+          "description": "Contact implementation",
           "properties": {
             "age": {
               "description": "Contact age",
@@ -2487,14 +2576,15 @@
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Classroom",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "students": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Students",
               "items": {
                 "allOf": [
                   {
@@ -2526,11 +2616,11 @@
               "type": "array"
             },
             "teacher": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Teacher",
               "type": "string"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -2550,14 +2640,15 @@
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Classroom",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "students": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Students",
               "items": {
                 "allOf": [
                   {
@@ -2589,11 +2680,11 @@
               "type": "array"
             },
             "teacher": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Teacher",
               "type": "string"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -2613,14 +2704,15 @@
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Classroom",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "students": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Students",
               "items": {
                 "allOf": [
                   {
@@ -2652,11 +2744,11 @@
               "type": "array"
             },
             "teacher": {
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\nDeleting the target does nothing to the model unless the attribute declares `@OnDelete <POLICY>`\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "description": "Teacher",
               "type": "string"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -2741,10 +2833,11 @@
           "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Classroom",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -2767,10 +2860,11 @@
           "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Classroom",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -2793,10 +2887,11 @@
           "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Classroom",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "uuid": {
@@ -2888,64 +2983,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/content%232%24epk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -3083,64 +3196,82 @@
               "description": "JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable",
               "properties": {
                 "alg": {
+                  "description": "Alg",
                   "type": "string"
                 },
                 "crv": {
+                  "description": "Crv",
                   "type": "string"
                 },
                 "d": {
+                  "description": "D",
                   "type": "string"
                 },
                 "dp": {
+                  "description": "Dp",
                   "type": "string"
                 },
                 "dq": {
+                  "description": "Dq",
                   "type": "string"
                 },
                 "e": {
+                  "description": "E",
                   "type": "string"
                 },
                 "ext": {
                   "default": false,
+                  "description": "Whether ext is enabled",
                   "type": "boolean"
                 },
                 "k": {
+                  "description": "K",
                   "type": "string"
                 },
                 "key_ops": {
+                  "description": "Key ops",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "kty": {
+                  "description": "Kty",
                   "type": "string"
                 },
                 "n": {
+                  "description": "N",
                   "type": "string"
                 },
                 "oth": {
+                  "description": "Oth",
                   "items": {
                     "$ref": "#/definitions/content%232%24epk%24oth%5B%5D"
                   },
                   "type": "array"
                 },
                 "p": {
+                  "description": "P",
                   "type": "string"
                 },
                 "q": {
+                  "description": "Q",
                   "type": "string"
                 },
                 "qi": {
+                  "description": "Qi",
                   "type": "string"
                 },
                 "use": {
+                  "description": "Use",
                   "type": "string"
                 },
                 "x": {
+                  "description": "X",
                   "type": "string"
                 },
                 "y": {
+                  "description": "Y",
                   "type": "string"
                 }
               },
@@ -3400,35 +3531,42 @@
               "type": "object"
             }
           },
+          "description": "Project implementation",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -3483,35 +3621,42 @@
               "type": "object"
             }
           },
+          "description": "Project implementation",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -3548,31 +3693,39 @@
               "type": "object"
             }
           },
+          "description": "Project implementation",
           "properties": {
             "acls": {
-              "$ref": "#/definitions/ResourceAcl"
+              "$ref": "#/definitions/ResourceAcl",
+              "description": "Acls"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -3695,16 +3848,19 @@
           "description": "Student with email-based UUID, linked to teachers and courses.",
           "properties": {
             "constraints": {
+              "description": "Constraints",
               "type": "null"
             },
             "email": {
+              "description": "Email",
               "type": "string"
             },
             "firstName": {
+              "description": "First name",
               "type": "string"
             },
             "friends": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Friends",
               "items": {
                 "allOf": [
                   {
@@ -3741,13 +3897,15 @@
               "type": "array"
             },
             "lastName": {
+              "description": "Last name",
               "type": "string"
             },
             "order": {
+              "description": "Order",
               "type": "number"
             },
             "teachers": {
-              "description": "Link to a collection of objects\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety.\n\nThis allows to do a n:m or 1:n relation between two models\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects",
+              "description": "Teachers",
               "items": {
                 "description": "A reference to a model",
                 "type": "string"
@@ -3779,16 +3937,19 @@
           "description": "Student with email-based UUID, linked to teachers and courses.",
           "properties": {
             "constraints": {
+              "description": "Constraints",
               "type": "null"
             },
             "email": {
+              "description": "Email",
               "type": "string"
             },
             "firstName": {
+              "description": "First name",
               "type": "string"
             },
             "friends": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Friends",
               "items": {
                 "allOf": [
                   {
@@ -3825,13 +3986,15 @@
               "type": "array"
             },
             "lastName": {
+              "description": "Last name",
               "type": "string"
             },
             "order": {
+              "description": "Order",
               "type": "number"
             },
             "teachers": {
-              "description": "Link to a collection of objects\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety.\n\nThis allows to do a n:m or 1:n relation between two models\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects",
+              "description": "Teachers",
               "items": {
                 "description": "A reference to a model",
                 "type": "string"
@@ -3863,16 +4026,19 @@
           "description": "Student with email-based UUID, linked to teachers and courses.",
           "properties": {
             "constraints": {
+              "description": "Constraints",
               "type": "null"
             },
             "email": {
+              "description": "Email",
               "type": "string"
             },
             "firstName": {
+              "description": "First name",
               "type": "string"
             },
             "friends": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "description": "Friends",
               "items": {
                 "allOf": [
                   {
@@ -3909,13 +4075,15 @@
               "type": "array"
             },
             "lastName": {
+              "description": "Last name",
               "type": "string"
             },
             "order": {
+              "description": "Order",
               "type": "number"
             },
             "teachers": {
-              "description": "Link to a collection of objects\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety.\n\nThis allows to do a n:m or 1:n relation between two models\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects",
+              "description": "Teachers",
               "items": {
                 "description": "A reference to a model",
                 "type": "string"
@@ -4052,33 +4220,39 @@
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4135,33 +4309,39 @@
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4200,29 +4380,36 @@
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
-              "$ref": "#/definitions/ResourceAcl"
+              "$ref": "#/definitions/ResourceAcl",
+              "description": "Acls"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4354,36 +4541,43 @@
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "attribute1": {
+              "description": "Attribute1",
               "type": "string"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4441,36 +4635,43 @@
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
+              "description": "Acls",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
             },
             "attribute1": {
+              "description": "Attribute1",
               "type": "string"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4510,32 +4711,40 @@
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
-              "$ref": "#/definitions/ResourceAcl"
+              "$ref": "#/definitions/ResourceAcl",
+              "description": "Acls"
             },
             "attribute1": {
+              "description": "Attribute1",
               "type": "string"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4645,14 +4854,16 @@
               "type": "array"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "senior": {
               "default": false,
+              "description": "Whether senior is enabled",
               "type": "boolean"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4675,14 +4886,16 @@
               "type": "array"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "senior": {
               "default": false,
+              "description": "Whether senior is enabled",
               "type": "boolean"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -4705,14 +4918,16 @@
               "type": "array"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "senior": {
               "default": false,
+              "description": "Whether senior is enabled",
               "type": "boolean"
             },
             "uuid": {
-              "description": "UUID of the model",
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -5014,7 +5229,7 @@
             },
             "images": {
               "WebdaBehavior": "Webda/BinariesImpl",
-              "description": "Type-level alias for `BinariesImpl<T>`.\n\nModels declare `photos: Binaries<...>` rather than the more verbose\n`photos: BinariesImpl<...>`; the compiler resolves this alias to the\n`BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc\ntag there, and registers the attribute as a Behavior. The runtime\nshape (push/splice/index access plus `attach`, `attachChallenge`, `get`,\n`getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from\n`BinariesImpl` directly.",
+              "description": "Images",
               "items": {
                 "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
               },
@@ -5042,7 +5257,8 @@
               "description": "Password credential"
             },
             "profilePicture": {
-              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E",
+              "description": "Profile picture"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -5282,7 +5498,7 @@
             },
             "images": {
               "WebdaBehavior": "Webda/BinariesImpl",
-              "description": "Type-level alias for `BinariesImpl<T>`.\n\nModels declare `photos: Binaries<...>` rather than the more verbose\n`photos: BinariesImpl<...>`; the compiler resolves this alias to the\n`BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc\ntag there, and registers the attribute as a Behavior. The runtime\nshape (push/splice/index access plus `attach`, `attachChallenge`, `get`,\n`getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from\n`BinariesImpl` directly.",
+              "description": "Images",
               "items": {
                 "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
               },
@@ -5310,7 +5526,8 @@
               "description": "Password credential"
             },
             "profilePicture": {
-              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E",
+              "description": "Profile picture"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -5400,6 +5617,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "WebdaSchema": true,
       "additionalProperties": false,
+      "description": "My interface type definition",
       "properties": {
         "num": {
           "type": "number"
@@ -5422,16 +5640,20 @@
         "testOutput"
       ],
       "additionalProperties": false,
+      "description": "Custom body interface",
       "properties": {
         "optional": {
+          "description": "Optional",
           "type": "string"
         },
         "result": {
           "TJS-test": true,
+          "description": "Result",
           "type": "string"
         },
         "test": {
           "TJS-test": true,
+          "description": "Test",
           "type": "string"
         }
       },
@@ -5449,16 +5671,20 @@
         "testOutput"
       ],
       "additionalProperties": false,
+      "description": "Custom body interface",
       "properties": {
         "optional": {
+          "description": "Optional",
           "type": "string"
         },
         "result": {
           "TJS-test": true,
+          "description": "Result",
           "type": "string"
         },
         "test": {
           "TJS-test": true,
+          "description": "Test",
           "type": "string"
         }
       },
@@ -5551,29 +5777,36 @@
           "description": "Make all properties in T optional",
           "properties": {
             "acls": {
-              "$ref": "#/definitions/ResourceAcl"
+              "$ref": "#/definitions/ResourceAcl",
+              "description": "Acls"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },
@@ -5610,31 +5843,39 @@
         "project": {
           "WebdaModel": true,
           "additionalProperties": false,
+          "description": "Project implementation",
           "properties": {
             "acls": {
-              "$ref": "#/definitions/ResourceAcl"
+              "$ref": "#/definitions/ResourceAcl",
+              "description": "Acls"
             },
             "company": {
-              "description": "Define the parent of the model\n\nDeleting the parent deletes the model (`CASCADE`) unless the attribute declares `@OnDelete RESTRICT` or\n`@OnDelete NONE`",
+              "description": "Company",
               "type": "string"
             },
             "n": {
+              "description": "N",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "test": {
+              "description": "Test",
               "format": "date-time",
               "type": "string"
             },
             "test2": {
+              "description": "Test2",
               "type": "string"
             },
             "type": {
+              "description": "Type",
               "type": "string"
             },
             "uuid": {
+              "description": "Unique identifier",
               "type": "string"
             }
           },

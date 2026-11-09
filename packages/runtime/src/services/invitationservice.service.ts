@@ -37,16 +37,37 @@ type InvitationMap = Record<string, unknown>;
  * Invitation entry stored on the user's map attribute
  */
 interface UserInvitation {
+  /**
+   * Model
+   */
   model: string;
+  /**
+   * Metadata
+   */
   metadata: Record<string, unknown>;
+  /**
+   * Inviter
+   */
   inviter: unknown;
+  /**
+   * Whether pending is enabled
+   */
   pending: boolean;
 }
 
+/**
+ * Invitation answer body interface
+ */
 interface InvitationAnswerBody {
+  /**
+   * Whether accept is enabled
+   */
   accept: boolean;
 }
 
+/**
+ * Invitation interface
+ */
 interface Invitation {
   /**
    * User to invite to target
@@ -188,7 +209,7 @@ export class InvitationParameters extends ServiceParameters {
    */
   notification?: string;
   /**
-   *
+   * URL
    */
   url?: string;
 
@@ -215,6 +236,9 @@ export class InvitationParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Invitation service events type definition
+ */
 export type InvitationServiceEvents = {
   "Invitation.Accepted": EventInvitationAnswered;
   "Invitation.Removed": EventInvitationRemoved;
@@ -232,14 +256,23 @@ export class InvitationService<
   T extends InvitationParameters = InvitationParameters,
   E extends InvitationServiceEvents = InvitationServiceEvents
 > extends Service<T, E> {
+  /**
+   * Authentication service
+   */
   @Inject("params:authenticationService")
   authenticationService: InvitationAuthentication;
 
   // Optional service
+  /**
+   * Notification service
+   */
   // @ts-ignore - Optional inject
   @Inject("params:notificationService", undefined, true)
   notificationService: NotificationService;
 
+  /**
+   * Invitation store
+   */
   @Inject("params:invitationStore")
   invitationStore: any;
   /**

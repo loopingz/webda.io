@@ -17,9 +17,21 @@ import { parseSubjectKey, registerOperation, serializeSubjectKey, type Operation
  * Represents a single audit log entry
  */
 export class AuditEntry extends CoreModel {
+  /**
+   * Operation ID
+   */
   operationId: string;
+  /**
+   * Whether success is enabled
+   */
   success: boolean;
+  /**
+   * Error
+   */
   error?: string;
+  /**
+   * User ID
+   */
   userId?: string;
   /**
    * Identifier of the model the operation targeted, e.g. `WebdaSample/Post`
@@ -29,6 +41,9 @@ export class AuditEntry extends CoreModel {
    * Canonical primary key of the targeted object (see `serializeSubjectKey`)
    */
   subjectKey?: string;
+  /**
+   * Timestamp
+   */
   timestamp: Date;
 }
 
@@ -165,6 +180,7 @@ const AUDIT_SCHEMAS: Record<string, JSONSchema7> = {
 };
 
 /**
+ * Audit service implementation
  * @WebdaModda AuditService
  *
  * Service that listens to operation success/failure events and records audit entries.

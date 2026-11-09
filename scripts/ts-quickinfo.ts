@@ -21,6 +21,11 @@ const source = ts.createSourceFile(absFile, content, ts.ScriptTarget.Latest, tru
 let toJSONPos: { line: number; offset: number } | undefined;
 const properties: { name: string; line: number; offset: number }[] = [];
 
+/**
+ * Get the line and offset
+ * @param pos - the pos
+ * @returns the result
+ */
 function getLineAndOffset(pos: number) {
   const { line, character } = source.getLineAndCharacterOfPosition(pos);
   return { line: line + 1, offset: character + 1 };
@@ -44,15 +49,27 @@ source.forEachChild(node => {
 const tsserverPath = require.resolve("typescript/lib/tsserver.js");
 const tsserver = spawn("node", [tsserverPath], { stdio: ["pipe", "pipe", "inherit"] });
 
+/**
+ * Send operation
+ * @param cmd - the cmd
+ */
 function send(cmd: any) {
   tsserver.stdin.write(JSON.stringify(cmd) + "\n");
 }
 
 let seq = 0;
+/**
+ * Perform req
+ * @param command - the command
+ * @param args - the args
+ */
 function req(command: string, args: any) {
   send({ seq: seq++, type: "request", command, arguments: args });
 }
 
+/**
+ * Pending type definition
+ */
 type Pending = { tag: string; prop?: string };
 const pending = new Map<number, Pending>();
 
@@ -83,6 +100,9 @@ tsserver.stdout.on("data", chunk => {
   }
 });
 
+/**
+ * Perform expand with compiler
+ */
 function expandWithCompiler() {
   console.log("\n[Compiler API expansion]");
   const program = ts.createProgram({
@@ -97,10 +117,20 @@ function expandWithCompiler() {
   // Track currently expanding to handle immediate self recursion
   const inProgress = new Set<number>();
 
+  /**
+   * Check whether undefined in union
+   * @param t - the t
+   * @returns true if the operation succeeded
+   */
   function isUndefinedInUnion(t: ts.Type): boolean {
     return t.isUnion() && t.types.some(u => !!(u.flags & ts.TypeFlags.Undefined));
   }
 
+  /**
+   * Check whether it has to JSON
+   * @param t - the t
+   * @returns the result
+   */
   function hasToJSON(t: ts.Type): ts.Signature | undefined {
     const toJSON = t.getProperty("toJSON");
     if (!toJSON) return;
@@ -113,6 +143,11 @@ function expandWithCompiler() {
     return;
   }
 
+  /**
+   * Check whether self jso ned
+   * @param t - the t
+   * @returns true if the operation succeeded
+   */
   function isSelfJSONed(t: ts.Type): boolean {
     // Check alias symbol name
     if (t.aliasSymbol && t.aliasSymbol.getName() === "SelfJSONed") return true;
@@ -121,6 +156,12 @@ function expandWithCompiler() {
     return /^SelfJSONed<.*>$/.test(str);
   }
 
+  /**
+   * Perform expand self jso ned arg
+   * @param t - the t
+   * @param depth - the depth
+   * @returns the result
+   */
   function expandSelfJSONedArg(t: ts.Type, depth: number): any {
     const id = (t as any).id;
     if (expandedCache.has(id)) return expandedCache.get(id);
@@ -172,6 +213,11 @@ function expandWithCompiler() {
   }
 
   // Simpler concrete expansion (no recursion through toJSON) used as fallback
+  /**
+   * Perform expand concrete data type
+   * @param t - the t
+   * @returns the result
+   */
   function expandConcreteDataType(t: ts.Type): Record<string, any> {
     const out: Record<string, any> = {};
     const props = checker.getApparentType(t).getProperties();
@@ -190,6 +236,12 @@ function expandWithCompiler() {
   const dtoCache = new Map<number, any>();
   const dtoInProgress = new Set<number>();
 
+  /**
+   * Perform expand DTO
+   * @param t - the t
+   * @param depth - the depth
+   * @returns the result
+   */
   function expandDto(t: ts.Type, depth: number = 0): any {
     if (depth > 5) return "...";
     // Primitive direct mapping
@@ -294,10 +346,20 @@ function expandWithCompiler() {
     return result;
   }
 
+  /**
+   * Check whether new DTO
+   * @param t - the t
+   * @returns true if the operation succeeded
+   */
   function isNewDto(t: ts.Type): boolean {
     return !!((t as any).aliasSymbol && (t as any).aliasSymbol.escapedName === "NewDto");
   }
 
+  /**
+   * Perform expand concrete DTO
+   * @param t - the t
+   * @returns the result
+   */
   function expandConcreteDto(t: ts.Type): Record<string, any> {
     const out: Record<string, any> = {};
     const props = checker.getApparentType(t).getProperties();
@@ -333,12 +395,27 @@ function expandWithCompiler() {
   }
 
   // ---------------- FROM DTO EXPANSION ----------------
+  /**
+   * Check whether new from DTO
+   * @param t - the t
+   * @returns true if the operation succeeded
+   */
   function isNewFromDto(t: ts.Type): boolean {
     return !!((t as any).aliasSymbol && (t as any).aliasSymbol.escapedName === "NewFromDto");
   }
+  /**
+   * Check whether partial
+   * @param t - the t
+   * @returns true if the operation succeeded
+   */
   function isPartial(t: ts.Type): boolean {
     return !!((t as any).aliasSymbol && (t as any).aliasSymbol.escapedName === "Partial");
   }
+  /**
+   * Perform expand concrete from DTO
+   * @param t - the t
+   * @returns the result
+   */
   function expandConcreteFromDto(t: ts.Type): Record<string, any> {
     const out: Record<string, any> = {};
     const props = checker.getApparentType(t).getProperties();
@@ -374,6 +451,12 @@ function expandWithCompiler() {
     });
     return out;
   }
+  /**
+   * Perform expand from DTO param type
+   * @param t - the t
+   * @param classType - the class type
+   * @returns the result
+   */
   function expandFromDtoParamType(t: ts.Type, classType: ts.Type): { shape: any; optionalAll: boolean } {
     // Handle Partial<NewFromDto<this>> pattern
     if (isPartial(t)) {
@@ -392,6 +475,12 @@ function expandWithCompiler() {
     // Fallback: attempt concrete expansion
     return { shape: expandConcreteFromDto(classType), optionalAll: false };
   }
+  /**
+   * Perform expand new from DTO alias
+   * @param t - the t
+   * @param classType - the class type
+   * @returns the result
+   */
   function expandNewFromDtoAlias(t: ts.Type, classType: ts.Type): Record<string, any> {
     const aliasArgs = (t as any).aliasTypeArguments as ts.Type[] | undefined;
     let inner: ts.Type = classType;
@@ -402,6 +491,12 @@ function expandWithCompiler() {
     return expandConcreteFromDto(inner);
   }
 
+  /**
+   * Perform expand jso ned
+   * @param t - the t
+   * @param depth - the depth
+   * @returns the result
+   */
   function expandJSONed(t: ts.Type, depth: number): any {
     if (depth > 5) return "...";
     // Primitive-like (treat as leaf, skip visited tracking)
@@ -568,6 +663,11 @@ function expandWithCompiler() {
       console.log("Required keys:", required);
 
       // Build JSON Schema from expansion
+      /**
+       * Build schema
+       * @param exp - the exp
+       * @returns the result
+       */
       function buildSchema(exp: any): any {
         if (typeof exp === "string") {
           switch (exp) {
@@ -648,7 +748,7 @@ function expandWithCompiler() {
                 console.log("fromDto Param Expanded:", shape);
                 const fromDtoSchema = buildSchema(shape);
                 if (fromDtoSchema.type === "object") {
-                  let req: string[] = [];
+                  const req: string[] = [];
                   if (!optionalAll) {
                     // Determine optional via union with undefined or Partial wrapper omitted
                     Object.entries(shape).forEach(([k, v]) => {

@@ -118,10 +118,12 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   }
 
   /**
+   * Send operation
    * @inheritdoc
    */
   abstract send(options: MailerSendOptions, callback?: () => void): Promise<any>;
   /**
+   * Check whether it has notification
    * @inheritdoc
    */
   abstract hasNotification(notification: string);

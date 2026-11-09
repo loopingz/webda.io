@@ -4,10 +4,25 @@ import * as k8s from "@kubernetes/client-node";
  * A custom resource as read from the API server
  */
 export interface CustomResource {
+  /**
+   * API version
+   */
   apiVersion: string;
+  /**
+   * Kind
+   */
   kind: string;
+  /**
+   * Metadata
+   */
   metadata: k8s.V1ObjectMeta & { name: string };
+  /**
+   * Spec
+   */
   spec?: any;
+  /**
+   * Status
+   */
   status?: any;
 }
 
@@ -15,9 +30,21 @@ export interface CustomResource {
  * Type of the custom resources of a repository
  */
 export interface CustomResourceType {
+  /**
+   * Group
+   */
   group: string;
+  /**
+   * Version
+   */
   version: string;
+  /**
+   * Plural
+   */
   plural: string;
+  /**
+   * Kind
+   */
   kind: string;
   /**
    * Namespace of the resources, undefined for cluster scoped resources
@@ -41,10 +68,17 @@ export function isApiStatus(err: unknown, code: number): boolean {
  * Entries expire: a version whose watch event never comes (watch down) does not leak.
  */
 export class WriteTracker {
+  /**
+   * Entries
+   */
   protected entries = new Map<string, number>();
+  /**
+   * Next sweep
+   */
   protected nextSweep = 0;
 
   /**
+   * Create a new WriteTracker instance
    * @param ttl - milliseconds an entry is kept
    */
   constructor(protected ttl: number = 300000) {}
@@ -82,6 +116,7 @@ export class WriteTracker {
  */
 export class CustomResources {
   /**
+   * Create a new CustomResources instance
    * @param api - the custom objects API
    * @param type - the resources type
    * @param tracker - records the writes, when the store watches the resources
@@ -103,6 +138,7 @@ export class CustomResources {
   }
 
   /**
+   * Get `group/version`
    * @returns `group/version`
    */
   get apiVersion(): string {

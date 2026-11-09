@@ -46,18 +46,21 @@ export interface ClusterMessage {
 const storeEvents = ["Store.PartialUpdated", "Store.Saved", "Store.PatchUpdated", "Store.Updated", "Store.Deleted"];
 
 /**
- *
+ * Configuration parameters for ClusterService
  */
 export class ClusterServiceParameters extends ServiceParameters {
   /**
+   * Pubsub
    * @default PubSub
    */
   pubsub: string;
   /**
+   * TTL
    * @default twice keepAlive
    */
   ttl: number;
   /**
+   * Keep alive
    * @default 30000
    */
   keepAlive: number;
@@ -99,6 +102,9 @@ export class ClusterServiceParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class ClusterService<T extends ClusterServiceParameters = ClusterServiceParameters> extends Service<T> {
+  /**
+   * Pub sub
+   */
   @Inject("params:pubsub", "PubSub")
   pubSub: PubSubService<ClusterMessage>;
 
@@ -140,6 +146,9 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    */
   stores: { [key: string]: Store };
 
+  /**
+   * Metrics
+   */
   metrics: {
     members: Gauge;
   };

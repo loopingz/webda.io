@@ -7,6 +7,9 @@ const KEY = /^[A-Za-z0-9_]+$/;
  * PostgreSQL JSONB syntax: `uuid VARCHAR(255)` key, `data jsonb` document, `$n` placeholders
  */
 export class PostgresDialect implements SQLDialect {
+  /**
+   * Binary collation
+   */
   readonly binaryCollation = `COLLATE "C"`;
 
   /** @override */
@@ -210,6 +213,7 @@ export class PostgresDialect implements SQLDialect {
   }
 
   /**
+   * Check key
    * @param key - a key segment written inside a JSON path literal
    */
   protected checkKey(key: string): void {
@@ -219,6 +223,7 @@ export class PostgresDialect implements SQLDialect {
   }
 
   /**
+   * Check path
    * @param path - path segments written inside a JSON path literal
    * @returns the validated segments
    */
@@ -230,6 +235,7 @@ export class PostgresDialect implements SQLDialect {
   }
 
   /**
+   * Check index
    * @param index - an array index written inside a JSON path literal
    * @returns the validated index
    */

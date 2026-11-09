@@ -23,11 +23,23 @@ import { WebContext } from "../contexts/webcontext.js";
  * Represent basic EventBinary
  */
 export interface EventBinary {
+  /**
+   * Object
+   */
   object: BinaryFileInfo;
+  /**
+   * Service
+   */
   service: BinaryService;
 }
 
+/**
+ * Event binary upload success interface
+ */
 export interface EventBinaryUploadSuccess<T extends Storable = Storable> extends EventBinary {
+  /**
+   * Target
+   */
   target: T;
 }
 
@@ -35,7 +47,13 @@ export interface EventBinaryUploadSuccess<T extends Storable = Storable> extends
  * Sent before metadata are updated to allow alteration of the modification
  */
 export interface EventBinaryMetadataUpdate<T extends Storable = Storable> extends EventBinaryUploadSuccess<T> {
+  /**
+   * Target
+   */
   target: T;
+  /**
+   * Metadata
+   */
   metadata: BinaryMetadata;
 }
 
@@ -52,6 +70,9 @@ export class BinaryNotFoundError extends WebdaError.CodeError {
   }
 }
 
+/**
+ * Binary file info interface
+ */
 export interface BinaryFileInfo<T extends object = {}> {
   /**
    * Hash of the binary
@@ -748,6 +769,9 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
  * Define a Binary map stored in a Binaries collection
  */
 export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
+  /**
+   * [webda storage]
+   */
   [WEBDA_STORAGE]: {
     service: BinaryService;
     parent: BinariesImpl<T>;
@@ -795,6 +819,9 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
  * @WebdaBehavior Webda/BinariesImpl
  */
 export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> {
+  /**
+   * [webda storage]
+   */
   protected [WEBDA_STORAGE]: {
     service?: BinaryService;
     [key: string]: any;
@@ -848,19 +875,31 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     return (this[WEBDA_STORAGE] as any)["__parent__"];
   }
 
-  /** @throws Readonly collection */
+  /**
+   * Pop operation
+   * @throws Readonly collection
+   */
   pop(): BinariesItem<T> {
     throw new Error("Readonly");
   }
-  /** @throws Readonly collection */
+  /**
+   * Perform slice
+   * @throws Readonly collection
+   */
   slice(): BinariesItem<T>[] {
     throw new Error("Readonly");
   }
-  /** @throws Readonly collection */
+  /**
+   * Unshift operation
+   * @throws Readonly collection
+   */
   unshift(): number {
     throw new Error("Readonly");
   }
-  /** @throws Readonly collection */
+  /**
+   * Shift operation
+   * @throws Readonly collection
+   */
   shift(): BinariesItem<T> {
     throw new Error("Readonly");
   }
@@ -1209,6 +1248,9 @@ export class BinaryParameters extends ServiceParameters {
    * max file size
    */
   protected _maxFileSize: number;
+  /**
+   * Max upload size
+   */
   protected _maxUploadSize?: number;
   /**
    * Lifetime in seconds of the signed URLs
@@ -1223,7 +1265,7 @@ export class BinaryParameters extends ServiceParameters {
    * key is a Store name
    * the string[] represent all valids attributes to store files in * indicates all attributes
    */
-  models: { [key: /** @serviceName */ string]: /** @modelName */ string[] };
+  models: { [key: /** Store service name @serviceName */ string]: /** Model names @modelName */ string[] };
 
   /**
    * Define the maximum filesize to accept as direct upload
@@ -1273,6 +1315,9 @@ export class BinaryParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Binary events type definition
+ */
 export type BinaryEvents = {
   /**
    * Emitted when someone download a binary
@@ -1320,8 +1365,14 @@ export abstract class BinaryService<
   extends Service<T, E>
   implements MappingService<BinaryMap>
 {
+  /**
+   * Lowercase maps
+   */
   _lowercaseMaps: any;
 
+  /**
+   * Metrics
+   */
   declare metrics: {
     upload: Counter;
     download: Counter;
@@ -1820,7 +1871,7 @@ export abstract class BinaryService<
   abstract cascadeDelete(info: BinaryMap, uuid: string, attribute: string, model: string): Promise<void>;
 
   /**
-   *
+   * Delete success
    * @param targetStore - the target store
    * @param object - the target object
    * @param property - the property name

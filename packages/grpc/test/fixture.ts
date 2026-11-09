@@ -22,12 +22,16 @@ export const fixtureState = {
   }
 };
 
-/** Header of the current call, through the operation context */
+/**
+ * Header of the current call, through the operation context
+ * @returns the result
+ */
 const authorization = () => useContext<WebContext>().getHttpContext()?.getUniqueHeader("authorization") ?? "none";
 
 /** Streaming operations for the transport tests. */
 export class GrpcFixtureService extends Service {
   /**
+   * Load parameters
    * @param params - raw parameters
    * @returns parameters
    */
@@ -36,6 +40,7 @@ export class GrpcFixtureService extends Service {
   }
 
   /**
+   * Return the text
    * @param text - text to echo
    * @returns the text
    */

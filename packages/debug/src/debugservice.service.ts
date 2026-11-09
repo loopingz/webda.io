@@ -146,6 +146,9 @@ export class DebugServiceParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class DebugService extends Service<DebugServiceParameters> {
+  /**
+   * Parameters
+   */
   static Parameters = DebugServiceParameters;
   /** Ring buffer of recent HTTP requests */
   requestLog: RequestLog = new RequestLog();
@@ -442,9 +445,15 @@ export class DebugService extends Service<DebugServiceParameters> {
     requires: ["router", "rest-domain", "http-server"]
   })
   debug(
-    /** @alias p @description Debug dashboard port */
+    /**
+     * Port
+     * @alias p @description Debug dashboard port
+     */
     port: number = 18181,
-    /** @alias s @description Application server port */
+    /**
+     * Serve port
+     * @alias s @description Application server port
+     */
     servePort: number = 18080,
     /** @description Disable TUI and open the web dashboard (hosted on webda.io) */
     web?: boolean,

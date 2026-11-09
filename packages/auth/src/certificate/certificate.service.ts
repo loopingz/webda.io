@@ -65,6 +65,7 @@ export class CertificateProviderParameters extends ServiceParameters {
   cacheTtl: number;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -98,11 +99,20 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
   extends Service<T>
   implements AuthProvider, CertificateResolver
 {
+  /**
+   * Parameters
+   */
   static Parameters = CertificateProviderParameters;
 
+  /**
+   * Provider name
+   */
   readonly providerName: string = "certificate";
 
-  /** @returns how certificate authentication contributes to a session */
+  /**
+   * Get how certificate authentication contributes to a session
+   * @returns how certificate authentication contributes to a session
+   */
   get mode(): "login" | "factor" {
     return this.parameters.mode;
   }
@@ -147,6 +157,7 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
   }
 
   /**
+   * Get what clients see in Auth.Providers
    * @returns what clients see in Auth.Providers
    */
   getPublicInfo(): ProviderInfo {
@@ -276,6 +287,7 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
   }
 
   /**
+   * Perform remember
    * @param providerUid - ident uid
    * @param value - resolution to cache
    */
@@ -351,6 +363,7 @@ export class CertificateProvider<T extends CertificateProviderParameters = Certi
 }
 
 /**
+ * Return the values as a list
  * @param value - an attribute value
  * @returns the values as a list
  */
@@ -360,6 +373,7 @@ function values(value: string | string[] | undefined): string[] {
 }
 
 /**
+ * Return the names of that type
  * @param cert - client certificate
  * @param type - subject alternative name type ("email", "URI", "DNS")
  * @returns the names of that type

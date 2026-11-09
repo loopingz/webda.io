@@ -369,9 +369,11 @@
           "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
           "properties": {
             "model": {
+              "description": "Model",
               "type": "string"
             },
             "query": {
+              "description": "Query",
               "type": "string"
             }
           },
@@ -380,16 +382,30 @@
           ],
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "sync/pull",
+        "path": [],
+        "query": [],
+        "body": [
+          "scopes",
+          "cursor",
+          "limit"
+        ]
       }
     },
     "SyncService.pull.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
+      "description": "Pull response interface",
       "properties": {
         "cursor": {
+          "description": "Cursor",
           "type": "string"
         },
         "evicts": {
+          "description": "Evicts",
           "items": {
             "$ref": "#/definitions/SyncRef"
           },
@@ -397,6 +413,7 @@
         },
         "hasMore": {
           "default": false,
+          "description": "Whether to has more",
           "type": "boolean"
         },
         "resync": {
@@ -405,6 +422,7 @@
           "type": "boolean"
         },
         "upserts": {
+          "description": "Upserts",
           "items": {
             "$ref": "#/definitions/SyncedObject"
           },
@@ -423,9 +441,11 @@
           "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
           "properties": {
             "key": {
+              "description": "Key",
               "type": "string"
             },
             "model": {
+              "description": "Model",
               "type": "string"
             }
           },
@@ -439,11 +459,15 @@
           "additionalProperties": false,
           "description": "An object as sent by the server",
           "properties": {
-            "object": {},
+            "object": {
+              "description": "Object"
+            },
             "ref": {
-              "$ref": "#/definitions/SyncRef"
+              "$ref": "#/definitions/SyncRef",
+              "description": "Ref"
             },
             "rev": {
+              "description": "Rev",
               "type": "number"
             }
           },
@@ -464,9 +488,11 @@
           "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
           "properties": {
             "model": {
+              "description": "Model",
               "type": "string"
             },
             "query": {
+              "description": "Query",
               "type": "string"
             }
           },
@@ -481,16 +507,29 @@
       },
       "required": [
         "scope"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "sync/snapshot",
+        "path": [],
+        "query": [],
+        "body": [
+          "scope",
+          "continuationToken"
+        ]
+      }
     },
     "SyncService.snapshot.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
+      "description": "Snapshot response interface",
       "properties": {
         "continuationToken": {
+          "description": "Continuation token",
           "type": "string"
         },
         "objects": {
+          "description": "Objects",
           "items": {
             "$ref": "#/definitions/SyncedObject"
           },
@@ -507,9 +546,11 @@
           "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
           "properties": {
             "key": {
+              "description": "Key",
               "type": "string"
             },
             "model": {
+              "description": "Model",
               "type": "string"
             }
           },
@@ -523,11 +564,15 @@
           "additionalProperties": false,
           "description": "An object as sent by the server",
           "properties": {
-            "object": {},
+            "object": {
+              "description": "Object"
+            },
             "ref": {
-              "$ref": "#/definitions/SyncRef"
+              "$ref": "#/definitions/SyncRef",
+              "description": "Ref"
             },
             "rev": {
+              "description": "Rev",
               "type": "number"
             }
           },
@@ -556,6 +601,7 @@
       "definitions": {
         "Mutation": {
           "additionalProperties": false,
+          "description": "Mutation interface",
           "properties": {
             "baseRev": {
               "description": "Revision the change was made on, 0 for a create",
@@ -566,6 +612,7 @@
               "type": "string"
             },
             "op": {
+              "description": "Op",
               "enum": [
                 "create",
                 "patch",
@@ -577,7 +624,8 @@
               "description": "The full object for \"create\", a `@webda/versioning` Delta for \"patch\""
             },
             "ref": {
-              "$ref": "#/definitions/SyncRef"
+              "$ref": "#/definitions/SyncRef",
+              "description": "Ref"
             }
           },
           "required": [
@@ -593,9 +641,11 @@
           "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
           "properties": {
             "key": {
+              "description": "Key",
               "type": "string"
             },
             "model": {
+              "description": "Model",
               "type": "string"
             }
           },
@@ -605,13 +655,24 @@
           ],
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "sync/push",
+        "path": [],
+        "query": [],
+        "body": [
+          "mutations"
+        ]
       }
     },
     "SyncService.push.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
+      "description": "Push response interface",
       "properties": {
         "results": {
+          "description": "Results",
           "items": {
             "anyOf": [
               {
@@ -623,7 +684,8 @@
               {
                 "$ref": "#/definitions/results%5B%5D%233"
               }
-            ]
+            ],
+            "description": "Mutation result type definition"
           },
           "type": "array"
         }
@@ -739,9 +801,11 @@
           "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
           "properties": {
             "model": {
+              "description": "Model",
               "type": "string"
             },
             "query": {
+              "description": "Query",
               "type": "string"
             }
           },
@@ -750,13 +814,25 @@
           ],
           "type": "object"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "sync/watch",
+        "path": [],
+        "query": [],
+        "body": [
+          "scopes",
+          "_cursor"
+        ]
       }
     },
     "SyncService.watch.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
+      "description": "Watch event interface",
       "properties": {
         "cursor": {
+          "description": "Cursor",
           "type": "string"
         },
         "heartbeat": {

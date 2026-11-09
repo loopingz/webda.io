@@ -6,6 +6,7 @@ import { fetchToken, type SourcedToken, type TokenSource } from "./source.js";
  */
 export class GitHubActionsTokenSource implements TokenSource {
   /**
+   * Create a new GitHubActionsTokenSource instance
    * @param timeout - request timeout in milliseconds
    * @param env - environment holding ACTIONS_ID_TOKEN_REQUEST_URL and ACTIONS_ID_TOKEN_REQUEST_TOKEN
    */

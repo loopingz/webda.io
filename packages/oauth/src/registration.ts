@@ -15,14 +15,30 @@ const GRANT_TYPES = ["authorization_code", "refresh_token"];
  * Client metadata accepted by the registration endpoint (RFC 7591 §2): public clients only
  */
 export interface RegistrationRequest {
+  /**
+   * Redirect URIS
+   */
   redirect_uris: string[];
+  /**
+   * Client name
+   */
   client_name?: string;
+  /**
+   * Client URI
+   */
   client_uri?: string;
+  /**
+   * Logo URI
+   */
   logo_uri?: string;
+  /**
+   * Scope
+   */
   scope?: string;
 }
 
 /**
+ * Return the 400 error
  * @param code - OAuth error code
  * @param description - description
  * @returns the 400 error
@@ -32,6 +48,7 @@ function invalid(code: "invalid_redirect_uri" | "invalid_client_metadata", descr
 }
 
 /**
+ * Return the value when it is an https URL
  * @param value - untrusted value
  * @param name - field name
  * @returns the value when it is an https URL
@@ -48,6 +65,7 @@ function httpsUrl(value: unknown, name: string): string | undefined {
 }
 
 /**
+ * Check list
  * @param value - untrusted value
  * @param allowed - accepted values
  * @param name - field name

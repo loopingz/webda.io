@@ -13,6 +13,7 @@ export interface GeneratorNames {
 }
 
 /**
+ * Return the TypeScript type
  * @param ref - schema ref, `void` or `<ref>?`
  * @param names - type names
  * @param fallback - type when the ref is unknown
@@ -55,6 +56,7 @@ export function inputType(manifest: SdkManifest, op: SdkManifestOperation, names
 }
 
 /**
+ * Return the type of the action body (`<Model>.<action>.input`), undefined when the action takes none
  * @param manifest - the manifest
  * @param op - an action or behavior operation
  * @param names - type names
@@ -74,6 +76,7 @@ export function actionBodyType(
 }
 
 /**
+ * Return the output type
  * @param manifest - the manifest
  * @param op - the operation
  * @param names - type names

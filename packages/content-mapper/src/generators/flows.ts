@@ -150,6 +150,11 @@ export function flowDeclarations(
 export function flowsGenerator(): Generator {
   return {
     name: "flows",
+    /**
+     * Perform analyze
+     * @param ctx - the ctx
+     * @returns the result
+     */
     analyze(ctx: AnalysisContext): FileEdits[] {
       const files = ctx.sourceFiles.filter(sf => sf.fileName.endsWith(FLOW_SUFFIX));
       if (!files.length) return [];

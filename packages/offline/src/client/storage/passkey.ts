@@ -8,6 +8,7 @@ export type PasskeyKeyProviderErrorCode = "PRF_UNSUPPORTED" | "CANCELLED";
  */
 export class PasskeyKeyProviderError extends Error {
   /**
+   * Create a new PasskeyKeyProviderError instance
    * @param code PRF_UNSUPPORTED when WebAuthn or the PRF extension is unavailable, CANCELLED when no assertion was produced
    * @param message human readable description
    */
@@ -51,6 +52,7 @@ export class PasskeyKeyProvider implements KeyProvider {
   readonly id: string;
 
   /**
+   * Create a new PasskeyKeyProvider instance
    * @param options credential, label and optional WebAuthn parameters
    */
   constructor(private readonly options: PasskeyKeyProviderOptions) {

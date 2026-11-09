@@ -7,6 +7,7 @@ import type { AIProvider } from "./provider.js";
  */
 export class AnthropicProvider implements AIProvider {
   /**
+   * Create a new AnthropicProvider instance
    * @param opts - construction options.
    * @param opts.apiKey - Anthropic API key (falls back to `ANTHROPIC_API_KEY` env).
    * @param opts.model - model identifier (defaults to the current Haiku).

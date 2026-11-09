@@ -15,6 +15,9 @@ export { AbstractService };
  * and the plugin emits `WQL9006` on any permission usage.
  */
 export interface WebdaSessionRegistry {
+  /**
+   * Session
+   */
   session: unknown;
 }
 
@@ -22,6 +25,9 @@ export interface WebdaSessionRegistry {
  * REST transport parameters for use with `@Operation<RestParameters>()`
  */
 export interface RestParameters {
+  /**
+   * REST
+   */
   rest?:
     | false
     | {
@@ -49,6 +55,9 @@ export type OperationStreaming = "none" | "client" | "server" | "bidi";
  * gRPC transport parameters for use with `@Operation<GrpcParameters>()`
  */
 export interface GrpcParameters {
+  /**
+   * GRPC
+   */
   grpc?:
     | false
     | {
@@ -60,6 +69,9 @@ export interface GrpcParameters {
  * GraphQL transport parameters for use with `@Operation<GraphQLParameters>()`
  */
 export interface GraphQLParameters {
+  /**
+   * GraphQL
+   */
   graphql?:
     | false
     | {
@@ -73,6 +85,9 @@ export interface GraphQLParameters {
  * MCP transport parameters for use with `@Operation<McpParameters>()`
  */
 export interface McpParameters {
+  /**
+   * MCP
+   */
   mcp?:
     | false
     | {
@@ -248,7 +263,13 @@ export type OperationSubject = {
  * Result returned when an operation is skipped in dry mode
  */
 export interface DryRunResult {
+  /**
+   * Dry run
+   */
   dryRun: true;
+  /**
+   * Operation ID
+   */
   operationId: string;
   /** Arguments resolved by resolveArguments; fields marked @Masked or secrets are masked */
   arguments: unknown[];
@@ -296,8 +317,17 @@ export interface ICore {
    * Return if Webda is in debug mode
    */
   isDebug(): boolean;
+  /**
+   * Get the services
+   */
   getServices(): { [key: string]: AbstractService };
+  /**
+   * Get the binary store
+   */
   getBinaryStore(model: ModelClass | Model | string, attribute: string): AbstractService;
+  /**
+   * Get the locales
+   */
   getLocales(): string[];
   /**
    * Get the store assigned to this model
@@ -310,9 +340,21 @@ export interface ICore {
    * @param name
    */
   getService<T extends Service = Service>(name: string): T;
+  /**
+   * Get the service
+   */
   getService<T extends Store = Store>(name: "Registry"): T;
+  /**
+   * Get the service
+   */
   getService<T extends CryptoService = CryptoService>(name: "CryptoService"): T;
+  /**
+   * Get the instance ID
+   */
   getInstanceId(): string;
+  /**
+   * Update configuration
+   */
   updateConfiguration(newConfig: { [key: string]: any }): void;
 }
 

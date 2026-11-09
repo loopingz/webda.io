@@ -151,11 +151,29 @@ export function listDeploymentFiles(deploymentsDir: string): string[] {
  * Interface for the application methods needed by configuration schema generation
  */
 export interface ConfigSchemaApplication {
+  /**
+   * Get the moddas
+   */
   getModdas(): { [key: string]: any };
+  /**
+   * Get the schema
+   */
   getSchema(type: string): JSONSchema7;
+  /**
+   * Get the deployers
+   */
   getDeployers(): { [key: string]: any };
+  /**
+   * Get the configuration
+   */
   getConfiguration(): { services: { [key: string]: any } };
+  /**
+   * Get the modules
+   */
   getModules(): { beans?: { [key: string]: any }; models?: Record<string, any>; behaviors?: Record<string, any> };
+  /**
+   * Complete namespace
+   */
   completeNamespace(name: string): string;
 }
 

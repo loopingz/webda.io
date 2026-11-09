@@ -3,6 +3,7 @@ import type { LocalRecord } from "../record.js";
 import type { StorageAdapter } from "./storage.js";
 
 /**
+ * Record operation
  * @param model - model id
  * @param key - key
  * @param state - state

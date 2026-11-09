@@ -1,22 +1,67 @@
 declare module "hawk" {
+  /**
+   * Credentials interface
+   */
   interface Credentials {
+    /**
+     * Unique identifier
+     */
     id: string;
+    /**
+     * Key
+     */
     key: string;
+    /**
+     * Algorithm
+     */
     algorithm: string;
   }
 
+  /**
+   * Request interface
+   */
   interface Request {
+    /**
+     * Method
+     */
     method: string;
+    /**
+     * URL
+     */
     url: string;
+    /**
+     * Host
+     */
     host: string;
+    /**
+     * Port
+     */
     port: number;
+    /**
+     * Authorization
+     */
     authorization?: string;
+    /**
+     * Payload
+     */
     payload?: string | Buffer;
+    /**
+     * Content type
+     */
     contentType?: string;
   }
 
+  /**
+   * Authentication interface
+   */
   interface Authentication {
+    /**
+     * Credentials
+     */
     credentials: Credentials;
+    /**
+     * Artifacts
+     */
     artifacts: Record<string, unknown>;
   }
 

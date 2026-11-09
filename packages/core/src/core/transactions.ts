@@ -72,6 +72,7 @@ export class OperationTransaction {
   protected ended = false;
 
   /**
+   * Create a new OperationTransaction instance
    * @param context - the execution context
    * @param operation - the operation, undefined outside an operation
    */
@@ -81,6 +82,7 @@ export class OperationTransaction {
   ) {}
 
   /**
+   * Check whether active
    * @returns true until the transaction is committed or rolled back
    */
   isActive(): boolean {
@@ -88,6 +90,7 @@ export class OperationTransaction {
   }
 
   /**
+   * Return the state stored by a participant
    * @param key - the slot key
    * @returns the state stored by a participant
    */
@@ -107,6 +110,7 @@ export class OperationTransaction {
   }
 
   /**
+   * Return true when the participant is enlisted
    * @param participant - the participant
    * @returns true when the participant is enlisted
    */
@@ -182,6 +186,7 @@ export class OperationTransaction {
 }
 
 /**
+ * Return the participants of the current instance
  * @returns the participants of the current instance
  */
 function useParticipants(): Set<OperationTransactionParticipant> {
@@ -207,6 +212,7 @@ export function unregisterOperationTransactionParticipant(participant: Operation
 }
 
 /**
+ * List operation transaction participants
  * @returns the registered transaction participants, in registration order
  */
 export function listOperationTransactionParticipants(): OperationTransactionParticipant[] {
@@ -214,6 +220,7 @@ export function listOperationTransactionParticipants(): OperationTransactionPart
 }
 
 /**
+ * Return the transaction of the current async call chain, undefined outside one or once it ended
  * @returns the transaction of the current async call chain, undefined outside one or once it ended
  */
 export function useOperationTransaction(): OperationTransaction | undefined {

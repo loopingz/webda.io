@@ -6,6 +6,9 @@ import { EventEmitter } from "node:events";
 import { useLog } from "@webda/workout";
 import type { OperationSubject } from "../core/operations.js";
 
+/**
+ * Core events type definition
+ */
 export type CoreEvents = {
   /**
    * Emitted when new result is sent
@@ -85,6 +88,9 @@ export type CoreEvents = {
 
 /** Base event class that carries a request context */
 export class EventWithContext<T extends Context = Context> {
+  /**
+   * Context
+   */
   context: T;
 }
 

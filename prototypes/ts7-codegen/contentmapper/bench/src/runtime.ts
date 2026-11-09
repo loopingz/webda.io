@@ -13,6 +13,9 @@ export const WEBDA_STORAGE: unique symbol = Symbol.for("webda.storage");
 
 /** Base class for Webda models. */
 export class Model {
+  /**
+   * [webda storage]
+   */
   [WEBDA_STORAGE]: Record<string, any> = {};
 
   /**
@@ -26,6 +29,9 @@ export class Model {
 
 /** Model with a uuid. */
 export class UuidModel extends Model {
+  /**
+   * Unique identifier
+   */
   uuid: string = "";
 }
 
@@ -34,6 +40,9 @@ export class UuidModel extends Model {
  * which is what makes it a `set-method` coercion.
  */
 export class ModelLink<T> {
+  /**
+   * Unique identifier
+   */
   uuid: string = "";
 
   /**
@@ -89,6 +98,9 @@ export class ServiceParameters {
 
 /** Base class for services. */
 export class Service<T extends ServiceParameters = ServiceParameters> {
+  /**
+   * Parameters
+   */
   parameters!: T;
 
   /**

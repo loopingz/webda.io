@@ -62,6 +62,9 @@ export interface EmitReport {
 
 /** One build's answer. */
 export interface BuildResult {
+  /**
+   * Emit
+   */
   emit: EmitReport;
   /** Absent when `emit` failed, since the module is not generated then. */
   module?: GeneratedModule;

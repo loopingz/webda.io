@@ -50,10 +50,17 @@ export class AMQPQueueParameters extends QueueParameters {
  * @WebdaModda
  */
 export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueueParameters> extends Queue<T, K> {
+  /**
+   * Channel
+   */
   channel?: amqplib.Channel;
+  /**
+   * Conn
+   */
   conn?: amqplib.ChannelModel;
 
   /**
+   * Get the active AMQP channel
    * @returns the active AMQP channel
    * @throws CodeError when the service is not connected
    */

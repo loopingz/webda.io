@@ -7,6 +7,7 @@ export class InsufficientScope extends WebdaError.Forbidden {
   /** OAuth error code */
   code = "insufficient_scope";
   /**
+   * Create a new InsufficientScope instance
    * @param operation - refused operation
    */
   constructor(public operation: string) {

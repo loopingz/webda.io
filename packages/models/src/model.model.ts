@@ -102,6 +102,9 @@ export type CanActResult = Promise<boolean | string> | boolean | string;
  * Minimal view of the caller the permission checks receive (`@webda/core` passes its operation context)
  */
 export interface CanActContext {
+  /**
+   * Get the current user ID
+   */
   getCurrentUserId(): string | undefined;
   [key: string]: any;
 }

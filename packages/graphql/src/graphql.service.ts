@@ -220,6 +220,9 @@ const GraphIQL = `
 </html>
 `;
 
+/**
+ * Graph QL context extension interface
+ */
 export interface GraphQLContextExtension {
   /**
    * Get the current count of operation for this request
@@ -292,8 +295,17 @@ export class GraphQLParameters extends DomainServiceParameters {
  * @WebdaModda
  */
 export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> extends DomainService<T> {
+  /**
+   * Schema
+   */
   schema: GraphQLSchema;
+  /**
+   * Handler
+   */
   handler?: Handler;
+  /**
+   * Models map
+   */
   modelsMap: { [key: string]: GraphQLObjectType };
   /**
    * Type of the `total` field of the query results (reset by generateSchema)
@@ -303,9 +315,21 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * Generated named types, by name: a name is generated once per shape (reset by generateSchema)
    */
   namedTypes: Map<string, { type?: GraphQLType; shape: string }> = new Map();
+  /**
+   * Application instance
+   */
   app: Application;
+  /**
+   * Wss
+   */
   wss: WebSocketServer;
+  /**
+   * WS handler
+   */
   wsHandler: GraphQLWSServer;
+  /**
+   * Model listeners
+   */
   modelListeners: any;
   /**
    * Where `generateSchema()` exposed each operation, by operation id (the model CRUD excepted, see `modelFields`)

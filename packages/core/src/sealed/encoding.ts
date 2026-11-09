@@ -67,28 +67,88 @@ export function concat(...parts: Bytes[]): Bytes {
 
 /** JSON Web Key (RFC 7517): same members as the DOM `JsonWebKey`, so DOM values are assignable */
 export interface JsonWebKey {
+  /**
+   * Alg
+   */
   alg?: string;
+  /**
+   * Crv
+   */
   crv?: string;
+  /**
+   * D
+   */
   d?: string;
+  /**
+   * Dp
+   */
   dp?: string;
+  /**
+   * Dq
+   */
   dq?: string;
+  /**
+   * E
+   */
   e?: string;
+  /**
+   * Whether ext is enabled
+   */
   ext?: boolean;
+  /**
+   * K
+   */
   k?: string;
+  /**
+   * Key ops
+   */
   key_ops?: string[];
+  /**
+   * Kty
+   */
   kty?: string;
+  /**
+   * N
+   */
   n?: string;
+  /**
+   * Oth
+   */
   oth?: { d?: string; r?: string; t?: string }[];
+  /**
+   * P
+   */
   p?: string;
+  /**
+   * Q
+   */
   q?: string;
+  /**
+   * Qi
+   */
   qi?: string;
+  /**
+   * Use
+   */
   use?: string;
+  /**
+   * X
+   */
   x?: string;
+  /**
+   * Y
+   */
   y?: string;
 }
 
 /** Asymmetric key pair */
 export interface CryptoKeyPair {
+  /**
+   * Private key
+   */
   privateKey: CryptoKey;
+  /**
+   * Public key
+   */
   publicKey: CryptoKey;
 }

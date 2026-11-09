@@ -32,10 +32,17 @@ type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor
  * NDJSONStream is a Readable stream that emits JSON objects separated by newlines.
  */
 export class NDJSONStream extends Readable {
+  /**
+   * Data
+   */
   private data: any[];
+  /**
+   * Index
+   */
   private index: number = 0;
 
   /**
+   * Create a new NDJSONStream instance
    * @param data - Array of objects to serialize and stream as NDJSON.
    */
   constructor(data: any[]) {
@@ -59,6 +66,9 @@ export class NDJSONStream extends Readable {
  * Writable stream that parses an NDJSON stream and emits a `"data"` event for each parsed object.
  */
 export class NDJSonReader extends Writable {
+  /**
+   * Current
+   */
   current: string = "";
 
   /**
@@ -84,8 +94,17 @@ export class NDJSonReader extends Writable {
  * Use {@link BufferWritableStream.get} to retrieve the buffer after the stream closes.
  */
 export class BufferWritableStream extends Writable {
+  /**
+   * Chunks
+   */
   chunks: Buffer[] = [];
+  /**
+   * Buffer
+   */
   buffer: Buffer;
+  /**
+   * Ends
+   */
   ends: Promise<Buffer>;
   /** Create a new BufferWritableStream. */
   public constructor() {
@@ -127,7 +146,13 @@ export class BufferWritableStream extends Writable {
  * magic number (`0x1f 0x8b`), otherwise passes data through unchanged.
  */
 export class GunzipConditional extends Transform {
+  /**
+   * Whether first is enabled
+   */
   first: boolean = true;
+  /**
+   * Zlib
+   */
   zlib: Transform;
 
   /**

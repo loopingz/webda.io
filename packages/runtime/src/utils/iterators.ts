@@ -13,10 +13,25 @@ import { EventEmitter } from "events";
  * This class should optimize to never use more than 1 listener per event / eventEmitter
  */
 export class EventIterator {
+  /**
+   * Listeners
+   */
   listeners: { [key: string]: (evt: any) => void };
+  /**
+   * Events
+   */
   events: { [key: string]: (data: any) => any };
+  /**
+   * Queue
+   */
   queue: any[] = [];
+  /**
+   * Resolve
+   */
   resolve: () => void;
+  /**
+   * Whether running is enabled
+   */
   running: boolean;
 
   /**

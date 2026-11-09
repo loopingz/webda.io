@@ -79,6 +79,7 @@ export interface MigrationReport {
 export const PRIMARY_FACTORS: readonly string[] = ["pwd", "oauth"];
 
 /**
+ * Return the identity without its provider tokens
  * @param identity - resolved identity
  * @returns the identity without its provider tokens
  */
@@ -120,6 +121,7 @@ export class AuthenticationParameters extends ServiceParameters {
   compatibility: AuthenticationCompatibility;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -142,18 +144,31 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   extends Service<T, AuthenticationEvents>
   implements IAuthenticationService
 {
+  /**
+   * Parameters
+   */
   static Parameters = AuthenticationParameters;
 
+  /**
+   * Metrics
+   */
   declare protected metrics?: {
     login?: Counter;
     logout?: Counter;
     registration?: Counter;
   };
 
+  /**
+   * Provider map
+   */
   protected providerMap = new Map<string, AuthProvider>();
+  /**
+   * Login MFA attribute
+   */
   protected loginMfaAttribute?: string;
 
   /**
+   * Get the configured user model
    * @returns the configured user model
    */
   getUserModel(): ModelClass<User> {
@@ -161,6 +176,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Get the configured ident model
    * @returns the configured ident model
    */
   getIdentModel(): ModelClass<Ident> {
@@ -235,6 +251,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Get the provider
    * @param name - provider name
    * @returns the provider
    */
@@ -243,6 +260,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Return the email policy of that provider, undefined for unknown providers or without policy
    * @param name - provider name
    * @returns the email policy of that provider, undefined for unknown providers or without policy
    */
@@ -272,6 +290,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Get public info of every provider
    * @returns public info of every provider
    */
   getProviders(): ProviderInfo[] {
@@ -588,6 +607,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Load user
    * @param userId - uuid
    * @returns the user
    */
@@ -834,6 +854,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Return the logged user id
    * @returns the logged user id
    * @throws WebdaError.Unauthorized when no fully logged session exists
    */
@@ -894,6 +915,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * List idents
    * @param userId - user
    * @returns all idents owned by the user
    */

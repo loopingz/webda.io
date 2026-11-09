@@ -11,32 +11,48 @@ import {
 import { MyInterface } from "./compiler.service.js";
 
 /**
+ * Custom body interface
  * @WebdaSchema testInput
  */
 export interface CustomBody {
   /**
+   * Test
    * @TJS-test
    */
   test: string;
+  /**
+   * Optional
+   */
   optional?: string;
 }
 
 /**
+ * Custom body interface
  * @WebdaSchema testOutput
  */
 export interface CustomBody {
   /**
+   * Result
    * @TJS-test
    */
   result: string;
 }
 
+/**
+ * Defined output interface
+ */
 interface DefinedOutput {
+  /**
+   * Whether plop is enabled
+   */
   plop: boolean;
 }
 
 /** Parameters for the custom service with introspection support. */
 export class CustomParameters extends ServiceParameters {
+  /**
+   * Introspection
+   */
   introspection: Partial<ServiceParameters>;
 }
 
@@ -98,6 +114,7 @@ export class CustomService<T extends CustomParameters = CustomParameters> extend
   ) {}
 
   /**
+   * Perform auto docs
    * @MMD {seq:MyGraph} My step 1
    * @param plop - the web context
    */
@@ -111,6 +128,7 @@ export class CustomService<T extends CustomParameters = CustomParameters> extend
   }
 
   /**
+   * Perform auto docs2
    * @MMD My step 2
    * @param test - flag parameter
    */
@@ -123,6 +141,7 @@ export class CustomService<T extends CustomParameters = CustomParameters> extend
   }
 
   /**
+   * Perform auto docs3
    * @MMD My step 3
    * @param test - flag parameter
    */
@@ -131,6 +150,7 @@ export class CustomService<T extends CustomParameters = CustomParameters> extend
   }
 
   /**
+   * Perform auto docs4
    * @MMD My step 4
    * @param test - flag parameter
    */

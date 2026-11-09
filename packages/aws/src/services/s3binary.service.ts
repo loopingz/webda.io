@@ -57,10 +57,25 @@ export function contentDisposition(name?: string, type: "attachment" | "inline" 
  * A direct upload waiting for its completion, as announced by the client
  */
 interface PendingUpload {
+  /**
+   * Name
+   */
   name?: string;
+  /**
+   * Size
+   */
   size?: number;
+  /**
+   * Mimetype
+   */
   mimetype?: string;
+  /**
+   * Challenge
+   */
   challenge?: string;
+  /**
+   * Metadata
+   */
   metadata?: any;
   /**
    * Creation time in ms
@@ -167,12 +182,21 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends CloudBinary<T>
   implements CloudFormationContributor
 {
+  /**
+   * Schemes
+   */
   readonly schemes = ["s3"];
+  /**
+   * S3
+   */
   _s3: S3;
   /**
    * S3 client configuration, with plain credentials
    */
   protected _s3Config: any;
+  /**
+   * Content clients
+   */
   private contentClients = new Map<string, S3>();
 
   /**

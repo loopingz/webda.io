@@ -49,6 +49,9 @@ export interface SQLiteConnectionParameters {
   pragmas?: Record<string, string | number>;
 }
 
+/**
+ * Sq lite module type definition
+ */
 type SQLiteModule = typeof import("node:sqlite");
 const defaultLoader = (): Promise<SQLiteModule> => import("node:sqlite");
 let loader: () => Promise<SQLiteModule> = defaultLoader;
@@ -99,6 +102,9 @@ const READONLY = 8;
  * {@link acquireExclusive}), the statements of the other async chains wait for its end instead of running inside it.
  */
 export class SQLiteClient implements SQLClient {
+  /**
+   * Statements
+   */
   protected statements = new Map<string, StatementSync>();
   /**
    * The transaction holding the connection: `isOwner` tells whether the current async chain runs in it
@@ -106,6 +112,7 @@ export class SQLiteClient implements SQLClient {
   protected exclusive?: { isOwner: () => boolean; released: Promise<void> };
 
   /**
+   * Create a new SQLiteClient instance
    * @param db - the open database
    * @param cacheSize - max prepared statements kept
    */
@@ -115,6 +122,7 @@ export class SQLiteClient implements SQLClient {
   ) {}
 
   /**
+   * Return the prepared statement, cached
    * @param sql - the statement
    * @returns the prepared statement, cached
    */
@@ -168,6 +176,7 @@ export class SQLiteClient implements SQLClient {
   }
 
   /**
+   * Check whether held
    * @returns true while a transaction holds the connection: reads on it may see uncommitted rows
    */
   isHeld(): boolean {

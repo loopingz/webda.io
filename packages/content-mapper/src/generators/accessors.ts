@@ -24,7 +24,13 @@ import { ValueImports } from "./imports.ts";
 
 /** Widened setter type + coercion expression for registry types. */
 interface BuiltinRule {
+  /**
+   * Setter type
+   */
   setterType: string;
+  /**
+   * Coerce
+   */
   coerce: (v: string) => string;
 }
 
@@ -117,9 +123,15 @@ export interface AccessorOptions {
 
 /** A property resolved to a coercion. */
 interface Resolved {
+  /**
+   * Name
+   */
   name: string;
   /** Declared (read) type, as written. */
   typeText: string;
+  /**
+   * Kind
+   */
   kind: "builtin" | "set-method" | "relation-initializer";
   /** Widened setter type, for accessor kinds. */
   setterType?: string;
@@ -133,8 +145,17 @@ interface Resolved {
   ctorValues?: string[];
   /** Author's initialiser, relocated into the getter as a fallback. */
   defaultExpr?: string;
+  /**
+   * Start
+   */
   start: number;
+  /**
+   * End
+   */
   end: number;
+  /**
+   * Indent
+   */
   indent: string;
 }
 
@@ -482,6 +503,11 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
 
   return {
     name: "accessors",
+    /**
+     * Perform analyze
+     * @param ctx - the ctx
+     * @returns the result
+     */
     analyze(ctx: AnalysisContext): FileEdits[] {
       const out: FileEdits[] = [];
 

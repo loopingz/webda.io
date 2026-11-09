@@ -46,11 +46,17 @@ export interface RelationalSchemaManagerOptions {
    * The store name: lock key and log prefix
    */
   name: string;
+  /**
+   * Dialect
+   */
   dialect: RelationalDialect;
   /**
    * Layout options of the plan (`tables`, `columnNaming`, `extraColumn`, `foreignKeys`, `numericAsDecimal`)
    */
   layout: RelationalSchemaOptions;
+  /**
+   * Log
+   */
   log: (level: "WARN" | "INFO" | "DEBUG", message: string) => void;
 }
 
@@ -65,6 +71,7 @@ export class RelationalSchemaManager {
   plan: RelationalSchemaPlan | undefined;
 
   /**
+   * Create a new RelationalSchemaManager instance
    * @param options - the store's dialect, layout and logger
    */
   constructor(protected readonly options: RelationalSchemaManagerOptions) {}
@@ -93,6 +100,7 @@ export class RelationalSchemaManager {
   }
 
   /**
+   * Return the plan
    * @returns the plan
    * @throws when {@link build} did not run
    */
@@ -104,6 +112,7 @@ export class RelationalSchemaManager {
   }
 
   /**
+   * Return its table, undefined when the model is not in the plan
    * @param model - a model identifier
    * @returns its table, undefined when the model is not in the plan
    */
@@ -113,6 +122,7 @@ export class RelationalSchemaManager {
   }
 
   /**
+   * Create statements
    * @returns the DDL creating the whole plan on an empty database
    */
   createStatements(): string[] {
@@ -120,6 +130,7 @@ export class RelationalSchemaManager {
   }
 
   /**
+   * Return the planner options of the dialect
    * @returns the planner options of the dialect
    */
   protected planOptions(): { inlineForeignKeys?: boolean } {
@@ -127,6 +138,7 @@ export class RelationalSchemaManager {
   }
 
   /**
+   * Render operation
    * @param steps - schema changes
    * @returns their statements
    */

@@ -334,6 +334,7 @@ export class SerializerContext {
   /** Register a serializer by type name and explicit serialize/deserialize methods. */
   public registerSerializer(type: string, methods: Serializer, overwrite?: boolean): this;
   /**
+   * Register serializer
    * @hidden Implementation signature
    * @param type - type name or constructor
    * @param info - serializer methods or constructor

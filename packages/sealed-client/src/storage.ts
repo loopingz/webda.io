@@ -4,11 +4,13 @@
  */
 export interface DeviceStorage {
   /**
+   * Return the value, undefined when missing
    * @param key - storage key
    * @returns the value, undefined when missing
    */
   get(key: string): Promise<string | undefined>;
   /**
+   * Perform set
    * @param key - storage key
    * @param value - value
    */
@@ -22,9 +24,13 @@ export interface DeviceStorage {
 
 /** In-memory storage, for tests and for sessions that must leave no trace */
 export class MemoryStorage implements DeviceStorage {
+  /**
+   * Values
+   */
   protected values = new Map<string, string>();
 
   /**
+   * Return the value, undefined when missing
    * @param key - storage key
    * @returns the value, undefined when missing
    */
@@ -33,6 +39,7 @@ export class MemoryStorage implements DeviceStorage {
   }
 
   /**
+   * Perform set
    * @param key - storage key
    * @param value - value
    */
@@ -41,6 +48,7 @@ export class MemoryStorage implements DeviceStorage {
   }
 
   /**
+   * Delete operation
    * @param key - storage key, no-op when missing
    */
   async delete(key: string): Promise<void> {
@@ -51,6 +59,7 @@ export class MemoryStorage implements DeviceStorage {
 const STORE = "kv";
 
 /**
+ * Return its result
  * @param request - an IndexedDB request
  * @returns its result
  */
@@ -63,9 +72,13 @@ function done<T>(request: IDBRequest<T>): Promise<T> {
 
 /** Browser storage: one IndexedDB object store of strings */
 export class IndexedDBStorage implements DeviceStorage {
+  /**
+   * Database client
+   */
   protected db?: Promise<IDBDatabase>;
 
   /**
+   * Create a new IndexedDBStorage instance
    * @param name - database name
    * @param factory - IndexedDB factory, `globalThis.indexedDB` by default
    */
@@ -75,6 +88,7 @@ export class IndexedDBStorage implements DeviceStorage {
   ) {}
 
   /**
+   * Open operation
    * @returns the opened database
    */
   protected open(): Promise<IDBDatabase> {
@@ -115,6 +129,7 @@ export class IndexedDBStorage implements DeviceStorage {
   }
 
   /**
+   * Return the value, undefined when missing
    * @param key - storage key
    * @returns the value, undefined when missing
    */
@@ -124,6 +139,7 @@ export class IndexedDBStorage implements DeviceStorage {
   }
 
   /**
+   * Perform set
    * @param key - storage key
    * @param value - value
    */
@@ -132,6 +148,7 @@ export class IndexedDBStorage implements DeviceStorage {
   }
 
   /**
+   * Delete operation
    * @param key - storage key, no-op when missing
    */
   async delete(key: string): Promise<void> {

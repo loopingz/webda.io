@@ -54,6 +54,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   private resolverCache?: { installed: ModelTypeResolver | undefined; resolver: ModelTypeResolver };
 
   /**
+   * Create a new AbstractRepository instance
    * @param model - The model class constructor
    * @param pks - Array of primary key field names
    * @param separator - Separator used when joining composite key fields into a string (default: "_")
@@ -79,6 +80,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   /**
+   * Get the model owning the untyped rows of the storage
    * @returns the model owning the untyped rows of the storage
    */
   getTableRoot(): ModelClass | undefined {

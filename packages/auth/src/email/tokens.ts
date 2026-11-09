@@ -7,10 +7,25 @@ export type EmailTokenPurpose = "register" | "verify" | "recover";
 
 /** Claims of an emailed token */
 export interface EmailTokenClaims {
+  /**
+   * Purpose
+   */
   purpose: EmailTokenPurpose;
+  /**
+   * Email
+   */
   email: string;
+  /**
+   * Sub
+   */
   sub?: string;
+  /**
+   * Pwd at
+   */
   pwdAt?: number;
+  /**
+   * Jti
+   */
   jti: string;
 }
 

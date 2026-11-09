@@ -5,6 +5,7 @@ import { fetchToken, type SourcedToken, type TokenSource } from "./source.js";
  */
 export class GCPMetadataTokenSource implements TokenSource {
   /**
+   * Create a new GCPMetadataTokenSource instance
    * @param timeout - request timeout in milliseconds
    * @param host - metadata server host
    */

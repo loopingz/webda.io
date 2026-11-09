@@ -33,14 +33,33 @@ interface JsonTreeNode {
  * Top-level keys start expanded; deeper levels start collapsed.
  */
 export class ConfigPanel implements Panel {
+  /**
+   * Name
+   */
   name = "Config";
+  /**
+   * Nodes
+   */
   private nodes: JsonTreeNode[] = [];
+  /**
+   * Collapsed
+   */
   private collapsed: Set<string> = new Set();
+  /**
+   * Cursor
+   */
   private cursor = 0;
+  /**
+   * Scroll offset
+   */
   private scrollOffset = 0;
+  /**
+   * Visible rows
+   */
   private visibleRows = 0;
 
   /**
+   * Create a new ConfigPanel instance
    * @param client - Debug API client
    */
   constructor(private client: DebugClient) {}

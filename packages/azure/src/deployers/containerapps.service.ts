@@ -16,8 +16,17 @@ export const AZURE_SECTIONS = ["LogAnalytics", "ManagedEnvironment", "ContainerA
 
 /** Azure Container Apps unit parameters. Image tags and Azure resource tags are separate. */
 export class AzureContainerAppsDeployerParameters extends AzureArmDeployerParameters {
+  /**
+   * Registry
+   */
   registry?: string;
+  /**
+   * Registry auth
+   */
   registryAuth: "aad" | "identity" | "none" = "aad";
+  /**
+   * Container app
+   */
   containerApp: {
     name?: string;
     cpu?: number;
@@ -29,11 +38,26 @@ export class AzureContainerAppsDeployerParameters extends AzureArmDeployerParame
     probes?: Record<string, any>[];
     scaleRules?: Record<string, any>[];
   } = {};
+  /**
+   * Environment
+   */
   environment: { name?: string; id?: string } = {};
+  /**
+   * Log analytics
+   */
   logAnalytics: false | { name?: string; retentionInDays?: number } = {};
+  /**
+   * Secrets
+   */
   secrets: Record<string, string | SecretString | { keyVaultUrl: string; identity: string }> = {};
+  /**
+   * Custom domains
+   */
   customDomains: { name: string; certificateId?: string; bindingType?: string; validationMethod?: "CNAME" | "HTTP" }[] =
     [];
+  /**
+   * Crons
+   */
   crons = true;
 }
 
@@ -44,7 +68,13 @@ export class AzureContainerAppsDeployer
   extends AzureArmDeployer<AzureContainerAppsDeployerParameters>
   implements Deployer
 {
+  /**
+   * Parameters
+   */
   static Parameters = AzureContainerAppsDeployerParameters;
+  /**
+   * Image
+   */
   protected image = "";
 
   /**

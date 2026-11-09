@@ -27,6 +27,9 @@ import { Readable, Stream, Writable } from "node:stream";
 import { WebdaError } from "@webda/core";
 import { pipeline } from "node:stream/promises";
 
+/**
+ * Storage object type definition
+ */
 export type StorageObject = {
   key: string;
 
@@ -37,15 +40,24 @@ export type StorageObject = {
   bucket?: string;
 };
 
+/**
+ * Download params type definition
+ */
 export type DownloadParams = StorageObject & {
   localPath: string;
 };
 
+/**
+ * Put object params type definition
+ */
 export type PutObjectParams = StorageObject & {
   localPath?: string;
   content?: string | Buffer;
 };
 
+/**
+ * Signed URL params type definition
+ */
 export type SignedUrlParams = StorageObject & {
   expires?: number;
   action: "read" | "write" | "delete";
@@ -56,6 +68,9 @@ export type SignedUrlParams = StorageObject & {
   queryParams?: { [key: string]: string };
 };
 
+/**
+ * Storage object meta type definition
+ */
 export type StorageObjectMeta = {
   size: number;
   contentType: string;
@@ -87,8 +102,12 @@ export class StorageParameters extends CloudBinaryParameters {
  * Google Storage Finder implementation
  */
 export class GCSFinder implements StorageFinder {
+  /**
+   * Storage
+   */
   private _storage: GCS;
   /**
+   * Create a new GCSFinder instance
    * @param options - GCS client options
    */
   constructor(options?: StorageOptions) {
@@ -191,8 +210,17 @@ export class GCSFinder implements StorageFinder {
  * @WebdaModda GoogleCloudStorage
  */
 export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
+  /**
+   * Schemes
+   */
   readonly schemes = ["gs", "gcs"];
+  /**
+   * Storage
+   */
   private _storage?: GCS;
+  /**
+   * Content clients
+   */
   private contentClients = new Map<string, GCS>();
 
   /**
@@ -455,6 +483,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
+   * Clean usage
    * @inheritdoc
    * @param hash - the binary hash
    * @param uuid - the object uuid
@@ -489,6 +518,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
+   * Get the number of objects using the binary
    * @inheritdoc
    * @param hash - the binary hash
    * @returns the number of objects using the binary
@@ -501,6 +531,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
+   * Store operation
    * @inheritdoc
    * @param object - the object to attach the binary to
    * @param property - the object property

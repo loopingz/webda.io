@@ -4,6 +4,9 @@ import type { AllFilter, AnyFilter, Filter } from "./types.js";
 import { SqlFilterImplementation } from "./sql.js";
 import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string.js";
 
+/**
+ * Filter implementation constructor interface
+ */
 interface FilterImplementationConstructor {
   new (definition: any): FilterImplementation<Filter>;
 }
@@ -15,6 +18,9 @@ interface FilterImplementationConstructor {
  * Note: there MUST be at least one filter expression in the array.
  */
 export class AllFilterImplementation extends FilterImplementation<AllFilter> {
+  /**
+   * Filters
+   */
   filters: FilterImplementation<Filter>[];
   /** Create a new AllFilterImplementation.
    * @param definition - the all-filter definition
@@ -43,6 +49,9 @@ export class AllFilterImplementation extends FilterImplementation<AllFilter> {
  * Note: there MUST be at least one filter expression in the array.
  */
 export class AnyFilterImplementation extends FilterImplementation<AnyFilter> {
+  /**
+   * Filters
+   */
   filters: FilterImplementation<Filter>[];
   /** Create a new AnyFilterImplementation.
    * @param definition - the any-filter definition

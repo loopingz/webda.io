@@ -133,9 +133,21 @@ export interface BuildImageOptions extends RegistryOptions {
  * One image of a build, per platform
  */
 export interface BuiltPlatformImage {
+  /**
+   * Platform
+   */
   platform: Platform;
+  /**
+   * Manifest
+   */
   manifest: ImageManifest;
+  /**
+   * Descriptor
+   */
   descriptor: Descriptor;
+  /**
+   * Configuration
+   */
   config: ImageConfiguration;
 }
 
@@ -260,9 +272,21 @@ export function createImageConfiguration(
  * Base image of one platform
  */
 interface PlatformBase {
+  /**
+   * Platform
+   */
   platform: Platform;
+  /**
+   * Configuration
+   */
   config: ImageConfiguration;
+  /**
+   * Layers
+   */
   layers: Descriptor[];
+  /**
+   * Digest
+   */
   digest?: string;
 }
 

@@ -40,6 +40,9 @@ import { useAbortSignal, WorkflowService, WorkflowServiceParameters } from "../s
  * Operations the test flows call
  */
 export class FlowTestService extends Service {
+  /**
+   * Calls
+   */
   calls: Record<string, number> = {};
   /**
    * Abort signals seen by slow()
@@ -59,6 +62,7 @@ export class FlowTestService extends Service {
   }
 
   /**
+   * Add operation
    * @param a - left
    * @param b - right
    * @returns the sum
@@ -77,6 +81,7 @@ export class FlowTestService extends Service {
   }
 
   /**
+   * Return the current user id
    * @returns the current user id
    */
   async whoAmI() {
@@ -147,8 +152,17 @@ export function task(
  * Test application with the workflow models and service from sources, and test operations
  */
 export class WorkflowTestBase extends WebdaApplicationTest {
+  /**
+   * Service
+   */
   service: WorkflowService;
+  /**
+   * Ops
+   */
   ops: FlowTestService;
+  /**
+   * Flow count
+   */
   flowCount = 0;
 
   /**
@@ -287,6 +301,7 @@ export class WorkflowTestBase extends WebdaApplicationTest {
   }
 
   /**
+   * Return the instance
    * @param uuid - the instance uuid
    * @returns the instance
    */
@@ -295,6 +310,7 @@ export class WorkflowTestBase extends WebdaApplicationTest {
   }
 
   /**
+   * Return the tasks of the instance
    * @param uuid - the instance uuid
    * @returns the tasks of the instance
    */

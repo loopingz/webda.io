@@ -49,10 +49,25 @@ export type Expr =
 
 /** Options of a task. */
 export interface TaskOptions {
+  /**
+   * Retries
+   */
   retries?: number;
+  /**
+   * Backoff
+   */
   backoff?: "fixed" | "exponential";
+  /**
+   * Delay
+   */
   delay?: string;
+  /**
+   * Timeout
+   */
   timeout?: string;
+  /**
+   * Whether to use system
+   */
   useSystem?: boolean;
 }
 
@@ -103,8 +118,17 @@ export interface OperationTarget {
 
 /** A `@Cron` of a flow method. */
 export interface FlowCron {
+  /**
+   * Cron
+   */
   cron: string;
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Input
+   */
   input?: Record<string, any>;
 }
 
@@ -118,7 +142,13 @@ export interface CompiledFlow {
   params: string[];
   /** JSON schema of the input */
   input: object;
+  /**
+   * Body
+   */
   body: Stmt[];
+  /**
+   * Source
+   */
   source: "code";
   /** Launch schedules */
   crons?: FlowCron[];

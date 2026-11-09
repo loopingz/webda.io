@@ -2,12 +2,16 @@ import { createHash, randomBytes, randomInt } from "node:crypto";
 
 const ALPHABET = "BCDFGHJKLMNPQRSTVWXZ";
 
-/** @returns a random 8-character user code */
+/**
+ * Generate user code
+ * @returns a random 8-character user code
+ */
 export function generateUserCode(): string {
   return Array.from({ length: 8 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
 }
 
 /**
+ * Format user code
  * @param code - user code
  * @returns `XXXX-XXXX`
  */
@@ -16,6 +20,7 @@ export function formatUserCode(code: string): string {
 }
 
 /**
+ * Normalize user code
  * @param input - typed code
  * @returns the canonical code, undefined when malformed
  */
@@ -26,6 +31,7 @@ export function normalizeUserCode(input: unknown): string | undefined {
 }
 
 /**
+ * Split device code
  * @param deviceCode - device_code
  * @returns its parts
  */
@@ -36,6 +42,7 @@ export function splitDeviceCode(deviceCode: unknown): { userCode: string; secret
 }
 
 /**
+ * Return sHA-256 hex
  * @param value - value
  * @returns SHA-256 hex
  */
@@ -44,6 +51,7 @@ export function sha256(value: string): string {
 }
 
 /**
+ * Return base64url random token
  * @param bytes - entropy
  * @returns base64url random token
  */

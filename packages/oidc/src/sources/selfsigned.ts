@@ -6,6 +6,7 @@ import type { SourcedToken, TokenSource } from "./source.js";
  */
 export class SelfSignedTokenSource implements TokenSource {
   /**
+   * Create a new SelfSignedTokenSource instance
    * @param issuer - get the issuer service
    */
   constructor(protected issuer: () => OIDCIssuer) {}

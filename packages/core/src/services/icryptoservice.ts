@@ -51,6 +51,7 @@ export class CryptoServiceParameters extends ServiceParameters {
    */
   asymetricOptions?: {
     /**
+     * Modulus length
      * @default 2048
      */
     modulusLength?: number;
@@ -60,6 +61,7 @@ export class CryptoServiceParameters extends ServiceParameters {
     namedCurve?: string;
     publicKeyEncoding?: {
       /**
+       * Type
        * @default spki
        */
       type?: "spki" | "pkcs1";
@@ -83,10 +85,12 @@ export class CryptoServiceParameters extends ServiceParameters {
     };
   };
   /**
+   * Symetric key length
    * @default 256
    */
   symetricKeyLength?: number;
   /**
+   * Symetric cipher
    * @default "aes-256-ctr"
    */
   symetricCipher?: string;
@@ -121,9 +125,21 @@ export class CryptoServiceParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Keys definition interface
+ */
 export interface KeysDefinition {
+  /**
+   * Public key
+   */
   publicKey: string;
+  /**
+   * Private key
+   */
   privateKey: string;
+  /**
+   * Symetric
+   */
   symetric: string;
 }
 /**
@@ -175,6 +191,9 @@ export interface JWTOptions {
    * Subject for JWT
    */
   subject?: string;
+  /**
+   * Keyid
+   */
   keyid?: any;
   /**
    * Extra protected header parameters (`typ`, ...), set by the code: not a configuration

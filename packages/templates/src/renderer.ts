@@ -32,8 +32,17 @@ export interface TemplateRendererOptions {
  * A located template file
  */
 interface Located {
+  /**
+   * Path
+   */
   path: string;
+  /**
+   * Engine
+   */
   engine: string;
+  /**
+   * Folder
+   */
   folder: string;
   /**
    * Folder of the multi-part template, for a part
@@ -77,10 +86,17 @@ async function readDir(path: string) {
  * Renders templates found in folders, with locale fallback, partials and cache
  */
 export class TemplateRenderer {
+  /**
+   * Folders
+   */
   protected folders: string[];
+  /**
+   * Cache
+   */
   protected cache = new Map<string, Promise<CompiledTemplate>>();
 
   /**
+   * Create a new TemplateRenderer instance
    * @param options - the renderer options
    */
   constructor(protected options: TemplateRendererOptions) {

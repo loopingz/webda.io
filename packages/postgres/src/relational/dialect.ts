@@ -16,7 +16,13 @@ import { PostgresDialect } from "../dialect.js";
  * A row of `information_schema.columns`
  */
 export interface LiveColumnRow {
+  /**
+   * Data type
+   */
   data_type: string;
+  /**
+   * Character maximum length
+   */
   character_maximum_length: number | null;
 }
 
@@ -69,6 +75,7 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /**
+   * Return the plan type of the column, undefined for an unknown type
    * @param row - a row of `information_schema.columns`
    * @returns the plan type of the column, undefined for an unknown type
    */
@@ -145,6 +152,7 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /**
+   * Add foreign key statement
    * @param foreignKey - a foreign key
    * @param notValid - add it `NOT VALID` (the existing rows are checked by `VALIDATE CONSTRAINT`)
    * @returns the idempotent `ADD CONSTRAINT` statement
@@ -162,6 +170,7 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /**
+   * Return the quoted, comma-separated list
    * @param columns - column names
    * @returns the quoted, comma-separated list
    */
@@ -170,6 +179,7 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /**
+   * Return its definition, always nullable (`NOT NULL` belongs to the contract phase)
    * @param column - a column
    * @returns its definition, always nullable (`NOT NULL` belongs to the contract phase)
    */
@@ -178,6 +188,7 @@ export class PostgresRelationalDialect extends PostgresDialect implements Relati
   }
 
   /**
+   * Create table statement
    * @param table - a table
    * @returns its `CREATE TABLE IF NOT EXISTS` statement: columns, primary key and enum checks
    */

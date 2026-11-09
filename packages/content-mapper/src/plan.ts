@@ -49,7 +49,13 @@ export interface GeneratedDiagnostic {
 
 /** All edits for one file, plus anything the generator wants to report. */
 export interface FileEdits {
+  /**
+   * File name
+   */
   fileName: string;
+  /**
+   * Edits
+   */
   edits: Edit[];
   /** Problems found while analysing this file. */
   diagnostics?: GeneratedDiagnostic[];
@@ -57,8 +63,17 @@ export interface FileEdits {
 
 /** What a generator receives. */
 export interface AnalysisContext {
+  /**
+   * Project
+   */
   project: Project;
+  /**
+   * Program
+   */
   program: Program;
+  /**
+   * Checker
+   */
   checker: Checker;
   /** Source files belonging to the project root, in deterministic order. */
   sourceFiles: SourceFile[];

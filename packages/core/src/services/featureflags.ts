@@ -32,20 +32,42 @@ export interface FeatureFlagContext {
   [key: string]: unknown;
 }
 
+/**
+ * Feature flag provider interface
+ */
 export interface FeatureFlagProvider {
   /**
+   * Check whether enabled
    * @returns true when the flag is on, false when off, undefined when this provider does not know the flag
    */
   isEnabled(flag: string, context: FeatureFlagContext): Promise<boolean | undefined> | boolean | undefined;
 }
 
+/**
+ * Registered feature flag provider interface
+ */
 export interface RegisteredFeatureFlagProvider {
+  /**
+   * Provider
+   */
   provider: FeatureFlagProvider;
+  /**
+   * Priority
+   */
   priority: number;
 }
 
+/**
+ * Registered operation feature flag interface
+ */
 export interface RegisteredOperationFeatureFlag {
+  /**
+   * Pattern
+   */
   pattern: string;
+  /**
+   * Flag
+   */
   flag: string;
 }
 

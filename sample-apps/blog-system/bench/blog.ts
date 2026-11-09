@@ -24,6 +24,7 @@ export const appDir = resolve(import.meta.dirname, "..");
  */
 export class BlogBenchApplication extends TestApplication {
   /**
+   * Create a new BlogBenchApplication instance
    * @param appPath - application folder
    */
   constructor(appPath: string) {

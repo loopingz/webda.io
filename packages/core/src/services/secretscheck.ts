@@ -50,7 +50,13 @@ export interface SecretFinding {
  * A finding with its path still split in segments
  */
 interface RawFinding {
+  /**
+   * Path
+   */
   path: (string | number)[];
+  /**
+   * Reason
+   */
   reason: SecretFinding["reason"];
 }
 

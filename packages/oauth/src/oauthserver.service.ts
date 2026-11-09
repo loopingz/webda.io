@@ -126,10 +126,25 @@ const LOCAL_APPLICATION = "local application";
 
 /** Remembered consent of the user for a client */
 export interface RememberedGrant {
+  /**
+   * Client ID
+   */
   clientId: string;
+  /**
+   * Scope
+   */
   scope: string;
+  /**
+   * Created at
+   */
   createdAt: number;
+  /**
+   * Last used at
+   */
   lastUsedAt: number;
+  /**
+   * Expires at
+   */
   expiresAt: number;
 }
 
@@ -163,7 +178,13 @@ export interface ConsentRequest {
 
 /** Successful token endpoint response (RFC 6749 §5.1) */
 export interface TokenResponse {
+  /**
+   * Access token
+   */
   access_token: string;
+  /**
+   * Token type
+   */
   token_type: "Bearer";
   /** Access token lifetime (s) */
   expires_in: number;
@@ -174,6 +195,7 @@ export interface TokenResponse {
 }
 
 /**
+ * Return the error for an authorization code that cannot be exchanged: one description for every cause
  * @returns the error for an authorization code that cannot be exchanged: one description for every cause
  */
 function invalidCode(): OAuthError {
@@ -181,6 +203,7 @@ function invalidCode(): OAuthError {
 }
 
 /**
+ * Return true when equal, compared in constant time
  * @param a - received secret
  * @param b - expected secret
  * @returns true when equal, compared in constant time
@@ -192,6 +215,7 @@ function sameSecret(a: string, b: string): boolean {
 }
 
 /**
+ * Check whether resource URI
  * @param value - configured resource
  * @returns true when it is an absolute http(s) URI without fragment (RFC 8707 §2)
  */
@@ -206,6 +230,7 @@ function isResourceUri(value: unknown): boolean {
 }
 
 /**
+ * Configure with query
  * @param url - base URL, possibly with a query
  * @param params - parameters to append, undefined values are skipped
  * @returns the URL with the parameters
@@ -218,6 +243,7 @@ function withQuery(url: string, params: Record<string, string | undefined>): str
 }
 
 /**
+ * Return the identity carried by the issued tokens
  * @param session - logged-in session
  * @returns the identity carried by the issued tokens
  */
@@ -332,7 +358,10 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
     if (!crypto.getJWKSUrl()) fail("the CryptoService must publish its JWKS (set its 'url')");
   }
 
-  /** @returns the issuer of the access tokens, undefined when the issuer is not configured */
+  /**
+   * Return the issuer of the access tokens, undefined when the issuer is not configured
+   * @returns the issuer of the access tokens, undefined when the issuer is not configured
+   */
   protected tokenIssuer(): string | undefined {
     return this.parameters.issuer?.replace(/\/$/, "");
   }
@@ -358,6 +387,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Sweep expired
    * @returns number of deleted records
    */
   protected async sweepExpired(): Promise<number> {
@@ -449,6 +479,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return lifetime of the issued access tokens (s)
    * @returns lifetime of the issued access tokens (s)
    */
   protected accessTtl(): number {
@@ -466,6 +497,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return absolute URL of the page: the configured one, or the built-in page
    * @param ctx - web context
    * @param kind - page
    * @returns absolute URL of the page: the configured one, or the built-in page
@@ -481,6 +513,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return path of the pending request cookie: the server url, below the deployment prefix
    * @param ctx - web context
    * @returns path of the pending request cookie: the server url, below the deployment prefix
    */
@@ -489,6 +522,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Find operations transport
    * @returns the operation-id transport, if one is configured
    */
   protected findOperationsTransport(): OperationIdTransport | undefined {
@@ -530,6 +564,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return true when dynamic client registration is open: configured, or a protected resource is registered
    * @returns true when dynamic client registration is open: configured, or a protected resource is registered
    */
   protected registrationOpen(): boolean {
@@ -537,6 +572,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the requested scope tokens the server advertises, undefined when none
    * @param requested - scope string of a registration
    * @returns the requested scope tokens the server advertises, undefined when none
    */
@@ -620,6 +656,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the operations a delegated token may be granted: all but the OAuth operations, which manage consent
    * @returns the operations a delegated token may be granted: all but the OAuth operations, which manage consent
    * and only serve browser sessions
    */
@@ -628,6 +665,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return advertised scopes: configured, or `
    * @returns advertised scopes: configured, or `*`, the top-level operation groups and `offline_access`
    */
   protected scopesSupported(): string[] {
@@ -804,6 +842,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Grant resources
    * @param pending - pending request
    * @returns the resources of its grant: the bound one first, then the others
    */
@@ -812,6 +851,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Check whether remote resource
    * @param ctx - web context
    * @param resource - resource of a request
    * @returns true for a resource of another application (`resources`): its operations and their permissions are not
@@ -876,6 +916,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Clean hostname
    * @param hostname - untrusted hostname shown on the consent page
    * @returns the hostname without control or format (bidi, zero-width) characters, capped; undefined when empty
    */
@@ -948,6 +989,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the host publishing a metadata document client, undefined for the others
    * @param client - requesting client
    * @param redirectUri - redirect URI of the pending request
    * @returns the host publishing a metadata document client, undefined for the others
@@ -962,6 +1004,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return where an unverified client redirects: its host, or "local application" for loopback and private-use
    * @param redirectUri - redirect URI of the pending request
    * @returns where an unverified client redirects: its host, or "local application" for loopback and private-use
    * scheme redirects
@@ -1077,6 +1120,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Clear pending
    * @param ctx - web context
    */
   protected async clearPending(ctx: WebContext): Promise<void> {
@@ -1084,6 +1128,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the requested operations the user can call, in registration order
    * @param ctx - web context of the user
    * @param requested - requested scope
    * @returns the requested operations the user can call, in registration order
@@ -1121,6 +1166,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the client redirect carrying a new authorization code
    * @param pending - approved request
    * @param identity - identity of the user
    * @param scope - granted scope
@@ -1166,6 +1212,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return display name of the refresh family, e.g. "Webda CLI on remi-mbp"
    * @param pending - approved request
    * @returns display name of the refresh family, e.g. "Webda CLI on remi-mbp"
    */
@@ -1201,6 +1248,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return false when the device code is gone, expired, of another client or no longer pending
    * @param pending - pending device request
    * @param update - decision
    * @returns false when the device code is gone, expired, of another client or no longer pending
@@ -1275,6 +1323,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Query parameter
    * @param ctx - web context
    * @param name - query parameter
    * @returns its value, capped, undefined when absent or not a string
@@ -1319,6 +1368,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Convert to o auth error
    * @param err - error raised while serving a token request
    * @returns the RFC 6749 error to send: never an internal message
    */
@@ -1336,6 +1386,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the string parameters of a form-encoded or JSON body
    * @param ctx - web context
    * @returns the string parameters of a form-encoded or JSON body
    * @throws OAuthError invalid_request on an unreadable body, another content type or a repeated parameter
@@ -1384,6 +1435,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the token service
    * @returns the token service
    */
   protected tokenService(): TokenService {
@@ -1459,6 +1511,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Check whether condition failure
    * @param err - error thrown by a conditional write
    * @returns true if the error is a failed write condition
    */
@@ -1545,6 +1598,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the client when it is a configured client allowed to use the device flow. Never fetches a metadata
    * @param clientId - client_id
    * @returns the client when it is a configured client allowed to use the device flow. Never fetches a metadata
    * document: such clients never get the device flow
@@ -1611,6 +1665,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the response; without `offline_access` the refresh token is withheld and made unusable
    * @param tokens - issued tokens
    * @param scope - granted scope
    * @returns the response; without `offline_access` the refresh token is withheld and made unusable
@@ -1656,6 +1711,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Refresh family
    * @param token - presented token
    * @param clientId - authenticated client
    * @returns the family of the refresh token, when it is one issued to the client
@@ -1668,6 +1724,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the family of the access token, when it is a valid one issued to the client, bound to no resource or to
    * @param token - presented token
    * @param clientId - authenticated client
    * @param issuer - issuer, origin of the protected resources
@@ -1682,6 +1739,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return the user managing their connected apps
    * @returns the user managing their connected apps
    * @throws Unauthorized without a logged-in session, or with a delegated (scoped) token
    */
@@ -1782,6 +1840,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Perform forget grant
    * @param userId - user
    * @param clientId - client
    */
@@ -1846,6 +1905,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Return a random user code
    * @returns a random user code
    */
   protected newUserCode(): string {
@@ -1926,6 +1986,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Count lookup failures
    * @param key - rate limit key
    * @param now - current time
    * @returns failed lookups of the key in the window
@@ -1935,6 +1996,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Count attempts
    * @param attempts - rate limit state
    * @param key - rate limit key
    * @param now - current time
@@ -1954,6 +2016,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Record lookup failure
    * @param keys - rate limit keys
    * @param now - time of the failure
    */
@@ -1962,6 +2025,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Record attempt
    * @param attempts - rate limit state
    * @param keys - rate limit keys
    * @param now - time of the attempt
@@ -1980,6 +2044,7 @@ export class OAuthServer<T extends OAuthServerParameters = OAuthServerParameters
   }
 
   /**
+   * Perform withdraw lookup failure
    * @param keys - rate limit keys
    * @param time - time of the failure recorded for the attempt
    */

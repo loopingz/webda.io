@@ -9,6 +9,7 @@ export class VersionServiceParameters extends ServiceParameters {
    */
   version?: string;
   /**
+   * URL
    * @default /version
    */
   url?: string;

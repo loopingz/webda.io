@@ -8,17 +8,21 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Configuration parameters for ClusterService",
         "properties": {
           "keepAlive": {
             "default": 30000,
+            "description": "Keep alive",
             "type": "number"
           },
           "pubsub": {
             "default": "PubSub",
+            "description": "Pubsub",
             "type": "string"
           },
           "ttl": {
             "default": "twice keepAlive",
+            "description": "TTL",
             "type": "number"
           },
           "type": {
@@ -143,6 +147,7 @@
             "type": "string"
           },
           "url": {
+            "description": "URL",
             "type": "string"
           },
           "openapi": {
@@ -245,6 +250,7 @@
           },
           "url": {
             "default": "/version",
+            "description": "URL",
             "type": "string"
           },
           "version": {
@@ -302,7 +308,7 @@
                   "type": "string"
                 },
                 "metadata": {
-                  "$ref": "#/definitions/__binary%24metadata",
+                  "$ref": "#/definitions/__binary%24metadata%232",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -326,7 +332,7 @@
               ],
               "type": "object"
             },
-            "__binary$metadata": {
+            "__binary$metadata#2": {
               "additionalProperties": false,
               "type": "object"
             }
@@ -334,11 +340,15 @@
           "description": "Binary Model is a model that store its data in a binary file",
           "properties": {
             "__binary": {
-              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E",
+              "description": "Binary"
             },
-            "__data": {},
+            "__data": {
+              "description": "Data"
+            },
             "__dataUpdated": {
               "default": false,
+              "description": "Whether data updated is enabled",
               "type": "boolean"
             },
             "data": {
@@ -365,9 +375,12 @@
           "additionalProperties": false,
           "description": "Binary Model is a model that store its data in a binary file",
           "properties": {
-            "__data": {},
+            "__data": {
+              "description": "Data"
+            },
             "__dataUpdated": {
               "default": false,
+              "description": "Whether data updated is enabled",
               "type": "boolean"
             },
             "data": {
@@ -402,7 +415,7 @@
                   "type": "string"
                 },
                 "metadata": {
-                  "$ref": "#/definitions/__binary%24metadata",
+                  "$ref": "#/definitions/__binary%24metadata%232",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -426,7 +439,7 @@
               ],
               "type": "object"
             },
-            "__binary$metadata": {
+            "__binary$metadata#2": {
               "additionalProperties": false,
               "type": "object"
             }
@@ -434,11 +447,15 @@
           "description": "Binary Model is a model that store its data in a binary file",
           "properties": {
             "__binary": {
-              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E",
+              "description": "Binary"
             },
-            "__data": {},
+            "__data": {
+              "description": "Data"
+            },
             "__dataUpdated": {
               "default": false,
+              "description": "Whether data updated is enabled",
               "type": "boolean"
             },
             "data": {

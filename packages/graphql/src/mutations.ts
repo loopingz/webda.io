@@ -23,6 +23,7 @@ import { useLog } from "@webda/workout";
 import { GraphQLError } from "graphql";
 
 /**
+ * Return the GraphQL error of a refused mutation
  * @returns the GraphQL error of a refused mutation
  */
 function permissionDenied(): GraphQLError {
@@ -34,6 +35,7 @@ function permissionDenied(): GraphQLError {
 }
 
 /**
+ * Return the GraphQL error of a missing object, also used for an object the caller may not read
  * @returns the GraphQL error of a missing object, also used for an object the caller may not read
  */
 export function notFound(): GraphQLError {
@@ -209,6 +211,7 @@ export async function createFromInput(model: any, input: any, context: any): Pro
 }
 
 /**
+ * Return its primary key fields (from the application metadata), `["uuid"]` when unknown
  * @param model - model class
  * @returns its primary key fields (from the application metadata), `["uuid"]` when unknown
  */

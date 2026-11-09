@@ -4,6 +4,9 @@
  * if the nested expression evaluated to true, then the not filter expression's result is false.
  */
 export interface NotFilter {
+  /**
+   * Not
+   */
   not: Filter;
 }
 
@@ -12,6 +15,9 @@ export interface NotFilter {
  * filter expressions MUST evaluate to true in order for the any filter expression to be true.
  */
 export interface AnyFilter {
+  /**
+   * Any
+   */
   any: Filter[];
 }
 
@@ -22,6 +28,9 @@ export interface AnyFilter {
  * Note: there MUST be at least one filter expression in the array.
  */
 export interface AllFilter {
+  /**
+   * All
+   */
   all: Filter[];
 }
 
@@ -35,6 +44,9 @@ export interface AllFilter {
  * Implementations SHOULD reject subscriptions with invalid CloudEvents SQL expressions.
  */
 export interface SqlFilter {
+  /**
+   * SQL
+   */
   sql: string;
 }
 
@@ -47,6 +59,9 @@ export interface SqlFilter {
  * The attribute name and value specified in the filter express MUST NOT be empty strings.
  */
 export interface ExactFilter {
+  /**
+   * Exact
+   */
   exact: { [key: string]: string };
 }
 
@@ -59,6 +74,9 @@ export interface ExactFilter {
  * The attribute name and value specified in the filter express MUST NOT be empty strings.
  */
 export interface PrefixFilter {
+  /**
+   * Prefix
+   */
   prefix: { [key: string]: string };
 }
 
@@ -71,7 +89,13 @@ export interface PrefixFilter {
  * The attribute name and value specified in the filter express MUST NOT be empty strings.
  */
 export interface SuffixFilter {
+  /**
+   * Suffix
+   */
   suffix: { [key: string]: string };
 }
 
+/**
+ * Filter type definition
+ */
 export type Filter = NotFilter | AllFilter | SqlFilter | ExactFilter | PrefixFilter | SuffixFilter | AnyFilter;

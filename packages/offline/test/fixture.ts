@@ -10,16 +10,41 @@ import type { Syncable } from "../src/server/syncable.js";
  * Synced test model: readable and writable by its owner, or by anyone when it has no owner
  */
 export class Note extends CoreModel implements Syncable {
+  /**
+   * Title
+   */
   title: string;
+  /**
+   * Owner
+   */
   owner?: string;
+  /**
+   * Status
+   */
   status?: string;
+  /**
+   * Body
+   */
   body?: string;
+  /**
+   * Count
+   */
   count?: number;
+  /**
+   * Tags
+   */
   tags?: string[];
+  /**
+   * Due
+   */
   due?: Date;
+  /**
+   * Rev
+   */
   _rev?: number;
 
   /**
+   * Check whether act
    * @param context - the caller
    * @param action - the action
    * @param object - the object
@@ -37,13 +62,29 @@ export class Note extends CoreModel implements Syncable {
  * Synced model with a composite primary key, open to everyone
  */
 export class Member extends CoreModel implements Syncable {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["org", "user"] as const;
+  /**
+   * Org
+   */
   org: string;
+  /**
+   * User
+   */
   user: string;
+  /**
+   * Role
+   */
   role?: string;
+  /**
+   * Rev
+   */
   _rev?: number;
 
   /**
+   * Check whether act
    * @returns true
    */
   static canAct(): true {
@@ -55,10 +96,17 @@ export class Member extends CoreModel implements Syncable {
  * Second synced model, without a JSON schema, open to everyone
  */
 export class Tag extends CoreModel implements Syncable {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Rev
+   */
   _rev?: number;
 
   /**
+   * Check whether act
    * @returns true
    */
   static canAct(): true {
@@ -87,7 +135,7 @@ export const NOTE_SCHEMA = {
  */
 export class UserContext extends OperationContext {
   /**
-   *
+   * Create a new UserContext instance
    * @param userId - the userId
    * @param body - the body
    */
@@ -98,21 +146,21 @@ export class UserContext extends OperationContext {
     super();
   }
   /**
-   *
+   * Get the current user ID
    * @returns the result
    */
   getCurrentUserId(): any {
     return this.userId;
   }
   /**
-   *
+   * Get the raw input as string
    * @returns the result
    */
   async getRawInputAsString(): Promise<string> {
     return this.body === undefined ? "" : JSON.stringify(this.body);
   }
   /**
-   *
+   * Get the raw input
    * @returns the result
    */
   async getRawInput(): Promise<Buffer> {
@@ -125,6 +173,7 @@ export class UserContext extends OperationContext {
  */
 export class SyncTest extends WebdaApplicationTest {
   /**
+   * Perform tweak app
    * @param app - the test application
    */
   async tweakApp(app: TestApplication) {
@@ -179,7 +228,7 @@ export class SyncTest extends WebdaApplicationTest {
   }
 
   /**
-   *
+   * Get sync
    * @returns the result
    */
   get sync(): SyncService {
@@ -202,6 +251,7 @@ export class SyncTest extends WebdaApplicationTest {
   }
 
   /**
+   * Return every change-log entry, oldest first
    * @returns every change-log entry, oldest first
    */
   async changes(): Promise<SyncChange[]> {
@@ -209,7 +259,7 @@ export class SyncTest extends WebdaApplicationTest {
   }
 
   /**
-   *
+   * Perform after each
    */
   async afterEach() {
     for (const note of (await Note.query("")).results) await note.delete();

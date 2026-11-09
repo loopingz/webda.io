@@ -7,29 +7,101 @@ import { checkResourceKey, CrdModelMetadata, getCrdNames } from "./naming.js";
  * See https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#specifying-a-structural-schema
  */
 export interface StructuralSchema {
+  /**
+   * Type
+   */
   type?: "object" | "array" | "string" | "integer" | "number" | "boolean";
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Title
+   */
   title?: string;
+  /**
+   * Format
+   */
   format?: string;
+  /**
+   * Pattern
+   */
   pattern?: string;
+  /**
+   * Minimum
+   */
   minimum?: number;
+  /**
+   * Maximum
+   */
   maximum?: number;
+  /**
+   * Whether exclusive minimum is enabled
+   */
   exclusiveMinimum?: boolean;
+  /**
+   * Whether exclusive maximum is enabled
+   */
   exclusiveMaximum?: boolean;
+  /**
+   * Multiple of
+   */
   multipleOf?: number;
+  /**
+   * Min length
+   */
   minLength?: number;
+  /**
+   * Max length
+   */
   maxLength?: number;
+  /**
+   * Min items
+   */
   minItems?: number;
+  /**
+   * Max items
+   */
   maxItems?: number;
+  /**
+   * Min properties
+   */
   minProperties?: number;
+  /**
+   * Max properties
+   */
   maxProperties?: number;
+  /**
+   * Enum
+   */
   enum?: any[];
+  /**
+   * Required
+   */
   required?: string[];
+  /**
+   * Whether nullable is enabled
+   */
   nullable?: boolean;
+  /**
+   * Properties
+   */
   properties?: Record<string, StructuralSchema>;
+  /**
+   * Additional properties
+   */
   additionalProperties?: StructuralSchema;
+  /**
+   * Items
+   */
   items?: StructuralSchema;
+  /**
+   * Whether x kubernetes preserve unknown fields is enabled
+   */
   "x-kubernetes-preserve-unknown-fields"?: boolean;
+  /**
+   * Whether x kubernetes int or string is enabled
+   */
   "x-kubernetes-int-or-string"?: boolean;
 }
 
@@ -82,6 +154,9 @@ const FORMATS = new Set([
   "double"
 ]);
 
+/**
+ * Definitions type definition
+ */
 type Definitions = Record<string, JSONSchema7Definition>;
 
 /**
@@ -302,6 +377,7 @@ export interface CrdOptions {
    */
   version?: string;
   /**
+   * Scope
    * @default "Namespaced"
    */
   scope?: "Namespaced" | "Cluster";
@@ -348,6 +424,9 @@ export const RECONCILED_STATUS: Record<string, StructuralSchema> = {
  * Model metadata used to build a CustomResourceDefinition
  */
 export interface CrdModel extends CrdModelMetadata {
+  /**
+   * Schemas
+   */
   Schemas: { Stored?: JSONSchema7 };
 }
 
@@ -355,9 +434,21 @@ export interface CrdModel extends CrdModelMetadata {
  * A CustomResourceDefinition manifest
  */
 export interface CustomResourceDefinition {
+  /**
+   * API version
+   */
   apiVersion: "apiextensions.k8s.io/v1";
+  /**
+   * Kind
+   */
   kind: "CustomResourceDefinition";
+  /**
+   * Metadata
+   */
   metadata: { name: string; annotations: Record<string, string> };
+  /**
+   * Spec
+   */
   spec: {
     group: string;
     scope: "Namespaced" | "Cluster";

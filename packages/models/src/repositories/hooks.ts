@@ -43,28 +43,49 @@ export function registerRepository<T extends ModelClass>(model: T, repository: R
 
 /** Static repository operations supplied by the storage mixin. */
 export interface RepositoryStorageMethods {
+  /**
+   * Get the repository
+   */
   getRepository<T extends ModelClass>(this: T): Repository<T>;
+  /**
+   * Create operation
+   */
   create<T extends ModelClass>(this: T, data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>>;
+  /**
+   * Query operation
+   */
   query<T extends ModelClass>(
     this: T,
     query: WebdaQLString<InstanceType<T>>,
     params?: QueryParameters
   ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  /**
+   * Query operation
+   */
   query<T extends ModelClass>(
     this: T,
     filter: ModelFilter<InstanceType<T>>,
     options?: FindOptions<InstanceType<T>>
   ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  /**
+   * Perform iterate
+   */
   iterate<T extends ModelClass>(
     this: T,
     query: WebdaQLString<InstanceType<T>>,
     params?: QueryParameters
   ): AsyncGenerator<InstanceType<T>, any, any>;
+  /**
+   * Perform iterate
+   */
   iterate<T extends ModelClass>(
     this: T,
     filter: ModelFilter<InstanceType<T>>,
     options?: Pick<FindOptions<InstanceType<T>>, "orderBy">
   ): AsyncGenerator<InstanceType<T>, any, any>;
+  /**
+   * Perform aggregate
+   */
   aggregate<
     T extends ModelClass,
     const G extends readonly PropertyPaths<InstanceType<T>>[] = [],
@@ -74,17 +95,26 @@ export interface RepositoryStorageMethods {
     spec: AggregationSpec<InstanceType<T>, G, M>,
     params?: QueryParameters
   ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>>;
+  /**
+   * Count operation
+   */
   count<T extends ModelClass>(
     this: T,
     filter?: WebdaQLString<InstanceType<T>>,
     params?: QueryParameters,
     options?: CountOptions
   ): Promise<CountResult>;
+  /**
+   * Perform ref
+   */
   ref<T extends ModelClass>(this: T, key: SettablePrimaryKey<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
 }
 
 /** Instance operations supplied by the storage mixin. */
 export interface RepositoryStorageInstance {
+  /**
+   * Convert to proxy
+   */
   toProxy(): this;
 }
 

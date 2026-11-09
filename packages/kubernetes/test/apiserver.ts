@@ -22,11 +22,23 @@ export type FakeResource = {
  * and watch. Every request is recorded in `requests`.
  */
 export class FakeApiServer {
+  /**
+   * Server
+   */
   server?: Server;
   /** resources by `<group>/<plural>/<namespace>/<name>` */
   resources = new Map<string, FakeResource>();
+  /**
+   * Resource version
+   */
   resourceVersion = 0;
+  /**
+   * Requests
+   */
   requests: { method: string; path: string; query: URLSearchParams }[] = [];
+  /**
+   * Watches
+   */
   watches: { prefix: string; res: ServerResponse; selector?: string }[] = [];
   /** status codes answered to the next requests, or to the next requests of a method */
   failures: (number | { method: string; code: number })[] = [];

@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import type { JsonSchema } from "../types.js";
 
+/**
+ * Definitions type definition
+ */
 type Definitions = Record<string, JsonSchema> | undefined;
 
 /**
@@ -49,13 +52,37 @@ function Collapsible(props: {
   );
 }
 
+/**
+ * Field props interface
+ */
 interface FieldProps {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Prop
+   */
   prop: JsonSchema;
+  /**
+   * Value
+   */
   value: unknown;
+  /**
+   * On change value
+   */
   onChangeValue: (value: unknown) => void;
+  /**
+   * Whether read only is enabled
+   */
   readOnly?: boolean;
+  /**
+   * Definitions
+   */
   definitions: Definitions;
+  /**
+   * Path
+   */
   path: (string | number)[];
 }
 

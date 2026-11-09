@@ -207,6 +207,11 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
 
   return {
     name: "behaviors",
+    /**
+     * Perform analyze
+     * @param ctx - the ctx
+     * @returns the result
+     */
     analyze(ctx: AnalysisContext): FileEdits[] {
       const out: FileEdits[] = [];
 

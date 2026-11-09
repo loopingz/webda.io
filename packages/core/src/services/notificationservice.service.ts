@@ -66,6 +66,9 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
   extends Service<T>
   implements NotificationService
 {
+  /**
+   * Senders
+   */
   senders: NotificationService[];
 
   /**

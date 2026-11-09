@@ -19,7 +19,13 @@ import { createScanner } from "typescript/unstable/ast/scanner";
 
 /** A property declaration that will be replaced by an accessor pair. */
 export interface InjectionSite {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Type name
+   */
   typeName: string;
   /** Offset of the type reference token. */
   typeStart: number;
@@ -212,9 +218,21 @@ function renderInline(site: InjectionSite): string {
  * annotation (hovering `Date` returned nothing).
  */
 export interface Segment {
+  /**
+   * A start
+   */
   aStart: number;
+  /**
+   * A end
+   */
   aEnd: number;
+  /**
+   * I start
+   */
   iStart: number;
+  /**
+   * I end
+   */
   iEnd: number;
 }
 
@@ -274,6 +292,7 @@ function lineOf(text: string, offset: number): number {
 /**
  * Inject accessors into a document, preserving line count.
  * @param text - the authored document text
+ * @param storageModule - the storage module
  * @returns the injection result
  */
 export function inject(text: string, storageModule = process.env.WEBDA_STORAGE_MODULE ?? "@webda/models"): Injection {

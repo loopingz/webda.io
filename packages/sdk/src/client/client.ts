@@ -30,6 +30,7 @@ export interface OfflineExtension {
    */
   attach(client: WebdaClient<any>): void;
   /**
+   * Return the backend of the model, undefined to keep the transports (`RemoteBackend`)
    * @param descriptor - a model
    * @returns the backend of the model, undefined to keep the transports (`RemoteBackend`)
    */
@@ -59,18 +60,37 @@ export interface ClientOptions extends Partial<Omit<HttpTransportOptions, "baseU
 export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, OperationSignature>> extends Emitter<{
   change: ChangeEvent;
 }> {
+  /**
+   * Operations
+   */
   readonly operations: OperationsManifest;
+  /**
+   * Models
+   */
   readonly models: ModelsManifest;
+  /**
+   * Cache
+   */
   readonly cache: EntityCache;
+  /**
+   * Transports
+   */
   readonly transports: Transport[];
   /** What the application serves: its transports and its `SyncService` */
   readonly server: ServerManifest;
   /** The offline extension, when configured */
   readonly offline?: OfflineExtension;
+  /**
+   * Web tracing
+   */
   protected webTracing?: WebTracingState;
+  /**
+   * Model clients
+   */
   protected readonly modelClients = new Map<string, ModelClient<any>>();
 
   /**
+   * Create a new WebdaClient instance
    * @param options - client options with the manifests
    */
   constructor(
@@ -95,6 +115,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   }
 
   /**
+   * Return where its objects live: the offline replica for a synced model when `offline` is configured, else the
    * @param descriptor - a model
    * @returns where its objects live: the offline replica for a synced model when `offline` is configured, else the
    * transports
@@ -104,6 +125,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   }
 
   /**
+   * Return its descriptor
    * @param id - operation id
    * @returns its descriptor
    * @throws SdkError when the operation is unknown
@@ -115,6 +137,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   }
 
   /**
+   * Return the first transport carrying the operation
    * @param op - the operation
    * @param feature - what the transport must do
    * @returns the first transport carrying the operation
@@ -227,6 +250,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   }
 
   /**
+   * Check whether web tracing
    * @returns true while web tracing is enabled and not expired
    */
   isWebTracing(): boolean {
@@ -264,6 +288,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   }
 
   /**
+   * Register model
    * @param client - the client of a model
    * @returns this
    */
@@ -273,6 +298,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   }
 
   /**
+   * Return the client of the model
    * @param id - model id
    * @returns the client of the model
    * @throws SdkError when the model is unknown
@@ -284,6 +310,7 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   }
 
   /**
+   * Return the model descriptor
    * @param id - model id
    * @returns the model descriptor
    * @throws SdkError when the model is unknown

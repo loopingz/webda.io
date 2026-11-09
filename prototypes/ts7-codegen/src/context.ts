@@ -57,7 +57,13 @@ export function baseNames(sf: SourceFile, cls: any): string[] {
 
 /** A live analysis session; dispose to shut down the server process. */
 export interface Session {
+  /**
+   * Execution context
+   */
   ctx: AnalysisContext;
+  /**
+   * Perform dispose
+   */
   dispose(): void;
 }
 

@@ -11,17 +11,53 @@ import { armValue, AzureTemplate, createAzureTemplate, resourceId } from "../tem
 
 /** Shared ARM and OCI parameters used by Azure deployment units. */
 export class AzureArmDeployerParameters extends ContainerDeployerParameters implements AzureServiceParameters {
+  /**
+   * Tenant ID
+   */
   tenantId?: string;
+  /**
+   * Client ID
+   */
   clientId?: string;
+  /**
+   * Client secret
+   */
   clientSecret?: string | SecretString;
+  /**
+   * Subscription ID
+   */
   subscriptionId!: string;
+  /**
+   * Endpoint
+   */
   endpoint?: string;
+  /**
+   * Resource group
+   */
   resourceGroup!: string;
+  /**
+   * Location
+   */
   location = "westeurope";
+  /**
+   * Create resource group
+   */
   createResourceGroup = false;
+  /**
+   * Deployment name
+   */
   deploymentName?: string;
+  /**
+   * Resource tags
+   */
   resourceTags: Record<string, string> = { "webda-deployment": "${deployment}", "webda-version": "${git.version}" };
+  /**
+   * Custom resources
+   */
   customResources: Record<string, any>[] | Record<string, Record<string, any>> = [];
+  /**
+   * Template output
+   */
   templateOutput?: string;
 
   /**
@@ -36,10 +72,25 @@ export class AzureArmDeployerParameters extends ContainerDeployerParameters impl
 
 /** Deployment results contain resource endpoints, never tokens or secret parameter values. */
 export interface AzureDeployResult {
+  /**
+   * Image
+   */
   image?: string;
+  /**
+   * Digest
+   */
   digest?: string;
+  /**
+   * Fqdn
+   */
   fqdn?: string;
+  /**
+   * Revision
+   */
   revision?: string;
+  /**
+   * Outputs
+   */
   outputs: Record<string, any>;
 }
 
@@ -64,11 +115,29 @@ export abstract class AzureArmDeployer<T extends AzureArmDeployerParameters = Az
   extends ContainerDeployer<T, AzureDeployResult>
   implements AzureDeployerInfo
 {
+  /**
+   * Resources
+   */
   resources!: T;
+  /**
+   * Template
+   */
   template: AzureTemplate = createAzureTemplate();
+  /**
+   * Result
+   */
   result?: AzureDeployResult;
+  /**
+   * Secret values
+   */
   protected secretValues = new Map<string, string | SecretString>();
+  /**
+   * Contributed env
+   */
   protected contributedEnv: Record<string, string | { secretRef: string }> = {};
+  /**
+   * Roles
+   */
   protected roles: AzureRoleAssignment[] = [];
 
   /**

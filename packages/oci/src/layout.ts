@@ -35,6 +35,12 @@ const GZIP_OS_OFFSET = 9;
 export function forceUnixGzipOs(): Transform {
   let offset = 0;
   return new Transform({
+    /**
+     * Transform operation
+     * @param chunk - the chunk
+     * @param _encoding - the encoding
+     * @param callback - the callback
+     */
     transform(chunk: Buffer, _encoding, callback) {
       if (offset <= GZIP_OS_OFFSET && offset + chunk.length > GZIP_OS_OFFSET) {
         chunk[GZIP_OS_OFFSET - offset] = 3;
@@ -52,6 +58,7 @@ export function forceUnixGzipOs(): Transform {
  */
 export class ImageLayout {
   /**
+   * Create a new ImageLayout instance
    * @param path - folder of the layout
    */
   constructor(public readonly path: string) {
@@ -157,6 +164,12 @@ export class ImageLayout {
       await pipeline(
         stream instanceof Readable ? stream : Readable.fromWeb(stream as any),
         new Transform({
+          /**
+           * Transform operation
+           * @param chunk - the chunk
+           * @param _encoding - the encoding
+           * @param callback - the callback
+           */
           transform(chunk, _encoding, callback) {
             hash.update(chunk);
             size += chunk.length;
@@ -195,6 +208,12 @@ export class ImageLayout {
       await pipeline(
         Readable.from(generateTar(entries, options)),
         new Transform({
+          /**
+           * Transform operation
+           * @param chunk - the chunk
+           * @param _encoding - the encoding
+           * @param callback - the callback
+           */
           transform(chunk, _encoding, callback) {
             diffHash.update(chunk);
             callback(null, chunk);
@@ -203,6 +222,12 @@ export class ImageLayout {
         createGzip({ level: 6 }),
         forceUnixGzipOs(),
         new Transform({
+          /**
+           * Transform operation
+           * @param chunk - the chunk
+           * @param _encoding - the encoding
+           * @param callback - the callback
+           */
           transform(chunk: Buffer, _encoding, callback) {
             hash.update(chunk);
             size += chunk.length;

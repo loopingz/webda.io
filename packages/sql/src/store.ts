@@ -37,6 +37,9 @@ export class SQLStoreParameters extends StoreParameters {
    * Webda 3 layout). Without it each model gets its own table (its identifier lowercased with "/" → "_").
    */
   table?: string;
+  /**
+   * Database
+   */
   database?: SQLDatabase;
   /**
    * Auto create tables if they do not exist
@@ -91,11 +94,13 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
   protected tablesReady = new Map<string, Promise<void>>();
 
   /**
+   * Create dialect
    * @returns the engine syntax
    */
   protected abstract createDialect(): SQLDialect;
 
   /**
+   * Get the client statements run on, undefined while the store is not initialized
    * @returns the client statements run on, undefined while the store is not initialized
    */
   abstract getClient(): SQLClient | undefined;
@@ -183,6 +188,7 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
   }
 
   /**
+   * Get the transaction state of this store in the current async chain, while active
    * @returns the transaction state of this store in the current async chain, while active
    */
   protected getTransactionState(): SQLTransactionState | undefined {
@@ -220,6 +226,7 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
   }
 
   /**
+   * Return the transaction state created by this store in the current transaction
    * @returns the transaction state created by this store in the current transaction
    */
   protected ownTransactionState(): SQLTransactionState | undefined {

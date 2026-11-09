@@ -51,11 +51,23 @@ export default [
           require: {
             ClassDeclaration: true,
             MethodDefinition: true,
-            FunctionDeclaration: true
+            FunctionDeclaration: true,
+            FunctionExpression: true
           },
-          checkConstructors: true
+          contexts: [
+            "TSInterfaceDeclaration",
+            "TSTypeAliasDeclaration",
+            "TSEnumDeclaration",
+            "PropertyDefinition",
+            "TSInterfaceBody > TSPropertySignature",
+            "TSInterfaceBody > TSMethodSignature"
+          ],
+          checkConstructors: true,
+          checkGetters: true,
+          checkSetters: true
         }
       ],
+      "jsdoc/require-description": ["error", { contexts: ["any"], descriptionStyle: "any", exemptedBy: ["override"] }],
       "jsdoc/require-param": ["error", { exemptedBy: ["override"] }],
       "jsdoc/require-param-description": "error",
       "jsdoc/require-returns": ["error", { exemptedBy: ["override"] }],

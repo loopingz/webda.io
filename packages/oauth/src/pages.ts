@@ -10,6 +10,7 @@ import { randomBytes } from "node:crypto";
 export const MAX_ECHO = 200;
 
 /**
+ * Return the value, safe in HTML text and in double or single quoted attributes
  * @param value - untrusted value
  * @returns the value, safe in HTML text and in double or single quoted attributes
  */
@@ -23,6 +24,7 @@ export function escapeHtml(value: unknown): string {
 }
 
 /**
+ * Return a new script nonce
  * @returns a new script nonce
  */
 export function newNonce(): string {
@@ -30,6 +32,7 @@ export function newNonce(): string {
 }
 
 /**
+ * Return the headers of a page response: no caching, no framing, only the nonce-bound script
  * @param nonce - nonce of the page script
  * @returns the headers of a page response: no caching, no framing, only the nonce-bound script
  */
@@ -77,6 +80,7 @@ input[type="text"] { font: 1.4rem ui-monospace, monospace; letter-spacing: 0.15e
 `;
 
 /**
+ * Render page
  * @param title - page title
  * @param body - HTML of the body: escaped by the caller
  * @param script - inline script, static code only

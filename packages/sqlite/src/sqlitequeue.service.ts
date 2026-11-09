@@ -84,9 +84,13 @@ export default class SQLiteQueueService<T = any, K extends SQLiteQueueParameters
   T,
   K
 > {
+  /**
+   * Handle
+   */
   protected handle?: SQLiteHandle;
 
   /**
+   * Get the validated table name
    * @returns the validated table name
    */
   protected get table(): string {
@@ -94,6 +98,7 @@ export default class SQLiteQueueService<T = any, K extends SQLiteQueueParameters
   }
 
   /**
+   * Get the client
    * @returns the client
    * @throws when the service is not initialized
    */

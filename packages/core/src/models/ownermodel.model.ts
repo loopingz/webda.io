@@ -22,7 +22,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
   public?: boolean;
 
   /**
-   *
+   * Get the owner model
    * @returns
    */
   abstract getOwnerModel(): ModelClass<T>;
@@ -133,6 +133,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
 }
 
 /**
+ * Owner model implementation
  * @WebdaModel
  */
 export class OwnerModel extends AbstractOwnerModel<User> {

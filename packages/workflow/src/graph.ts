@@ -78,13 +78,25 @@ export interface TaskOptions {
  * Run an operation (or a built-in)
  */
 export interface TaskStmt {
+  /**
+   * Kind
+   */
   kind: "task";
+  /**
+   * Unique identifier
+   */
   id: string;
   /**
    * Operation id, or a built-in (`Date.Now`, `Workflow.Sleep`...)
    */
   operation: string;
+  /**
+   * Input
+   */
   input: Expr;
+  /**
+   * Options
+   */
   options?: TaskOptions;
   /**
    * Variable receiving the task result
@@ -96,9 +108,21 @@ export interface TaskStmt {
  * Assign a variable
  */
 export interface AssignStmt {
+  /**
+   * Kind
+   */
   kind: "assign";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Value
+   */
   value: Expr;
 }
 
@@ -106,10 +130,25 @@ export interface AssignStmt {
  * Conditional
  */
 export interface IfStmt {
+  /**
+   * Kind
+   */
   kind: "if";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Cond
+   */
   cond: Expr;
+  /**
+   * Then
+   */
   then: Stmt[];
+  /**
+   * Else
+   */
   else?: Stmt[];
 }
 
@@ -117,10 +156,25 @@ export interface IfStmt {
  * Loop over the items of an array
  */
 export interface ForOfStmt {
+  /**
+   * Kind
+   */
   kind: "forOf";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Item
+   */
   item: string;
+  /**
+   * Items
+   */
   items: Expr;
+  /**
+   * Body
+   */
   body: Stmt[];
 }
 
@@ -128,9 +182,21 @@ export interface ForOfStmt {
  * Loop while a condition holds
  */
 export interface WhileStmt {
+  /**
+   * Kind
+   */
   kind: "while";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Cond
+   */
   cond: Expr;
+  /**
+   * Body
+   */
   body: Stmt[];
 }
 
@@ -138,14 +204,29 @@ export interface WhileStmt {
  * Catch the errors of a block
  */
 export interface TryStmt {
+  /**
+   * Kind
+   */
   kind: "try";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Body
+   */
   body: Stmt[];
   /**
    * Variable receiving the {@link FlowError}
    */
   catchVar?: string;
+  /**
+   * Catch
+   */
   catch?: Stmt[];
+  /**
+   * Finally
+   */
   finally?: Stmt[];
 }
 
@@ -153,8 +234,17 @@ export interface TryStmt {
  * Run branches concurrently
  */
 export interface ParallelStmt {
+  /**
+   * Kind
+   */
   kind: "parallel";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Branches
+   */
   branches: Stmt[][];
   /**
    * Variable receiving the array of branch return values
@@ -166,10 +256,25 @@ export interface ParallelStmt {
  * Run a body for each item concurrently
  */
 export interface MapStmt {
+  /**
+   * Kind
+   */
   kind: "map";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Items
+   */
   items: Expr;
+  /**
+   * Item
+   */
   item: string;
+  /**
+   * Body
+   */
   body: Stmt[];
   /**
    * Maximum number of items running at once
@@ -185,8 +290,17 @@ export interface MapStmt {
  * End the flow (or the branch) with a value
  */
 export interface ReturnStmt {
+  /**
+   * Kind
+   */
   kind: "return";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Value
+   */
   value?: Expr;
 }
 
@@ -194,8 +308,17 @@ export interface ReturnStmt {
  * Throw a {@link FlowError} with code `FlowError`
  */
 export interface ThrowStmt {
+  /**
+   * Kind
+   */
   kind: "throw";
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Value
+   */
   value: Expr;
 }
 
@@ -234,11 +357,17 @@ export interface FlowDefinition {
    * JSON schema of the output
    */
   output?: object;
+  /**
+   * Body
+   */
   body: Stmt[];
   /**
    * Default options of every task
    */
   options?: TaskOptions;
+  /**
+   * Source
+   */
   source: "code" | "stored";
 }
 
@@ -268,8 +397,17 @@ export interface FlowDefinitionData extends Omit<FlowDefinition, "body" | "versi
  * An error, as seen by the flow: plain data
  */
 export interface FlowError {
+  /**
+   * Code
+   */
   code: string;
+  /**
+   * Message
+   */
   message: string;
+  /**
+   * Operation
+   */
   operation: string;
 }
 

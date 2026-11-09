@@ -87,6 +87,7 @@ export class SeededRandom {
   protected state: number;
 
   /**
+   * Create a new SeededRandom instance
    * @param seed - seed of the sequence
    */
   constructor(seed: number = 42) {

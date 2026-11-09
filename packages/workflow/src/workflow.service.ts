@@ -60,6 +60,7 @@ const NOT_RETRYABLE_STATUS: Record<number, string> = {
  */
 class TaskError extends Error {
   /**
+   * Create a new TaskError instance
    * @param code - error code
    * @param message - error message
    * @param retryable - whether another attempt may succeed
@@ -113,8 +114,17 @@ const OPERATION_ID = /^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/;
  * A stored workflow registered on this replica
  */
 interface RegisteredStoredFlow {
+  /**
+   * Flow ID
+   */
   flowId: string;
+  /**
+   * Version
+   */
   version: string;
+  /**
+   * Updated by
+   */
   updatedBy?: string;
   /**
    * JSON of its crons, to notice a change
@@ -165,7 +175,13 @@ export function useAbortSignal(): AbortSignal | undefined {
  * An attempt running on this replica
  */
 interface RunningAttempt {
+  /**
+   * Task
+   */
   task: WorkflowTask;
+  /**
+   * Controller
+   */
   controller: AbortController;
 }
 

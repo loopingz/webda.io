@@ -68,6 +68,7 @@ const STATUS_NAMES = [
 ];
 
 /**
+ * Return the SdkError
  * @param err - a gRPC error (`ServiceError`: code, details)
  * @returns the SdkError
  */
@@ -85,6 +86,7 @@ export function grpcError(err: unknown): SdkError {
 }
 
 /**
+ * Return the request message: an object as it is, `{}` for nothing, `{ value }` for a scalar
  * @param input - an operation input
  * @returns the request message: an object as it is, `{}` for nothing, `{ value }` for a scalar
  */
@@ -94,6 +96,7 @@ function messageOf(input: unknown): Record<string, unknown> {
 }
 
 /**
+ * Return the output: undefined for a `void` operation (`google.protobuf.Empty`)
  * @param op - the operation
  * @param message - a response message
  * @returns the output: undefined for a `void` operation (`google.protobuf.Empty`)
@@ -125,8 +128,17 @@ async function* messagesOf(call: NodeJS.ReadableStream & { cancel(): void }): As
 
 /** What the transport loads on its first call */
 interface Loaded {
+  /**
+   * GRPC
+   */
   grpc: typeof GrpcJs;
+  /**
+   * Client
+   */
   client: GrpcJs.Client;
+  /**
+   * Definition
+   */
   definition: ProtoLoader.PackageDefinition;
 }
 
@@ -138,15 +150,23 @@ interface Loaded {
  * `call()` with an (async) iterable of messages as input, bidirectional ones through `connect()`.
  */
 export class GrpcTransport implements Transport {
+  /**
+   * Name
+   */
   readonly name = "grpc";
+  /**
+   * Loaded
+   */
   protected loaded?: Promise<Loaded>;
 
   /**
+   * Create a new GrpcTransport instance
    * @param options - transport options
    */
   constructor(protected options: GrpcTransportOptions) {}
 
   /**
+   * Return true when `GrpcService` serves it
    * @param op - the operation
    * @returns true when `GrpcService` serves it
    */
@@ -194,6 +214,7 @@ export class GrpcTransport implements Transport {
   }
 
   /**
+   * Return the method definition and the call metadata
    * @param op - the operation
    * @param ctx - the call context
    * @returns the method definition and the call metadata
@@ -370,6 +391,7 @@ export class GrpcTransport implements Transport {
 }
 
 /**
+ * Convert to iterable
  * @param input - messages: an async iterable, an iterable, or one message
  * @returns them as an async iterable
  */

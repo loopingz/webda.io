@@ -39,6 +39,7 @@ export interface SQLTransactionConnection {
  */
 export class SQLTransactionAbortedError extends WebdaError.CodeError {
   /**
+   * Create a new SQLTransactionAbortedError instance
    * @param cause - the error that aborted the transaction
    */
   constructor(readonly cause: unknown) {
@@ -90,6 +91,7 @@ export class SQLTransactionState implements SQLClient {
   protected rollbackHooks: (() => void)[] = [];
 
   /**
+   * Create a new SQLTransactionState instance
    * @param open - open a connection and begin the transaction of this state on it
    * @param fallback - the client of the statements issued after the end
    * @param owner - the object owning the state (the store that created it)
@@ -101,6 +103,7 @@ export class SQLTransactionState implements SQLClient {
   ) {}
 
   /**
+   * Check whether finished
    * @returns true once committed or rolled back
    */
   isFinished(): boolean {
@@ -108,6 +111,7 @@ export class SQLTransactionState implements SQLClient {
   }
 
   /**
+   * Check whether open
    * @returns true once a statement opened the connection
    */
   isOpen(): boolean {
@@ -157,6 +161,7 @@ export class SQLTransactionState implements SQLClient {
   }
 
   /**
+   * Return the client of the statements issued after the end
    * @returns the client of the statements issued after the end
    */
   protected fallbackClient(): SQLClient {

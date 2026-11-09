@@ -10,6 +10,9 @@ export type AggregateFunction = "COUNT" | "COUNT_DISTINCT" | "SUM" | "AVG" | "MI
  * One computed column of an aggregation
  */
 export interface Metric {
+  /**
+   * Callback function
+   */
   fn: AggregateFunction;
   /**
    * Dotted path of the aggregated attribute; omitted only for COUNT, meaning COUNT(*)
@@ -25,6 +28,9 @@ export interface AggregationOrder {
    * A groupBy path or a metric alias
    */
   key: string;
+  /**
+   * Direction
+   */
   direction: "ASC" | "DESC";
 }
 
@@ -44,7 +50,13 @@ export interface AggregationQuery {
    * alias → metric
    */
   metrics: Record<string, Metric>;
+  /**
+   * Order by
+   */
   orderBy?: AggregationOrder[];
+  /**
+   * Limit
+   */
   limit?: number;
 }
 
@@ -52,6 +64,9 @@ export interface AggregationQuery {
  * Result of an aggregation
  */
 export interface AggregationResult<Row = Record<string, unknown>> {
+  /**
+   * Rows
+   */
   rows: Row[];
   /**
    * false when the in-memory fallback ran, fully or partially
@@ -69,6 +84,7 @@ export type AggregationErrorCode = "AGGREGATION_NOT_NATIVE" | "AGGREGATION_TOO_M
  */
 export class AggregationError extends WebdaQLError {
   /**
+   * Create a new AggregationError instance
    * @param code - machine readable code
    * @param message - human readable message
    */

@@ -28,9 +28,13 @@ export function toPublicChunk(value: unknown): unknown {
  * returns and its `finally` blocks run.
  */
 export abstract class StreamingOperationContext extends WebContext {
+  /**
+   * Cancelled
+   */
   private cancelled = false;
 
   /**
+   * Get whether the client went away
    * @returns whether the client went away
    */
   get isCancelled(): boolean {
@@ -43,6 +47,7 @@ export abstract class StreamingOperationContext extends WebContext {
   }
 
   /**
+   * Get true when nothing can be sent anymore although the context was not cancelled (response or socket over)
    * @returns true when nothing can be sent anymore although the context was not cancelled (response or socket over)
    */
   protected abstract get connectionEnded(): boolean;
@@ -73,6 +78,7 @@ export abstract class StreamingOperationContext extends WebContext {
   }
 
   /**
+   * Assert alive
    * @throws OperationCancelledError when the client went away or the connection is over
    */
   protected assertAlive(): void {

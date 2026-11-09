@@ -978,6 +978,9 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
   extends Store<K>
   implements CloudFormationContributor, MigratableStore
 {
+  /**
+   * Client
+   */
   _client: DynamoDBDocument;
 
   /**

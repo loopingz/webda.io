@@ -7,16 +7,49 @@ import { parseCliArgs } from "./options.js";
 import { clackPrompter, Prompter, resolveOptions } from "./prompts.js";
 import { fromVersionsFile, fromWorkspace } from "./versions.js";
 
+/**
+ * Main deps interface
+ */
 export interface MainDeps {
+  /**
+   * Argv
+   */
   argv: string[];
+  /**
+   * Cwd
+   */
   cwd: string;
+  /**
+   * Environment variables
+   */
   env: Record<string, string | undefined>;
+  /**
+   * Whether interactive is enabled
+   */
   interactive: boolean;
+  /**
+   * Prompter
+   */
   prompter: Prompter;
+  /**
+   * Run
+   */
   run: Runner;
+  /**
+   * Log
+   */
   log: (message: string) => void;
+  /**
+   * Templates dir
+   */
   templatesDir: string;
+  /**
+   * Agent dir
+   */
   agentDir: string;
+  /**
+   * Versions
+   */
   versions: Record<string, string>;
 }
 

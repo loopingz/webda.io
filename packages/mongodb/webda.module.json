@@ -122,7 +122,8 @@
                 "type": "boolean"
               },
               "timeoutMS": {
-                "experimental": "Specifies the time an operation will run until it throws a timeout error",
+                "deprecated": true,
+                "description": "Specifies the time an operation will run until it throws a timeout error",
                 "type": "number"
               },
               "useBigInt64": {
@@ -246,6 +247,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {

@@ -25,6 +25,7 @@ export type EncryptedStorageErrorCode = "LOCKED" | "DECRYPT" | "NO_KEY" | "LAST_
  */
 export class EncryptedStorageError extends Error {
   /**
+   * Create a new EncryptedStorageError instance
    * @param code - LOCKED when no data key is set, DECRYPT when a record or wrapped key cannot be decrypted,
    * NO_KEY when no wrapped key exists for the provider, LAST_PROVIDER when removing the only provider,
    * RESERVED when writing the reserved meta namespace
@@ -48,6 +49,7 @@ interface EncryptedRecord extends Pick<LocalRecord, "id" | "ref" | "state" | "ba
 }
 
 /**
+ * Convert to base64
  * @param bytes - raw bytes
  * @returns base64 string
  */
@@ -58,6 +60,7 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 /**
+ * Create from base64
  * @param value - base64 string
  * @returns raw bytes
  */
@@ -70,11 +73,15 @@ function fromBase64(value: string): Uint8Array<ArrayBuffer> {
  * Only `id`, `ref`, `state`, `baseRev` and `pendingMutationId` stay in clear; metadata is not encrypted.
  */
 export class EncryptedStorage implements StorageAdapter {
+  /**
+   * Key
+   */
   private key: CryptoKey | undefined;
   /** Provider that unlocked the storage with its non-extractable KEK, used to re-wrap the data key in addProvider */
   private active: { id: string; kek: CryptoKey } | undefined;
 
   /**
+   * Create a new EncryptedStorage instance
    * @param inner - storage holding the encrypted records
    */
   constructor(private readonly inner: StorageAdapter) {}
@@ -152,6 +159,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Return the ids of the registered providers
    * @returns the ids of the registered providers
    */
   async providers(): Promise<string[]> {
@@ -159,6 +167,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Store wrapped
    * @param id - provider id
    * @param kek - the provider KEK
    * @param dataKey - extractable data key
@@ -169,6 +178,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Unwrap operation
    * @param id - provider id
    * @param kek - the provider KEK
    * @param extractable - whether the unwrapped key is extractable
@@ -194,6 +204,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Check whether locked
    * @returns true when no data key is set
    */
   isLocked(): boolean {
@@ -201,6 +212,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Return the data key
    * @returns the data key
    * @throws EncryptedStorageError LOCKED when no key is set
    */
@@ -210,6 +222,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Encrypt operation
    * @param record - clear record
    * @returns the record with its sensitive fields encrypted
    */
@@ -234,6 +247,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Decrypt operation
    * @param stored - record as held by the inner storage
    * @returns the clear record
    * @throws EncryptedStorageError DECRYPT when the key is wrong or the data tampered
@@ -254,6 +268,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Get the decrypted record, undefined when missing
    * @param id - the id
    * @returns the decrypted record, undefined when missing
    */
@@ -264,6 +279,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Put records
    * @param records - the records, all encrypted before any is written
    */
   async putRecords(records: LocalRecord[]): Promise<void> {
@@ -272,6 +288,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Delete records
    * @param ids - the ids
    * @returns resolved once deleted
    */
@@ -280,6 +297,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Return every decrypted record of the model
    * @param model - the model
    * @returns every decrypted record of the model
    */
@@ -289,6 +307,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Return every decrypted record whose state is not synced
    * @returns every decrypted record whose state is not synced
    */
   async scanPending(): Promise<LocalRecord[]> {
@@ -297,6 +316,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Get the value, metadata is not encrypted
    * @param key - the key
    * @returns the value, metadata is not encrypted
    */
@@ -305,6 +325,7 @@ export class EncryptedStorage implements StorageAdapter {
   }
 
   /**
+   * Set the meta
    * @param key - the key
    * @param value - the value, undefined removes the key
    * @returns resolved once stored

@@ -15,12 +15,27 @@
  * Rewriting is done by *text splicing* rather than AST printing, so comments,
  * formatting and unrelated syntax survive byte-for-byte.
  */
-import { DEFAULT_COERCIONS, type ClassPlan, type CoercionRegistry, type FilePlan, type ResolvedCoercion } from "./types.ts";
+import {
+  DEFAULT_COERCIONS,
+  type ClassPlan,
+  type CoercionRegistry,
+  type FilePlan,
+  type ResolvedCoercion
+} from "./types.ts";
 
 /** A pending text replacement. */
 interface Edit {
+  /**
+   * Start
+   */
   start: number;
+  /**
+   * End
+   */
   end: number;
+  /**
+   * Text
+   */
   text: string;
 }
 

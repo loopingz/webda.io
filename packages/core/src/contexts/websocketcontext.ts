@@ -17,9 +17,13 @@ const CLOSING = 2;
  * each streamed chunk sent as one JSON text message.
  */
 export class WebSocketOperationContext extends StreamingOperationContext {
+  /**
+   * Last send
+   */
   private lastSend: Promise<void> = Promise.resolve();
 
   /**
+   * Create a new WebSocketOperationContext instance
    * @param httpContext - the upgrade request
    * @param socket - the accepted socket
    * @param session - the session already loaded for the upgrade request, if any

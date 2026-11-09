@@ -6,6 +6,9 @@ import { AbstractMailer, type MailerSendOptions } from "./abstractmailer.js";
  * @WebdaModda
  */
 export class DebugMailer extends AbstractMailer {
+  /**
+   * Sent
+   */
   sent: any[] = [];
 
   /**

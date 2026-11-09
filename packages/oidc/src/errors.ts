@@ -5,6 +5,7 @@ import { WebdaError } from "@webda/core";
  */
 export class OIDCTokenInvalid extends WebdaError.HttpError {
   /**
+   * Create a new OIDCTokenInvalid instance
    * @param message - the reason, never the token
    */
   constructor(message: string) {
@@ -17,6 +18,7 @@ export class OIDCTokenInvalid extends WebdaError.HttpError {
  */
 export class OIDCConfigurationError extends WebdaError.CodeError {
   /**
+   * Create a new OIDCConfigurationError instance
    * @param message - the problem
    */
   constructor(message: string) {
@@ -29,6 +31,7 @@ export class OIDCConfigurationError extends WebdaError.CodeError {
  */
 export class OIDCTokenSourceError extends WebdaError.CodeError {
   /**
+   * Create a new OIDCTokenSourceError instance
    * @param message - the problem
    */
   constructor(message: string) {

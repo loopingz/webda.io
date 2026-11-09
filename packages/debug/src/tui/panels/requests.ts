@@ -31,7 +31,13 @@ interface DisplayEntry {
  * headers/bodies. Press Left-arrow, Escape, or Enter again to return to the list.
  */
 export class RequestsPanel implements Panel {
+  /**
+   * Name
+   */
   name = "Requests";
+  /**
+   * Entries
+   */
   private entries: DisplayEntry[] = [];
   /** Map of request id to entry for updating on result */
   private byId = new Map<string, DisplayEntry>();
@@ -57,6 +63,7 @@ export class RequestsPanel implements Panel {
   private detailScroll = 0;
 
   /**
+   * Create a new RequestsPanel instance
    * @param client - Debug API client
    */
   constructor(private client: DebugClient) {}

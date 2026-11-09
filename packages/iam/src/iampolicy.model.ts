@@ -28,6 +28,7 @@ export class IAMPolicy extends Model {
   statements: PolicyStatement[];
 
   /**
+   * Create a new IAMPolicy instance
    * @param data - initial data
    */
   constructor(data?: Partial<IAMPolicy>) {

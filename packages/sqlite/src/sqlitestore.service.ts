@@ -55,6 +55,9 @@ export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters
   extends SQLStore<K>
   implements MigratableStore
 {
+  /**
+   * Handle
+   */
   protected handle?: SQLiteHandle;
 
   /**
@@ -65,6 +68,7 @@ export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters
   }
 
   /**
+   * Get the client, undefined while the store is not initialized
    * @returns the client, undefined while the store is not initialized
    */
   getClient(): SQLClient | undefined {
@@ -76,6 +80,7 @@ export class SQLiteStore<K extends SQLiteStoreParameters = SQLiteStoreParameters
   }
 
   /**
+   * Get the shared database handle, undefined while the store is not initialized
    * @returns the shared database handle, undefined while the store is not initialized
    */
   getHandle(): SQLiteHandle | undefined {

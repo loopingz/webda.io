@@ -1,9 +1,18 @@
 import { parseArgs } from "node:util";
 
+/**
+ * Store type definition
+ */
 export type Store = "memory" | "file" | "sqlite" | "mongodb" | "postgres";
 export const STORES: Store[] = ["memory", "file", "sqlite", "mongodb", "postgres"];
+/**
+ * Transport type definition
+ */
 export type Transport = "rest" | "graphql" | "grpc" | "mcp";
 export const TRANSPORTS: Transport[] = ["rest", "graphql", "grpc", "mcp"];
+/**
+ * Package manager type definition
+ */
 export type PackageManager = "pnpm" | "npm" | "yarn";
 export const PACKAGE_MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn"];
 
@@ -11,15 +20,39 @@ export const PACKAGE_MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn"];
  * Fully resolved options used to generate an application
  */
 export interface CreateOptions {
+  /**
+   * Directory path
+   */
   dir: string;
+  /**
+   * Store
+   */
   store: Store;
+  /**
+   * Transports
+   */
   transports: Transport[];
   /** Generate the frontend SDK (`@webda/sdk`) */
   sdk?: boolean;
+  /**
+   * Namespace
+   */
   namespace: string;
+  /**
+   * Pm
+   */
   pm: PackageManager;
+  /**
+   * Whether install is enabled
+   */
   install: boolean;
+  /**
+   * Whether git is enabled
+   */
   git: boolean;
+  /**
+   * Link workspace
+   */
   linkWorkspace?: string;
 }
 
@@ -27,17 +60,47 @@ export interface CreateOptions {
  * Command line arguments, before defaults and prompts
  */
 export interface ParsedArgs {
+  /**
+   * Directory path
+   */
   dir?: string;
+  /**
+   * Store
+   */
   store?: Store;
+  /**
+   * Transports
+   */
   transports?: Transport[];
   /** `--sdk`: generate the frontend SDK */
   sdk: boolean;
+  /**
+   * Namespace
+   */
   namespace?: string;
+  /**
+   * Pm
+   */
   pm?: PackageManager;
+  /**
+   * Whether install is enabled
+   */
   install: boolean;
+  /**
+   * Whether git is enabled
+   */
   git: boolean;
+  /**
+   * Whether yes is enabled
+   */
   yes: boolean;
+  /**
+   * Whether help is enabled
+   */
   help: boolean;
+  /**
+   * Link workspace
+   */
   linkWorkspace?: string;
 }
 

@@ -55,6 +55,9 @@ export function globPattern(like: string): string {
  * SQLite JSON1 syntax: `uuid TEXT` key, `data TEXT` JSON document, `?n` placeholders
  */
 export class SQLiteDialect implements SQLDialect {
+  /**
+   * Binary collation
+   */
   readonly binaryCollation = "COLLATE BINARY";
 
   /** @override */
@@ -290,6 +293,7 @@ export class SQLiteDialect implements SQLDialect {
   }
 
   /**
+   * Check key
    * @param key - a top-level key written inside a JSON path literal
    */
   protected checkKey(key: string): void {
@@ -299,6 +303,7 @@ export class SQLiteDialect implements SQLDialect {
   }
 
   /**
+   * Check index
    * @param index - an array index written inside a JSON path literal
    * @returns the index
    */

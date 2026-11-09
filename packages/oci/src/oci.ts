@@ -51,9 +51,21 @@ export function toOciMediaType(mediaType: string): string {
  * A platform of an image
  */
 export interface Platform {
+  /**
+   * OS
+   */
   os: string;
+  /**
+   * Architecture
+   */
   architecture: string;
+  /**
+   * Variant
+   */
   variant?: string;
+  /**
+   * Os.version
+   */
   "os.version"?: string;
 }
 
@@ -61,11 +73,29 @@ export interface Platform {
  * Content descriptor
  */
 export interface Descriptor {
+  /**
+   * Media type
+   */
   mediaType: string;
+  /**
+   * Digest
+   */
   digest: string;
+  /**
+   * Size
+   */
   size: number;
+  /**
+   * URLS
+   */
   urls?: string[];
+  /**
+   * Annotations
+   */
   annotations?: Record<string, string>;
+  /**
+   * Platform
+   */
   platform?: Platform;
 }
 
@@ -73,10 +103,25 @@ export interface Descriptor {
  * Image manifest
  */
 export interface ImageManifest {
+  /**
+   * Schema version
+   */
   schemaVersion: 2;
+  /**
+   * Media type
+   */
   mediaType?: string;
+  /**
+   * Configuration
+   */
   config: Descriptor;
+  /**
+   * Layers
+   */
   layers: Descriptor[];
+  /**
+   * Annotations
+   */
   annotations?: Record<string, string>;
 }
 
@@ -84,9 +129,21 @@ export interface ImageManifest {
  * Image index, also Docker manifest list
  */
 export interface ImageIndex {
+  /**
+   * Schema version
+   */
   schemaVersion: 2;
+  /**
+   * Media type
+   */
   mediaType?: string;
+  /**
+   * Manifests
+   */
   manifests: Descriptor[];
+  /**
+   * Annotations
+   */
   annotations?: Record<string, string>;
 }
 
@@ -94,10 +151,25 @@ export interface ImageIndex {
  * History entry of an image configuration
  */
 export interface HistoryEntry {
+  /**
+   * Created
+   */
   created?: string;
+  /**
+   * Created by
+   */
   created_by?: string;
+  /**
+   * Author
+   */
   author?: string;
+  /**
+   * Comment
+   */
   comment?: string;
+  /**
+   * Whether empty layer is enabled
+   */
   empty_layer?: boolean;
 }
 
@@ -105,12 +177,33 @@ export interface HistoryEntry {
  * Image configuration
  */
 export interface ImageConfiguration {
+  /**
+   * Created
+   */
   created?: string;
+  /**
+   * Author
+   */
   author?: string;
+  /**
+   * Architecture
+   */
   architecture: string;
+  /**
+   * OS
+   */
   os: string;
+  /**
+   * Variant
+   */
   variant?: string;
+  /**
+   * Os.version
+   */
   "os.version"?: string;
+  /**
+   * Configuration
+   */
   config?: {
     User?: string;
     ExposedPorts?: Record<string, object>;
@@ -123,10 +216,16 @@ export interface ImageConfiguration {
     StopSignal?: string;
     [key: string]: any;
   };
+  /**
+   * Rootfs
+   */
   rootfs: {
     type: "layers";
     diff_ids: string[];
   };
+  /**
+   * History
+   */
   history?: HistoryEntry[];
   [key: string]: any;
 }

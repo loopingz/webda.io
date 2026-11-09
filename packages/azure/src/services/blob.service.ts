@@ -37,17 +37,47 @@ import { AzureContributor, AzureDeployerInfo, AzureResourceContribution } from "
 
 /** Blob storage settings. Shared keys are optional; managed identity is preferred. */
 export class AzureBlobBinaryParameters extends CloudBinaryParameters implements AzureServiceParameters {
+  /**
+   * Account
+   */
   account?: string;
+  /**
+   * Connection string
+   */
   connectionString?: string | SecretString;
+  /**
+   * Container
+   */
   container!: string;
+  /**
+   * Endpoint
+   */
   endpoint?: string;
+  /**
+   * Tenant ID
+   */
   tenantId?: string;
+  /**
+   * Client ID
+   */
   clientId?: string;
+  /**
+   * Client secret
+   */
   clientSecret?: string | SecretString;
+  /**
+   * Subscription ID
+   */
   subscriptionId?: string;
+  /**
+   * Create container
+   */
   createContainer = false;
   /** Override the Blob API/SAS version for older Azurite installations. */
   serviceVersion?: string;
+  /**
+   * Pending timeout
+   */
   pendingTimeout = 3600;
 
   /**
@@ -60,9 +90,21 @@ export class AzureBlobBinaryParameters extends CloudBinaryParameters implements 
   }
 }
 
+/**
+ * Pending upload interface
+ */
 interface PendingUpload {
+  /**
+   * Info
+   */
   info: BinaryFileInfo;
+  /**
+   * Staging key
+   */
   stagingKey: string;
+  /**
+   * Created
+   */
   created: number;
 }
 
@@ -70,8 +112,17 @@ interface PendingUpload {
  * @WebdaModda
  */
 export class AzureBlobBinary extends CloudBinary<AzureBlobBinaryParameters> implements AzureContributor {
+  /**
+   * Parameters
+   */
   static Parameters = AzureBlobBinaryParameters;
+  /**
+   * Schemes
+   */
   readonly schemes = ["azure", "azblob"];
+  /**
+   * Client
+   */
   protected client!: BlobServiceClient;
 
   /**
@@ -95,8 +146,18 @@ export class AzureBlobBinary extends CloudBinary<AzureBlobBinaryParameters> impl
         throw new WebdaError.BadRequest("Invalid Azure Blob serviceVersion");
       const pipeline = newPipeline(this.client.credential);
       pipeline.factories.push({
+        /**
+         * Create operation
+         * @param next - the next
+         * @returns the result
+         */
         create(next) {
           return {
+            /**
+             * Send request
+             * @param request - the request
+             * @returns the result
+             */
             sendRequest(request) {
               request.headers.set("x-ms-version", p.serviceVersion!);
               return next.sendRequest(request);

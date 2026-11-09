@@ -38,13 +38,31 @@ export interface PrecompileOptions {
  * Result of {@link precompile}, template paths are relative to the output folder
  */
 export interface PrecompileResult {
+  /**
+   * Generated
+   */
   generated: string[];
+  /**
+   * Skipped
+   */
   skipped: string[];
+  /**
+   * Failed
+   */
   failed: string[];
 }
 
+/**
+ * Candidate interface
+ */
 interface Candidate {
+  /**
+   * File
+   */
   file: string;
+  /**
+   * Template
+   */
   template: string;
   /** Only a template if the default export has Subject or PreviewProps */
   needsProbe: boolean;
@@ -69,6 +87,10 @@ function hasEmail(dir: string): boolean {
  */
 function collect(source: string): Candidate[] {
   const candidates: Candidate[] = [];
+  /**
+   * Perform walk
+   * @param dir - the dir
+   */
   const walk = function walk(dir: string) {
     for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const file = join(dir, entry.name);

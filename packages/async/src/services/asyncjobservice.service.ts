@@ -48,13 +48,26 @@ import { ServiceRunner, ServiceRunnerParameters } from "./servicerunner.service.
  * Represent a Job information as you will find in env
  */
 export interface JobInfo {
+  /**
+   * Job ID
+   */
   JOB_ID: string;
+  /**
+   * Job secret key
+   */
   JOB_SECRET_KEY: string;
+  /**
+   * Job hook
+   */
   JOB_HOOK: string;
+  /**
+   * Job orchestrator
+   */
   JOB_ORCHESTRATOR: string;
 }
 
 /**
+ * Configuration parameters for AsyncJobService
  * @inheritdoc
  */
 export class AsyncJobServiceParameters extends ServiceParameters {
@@ -213,6 +226,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   protected operationsQueries: { [key: string]: WebdaQL.QueryValidator } = {};
 
   /**
+   * Resolve operation
    * @inheritdoc
    * @returns this
    */

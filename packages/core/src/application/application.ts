@@ -43,9 +43,17 @@ function defineOwnStatic(target: any, property: string, value: any, fallback: an
   Object.defineProperty(target, property, {
     configurable: true,
     enumerable: false,
+    /**
+     * Perform get
+     * @returns the result
+     */
     get() {
       return this === target ? value : fallback;
     },
+    /**
+     * Perform set
+     * @param newValue - the new value
+     */
     set(newValue: any) {
       Object.defineProperty(this, property, { value: newValue, writable: true, configurable: true, enumerable: true });
     }
@@ -115,6 +123,9 @@ export function resolveModuleFile(moduleFolder: string, info: string): string {
   return join(folder, info);
 }
 
+/**
+ * Application state type definition
+ */
 export type ApplicationState = "initial" | "loading" | "ready";
 
 // We should not be able to set initial from outside
@@ -456,7 +467,7 @@ export class Application {
   }
 
   /**
-   *
+   * Check whether it has Webda object
    * @param section - the section name
    * @param name - the name to use
    * @param caseSensitive - whether matching is case sensitive
@@ -497,7 +508,7 @@ export class Application {
   }
 
   /**
-   *
+   * Get the Webda object
    * @param section - the section name
    * @param name - the name to use
    * @returns the result
@@ -674,7 +685,7 @@ export class Application {
 
   /* SERIALIZATION */
   /**
-   *
+   * Deserialize operation
    * @param this - the constructor
    * @param json - the JSON data
    * @returns the result

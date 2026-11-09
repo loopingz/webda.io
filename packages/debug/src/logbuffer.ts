@@ -21,6 +21,9 @@ export interface LogEntry {
  */
 export type LogEvent = { type: "log"; id: string; timestamp: number; level: WorkerLogLevel; message: string };
 
+/**
+ * Log event callback type definition
+ */
 type LogEventCallback = (event: LogEvent) => void;
 
 /**

@@ -90,6 +90,11 @@ export function State<E extends string = string>(options?: StateOptions<E>) {
       }
       // Capture the most-derived implementation at instantiation time (could be an override)
       const original = current ?? value;
+      /**
+       * Perform state wrapper
+       * @param {...any} args - the args
+       * @returns the result
+       */
       const wrapper = function stateWrapper(this: any, ...args: any[]) {
         // Root call detection (only outermost invocation performs start/end transitions)
         if (this[ACTIVE_COUNTER] === undefined) this[ACTIVE_COUNTER] = 0;

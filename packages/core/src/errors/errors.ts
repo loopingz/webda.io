@@ -2,10 +2,13 @@
  * Error with a code
  */
 export class CodeError extends Error {
+  /**
+   * Code
+   */
   code: string;
 
   /**
-   *
+   * Create a new CodeError instance
    * @param code - the status code
    * @param message - the message
    */
@@ -211,6 +214,7 @@ export class OperationCancelledError extends Error {
  */
 export class FatalInitError extends Error {
   /**
+   * Create a new FatalInitError instance
    * @param message - the reason
    * @param options - the error options, with its `cause`
    */

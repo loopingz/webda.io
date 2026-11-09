@@ -10,6 +10,7 @@ import { SchemaVersion } from "./schemaversion.model.js";
 export const SCHEMA_VERSION_MODEL = "Webda/SchemaVersion";
 
 /**
+ * Return the version, as an instance of this module's class
  * @param data - a version as the repository returns it (an instance of the class the application registered, which
  *   may differ from this module's under a test alias)
  * @returns the version, as an instance of this module's class
@@ -39,6 +40,7 @@ const RECIPES: Partial<Record<SchemaChangeCode, string>> = {
 };
 
 /**
+ * Return the recipe fixing it, undefined for a safe change
  * @param change - a change
  * @returns the recipe fixing it, undefined for a safe change
  */
@@ -47,6 +49,7 @@ export function recipeFor(change: SchemaChange): string | undefined {
 }
 
 /**
+ * Return the change on one line: category, code, where, live version, message
  * @param change - a change
  * @returns the change on one line: category, code, where, live version, message
  */
@@ -64,6 +67,7 @@ export function describeChange(change: SchemaChange): string {
  */
 export class SchemaIncompatibleError extends WebdaError.Conflict {
   /**
+   * Create a new SchemaIncompatibleError instance
    * @param store - the store name
    * @param changes - the blocking changes
    */
@@ -89,6 +93,7 @@ export class SchemaIncompatibleError extends WebdaError.Conflict {
  */
 export class SchemaRegistryError extends WebdaError.CodeError {
   /**
+   * Create a new SchemaRegistryError instance
    * @param store - the store name
    * @param cause - the registry error
    */
@@ -115,6 +120,9 @@ export interface SchemaVersionRegistryOptions {
    * How long after its last heartbeat a version still counts as live, in milliseconds
    */
   ttl: number;
+  /**
+   * Log
+   */
   log: (level: "WARN" | "INFO" | "DEBUG", message: string) => void;
 }
 
@@ -123,6 +131,7 @@ export interface SchemaVersionRegistryOptions {
  */
 export class SchemaVersionRegistry {
   /**
+   * Create a new SchemaVersionRegistry instance
    * @param options - the store, the liveness window and the logger
    */
   constructor(readonly options: SchemaVersionRegistryOptions) {}
@@ -177,6 +186,7 @@ export class SchemaVersionRegistry {
   }
 
   /**
+   * Find operation
    * @param version - an identifier (`<store>:<appVersion>:<planHash>`), an application version or a plan hash
    * @returns the matching versions
    */

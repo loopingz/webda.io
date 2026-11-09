@@ -80,6 +80,7 @@
             "type": "object"
           }
         },
+        "description": "Configuration parameters for IAMService",
         "inheritdoc": true,
         "properties": {
           "attachments": {

@@ -18,10 +18,25 @@ export interface AzureServiceParameters {
 
 /** Common parameters for services using Microsoft Entra authentication. */
 export class AzureParameters extends ServiceParameters implements AzureServiceParameters {
+  /**
+   * Tenant ID
+   */
   tenantId?: string;
+  /**
+   * Client ID
+   */
   clientId?: string;
+  /**
+   * Client secret
+   */
   clientSecret?: string | SecretString;
+  /**
+   * Subscription ID
+   */
   subscriptionId?: string;
+  /**
+   * Endpoint
+   */
   endpoint?: string;
 
   /**

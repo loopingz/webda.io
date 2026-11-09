@@ -6,6 +6,7 @@ import { ModelLink, ModelLinksArray, ModelLinksSimpleArray, ModelParent, ModelRe
 
 import { CoreModel, OperationContext, Operation as Action } from "@webda/core";
 /**
+ * Default test model implementation
  * @WebdaIgnore
  */
 class DefaultTestModel extends UuidModel {
@@ -28,17 +29,42 @@ class DefaultTestModel extends UuidModel {
 // @Expose()
 /** Student with email-based UUID, linked to teachers and courses. */
 class Student extends DefaultTestModel {
+  /**
+   * Email
+   */
   email: string;
+  /**
+   * First name
+   */
   firstName: string;
+  /**
+   * Last name
+   */
   lastName: string;
+  /**
+   * Order
+   */
   order: number;
+  /**
+   * Friends
+   */
   friends: ModelLinksArray<Student, { email: string; firstName: string; lastName: string }>;
+  /**
+   * Teachers
+   */
   teachers: ModelLinksSimpleArray<Teacher>;
+  /**
+   * Courses
+   */
   courses: ModelRelated<Course, Student, "students">;
   // For cov
+  /**
+   * Constraints
+   */
   constraints: null;
 
   /**
+   * Get the email-based UUID
    * @Frontend
    * @returns the email-based UUID
    */
@@ -47,6 +73,7 @@ class Student extends DefaultTestModel {
   }
 
   /**
+   * Get the UUID field name
    * @Frontend
    * @returns the UUID field name
    */
@@ -58,10 +85,25 @@ class Student extends DefaultTestModel {
 
 /** Teacher with courses and student relations. */
 class Teacher extends DefaultTestModel {
+  /**
+   * Unique identifier
+   */
   uuid: string;
+  /**
+   * Courses
+   */
   courses: ModelRelated<Course, Teacher, "teacher">;
+  /**
+   * Students
+   */
   students: ModelRelated<Student, Teacher, "teachers">;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Whether senior is enabled
+   */
   senior: boolean;
   /**
    * Test that graphql can handle any[]
@@ -71,10 +113,25 @@ class Teacher extends DefaultTestModel {
 
 /** Course linking a teacher, students, and a classroom. */
 class Course extends DefaultTestModel {
+  /**
+   * Unique identifier
+   */
   uuid: string;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Classroom
+   */
   classroom: ModelLink<Classroom>;
+  /**
+   * Teacher
+   */
   teacher: ModelLink<Teacher>;
+  /**
+   * Students
+   */
   students: ModelLinksArray<
     Student,
     {
@@ -126,9 +183,21 @@ class Course extends DefaultTestModel {
 
 /** Physical classroom with courses and hardware inventory. */
 class Classroom extends DefaultTestModel {
+  /**
+   * Unique identifier
+   */
   uuid: string;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Courses
+   */
   courses: ModelRelated<Course, Classroom, "classroom">;
+  /**
+   * Hardwares
+   */
   hardwares: ModelRelated<Hardware, Classroom, "classroom">;
 
   /**
@@ -163,8 +232,17 @@ class Classroom extends DefaultTestModel {
 // @Expose({ root: true })
 /** Hardware item belonging to a classroom, with associated brands. */
 class Hardware extends DefaultTestModel {
+  /**
+   * Classroom
+   */
   classroom: ModelParent<Classroom>;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Brands
+   */
   brands: ModelRelated<Brand, Hardware>; //, "name">;
 
   /**
@@ -187,7 +265,13 @@ class Hardware extends DefaultTestModel {
 
 /** Computer screen hardware with model and serial number. */
 export class ComputerScreen extends Hardware {
+  /**
+   * Model ID
+   */
   modelId: string;
+  /**
+   * Serial number
+   */
   serialNumber: string;
 }
 
@@ -195,9 +279,13 @@ export class ComputerScreen extends Hardware {
  * Open model: the explicit opt-in, everyone may do everything
  */
 export class Brand extends UuidModel {
+  /**
+   * Name
+   */
   name: string;
 
   /**
+   * Check whether act
    * @returns true: open to everyone
    */
   static canAct(): boolean {

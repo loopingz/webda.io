@@ -9,6 +9,9 @@ import { useLog } from "../loggers/hooks.js";
  * @category CoreFeatures
  */
 export class OriginFilter implements RequestFilter<IWebContext> {
+  /**
+   * Regexs
+   */
   regexs: RegExpValidator;
   /** Create a new OriginFilter
    * @param origins - allowed origin patterns
@@ -17,7 +20,7 @@ export class OriginFilter implements RequestFilter<IWebContext> {
     this.regexs = new RegExpValidator(origins);
   }
   /**
-   *
+   * Check request
    * @param context - the execution context
    * @returns true if the condition is met
    */
@@ -31,6 +34,9 @@ export class OriginFilter implements RequestFilter<IWebContext> {
  * Authorize requests based on the website
  */
 export class WebsiteOriginFilter implements RequestFilter<IWebContext> {
+  /**
+   * Websites
+   */
   websites: string[] = [];
   /** Create a new WebsiteOriginFilter
    * @param website - allowed website URL or array of URLs
@@ -69,9 +75,15 @@ export class WebsiteOriginFilter implements RequestFilter<IWebContext> {
  * An allowed origin, parsed from the configuration
  */
 interface AllowedOrigin {
+  /**
+   * Protocol
+   */
   protocol: string;
   /** Lowercase hostname, without the `*.` prefix for a wildcard */
   hostname: string;
+  /**
+   * Port
+   */
   port: string;
   /** Match the subdomains of hostname (never hostname itself) */
   wildcard: boolean;
@@ -90,9 +102,13 @@ interface AllowedOrigin {
 export class CorsOriginFilter implements CORSFilter<IWebContext> {
   /** Accept any well-formed origin */
   protected any: boolean = false;
+  /**
+   * Origins
+   */
   protected origins: AllowedOrigin[] = [];
 
   /**
+   * Create a new CorsOriginFilter instance
    * @param origins - allowed origins, or `"*"`
    */
   constructor(origins: string | string[]) {
@@ -132,6 +148,7 @@ export class CorsOriginFilter implements CORSFilter<IWebContext> {
   }
 
   /**
+   * Return true if the origin is allowed
    * @param origin - the request `Origin` header
    * @returns true if the origin is allowed
    */
@@ -147,6 +164,7 @@ export class CorsOriginFilter implements CORSFilter<IWebContext> {
   }
 
   /**
+   * Check request
    * @param context - the execution context
    * @returns true if the request `Origin` header is allowed
    */

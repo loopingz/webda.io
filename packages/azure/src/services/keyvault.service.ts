@@ -7,19 +7,49 @@ import { AzureContributor, AzureDeployerInfo, AzureResourceContribution } from "
 
 /** Settings for the Key Vault service and configuration encrypter. */
 export class AzureKeyVaultParameters extends AzureParameters {
+  /**
+   * Vault URL
+   */
   vaultUrl!: string;
+  /**
+   * Key ID
+   */
   keyId?: string;
 }
 
+/**
+ * Envelope interface
+ */
 interface Envelope {
+  /**
+   * Version
+   */
   version: 1;
+  /**
+   * Key ID
+   */
   keyId: string;
+  /**
+   * Wrapped key
+   */
   wrappedKey: string;
+  /**
+   * Iv
+   */
   iv: string;
+  /**
+   * Tag
+   */
   tag: string;
+  /**
+   * Ciphertext
+   */
   ciphertext: string;
 }
 
+/**
+ * Azure encryption options type definition
+ */
 type AzureEncryptionOptions = AzureServiceParameters & { keyId?: string };
 let configuredEncryption: AzureEncryptionOptions = {};
 
@@ -130,7 +160,13 @@ CryptoService.registerEncrypter("azure", azureEncrypter);
  * @WebdaModda
  */
 export class AzureKeyVault extends Service<AzureKeyVaultParameters> implements ConfigurationProvider, AzureContributor {
+  /**
+   * Parameters
+   */
   static Parameters = AzureKeyVaultParameters;
+  /**
+   * Client
+   */
   protected client!: SecretClient;
 
   /**

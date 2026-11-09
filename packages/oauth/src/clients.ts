@@ -21,6 +21,7 @@ const LOOPBACK_HOSTS = ["127.0.0.1", "localhost", "[::1]"];
 const FORBIDDEN_SCHEMES = ["javascript:", "data:", "file:", "vbscript:", "blob:", "about:", "ftp:", "ws:", "wss:"];
 
 /**
+ * Check whether private i pv4
  * @param ip - IPv4 address
  * @returns true for any non public unicast range
  */
@@ -43,6 +44,7 @@ function isPrivateIPv4(ip: string): boolean {
 }
 
 /**
+ * Return the eight 16-bit groups, undefined when invalid
  * @param ip - IPv6 address, possibly with an embedded IPv4 or a zone id
  * @returns the eight 16-bit groups, undefined when invalid
  */
@@ -67,6 +69,7 @@ function expandIPv6(ip: string): number[] | undefined {
 }
 
 /**
+ * Convert to i pv4
  * @param hi - high 16 bits
  * @param lo - low 16 bits
  * @returns dotted IPv4
@@ -129,6 +132,7 @@ export function isPrivateAddress(ip: string): boolean {
 }
 
 /**
+ * Check whether acceptable redirect
  * @param uri - redirect URI from an untrusted metadata document
  * @returns true when it is acceptable: https, loopback http, or a private-use scheme
  */
@@ -146,6 +150,7 @@ export function isAcceptableRedirect(uri: unknown): boolean {
 }
 
 /**
+ * Return the value when it is an https URL
  * @param value - untrusted value
  * @returns the value when it is an https URL
  */
@@ -180,6 +185,7 @@ export class ClientRegistry {
   protected inflight = new Map<string, Promise<OAuthClient | undefined>>();
 
   /**
+   * Create a new ClientRegistry instance
    * @param params - server parameters
    * @param fetcher - fetch implementation
    * @param resolver - DNS resolver
@@ -192,6 +198,7 @@ export class ClientRegistry {
   ) {}
 
   /**
+   * Return the client, undefined when unknown or invalid
    * @param clientId - client_id
    * @returns the client, undefined when unknown or invalid
    */
@@ -227,6 +234,7 @@ export class ClientRegistry {
   }
 
   /**
+   * Get the registered client, undefined when unknown or expired
    * @param clientId - `dcr_` client_id
    * @returns the registered client, undefined when unknown or expired
    */
@@ -271,6 +279,7 @@ export class ClientRegistry {
   }
 
   /**
+   * Fetch document
    * @param url - metadata document URL
    * @returns the client
    */
@@ -350,6 +359,7 @@ export class ClientRegistry {
   }
 
   /**
+   * Match redirect
    * @param client - client
    * @param uri - requested redirect_uri
    * @returns true when allowed: exact match, or loopback http with any port and identical path

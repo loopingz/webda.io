@@ -28,11 +28,29 @@ export type ConnectionFailure = DebugErrorReason | "version";
 
 /** Everything loaded from the API. */
 export interface DebugData {
+  /**
+   * Models
+   */
   models: DebugModel[];
+  /**
+   * Services
+   */
   services: DebugServiceInfo[];
+  /**
+   * Operations
+   */
   operations: DebugOperation[];
+  /**
+   * Configuration
+   */
   config: DebugConfig | null;
+  /**
+   * Requests
+   */
   requests: DebugRequest[];
+  /**
+   * Logs
+   */
   logs: DebugLogEntry[];
 }
 
@@ -94,6 +112,9 @@ export interface DebugConnectionProviderProps {
   probeIntervalMs?: number;
   /** Called when the server refuses the token (e.g. to forget a stored one) */
   onUnauthorized?: () => void;
+  /**
+   * Children
+   */
   children: React.ReactNode;
 }
 

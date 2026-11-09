@@ -19,7 +19,13 @@
  * - `1 d 2 h` → same as above (spaces allowed)
  */
 export class Duration {
+  /**
+   * Raw
+   */
   protected _raw: number | string;
+  /**
+   * Seconds
+   */
   protected seconds: number;
   /**
    * Create a Duration.

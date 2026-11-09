@@ -7,6 +7,7 @@
  */
 
 /**
+ * Return its PascalCase identifier
  * @param text - any text
  * @returns its PascalCase identifier
  */
@@ -20,6 +21,7 @@ export function pascalCase(text: string): string {
 }
 
 /**
+ * Split ref
  * @param ref - a schema ref (`Namespace/Name.suffix`)
  * @returns namespace and the rest
  */
@@ -61,6 +63,7 @@ export function assignNames(refs: string[], reserved: string[] = []): Map<string
 }
 
 /**
+ * Return a quoted, escaped TypeScript string literal
  * @param text - any text
  * @returns a quoted, escaped TypeScript string literal
  */
@@ -69,6 +72,7 @@ export function quote(text: string): string {
 }
 
 /**
+ * Return the name as a property key, quoted when needed
  * @param name - a property name
  * @returns the name as a property key, quoted when needed
  */
@@ -77,6 +81,7 @@ export function propertyKey(name: string): string {
 }
 
 /**
+ * Return the JSDoc block, empty when no text
  * @param text - a doc comment
  * @param indent - indentation
  * @returns the JSDoc block, empty when no text

@@ -2,8 +2,17 @@
  * A rule of a Role or ClusterRole
  */
 export interface PolicyRule {
+  /**
+   * API groups
+   */
   apiGroups: string[];
+  /**
+   * Resources
+   */
   resources: string[];
+  /**
+   * Verbs
+   */
   verbs: string[];
 }
 
@@ -15,6 +24,9 @@ export interface RbacGrant {
    * Namespace of the rights, undefined for cluster wide rights
    */
   namespace?: string;
+  /**
+   * Rule
+   */
   rule: PolicyRule;
 }
 

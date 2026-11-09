@@ -182,6 +182,9 @@ const ENCRYPTER_SEGMENT = /^([A-Za-z0-9_.-]+):([\s\S]*)$/;
  * A parsed encrypted or to-encrypt configuration value
  */
 export interface EncryptedValue {
+  /**
+   * Mode
+   */
   mode: "encrypt" | "crypt";
   /**
    * `sencrypt:` or `scrypt:`: decrypted to a plain string instead of a SecretString
@@ -191,6 +194,9 @@ export interface EncryptedValue {
    * Encrypter name, undefined for `encrypt:<value>` when no default encrypter is set
    */
   encrypter: string | undefined;
+  /**
+   * Data
+   */
   data: string;
   /**
    * The encrypter is written in the value, false when the default encrypter is used
@@ -250,7 +256,13 @@ export interface ConfigurationEncryptionOptions {
  * State of one encryption or decryption pass
  */
 interface EncryptionPass {
+  /**
+   * Settings
+   */
   settings: ConfigurationEncryption;
+  /**
+   * Context
+   */
   context: EncrypterContext;
   /**
    * Encrypters already configured in this pass
@@ -260,6 +272,9 @@ interface EncryptionPass {
    * Encrypter to re-encrypt the encrypted values with
    */
   migrate?: string;
+  /**
+   * Whether upgrade is enabled
+   */
   upgrade?: boolean;
 }
 
@@ -311,13 +326,28 @@ function formatPath(path: (string | number)[]): string {
  * Public JSON Web Key (RFC 7517) published in the JWKS
  */
 export interface JsonWebKey {
+  /**
+   * Kty
+   */
   kty?: string;
+  /**
+   * Kid
+   */
   kid?: string;
+  /**
+   * Use
+   */
   use?: string;
+  /**
+   * Alg
+   */
   alg?: string;
   [key: string]: unknown;
 }
 
+/**
+ * Keys registry type definition
+ */
 export type KeysRegistry = {
   /**
    * Contains the instanceId of the last
@@ -398,12 +428,16 @@ export interface StringEncrypter {
 }
 
 /**
+ * Crypto service implementation
  * @WebdaModda
  */
 export class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters>
   extends Service<T>
   implements StringEncrypter
 {
+  /**
+   * Encrypters
+   */
   private static encrypters: { [key: string]: StringEncrypter } = {};
 
   /**
@@ -454,10 +488,25 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     }
     return encrypter;
   }
+  /**
+   * Current symetric key
+   */
   currentSymetricKey: string;
+  /**
+   * Current asymetric key
+   */
   currentAsymetricKey: { publicKey: string; privateKey: string };
+  /**
+   * Current
+   */
   current: string;
+  /**
+   * Age
+   */
   age: number;
+  /**
+   * Keys
+   */
   keys: {
     [key: string]: KeysDefinition;
   };
@@ -547,7 +596,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
 
   /**
-   *
+   * Serve JWKS
    * @param context - the execution context
    */
   @Route(".", ["GET"], {
@@ -774,7 +823,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
 
   /**
-   *
+   * Check key
    * @param keyId - the key identifier
    * @returns true if the condition is met
    */
@@ -1154,7 +1203,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     phase: "application"
   })
   static async encryptConfigurationFile(
-    /** @alias f @description Configuration file to update (json, jsonc or yaml), the application and deployment files by default */
+    /**
+     * File
+     * @alias f @description Configuration file to update (json, jsonc or yaml), the application and deployment files by default
+     */
     file?: string,
     /** @description Re-encrypt the already encrypted values with this encrypter, the default one when empty */
     migrate?: string,
@@ -1432,7 +1484,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     phase: "application"
   })
   static async pkiList(
-    /** @alias f @description Configuration file to inspect (json, jsonc or yaml) */
+    /**
+     * File
+     * @alias f @description Configuration file to inspect (json, jsonc or yaml)
+     */
     file: string
   ): Promise<{ activeKey?: string; publicKeys: string[]; values: Record<string, number> }> {
     const filename = resolve(useApplication().getPath(), file);

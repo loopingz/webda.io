@@ -24,6 +24,9 @@ function notExecutable(): never {
 }
 
 declare global {
+  /**
+   * Date constructor interface
+   */
   interface DateConstructor {
     /**
      * Current time in milliseconds, recorded by the flow: a retry or a resume reads the recorded value

@@ -3,14 +3,33 @@
  * finishes it; items pushed after the end are dropped.
  */
 export class AsyncQueue<T> implements AsyncIterable<T> {
+  /**
+   * Items
+   */
   private items: T[] = [];
+  /**
+   * Waiters
+   */
   private waiters: ((result: IteratorResult<T>) => void)[] = [];
+  /**
+   * Done
+   */
   private done = false;
+  /**
+   * Sizes
+   */
   private sizes: number[] = [];
+  /**
+   * Bytes
+   */
   private bytes = 0;
+  /**
+   * Size
+   */
   private readonly size?: (item: T) => number;
 
   /**
+   * Create a new AsyncQueue instance
    * @param options - optional settings
    * @param options.size - measures an item in bytes, to track `pendingBytes`
    */
@@ -19,6 +38,7 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Get whether the queue is finished
    * @returns whether the queue is finished
    */
   get ended(): boolean {
@@ -26,6 +46,7 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Push operation
    * @param item - the next item
    * @param size - its size in bytes (defaults to the size function's result)
    */
@@ -42,6 +63,7 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Get the size of the items pushed and not yet consumed (0 when no size is given)
    * @returns the size of the items pushed and not yet consumed (0 when no size is given)
    */
   get pendingBytes(): number {
@@ -49,6 +71,7 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Get the number of items pushed and not yet consumed
    * @returns the number of items pushed and not yet consumed
    */
   get pending(): number {
@@ -71,6 +94,7 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Return the next item, without ending the queue (unlike breaking out of a for await)
    * @returns the next item, without ending the queue (unlike breaking out of a for await)
    */
   next(): Promise<IteratorResult<T>> {
@@ -84,6 +108,7 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
   }
 
   /**
+   * Return the async iterator for this instance
    * @returns the iterator
    */
   [Symbol.asyncIterator](): AsyncIterator<T> {

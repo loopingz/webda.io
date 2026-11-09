@@ -20,8 +20,14 @@ export class TotpParameters extends SecondFactorParameters {
  * @WebdaModda TotpService
  */
 export class TotpService extends SecondFactorService<TotpParameters> {
+  /**
+   * Parameters
+   */
   static Parameters = TotpParameters;
 
+  /**
+   * Method
+   */
   readonly method = "totp";
 
   /**

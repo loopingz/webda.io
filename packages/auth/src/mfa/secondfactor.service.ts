@@ -43,6 +43,7 @@ export abstract class SecondFactorService<P extends SecondFactorParameters = Sec
   abstract check(mfa: MFA, code: string): Promise<boolean>;
 
   /**
+   * Get the throttle of the attempts checked with this method
    * @returns the throttle of the attempts checked with this method
    */
   get throttle(): ThrottleParameters {
@@ -50,6 +51,7 @@ export abstract class SecondFactorService<P extends SecondFactorParameters = Sec
   }
 
   /**
+   * Get the recovery codes issued with the first enabled factor
    * @returns the recovery codes issued with the first enabled factor
    */
   get recoveryCodeCount(): number {

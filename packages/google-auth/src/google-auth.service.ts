@@ -77,6 +77,7 @@ export class GoogleParameters extends OAuthProviderParameters {
   auth_options?: Record<string, any>;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -102,8 +103,14 @@ export class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   T,
   GoogleAuthEvents
 > {
+  /**
+   * Parameters
+   */
   static Parameters = GoogleParameters;
 
+  /**
+   * Provider name
+   */
   readonly providerName = "google";
 
   /** Client verifying ID tokens: one per service so the Google certificates cache is reused */
@@ -117,6 +124,7 @@ export class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   }
 
   /**
+   * Get a Google OAuth client for the authorization url and the code exchange
    * @param redirectUri - callback url
    * @returns a Google OAuth client for the authorization url and the code exchange
    */
@@ -129,6 +137,7 @@ export class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   }
 
   /**
+   * Get the Google authorization url
    * @param request - authorization request
    * @returns the Google authorization url
    */
@@ -251,6 +260,7 @@ export class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   }
 
   /**
+   * Convert to identity
    * @param payload - verified ID token payload
    * @param tokens - credentials to store
    * @returns the identity

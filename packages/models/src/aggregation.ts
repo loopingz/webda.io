@@ -42,9 +42,21 @@ export interface AggregationSpec<
    * WebdaQL filter, optionally with `?` / `:name` placeholders; no ORDER BY / LIMIT / OFFSET
    */
   filter?: WebdaQLString<T>;
+  /**
+   * Group by
+   */
   groupBy?: G;
+  /**
+   * Metrics
+   */
   metrics: M;
+  /**
+   * Order by
+   */
   orderBy?: { key: G[number] | Extract<keyof M, string>; direction: "ASC" | "DESC" }[];
+  /**
+   * Limit
+   */
   limit?: number;
 }
 

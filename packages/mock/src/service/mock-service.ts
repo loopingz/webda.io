@@ -2,8 +2,14 @@ import { generate, type GenerateOptions } from "../engine/generate.js";
 import { generateGraph } from "../engine/graph.js";
 import type { SecretString } from "@webda/core";
 
+/**
+ * Model class type definition
+ */
 type ModelClass<T> = new (...args: any[]) => T;
 
+/**
+ * Mock service parameters type definition
+ */
 export type MockServiceParameters = {
   mode?: "test" | "dev" | "demo" | "load" | "custom";
   seed?: number;
@@ -27,6 +33,7 @@ export type MockServiceParameters = {
  */
 export class MockService {
   /**
+   * Create a new MockService instance
    * @param _webda - reserved for a future `@webda/core` Service subclass wiring.
    * @param _name - reserved service name (unused in the v1 standalone class).
    * @param parameters - default mode/seed/AI configuration.

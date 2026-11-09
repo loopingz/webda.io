@@ -101,6 +101,7 @@ export class CloudFormationDeployerParameters extends AWSDeployerParameters {
    */
   APIGatewayStage?: {
     /**
+     * Stage name
      * @default the deployment name
      */
     StageName?: string;

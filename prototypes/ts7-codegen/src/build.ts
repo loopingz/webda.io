@@ -19,6 +19,9 @@ import { dirname, join, relative, resolve } from "node:path";
 import { run } from "./index.ts";
 import type { CodegenOptions } from "./types.ts";
 
+/**
+ * Build options interface
+ */
 export interface BuildOptions extends CodegenOptions {
   /** Path to the package's tsconfig.json. */
   project: string;

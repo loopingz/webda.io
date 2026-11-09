@@ -91,15 +91,18 @@ export interface KafkaSettings {
    */
   partitionkeyextractor?: string;
   /**
-   *
+   * Clientid
    */
   clientid?: string;
   /**
-   *
+   * Acks
    */
   acks?: string;
 }
 
+/**
+ * Nats settings interface
+ */
 export interface NATSSettings {
   /**
    * The name of the NATS subject to publish to.
@@ -116,6 +119,9 @@ export interface NATSSettings {
  *
  */
 export default interface Subscription {
+  /**
+   * Unique identifier
+   */
   id: string;
   /**
    * Indicates the source to which the subscription is related. When present on a subscribe request,
@@ -204,13 +210,37 @@ export function SubscriptionMixIn(clazz: any) {
    */
   let emitter: EmitterFunction;
   return class extends clazz implements Subscription {
+    /**
+     * Unique identifier
+     */
     id: string;
+    /**
+     * Source
+     */
     source?: string;
+    /**
+     * Types
+     */
     types?: string[];
+    /**
+     * Configuration
+     */
     config?: { [key: string]: string };
+    /**
+     * Protocol
+     */
     protocol: "HTTP" | "MQTT" | "WEBDA" = "HTTP";
+    /**
+     * Protocolsettings
+     */
     protocolsettings?: HttpSettings | MQTTSettings | AMQPSettings | KafkaSettings | NATSSettings;
+    /**
+     * Sink
+     */
     sink: string = "";
+    /**
+     * Filters
+     */
     filters: Filter[] = [];
 
     /** Create a new SubscriptionParameters. */

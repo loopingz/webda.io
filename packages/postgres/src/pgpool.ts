@@ -33,8 +33,17 @@ function stableStringify(value: any): string {
   );
 }
 
+/**
+ * Pool entry interface
+ */
 interface PoolEntry {
+  /**
+   * Pool
+   */
   pool: pg.Pool;
+  /**
+   * Ref count
+   */
   refCount: number;
 }
 

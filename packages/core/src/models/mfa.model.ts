@@ -85,8 +85,17 @@ export type MfaAction = "enroll" | "confirm" | "challenge" | "verify" | "recover
 
 /** Authentication lifecycle applied only to the configured login MFA attribute. */
 export interface LoginMfaPolicy {
+  /**
+   * Model
+   */
   model: string;
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Run operation
+   */
   run(mfa: MFA, action: MfaAction, method: string | undefined, next: () => Promise<any>): Promise<any>;
 }
 
@@ -99,6 +108,7 @@ export function registerLoginMfa(policy: LoginMfaPolicy | undefined): void {
 }
 
 /**
+ * Return the login policy when this exact attribute is configured
  * @param model - model identifier
  * @param attribute - behavior attribute
  * @returns the login policy when this exact attribute is configured
@@ -152,6 +162,7 @@ export interface MfaProof {
 }
 
 /**
+ * Return the second factor providers of the current instance
  * @returns the second factor providers of the current instance
  */
 function useSecondFactors(): Map<string, SecondFactorProvider> {
@@ -169,6 +180,7 @@ export function registerSecondFactor(provider: SecondFactorProvider): void {
 }
 
 /**
+ * Return the registered provider of this method
  * @param method - method name
  * @returns the registered provider of this method
  */
@@ -245,6 +257,9 @@ export class MfaParameters extends Parameters {
  * @WebdaBehavior Webda/MFA
  */
 export class MFA {
+  /**
+   * Parameters
+   */
   static Parameters = MfaParameters;
 
   /**
@@ -265,6 +280,7 @@ export class MFA {
   __recoveryCodes?: string[];
 
   /**
+   * Create a new MFA instance
    * @param data - initial or stored data
    */
   constructor(data?: any) {
@@ -300,6 +316,7 @@ export class MFA {
   }
 
   /**
+   * Return the owner, refusing a detached behavior
    * @returns the owner, refusing a detached behavior
    */
   private requireOwner(): any {
@@ -311,6 +328,7 @@ export class MFA {
   }
 
   /**
+   * Return the registered provider of this method
    * @param method - method name
    * @returns the registered provider of this method
    */
@@ -405,6 +423,7 @@ export class MFA {
   }
 
   /**
+   * Check whether it has recovery codes
    * @returns true if unused recovery codes are available
    */
   hasRecoveryCodes(): boolean {

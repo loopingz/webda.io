@@ -18,6 +18,7 @@ export class ResyncLoopError extends Error {
   readonly status = 500;
 
   /**
+   * Create a new ResyncLoopError instance
    * @param cursor - the cursor the server answered the first resync with
    */
   constructor(cursor: string | undefined) {
@@ -31,12 +32,13 @@ export class ResyncLoopError extends Error {
  */
 export class SyncEngine {
   /**
+   * Create a new SyncEngine instance
    * @param client - the client
    */
   constructor(protected client: OfflineClient) {}
 
   /**
-   *
+   * Get the client storage
    * @returns the client storage
    */
   protected get storage() {
@@ -44,7 +46,7 @@ export class SyncEngine {
   }
 
   /**
-   *
+   * Get the client transport
    * @returns the client transport
    */
   protected get transport() {
@@ -52,6 +54,7 @@ export class SyncEngine {
   }
 
   /**
+   * Return its mutation
    * @param record - a pending record
    * @returns its mutation
    */
@@ -220,6 +223,7 @@ export class SyncEngine {
   }
 
   /**
+   * Evict operation
    * @param ref - evicted reference
    */
   protected async evict(ref: SyncRef): Promise<void> {
@@ -258,7 +262,10 @@ export class SyncEngine {
     const scopes = await this.client.getScopes();
     if (scopes.length === 0) return;
     const epoch = (await this.storage.getMeta<number>("scopesEpoch")) ?? 0;
-    /** @returns true when setScopes ran since this pull started */
+    /**
+     * Documentation summary
+     * @returns true when setScopes ran since this pull started
+     */
     const changed = async () => ((await this.storage.getMeta<number>("scopesEpoch")) ?? 0) !== epoch;
     // A null cursor persisted by an older version is sent as an absent one
     let cursor = (await this.storage.getMeta<string>("cursor")) ?? undefined;

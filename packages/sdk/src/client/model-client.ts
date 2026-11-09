@@ -20,11 +20,29 @@ export type RawObject = Record<string, unknown>;
  * (`RemoteBackend`), or a local replica (`OfflineBackend` of `@webda/sdk/client/offline`)
  */
 export interface ModelBackend {
+  /**
+   * Perform get
+   */
   get(uid: string, options: CallOptions): Promise<RawObject>;
+  /**
+   * Query operation
+   */
   query(query: string, options: QueryOptions): Promise<QueryResult<RawObject>>;
+  /**
+   * Create operation
+   */
   create(data: RawObject, options: CallOptions): Promise<RawObject>;
+  /**
+   * Update operation
+   */
   update(uid: string, data: RawObject, options: CallOptions): Promise<RawObject>;
+  /**
+   * Patch operation
+   */
   patch(uid: string, data: RawObject, options: CallOptions): Promise<RawObject>;
+  /**
+   * Delete operation
+   */
   delete(uid: string, options: CallOptions): Promise<void>;
 }
 
@@ -32,6 +50,7 @@ export interface ModelBackend {
 export type SdkModelClass<T extends SdkModel> = new (client: ModelClient<T>, data: any) => T;
 
 /**
+ * Configure with continuation
  * @param query - a WebdaQL query
  * @param token - the continuation token of the previous page
  * @returns the query of the next page
@@ -46,9 +65,13 @@ export function withContinuation(query: string, token: string | undefined): stri
  * Backend over the transports and the `EntityCache`
  */
 export class RemoteBackend implements ModelBackend {
+  /**
+   * Inflight
+   */
   protected inflight = new Map<string, Promise<any>>();
 
   /**
+   * Create a new RemoteBackend instance
    * @param client - the client
    * @param descriptor - the model
    */
@@ -58,6 +81,7 @@ export class RemoteBackend implements ModelBackend {
   ) {}
 
   /**
+   * Return its id
    * @param name - operation of the model
    * @returns its id
    * @throws SdkError when the model does not have it
@@ -83,6 +107,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Return the primary key attributes of the uid
    * @param uid - entity uid
    * @returns the primary key attributes of the uid
    */
@@ -91,6 +116,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Return its uid
    * @param data - a raw object
    * @returns its uid
    */
@@ -111,6 +137,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Return the raw object, from the cache when fresh
    * @param uid - the uid
    * @param options - call options
    * @returns the raw object, from the cache when fresh
@@ -140,6 +167,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Query operation
    * @param query - WebdaQL query
    * @param options - call options; `count` also asks for the total of the query
    * @returns the page, from the cache when fresh and every result is cached
@@ -159,6 +187,7 @@ export class RemoteBackend implements ModelBackend {
     const known = mode === "force-cache" || cache.isFresh(firstEntry) ? firstEntry?.total : undefined;
     const count = options.count === true && known === undefined;
     /**
+     * Page
      * @param page - the page
      * @param total - the total of the query
      * @returns the page, with its total when there is one
@@ -212,6 +241,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Create operation
    * @param data - the object
    * @param options - call options
    * @returns the created object
@@ -223,6 +253,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Update operation
    * @param uid - the uid
    * @param data - every attribute
    * @param options - call options
@@ -236,6 +267,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Patch operation
    * @param uid - the uid
    * @param data - some attributes
    * @param options - call options
@@ -252,6 +284,7 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Delete operation
    * @param uid - the uid
    * @param options - call options
    */
@@ -262,6 +295,7 @@ export class RemoteBackend implements ModelBackend {
 }
 
 /**
+ * Return the primary key attributes
  * @param descriptor - the model
  * @param uid - serialized primary key
  * @returns the primary key attributes
@@ -274,6 +308,7 @@ export function pkFromUid(descriptor: ModelDescriptor, uid: string): RawObject {
 }
 
 /**
+ * Return the serialized primary key
  * @param descriptor - the model
  * @param data - a raw object or primary key attributes
  * @returns the serialized primary key
@@ -284,9 +319,21 @@ export function uidOf(descriptor: ModelDescriptor, data: RawObject): string {
 
 /** A reference to an object by its primary key */
 export interface ModelRef<T extends SdkModel> {
+  /**
+   * UID
+   */
   readonly uid: string;
+  /**
+   * Perform get
+   */
   get(options?: CallOptions): Promise<T>;
+  /**
+   * Patch operation
+   */
   patch(data: Partial<RawObject>, options?: CallOptions): Promise<T>;
+  /**
+   * Delete operation
+   */
   delete(options?: CallOptions): Promise<void>;
 }
 
@@ -296,6 +343,9 @@ export interface ModelRef<T extends SdkModel> {
  * `keys` and `queryFn` are the stable integration point for TanStack Query-style libraries.
  */
 export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change: ChangeEvent }> {
+  /**
+   * Backend
+   */
   readonly backend: ModelBackend;
 
   /** Stable query keys: `["WebdaDemo/Task", "get", uid]` and `["WebdaDemo/Task", "query", q]` */
@@ -314,6 +364,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   };
 
   /**
+   * Create a new ModelClient instance
    * @param client - the client
    * @param descriptor - the model
    * @param modelClass - the generated class
@@ -334,6 +385,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Get the model id
    * @returns the model id
    */
   get id(): string {
@@ -341,6 +393,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Return its serialized form
    * @param pk - a primary key
    * @returns its serialized form
    */
@@ -349,6 +402,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Return the primary key attributes
    * @param pk - a primary key
    * @returns the primary key attributes
    */
@@ -379,6 +433,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Return the object
    * @param pk - the primary key
    * @param options - call options
    * @returns the object
@@ -389,6 +444,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Return a reference, to read or write the object later
    * @param pk - the primary key
    * @returns a reference, to read or write the object later
    */
@@ -402,6 +458,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Query operation
    * @param query - WebdaQL query
    * @param options - call options; `count` also returns the total of the query (ask on the first page: the next pages
    *   keep the cached total)
@@ -417,6 +474,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Return every object, page after page
    * @param query - WebdaQL query
    * @param options - call options
    * @returns every object, page after page
@@ -431,6 +489,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Create operation
    * @param data - the object
    * @param options - call options
    * @returns the created object
@@ -440,6 +499,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Update operation
    * @param pk - the primary key
    * @param data - every attribute (`PUT`)
    * @param options - call options
@@ -451,6 +511,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Patch operation
    * @param pk - the primary key
    * @param data - some attributes (`PATCH`)
    * @param options - call options
@@ -462,6 +523,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Delete operation
    * @param pk - the primary key
    * @param options - call options
    */
@@ -511,6 +573,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
   }
 
   /**
+   * Call on object
    * @param id - operation id
    * @param pk - the primary key, undefined for a global operation
    * @param input - the input

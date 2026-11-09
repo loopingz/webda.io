@@ -89,6 +89,7 @@ export class SyncServiceParameters extends ServiceParameters {
   watchKeepAlive: number;
 
   /**
+   * Load operation
    * @param params - the raw parameters
    * @returns this
    */
@@ -108,6 +109,7 @@ export class SyncServiceParameters extends ServiceParameters {
 }
 
 /**
+ * Return true when both have the same JSON representation
  * @param a - first value
  * @param b - second value
  * @returns true when both have the same JSON representation
@@ -124,6 +126,7 @@ function sameJson(a: unknown, b: unknown): boolean {
 const SEQ_WIDTH = 15;
 
 /**
+ * Sync service implementation
  * @WebdaModda SyncService
  *
  * Offline sync of models: maintains the `_rev` of the configured models, records every write in the
@@ -150,7 +153,13 @@ export class SyncService extends Service<SyncServiceParameters> {
    * Instance id used in seq
    */
   protected instanceId = randomUUID().substring(0, 8);
+  /**
+   * Last ms
+   */
   protected lastMs = 0;
+  /**
+   * Counter
+   */
   protected counter = 0;
   /**
    * Hourly retention pruning
@@ -192,6 +201,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Stop operation
    * @returns nothing
    */
   async stop(): Promise<void> {
@@ -202,6 +212,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Return the smallest seq of that millisecond
    * @param ms - epoch milliseconds
    * @returns the smallest seq of that millisecond
    */
@@ -210,6 +221,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Return a seq greater than every seq this process generated before
    * @returns a seq greater than every seq this process generated before
    */
   nextSeq(): string {
@@ -224,6 +236,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Return its primary key fields
    * @param modelId - the model identifier
    * @returns its primary key fields
    */
@@ -433,6 +446,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Check whether read
    * @param object - the object
    * @param modelId - the model it is reached through
    * @returns true when the current caller may read it
@@ -447,6 +461,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Convert to synced
    * @param modelId - the model identifier
    * @param object - the object
    * @returns the object as sent to clients
@@ -577,6 +592,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Return a rejected result
    * @param mutationId - the mutation
    * @param code - error code
    * @param message - error message
@@ -587,6 +603,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Return a conflict result
    * @param mutationId - the mutation
    * @param modelId - the model
    * @param object - the current server object, undefined when deleted
@@ -599,6 +616,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Return the result for an object the caller cannot read: indistinguishable from a missing one
    * @param mutationId - the mutation
    * @returns the result for an object the caller cannot read: indistinguishable from a missing one
    */
@@ -619,6 +637,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Return a conflict when readable, KEY_IN_USE otherwise (no content)
    * @param mutationId - the mutation
    * @param modelId - the model
    * @param existing - the object already stored under the key

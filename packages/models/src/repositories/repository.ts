@@ -242,19 +242,31 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
   ): void;
+  /**
+   * Perform once
+   */
   once<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
   ): void;
+  /**
+   * Perform off
+   */
   off<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
   ): void;
+  /**
+   * Emit operation
+   */
   emit<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     payload: InstanceType<T>[typeof WEBDA_EVENTS][K]
   ): Promise<void>;
 
+  /**
+   * [webda test]
+   */
   [WEBDA_TEST]?: {
     clear(): Promise<void>;
   };

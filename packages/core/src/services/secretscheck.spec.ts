@@ -133,6 +133,15 @@ class FindUnencryptedSecretsTest {
       $ref: "#/definitions/A"
     } as JSONSchema7;
     assert.deepStrictEqual(findUnencryptedSecrets({ a: "plain" }, schema), []);
+    // External ref and duplicate findings deduplication
+    const dupSchema = {
+      allOf: [
+        { $ref: "https://example.com/external.json" },
+        { properties: { a: { type: "string", "x-webda-secret": true } as JSONSchema7 } },
+        { properties: { a: { type: "string", "x-webda-secret": true } as JSONSchema7 } }
+      ]
+    } as JSONSchema7;
+    assert.deepStrictEqual(findUnencryptedSecrets({ a: "plain" }, dupSchema), [{ path: "a", reason: "plain" }]);
   }
 
   @test

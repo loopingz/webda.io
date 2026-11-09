@@ -139,8 +139,21 @@ class ServiceTest extends WebdaApplicationTest {
   async metricNameFromATypedServiceName() {
     // A service named after its type (added by the CLI for a command) still gets a valid Prometheus name
     const { Counter } = await import("prom-client");
-    const counter: any = new FakeService("Webda/Fake-Service").getMetric(Counter, { name: "calls", help: "Calls" });
+    const svc = new FakeService("Webda/Fake-Service");
+    const counter: any = svc.getMetric(Counter, { name: "calls", help: "Calls" });
     assert.strictEqual(counter.name, "webda_webda_fake_service_calls");
+    assert.ok(svc.getService("SampleService" as any));
+    assert.strictEqual(svc.toJSON(), svc.toString());
+    // addRoute when finalUrl is undefined (relative url without parameters.url)
+    (svc as any).addRoute("relative", ["GET"], () => {});
+    // addRoute when Router service is missing
+    const router = this.webda.getServices()["Router"];
+    delete this.webda.getServices()["Router"];
+    try {
+      (svc as any).addRoute("/abs-no-router", ["GET"], () => {});
+    } finally {
+      this.webda.getServices()["Router"] = router;
+    }
   }
 
   @test

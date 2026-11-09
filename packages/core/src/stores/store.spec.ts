@@ -913,6 +913,128 @@ class StoreAggregationTest extends WebdaApplicationTest {
       Store.computeStores();
     }
   }
+
+  @test
+  async additionalStoreAndMemoryCoverage() {
+    // 1. StoreNotFoundError and UpdateConditionFailError
+    const notFoundErr = new StoreNotFoundError("u1", "MyStore");
+    assert.strictEqual(notFoundErr.getCode(), "STORE_NOTFOUND");
+    const condErr1 = new UpdateConditionFailError("u1", "ver", "1");
+    assert.strictEqual(condErr1.getCode(), "STORE_UPDATE_CONDITION_FAILED");
+    const condErr2 = new UpdateConditionFailError("u1", "ver", new Date(0));
+    assert.ok(condErr2.message.includes("1970-01-01"));
+
+    // 2. getAggregationOptions().warn
+    const memStore = new MemoryStore("aggWarnStore", {} as any);
+    memStore.resolve();
+    await memStore.init();
+    memStore.getAggregationOptions().warn?.("test warn");
+
+    // 3. computeStores with model missing Metadata/PrimaryKey and relation pointing to unstored/unknown model
+    const app = useApplication();
+    const models = app.getModels() as any;
+    class NoPkModel extends UuidModel {
+      static Metadata: any = { Identifier: "WebdaTest/NoPkModel" };
+    }
+    class RelModel extends UuidModel {
+      static Metadata: any = {
+        Identifier: "WebdaTest/RelModel",
+        PrimaryKey: ["uuid"],
+        Relations: {
+          links: [
+            { attribute: "nopk", model: "WebdaTest/NoPkModel", type: "LINK" },
+            { attribute: "missing", model: "WebdaTest/DoesNotExist", type: "LINK" }
+          ]
+        }
+      };
+    }
+    models["WebdaTest/NoPkModel"] = NoPkModel;
+    models["WebdaTest/RelModel"] = RelModel;
+    try {
+      Store.computeStores();
+    } finally {
+      delete models["WebdaTest/NoPkModel"];
+      delete models["WebdaTest/RelModel"];
+      Store.computeStores();
+    }
+
+    // 4. computeParameters with string Subclasses (known and unknown) and model without Metadata
+    class NoMetaModel extends UuidModel {
+      static Metadata: any = undefined;
+    }
+    class ParentWithStringSubs extends UuidModel {
+      static Metadata: any = {
+        Identifier: "WebdaTest/ParentWithStringSubs",
+        PrimaryKey: ["uuid"],
+        Subclasses: ["Webda/User", "WebdaTest/UnknownSub"]
+      };
+    }
+    models["WebdaTest/NoMetaModel"] = NoMetaModel;
+    models["WebdaTest/ParentWithStringSubs"] = ParentWithStringSubs;
+    try {
+      const s = new MemoryStore("subStore", {
+        models: ["WebdaTest/NoMetaModel", "WebdaTest/ParentWithStringSubs"],
+        strict: false
+      } as any);
+      s.computeParameters();
+    } finally {
+      delete models["WebdaTest/NoMetaModel"];
+      delete models["WebdaTest/ParentWithStringSubs"];
+    }
+
+    // 5. MemoryStore persistence edge cases (clearTimeout in persist, stop(), persist error, persistencePromise wait)
+    const { mkdtempSync, rmSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const tmpDir = mkdtempSync(join(tmpdir(), "webda-memstore-"));
+    try {
+      const pFile = join(tmpDir, "mem.dat");
+      // Write legacy JSON format to cover LDJSONMemoryStreamReader oldFormat
+      writeFileSync(pFile, JSON.stringify({ k1: '{"uuid":"k1"}' }));
+      const pStore = new MemoryStore("pStore", {
+        persistence: { path: pFile, delay: 50, key: "secret-key" }
+      } as any);
+      pStore.resolve();
+      // First init fails to decrypt legacy plain file with key -> catches error in init() (line 323)
+      await pStore.init();
+      // Trigger storage.set while persistencePromise is active
+      pStore.persistencePromise = new Promise(resolve => setTimeout(resolve, 80));
+      pStore.storage.set("k2", '{"uuid":"k2"}');
+      await new Promise(resolve => setTimeout(resolve, 60));
+      await pStore.persistencePromise;
+      pStore.persistencePromise = null;
+      // Trigger storage.set to schedule persistenceTimeout, then call stop() to clearTimeout and persist with key
+      pStore.storage.set("k3", '{"uuid":"k3"}');
+      await pStore.stop();
+
+      // Reload encrypted file with key
+      const pStore2 = new MemoryStore("pStore2", {
+        persistence: { path: pFile, delay: 0, key: "secret-key" }
+      } as any);
+      pStore2.resolve();
+      await pStore2.init();
+      assert.ok(pStore2.storage.get("k3"));
+
+      // Reload plain legacy JSON file without key
+      const legacyFile = join(tmpDir, "legacy.json");
+      writeFileSync(legacyFile, JSON.stringify({ leg1: '{"uuid":"leg1"}' }));
+      const legacyStore = new MemoryStore("legacyStore", {
+        persistence: { path: legacyFile, delay: 0 }
+      } as any);
+      legacyStore.resolve();
+      await legacyStore.init();
+      assert.strictEqual(legacyStore.storage.get("leg1"), '{"uuid":"leg1"}');
+
+      // Persist error when path is a directory
+      const errStore = new MemoryStore("errStore", {
+        persistence: { path: tmpDir, delay: 0 }
+      } as any);
+      errStore.resolve();
+      await assert.rejects(() => errStore.persist());
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
 }
 
 @suite

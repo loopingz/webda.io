@@ -6,7 +6,7 @@ import { TestApplication } from "../test/objects.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { useModel } from "../application/hooks.js";
+import { useApplication, useModel } from "../application/hooks.js";
 import { callOperation, registerOperation } from "../core/operations.js";
 import * as WebdaError from "../errors/errors.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
@@ -349,7 +349,7 @@ class AuditReadTest extends WebdaApplicationTest {
       () => this.call("Audit.Subject", { model: "Webda/Nope", key: "x" }, { id: "admin", roles: ["admin"] }),
       this.isError(WebdaError.NotFound)
     );
-    const app = this.webda.getApplication();
+    const app = useApplication();
     const origGetModelId = app.getModelId.bind(app);
     app.getModelId = () => undefined as any;
     try {

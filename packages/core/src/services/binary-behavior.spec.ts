@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { EventEmitter } from "events";
-import { Readable } from "stream";
+import { PassThrough, Readable } from "stream";
 import * as crypto from "crypto";
 import { WebdaApplicationTest } from "../test/index.js";
 import {
@@ -2340,6 +2340,74 @@ class BinaryCascadeTest extends WebdaApplicationTest {
       else delete (PhotoHolder as any).Metadata;
       if (previousRepo) Repositories.set(PhotoHolder as any, previousRepo);
       else Repositories.delete(PhotoHolder as any);
+    }
+  }
+
+  @test
+  async additionalBinaryCoverage() {
+    const svc = new CascadeService("cascade-extra", new BinaryParameters().load({}));
+    svc.initMetrics();
+    const stub = sinon.stub(useCore(), "getBinaryStore").returns(svc as any);
+    try {
+      // 1. new Binary() with no args and with (attribute, model) + transformer-injected parent getter
+      const bEmpty = new Binary();
+      assert.strictEqual(bEmpty.isEmpty(), true);
+      assert.strictEqual((bEmpty as any).parent, undefined);
+      assert.strictEqual((new BinariesImpl() as any).parent, undefined);
+      const modelUndef: any = {};
+      const bEagerUndef = new Binary("image", modelUndef);
+      assert.strictEqual(bEagerUndef.isEmpty(), true);
+      const modelPop: any = { image: { hash: "h1", size: 5 } };
+      const bEagerPop = new Binary("image", modelPop);
+      assert.strictEqual(bEagerPop.isEmpty(), false);
+
+      // 2. Orphan Binary / BinariesImpl missing parent errors
+      await runWithCtx({}, async () => {
+        await assert.rejects(
+          () => bEmpty.attachChallenge({ hash: "a", challenge: "b" } as any),
+          /parent not yet wired/
+        );
+        await assert.rejects(() => bEmpty.setMetadata("a", {} as any), /parent not yet wired/);
+        const orphans = new BinariesImpl();
+        await assert.rejects(
+          () => orphans.attachChallenge({ hash: "a", challenge: "b" } as any),
+          /parent not yet wired/
+        );
+      });
+
+      // 3. Binary.download and BinariesImpl.get direct streaming when getRedirectUrlFromObject returns null
+      const parent = { instance: makeFakeParent(), attribute: "image" };
+      const streamService = makeServiceStub({
+        getRedirectUrlFromObject: sinon.stub().resolves(null),
+        get: sinon.stub().callsFake(async () => Readable.from(Buffer.from("streamed")))
+      });
+      const bStream = makeBinary(parent, streamService, { hash: "h1", size: 8 });
+      await runWithCtx({}, async ctx => {
+        const out = new PassThrough();
+        const chunks: Buffer[] = [];
+        out.on("data", c => chunks.push(Buffer.from(c)));
+        (ctx as any)._stream = out;
+        (ctx as any).writeHead = sinon.stub();
+        await bStream.download();
+        assert.strictEqual(Buffer.concat(chunks).toString(), "streamed");
+      });
+
+      const bsStream = makeBinaries(parent, streamService);
+      bsStream.push(new BinariesItem(bsStream, { hash: "h1", size: 8 } as any));
+      await runWithCtx({}, async ctx => {
+        const out = new PassThrough();
+        const chunks: Buffer[] = [];
+        out.on("data", c => chunks.push(Buffer.from(c)));
+        (ctx as any)._stream = out;
+        (ctx as any).writeHead = sinon.stub();
+        await bsStream.get(0);
+        assert.strictEqual(Buffer.concat(chunks).toString(), "streamed");
+      });
+
+      // 4. downloadTo error path when writeStream fails
+      await assert.rejects(() => svc.downloadTo({ hash: "h1" } as any, "/nonexistent-dir-webda/out.bin"));
+    } finally {
+      stub.restore();
     }
   }
 }

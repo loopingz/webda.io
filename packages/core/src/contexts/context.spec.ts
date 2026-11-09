@@ -782,7 +782,7 @@ class GlobalContextTest {
   async additionalContextCoverage() {
     const { PassThrough, Readable, Transform } = await import("node:stream");
     const { EventEmitter } = await import("node:events");
-    const { Context } = await import("./icontext.js");
+    const { Context, IOperationContext } = await import("./icontext.js");
     const { RestStreamingOperationContext } = await import("./restcontext.js");
 
     // HttpContext.getRawBodyAsString non-RangeError and getRawBody Readable error
@@ -807,9 +807,10 @@ class GlobalContextTest {
     // Context / IOperationContext base methods (setExtension, end, init, flushHeaders twice, pipeline, parameter)
     const opCtx = new SimpleOperationContext();
     assert.strictEqual(await Context.prototype.init.call(opCtx), opCtx);
-    assert.strictEqual(opCtx.setExtension("extKey", "extVal"), opCtx);
-    assert.strictEqual(opCtx.getExtension("extKey"), "extVal");
-    assert.strictEqual(opCtx.parameter("missing", "defVal"), "defVal");
+    assert.strictEqual(Context.prototype.setExtension.call(opCtx, "extKey", "extVal"), opCtx);
+    assert.strictEqual(Context.prototype.getExtension.call(opCtx, "extKey"), "extVal");
+    assert.strictEqual(IOperationContext.prototype.parameter.call(opCtx, "missing", "defVal"), "defVal");
+    await Context.prototype.end.call(opCtx);
     await opCtx.end();
     await opCtx.flushHeaders();
 

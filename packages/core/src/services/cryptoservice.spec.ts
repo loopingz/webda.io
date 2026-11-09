@@ -22,6 +22,7 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { useRegistry } from "../models/registry.model.js";
 import { CryptoServiceParameters } from "./icryptoservice.js";
 import { useApplication } from "../application/hooks.js";
+import { runWithInstanceStorage } from "../core/instancestorage.js";
 
 /**
  *
@@ -663,14 +664,17 @@ class CryptoConfigurationTest {
     const dir = mkdtempSync(join(tmpdir(), "webda-crypto-cov-"));
     try {
       const kf = join(dir, "keys.json");
-      CryptoService.generateKeysFile(kf);
+      writeFileSync(kf, JSON.stringify({ current: "k1", key_k1: newKeySet() }));
       const svcFile = new CryptoService("c-file", { keysFile: kf } as any);
       assert.strictEqual(await svcFile.load(), true);
 
-      // 4. keysStatus with invalid pki value (line 1510)
+      // 4. pkiList with invalid pki value (line 1510)
       const cfgFile = join(dir, "webda.config.json");
       writeFileSync(cfgFile, JSON.stringify({ secret: "crypt:pki:invalid-format" }));
-      const status = CryptoService.keysStatus(cfgFile);
+      const status = await runWithInstanceStorage(
+        { application: { getPath: () => dir, getConfiguration: () => ({}) } as any },
+        () => CryptoService.pkiList(cfgFile)
+      );
       assert.strictEqual(status.values["<invalid>"], 1);
     } finally {
       rmSync(dir, { recursive: true, force: true });

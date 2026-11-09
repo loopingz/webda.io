@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { generateKeyPairSync } from "node:crypto";
+import { constants, generateKeyPairSync, publicEncrypt } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,7 +11,7 @@ import { AuthenticatedEncryption, CryptoService, SecretString } from "./cryptose
 import { collectServiceCommands } from "./servicecommands.js";
 import { executeApplicationCommand } from "../bin/cli-phase.js";
 import { useApplication } from "../application/hooks.js";
-import { getPrivateKeyEnv, PKI_PRIVATE_KEYS_DIR_ENV, pkiEncrypter, PkiKeyring } from "./pki.encrypter.js";
+import { getPrivateKeyEnv, PKI_PRIVATE_KEYS_DIR_ENV, PkiEncrypter, pkiEncrypter, PkiKeyring } from "./pki.encrypter.js";
 
 /**
  * Temporary directory of the test keys, never committed
@@ -242,6 +242,21 @@ class PkiEncrypterTest {
       () => encrypt("encrypt:pki:x", settings({ activeKey: "small", publicKeys: small })),
       /too small/
     );
+    // Non-RSA keys and invalid public key PEMs are refused
+    const edPair = generateKeyPairSync("ed25519", {
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" }
+    });
+    writeFileSync(join(small, "ed.pub.pem"), edPair.publicKey);
+    await assert.rejects(
+      () => encrypt("encrypt:pki:x", settings({ activeKey: "ed", publicKeys: small })),
+      /is not an RSA key/
+    );
+    writeFileSync(join(small, "badpub.pub.pem"), "not a pem");
+    await assert.rejects(
+      () => encrypt("encrypt:pki:x", settings({ activeKey: "badpub", publicKeys: small })),
+      /Cannot load public key 'badpub'/
+    );
   }
 
   @test
@@ -334,8 +349,17 @@ class PkiEncrypterTest {
     assert.deepStrictEqual(keyring.listKids(), [KID_A, KID_B]);
     assert.deepStrictEqual(keyring.listPrivateKids(), [KID_A, KID_B]);
     assert.strictEqual(keyring.activeKey, undefined);
+    assert.deepStrictEqual(new PkiKeyring({ publicKeys: join(ROOT, "missing-dir") }).listKids(), []);
     // Not configured: default options
+    assert.ok(new PkiEncrypter().getKeyring() instanceof PkiKeyring);
     assert.ok(pkiEncrypter.getKeyring() instanceof PkiKeyring);
+    assert.strictEqual(pkiEncrypter.needsUpgrade("invalid"), true);
+    // Wrapped dataKey with length !== 32
+    const shortWrapped = publicEncrypt(
+      { key: PEMS[KID_B].publicKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" },
+      new Uint8Array(16)
+    ).toString("base64");
+    await assert.rejects(() => decrypt(`crypt:pki:v1:${KID_B}:${shortWrapped}:abc`), /Wrong key or altered data/);
     // AAD is required again to decrypt
     const key = new Uint8Array(32);
     const aad = new Uint8Array(Buffer.from("v1:a"));

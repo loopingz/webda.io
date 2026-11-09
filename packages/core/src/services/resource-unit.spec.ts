@@ -186,11 +186,22 @@ class ResourceUnitTest {
           })
       });
 
+      await svc._serve(makeCtx(undefined));
       await svc._serve(makeCtx("index.html"));
       await assert.rejects(async () => svc._serve(makeCtx("../secret.txt")), /Unauthorized/);
       await assert.rejects(async () => svc._serve(makeCtx("missing.html")), /Resource not found/);
       await assert.rejects(async () => svc._serve(makeCtx("subdir")), /Resource not found/);
       await assert.rejects(async () => svc._serve(makeCtx("link.txt")), /Unauthorized/);
+
+      const fallbackSvc: any = new (mod.ResourceService as any)(
+        "ResourceFallback",
+        new ResourceServiceParameters({ url: "/fb", folder: tmpDir, indexFallback: true, allowHiddenFiles: false })
+      );
+      fallbackSvc.addRoute = () => {};
+      fallbackSvc.resolve();
+      await fallbackSvc.init();
+      await assert.rejects(async () => fallbackSvc._serve(makeCtx(".hidden")), /Hidden files are not allowed/);
+      await fallbackSvc._serve(makeCtx("spa-route"));
     } finally {
       nodeFs.rmSync(tmpDir, { recursive: true, force: true });
       nodeFs.rmSync(outsideDir, { recursive: true, force: true });

@@ -116,8 +116,14 @@ export interface StoreHelper<T extends object = object> {
  * Therefore they need to handle the cascadeDelete
  */
 export interface MappingService<T = any> {
+  /**
+   * Perform new model
+   */
   newModel(object: any): T;
 }
+/**
+ * Omit first arg type definition
+ */
 type OmitFirstArg<F> = F extends (x: any, ...args: infer P) => infer R ? (...args: P) => R : never;
 
 /*

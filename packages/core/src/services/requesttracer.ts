@@ -2,11 +2,17 @@
  * Description of a request entering the framework, given to the registered {@link RequestTracer}
  */
 export interface TracedRequest {
+  /**
+   * Protocol
+   */
   protocol: "http" | "grpc";
   /** HTTP method, or "POST" for gRPC */
   method: string;
   /** Path without query; for gRPC "/pkg.Service/Method" */
   path: string;
+  /**
+   * Scheme
+   */
   scheme?: "http" | "https";
   /** "1.1" | "2" */
   protocolVersion?: string;

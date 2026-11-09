@@ -27,21 +27,25 @@
             "description": "Kubernetes configuration as found in a kubeconfig file",
             "properties": {
               "clusters": {
+                "description": "Clusters",
                 "items": {
                   "$ref": "#/definitions/Cluster"
                 },
                 "type": "array"
               },
               "contexts": {
+                "description": "Contexts",
                 "items": {
                   "$ref": "#/definitions/Context"
                 },
                 "type": "array"
               },
               "currentContext": {
+                "description": "Current context",
                 "type": "string"
               },
               "users": {
+                "description": "Users",
                 "items": {
                   "$ref": "#/definitions/User"
                 },
@@ -459,21 +463,25 @@
             "description": "Kubernetes configuration as found in a kubeconfig file",
             "properties": {
               "clusters": {
+                "description": "Clusters",
                 "items": {
                   "$ref": "#/definitions/Cluster"
                 },
                 "type": "array"
               },
               "contexts": {
+                "description": "Contexts",
                 "items": {
                   "$ref": "#/definitions/Context"
                 },
                 "type": "array"
               },
               "currentContext": {
+                "description": "Current context",
                 "type": "string"
               },
               "users": {
+                "description": "Users",
                 "items": {
                   "$ref": "#/definitions/User"
                 },
@@ -580,21 +588,25 @@
             "description": "Kubernetes configuration as found in a kubeconfig file",
             "properties": {
               "clusters": {
+                "description": "Clusters",
                 "items": {
                   "$ref": "#/definitions/Cluster"
                 },
                 "type": "array"
               },
               "contexts": {
+                "description": "Contexts",
                 "items": {
                   "$ref": "#/definitions/Context"
                 },
                 "type": "array"
               },
               "currentContext": {
+                "description": "Current context",
                 "type": "string"
               },
               "users": {
+                "description": "Users",
                 "items": {
                   "$ref": "#/definitions/User"
                 },
@@ -829,21 +841,25 @@
             "description": "Kubernetes configuration as found in a kubeconfig file",
             "properties": {
               "clusters": {
+                "description": "Clusters",
                 "items": {
                   "$ref": "#/definitions/Cluster"
                 },
                 "type": "array"
               },
               "contexts": {
+                "description": "Contexts",
                 "items": {
                   "$ref": "#/definitions/Context"
                 },
                 "type": "array"
               },
               "currentContext": {
+                "description": "Current context",
                 "type": "string"
               },
               "users": {
+                "description": "Users",
                 "items": {
                   "$ref": "#/definitions/User"
                 },
@@ -1007,21 +1023,25 @@
             "description": "Kubernetes configuration as found in a kubeconfig file",
             "properties": {
               "clusters": {
+                "description": "Clusters",
                 "items": {
                   "$ref": "#/definitions/Cluster"
                 },
                 "type": "array"
               },
               "contexts": {
+                "description": "Contexts",
                 "items": {
                   "$ref": "#/definitions/Context"
                 },
                 "type": "array"
               },
               "currentContext": {
+                "description": "Current context",
                 "type": "string"
               },
               "users": {
+                "description": "Users",
                 "items": {
                   "$ref": "#/definitions/User"
                 },
@@ -1064,6 +1084,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {

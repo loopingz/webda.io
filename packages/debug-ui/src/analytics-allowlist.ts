@@ -35,8 +35,17 @@ export const ANALYTICS_MESSAGE_TYPE = "webda-debug-analytics";
 
 /** Message posted to the analytics iframe. */
 export interface AnalyticsMessage {
+  /**
+   * Type
+   */
   type: typeof ANALYTICS_MESSAGE_TYPE;
+  /**
+   * Event
+   */
   event: AnalyticsEvent;
+  /**
+   * Configuration parameters
+   */
   params: AnalyticsParams;
 }
 
@@ -104,6 +113,9 @@ export function validateAnalyticsMessage(
 
 /** Minimal iframe-like target of {@link createIframeTracker}. */
 export interface MessageTarget {
+  /**
+   * Post message
+   */
   postMessage(message: unknown, targetOrigin: string): void;
 }
 
@@ -133,7 +145,13 @@ export function createIframeTracker(target: () => MessageTarget | null | undefin
 export interface FrameLike {
   /** `self.origin` (`"null"` for an opaque origin) */
   origin: string | undefined;
+  /**
+   * Parent
+   */
   parent: unknown;
+  /**
+   * Self
+   */
   self: unknown;
 }
 

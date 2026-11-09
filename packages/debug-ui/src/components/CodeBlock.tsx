@@ -2,7 +2,13 @@ import React, { useMemo } from "react";
 
 /** A token of the highlighter. */
 export interface CodeToken {
+  /**
+   * Type
+   */
   type: "comment" | "string" | "keyword" | "number" | "ident" | "punct";
+  /**
+   * Value
+   */
   value: string;
 }
 

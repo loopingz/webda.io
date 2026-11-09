@@ -8,17 +8,41 @@
 
 /** A sealed envelope as stored by the server (`SealedEnvelope` of `@webda/core`) */
 export interface SealedValue {
+  /**
+   * V
+   */
   v: 1;
+  /**
+   * Kid
+   */
   kid: string;
+  /**
+   * Epk
+   */
   epk: object;
+  /**
+   * Iv
+   */
   iv: string;
+  /**
+   * Ct
+   */
   ct: string;
 }
 
 /** Where a sealed value is stored: the AAD of the envelope */
 export interface SealedContext {
+  /**
+   * Model type
+   */
   modelType: string;
+  /**
+   * Unique identifier
+   */
   uuid: string;
+  /**
+   * Field
+   */
   field: string;
 }
 
@@ -55,6 +79,7 @@ export interface SealedOptions {
 }
 
 /**
+ * Check whether sealed
  * @param value - a field value
  * @returns true for a stored (still sealed) envelope: the vault was locked, or the value did not open
  */

@@ -60,6 +60,7 @@ export function maskPhone(phone: string): string {
 }
 
 /**
+ * Hash code
  * @param code - submitted or generated code
  * @returns the SHA-256 hash of the code
  */
@@ -76,8 +77,14 @@ function hashCode(code: string): string {
  * @WebdaModda SmsMfaService
  */
 export class SmsMfaService extends SecondFactorService<SmsMfaParameters> {
+  /**
+   * Parameters
+   */
   static Parameters = SmsMfaParameters;
 
+  /**
+   * Method
+   */
   readonly method = "sms";
 
   /** Transport of the codes */

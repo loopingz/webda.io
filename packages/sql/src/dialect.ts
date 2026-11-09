@@ -1,16 +1,28 @@
 /** Database connection metadata */
 export interface SQLDatabase {
+  /**
+   * Name
+   */
   name: string;
 }
 
 /** Minimal SQL client interface compatible with pg.Client, pg.Pool and SQLiteClient */
 export interface SQLClient {
+  /**
+   * Query
+   */
   query: (q: string, values?: any[]) => Promise<{ rows: any[]; rowCount: number }>;
 }
 
 /** Typed result wrapper for SQL queries */
 export interface SQLResult<T> {
+  /**
+   * Rows
+   */
   rows: T[];
+  /**
+   * Row count
+   */
   rowCount: number;
 }
 

@@ -48,7 +48,7 @@ export class SimpleUser extends User {
   }
 
   /**
-   *
+   * Perform in group
    * @param group - the group name
    * @returns true if the condition is met
    */

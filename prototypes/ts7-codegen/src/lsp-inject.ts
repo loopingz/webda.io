@@ -173,6 +173,9 @@ function fromServer(msg: any): any {
 
 /** Stream splitter for LSP `Content-Length` framing. */
 class LspFramer {
+  /**
+   * Buffer
+   */
   private buffer = Buffer.alloc(0);
 
   /**

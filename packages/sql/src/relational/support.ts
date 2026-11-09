@@ -145,8 +145,17 @@ export function serializedClient(client: SQLClient, mutex: AsyncMutex): SQLClien
  * What the support reads from the store
  */
 export interface RelationalStoreHost {
+  /**
+   * Get the name
+   */
   getName(): string;
+  /**
+   * Log operation
+   */
   log(level: any, ...args: any[]): void;
+  /**
+   * Get the parameters
+   */
   getParameters(): RelationalLayoutParameters;
   /**
    * The models of the store with their hierarchy depth, built at resolve time by `Store`
@@ -166,6 +175,9 @@ export interface RelationalStoreHost {
  * What an import from a JSON store reports, per model
  */
 export interface ImportReport {
+  /**
+   * Model
+   */
   model: string;
   /**
    * Rows written in the relational table
@@ -182,6 +194,9 @@ export interface ImportReport {
  * the store models, syncs the schema at init, resolves tables, creates the repositories, prints the schema command
  */
 export class RelationalStoreSupport {
+  /**
+   * Manager
+   */
   readonly manager: RelationalSchemaManager;
   /**
    * The JSON tables the plan references (`foreignKeysToJsonb`), created before the DDL
@@ -203,9 +218,13 @@ export class RelationalStoreSupport {
    * The entry of this version in the registry, once registered
    */
   version?: SchemaVersion;
+  /**
+   * Heartbeat
+   */
   protected heartbeat?: NodeJS.Timeout;
 
   /**
+   * Create a new RelationalStoreSupport instance
    * @param host - the store
    * @param dialect - its relational dialect
    */
@@ -503,6 +522,7 @@ export class RelationalStoreSupport {
   }
 
   /**
+   * Resolve table
    * @param model - a model class
    * @returns its table, undefined when the model is not in the plan
    */
@@ -511,6 +531,7 @@ export class RelationalStoreSupport {
   }
 
   /**
+   * Resolve table model
    * @param model - a model class
    * @returns the model its table was declared for, undefined when the model is not in the plan
    */
@@ -519,6 +540,7 @@ export class RelationalStoreSupport {
   }
 
   /**
+   * Create repository
    * @param model - a model class
    * @param options - the connection of the store
    * @param options.client - the client, or a function returning the store's current one
@@ -552,6 +574,7 @@ export class RelationalStoreSupport {
   }
 
   /**
+   * Clean statements
    * @returns the statements emptying every table of the plan, junctions and referencing tables first
    */
   cleanStatements(): string[] {

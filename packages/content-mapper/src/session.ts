@@ -49,6 +49,9 @@ export interface TransformTiming {
   analyzeMs: number;
   /** Splicing edits and building the span map. */
   spliceMs: number;
+  /**
+   * Total ms
+   */
   totalMs: number;
   /** False when the buffer was unchanged and the snapshot was reused. */
   changed: boolean;
@@ -56,7 +59,13 @@ export interface TransformTiming {
 
 /** A transform result plus what it cost. */
 export interface TransformOutcome extends MappedText {
+  /**
+   * Timing
+   */
   timing: TransformTiming;
+  /**
+   * Edit count
+   */
   editCount: number;
   /** Generator diagnostics, for `TransformResult.diagnostics`. */
   diagnostics: GeneratedDiagnostic[];
@@ -68,11 +77,23 @@ const ms = (from: bigint) => Number(process.hrtime.bigint() - from) / 1e6;
  * A resident `Program` + `Checker` that answers `transform` requests.
  */
 export class WarmSession {
+  /**
+   * API
+   */
   private readonly api: API;
+  /**
+   * Options
+   */
   private readonly options: WarmSessionOptions;
+  /**
+   * Generators
+   */
   private readonly generators: Generator[];
   /** Live buffer text per file, served to the resident program. */
   private readonly overlay = new Map<string, string>();
+  /**
+   * Snapshot
+   */
   private snapshot: any;
   /** Cost of the initial program construction. */
   readonly startupMs: number;

@@ -16,6 +16,9 @@ import { analyze } from "./analyzer.ts";
 import { rewrite } from "./rewriter.ts";
 import { DEFAULT_COERCIONS, type CodegenOptions } from "./types.ts";
 
+/**
+ * Run options interface
+ */
 export interface RunOptions extends CodegenOptions {
   /** Absolute path to the project's tsconfig.json. */
   configFile: string;
@@ -25,6 +28,9 @@ export interface RunOptions extends CodegenOptions {
   outDir: string;
 }
 
+/**
+ * Run result interface
+ */
 export interface RunResult {
   /** Files that were rewritten. */
   changed: string[];

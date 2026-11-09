@@ -19,7 +19,10 @@ export const ACCESS_TOKEN_TYPE = "at+jwt";
 
 /** Raised for unknown, expired, revoked or reused tokens (403 TOKEN_INVALID) */
 export class TokenInvalid extends WebdaError.HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new TokenInvalid instance
+   * @param message - error message
+   */
   constructor(message: string = "Invalid token") {
     super(message, 403);
   }
@@ -33,8 +36,17 @@ export class InvalidTarget extends WebdaError.BadRequest {
 
 /** Tokens returned by a successful login or refresh */
 export interface IssuedTokens {
+  /**
+   * Access token
+   */
   accessToken: string;
+  /**
+   * Refresh token
+   */
   refreshToken: string;
+  /**
+   * Expires in
+   */
   expiresIn: number;
 }
 
@@ -89,15 +101,39 @@ export interface IssueOptions {
 
 /** Claims carried by an access token */
 export interface AccessClaims {
+  /**
+   * Sub
+   */
   sub: string;
+  /**
+   * Ident
+   */
   ident: string;
+  /**
+   * Provider
+   */
   provider?: string;
+  /**
+   * Amr
+   */
   amr: string[];
+  /**
+   * Roles
+   */
   roles?: string[];
+  /**
+   * Fam
+   */
   fam: string;
+  /**
+   * MFA
+   */
   mfa: MfaState;
   /** When the second factor was verified (ms), carried unchanged across refreshes */
   mfaAt?: number;
+  /**
+   * MFA verifications
+   */
   mfaVerifications?: Record<string, MfaVerification>;
   /** When the session was authenticated (ms): checked against the user's last password change */
   authAt?: number;
@@ -153,6 +189,7 @@ export class TokenServiceParameters extends ServiceParameters {
   refreshReuseInterval: number;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -215,6 +252,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Hash operation
    * @param token - raw refresh token
    * @returns SHA-256 hex
    */
@@ -223,6 +261,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Return a new raw refresh token
    * @returns a new raw refresh token
    */
   protected newRefreshToken(): string {
@@ -317,6 +356,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Verify access
    * @param token - access token
    * @param options - accepted audience(s), defaults to {@link ACCESS_AUDIENCE} (tokens bound to no resource)
    * @param options.audience - accepted audience(s)
@@ -339,6 +379,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Return the entry, or undefined
    * @param key - denylist key
    * @returns the entry, or undefined
    */
@@ -383,6 +424,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Check whether revoked
    * @param claims - verified access claims
    * @returns true when the family or the user was revoked after the token was issued
    */
@@ -397,6 +439,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Perform denylist
    * @param key - denylist key
    * @param notBefore - for user entries, tokens issued before are rejected (ms)
    * @param accessTtl - longest lifetime (s) of the access tokens to reject, at least the `accessTtl` parameter
@@ -421,7 +464,10 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     this.cacheHit(key, entry as any);
   }
 
-  /** @returns number of removed expired entries */
+  /**
+   * Sweep revoked
+   * @returns number of removed expired entries
+   */
   async sweepRevoked(): Promise<number> {
     this.pruneRevocationCaches();
     let removed = 0;
@@ -576,6 +622,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Check whether condition failure
    * @param err - error thrown by a conditional write
    * @returns true if the error is a failed write condition
    */
@@ -584,6 +631,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Revoke family
    * @param family - family to revoke
    */
   async revokeFamily(family: string): Promise<void> {
@@ -597,6 +645,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
   }
 
   /**
+   * Revoke user
    * @param userId - user whose tokens are revoked
    */
   async revokeUser(userId: string): Promise<void> {

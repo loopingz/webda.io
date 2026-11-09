@@ -12,6 +12,7 @@ export class Note extends OwnerModel {
   content: SealedField<{ title: string; body: string }>;
 
   /**
+   * Create a new Note instance
    * @param data - initial data
    */
   constructor(data?: Settable<Note>) {

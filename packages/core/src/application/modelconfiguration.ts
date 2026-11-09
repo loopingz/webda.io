@@ -11,7 +11,13 @@ const merge = deepmergeCustom({ mergeArrays: false });
 
 /** A class declaring typed runtime parameters. */
 export interface Configurable<T extends Parameters = Parameters> {
+  /**
+   * Prototype
+   */
   readonly prototype: unknown;
+  /**
+   * Parameters
+   */
   Parameters?: new () => T;
 }
 

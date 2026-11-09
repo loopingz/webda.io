@@ -74,9 +74,13 @@ export abstract class DynamicValue {
  * Dynamic value representing the current timestamp (in milliseconds since epoch) with an optional duration offset
  */
 export class NowValue extends DynamicValue {
+  /**
+   * Name
+   */
   readonly name = "NOW";
 
   /**
+   * Create a new NowValue instance
    * @param offsetMs - offset in milliseconds to add to Date.now()
    * @param raw - original duration string literal (if parsed from one)
    */
@@ -501,6 +505,10 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
       return {
         field: ctx.identifier().text,
         rawValue: raw,
+        /**
+         * Get value
+         * @returns the value
+         */
         get value(): value {
           return raw.resolve();
         }
@@ -863,6 +871,9 @@ export interface Query {
  * Represent the query expression or subset
  */
 export abstract class Expression<T = string> {
+  /**
+   * Operator
+   */
   operator: T;
 
   /** Create a new Expression.
@@ -924,6 +935,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    */
   attribute: string[];
   /**
+   * Create a new ComparisonExpression instance
    * @param operator - comparison operator
    * @param attribute - dot-notation path to the object property (e.g. `"user.name"`)
    * @param rawValue - literal value, DynamicValue, or array of values (for IN operator) to compare against
@@ -1161,6 +1173,7 @@ export abstract class LogicalExpression<T> extends Expression<T> {
   children: Expression[] = [];
 
   /**
+   * Create a new LogicalExpression instance
    * @param operator - logical operator
    * @param children - child expressions to combine
    */
@@ -1195,6 +1208,7 @@ export abstract class LogicalExpression<T> extends Expression<T> {
  */
 export class AndExpression extends LogicalExpression<"AND"> {
   /**
+   * Create a new AndExpression instance
    * @param children Expressions to use for AND
    */
   constructor(children: Expression[]) {
@@ -1222,6 +1236,7 @@ export class AndExpression extends LogicalExpression<"AND"> {
  */
 export class OrExpression extends LogicalExpression<"OR"> {
   /**
+   * Create a new OrExpression instance
    * @param children Expressions to use for OR
    */
   constructor(children: Expression[]) {
@@ -1255,6 +1270,7 @@ export class BooleanExpression extends Expression<"TRUE" | "FALSE"> {
   value: boolean;
 
   /**
+   * Create a new BooleanExpression instance
    * @param value - the constant value
    */
   constructor(value: boolean) {
@@ -1420,9 +1436,21 @@ export function validateSyntax(query: string): void {
  * ```
  */
 export class QueryValidator {
+  /**
+   * Lexer
+   */
   protected lexer: WebdaQLLexer;
+  /**
+   * Tree
+   */
   protected tree: WebdaqlContext;
+  /**
+   * Query
+   */
   protected query: Query;
+  /**
+   * Builder
+   */
   protected builder: ExpressionBuilder;
 
   /**
@@ -1612,6 +1640,7 @@ export class QueryValidator {
  */
 export class SetterValidator extends QueryValidator {
   /**
+   * Create a new SetterValidator instance
    * @param sql - assignment expression (e.g. `'field = "value" AND other = 10'`)
    * @throws {SyntaxError} if the expression contains non-assignment operators
    */
@@ -1668,9 +1697,13 @@ export class SetterValidator extends QueryValidator {
  * ```
  */
 export class PartialValidator extends QueryValidator {
+  /**
+   * Builder
+   */
   declare builder: PartialExpressionBuilder;
 
   /**
+   * Create a new PartialValidator instance
    * @param query - WebdaQL query string
    * @param builder - partial expression builder (override for customization)
    */
@@ -1711,6 +1744,7 @@ export class PartialComparisonExpression<
   T extends ComparisonOperator = ComparisonOperator
 > extends ComparisonExpression<T> {
   /**
+   * Create a new PartialComparisonExpression instance
    * @param builder - the partial expression builder (used to read partial mode flag)
    * @param op - comparison operator
    * @param attribute - dot-notation attribute path

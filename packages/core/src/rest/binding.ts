@@ -1,8 +1,20 @@
 /** The URL/body binding of an operation's named input properties. */
 export interface RestBinding {
+  /**
+   * Path
+   */
   path: string[];
+  /**
+   * Query
+   */
   query: { name: string; required: boolean; catchAll?: boolean }[];
+  /**
+   * Body
+   */
   body: string[];
+  /**
+   * Body parameter
+   */
   bodyParameter?: string;
 }
 

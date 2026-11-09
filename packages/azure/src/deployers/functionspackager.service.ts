@@ -19,15 +19,42 @@ import { relative, resolve, sep } from "node:path";
 import { functionsSchedule } from "../template.js";
 import type { AzureTrigger } from "./functions-entrypoint.js";
 
+/**
+ * Azure functions package options interface
+ */
 export interface AzureFunctionsPackageOptions {
+  /**
+   * Zip path
+   */
   zipPath?: string;
+  /**
+   * Package
+   */
   package?: PackageOptions;
+  /**
+   * Crons
+   */
   crons?: { id: string; schedule: string }[];
+  /**
+   * Triggers
+   */
   triggers?: AzureTrigger[];
 }
+/**
+ * Azure functions package result interface
+ */
 export interface AzureFunctionsPackageResult {
+  /**
+   * Zip path
+   */
   zipPath: string;
+  /**
+   * Files
+   */
   files: number;
+  /**
+   * Size
+   */
   size: number;
 }
 
@@ -109,11 +136,20 @@ export async function createAzureFunctionsPackage(
 }
 
 /**
- *
+ * Configuration parameters for AzureFunctionsPackager
  */
 export class AzureFunctionsPackagerParameters extends ServiceParameters implements AzureFunctionsPackageOptions {
+  /**
+   * Zip path
+   */
   zipPath = "dist/azure-functions.zip";
+  /**
+   * Package
+   */
   package?: PackageOptions;
+  /**
+   * Triggers
+   */
   triggers?: AzureTrigger[];
 }
 
@@ -121,6 +157,9 @@ export class AzureFunctionsPackagerParameters extends ServiceParameters implemen
  * @WebdaModda
  */
 export class AzureFunctionsPackager extends Service<AzureFunctionsPackagerParameters> implements Deployer {
+  /**
+   * Parameters
+   */
   static Parameters = AzureFunctionsPackagerParameters;
 
   /**

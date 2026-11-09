@@ -93,11 +93,29 @@ const SKIP: PropertyOutcome = { optional: false, decision: "skip" };
  * document.
  */
 export class SchemaConverter {
+  /**
+   * Project
+   */
   private readonly project: Project;
+  /**
+   * Checker
+   */
   private readonly checker: Checker;
+  /**
+   * Max depth
+   */
   private readonly maxDepth: number;
+  /**
+   * Mode
+   */
   private readonly mode: SchemaMode;
+  /**
+   * Whether boolean default false is enabled
+   */
   private readonly booleanDefaultFalse: boolean;
+  /**
+   * Buffer strategy
+   */
   private readonly bufferStrategy: BufferStrategy;
 
   /** Sub-schemas hoisted out of the current document. */
@@ -106,6 +124,7 @@ export class SchemaConverter {
   private targetNode: Node | undefined;
 
   /**
+   * Create a new SchemaConverter instance
    * @param options - project, checker and conversion settings
    */
   constructor(options: ConverterOptions) {

@@ -22,7 +22,10 @@ export interface IdentThrottle {
 
 /** Raised for malformed ident keys (400 INVALID_IDENT) */
 export class InvalidIdent extends WebdaError.HttpError {
-  /** @param message - error message */
+  /**
+   * Create a new InvalidIdent instance
+   * @param message - error message
+   */
   constructor(message: string = "Invalid ident") {
     super(message, 400);
   }
@@ -38,6 +41,9 @@ export class Ident extends Model {
   /** Composite primary key */
   [WEBDA_PRIMARY_KEY] = ["providerUid", "provider"] as const;
   // Must stay a string literal: the content mapper reads it textually
+  /**
+   * [webda primary key separator]
+   */
   [WEBDA_PRIMARY_KEY_SEPARATOR] = ":";
   /** Identifier on the provider (normalised email for "email") */
   providerUid: string;
@@ -66,7 +72,10 @@ export class Ident extends Model {
   /** Provider tokens, encrypted at rest (`await ident.tokens.get()`) */
   tokens: EncryptedField<IdentTokens>;
 
-  /** @param data - initial data */
+  /**
+   * Create a new Ident instance
+   * @param data - initial data
+   */
   constructor(data?: Settable<Ident>) {
     super();
     Object.assign(this, data);
@@ -146,6 +155,7 @@ export class Ident extends Model {
   }
 
   /**
+   * Get the owner link
    * @returns the owner link
    */
   getUser(): ModelLink<User> {
@@ -153,6 +163,7 @@ export class Ident extends Model {
   }
 
   /**
+   * Set the user
    * @param user - owner uuid or user
    */
   setUser(user: string | User): void {
@@ -162,6 +173,7 @@ export class Ident extends Model {
   }
 
   /**
+   * Get the email of this ident
    * @returns the email of this ident
    */
   getEmail(): string | undefined {
@@ -169,6 +181,7 @@ export class Ident extends Model {
   }
 
   /**
+   * Check whether verified
    * @returns true when verified
    */
   isVerified(): boolean {

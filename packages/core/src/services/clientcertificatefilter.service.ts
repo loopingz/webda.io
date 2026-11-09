@@ -12,6 +12,7 @@ export class ClientCertificateFilterParameters extends ServiceParameters {
   paths?: string[];
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -36,6 +37,9 @@ export class ClientCertificateFilter<T extends ClientCertificateFilterParameters
   extends Service<T>
   implements RequestFilter<IWebContext>
 {
+  /**
+   * Parameters
+   */
   static Parameters = ClientCertificateFilterParameters;
 
   /** Compiled `paths` */

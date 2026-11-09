@@ -2,16 +2,34 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
+/**
+ * File map type definition
+ */
 export type FileMap = Map<string, string>;
 
 /**
  * A base app or a feature overlay
  */
 export interface Template {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Files
+   */
   files: FileMap;
+  /**
+   * Package JSON
+   */
   packageJson: Record<string, any>;
+  /**
+   * Configuration
+   */
   config: Record<string, any>;
+  /**
+   * Agents
+   */
   agents: string;
 }
 

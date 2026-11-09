@@ -83,7 +83,7 @@
                   "type": "boolean"
                 },
                 "role": {
-                  "description": "What a column holds\n\n- `field`: a model field (scalar or JSON)\n- `reference`: the key (or one key part) of a linked model (`ModelLink`, `ModelParent`)\n- `type`: the `__type` class discriminator\n- `extra`: the JSON column keeping the properties the schema does not know\n- `owner` / `target`: the keys of a junction row\n- `position`: the index of the link in its array\n- `key`: the key of the link in its map\n- `attributes`: the JSON column holding the link attributes when they have no declared field",
+                  "description": "Role",
                   "enum": [
                     "field",
                     "reference",
@@ -130,7 +130,7 @@
                       "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%2310"
                     }
                   ],
-                  "description": "Engine-neutral column type: each store maps it to its own DDL type (`TEXT`, `DataTypes.STRING(n)`, ...)"
+                  "description": "Type"
                 }
               },
               "required": [
@@ -146,16 +146,18 @@
               "description": "A foreign key constraint\n\nStores create every table first and the constraints afterwards (deferrable), so self references and cycles work.",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "onDelete": {
-                  "description": "`ON DELETE` behavior of a foreign key",
+                  "description": "On delete",
                   "enum": [
                     "CASCADE",
                     "RESTRICT",
@@ -165,9 +167,11 @@
                   "type": "string"
                 },
                 "references": {
-                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references"
+                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references",
+                  "description": "References"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 }
               },
@@ -185,19 +189,23 @@
               "description": "An index",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 },
                 "unique": {
                   "default": false,
+                  "description": "Whether unique is enabled",
                   "type": "boolean"
                 }
               },
@@ -213,9 +221,11 @@
               "description": "A junction table: the rows of a `linksSimpleArray`, `linksArray` or `linksMap` relation",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
                 },
                 "kind": {
+                  "description": "Kind",
                   "enum": [
                     "linksSimpleArray",
                     "linksArray",
@@ -247,6 +257,7 @@
                   "type": "array"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 }
               },
@@ -269,7 +280,15 @@
               "description": "A relation of a model",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
+                },
+                "attributes": {
+                  "description": "For a `map`: the attributes of the target copied into each item",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "foreignKey": {
                   "description": "Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled",
@@ -280,7 +299,7 @@
                   "type": "string"
                 },
                 "kind": {
-                  "description": "Kind of a relation, from `Metadata.Relations` (the compiler records the aliases as the type they resolve to)\n\n- `parent`: `ModelParent` / `BelongTo`\n- `link`: `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne`\n- `linksSimpleArray`: `ModelLinksSimpleArray`\n- `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`\n- `linksMap`: `ModelLinksMap`\n- `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage\n- `map`: `ModelsMapped`, denormalized copies: no storage",
+                  "description": "Kind",
                   "enum": [
                     "parent",
                     "link",
@@ -318,14 +337,14 @@
                       "$ref": "#/definitions/plan%24relations%5B%5D%24storage%233"
                     }
                   ],
-                  "description": "Where a relation lives"
+                  "description": "Storage"
                 },
                 "target": {
                   "description": "Identifier of the related model, undefined when it cannot be resolved",
                   "type": "string"
                 },
                 "targetAttribute": {
-                  "description": "For a `query`: the attribute of the target model linking back to this model",
+                  "description": "For a `query` or a `map`: the attribute of the target model linking back to this model",
                   "type": "string"
                 },
                 "unique": {
@@ -347,24 +366,29 @@
               "description": "The relational schema of the models of a store: a pure function of their metadata",
               "properties": {
                 "foreignKeys": {
+                  "description": "Foreign keys",
                   "items": {
                     "$ref": "#/definitions/ForeignKeyPlan"
                   },
                   "type": "array"
                 },
                 "indexes": {
+                  "description": "Indexes",
                   "items": {
                     "$ref": "#/definitions/IndexPlan"
                   },
                   "type": "array"
                 },
                 "models": {
-                  "$ref": "#/definitions/plan%24models"
+                  "$ref": "#/definitions/plan%24models",
+                  "description": "Models"
                 },
                 "options": {
-                  "$ref": "#/definitions/SchemaLayoutOptions"
+                  "$ref": "#/definitions/SchemaLayoutOptions",
+                  "description": "Options"
                 },
                 "relations": {
+                  "description": "Relations",
                   "items": {
                     "$ref": "#/definitions/RelationPlan"
                   },
@@ -383,6 +407,7 @@
                   "type": "number"
                 },
                 "warnings": {
+                  "description": "Warnings",
                   "items": {
                     "$ref": "#/definitions/SchemaWarning"
                   },
@@ -447,9 +472,11 @@
               "description": "A warning raised while building, for the store to log",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
                 },
                 "code": {
+                  "description": "Code",
                   "enum": [
                     "CROSS_STORE_REFERENCE",
                     "UNRESOLVED_TARGET"
@@ -457,9 +484,11 @@
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "model": {
+                  "description": "Model",
                   "type": "string"
                 }
               },
@@ -475,6 +504,7 @@
               "description": "A table",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "$ref": "#/definitions/ColumnPlan"
                   },
@@ -492,6 +522,7 @@
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "primaryKey": {
@@ -829,7 +860,7 @@
                   "type": "boolean"
                 },
                 "role": {
-                  "description": "What a column holds\n\n- `field`: a model field (scalar or JSON)\n- `reference`: the key (or one key part) of a linked model (`ModelLink`, `ModelParent`)\n- `type`: the `__type` class discriminator\n- `extra`: the JSON column keeping the properties the schema does not know\n- `owner` / `target`: the keys of a junction row\n- `position`: the index of the link in its array\n- `key`: the key of the link in its map\n- `attributes`: the JSON column holding the link attributes when they have no declared field",
+                  "description": "Role",
                   "enum": [
                     "field",
                     "reference",
@@ -876,7 +907,7 @@
                       "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%2310"
                     }
                   ],
-                  "description": "Engine-neutral column type: each store maps it to its own DDL type (`TEXT`, `DataTypes.STRING(n)`, ...)"
+                  "description": "Type"
                 }
               },
               "required": [
@@ -892,16 +923,18 @@
               "description": "A foreign key constraint\n\nStores create every table first and the constraints afterwards (deferrable), so self references and cycles work.",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "onDelete": {
-                  "description": "`ON DELETE` behavior of a foreign key",
+                  "description": "On delete",
                   "enum": [
                     "CASCADE",
                     "RESTRICT",
@@ -911,9 +944,11 @@
                   "type": "string"
                 },
                 "references": {
-                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references"
+                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references",
+                  "description": "References"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 }
               },
@@ -931,19 +966,23 @@
               "description": "An index",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 },
                 "unique": {
                   "default": false,
+                  "description": "Whether unique is enabled",
                   "type": "boolean"
                 }
               },
@@ -959,9 +998,11 @@
               "description": "A junction table: the rows of a `linksSimpleArray`, `linksArray` or `linksMap` relation",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
                 },
                 "kind": {
+                  "description": "Kind",
                   "enum": [
                     "linksSimpleArray",
                     "linksArray",
@@ -993,6 +1034,7 @@
                   "type": "array"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 }
               },
@@ -1015,7 +1057,15 @@
               "description": "A relation of a model",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
+                },
+                "attributes": {
+                  "description": "For a `map`: the attributes of the target copied into each item",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "foreignKey": {
                   "description": "Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled",
@@ -1026,7 +1076,7 @@
                   "type": "string"
                 },
                 "kind": {
-                  "description": "Kind of a relation, from `Metadata.Relations` (the compiler records the aliases as the type they resolve to)\n\n- `parent`: `ModelParent` / `BelongTo`\n- `link`: `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne`\n- `linksSimpleArray`: `ModelLinksSimpleArray`\n- `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`\n- `linksMap`: `ModelLinksMap`\n- `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage\n- `map`: `ModelsMapped`, denormalized copies: no storage",
+                  "description": "Kind",
                   "enum": [
                     "parent",
                     "link",
@@ -1064,14 +1114,14 @@
                       "$ref": "#/definitions/plan%24relations%5B%5D%24storage%233"
                     }
                   ],
-                  "description": "Where a relation lives"
+                  "description": "Storage"
                 },
                 "target": {
                   "description": "Identifier of the related model, undefined when it cannot be resolved",
                   "type": "string"
                 },
                 "targetAttribute": {
-                  "description": "For a `query`: the attribute of the target model linking back to this model",
+                  "description": "For a `query` or a `map`: the attribute of the target model linking back to this model",
                   "type": "string"
                 },
                 "unique": {
@@ -1093,24 +1143,29 @@
               "description": "The relational schema of the models of a store: a pure function of their metadata",
               "properties": {
                 "foreignKeys": {
+                  "description": "Foreign keys",
                   "items": {
                     "$ref": "#/definitions/ForeignKeyPlan"
                   },
                   "type": "array"
                 },
                 "indexes": {
+                  "description": "Indexes",
                   "items": {
                     "$ref": "#/definitions/IndexPlan"
                   },
                   "type": "array"
                 },
                 "models": {
-                  "$ref": "#/definitions/plan%24models"
+                  "$ref": "#/definitions/plan%24models",
+                  "description": "Models"
                 },
                 "options": {
-                  "$ref": "#/definitions/SchemaLayoutOptions"
+                  "$ref": "#/definitions/SchemaLayoutOptions",
+                  "description": "Options"
                 },
                 "relations": {
+                  "description": "Relations",
                   "items": {
                     "$ref": "#/definitions/RelationPlan"
                   },
@@ -1129,6 +1184,7 @@
                   "type": "number"
                 },
                 "warnings": {
+                  "description": "Warnings",
                   "items": {
                     "$ref": "#/definitions/SchemaWarning"
                   },
@@ -1193,9 +1249,11 @@
               "description": "A warning raised while building, for the store to log",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
                 },
                 "code": {
+                  "description": "Code",
                   "enum": [
                     "CROSS_STORE_REFERENCE",
                     "UNRESOLVED_TARGET"
@@ -1203,9 +1261,11 @@
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "model": {
+                  "description": "Model",
                   "type": "string"
                 }
               },
@@ -1221,6 +1281,7 @@
               "description": "A table",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "$ref": "#/definitions/ColumnPlan"
                   },
@@ -1238,6 +1299,7 @@
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "primaryKey": {
@@ -1575,7 +1637,7 @@
                   "type": "boolean"
                 },
                 "role": {
-                  "description": "What a column holds\n\n- `field`: a model field (scalar or JSON)\n- `reference`: the key (or one key part) of a linked model (`ModelLink`, `ModelParent`)\n- `type`: the `__type` class discriminator\n- `extra`: the JSON column keeping the properties the schema does not know\n- `owner` / `target`: the keys of a junction row\n- `position`: the index of the link in its array\n- `key`: the key of the link in its map\n- `attributes`: the JSON column holding the link attributes when they have no declared field",
+                  "description": "Role",
                   "enum": [
                     "field",
                     "reference",
@@ -1622,7 +1684,7 @@
                       "$ref": "#/definitions/plan%24tables%5B%5D%24columns%5B%5D%24type%2310"
                     }
                   ],
-                  "description": "Engine-neutral column type: each store maps it to its own DDL type (`TEXT`, `DataTypes.STRING(n)`, ...)"
+                  "description": "Type"
                 }
               },
               "required": [
@@ -1638,16 +1700,18 @@
               "description": "A foreign key constraint\n\nStores create every table first and the constraints afterwards (deferrable), so self references and cycles work.",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "onDelete": {
-                  "description": "`ON DELETE` behavior of a foreign key",
+                  "description": "On delete",
                   "enum": [
                     "CASCADE",
                     "RESTRICT",
@@ -1657,9 +1721,11 @@
                   "type": "string"
                 },
                 "references": {
-                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references"
+                  "$ref": "#/definitions/plan%24foreignKeys%5B%5D%24references",
+                  "description": "References"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 }
               },
@@ -1677,19 +1743,23 @@
               "description": "An index",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 },
                 "unique": {
                   "default": false,
+                  "description": "Whether unique is enabled",
                   "type": "boolean"
                 }
               },
@@ -1705,9 +1775,11 @@
               "description": "A junction table: the rows of a `linksSimpleArray`, `linksArray` or `linksMap` relation",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
                 },
                 "kind": {
+                  "description": "Kind",
                   "enum": [
                     "linksSimpleArray",
                     "linksArray",
@@ -1739,6 +1811,7 @@
                   "type": "array"
                 },
                 "table": {
+                  "description": "Table",
                   "type": "string"
                 }
               },
@@ -1761,7 +1834,15 @@
               "description": "A relation of a model",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
+                },
+                "attributes": {
+                  "description": "For a `map`: the attributes of the target copied into each item",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "foreignKey": {
                   "description": "Name of the foreign key constraint, undefined when the target is not in this plan or foreign keys are disabled",
@@ -1772,7 +1853,7 @@
                   "type": "string"
                 },
                 "kind": {
-                  "description": "Kind of a relation, from `Metadata.Relations` (the compiler records the aliases as the type they resolve to)\n\n- `parent`: `ModelParent` / `BelongTo`\n- `link`: `ModelLink` / `RelateTo` / `ManyToOne` / `OneToOne`\n- `linksSimpleArray`: `ModelLinksSimpleArray`\n- `linksArray`: `ModelLinksArray` / `ManyToMany` / `Contains`\n- `linksMap`: `ModelLinksMap`\n- `query`: `ModelRelated` / `OneToMany`, the reverse side of a link: no storage\n- `map`: `ModelsMapped`, denormalized copies: no storage",
+                  "description": "Kind",
                   "enum": [
                     "parent",
                     "link",
@@ -1810,14 +1891,14 @@
                       "$ref": "#/definitions/plan%24relations%5B%5D%24storage%233"
                     }
                   ],
-                  "description": "Where a relation lives"
+                  "description": "Storage"
                 },
                 "target": {
                   "description": "Identifier of the related model, undefined when it cannot be resolved",
                   "type": "string"
                 },
                 "targetAttribute": {
-                  "description": "For a `query`: the attribute of the target model linking back to this model",
+                  "description": "For a `query` or a `map`: the attribute of the target model linking back to this model",
                   "type": "string"
                 },
                 "unique": {
@@ -1839,24 +1920,29 @@
               "description": "The relational schema of the models of a store: a pure function of their metadata",
               "properties": {
                 "foreignKeys": {
+                  "description": "Foreign keys",
                   "items": {
                     "$ref": "#/definitions/ForeignKeyPlan"
                   },
                   "type": "array"
                 },
                 "indexes": {
+                  "description": "Indexes",
                   "items": {
                     "$ref": "#/definitions/IndexPlan"
                   },
                   "type": "array"
                 },
                 "models": {
-                  "$ref": "#/definitions/plan%24models"
+                  "$ref": "#/definitions/plan%24models",
+                  "description": "Models"
                 },
                 "options": {
-                  "$ref": "#/definitions/SchemaLayoutOptions"
+                  "$ref": "#/definitions/SchemaLayoutOptions",
+                  "description": "Options"
                 },
                 "relations": {
+                  "description": "Relations",
                   "items": {
                     "$ref": "#/definitions/RelationPlan"
                   },
@@ -1875,6 +1961,7 @@
                   "type": "number"
                 },
                 "warnings": {
+                  "description": "Warnings",
                   "items": {
                     "$ref": "#/definitions/SchemaWarning"
                   },
@@ -1939,9 +2026,11 @@
               "description": "A warning raised while building, for the store to log",
               "properties": {
                 "attribute": {
+                  "description": "Attribute",
                   "type": "string"
                 },
                 "code": {
+                  "description": "Code",
                   "enum": [
                     "CROSS_STORE_REFERENCE",
                     "UNRESOLVED_TARGET"
@@ -1949,9 +2038,11 @@
                   "type": "string"
                 },
                 "message": {
+                  "description": "Message",
                   "type": "string"
                 },
                 "model": {
+                  "description": "Model",
                   "type": "string"
                 }
               },
@@ -1967,6 +2058,7 @@
               "description": "A table",
               "properties": {
                 "columns": {
+                  "description": "Columns",
                   "items": {
                     "$ref": "#/definitions/ColumnPlan"
                   },
@@ -1984,6 +2076,7 @@
                   "type": "array"
                 },
                 "name": {
+                  "description": "Name",
                   "type": "string"
                 },
                 "primaryKey": {

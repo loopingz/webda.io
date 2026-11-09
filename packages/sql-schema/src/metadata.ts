@@ -5,18 +5,57 @@ import type { ForeignKeyAction, RelationKind } from "./plan.js";
  * JSON schema subset read by the builder
  */
 export interface JSONSchemaLike {
+  /**
+   * Type
+   */
   type?: string | string[];
+  /**
+   * Format
+   */
   format?: string;
+  /**
+   * Max length
+   */
   maxLength?: number;
+  /**
+   * Enum
+   */
   enum?: unknown[];
+  /**
+   * Const
+   */
   const?: unknown;
+  /**
+   * Properties
+   */
   properties?: { [name: string]: JSONSchemaLike };
+  /**
+   * Additional properties
+   */
   additionalProperties?: boolean | JSONSchemaLike;
+  /**
+   * Required
+   */
   required?: string[];
+  /**
+   * Items
+   */
   items?: JSONSchemaLike | JSONSchemaLike[];
+  /**
+   * All of
+   */
   allOf?: JSONSchemaLike[];
+  /**
+   * Any of
+   */
   anyOf?: JSONSchemaLike[];
+  /**
+   * One of
+   */
   oneOf?: JSONSchemaLike[];
+  /**
+   * $ref
+   */
   $ref?: string;
   [key: string]: unknown;
 }
@@ -32,15 +71,33 @@ export type ModelReference = string | { Metadata?: { Identifier?: string } };
  * compiled in `webda.module.json` and as resolved at runtime
  */
 export interface SchemaModelMetadata {
+  /**
+   * Identifier
+   */
   Identifier: string;
+  /**
+   * Short name
+   */
   ShortName?: string;
+  /**
+   * Primary key
+   */
   PrimaryKey: string[];
+  /**
+   * Primary key separator
+   */
   PrimaryKeySeparator?: string;
   /**
    * Ordered from the closest
    */
   Ancestors?: ModelReference[];
+  /**
+   * Subclasses
+   */
   Subclasses?: ModelReference[];
+  /**
+   * Relations
+   */
   Relations?: {
     /**
      * `onDelete` defaults to `CASCADE`
@@ -64,7 +121,13 @@ export interface SchemaModelMetadata {
     indexes?: IndexDeclaration[];
     [key: string]: unknown;
   };
+  /**
+   * Reflection
+   */
   Reflection?: { [field: string]: { type: string; typeParameters?: string[] } };
+  /**
+   * Schemas
+   */
   Schemas?: { Stored?: JSONSchemaLike; [key: string]: unknown };
 }
 
@@ -72,6 +135,9 @@ export interface SchemaModelMetadata {
  * An index declared on a model attribute (`@Index` / `@Unique` JSDoc tag), as compiled
  */
 export interface IndexDeclaration {
+  /**
+   * Attribute
+   */
   attribute: string;
   /**
    * `@Unique`: a unique index
@@ -87,17 +153,29 @@ export interface IndexDeclaration {
  * A relation of a model, as compiled
  */
 export interface DeclaredRelation {
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Kind
+   */
   kind: RelationKind;
   /**
    * Identifier of the target
    */
   target?: string;
+  /**
+   * Target attribute
+   */
   targetAttribute?: string;
   /**
    * For a `map`: the attributes of the target copied into each item
    */
   attributes?: string[];
+  /**
+   * Whether unique is enabled
+   */
   unique?: boolean;
   /**
    * Delete policy of the relation, defaulted from its kind
@@ -145,6 +223,7 @@ export function junctionForeignKeyAction(policy: DeletePolicy | undefined): Fore
 }
 
 /**
+ * Return its identifier
  * @param ref - an ancestor or subclass reference
  * @returns its identifier
  */
@@ -214,6 +293,7 @@ export function declaredRelations(meta: SchemaModelMetadata): Map<string, Declar
 }
 
 /**
+ * Return its class name: the last segment of its identifier
  * @param meta - a model
  * @returns its class name: the last segment of its identifier
  */

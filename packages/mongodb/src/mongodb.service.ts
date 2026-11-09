@@ -166,6 +166,7 @@ export function matchIgnoreCase(names: string[]): RegExp[] {
  */
 export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   /**
+   * Create a new MongoRepository instance
    * @param model - the model class
    * @param pks - primary key field names
    * @param getCollection - return the collection, connecting if needed
@@ -744,7 +745,13 @@ export class MongoStore<K extends MongoParameters = MongoParameters> extends Sto
    * Client
    */
   _client?: MongoClient;
+  /**
+   * Database client
+   */
   _db?: Db;
+  /**
+   * Collection
+   */
   _collection?: Collection<Document>;
 
   /**

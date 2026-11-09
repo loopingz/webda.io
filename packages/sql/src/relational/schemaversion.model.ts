@@ -52,6 +52,7 @@ export class SchemaVersion extends UuidModel {
   forced: string[];
 
   /**
+   * Create a new SchemaVersion instance
    * @param data - initial data
    */
   constructor(data?: Partial<SchemaVersion>) {
@@ -70,6 +71,7 @@ export class SchemaVersion extends UuidModel {
   }
 
   /**
+   * Return the identifier of the version
    * @param store - the store name
    * @param appVersion - the application version
    * @param planHash - the plan hash
@@ -91,6 +93,7 @@ export class SchemaVersion extends UuidModel {
 }
 
 /**
+ * Convert to date
  * @param value - a date, its JSON text or nothing
  * @returns the date, undefined when there is none
  */

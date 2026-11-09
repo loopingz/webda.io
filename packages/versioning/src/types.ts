@@ -21,6 +21,9 @@ export type Delta = {
   readonly stringHunks?: Readonly<Record<Path, UnifiedDiff>>;
 };
 
+/**
+ * Conflict kind type definition
+ */
 export type ConflictKind = "value" | "line" | "array-item" | "delete-modify";
 
 /** Structured 3-way merge conflict. Use `kind` to discriminate; `hunks` is present only on line conflicts. */
@@ -41,12 +44,18 @@ export type Conflict =
       hunks: { ours: UnifiedDiff; theirs: UnifiedDiff };
     };
 
+/**
+ * Merge result type definition
+ */
 export type MergeResult<T> = {
   merged: T;
   conflicts: Conflict[];
   clean: boolean;
 };
 
+/**
+ * Resolution type definition
+ */
 export type Resolution =
   | { choose: "ours" | "theirs" | "base" }
   | { value: unknown }

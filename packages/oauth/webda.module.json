@@ -97,10 +97,12 @@
           },
           "clientMetadataCacheTtl": {
             "default": 3600,
+            "description": "Client metadata cache TTL",
             "type": "number"
           },
           "clientMetadataDocuments": {
             "default": true,
+            "description": "Whether client metadata documents is enabled",
             "type": "boolean"
           },
           "clientMetadataHosts": {
@@ -112,6 +114,7 @@
           },
           "clientMetadataTimeout": {
             "default": 5,
+            "description": "Client metadata timeout",
             "type": "number"
           },
           "clients": {
@@ -120,6 +123,7 @@
           },
           "codeTtl": {
             "default": 60,
+            "description": "Code TTL",
             "type": "number"
           },
           "consentUrl": {
@@ -128,10 +132,12 @@
           },
           "deviceCodeTtl": {
             "default": 600,
+            "description": "Device code TTL",
             "type": "number"
           },
           "devicePollInterval": {
             "default": 5,
+            "description": "Device poll interval",
             "type": "number"
           },
           "deviceUrl": {
@@ -187,10 +193,12 @@
           },
           "rememberConsent": {
             "default": true,
+            "description": "Whether remember consent is enabled",
             "type": "boolean"
           },
           "rememberConsentTtl": {
             "default": 7776000,
+            "description": "Remember consent TTL",
             "type": "number"
           },
           "resources": {
@@ -218,6 +226,7 @@
           },
           "url": {
             "default": "/oauth",
+            "description": "URL",
             "type": "string"
           },
           "openapi": {
@@ -299,16 +308,18 @@
               "description": "Identity captured at consent time",
               "properties": {
                 "amr": {
+                  "description": "Amr",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "identId": {
+                  "description": "Ident ID",
                   "type": "string"
                 },
                 "mfa": {
-                  "description": "MFA progress of a session",
+                  "description": "MFA",
                   "enum": [
                     "none",
                     "pending",
@@ -316,10 +327,20 @@
                   ],
                   "type": "string"
                 },
+                "mfaAt": {
+                  "description": "MFA at",
+                  "type": "number"
+                },
+                "mfaVerifications": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+                  "description": "MFA verifications"
+                },
                 "provider": {
+                  "description": "Provider",
                   "type": "string"
                 },
                 "userId": {
+                  "description": "User ID",
                   "type": "string"
                 }
               },
@@ -330,17 +351,51 @@
                 "userId"
               ],
               "type": "object"
+            },
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "description": "Method",
+                  "type": "string"
+                },
+                "owner": {
+                  "description": "Owner",
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "description": "Verified at",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
             }
           },
           "description": "Authorization code (hashed), single use",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "codeChallenge": {
+              "description": "Code challenge",
               "type": "string"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "family": {
@@ -348,15 +403,19 @@
               "type": "string"
             },
             "hash": {
+              "description": "Hash",
               "type": "string"
             },
             "identity": {
-              "$ref": "#/definitions/GrantIdentity"
+              "$ref": "#/definitions/GrantIdentity",
+              "description": "Identity"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "redirectUri": {
+              "description": "Redirect URI",
               "type": "string"
             },
             "resource": {
@@ -375,6 +434,7 @@
               "type": "number"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "usedAt": {
@@ -404,16 +464,18 @@
               "description": "Identity captured at consent time",
               "properties": {
                 "amr": {
+                  "description": "Amr",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "identId": {
+                  "description": "Ident ID",
                   "type": "string"
                 },
                 "mfa": {
-                  "description": "MFA progress of a session",
+                  "description": "MFA",
                   "enum": [
                     "none",
                     "pending",
@@ -421,10 +483,20 @@
                   ],
                   "type": "string"
                 },
+                "mfaAt": {
+                  "description": "MFA at",
+                  "type": "number"
+                },
+                "mfaVerifications": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+                  "description": "MFA verifications"
+                },
                 "provider": {
+                  "description": "Provider",
                   "type": "string"
                 },
                 "userId": {
+                  "description": "User ID",
                   "type": "string"
                 }
               },
@@ -435,17 +507,51 @@
                 "userId"
               ],
               "type": "object"
+            },
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "description": "Method",
+                  "type": "string"
+                },
+                "owner": {
+                  "description": "Owner",
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "description": "Verified at",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
             }
           },
           "description": "Authorization code (hashed), single use",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "codeChallenge": {
+              "description": "Code challenge",
               "type": "string"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "family": {
@@ -453,15 +559,19 @@
               "type": "string"
             },
             "hash": {
+              "description": "Hash",
               "type": "string"
             },
             "identity": {
-              "$ref": "#/definitions/GrantIdentity"
+              "$ref": "#/definitions/GrantIdentity",
+              "description": "Identity"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "redirectUri": {
+              "description": "Redirect URI",
               "type": "string"
             },
             "resource": {
@@ -480,6 +590,7 @@
               "type": "number"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "usedAt": {
@@ -509,16 +620,18 @@
               "description": "Identity captured at consent time",
               "properties": {
                 "amr": {
+                  "description": "Amr",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "identId": {
+                  "description": "Ident ID",
                   "type": "string"
                 },
                 "mfa": {
-                  "description": "MFA progress of a session",
+                  "description": "MFA",
                   "enum": [
                     "none",
                     "pending",
@@ -526,10 +639,20 @@
                   ],
                   "type": "string"
                 },
+                "mfaAt": {
+                  "description": "MFA at",
+                  "type": "number"
+                },
+                "mfaVerifications": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+                  "description": "MFA verifications"
+                },
                 "provider": {
+                  "description": "Provider",
                   "type": "string"
                 },
                 "userId": {
+                  "description": "User ID",
                   "type": "string"
                 }
               },
@@ -540,17 +663,51 @@
                 "userId"
               ],
               "type": "object"
+            },
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "description": "Method",
+                  "type": "string"
+                },
+                "owner": {
+                  "description": "Owner",
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "description": "Verified at",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
             }
           },
           "description": "Authorization code (hashed), single use",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "codeChallenge": {
+              "description": "Code challenge",
               "type": "string"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "family": {
@@ -558,15 +715,19 @@
               "type": "string"
             },
             "hash": {
+              "description": "Hash",
               "type": "string"
             },
             "identity": {
-              "$ref": "#/definitions/GrantIdentity"
+              "$ref": "#/definitions/GrantIdentity",
+              "description": "Identity"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "redirectUri": {
+              "description": "Redirect URI",
               "type": "string"
             },
             "resource": {
@@ -585,6 +746,7 @@
               "type": "number"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "usedAt": {
@@ -688,16 +850,18 @@
               "description": "Identity captured at consent time",
               "properties": {
                 "amr": {
+                  "description": "Amr",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "identId": {
+                  "description": "Ident ID",
                   "type": "string"
                 },
                 "mfa": {
-                  "description": "MFA progress of a session",
+                  "description": "MFA",
                   "enum": [
                     "none",
                     "pending",
@@ -705,10 +869,20 @@
                   ],
                   "type": "string"
                 },
+                "mfaAt": {
+                  "description": "MFA at",
+                  "type": "number"
+                },
+                "mfaVerifications": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+                  "description": "MFA verifications"
+                },
                 "provider": {
+                  "description": "Provider",
                   "type": "string"
                 },
                 "userId": {
+                  "description": "User ID",
                   "type": "string"
                 }
               },
@@ -719,36 +893,75 @@
                 "userId"
               ],
               "type": "object"
+            },
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "description": "Method",
+                  "type": "string"
+                },
+                "owner": {
+                  "description": "Owner",
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "description": "Verified at",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
             }
           },
           "description": "Pending device authorization",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "grantedScope": {
+              "description": "Granted scope",
               "type": "string"
             },
             "hostname": {
+              "description": "Hostname",
               "type": "string"
             },
             "identity": {
-              "$ref": "#/definitions/GrantIdentity"
+              "$ref": "#/definitions/GrantIdentity",
+              "description": "Identity"
             },
             "interval": {
               "description": "Current polling interval (s), raised by slow_down",
               "type": "number"
             },
             "lastPolledAt": {
+              "description": "Last polled at",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "requestedScope": {
+              "description": "Requested scope",
               "type": "string"
             },
             "resources": {
@@ -759,9 +972,11 @@
               "type": "array"
             },
             "secretHash": {
+              "description": "Secret hash",
               "type": "string"
             },
             "status": {
+              "description": "Status",
               "enum": [
                 "pending",
                 "approved",
@@ -771,6 +986,7 @@
               "type": "string"
             },
             "userCode": {
+              "description": "User code",
               "type": "string"
             }
           },
@@ -796,16 +1012,18 @@
               "description": "Identity captured at consent time",
               "properties": {
                 "amr": {
+                  "description": "Amr",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "identId": {
+                  "description": "Ident ID",
                   "type": "string"
                 },
                 "mfa": {
-                  "description": "MFA progress of a session",
+                  "description": "MFA",
                   "enum": [
                     "none",
                     "pending",
@@ -813,10 +1031,20 @@
                   ],
                   "type": "string"
                 },
+                "mfaAt": {
+                  "description": "MFA at",
+                  "type": "number"
+                },
+                "mfaVerifications": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+                  "description": "MFA verifications"
+                },
                 "provider": {
+                  "description": "Provider",
                   "type": "string"
                 },
                 "userId": {
+                  "description": "User ID",
                   "type": "string"
                 }
               },
@@ -827,36 +1055,75 @@
                 "userId"
               ],
               "type": "object"
+            },
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "description": "Method",
+                  "type": "string"
+                },
+                "owner": {
+                  "description": "Owner",
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "description": "Verified at",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
             }
           },
           "description": "Pending device authorization",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "grantedScope": {
+              "description": "Granted scope",
               "type": "string"
             },
             "hostname": {
+              "description": "Hostname",
               "type": "string"
             },
             "identity": {
-              "$ref": "#/definitions/GrantIdentity"
+              "$ref": "#/definitions/GrantIdentity",
+              "description": "Identity"
             },
             "interval": {
               "description": "Current polling interval (s), raised by slow_down",
               "type": "number"
             },
             "lastPolledAt": {
+              "description": "Last polled at",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "requestedScope": {
+              "description": "Requested scope",
               "type": "string"
             },
             "resources": {
@@ -867,9 +1134,11 @@
               "type": "array"
             },
             "secretHash": {
+              "description": "Secret hash",
               "type": "string"
             },
             "status": {
+              "description": "Status",
               "enum": [
                 "pending",
                 "approved",
@@ -879,6 +1148,7 @@
               "type": "string"
             },
             "userCode": {
+              "description": "User code",
               "type": "string"
             }
           },
@@ -904,16 +1174,18 @@
               "description": "Identity captured at consent time",
               "properties": {
                 "amr": {
+                  "description": "Amr",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
                 "identId": {
+                  "description": "Ident ID",
                   "type": "string"
                 },
                 "mfa": {
-                  "description": "MFA progress of a session",
+                  "description": "MFA",
                   "enum": [
                     "none",
                     "pending",
@@ -921,10 +1193,20 @@
                   ],
                   "type": "string"
                 },
+                "mfaAt": {
+                  "description": "MFA at",
+                  "type": "number"
+                },
+                "mfaVerifications": {
+                  "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+                  "description": "MFA verifications"
+                },
                 "provider": {
+                  "description": "Provider",
                   "type": "string"
                 },
                 "userId": {
+                  "description": "User ID",
                   "type": "string"
                 }
               },
@@ -935,36 +1217,75 @@
                 "userId"
               ],
               "type": "object"
+            },
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "description": "Method",
+                  "type": "string"
+                },
+                "owner": {
+                  "description": "Owner",
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "description": "Verified at",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
             }
           },
           "description": "Pending device authorization",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "grantedScope": {
+              "description": "Granted scope",
               "type": "string"
             },
             "hostname": {
+              "description": "Hostname",
               "type": "string"
             },
             "identity": {
-              "$ref": "#/definitions/GrantIdentity"
+              "$ref": "#/definitions/GrantIdentity",
+              "description": "Identity"
             },
             "interval": {
               "description": "Current polling interval (s), raised by slow_down",
               "type": "number"
             },
             "lastPolledAt": {
+              "description": "Last polled at",
               "type": "number"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "requestedScope": {
+              "description": "Requested scope",
               "type": "string"
             },
             "resources": {
@@ -975,9 +1296,11 @@
               "type": "array"
             },
             "secretHash": {
+              "description": "Secret hash",
               "type": "string"
             },
             "status": {
+              "description": "Status",
               "enum": [
                 "pending",
                 "approved",
@@ -987,6 +1310,7 @@
               "type": "string"
             },
             "userCode": {
+              "description": "User code",
               "type": "string"
             }
           },
@@ -1062,21 +1386,27 @@
           "description": "Remembered consent of a user for a client",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "createdAt": {
+              "description": "Created at",
               "type": "number"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "lastUsedAt": {
+              "description": "Last used at",
               "type": "number"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "userId": {
+              "description": "User ID",
               "type": "string"
             },
             "uuid": {
@@ -1103,21 +1433,27 @@
           "description": "Remembered consent of a user for a client",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "createdAt": {
+              "description": "Created at",
               "type": "number"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "lastUsedAt": {
+              "description": "Last used at",
               "type": "number"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "userId": {
+              "description": "User ID",
               "type": "string"
             },
             "uuid": {
@@ -1144,21 +1480,27 @@
           "description": "Remembered consent of a user for a client",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "createdAt": {
+              "description": "Created at",
               "type": "number"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "lastUsedAt": {
+              "description": "Last used at",
               "type": "number"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "userId": {
+              "description": "User ID",
               "type": "string"
             },
             "uuid": {
@@ -1250,9 +1592,11 @@
           "description": "Client registered dynamically (RFC 7591), public client without secret",
           "properties": {
             "clientUri": {
+              "description": "Client URI",
               "type": "string"
             },
             "createdAt": {
+              "description": "Created at",
               "type": "number"
             },
             "expiresAt": {
@@ -1264,21 +1608,26 @@
               "type": "string"
             },
             "lastUsedAt": {
+              "description": "Last used at",
               "type": "number"
             },
             "logoUri": {
+              "description": "Logo URI",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "redirect_uris": {
+              "description": "Redirect URIS",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "uuid": {
@@ -1304,9 +1653,11 @@
           "description": "Client registered dynamically (RFC 7591), public client without secret",
           "properties": {
             "clientUri": {
+              "description": "Client URI",
               "type": "string"
             },
             "createdAt": {
+              "description": "Created at",
               "type": "number"
             },
             "expiresAt": {
@@ -1318,21 +1669,26 @@
               "type": "string"
             },
             "lastUsedAt": {
+              "description": "Last used at",
               "type": "number"
             },
             "logoUri": {
+              "description": "Logo URI",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "redirect_uris": {
+              "description": "Redirect URIS",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "uuid": {
@@ -1358,9 +1714,11 @@
           "description": "Client registered dynamically (RFC 7591), public client without secret",
           "properties": {
             "clientUri": {
+              "description": "Client URI",
               "type": "string"
             },
             "createdAt": {
+              "description": "Created at",
               "type": "number"
             },
             "expiresAt": {
@@ -1372,21 +1730,26 @@
               "type": "string"
             },
             "lastUsedAt": {
+              "description": "Last used at",
               "type": "number"
             },
             "logoUri": {
+              "description": "Logo URI",
               "type": "string"
             },
             "name": {
+              "description": "Name",
               "type": "string"
             },
             "redirect_uris": {
+              "description": "Redirect URIS",
               "items": {
                 "type": "string"
               },
               "type": "array"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             },
             "uuid": {
@@ -1407,7 +1770,22 @@
         }
       },
       "Actions": {},
-      "Events": [],
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
       "PrimaryKey": [
         "uuid"
       ],
@@ -1649,7 +2027,14 @@
     },
     "OAuthServer.sessions.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "oauth/sessions",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "OAuthServer.sessions.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1697,7 +2082,14 @@
     },
     "OAuthServer.grants.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "oauth/grants",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "OAuthServer.grants.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1711,18 +2103,23 @@
           "description": "Remembered consent of the user for a client",
           "properties": {
             "clientId": {
+              "description": "Client ID",
               "type": "string"
             },
             "createdAt": {
+              "description": "Created at",
               "type": "number"
             },
             "expiresAt": {
+              "description": "Expires at",
               "type": "number"
             },
             "lastUsedAt": {
+              "description": "Last used at",
               "type": "number"
             },
             "scope": {
+              "description": "Scope",
               "type": "string"
             }
           },
@@ -1746,6 +2143,16 @@
         "clientId": {
           "type": "string"
         }
+      },
+      "x-webda-rest": {
+        "method": "post",
+        "template": "oauth/revoke-session",
+        "path": [],
+        "query": [],
+        "body": [
+          "family",
+          "clientId"
+        ]
       }
     },
     "OAuthServer.revokeSession.output": {
@@ -1761,7 +2168,16 @@
       },
       "required": [
         "clientId"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "oauth/forget",
+        "path": [],
+        "query": [],
+        "body": [
+          "clientId"
+        ]
+      }
     },
     "OAuthServer.forget.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

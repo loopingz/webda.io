@@ -77,6 +77,9 @@ export interface WaitDelayerDefinition {
  * Built-in entries: `"linear"` and `"exponential"`.
  */
 export class WaitDelayerFactories {
+  /**
+   * Registry
+   */
   static registry: { [key: string]: WaitDelayerFactory } = {
     linear: WaitLinearDelay,
     exponential: WaitExponentialDelay
@@ -173,6 +176,7 @@ export class CancelablePromise<T = void> extends Promise<T> {
   cancel: () => Promise<void>;
 
   /**
+   * Create a new CancelablePromise instance
    * @param callback - Executor function receiving `resolve` and `reject`.
    * @param onCancel - Optional async hook called before rejecting on cancel.
    */
@@ -273,6 +277,7 @@ export class CancelableLoopPromise extends Promise<void> {
   cancel: () => Promise<void>;
 
   /**
+   * Create a new CancelableLoopPromise instance
    * @param callback - Async function called repeatedly. Receives the `cancel` function so it
    *   can self-cancel if needed.
    * @param onCancel - Optional async hook called when `cancel()` is invoked.

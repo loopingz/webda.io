@@ -6,6 +6,9 @@ import { OperationContext } from "./operationcontext.js";
  * Simple Operation Context with custom input
  */
 export class SimpleOperationContext extends OperationContext {
+  /**
+   * Input
+   */
   input: Buffer;
 
   /**

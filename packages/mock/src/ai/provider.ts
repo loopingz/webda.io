@@ -13,8 +13,12 @@ export interface AIProvider {
 
 /** Deterministic fake provider for unit tests. */
 export class MockAIProvider implements AIProvider {
+  /**
+   * I
+   */
   private i = 0;
   /**
+   * Create a new MockAIProvider instance
    * @param opts - construction options.
    * @param opts.canned - canned responses returned in order (last repeats if exhausted).
    *   When omitted, `complete()` echoes the prompt back.

@@ -12,6 +12,9 @@ import { LoggerService } from "./logger.js";
 export class MemoryLoggerService<
   T extends MemoryLoggerServiceParameters = MemoryLoggerServiceParameters
 > extends LoggerService<T> {
+  /**
+   * Workout logger
+   */
   workoutLogger: MemoryLogger;
 
   /**

@@ -26,8 +26,17 @@ m = attached(r.sub, p.sub) && globMatch(r.op, p.op) && (skipInput(r.ctx, p.probe
  * The `r.ctx` object conditions read
  */
 export interface IAMRequestContext {
+  /**
+   * Operation ID
+   */
   operationId: string;
+  /**
+   * Whether probe is enabled
+   */
   probe: boolean;
+  /**
+   * User
+   */
   user?: { uuid: string; groups: string[]; roles: string[] };
   /**
    * Application (workload identity) of an application session
@@ -39,9 +48,21 @@ export interface IAMRequestContext {
     groups: string[];
     claims: Record<string, unknown>;
   };
+  /**
+   * Session
+   */
   session?: any;
+  /**
+   * Input
+   */
   input?: any;
+  /**
+   * HTTP
+   */
   http?: { method: string; ip: string; host: string };
+  /**
+   * Now
+   */
   now: number;
 }
 
@@ -50,6 +71,7 @@ export interface IAMRequestContext {
  */
 export class PolicyEngine {
   /**
+   * Create a new PolicyEngine instance
    * @param enforcer - the Casbin enforcer
    */
   private constructor(protected enforcer: Enforcer) {}

@@ -15,8 +15,17 @@ export class User extends WebdaUser {
    * User's display name
    */
   name: string;
+  /**
+   * Profile picture
+   */
   profilePicture: Binary<{ width: number; height: number }>;
+  /**
+   * Images
+   */
   images: Binaries;
+  /**
+   * Computers
+   */
   computers: ModelRelated<Computer, User, "_user">;
   /**
    * Map of favorites contacts
@@ -58,12 +67,21 @@ export class User extends WebdaUser {
 }
 
 /**
- *
+ * Computer implementation
  */
 //@Expose()
 export class Computer extends CoreModel {
+  /**
+   * User
+   */
   _user: ModelParent<User>;
+  /**
+   * Loan to
+   */
   _loanTo: ModelLink<User>;
+  /**
+   * Name
+   */
   name: string;
 
   /**

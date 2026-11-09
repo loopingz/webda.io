@@ -178,6 +178,7 @@ export const INTERNAL_MODELS: readonly string[] = [
 ];
 
 /**
+ * Check whether internal model
  * @param model - a model class
  * @returns true when the model is, or descends from, one of {@link INTERNAL_MODELS}
  */
@@ -273,6 +274,9 @@ export class DomainServiceParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Domain service events type definition
+ */
 export type DomainServiceEvents = {
   "Store.WebNotFound": { context: OperationContext; uuid: string };
 };
@@ -292,7 +296,13 @@ export class DomainService<
   T extends DomainServiceParameters = DomainServiceParameters,
   E extends DomainServiceEvents = DomainServiceEvents
 > extends Service<T, E> {
+  /**
+   * Application instance
+   */
   app: Application;
+  /**
+   * Schemas
+   */
   static schemas = {
     uuidRequest: {
       type: "object",

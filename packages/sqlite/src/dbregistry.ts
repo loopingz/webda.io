@@ -9,8 +9,17 @@ import type { SQLiteConnectionParameters, SQLitePersistence } from "./connection
 
 /** One open database shared by the services using the same key */
 export interface SQLiteHandle {
+  /**
+   * Key
+   */
   key: string;
+  /**
+   * Database client
+   */
   db: DatabaseSync;
+  /**
+   * Client
+   */
   client: SQLiteClient;
   /**
    * In-process notifications: `changed(table)` after a write by a service of this process
@@ -20,6 +29,9 @@ export interface SQLiteHandle {
    * Serializes the transactions (and, for the relational stores, every statement) of the single connection
    */
   mutex: AsyncMutex;
+  /**
+   * Ref count
+   */
   refCount: number;
   /**
    * Resolved file path, undefined in memory

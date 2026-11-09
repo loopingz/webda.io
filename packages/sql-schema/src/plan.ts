@@ -45,7 +45,13 @@ export interface ColumnPlan {
    * For a `reference`, `owner` or `target` column: the primary key field of the referenced model it holds
    */
   keyPart?: string;
+  /**
+   * Role
+   */
   role: ColumnRole;
+  /**
+   * Type
+   */
   type: ColumnType;
   /**
    * Whether the model allows the value to be absent. A store may still create the column nullable (see the
@@ -71,13 +77,28 @@ export type ForeignKeyAction = "CASCADE" | "RESTRICT" | "SET NULL" | "NO ACTION"
  * Stores create every table first and the constraints afterwards (deferrable), so self references and cycles work.
  */
 export interface ForeignKeyPlan {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Table
+   */
   table: string;
+  /**
+   * Columns
+   */
   columns: string[];
+  /**
+   * References
+   */
   references: {
     table: string;
     columns: string[];
   };
+  /**
+   * On delete
+   */
   onDelete: ForeignKeyAction;
 }
 
@@ -85,9 +106,21 @@ export interface ForeignKeyPlan {
  * An index
  */
 export interface IndexPlan {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Table
+   */
   table: string;
+  /**
+   * Columns
+   */
   columns: string[];
+  /**
+   * Whether unique is enabled
+   */
   unique: boolean;
 }
 
@@ -118,7 +151,13 @@ export interface RelationPlan {
    * Model declaring the relation
    */
   model: string;
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Kind
+   */
   kind: RelationKind;
   /**
    * Identifier of the related model, undefined when it cannot be resolved
@@ -148,6 +187,9 @@ export interface RelationPlan {
    * Separator joining the target composite key into the string the model stores
    */
   keySeparator?: string;
+  /**
+   * Storage
+   */
   storage: RelationStorage;
 }
 
@@ -159,7 +201,13 @@ export interface JunctionPlan {
    * Model declaring the relation
    */
   model: string;
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Kind
+   */
   kind: "linksSimpleArray" | "linksArray" | "linksMap";
 }
 
@@ -167,6 +215,9 @@ export interface JunctionPlan {
  * A table
  */
 export interface TablePlan {
+  /**
+   * Name
+   */
   name: string;
   /**
    * For a model table: the model it was declared for, owner of rows without `__type`
@@ -188,6 +239,9 @@ export interface TablePlan {
    * Separator joining a composite primary key into a string
    */
   primaryKeySeparator?: string;
+  /**
+   * Columns
+   */
   columns: ColumnPlan[];
 }
 
@@ -195,6 +249,9 @@ export interface TablePlan {
  * What a model reads and writes: its projection of the table
  */
 export interface ModelPlan {
+  /**
+   * Table
+   */
   table: string;
   /**
    * Columns the model uses (its fields, references, `__type` and the extra column), in table order
@@ -228,9 +285,21 @@ export interface SchemaLayoutOptions {
  * A warning raised while building, for the store to log
  */
 export interface SchemaWarning {
+  /**
+   * Code
+   */
   code: "CROSS_STORE_REFERENCE" | "UNRESOLVED_TARGET";
+  /**
+   * Model
+   */
   model: string;
+  /**
+   * Attribute
+   */
   attribute?: string;
+  /**
+   * Message
+   */
   message: string;
 }
 
@@ -242,14 +311,32 @@ export interface RelationalSchemaPlan {
    * Format version of the plan
    */
   version: 1;
+  /**
+   * Options
+   */
   options: SchemaLayoutOptions;
   /**
    * Tables in creation order: a referenced table comes before the tables referencing it (cycles excepted)
    */
   tables: TablePlan[];
+  /**
+   * Foreign keys
+   */
   foreignKeys: ForeignKeyPlan[];
+  /**
+   * Indexes
+   */
   indexes: IndexPlan[];
+  /**
+   * Relations
+   */
   relations: RelationPlan[];
+  /**
+   * Models
+   */
   models: { [identifier: string]: ModelPlan };
+  /**
+   * Warnings
+   */
   warnings: SchemaWarning[];
 }

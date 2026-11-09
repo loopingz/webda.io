@@ -225,6 +225,7 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
     format: string = ConsoleLogger.defaultFormat
   ) {
     super(output, level, format);
+    this.format = format;
     // Set interactive based on TTY status and --no-tty flag
     output.setInteractive(process.stdout.isTTY && !process.argv.includes("--no-tty"));
   }

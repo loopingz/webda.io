@@ -32,8 +32,17 @@ export interface RenderEmailOptions {
  * A rendered email
  */
 export interface RenderedEmail {
+  /**
+   * HTML
+   */
   html: string;
+  /**
+   * Text
+   */
   text: string;
+  /**
+   * Subject
+   */
   subject?: string;
 }
 

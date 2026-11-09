@@ -35,7 +35,13 @@ export class Comment extends UuidModel {
   isEdited!: boolean;
 
   // Relations
+  /**
+   * Post
+   */
   post!: ManyToOne<Post>;
+  /**
+   * Author
+   */
   author!: ManyToOne<User>;
 
   /**

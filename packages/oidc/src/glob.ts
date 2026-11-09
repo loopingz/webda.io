@@ -21,6 +21,7 @@ export function matchGlob(value: unknown, pattern: string): boolean {
 }
 
 /**
+ * Match any glob
  * @param value - the value
  * @param patterns - the patterns
  * @returns true when one of the patterns matches

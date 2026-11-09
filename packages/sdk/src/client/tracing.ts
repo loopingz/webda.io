@@ -1,12 +1,21 @@
 /** State of an enabled web tracing session, kept in memory only */
 export interface WebTracingState {
+  /**
+   * Token
+   */
   token: string;
+  /**
+   * Session ID
+   */
   sessionId: string;
   /**
    * Epoch ms, from the server clock: compared with the local clock, so a skewed client clock ends the tracing early or
    * late (the server rejects an expired token anyway)
    */
   expiresAt: number;
+  /**
+   * Active span context
+   */
   activeSpanContext?: () => { traceId: string; spanId: string } | undefined;
 }
 
@@ -14,6 +23,7 @@ const TRACE_ID = /^[0-9a-f]{32}$/;
 const SPAN_ID = /^[0-9a-f]{16}$/;
 
 /**
+ * Return hex string of random, non all-zero, bytes
  * @param bytes - number of random bytes
  * @returns hex string of random, non all-zero, bytes
  */
@@ -28,6 +38,7 @@ function randomHex(bytes: number): string {
 }
 
 /**
+ * Return true when well formed and not all zeros
  * @param id - candidate id
  * @param pattern - expected shape
  * @returns true when well formed and not all zeros

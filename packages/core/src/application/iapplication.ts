@@ -8,15 +8,39 @@ import type { ModelMetadata } from "@webda/compiler";
  * Application interface.
  */
 export interface IApplication {
+  /**
+   * Get the current configuration
+   */
   getCurrentConfiguration(): Configuration;
+  /**
+   * Get the app path
+   */
   getAppPath(source: string): string;
 
+  /**
+   * Get the schema
+   */
   getSchema(name: any): unknown;
+  /**
+   * Get the schemas
+   */
   getSchemas(): { [key: string]: JSONSchema7 };
 
+  /**
+   * Get the models
+   */
   getModels(): { [key: string]: any };
+  /**
+   * Get the package description
+   */
   getPackageDescription(): PackageDescriptor;
+  /**
+   * Perform replace variables
+   */
   replaceVariables(arg0: any, arg1: any): any;
+  /**
+   * Get the implementations
+   */
   getImplementations<T extends AbstractService>(object: T): { [key: string]: Modda<T> };
   /**
    * Get an application model

@@ -40,6 +40,7 @@ export class McpOperationContext extends SimpleOperationContext {
   protected httpContext?: HttpContext;
 
   /**
+   * Set the HTTP context
    * @param http - the reduced MCP HTTP request
    * @returns this
    */
@@ -57,6 +58,7 @@ export class McpOperationContext extends SimpleOperationContext {
   }
 
   /**
+   * Write operation
    * @param output - chunk or result
    * @param encoding - unused for chunks
    * @param cb - unused for chunks
@@ -87,9 +89,21 @@ export class McpOperationContext extends SimpleOperationContext {
  * headers McpService forwards (never `authorization` or `cookie`)
  */
 export interface McpRequestInfo {
+  /**
+   * Hostname
+   */
   hostname: string;
+  /**
+   * Protocol
+   */
   protocol: "http" | "https";
+  /**
+   * Port
+   */
   port: number | string;
+  /**
+   * URI
+   */
   uri: string;
   /**
    * Forwarded headers, lowercase names

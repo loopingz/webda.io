@@ -2,6 +2,9 @@ import { randomUUID } from "crypto";
 import { JSONUtils } from "@webda/utils";
 import { type MessageReceipt, Queue, QueueParameters } from "./queueservice.js";
 
+/**
+ * Queue map interface
+ */
 interface QueueMap {
   [key: string]: any;
 }
@@ -53,6 +56,9 @@ export class MemoryQueueParameters extends QueueParameters {
  * @WebdaModda
  */
 export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<T, K> {
+  /**
+   * Queue
+   */
   private _queue: QueueMap = {};
   /**
    * Allow to cancel timeout
@@ -142,6 +148,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
   }
 
   /**
+   * Clean up internal test data
    * @inheritdoc
    */
   async __clean() {

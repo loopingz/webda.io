@@ -5,7 +5,13 @@ import { LAST_UNSUPPORTED_DEBUG_VERSION } from "../version.js";
 
 /** Copy shown for each failure reason. */
 export interface FailureMessage {
+  /**
+   * Title
+   */
   title: string;
+  /**
+   * Lines
+   */
   lines: string[];
 }
 

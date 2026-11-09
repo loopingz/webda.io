@@ -95,6 +95,7 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
   private rpcMethods: Map<string, protoLoader.MethodDefinition<any, any>> = new Map();
 
   /**
+   * Create configuration
    * @param params - raw service parameters
    * @returns the loaded parameters (with the operations include/exclude filter)
    */

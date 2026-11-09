@@ -65,8 +65,17 @@ export class KubeRunnerParameters extends RunnerParameters implements Kubernetes
  * Kubernetes object reference returned by the KubeRunner
  */
 export interface KubeJobReference {
+  /**
+   * Metadata
+   */
   metadata: k8s.V1ObjectMeta;
+  /**
+   * API version
+   */
   apiVersion: string;
+  /**
+   * Kind
+   */
   kind: string;
 }
 
@@ -76,9 +85,13 @@ export interface KubeJobReference {
  * @WebdaModda
  */
 export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParameters> extends Runner<T> {
+  /**
+   * Client
+   */
   client: k8s.KubernetesObjectApi;
 
   /**
+   * Return the created job reference
    * @inheritdoc
    * @param _action - the action to launch
    * @param info - the job information
@@ -112,6 +125,7 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
   }
 
   /**
+   * Resolve operation
    * @inheritdoc
    * @returns this
    */

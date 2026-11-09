@@ -1,6 +1,9 @@
 // Analytics relay, running in the sandboxed (opaque origin) iframe of the hosted dashboard.
 import { isSandboxedFrame, validateAnalyticsMessage } from "../src/analytics-allowlist.js";
 
+/**
+ * Gtag type definition
+ */
 type Gtag = (...args: unknown[]) => void;
 
 /**
@@ -16,6 +19,9 @@ type Gtag = (...args: unknown[]) => void;
 function loadGtag(id: string, consent: "granted" | "denied"): Gtag {
   const w = window as unknown as { dataLayer?: unknown[]; gtag?: Gtag };
   w.dataLayer = w.dataLayer || [];
+  /**
+   * Perform gtag
+   */
   const gtag: Gtag = function gtag() {
     // eslint-disable-next-line prefer-rest-params
     w.dataLayer!.push(arguments);

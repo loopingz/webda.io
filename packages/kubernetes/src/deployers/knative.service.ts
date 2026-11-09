@@ -108,14 +108,26 @@ export interface KnativeTrigger {
  * An `eventing.knative.dev/v1` Trigger
  */
 export interface KnativeTriggerManifest {
+  /**
+   * API version
+   */
   apiVersion: "eventing.knative.dev/v1";
+  /**
+   * Kind
+   */
   kind: "Trigger";
+  /**
+   * Metadata
+   */
   metadata: {
     name: string;
     namespace?: string;
     labels?: Record<string, string>;
     [key: string]: any;
   };
+  /**
+   * Spec
+   */
   spec: {
     broker: string;
     filter?: { attributes: Record<string, string> };
@@ -130,8 +142,17 @@ export interface KnativeTriggerManifest {
  * A `serving.knative.dev/v1` Service
  */
 export interface KnativeServiceManifest {
+  /**
+   * API version
+   */
   apiVersion: "serving.knative.dev/v1";
+  /**
+   * Kind
+   */
   kind: "Service";
+  /**
+   * Metadata
+   */
   metadata: {
     name: string;
     namespace?: string;
@@ -139,6 +160,9 @@ export interface KnativeServiceManifest {
     annotations?: Record<string, string>;
     [key: string]: any;
   };
+  /**
+   * Spec
+   */
   spec: {
     template: {
       metadata?: {
@@ -158,6 +182,9 @@ export interface KnativeServiceManifest {
     traffic?: KnativeTrafficTarget[];
     [key: string]: any;
   };
+  /**
+   * Status
+   */
   status?: {
     url?: string;
     latestReadyRevisionName?: string;
@@ -617,7 +644,13 @@ export function getReadyCondition(service: KnativeServiceManifest) {
  * A deployer unit pushing the image, the `Webda/ContainerDeployer`
  */
 interface ImagePusher {
+  /**
+   * Push operation
+   */
   push(): Promise<string>;
+  /**
+   * Get the resolved parameters
+   */
   getResolvedParameters(): { image?: string };
 }
 

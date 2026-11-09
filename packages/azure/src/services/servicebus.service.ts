@@ -16,9 +16,21 @@ import {
 } from "./azure-parameters.js";
 import { AzureContributor, AzureDeployerInfo, AzureResourceContribution } from "./contributors.js";
 
+/**
+ * Service bus settings interface
+ */
 interface ServiceBusSettings extends AzureServiceParameters {
+  /**
+   * Namespace
+   */
   namespace: string;
+  /**
+   * Connection string
+   */
   connectionString?: string | SecretString;
+  /**
+   * Whether create if not exists is enabled
+   */
   createIfNotExists?: boolean;
 }
 
@@ -84,17 +96,53 @@ function contribute(
 
 /** Service Bus work queue settings. */
 export class ServiceBusQueueParameters extends QueueParameters implements ServiceBusSettings {
+  /**
+   * Namespace
+   */
   namespace!: string;
+  /**
+   * Connection string
+   */
   connectionString?: string | SecretString;
+  /**
+   * Create if not exists
+   */
   createIfNotExists = false;
+  /**
+   * Queue
+   */
   queue!: string;
+  /**
+   * Tenant ID
+   */
   tenantId?: string;
+  /**
+   * Client ID
+   */
   clientId?: string;
+  /**
+   * Client secret
+   */
   clientSecret?: string | SecretString;
+  /**
+   * Subscription ID
+   */
   subscriptionId?: string;
+  /**
+   * Endpoint
+   */
   endpoint?: string;
+  /**
+   * Max messages
+   */
   maxMessages = 10;
+  /**
+   * Max wait time in ms
+   */
   maxWaitTimeInMs = 1000;
+  /**
+   * Max pending messages
+   */
   maxPendingMessages = 1000;
 
   /**
@@ -111,11 +159,29 @@ export class ServiceBusQueueParameters extends QueueParameters implements Servic
  * @WebdaModda
  */
 export class ServiceBusQueue<T = any> extends Queue<T, ServiceBusQueueParameters> implements AzureContributor {
+  /**
+   * Parameters
+   */
   static Parameters = ServiceBusQueueParameters;
+  /**
+   * Client
+   */
   protected client!: ServiceBusClient;
+  /**
+   * Admin
+   */
   protected admin!: ServiceBusAdministrationClient;
+  /**
+   * Sender
+   */
   protected sender!: ServiceBusSender;
+  /**
+   * Receiver
+   */
   protected receiver!: ServiceBusReceiver;
+  /**
+   * Pending
+   */
   protected pending = new Map<string, ServiceBusReceivedMessage>();
 
   /**
@@ -227,10 +293,25 @@ export class ServiceBusQueue<T = any> extends Queue<T, ServiceBusQueueParameters
 
 /** Service Bus pub/sub settings. Omit subscription to create one temporary subscription per consumer. */
 export class ServiceBusPubSubParameters extends AzureParameters implements ServiceBusSettings {
+  /**
+   * Namespace
+   */
   namespace!: string;
+  /**
+   * Connection string
+   */
   connectionString?: string | SecretString;
+  /**
+   * Create if not exists
+   */
   createIfNotExists = false;
+  /**
+   * Topic
+   */
   topic!: string;
+  /**
+   * Subscription
+   */
   subscription?: string;
 }
 
@@ -241,10 +322,25 @@ export class ServiceBusPubSub<T = any>
   extends PubSubService<T, ServiceBusPubSubParameters>
   implements AzureContributor
 {
+  /**
+   * Parameters
+   */
   static Parameters = ServiceBusPubSubParameters;
+  /**
+   * Client
+   */
   protected client!: ServiceBusClient;
+  /**
+   * Admin
+   */
   protected admin!: ServiceBusAdministrationClient;
+  /**
+   * Sender
+   */
   protected sender!: ServiceBusSender;
+  /**
+   * Consumers
+   */
   protected consumers = new Set<CancelablePromise>();
 
   /**

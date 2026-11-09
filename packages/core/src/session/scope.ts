@@ -16,6 +16,7 @@ export class InvalidScope extends WebdaError.BadRequest {
 }
 
 /**
+ * Parse scope
  * @param raw - space-separated scope
  * @returns normalized scope
  * @throws InvalidScope on an unknown token
@@ -31,6 +32,7 @@ export function parseScope(raw: string | undefined): Scope {
 }
 
 /**
+ * Return the de-duplicated tokens of `a`, then the new tokens of `b`
  * @param a - first scope
  * @param b - second scope
  * @returns the de-duplicated tokens of `a`, then the new tokens of `b`
@@ -40,6 +42,7 @@ export function union(a: Scope, b: Scope): Scope {
 }
 
 /**
+ * Format scope
  * @param scope - scope
  * @returns space-separated scope
  */
@@ -48,6 +51,7 @@ export function formatScope(scope: Scope): string {
 }
 
 /**
+ * Return its operation globs
  * @param scope - scope
  * @returns its operation globs
  */
@@ -56,6 +60,7 @@ export function operationGlobs(scope: Scope): string[] {
 }
 
 /**
+ * Return true when a glob of the scope matches the operation
  * @param scope - granted scope
  * @param operationId - operation
  * @returns true when a glob of the scope matches the operation
@@ -78,6 +83,7 @@ function coversToken(granted: Scope, token: string): boolean {
 }
 
 /**
+ * Return true when every requested token is covered
  * @param granted - granted scope
  * @param requested - requested scope
  * @returns true when every requested token is covered
@@ -87,6 +93,7 @@ export function covers(granted: Scope, requested: Scope): boolean {
 }
 
 /**
+ * Return the tokens of either scope covered by both
  * @param a - scope
  * @param b - scope
  * @returns the tokens of either scope covered by both
@@ -101,6 +108,7 @@ export function intersect(a: Scope, b: Scope): Scope {
 }
 
 /**
+ * Return the operations matched by the scope, in `operationIds` order
  * @param globs - scope
  * @param operationIds - known operations
  * @returns the operations matched by the scope, in `operationIds` order

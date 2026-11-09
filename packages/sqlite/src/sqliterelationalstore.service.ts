@@ -102,6 +102,9 @@ export class SQLiteRelationalParameters extends SQLiteStoreParameters implements
 export class SQLiteRelationalStore<
   K extends SQLiteRelationalParameters = SQLiteRelationalParameters
 > extends SQLiteStore<K> {
+  /**
+   * Relational
+   */
   protected readonly relational = new RelationalStoreSupport(this, this.dialect as SQLiteRelationalDialect);
 
   /** @override */

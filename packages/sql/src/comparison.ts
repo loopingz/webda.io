@@ -14,6 +14,7 @@ import { sqlString } from "./dialect.js";
  */
 export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
   /**
+   * Create a new SQLComparisonExpression instance
    * @param operator - the comparison operator
    * @param attribute - the SQL text of the attribute
    * @param value - the value

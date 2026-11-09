@@ -20,9 +20,13 @@ export function toGrpcMessage(value: unknown): Record<string, unknown> {
  * session loads), the unary request message as input, and streamed output sent message by message.
  */
 export class GrpcOperationContext extends StreamingOperationContext {
+  /**
+   * Message
+   */
   private message?: Buffer;
 
   /**
+   * Create a new GrpcOperationContext instance
    * @param httpContext - request line and metadata
    * @param stream - the gRPC stream of the call
    * @param response - the HTTP/2 response (drain/close events)

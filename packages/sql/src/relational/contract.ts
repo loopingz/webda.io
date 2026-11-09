@@ -17,6 +17,7 @@ export type ContractStep =
   | { kind: "validateForeignKey"; table: string; constraint: string };
 
 /**
+ * Return a one-line description for logs and the dry run
  * @param step - a contract step
  * @returns a one-line description for logs and the dry run
  */

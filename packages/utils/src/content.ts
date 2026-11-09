@@ -8,8 +8,14 @@ import { streamToBuffer } from "./stream.js";
 
 const streamPipeline = promisify(pipeline);
 
+/**
+ * Content body type definition
+ */
 export type ContentBody = Readable | Buffer | string;
 
+/**
+ * Content put options interface
+ */
 export interface ContentPutOptions {
   /** MIME content type, defaults to lookup from key extension or application/octet-stream */
   contentType?: string;
@@ -21,26 +27,65 @@ export interface ContentPutOptions {
   ifNotExists?: boolean;
 }
 
+/**
+ * Content get options interface
+ */
 export interface ContentGetOptions {
   /** Optional byte range to retrieve */
   range?: { start: number; end?: number };
 }
 
+/**
+ * Content info interface
+ */
 export interface ContentInfo {
+  /**
+   * URL
+   */
   url: string;
+  /**
+   * Size
+   */
   size?: number;
+  /**
+   * Etag
+   */
   etag?: string;
+  /**
+   * Content type
+   */
   contentType?: string;
+  /**
+   * Metadata
+   */
   metadata?: Record<string, string>;
+  /**
+   * Last modified
+   */
   lastModified?: Date;
 }
 
+/**
+ * Content storage interface
+ */
 export interface ContentStorage {
   /** Schemes handled, without ':' e.g. ["s3"], ["gs", "gcs"], ["file"] */
   readonly schemes: string[];
+  /**
+   * Get the content
+   */
   getContent(url: string, options?: ContentGetOptions): Promise<Readable>;
+  /**
+   * Put content
+   */
   putContent(url: string, body: ContentBody, options?: ContentPutOptions): Promise<ContentInfo>;
+  /**
+   * Perform head content
+   */
   headContent?(url: string): Promise<ContentInfo | undefined>;
+  /**
+   * Delete content
+   */
   deleteContent?(url: string): Promise<void>;
 }
 
@@ -48,8 +93,12 @@ export interface ContentStorage {
  * Thrown when content is not found
  */
 export class ContentNotFoundError extends Error {
+  /**
+   * Code
+   */
   readonly code = "CONTENT_NOT_FOUND";
   /**
+   * Create a new ContentNotFoundError instance
    * @param message - error message
    */
   constructor(message: string = "Content not found") {
@@ -62,8 +111,12 @@ export class ContentNotFoundError extends Error {
  * Thrown when content already exists and ifNotExists was set
  */
 export class ContentExistsError extends Error {
+  /**
+   * Code
+   */
   readonly code = "CONTENT_EXISTS";
   /**
+   * Create a new ContentExistsError instance
    * @param message - error message
    */
   constructor(message: string = "Content already exists") {
@@ -76,8 +129,12 @@ export class ContentExistsError extends Error {
  * Thrown when no storage provider is registered for the scheme
  */
 export class ContentStorageNotFoundError extends Error {
+  /**
+   * Code
+   */
   readonly code = "CONTENT_STORAGE_NOT_FOUND";
   /**
+   * Create a new ContentStorageNotFoundError instance
    * @param scheme - scheme without provider
    */
   constructor(scheme: string) {
@@ -88,9 +145,13 @@ export class ContentStorageNotFoundError extends Error {
 
 /** Thrown when a URL selects a credential profile absent from the provider. */
 export class ContentCredentialNotFoundError extends Error {
+  /**
+   * Code
+   */
   readonly code = "CONTENT_CREDENTIAL_NOT_FOUND";
 
   /**
+   * Create a new ContentCredentialNotFoundError instance
    * @param profile - requested profile name
    */
   constructor(profile: string) {
@@ -305,9 +366,21 @@ export function parseContentUrl(
   return result(defaultBucket, key);
 }
 
+/**
+ * Storage registration interface
+ */
 export interface StorageRegistration {
+  /**
+   * Provider
+   */
   provider: ContentStorage;
+  /**
+   * Bucket
+   */
   bucket?: string;
+  /**
+   * Whether default is enabled
+   */
   default?: boolean;
 }
 
@@ -315,6 +388,9 @@ export interface StorageRegistration {
  * Registry of content storage providers
  */
 export class ContentStoragesRegistry {
+  /**
+   * Providers
+   */
   private providers: StorageRegistration[] = [];
 
   /**
@@ -403,6 +479,9 @@ export const ContentStorages = new ContentStoragesRegistry();
  * Local filesystem ContentStorage implementation
  */
 export class FileContentStorage implements ContentStorage {
+  /**
+   * Schemes
+   */
   readonly schemes = ["file"];
 
   /**
@@ -522,8 +601,14 @@ export const defaultFileContentStorage = new FileContentStorage();
  * In-memory ContentStorage implementation (useful for tests)
  */
 export class MemoryContentStorage implements ContentStorage {
+  /**
+   * Schemes
+   */
   readonly schemes = ["memory"];
 
+  /**
+   * Items
+   */
   private items: Map<
     string,
     {

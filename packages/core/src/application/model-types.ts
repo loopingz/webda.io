@@ -21,10 +21,12 @@ export const UNREADABLE = "(unreadable)";
  */
 export interface ModelTypesSource {
   /**
+   * Get models by identifier
    * @returns models by identifier
    */
   getModels(): Record<string, any>;
   /**
+   * Get the application namespace
    * @returns the application namespace
    */
   getNamespace(): string;

@@ -6,11 +6,21 @@ import { DebugClient } from "../client.js";
  * (color-coded), and executor service name.
  */
 export class RoutesPanel extends ScrollablePanel {
+  /**
+   * Name
+   */
   name = "Routes";
+  /**
+   * Routes
+   */
   private routes: any[] = [];
+  /**
+   * Visible rows
+   */
   private visibleRows = 0;
 
   /**
+   * Create a new RoutesPanel instance
    * @param client - Debug API client
    */
   constructor(private client: DebugClient) {

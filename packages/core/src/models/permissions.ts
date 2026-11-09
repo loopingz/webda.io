@@ -471,6 +471,7 @@ export type ContinuationTokenBinding = {
 const TOKEN_TYPE = "webda-query-token";
 
 /**
+ * Query hash
  * @param binding - the token binding
  * @returns the short hash of the query
  */
@@ -535,6 +536,7 @@ export async function unsealContinuationToken(token: string, binding: Continuati
 }
 
 /**
+ * Return its identifier, or its class name for classes registered without metadata
  * @param model - the model class
  * @returns its identifier, or its class name for classes registered without metadata
  */
@@ -608,6 +610,7 @@ function prepareClientQuery(model: any, query: string, context: IOperationContex
 }
 
 /**
+ * Return the class of the chain of `start` defining `key`, undefined when none does
  * @param start - a class
  * @param key - a member name
  * @param onPrototype - look for an instance member instead of a static one
@@ -624,6 +627,7 @@ function definingClass(start: any, key: string, onPrototype: boolean): any {
 }
 
 /**
+ * Return every subclass of the model, transitively, from its metadata
  * @param model - a model class
  * @param seen - the subclasses found so far
  * @returns every subclass of the model, transitively, from its metadata
@@ -774,6 +778,7 @@ export async function queryModelWithPermissions<T = any>(
   // A failing page must not leave a failing count unhandled: its error is raised when it is awaited
   counting?.catch(() => {});
   /**
+   * Count
    * @param count - the LIMIT
    * @param token - the store OFFSET
    * @returns the query to send to the store

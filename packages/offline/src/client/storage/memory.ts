@@ -5,11 +5,17 @@ import type { StorageAdapter } from "./storage.js";
  * Non-persistent storage: tests, Node scripts, or apps that resync on start
  */
 export class MemoryStorage implements StorageAdapter {
+  /**
+   * Records
+   */
   protected records = new Map<string, LocalRecord>();
+  /**
+   * Meta
+   */
   protected meta = new Map<string, unknown>();
 
   /**
-   *
+   * Get the record, undefined when missing
    * @param id - the id
    * @returns the record, undefined when missing
    */
@@ -17,7 +23,7 @@ export class MemoryStorage implements StorageAdapter {
     return clone(this.records.get(id));
   }
   /**
-   *
+   * Put records
    * @param records - the records
    */
   async putRecords(records: LocalRecord[]): Promise<void> {
@@ -26,14 +32,14 @@ export class MemoryStorage implements StorageAdapter {
     for (const copy of copies) this.records.set(copy.id, copy);
   }
   /**
-   *
+   * Delete records
    * @param ids - the ids
    */
   async deleteRecords(ids: string[]): Promise<void> {
     for (const id of ids) this.records.delete(id);
   }
   /**
-   *
+   * Return every record of the model
    * @param model - the model
    * @returns every record of the model
    */
@@ -41,14 +47,14 @@ export class MemoryStorage implements StorageAdapter {
     return [...this.records.values()].filter(r => r.ref.model === model).map(clone);
   }
   /**
-   *
+   * Return every record not synced
    * @returns every record not synced
    */
   async scanPending(): Promise<LocalRecord[]> {
     return [...this.records.values()].filter(r => r.state !== "synced").map(clone);
   }
   /**
-   *
+   * Get the value, undefined when missing
    * @param key - the key
    * @returns the value, undefined when missing
    */
@@ -56,7 +62,7 @@ export class MemoryStorage implements StorageAdapter {
     return clone(this.meta.get(key) as T | undefined);
   }
   /**
-   *
+   * Set the meta
    * @param key - the key
    * @param value - the value
    */
@@ -65,7 +71,7 @@ export class MemoryStorage implements StorageAdapter {
     else this.meta.set(key, clone(value));
   }
   /**
-   *
+   * Clear operation
    */
   async clear(): Promise<void> {
     this.records.clear();

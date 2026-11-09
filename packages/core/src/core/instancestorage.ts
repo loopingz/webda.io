@@ -7,6 +7,9 @@ import type { Core } from "./core.js";
 import type { LoginMfaPolicy, SecondFactorProvider } from "../models/mfa.model.js";
 import type { CronDefinition } from "../services/cron.service.js";
 
+/**
+ * Instance storage type definition
+ */
 export type InstanceStorage = Partial<{
   // Used to store the application
   application: Application;
@@ -95,6 +98,9 @@ export function createCoreHook<K extends keyof InstanceStorage>(
   ];
 }
 
+/**
+ * Reserved instance type definition
+ */
 type ReservedInstance = keyof InstanceStorage;
 
 /**

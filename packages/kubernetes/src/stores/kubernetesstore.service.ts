@@ -128,12 +128,19 @@ export class KubernetesStoreParameters extends StoreParameters implements Kubern
  * @WebdaModda
  */
 export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesStoreParameters> extends Store<K> {
+  /**
+   * API
+   */
   protected api?: k8s.CustomObjectsApi;
+  /**
+   * Watchers
+   */
   protected watchers: ResourceWatcher[] = [];
   /** writes of this process, by resources plural */
   protected trackers = new Map<string, WriteTracker>();
 
   /**
+   * Get the custom objects API client
    * @returns the custom objects API client
    */
   protected getApi(): k8s.CustomObjectsApi {

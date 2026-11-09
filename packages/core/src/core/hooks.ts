@@ -36,9 +36,21 @@ export function setCore(core: Core) {
  * Services Map
  */
 export interface ServicesMap {
+  /**
+   * Registry
+   */
   Registry: Store;
+  /**
+   * Crypto service
+   */
   CryptoService: CryptoService;
+  /**
+   * Token service
+   */
   TokenService: TokenService;
+  /**
+   * Session manager
+   */
   SessionManager: SessionManager;
 }
 
@@ -123,6 +135,7 @@ export function getMachineId() {
  */
 export interface UserResolver {
   /**
+   * Resolve operation
    * @param userId - user id
    * @returns the user or undefined
    */
@@ -150,6 +163,7 @@ export function registerUserResolver(resolver: UserResolver | undefined): void {
 }
 
 /**
+ * Return the active user resolver
  * @returns the active user resolver
  */
 export function useUserResolver(): UserResolver {
@@ -181,6 +195,7 @@ export interface CertificateResolver {
   /** Whether a certificate authenticates on its own or adds a factor to an existing session */
   readonly mode?: "login" | "factor";
   /**
+   * Resolve certificate
    * @param cert - verified client certificate
    * @param context - context of the request
    * @returns the user authenticated by the certificate, undefined when the certificate is unknown or refused
@@ -199,6 +214,7 @@ export function registerCertificateResolver(resolver: CertificateResolver | unde
 }
 
 /**
+ * Return the active client certificate resolver, if any
  * @returns the active client certificate resolver, if any
  */
 export function useCertificateResolver(): CertificateResolver | undefined {

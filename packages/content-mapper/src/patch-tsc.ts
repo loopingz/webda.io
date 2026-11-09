@@ -42,6 +42,9 @@ const STUBS: Record<string, { retFalse: Buffer; retTrue: Buffer }> = {
   }
 };
 
+/**
+ * Patch tsc options interface
+ */
 export interface PatchTscOptions {
   /** Explicit path to the native `tsc` binary. Resolved from `typescript` if omitted. */
   binaryPath?: string;
@@ -51,6 +54,9 @@ export interface PatchTscOptions {
   platform?: string;
 }
 
+/**
+ * Patch tsc result interface
+ */
 export interface PatchTscResult {
   /** Absolute path to the `tsc` binary. */
   binaryPath: string;

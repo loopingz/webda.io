@@ -10,11 +10,29 @@ export const GRPC_MAX_MESSAGE_SIZE = 4 * 1024 * 1024;
  * Parsed gRPC method definition with serializer/deserializer functions.
  */
 export interface GrpcMethodDef<Req = any, Res = any> {
+  /**
+   * Request serialize
+   */
   requestSerialize: (msg: Req) => Buffer;
+  /**
+   * Request deserialize
+   */
   requestDeserialize: (buf: Buffer) => Req;
+  /**
+   * Response serialize
+   */
   responseSerialize: (msg: Res) => Buffer;
+  /**
+   * Response deserialize
+   */
   responseDeserialize: (buf: Buffer) => Res;
+  /**
+   * Whether request stream is enabled
+   */
   requestStream: boolean;
+  /**
+   * Whether response stream is enabled
+   */
   responseStream: boolean;
 }
 
@@ -34,14 +52,41 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   /** Sentinel value indicating successful stream setup */
   static OK = Symbol("OK");
 
+  /**
+   * On message handler
+   */
   private onMessageHandler: (message: RequestType, size: number) => void | Promise<void>;
+  /**
+   * On end handler
+   */
   private onEndHandler?: () => void;
+  /**
+   * On cancel handler
+   */
   private onCancelHandler?: () => void;
+  /**
+   * Chunk
+   */
   private chunk: Buffer | null = null;
+  /**
+   * Failed
+   */
   private failed = false;
+  /**
+   * Status listener
+   */
   private statusListener?: (status: number) => void;
+  /**
+   * Request
+   */
   private request: IncomingMessage | Http2ServerRequest;
+  /**
+   * Response
+   */
   private response: ServerResponse | Http2ServerResponse;
+  /**
+   * Definition
+   */
   private definition: GrpcMethodDef<RequestType, ResponseType>;
 
   /**

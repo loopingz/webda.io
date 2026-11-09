@@ -58,7 +58,10 @@ export class ApplicationPackager<T extends ServiceParameters = ServiceParameters
    */
   @Command("package", { description: "Package the application with its deployment applied", phase: "resolved" })
   async package(
-    /** @alias o @description Package folder, or JSON file with --config-only (stdout if omitted) */
+    /**
+     * Output
+     * @alias o @description Package folder, or JSON file with --config-only (stdout if omitted)
+     */
     output?: string,
     /** @description Only output the deployed configuration */
     configOnly?: boolean,

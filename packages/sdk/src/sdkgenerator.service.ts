@@ -55,6 +55,7 @@ export class SdkGeneratorParameters extends ServiceParameters {
   types?: Record<string, unknown>;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this with the defaults
    */
@@ -77,6 +78,7 @@ export class SdkGeneratorParameters extends ServiceParameters {
  */
 export class SdkGenerator<T extends SdkGeneratorParameters = SdkGeneratorParameters> extends Service<T> {
   /**
+   * Create configuration
    * @param params - raw service parameters
    * @returns the parameters
    */
@@ -85,6 +87,7 @@ export class SdkGenerator<T extends SdkGeneratorParameters = SdkGeneratorParamet
   }
 
   /**
+   * Return the manifest of the application, filtered by the parameters
    * @returns the manifest of the application, filtered by the parameters
    */
   manifest(): SdkManifest {
@@ -97,6 +100,7 @@ export class SdkGenerator<T extends SdkGeneratorParameters = SdkGeneratorParamet
   }
 
   /**
+   * Generate options
    * @returns the generation options from the parameters
    */
   protected generateOptions(): GenerateSdkOptions {

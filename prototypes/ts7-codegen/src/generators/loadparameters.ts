@@ -136,6 +136,11 @@ function memberIndent(text: string, cls: any): string {
 export function loadParametersGenerator(): Generator {
   return {
     name: "loadParameters",
+    /**
+     * Perform analyze
+     * @param ctx - the ctx
+     * @returns the result
+     */
     analyze(ctx: AnalysisContext): FileEdits[] {
       const out: FileEdits[] = [];
 

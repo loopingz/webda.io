@@ -11,6 +11,7 @@ import {
 /** Streaming and service operations the end-to-end suites call, as `packages/core/src/rest/reststream.spec.ts` does */
 export class SdkFixtureService extends Service {
   /**
+   * Create configuration
    * @param params - raw parameters
    * @returns the parameters
    */
@@ -19,6 +20,7 @@ export class SdkFixtureService extends Service {
   }
 
   /**
+   * Return three chunks
    * @param since - first value
    * @returns three chunks
    */
@@ -29,6 +31,7 @@ export class SdkFixtureService extends Service {
   }
 
   /**
+   * Fail operation
    * @returns never
    */
   async *fail() {
@@ -37,6 +40,7 @@ export class SdkFixtureService extends Service {
   }
 
   /**
+   * Return `{ index }` chunks
    * @param n - ticks
    * @returns `{ index }` chunks
    */
@@ -45,6 +49,7 @@ export class SdkFixtureService extends Service {
   }
 
   /**
+   * Ping operation
    * @param text - the text
    * @returns the text, uppercased
    */

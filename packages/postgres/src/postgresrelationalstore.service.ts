@@ -109,6 +109,9 @@ export class PostgresRelationalParameters extends PostgresParameters implements 
 export class PostgresRelationalStore<
   K extends PostgresRelationalParameters = PostgresRelationalParameters
 > extends PostgresStore<K> {
+  /**
+   * Relational
+   */
   protected readonly relational = new RelationalStoreSupport(this, this.dialect as PostgresRelationalDialect);
   /**
    * Serializes the statements and transactions of a single (not pooled) connection
@@ -473,6 +476,7 @@ export class PostgresRelationalStore<
 }
 
 /**
+ * Unwrap server
  * @param parameters - store parameters
  * @returns the server configuration, secrets unwrapped, as the pool registry keys it
  */

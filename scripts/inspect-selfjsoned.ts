@@ -6,6 +6,11 @@
 import ts from "typescript";
 import path from "path";
 
+/**
+ * Create program
+ * @param fileNames - the file names
+ * @returns the result
+ */
 function createProgram(fileNames: string[]): ts.Program {
   const compilerOptions: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2022,
@@ -22,6 +27,14 @@ function createProgram(fileNames: string[]): ts.Program {
   return ts.createProgram({ rootNames: fileNames, options: compilerOptions });
 }
 
+/**
+ * Perform expand jso ned
+ * @param checker - the checker
+ * @param t - the t
+ * @param depth - the depth
+ * @param maxDepth - the max depth
+ * @returns the result
+ */
 function expandJSONed(checker: ts.TypeChecker, t: ts.Type, depth = 0, maxDepth = 2): string | Record<string, any> {
   if (depth > maxDepth) return "{...}";
   // Primitive shortcut
@@ -65,6 +78,11 @@ function expandJSONed(checker: ts.TypeChecker, t: ts.Type, depth = 0, maxDepth =
   return checker.typeToString(t);
 }
 
+/**
+ * Run operation
+ * @param fileName - the file name
+ * @param className - the class name
+ */
 function run(fileName: string, className: string) {
   const program = createProgram([fileName]);
   const checker = program.getTypeChecker();

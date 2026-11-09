@@ -10,6 +10,7 @@ import { type SourcedToken, type TokenSource, toSourcedToken } from "./source.js
  */
 export class FileTokenSource implements TokenSource {
   /**
+   * Create a new FileTokenSource instance
    * @param path - the token file
    */
   constructor(protected path: string) {}

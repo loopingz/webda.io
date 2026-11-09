@@ -107,6 +107,7 @@ export class OIDCClient<T extends OIDCClientParameters = OIDCClientParameters> e
   }
 
   /**
+   * Create source
    * @returns the configured token source
    */
   protected createSource(): TokenSource {

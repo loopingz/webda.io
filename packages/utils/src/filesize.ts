@@ -15,6 +15,9 @@
  * otherwise 2 decimals.
  */
 export class FileSize {
+  /**
+   * Value
+   */
   value: number;
   /**
    * Create a FileSize.

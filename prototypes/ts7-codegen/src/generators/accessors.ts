@@ -21,7 +21,13 @@ import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";
 
 /** Widened setter type + coercion expression for registry types. */
 interface BuiltinRule {
+  /**
+   * Setter type
+   */
   setterType: string;
+  /**
+   * Coerce
+   */
   coerce: (v: string) => string;
 }
 
@@ -49,9 +55,15 @@ export interface AccessorOptions {
 
 /** A property resolved to a coercion. */
 interface Resolved {
+  /**
+   * Name
+   */
   name: string;
   /** Declared (read) type, as written. */
   typeText: string;
+  /**
+   * Kind
+   */
   kind: "builtin" | "set-method" | "relation-initializer";
   /** Widened setter type, for accessor kinds. */
   setterType?: string;
@@ -59,8 +71,17 @@ interface Resolved {
   coerce?: (v: string) => string;
   /** Runtime constructor name, for `set-method` / `relation-initializer`. */
   runtimeClass?: string;
+  /**
+   * Start
+   */
   start: number;
+  /**
+   * End
+   */
   end: number;
+  /**
+   * Indent
+   */
   indent: string;
 }
 
@@ -198,6 +219,11 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
 
   return {
     name: "accessors",
+    /**
+     * Perform analyze
+     * @param ctx - the ctx
+     * @returns the result
+     */
     analyze(ctx: AnalysisContext): FileEdits[] {
       const out: FileEdits[] = [];
 
@@ -237,26 +263,41 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
             const builtin = BUILTINS[head];
             if (builtin) {
               resolved = {
-                name, typeText, kind: "builtin",
-                setterType: builtin.setterType, coerce: builtin.coerce,
-                start, end: m.end, indent
+                name,
+                typeText,
+                kind: "builtin",
+                setterType: builtin.setterType,
+                coerce: builtin.coerce,
+                start,
+                end: m.end,
+                indent
               };
             } else {
               const runtimeClass = resolveRuntimeClass(ctx, m.type);
               if (runtimeClass === RELATION_CONTAINER) {
                 if (!zeroArgConstructible(ctx, runtimeClass, m)) continue;
                 resolved = {
-                  name, typeText, kind: "relation-initializer",
-                  runtimeClass, start, end: m.end, indent
+                  name,
+                  typeText,
+                  kind: "relation-initializer",
+                  runtimeClass,
+                  start,
+                  end: m.end,
+                  indent
                 };
               } else {
                 const param = autoSetterParamType(ctx, m.type);
                 if (param && runtimeClass) {
                   if (!zeroArgConstructible(ctx, runtimeClass, m)) continue;
                   resolved = {
-                    name, typeText, kind: "set-method",
+                    name,
+                    typeText,
+                    kind: "set-method",
                     setterType: `${param} | ${typeText}`,
-                    runtimeClass, start, end: m.end, indent
+                    runtimeClass,
+                    start,
+                    end: m.end,
+                    indent
                   };
                 }
               }
@@ -271,7 +312,8 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
         if (edits.length) {
           if (needsStorage && !new RegExp(`\\bWEBDA_STORAGE\\b`).test(sf.text)) {
             edits.push({
-              start: 0, end: 0,
+              start: 0,
+              end: 0,
               text: `import { WEBDA_STORAGE } from ${JSON.stringify(storageModule)};\n`,
               source: "accessors"
             });

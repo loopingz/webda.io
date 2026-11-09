@@ -9,15 +9,36 @@ import { SyncEngine } from "./sync.js";
 import type { StorageAdapter } from "./storage/storage.js";
 import type { Transport } from "./transport/transport.js";
 
+/**
+ * Sync status type definition
+ */
 export type SyncStatus = "idle" | "syncing" | "offline" | "error";
 
+/**
+ * Change event interface
+ */
 export interface ChangeEvent {
+  /**
+   * Ref
+   */
   ref: SyncRef;
+  /**
+   * Object
+   */
   object: any | null;
+  /**
+   * Origin
+   */
   origin: "local" | "remote";
 }
 
+/**
+ * Conflict info interface
+ */
 export interface ConflictInfo {
+  /**
+   * Ref
+   */
   ref: SyncRef;
   /** Common ancestor, null when the object was created on both sides */
   ancestor: any | null;
@@ -25,17 +46,38 @@ export interface ConflictInfo {
   ours: any | null;
   /** Server value, null when deleted on the server */
   theirs: any | null;
+  /**
+   * Result
+   */
   result: MergeResult<any>;
 }
 
+/**
+ * Conflict strategy type definition
+ */
 export type ConflictStrategy =
   "manual" | "server-wins" | "client-wins" | ((info: ConflictInfo) => Promise<Map<string, Resolution> | "defer">);
 
+/**
+ * Offline client options interface
+ */
 export interface OfflineClientOptions {
+  /**
+   * Storage
+   */
   storage: StorageAdapter;
+  /**
+   * Transport
+   */
   transport: Transport;
+  /**
+   * Scopes
+   */
   scopes: SyncScope[];
-  /** @default "manual" */
+  /**
+   * On conflict
+   * @default "manual"
+   */
   onConflict?: ConflictStrategy;
   /** Milliseconds between automatic syncs, 0 disables the timer @default 30000 */
   syncInterval?: number;
@@ -60,14 +102,24 @@ export class OfflineClient extends Emitter<{
   conflict: ConflictInfo;
   error: unknown;
 }> {
+  /**
+   * Storage
+   */
   readonly storage: StorageAdapter;
+  /**
+   * Options
+   */
   readonly options: Required<Omit<OfflineClientOptions, "versioning" | "sealed">> & {
     versioning: VersioningConfig;
     sealed?: SealedOptions;
   };
+  /**
+   * Collections
+   */
   protected collections = new Map<string, Collection<any>>();
 
   /**
+   * Create a new OfflineClient instance
    * @param options - client options
    */
   constructor(options: OfflineClientOptions) {
@@ -88,6 +140,7 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
+   * Return its primary key fields
    * @param model - model identifier
    * @returns its primary key fields
    */
@@ -96,6 +149,7 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
+   * Return the canonical key
    * @param model - model identifier
    * @param key - scalar key or object holding the key fields
    * @returns the canonical key
@@ -109,6 +163,7 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
+   * Return the collection of that model
    * @param model - model identifier
    * @returns the collection of that model
    */
@@ -133,8 +188,17 @@ export class OfflineClient extends Emitter<{
     this.emit("error", error);
   }
 
+  /**
+   * Engine
+   */
   protected engine = new SyncEngine(this);
+  /**
+   * Running
+   */
   protected running?: Promise<void>;
+  /**
+   * Again
+   */
   protected again = false;
 
   /**
@@ -237,17 +301,46 @@ export class OfflineClient extends Emitter<{
     return this.running;
   }
 
+  /**
+   * Status
+   */
   protected _status: SyncStatus = "idle";
+  /**
+   * Timer
+   */
   protected timer?: ReturnType<typeof setInterval>;
+  /**
+   * Retry timer
+   */
   protected retryTimer?: ReturnType<typeof setTimeout>;
+  /**
+   * Failures
+   */
   protected failures = 0;
+  /**
+   * Watch abort
+   */
   protected watchAbort?: AbortController;
+  /**
+   * Stopped
+   */
   protected stopped = true;
+  /**
+   * Starting
+   */
   protected starting?: Promise<void>;
+  /**
+   * Generation
+   */
   protected generation = 0;
+  /**
+   * Online listener
+   * @returns the result
+   */
   protected onlineListener = () => void this.run();
 
   /**
+   * Get the current sync status
    * @returns the current sync status
    */
   get status(): SyncStatus {
@@ -255,6 +348,7 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
+   * Set the status
    * @param status - the new status
    */
   protected setStatus(status: SyncStatus): void {
@@ -297,6 +391,7 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
+   * Perform do start
    * @param generation - start generation, stale once stop() was called
    */
   protected async doStart(generation: number): Promise<void> {
@@ -365,6 +460,7 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
+   * Return the conflict description
    * @param record - a record in conflict state
    * @returns the conflict description
    */
@@ -424,6 +520,7 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
+   * Return the open conflicts
    * @returns the open conflicts
    */
   async conflicts(): Promise<ConflictInfo[]> {

@@ -5,10 +5,22 @@ import { PK, SelfDTOed, SelfJSONed, Storable, WEBDA_EVENTS, WEBDA_PLURAL, WEBDA_
 
 /** Container image identified by its digest, with linked vulnerabilities. */
 export class Container extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["digest"] as const;
+  /**
+   * [webda events]
+   */
   [WEBDA_EVENTS]: ModelEvents<this> & { Test: { digest: string } };
 
+  /**
+   * Digest
+   */
   digest: string;
+  /**
+   * Vulnerabilities
+   */
   vulnerabilities: ModelLinksSimpleArray<Vulnerability>;
   /**
    * Serialize the container to its JSON representation.
@@ -30,12 +42,27 @@ export type VulnerabilityEvents<T> = {
  * instead of expanding model
  */
 export class Vulnerability implements Storable<Vulnerability, "id">, Actionable {
+  /**
+   * [webda events]
+   */
   [WEBDA_EVENTS]: VulnerabilityEvents<this>;
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY]: readonly "id"[] = ["id"] as const;
+  /**
+   * [webda actions]
+   */
   [WEBDA_ACTIONS]: {
     update: object;
   };
+  /**
+   * [webda plural]
+   */
   [WEBDA_PLURAL] = "Vulnerabilities";
+  /**
+   * Unique identifier
+   */
   id: string;
 
   /**

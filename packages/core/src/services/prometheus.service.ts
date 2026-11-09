@@ -5,7 +5,13 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { useCoreEvents } from "../events/events.js";
 import { WebContext } from "../contexts/webcontext.js";
 
+/**
+ * Prometheus extension interface
+ */
 interface PrometheusExtension {
+  /**
+   * Timer
+   */
   timer: (labels?: Partial<Record<string, string | number>> | undefined) => number;
 }
 
@@ -21,6 +27,7 @@ export class PrometheusParameters extends ServiceParameters {
    */
   bind?: string;
   /**
+   * URL
    * @default /metrics
    */
   declare url?: string;
@@ -85,6 +92,9 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
    */
   private static nodeMetricsRegistered = false;
 
+  /**
+   * Metrics
+   */
   declare metrics: {
     http_request_total: Counter;
     http_request_in_flight: Gauge;
@@ -159,7 +169,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
   }
 
   /**
-   *
+   * Resolve operation
    * @returns the result
    */
   resolve() {

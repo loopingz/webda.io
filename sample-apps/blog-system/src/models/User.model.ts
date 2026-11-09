@@ -25,17 +25,29 @@ const KEY_LENGTH = 64;
  * Events emitted by users, on top of the model events
  */
 export class UserEvents<T extends User> {
+  /**
+   * Login
+   */
   Login: {
     user: T;
   };
+  /**
+   * Follow
+   */
   Follow: {
     user: T;
     target: User;
   };
+  /**
+   * Unfollow
+   */
   Unfollow: {
     user: T;
     target: User;
   };
+  /**
+   * Logout
+   */
   Logout: {
     user: T;
   };
@@ -52,6 +64,9 @@ export class UserEvents<T extends User> {
  *   taken from client input (`__` attributes are stripped from every input).
  */
 export class User extends UuidModel {
+  /**
+   * [webda events]
+   */
   [WEBDA_EVENTS]: ModelEvents<this> & UserEvents<this>;
   /**
    * Unique username
@@ -104,11 +119,23 @@ export class User extends UuidModel {
   updatedAt!: Date;
 
   // Relations
+  /**
+   * Posts
+   */
   posts!: OneToMany<Post, User, "author">; // Posts authored by this user
+  /**
+   * Comments
+   */
   comments!: OneToMany<Comment, User, "author">;
 
   // Self-referential relations (populated via UserFollow)
+  /**
+   * Followers
+   */
   followers!: OneToMany<UserFollow, User, "following">; // Users who follow this user
+  /**
+   * Following
+   */
   following!: OneToMany<UserFollow, User, "follower">; // Users this user follows
 
   /**

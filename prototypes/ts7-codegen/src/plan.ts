@@ -26,14 +26,29 @@ export interface Edit {
 
 /** All edits for one file. */
 export interface FileEdits {
+  /**
+   * File name
+   */
   fileName: string;
+  /**
+   * Edits
+   */
   edits: Edit[];
 }
 
 /** What a generator receives. */
 export interface AnalysisContext {
+  /**
+   * Project
+   */
   project: Project;
+  /**
+   * Program
+   */
   program: Program;
+  /**
+   * Checker
+   */
   checker: Checker;
   /** Source files belonging to the project root, in deterministic order. */
   sourceFiles: SourceFile[];

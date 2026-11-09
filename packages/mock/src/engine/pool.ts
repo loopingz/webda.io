@@ -8,9 +8,13 @@
  * so outcomes are reproducible when the caller supplies a seeded RNG.
  */
 export class SessionPool {
+  /**
+   * By class
+   */
   private byClass = new Map<Function, unknown[]>();
 
   /**
+   * Create a new SessionPool instance
    * @param rng - deterministic RNG returning a float in `[0, 1)`. Defaults to
    *   `Math.random` when no seed is needed.
    */

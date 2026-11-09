@@ -10,8 +10,14 @@ import {
 import { WebdaQLError } from "./webdaql-string.js";
 import type { WebdaQLString } from "./webdaql-string.js";
 
+/**
+ * Primitive type definition
+ */
 type Primitive = string | number | boolean | bigint | symbol | null | undefined;
 // Kept local: @webda/models has its own public PropertyPaths, this one only types the JSON filter
+/**
+ * Property paths type definition
+ */
 type PropertyPaths<T extends object> = {
   [K in Extract<keyof T, string>]: T[K] extends Function
     ? never
@@ -21,6 +27,9 @@ type PropertyPaths<T extends object> = {
         ? K | `${K}.${PropertyPaths<NonNullable<T[K]>>}`
         : K;
 }[Extract<keyof T, string>];
+/**
+ * Path value type definition
+ */
 type PathValue<T, K extends string> = K extends `${infer H}.${infer R}`
   ? H extends keyof T
     ? PathValue<NonNullable<T[H]>, R>
@@ -28,7 +37,13 @@ type PathValue<T, K extends string> = K extends `${infer H}.${infer R}`
   : K extends keyof T
     ? T[K]
     : never;
+/**
+ * Property path type type definition
+ */
 type PropertyPathType<T extends object, K extends PropertyPaths<T>> = PathValue<T, K>;
+/**
+ * Filter operators type definition
+ */
 export type FilterOperators<V> = {
   $eq?: V | null;
   $ne?: V | null;
@@ -42,12 +57,27 @@ export type FilterOperators<V> = {
   $contains?: V extends readonly (infer E)[] ? Extract<E, string> : never;
   $exists?: boolean;
 };
+/**
+ * Model filter type definition
+ */
 export type ModelFilter<T extends object = any> = {
   [K in PropertyPaths<T>]?: PropertyPathType<T, K> | null | FilterOperators<PropertyPathType<T, K>>;
 } & { $or?: ModelFilter<T>[]; $and?: ModelFilter<T>[] };
+/**
+ * Find options interface
+ */
 export interface FindOptions<T extends object> {
+  /**
+   * Order by
+   */
   orderBy?: { field: PropertyPaths<T>; direction: "ASC" | "DESC" }[];
+  /**
+   * Limit
+   */
   limit?: number;
+  /**
+   * Continuation token
+   */
   continuationToken?: string;
 }
 const operators: Record<string, string> = {

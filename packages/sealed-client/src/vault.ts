@@ -75,6 +75,7 @@ type DeviceBlob = {
 /** The operation needs the vault unlocked */
 export class VaultLockedError extends Error {
   /**
+   * Create a new VaultLockedError instance
    * @param message - error message
    */
   constructor(message = "The key vault is locked") {
@@ -86,6 +87,7 @@ export class VaultLockedError extends Error {
 /** This device holds no keyring for the user, or the device KEK does not open it */
 export class DeviceNotEnrolledError extends Error {
   /**
+   * Create a new DeviceNotEnrolledError instance
    * @param message - error message
    */
   constructor(message = "This device is not enrolled for this user") {
@@ -97,6 +99,7 @@ export class DeviceNotEnrolledError extends Error {
 /** This device was revoked on the server: its local blob was deleted, add it again with an escrow */
 export class DeviceRevokedError extends Error {
   /**
+   * Create a new DeviceRevokedError instance
    * @param message - error message
    */
   constructor(message = "This device was revoked: its local keyring was deleted, add it again with an escrow") {
@@ -108,6 +111,7 @@ export class DeviceRevokedError extends Error {
 /** The keyring holds no private key for the `kid` of a sealed value */
 export class VaultKeyMissingError extends Error {
   /**
+   * Create a new VaultKeyMissingError instance
    * @param kid - key id
    */
   constructor(kid: string) {
@@ -150,26 +154,45 @@ function activeKey(publicKeys: ServedPublicKey[]): PublicKeyEntry {
  * device makes by itself; {@link KeyVault.forgetPin} lets the user trust a new key on first use again.
  */
 export class KeyVault {
+  /**
+   * Keyring key
+   */
   private keyringKey?: CryptoKey;
+  /**
+   * Private keys
+   */
   private privateKeys?: Record<string, OpenRecipient>;
+  /**
+   * Active kid
+   */
   private activeKid?: string;
 
   /**
+   * Create a new KeyVault instance
    * @param options - user, server operations and local storage
    */
   constructor(protected options: KeyVaultOptions) {}
 
-  /** @returns true while the private keys are in memory */
+  /**
+   * Get true while the private keys are in memory
+   * @returns true while the private keys are in memory
+   */
   get isUnlocked(): boolean {
     return this.keyringKey !== undefined;
   }
 
-  /** @returns storage key of the pinned fingerprint */
+  /**
+   * Get storage key of the pinned fingerprint
+   * @returns storage key of the pinned fingerprint
+   */
   private get pinKey(): string {
     return `webda-sealed:pin:${this.options.userId}`;
   }
 
-  /** @returns storage key of the device blob */
+  /**
+   * Get storage key of the device blob
+   * @returns storage key of the device blob
+   */
   private get deviceKey(): string {
     return `webda-sealed:device:${this.options.userId}`;
   }
@@ -641,6 +664,7 @@ export class KeyVault {
   }
 
   /**
+   * Return the keyring key
    * @returns the keyring key
    */
   private requireUnlocked(): CryptoKey {
@@ -708,6 +732,7 @@ export class KeyVault {
   }
 
   /**
+   * Return aAD of the passcode wrap of the keyring key
    * @returns AAD of the passcode wrap of the keyring key
    */
   private deviceAad(): string {
@@ -715,6 +740,7 @@ export class KeyVault {
   }
 
   /**
+   * Return the id of this device when it is still registered on the server
    * @returns the id of this device when it is still registered on the server
    */
   private async registeredDeviceId(): Promise<string | undefined> {
@@ -727,6 +753,7 @@ export class KeyVault {
   }
 
   /**
+   * Read device
    * @returns the device blob of the user, undefined when this device is not enrolled
    */
   private async readDevice(): Promise<DeviceBlob | undefined> {
@@ -735,6 +762,7 @@ export class KeyVault {
   }
 
   /**
+   * Write device
    * @param blob - device blob
    */
   private async writeDevice(blob: DeviceBlob): Promise<void> {

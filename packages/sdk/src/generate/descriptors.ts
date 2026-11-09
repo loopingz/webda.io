@@ -3,6 +3,7 @@ import type { ModelDescriptor, ModelsManifest, OperationDescriptor, OperationsMa
 import type { SdkManifest, SdkManifestModel } from "../manifest.js";
 
 /**
+ * Return the attributes formatted as dates
  * @param schema - a model schema
  * @returns the attributes formatted as dates
  */
@@ -76,6 +77,7 @@ export function operationDescriptor(manifest: SdkManifest, id: string): Operatio
 }
 
 /**
+ * Return the runtime manifests of the operations and the models
  * @param manifest - the manifest
  * @returns the runtime manifests of the operations and the models
  */

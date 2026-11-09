@@ -33,6 +33,9 @@ abstract class JSONCNode {
       return new JSONCValue(arg0);
     }
   }
+  /**
+   * [comments]
+   */
   [COMMENTS]: {
     prefix: string;
     suffix: string;
@@ -69,8 +72,17 @@ function stripComments(str: string) {
 
 /** Represents a JSONC object `{ ... }` with ordered properties and formatting metadata. */
 class JSONCObject extends JSONCNode {
+  /**
+   * Indentation
+   */
   indentation: number = 2;
+  /**
+   * Whether sorted is enabled
+   */
   sorted: boolean = false;
+  /**
+   * Whether multiline is enabled
+   */
   multiline: boolean = true;
 
   /** Create a new JSONCObject.
@@ -84,6 +96,9 @@ class JSONCObject extends JSONCNode {
       });
     }
   }
+  /**
+   * Properties
+   */
   properties: JSONCProperty[] = [];
 
   /** Detect indentation, multiline layout, and sort order from existing properties. */
@@ -234,7 +249,13 @@ class JSONCObject extends JSONCNode {
 
 /** Represents a JSONC leaf value (string, number, boolean, or null). */
 class JSONCValue extends JSONCNode {
+  /**
+   * Value
+   */
   value: any;
+  /**
+   * [comments]
+   */
   [COMMENTS] = {
     prefix: " ",
     suffix: "",
@@ -281,7 +302,13 @@ class JSONCValue extends JSONCNode {
 
 /** Represents a key-value pair inside a JSONCObject. */
 class JSONCProperty extends JSONCNode {
+  /**
+   * Key
+   */
   key: JSONCKey;
+  /**
+   * Value
+   */
   value: JSONCValue | JSONCObject | JSONCArray;
 
   /** Create a new JSONCProperty.
@@ -315,6 +342,9 @@ class JSONCProperty extends JSONCNode {
 
 /** Represents a quoted property key inside a JSONC object. */
 class JSONCKey extends JSONCNode {
+  /**
+   * Name
+   */
   name: string;
 
   /** Create a new JSONCKey.
@@ -432,7 +462,13 @@ class JSONCArrayProxy extends Array {
 
 /** Represents a JSONC array `[ ... ]` with elements and formatting metadata. */
 class JSONCArray extends JSONCNode {
+  /**
+   * Whether multiline is enabled
+   */
   multiline: boolean = true;
+  /**
+   * Indentation
+   */
   indentation: number = 2;
 
   /** Create a new JSONCArray.
@@ -446,6 +482,9 @@ class JSONCArray extends JSONCNode {
       }) || [];
   }
 
+  /**
+   * Elements
+   */
   elements: (JSONCValue | JSONCObject | JSONCArray)[];
 
   /** Detect indentation and multiline layout from existing elements. */

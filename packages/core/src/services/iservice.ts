@@ -4,6 +4,9 @@ import { State, StateOptions } from "@webda/utils";
 import { AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter.js";
 import { ServiceParameters } from "./serviceparameters.js";
 
+/**
+ * Service states type definition
+ */
 export type ServiceStates =
   "initial" | "resolving" | "resolved" | "errored" | "initializing" | "running" | "stopping" | "stopped";
 
@@ -14,6 +17,9 @@ export type ServiceStates =
  */
 export const ServiceState = (options: StateOptions<ServiceStates>) => State({ error: "errored", ...options });
 
+/**
+ * Service partial parameters type definition
+ */
 export type ServicePartialParameters<T extends ServiceParameters> = DeepPartial<Attributes<T>>;
 
 /**
@@ -23,7 +29,13 @@ export abstract class AbstractService<
   T extends ServiceParameters = ServiceParameters,
   E extends AsyncEventUnknown = {}
 > extends AsyncEventEmitterImpl<E> {
+  /**
+   * Name
+   */
   public readonly name: string;
+  /**
+   * Parameters
+   */
   public readonly parameters: T;
 
   /**

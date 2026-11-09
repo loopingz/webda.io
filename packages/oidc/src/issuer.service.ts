@@ -182,6 +182,7 @@ export class OIDCIssuer<T extends OIDCIssuerParameters = OIDCIssuerParameters> e
   }
 
   /**
+   * Get the issuer url
    * @returns the issuer url
    */
   getIssuer(): string {
@@ -189,6 +190,7 @@ export class OIDCIssuer<T extends OIDCIssuerParameters = OIDCIssuerParameters> e
   }
 
   /**
+   * Get the subject of the minted tokens
    * @returns the subject of the minted tokens
    */
   getSubject(): string {

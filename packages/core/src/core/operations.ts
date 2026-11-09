@@ -26,6 +26,9 @@ import { bindRestInput, resolveInputSchema } from "../rest/binding.js";
 import { listOperationTransactionParticipants, OperationTransaction, useOperationTransaction } from "./transactions.js";
 import type { OperationTransactionParticipant } from "./transactions.js";
 
+/**
+ * Operation target type definition
+ */
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
 import { getOperationFeatureFlags, isFeatureEnabled, isOperationEnabled } from "../services/featureflags.js";
@@ -116,6 +119,7 @@ export type OperationAuthorizer = (
 ) => Promise<true | string | false>;
 
 /**
+ * Return the authorizers of the current instance
  * @returns the authorizers of the current instance
  */
 function useAuthorizers(): Set<OperationAuthorizer> {
@@ -141,6 +145,7 @@ export function unregisterOperationAuthorizer(fn: OperationAuthorizer): void {
 }
 
 /**
+ * List operation authorizers
  * @returns the registered operation authorizers
  */
 export function listOperationAuthorizers(): OperationAuthorizer[] {
@@ -268,6 +273,7 @@ export function getOperationStreaming(operation?: Pick<OperationDefinition, "str
 }
 
 /**
+ * Check whether it has streamed input
  * @param operation - the operation definition
  * @returns true when the operation reads a stream of input messages
  */
@@ -929,7 +935,7 @@ export function maskValue(val: unknown, seen = new WeakSet<object>()): unknown {
   if (val === null || val === undefined) {
     return val;
   }
-  if (typeof val === "object" && val !== null && "getValue" in val && typeof (val as any).getValue === "function") {
+  if (typeof val === "object" && "getValue" in val && typeof (val as any).getValue === "function") {
     return SECRET_MASK;
   }
   if (typeof val !== "object") {
@@ -1296,6 +1302,9 @@ export function registerOperation(
  *
  */
 
+/**
+ * Operation parameters interface
+ */
 interface OperationParameters {
   /**
    * A unique operation id
@@ -1395,6 +1404,11 @@ function Operation(...args: any[]) {
       static: context.static,
       generator: isGeneratorFunction(target)
     });
+    /**
+     * Perform operation wrapper
+     * @param {...any} args - the args
+     * @returns the result
+     */
     const wrapper = function operationWrapper(this: any, ...args) {
       return target.call(this, ...args);
     };

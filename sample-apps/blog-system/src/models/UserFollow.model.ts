@@ -26,7 +26,13 @@ export class UserFollow extends Model {
   createdAt!: Date;
 
   // Relations
+  /**
+   * Follower
+   */
   follower!: ManyToOne<User>; // The user doing the following
+  /**
+   * Following
+   */
   following!: ManyToOne<User>; // The user being followed
 
   /**

@@ -21,6 +21,7 @@ export function defaultOutputDir(): string {
  */
 export class JsonReporter implements Reporter {
   /**
+   * Create a new JsonReporter instance
    * @param outputDir - folder of the results
    */
   constructor(protected outputDir: string = defaultOutputDir()) {}

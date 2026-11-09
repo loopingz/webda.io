@@ -14,6 +14,10 @@ const nonenumerable: {
     return desc;
   }
   Object.defineProperty(target, name, {
+    /**
+     * Perform set
+     * @param value - the value
+     */
     set(value) {
       Object.defineProperty(this, name, {
         value,
@@ -33,17 +37,35 @@ const nonenumerable: {
 
 /** Base documentation node that extracts positional and JSDoc metadata from a TS AST node */
 class NodeDocumentation<T extends ts.Node = ts.Node> {
+  /**
+   * Filename
+   */
   filename: string;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * File position
+   */
   filePosition: {
     start: number;
     end: number;
     startLine: number;
     endLine: number;
   };
+  /**
+   * Start line
+   */
   startLine: number;
+  /**
+   * Parent
+   */
   @nonenumerable
   parent?: NodeDocumentation;
+  /**
+   * Jsdoc
+   */
   jsdoc?: string;
 
   /** Create a new NodeDocumentation.
@@ -111,11 +133,17 @@ class NodeDocumentation<T extends ts.Node = ts.Node> {
   }
 }
 
+/**
+ * Documentation node interface
+ */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface DocumentationNode {}
 
 /** Documentation wrapper for a TypeScript type node */
 class TypeDocumentation extends NodeDocumentation<ts.TypeNode> {
+  /**
+   * Name
+   */
   name: string;
   /** Create a new TypeDocumentation.
    * @param node - the TypeScript type node
@@ -130,9 +158,21 @@ class TypeDocumentation extends NodeDocumentation<ts.TypeNode> {
 class ParameterOrPropertyDocumentation extends NodeDocumentation<
   ts.ParameterDeclaration | ts.PropertySignature | ts.PropertyDeclaration
 > {
+  /**
+   * Type
+   */
   type: TypeDocumentation | "string" | "number" | "boolean";
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Default value
+   */
   defaultValue: string;
+  /**
+   * Whether optional is enabled
+   */
   optional: boolean = false;
 
   /** Create a new ParameterOrPropertyDocumentation.
@@ -182,10 +222,25 @@ class ParameterDocumentation extends ParameterOrPropertyDocumentation {
 
 /** Documentation for a class or interface property, including its resolved string type */
 class PropertyDocumentation extends ParameterOrPropertyDocumentation {
+  /**
+   * Type
+   */
   type: TypeDocumentation;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Default value
+   */
   defaultValue: string;
+  /**
+   * Whether optional is enabled
+   */
   optional: boolean;
+  /**
+   * String type
+   */
   stringType: string;
 
   /** Create a new PropertyDocumentation.
@@ -207,17 +262,44 @@ class PropertyDocumentation extends ParameterOrPropertyDocumentation {
 
 /** Documentation for a method, including parameters, return type, scope, and JSDoc tags */
 class MethodDocumentation extends NodeDocumentation<ts.MethodDeclaration | ts.MethodSignature> {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Return type
+   */
   returnType: TypeDocumentation;
+  /**
+   * Return string type
+   */
   returnStringType: string;
+  /**
+   * Parameters
+   */
   parameters: ParameterDocumentation[];
+  /**
+   * Body
+   */
   body: string;
+  /**
+   * Jstags
+   */
   jstags: {
     tagName: string;
     comment: string;
   }[];
+  /**
+   * Scope
+   */
   scope: "public" | "protected" | "private";
+  /**
+   * Whether abstract is enabled
+   */
   abstract: boolean = false;
+  /**
+   * Whether async is enabled
+   */
   async: boolean = false;
 
   /** Create a new MethodDocumentation.
@@ -275,9 +357,18 @@ class MethodDocumentation extends NodeDocumentation<ts.MethodDeclaration | ts.Me
 
 /** Shared documentation base for classes and interfaces, resolving package and JSDoc info */
 class ClassInterfaceDocumentation extends NodeDocumentation<ts.ClassDeclaration | ts.InterfaceDeclaration> {
+  /**
+   * Package
+   */
   package: string;
+  /**
+   * String type
+   */
   stringType: string;
 
+  /**
+   * Type checker
+   */
   @nonenumerable
   typeChecker: ts.TypeChecker;
 
@@ -312,9 +403,21 @@ class ClassInterfaceDocumentation extends NodeDocumentation<ts.ClassDeclaration 
 
 /** Documentation for a class declaration, including methods, properties, and constructor */
 class ClassDocumentation extends ClassInterfaceDocumentation {
+  /**
+   * Methods
+   */
   methods: MethodDocumentation[];
+  /**
+   * Properties
+   */
   properties: PropertyDocumentation[];
+  /**
+   * Construct
+   */
   construct: MethodDocumentation;
+  /**
+   * Whether abstract is enabled
+   */
   abstract: boolean = false;
 
   /** Create a new ClassDocumentation.
@@ -348,8 +451,17 @@ class ClassDocumentation extends ClassInterfaceDocumentation {
 
 /** Documentation for an interface declaration, including its property signatures */
 class InterfaceDocumentation extends ClassInterfaceDocumentation {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Methods
+   */
   methods: MethodDocumentation[];
+  /**
+   * Properties
+   */
   properties: PropertyDocumentation[];
 
   /** Create a new InterfaceDocumentation.
@@ -376,8 +488,17 @@ function projectFileFilter(node: ts.Node) {
 
 /** Extracts structured documentation (classes, interfaces, methods, properties) from a TypeScript program */
 export class Documenter {
+  /**
+   * Types
+   */
   types: { [key: string]: DocumentationNode };
+  /**
+   * Documentation
+   */
   documentation: NodeDocumentation[] = [];
+  /**
+   * Checker
+   */
   checker: ts.TypeChecker;
 
   /**

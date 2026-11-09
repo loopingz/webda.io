@@ -3,8 +3,17 @@ import { AsyncAction, JobInfo, Runner, RunnerParameters } from "@webda/async";
 import type { SecretString } from "@webda/core";
 import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 
+/**
+ * Lambda async job event interface
+ */
 export interface LambdaAsyncJobEvent {
+  /**
+   * Event source
+   */
   eventSource: string;
+  /**
+   * Job info
+   */
   jobInfo: JobInfo;
 }
 
@@ -49,10 +58,25 @@ export class LambdaCallerParameters extends RunnerParameters implements AWSServi
   arn: string;
 }
 
+/**
+ * Lambda command event interface
+ */
 export interface LambdaCommandEvent {
+  /**
+   * Command
+   */
   command: "launch";
+  /**
+   * Service
+   */
   service: string;
+  /**
+   * Method
+   */
   method: string;
+  /**
+   * Args
+   */
   args?: any[];
 }
 /**

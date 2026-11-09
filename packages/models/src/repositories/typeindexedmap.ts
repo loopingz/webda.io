@@ -42,6 +42,7 @@ export class TypeIndexedMap<V = string> extends Map<string, V> {
   private pending: Set<string>;
 
   /**
+   * Create a new TypeIndexedMap instance
    * @param entries - initial entries
    */
   constructor(entries?: Iterable<readonly [string, V]> | null) {

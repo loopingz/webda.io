@@ -11,6 +11,9 @@ export type AsyncEventUnknown = { [key: string]: unknown };
  * so you can decide to wait for the event to be processed or not
  */
 
+/**
+ * Async event emitter interface
+ */
 export interface AsyncEventEmitter<E extends AsyncEventUnknown = AsyncEventUnknown> {
   /**
    * EventEmitter interface
@@ -56,7 +59,7 @@ export interface AsyncEventEmitter<E extends AsyncEventUnknown = AsyncEventUnkno
    */
   emit<Key extends keyof E>(eventName: keyof E, event: E[Key]): Promise<void>;
   /**
-   *
+   * Perform listeners
    * @param eventName
    */
   listeners(eventName: keyof E): Function[];
@@ -72,9 +75,13 @@ export interface AsyncEventEmitter<E extends AsyncEventUnknown = AsyncEventUnkno
 
 /** Concrete implementation of AsyncEventEmitter that wraps Node.js EventEmitter with async support */
 export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnknown> implements AsyncEventEmitter<E> {
+  /**
+   * Emitter
+   */
   private emitter: EventEmitter;
 
   /**
+   * Add listener
    * @see EventEmitter.addListener
    * @param eventName - the event name
    * @param listener - the event listener
@@ -100,6 +107,7 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
   }
 
   /**
+   * Perform once
    * @see EventEmitter.once
    * @param eventName - the event name
    * @param listener - the event listener
@@ -111,6 +119,7 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
   }
 
   /**
+   * Perform on
    * @see EventEmitter.once
    * @param eventName - the event name
    * @param listener - the event listener
@@ -122,6 +131,7 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
   }
 
   /**
+   * Remove listener
    * @see EventEmitter.removeListener
    * @param eventName - the event name
    * @param listener - the event listener
@@ -133,6 +143,7 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
   }
 
   /**
+   * Perform off
    * @see EventEmitter.off
    * @param eventName - the event name
    * @param listener - the event listener
@@ -143,6 +154,7 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
   }
 
   /**
+   * Remove all listeners
    * @see EventEmitter.removeAllListeners
    * @param eventName - the event name
    * @returns this for chaining
@@ -239,6 +251,9 @@ export class EventEmitterUtils {
   }
 }
 
+/**
+ * Model emitter type definition
+ */
 export type ModelEmitter<T extends AsyncEventUnknown> = Pick<
   AsyncEventEmitter<T>,
   "on" | "emit" | "removeAllListeners" | "once" | "off"

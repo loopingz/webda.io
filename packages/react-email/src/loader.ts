@@ -48,6 +48,7 @@ const cache = new Map<string, EmailComponent>();
  */
 export class NoDefaultExportError extends Error {
   /**
+   * Create a new NoDefaultExportError instance
    * @param path - path of the module
    */
   constructor(public path: string) {

@@ -11,6 +11,7 @@
         "definitions": {
           "exchange#2": {
             "additionalProperties": false,
+            "description": "Exchange",
             "properties": {
               "alternateExchange": {
                 "description": "an exchange to send messages to if this exchange can’t route them to any queues.\n\nSpecific to RabbitMQ",
@@ -36,6 +37,7 @@
               },
               "type": {
                 "default": "fanout",
+                "description": "Type",
                 "type": "string"
               }
             },
@@ -49,7 +51,8 @@
             "type": "string"
           },
           "exchange": {
-            "$ref": "#/definitions/exchange%232"
+            "$ref": "#/definitions/exchange%232",
+            "description": "Exchange"
           },
           "subscription": {
             "default": "",

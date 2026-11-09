@@ -10,6 +10,9 @@ import { bind } from "@webda/ql";
  * Events emitted by posts, on top of the model events
  */
 export class PostEvents<T extends Post> {
+  /**
+   * Publish
+   */
   Publish: {
     post: T;
   };
@@ -23,6 +26,9 @@ export class PostEvents<T extends Post> {
  * never scan the other authors' drafts.
  */
 export class Post extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["slug"] as const;
   /**
    * Add an event
@@ -102,7 +108,13 @@ export class Post extends Model {
   publishedAt?: Date;
 
   // Relations
+  /**
+   * Author
+   */
   author!: ManyToOne<User>;
+  /**
+   * Comments
+   */
   comments!: Contains<Comment>;
   /**
    * PUT|GET /posts/:slug/tags to get all tags for a post with a query

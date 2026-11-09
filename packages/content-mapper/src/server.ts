@@ -28,8 +28,17 @@ function log(...parts: unknown[]): void {
 
 /** Everything held for one `projectHandle`. */
 interface ProjectEntry {
+  /**
+   * Session
+   */
   session: WarmSession;
+  /**
+   * Transforms
+   */
   transforms: number;
+  /**
+   * Timings
+   */
   timings: TransformTiming[];
 }
 

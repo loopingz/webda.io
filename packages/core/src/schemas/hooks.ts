@@ -6,8 +6,14 @@ import { JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
 import { useLog } from "@webda/workout";
 
+/**
+ * No schema result type definition
+ */
 type NoSchemaResult = null;
 
+/**
+ * Schema valid result type definition
+ */
 type SchemaValidResult = true;
 
 let ajvInstance: (Ajv & { rawSchema: Record<string, JSONSchema7> }) | null = null;
@@ -31,8 +37,17 @@ function getAjv(): Ajv & { rawSchema: Record<string, JSONSchema7> } {
  * It is not exported by ajv
  */
 export class ValidationError extends Error {
+  /**
+   * Errors
+   */
   readonly errors: Partial<ErrorObject>[];
+  /**
+   * Ajv
+   */
   readonly ajv: true;
+  /**
+   * Validation
+   */
   readonly validation: true;
 
   /** Create a new ValidationError

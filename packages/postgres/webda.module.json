@@ -207,6 +207,18 @@
                 ],
                 "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
               },
+              "certificateCompression": {
+                "description": "An array of supported certificate\ncompression algorithm names, in preference order. Supported values are\n`'zlib'`, `'brotli'`, and `'zstd'`. When set, enables TLS certificate\ncompression ([RFC 8879](https://tools.ietf.org/html/rfc8879)) which compresses certificates during the TLS\nhandshake, reducing handshake size. Only effective with TLSv1.3.\n**Default:** `[]` (disabled).",
+                "items": {
+                  "enum": [
+                    "zlib",
+                    "brotli",
+                    "zstd"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
               "checkServerIdentity": {},
               "ciphers": {
                 "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
@@ -259,7 +271,7 @@
                 "description": "`'auto'` or custom Diffie-Hellman parameters, required for non-ECDHE perfect forward secrecy.\nIf omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available.\nECDHE-based perfect forward secrecy will still be available."
               },
               "ecdhCurve": {
-                "description": "A string describing a named curve or a colon separated list of curve\nNIDs or names, for example P-521:P-384:P-256, to use for ECDH key\nagreement. Set to auto to select the curve automatically. Use\ncrypto.getCurves() to obtain a list of available curve names. On\nrecent releases, openssl ecparam -list_curves will also display the\nname and description of each available elliptic curve. Default:\ntls.DEFAULT_ECDH_CURVE.",
+                "description": "A string describing a named curve, TLS group, or\ncolon-separated list of named curves or TLS groups to use for key agreement,\nfor example `P-521:P-384:P-256`, `X25519`, or `X25519MLKEM768`. The\nhistorical name of this option refers to ECDH key agreement in TLSv1.2 and\nbelow. In TLSv1.3, this option configures the TLS Supported Groups and\nkey share groups offered or accepted by the TLS stack. Set to `auto` to\nselect the group automatically. Use `crypto.getCurves()` to obtain a\nlist of available elliptic curve names. For TLS group names, use\n`openssl list -tls-groups` or consult the [IANA TLS Supported Groups\nregistry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8).",
                 "type": "string"
               },
               "enableTrace": {
@@ -395,6 +407,11 @@
                 "description": "If true the server will request a certificate from clients that\nconnect and attempt to verify that certificate. Defaults to\nfalse.",
                 "type": "boolean"
               },
+              "requestOCSP": {
+                "default": false,
+                "description": "If true, specifies that the OCSP status request extension will be\nadded to the client hello and an 'OCSPResponse' event will be\nemitted on the socket before establishing a secure communication.",
+                "type": "boolean"
+              },
               "secureContext": {
                 "$ref": "#/definitions/SecureContext",
                 "description": "An optional TLS context object from tls.createSecureContext()"
@@ -473,7 +490,7 @@
                 "type": "boolean"
               },
               "readableFlowing": {
-                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v26.x/api/stream.html#three-states) section.",
                 "enum": [
                   null,
                   false,
@@ -831,6 +848,18 @@
                 ],
                 "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
               },
+              "certificateCompression": {
+                "description": "An array of supported certificate\ncompression algorithm names, in preference order. Supported values are\n`'zlib'`, `'brotli'`, and `'zstd'`. When set, enables TLS certificate\ncompression ([RFC 8879](https://tools.ietf.org/html/rfc8879)) which compresses certificates during the TLS\nhandshake, reducing handshake size. Only effective with TLSv1.3.\n**Default:** `[]` (disabled).",
+                "items": {
+                  "enum": [
+                    "zlib",
+                    "brotli",
+                    "zstd"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
               "checkServerIdentity": {},
               "ciphers": {
                 "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
@@ -883,7 +912,7 @@
                 "description": "`'auto'` or custom Diffie-Hellman parameters, required for non-ECDHE perfect forward secrecy.\nIf omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available.\nECDHE-based perfect forward secrecy will still be available."
               },
               "ecdhCurve": {
-                "description": "A string describing a named curve or a colon separated list of curve\nNIDs or names, for example P-521:P-384:P-256, to use for ECDH key\nagreement. Set to auto to select the curve automatically. Use\ncrypto.getCurves() to obtain a list of available curve names. On\nrecent releases, openssl ecparam -list_curves will also display the\nname and description of each available elliptic curve. Default:\ntls.DEFAULT_ECDH_CURVE.",
+                "description": "A string describing a named curve, TLS group, or\ncolon-separated list of named curves or TLS groups to use for key agreement,\nfor example `P-521:P-384:P-256`, `X25519`, or `X25519MLKEM768`. The\nhistorical name of this option refers to ECDH key agreement in TLSv1.2 and\nbelow. In TLSv1.3, this option configures the TLS Supported Groups and\nkey share groups offered or accepted by the TLS stack. Set to `auto` to\nselect the group automatically. Use `crypto.getCurves()` to obtain a\nlist of available elliptic curve names. For TLS group names, use\n`openssl list -tls-groups` or consult the [IANA TLS Supported Groups\nregistry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8).",
                 "type": "string"
               },
               "enableTrace": {
@@ -1019,6 +1048,11 @@
                 "description": "If true the server will request a certificate from clients that\nconnect and attempt to verify that certificate. Defaults to\nfalse.",
                 "type": "boolean"
               },
+              "requestOCSP": {
+                "default": false,
+                "description": "If true, specifies that the OCSP status request extension will be\nadded to the client hello and an 'OCSPResponse' event will be\nemitted on the socket before establishing a secure communication.",
+                "type": "boolean"
+              },
               "secureContext": {
                 "$ref": "#/definitions/SecureContext",
                 "description": "An optional TLS context object from tls.createSecureContext()"
@@ -1097,7 +1131,7 @@
                 "type": "boolean"
               },
               "readableFlowing": {
-                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v26.x/api/stream.html#three-states) section.",
                 "enum": [
                   null,
                   false,
@@ -1678,6 +1712,18 @@
                 ],
                 "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
               },
+              "certificateCompression": {
+                "description": "An array of supported certificate\ncompression algorithm names, in preference order. Supported values are\n`'zlib'`, `'brotli'`, and `'zstd'`. When set, enables TLS certificate\ncompression ([RFC 8879](https://tools.ietf.org/html/rfc8879)) which compresses certificates during the TLS\nhandshake, reducing handshake size. Only effective with TLSv1.3.\n**Default:** `[]` (disabled).",
+                "items": {
+                  "enum": [
+                    "zlib",
+                    "brotli",
+                    "zstd"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
               "checkServerIdentity": {},
               "ciphers": {
                 "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
@@ -1730,7 +1776,7 @@
                 "description": "`'auto'` or custom Diffie-Hellman parameters, required for non-ECDHE perfect forward secrecy.\nIf omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available.\nECDHE-based perfect forward secrecy will still be available."
               },
               "ecdhCurve": {
-                "description": "A string describing a named curve or a colon separated list of curve\nNIDs or names, for example P-521:P-384:P-256, to use for ECDH key\nagreement. Set to auto to select the curve automatically. Use\ncrypto.getCurves() to obtain a list of available curve names. On\nrecent releases, openssl ecparam -list_curves will also display the\nname and description of each available elliptic curve. Default:\ntls.DEFAULT_ECDH_CURVE.",
+                "description": "A string describing a named curve, TLS group, or\ncolon-separated list of named curves or TLS groups to use for key agreement,\nfor example `P-521:P-384:P-256`, `X25519`, or `X25519MLKEM768`. The\nhistorical name of this option refers to ECDH key agreement in TLSv1.2 and\nbelow. In TLSv1.3, this option configures the TLS Supported Groups and\nkey share groups offered or accepted by the TLS stack. Set to `auto` to\nselect the group automatically. Use `crypto.getCurves()` to obtain a\nlist of available elliptic curve names. For TLS group names, use\n`openssl list -tls-groups` or consult the [IANA TLS Supported Groups\nregistry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8).",
                 "type": "string"
               },
               "enableTrace": {
@@ -1866,6 +1912,11 @@
                 "description": "If true the server will request a certificate from clients that\nconnect and attempt to verify that certificate. Defaults to\nfalse.",
                 "type": "boolean"
               },
+              "requestOCSP": {
+                "default": false,
+                "description": "If true, specifies that the OCSP status request extension will be\nadded to the client hello and an 'OCSPResponse' event will be\nemitted on the socket before establishing a secure communication.",
+                "type": "boolean"
+              },
               "secureContext": {
                 "$ref": "#/definitions/SecureContext",
                 "description": "An optional TLS context object from tls.createSecureContext()"
@@ -1944,7 +1995,7 @@
                 "type": "boolean"
               },
               "readableFlowing": {
-                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v26.x/api/stream.html#three-states) section.",
                 "enum": [
                   null,
                   false,
@@ -2180,6 +2231,7 @@
             "description": "Database connection metadata",
             "properties": {
               "name": {
+                "description": "Name",
                 "type": "string"
               }
             },
@@ -2219,6 +2271,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -2270,7 +2323,8 @@
             "type": "string"
           },
           "database": {
-            "$ref": "#/definitions/SQLDatabase"
+            "$ref": "#/definitions/SQLDatabase",
+            "description": "Database"
           },
           "extraColumn": {
             "anyOf": [
@@ -2780,6 +2834,18 @@
                 ],
                 "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
               },
+              "certificateCompression": {
+                "description": "An array of supported certificate\ncompression algorithm names, in preference order. Supported values are\n`'zlib'`, `'brotli'`, and `'zstd'`. When set, enables TLS certificate\ncompression ([RFC 8879](https://tools.ietf.org/html/rfc8879)) which compresses certificates during the TLS\nhandshake, reducing handshake size. Only effective with TLSv1.3.\n**Default:** `[]` (disabled).",
+                "items": {
+                  "enum": [
+                    "zlib",
+                    "brotli",
+                    "zstd"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
               "checkServerIdentity": {},
               "ciphers": {
                 "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
@@ -2832,7 +2898,7 @@
                 "description": "`'auto'` or custom Diffie-Hellman parameters, required for non-ECDHE perfect forward secrecy.\nIf omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available.\nECDHE-based perfect forward secrecy will still be available."
               },
               "ecdhCurve": {
-                "description": "A string describing a named curve or a colon separated list of curve\nNIDs or names, for example P-521:P-384:P-256, to use for ECDH key\nagreement. Set to auto to select the curve automatically. Use\ncrypto.getCurves() to obtain a list of available curve names. On\nrecent releases, openssl ecparam -list_curves will also display the\nname and description of each available elliptic curve. Default:\ntls.DEFAULT_ECDH_CURVE.",
+                "description": "A string describing a named curve, TLS group, or\ncolon-separated list of named curves or TLS groups to use for key agreement,\nfor example `P-521:P-384:P-256`, `X25519`, or `X25519MLKEM768`. The\nhistorical name of this option refers to ECDH key agreement in TLSv1.2 and\nbelow. In TLSv1.3, this option configures the TLS Supported Groups and\nkey share groups offered or accepted by the TLS stack. Set to `auto` to\nselect the group automatically. Use `crypto.getCurves()` to obtain a\nlist of available elliptic curve names. For TLS group names, use\n`openssl list -tls-groups` or consult the [IANA TLS Supported Groups\nregistry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8).",
                 "type": "string"
               },
               "enableTrace": {
@@ -2968,6 +3034,11 @@
                 "description": "If true the server will request a certificate from clients that\nconnect and attempt to verify that certificate. Defaults to\nfalse.",
                 "type": "boolean"
               },
+              "requestOCSP": {
+                "default": false,
+                "description": "If true, specifies that the OCSP status request extension will be\nadded to the client hello and an 'OCSPResponse' event will be\nemitted on the socket before establishing a secure communication.",
+                "type": "boolean"
+              },
               "secureContext": {
                 "$ref": "#/definitions/SecureContext",
                 "description": "An optional TLS context object from tls.createSecureContext()"
@@ -3046,7 +3117,7 @@
                 "type": "boolean"
               },
               "readableFlowing": {
-                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v26.x/api/stream.html#three-states) section.",
                 "enum": [
                   null,
                   false,
@@ -3282,6 +3353,7 @@
             "description": "Database connection metadata",
             "properties": {
               "name": {
+                "description": "Name",
                 "type": "string"
               }
             },
@@ -3321,6 +3393,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -3332,6 +3405,7 @@
             "type": "object"
           }
         },
+        "description": "Configuration parameters for Postgres",
         "properties": {
           "aggregationFallback": {
             "default": "warn",
@@ -3349,7 +3423,8 @@
             "type": "boolean"
           },
           "database": {
-            "$ref": "#/definitions/SQLDatabase"
+            "$ref": "#/definitions/SQLDatabase",
+            "description": "Database"
           },
           "maxGroups": {
             "default": 10000,

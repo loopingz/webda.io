@@ -163,6 +163,9 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters>
   extends Store<K>
   implements MigratableStore
 {
+  /**
+   * Extension
+   */
   static EXTENSION = ".json";
 
   /**

@@ -94,11 +94,21 @@ class PlainMemoryRepository<T extends ModelClass> extends MemoryRepository<T> {
  * resources (equality on label fields is filtered by the API server) and are evaluated in memory.
  */
 export class KubernetesRepository<T extends ModelClass> extends MemoryRepository<T> {
+  /**
+   * Status fields
+   */
   protected statusFields: string[];
+  /**
+   * Label fields
+   */
   protected labelFields: string[];
+  /**
+   * Max retries
+   */
   protected maxRetries: number;
 
   /**
+   * Create a new KubernetesRepository instance
    * @param model - the model class
    * @param pks - primary key fields
    * @param resources - the custom resources of the root model

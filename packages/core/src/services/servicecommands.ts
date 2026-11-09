@@ -89,6 +89,7 @@ export function operationCommandName(id: string): string {
 }
 
 /**
+ * Return the operations as selectable commands
  * @param operationIds - operation ids
  * @returns the operations as selectable commands
  */
@@ -292,6 +293,7 @@ export function collectServiceCommands(
 }
 
 /**
+ * Return the names of its class and of every ancestor class
  * @param service - a service instance
  * @returns the names of its class and of every ancestor class
  */

@@ -1,3 +1,6 @@
+/**
+ * Versioning error code type definition
+ */
 export type VersioningErrorCode =
   | "CIRCULAR"
   | "BAD_FORMAT"
@@ -12,10 +15,17 @@ export type VersioningErrorCode =
  * which part of the document triggered the error.
  */
 export class VersioningError extends Error {
+  /**
+   * Code
+   */
   public readonly code: VersioningErrorCode;
+  /**
+   * Path
+   */
   public readonly path?: string;
 
   /**
+   * Create a new VersioningError instance
    * @param code - machine-readable error code from `VersioningErrorCode`
    * @param message - human-readable description of the error
    * @param path - optional JSON Pointer path of the field that caused the error

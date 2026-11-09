@@ -17,8 +17,17 @@ export type SchemaSyncMode = "none" | "create" | "alter" | "validate";
  * A difference between the database and the plan that sync never resolves on its own
  */
 export interface SchemaDrift {
+  /**
+   * Table
+   */
   table: string;
+  /**
+   * Column
+   */
   column?: string;
+  /**
+   * Message
+   */
   message: string;
 }
 
@@ -27,6 +36,7 @@ export interface SchemaDrift {
  */
 export class SchemaDriftError extends WebdaError.CodeError {
   /**
+   * Create a new SchemaDriftError instance
    * @param steps - the changes sync would apply
    * @param drift - the differences sync never resolves
    */
@@ -42,6 +52,7 @@ export class SchemaDriftError extends WebdaError.CodeError {
 }
 
 /**
+ * Return a one-line description for logs and errors
  * @param step - a schema change
  * @returns a one-line description for logs and errors
  */
@@ -59,6 +70,7 @@ export function describeStep(step: SchemaStep): string {
 }
 
 /**
+ * Return what it adds, for the drift messages
  * @param step - a schema change on an existing table
  * @returns what it adds, for the drift messages
  */

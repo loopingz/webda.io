@@ -29,9 +29,13 @@ const SCHEME = "webda://";
  * Registry of models exposed as `webda://{Model}/{pk...}` resources
  */
 export class ResourceRegistry {
+  /**
+   * Entries
+   */
   protected entries: ResourceModel[] = [];
 
   /**
+   * Create a new ResourceRegistry instance
    * @param filter - model short ids to expose, or ["*"]
    */
   constructor(protected filter: string[]) {}
@@ -67,6 +71,7 @@ export class ResourceRegistry {
   }
 
   /**
+   * Return exposed models, sorted by name
    * @returns exposed models, sorted by name
    */
   models(): ResourceModel[] {
@@ -74,6 +79,7 @@ export class ResourceRegistry {
   }
 
   /**
+   * Return mCP resource templates
    * @param models - models to describe, all exposed models by default
    * @returns MCP resource templates
    */
@@ -86,6 +92,7 @@ export class ResourceRegistry {
   }
 
   /**
+   * Return its resource URI
    * @param model - the model
    * @param record - an instance (or key object)
    * @returns its resource URI
@@ -95,6 +102,7 @@ export class ResourceRegistry {
   }
 
   /**
+   * Parse operation
    * @param uri - a resource URI
    * @returns the model and decoded key, or undefined when it does not match
    */
@@ -118,6 +126,7 @@ export class ResourceRegistry {
 }
 
 /**
+ * Encode cursor
  * @param cursor - model and continuation token
  * @param cursor.model - model short id
  * @param cursor.token - continuation token of that model's query
@@ -128,6 +137,7 @@ export function encodeCursor(cursor: { model: string; token?: string }): string 
 }
 
 /**
+ * Decode cursor
  * @param cursor - opaque cursor
  * @returns the decoded cursor, or undefined when absent or invalid
  */
@@ -150,6 +160,7 @@ export function decodeCursor(cursor: string | undefined): { model: string; token
 }
 
 /**
+ * Query for
  * @param token - continuation token
  * @returns the WebdaQL query for one page
  */

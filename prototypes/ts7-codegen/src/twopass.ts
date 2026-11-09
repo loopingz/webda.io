@@ -21,6 +21,9 @@ import { accessorsGenerator, type AccessorOptions } from "./generators/accessors
 import { loadParametersGenerator } from "./generators/loadparameters.ts";
 import { applyEdits, mergePlan, type Edit, type Generator } from "./plan.ts";
 
+/**
+ * Two pass options interface
+ */
 export interface TwoPassOptions extends AccessorOptions {
   /** Absolute tsconfig path. */
   configFile: string;
@@ -32,6 +35,9 @@ export interface TwoPassOptions extends AccessorOptions {
   emit?: boolean;
 }
 
+/**
+ * Two pass result interface
+ */
 export interface TwoPassResult {
   /** Rewritten text per file, for inspection. */
   injected: Map<string, string>;
@@ -41,6 +47,9 @@ export interface TwoPassResult {
   emitted: Map<string, string>;
   /** Overlapping edits between generators, if any. */
   conflicts: { fileName: string; a: Edit; b: Edit }[];
+  /**
+   * Timing
+   */
   timing: { pass1Ms: number; pass2Ms: number; totalMs: number };
   /** Which generator produced how many edits. */
   editCounts: Record<string, number>;

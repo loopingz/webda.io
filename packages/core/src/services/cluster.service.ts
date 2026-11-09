@@ -26,10 +26,12 @@ export interface Cluster {
    */
   whenLeader(fn: LeaderCallback, deregisteredFn?: LeaderCallback): () => void;
   /**
+   * Check whether leader
    * @returns whether this instance is the leader
    */
   isLeader(): boolean;
   /**
+   * Get the identity of this instance
    * @returns the identity of this instance
    */
   getInstanceId(): string;
@@ -58,6 +60,7 @@ export class ClusterServiceParameters extends ServiceParameters {
   leaseName: string;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -77,7 +80,13 @@ export class ClusterServiceParameters extends ServiceParameters {
 
 /** A `whenLeader` registration */
 interface Registration {
+  /**
+   * Callback function
+   */
   fn: LeaderCallback;
+  /**
+   * Deregistered fn
+   */
   deregisteredFn?: LeaderCallback;
   /** Not removed yet */
   active: boolean;
@@ -91,9 +100,13 @@ interface Registration {
  * Registrations of `whenLeader`, run when the leadership changes
  */
 class LeaderRegistrations {
+  /**
+   * Registrations
+   */
   protected registrations = new Set<Registration>();
 
   /**
+   * Create a new LeaderRegistrations instance
    * @param isLeader - current leadership
    * @param onError - report a callback error
    */
@@ -164,6 +177,9 @@ export abstract class ClusterService<T extends ClusterServiceParameters = Cluste
   extends Service<T>
   implements Cluster
 {
+  /**
+   * Parameters
+   */
   static Parameters = ClusterServiceParameters;
 
   /** Whether this instance holds the lease */
@@ -291,6 +307,7 @@ export abstract class ClusterService<T extends ClusterServiceParameters = Cluste
   }
 
   /**
+   * Get milliseconds after the start of a successful attempt during which this instance leads:
    * @returns milliseconds after the start of a successful attempt during which this instance leads:
    *   `(leaseDuration + renewInterval) / 2`, between the next attempt and the expiry of the lease
    */
@@ -336,6 +353,9 @@ export abstract class ClusterService<T extends ClusterServiceParameters = Cluste
  * Cluster of a single instance, always leader
  */
 class LocalCluster implements Cluster {
+  /**
+   * Registrations
+   */
   protected registrations = new LeaderRegistrations(
     () => true,
     err => useLog("ERROR", "whenLeader callback failed", err)
@@ -362,7 +382,13 @@ const localCluster = new LocalCluster();
 
 /** A free `whenLeader` registration waiting for the services of its Core to be created */
 interface PendingRegistration {
+  /**
+   * Callback function
+   */
   fn: LeaderCallback;
+  /**
+   * Deregistered fn
+   */
   deregisteredFn?: LeaderCallback;
   /** Removal of the registration once attached */
   unregister?: () => void;
@@ -391,6 +417,7 @@ function attachPending(services: object) {
 }
 
 /**
+ * Return the services of the current Core until it emits `Webda.Init.Services`, undefined otherwise: services are
  * @returns the services of the current Core until it emits `Webda.Init.Services`, undefined otherwise: services are
  *   created during `Core.init()`, so the cluster service may not exist yet
  */

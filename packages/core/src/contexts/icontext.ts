@@ -65,7 +65,7 @@ export abstract class Context {
     return <K>this.extensions[name];
   }
   /**
-   *
+   * Set the extension
    * @param name to add
    * @param extension object to store
    * @returns this for chaining
@@ -244,6 +244,7 @@ export interface ContextProviderInfo {
   [key: string]: any;
 }
 /**
+ * Context provider interface
  * @category CoreFeatures
  */
 export interface ContextProvider {
@@ -261,6 +262,9 @@ export interface ContextProvider {
  * It should allow to set the context only if `canUpdateContext` is true
  */
 export interface IContextAware {
+  /**
+   * Context
+   */
   context: Context;
 }
 

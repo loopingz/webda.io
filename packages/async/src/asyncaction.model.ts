@@ -304,6 +304,7 @@ export class AsyncWebdaAction extends AsyncAction {
   public method?: string;
 
   /**
+   * Create a new AsyncWebdaAction instance
    * @param serviceName service to call or initial data
    * @param method method to call
    * @param args to call with the method
@@ -354,6 +355,7 @@ export class AsyncOperationAction extends AsyncAction {
   public system?: boolean;
 
   /**
+   * Create a new AsyncOperationAction instance
    * @param operationId operation to call or initial data
    * @param context context to use
    * @param logLevel log level to capture

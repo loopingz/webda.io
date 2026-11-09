@@ -46,16 +46,37 @@ export type SchemaChangeCode =
  * A change between a live plan and the next one
  */
 export interface SchemaChange {
+  /**
+   * Category
+   */
   category: SchemaChangeCategory;
+  /**
+   * Code
+   */
   code: SchemaChangeCode;
   /**
    * The live version compared
    */
   version: string;
+  /**
+   * Table
+   */
   table?: string;
+  /**
+   * Column
+   */
   column?: string;
+  /**
+   * Model
+   */
   model?: string;
+  /**
+   * Attribute
+   */
   attribute?: string;
+  /**
+   * Message
+   */
   message: string;
   /**
    * A `BLOCK` downgraded to `WARN` by `allowIncompatible`
@@ -67,7 +88,13 @@ export interface SchemaChange {
  * A plan in use by a running version
  */
 export interface LiveSchemaPlan {
+  /**
+   * Version
+   */
   version: string;
+  /**
+   * Plan
+   */
   plan: RelationalSchemaPlan;
 }
 
@@ -121,6 +148,7 @@ export function compareSchemaPlans(
 }
 
 /**
+ * Return the changes preventing the new version from starting
  * @param changes - the changes
  * @returns the changes preventing the new version from starting
  */
@@ -128,9 +156,13 @@ export function blockingChanges(changes: SchemaChange[]): SchemaChange[] {
   return changes.filter(change => change.category === "BLOCK");
 }
 
+/**
+ * Add type definition
+ */
 type Add = (change: Omit<SchemaChange, "version">) => void;
 
 /**
+ * Compare options
  * @param live - the live plan
  * @param next - the next plan
  * @param add - the change collector
@@ -148,6 +180,7 @@ function compareOptions(live: RelationalSchemaPlan, next: RelationalSchemaPlan, 
 }
 
 /**
+ * Compare models
  * @param live - the live plan
  * @param next - the next plan
  * @param add - the change collector
@@ -180,6 +213,7 @@ function compareModels(live: RelationalSchemaPlan, next: RelationalSchemaPlan, a
 }
 
 /**
+ * Compare tables
  * @param live - the live plan
  * @param next - the next plan
  * @param add - the change collector
@@ -208,6 +242,7 @@ function compareTables(live: RelationalSchemaPlan, next: RelationalSchemaPlan, a
 }
 
 /**
+ * Compare table
  * @param live - the live table
  * @param next - the next table
  * @param add - the change collector
@@ -264,6 +299,7 @@ function compareTable(live: TablePlan, next: TablePlan, add: Add): void {
 }
 
 /**
+ * Compare column
  * @param table - the table
  * @param live - the live column
  * @param next - the next column
@@ -335,6 +371,7 @@ function compareColumn(table: string, live: ColumnPlan, next: ColumnPlan, add: A
 }
 
 /**
+ * Compare enum
  * @param table - the table
  * @param live - the live column
  * @param next - the next column
@@ -396,6 +433,7 @@ function compareEnum(table: string, live: ColumnPlan, next: ColumnPlan, add: Add
 const EQUIVALENT_POLICIES = new Set<ForeignKeyAction | undefined>(["NO ACTION", "RESTRICT"]);
 
 /**
+ * Compare relations
  * @param live - the live plan
  * @param next - the next plan
  * @param add - the change collector
@@ -456,6 +494,7 @@ function compareRelations(live: RelationalSchemaPlan, next: RelationalSchemaPlan
 }
 
 /**
+ * Return the kind of its storage, with the junction table
  * @param relation - a relation
  * @returns the kind of its storage, with the junction table
  */
@@ -464,6 +503,7 @@ function storageKind(relation: RelationPlan): string {
 }
 
 /**
+ * Compare indexes
  * @param live - the live plan
  * @param next - the next plan
  * @param add - the change collector

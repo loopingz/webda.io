@@ -2,6 +2,9 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
+/**
+ * Version resolver type definition
+ */
 export type VersionResolver = (name: string) => string | undefined;
 
 /** Tool versions taken from @webda/core devDependencies so apps build like the monorepo */

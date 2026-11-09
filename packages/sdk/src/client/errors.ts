@@ -3,6 +3,7 @@
  */
 export class SdkError extends Error {
   /**
+   * Create a new SdkError instance
    * @param status - HTTP-like status, 0 for a network error or an unreachable server
    * @param message - error message
    * @param options - error details
@@ -31,6 +32,7 @@ export class SdkError extends Error {
   readonly transport?: string;
 
   /**
+   * Check whether offline
    * @returns true when the server could not be reached
    */
   isOffline(): boolean {

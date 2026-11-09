@@ -29,6 +29,9 @@ export interface ReactEmailEngineOptions {
   extensions?: string[];
 }
 
+/**
+ * Memo type definition
+ */
 type Memo = WeakMap<
   EmailComponent,
   WeakMap<object, Map<string, { fingerprint: string; promise: Promise<RenderedEmail> }>>
@@ -38,8 +41,17 @@ type Memo = WeakMap<
  * Template engine rendering react-email components
  */
 export class ReactEmailEngine implements TemplateEngine {
+  /**
+   * Extensions
+   */
   extensions = ["tsx", "jsx"];
+  /**
+   * Options
+   */
   protected options: ReactEmailEngineOptions = { pretty: false, fixApostrophes: true };
+  /**
+   * Memo
+   */
   protected memo: Memo = new WeakMap();
 
   /**

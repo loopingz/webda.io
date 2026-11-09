@@ -64,11 +64,21 @@ export class FeatureFlagsServiceParameters extends ServiceParameters {
 }
 
 /**
+ * Feature flags service implementation
  * @WebdaModda Webda/FeatureFlags
  */
 export class FeatureFlagsService extends Service<FeatureFlagsServiceParameters> implements FeatureFlagProvider {
+  /**
+   * Compiled conditions
+   */
   protected compiledConditions = new Map<string, QueryValidator>();
+  /**
+   * Registered mappings
+   */
   protected registeredMappings: { pattern: string; flag: string }[] = [];
+  /**
+   * Off config applied
+   */
   protected offConfigApplied?: () => void;
 
   /**

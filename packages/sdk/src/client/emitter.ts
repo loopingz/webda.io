@@ -2,9 +2,13 @@
  * Minimal typed event emitter that works in browsers and Node, as `@webda/offline/client`'s
  */
 export class Emitter<E extends Record<string, any>> {
+  /**
+   * Listeners
+   */
   protected listeners = new Map<keyof E, Set<(data: any) => void>>();
 
   /**
+   * Return a function removing the listener
    * @param event - event name
    * @param fn - listener
    * @returns a function removing the listener
@@ -16,6 +20,7 @@ export class Emitter<E extends Record<string, any>> {
   }
 
   /**
+   * Perform off
    * @param event - event name
    * @param fn - listener
    */

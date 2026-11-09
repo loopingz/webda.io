@@ -67,6 +67,9 @@ export interface IUser extends Model {
  * read rules through `toDTO()`. See the Permissions documentation ("Client input" and "Per-caller field rules").
  */
 export interface IAttributeLevelPermissionModel extends IContextAware {
+  /**
+   * Perform attribute permission
+   */
   attributePermission(attribute: string | symbol, value: any, action: "READ" | "WRITE"): any;
 }
 
@@ -77,6 +80,9 @@ export interface IAttributeLevelPermissionModel extends IContextAware {
  * systems
  */
 export interface ModelAction {
+  /**
+   * REST
+   */
   rest?: { path?: string; route?: string; method?: string; body?: string };
   /**
    * Method for the route

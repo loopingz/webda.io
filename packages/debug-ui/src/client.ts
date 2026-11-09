@@ -34,6 +34,7 @@ export class DebugClientError extends Error {
   status?: number;
 
   /**
+   * Create a new DebugClientError instance
    * @param reason - classification of the failure
    * @param message - human readable message
    * @param status - HTTP status, when the server answered
@@ -78,14 +79,41 @@ export interface DebugClient {
   readonly wsUrl: string;
   /** Fetch any API path */
   get<T>(path: string): Promise<T>;
+  /**
+   * Get the info
+   */
   getInfo(): Promise<DebugInfo>;
+  /**
+   * Get the models
+   */
   getModels(): Promise<DebugModel[]>;
+  /**
+   * Get the model
+   */
   getModel(id: string): Promise<DebugModel>;
+  /**
+   * Get the services
+   */
   getServices(): Promise<DebugServiceInfo[]>;
+  /**
+   * Get the operations
+   */
   getOperations(): Promise<DebugOperation[]>;
+  /**
+   * Get the config
+   */
   getConfig(): Promise<DebugConfig>;
+  /**
+   * Get the requests
+   */
   getRequests(): Promise<DebugRequest[]>;
+  /**
+   * Get the request detail
+   */
   getRequestDetail(id: string): Promise<DebugRequest>;
+  /**
+   * Get the logs
+   */
   getLogs(query?: string): Promise<DebugLogEntry[]>;
   /** Open a reconnecting websocket */
   connect(): DebugSocket;
@@ -183,6 +211,11 @@ export function createDebugClient(options: DebugClientOptions): DebugClient {
   const pageProtocol =
     options.pageProtocol ?? (typeof location !== "undefined" && location ? location.protocol : undefined);
 
+  /**
+   * Perform get
+   * @param path - the path
+   * @returns the result
+   */
   const get = async function get<T>(path: string): Promise<T> {
     if (!doFetch) throw new DebugClientError("unreachable", "fetch is not available");
     const headers: Record<string, string> = { Accept: "application/json" };
@@ -282,17 +315,34 @@ function openSocket(wsUrl: string, token?: string): DebugSocket {
   connect();
 
   return {
+    /**
+     * Get connected
+     * @returns the connected
+     */
     get connected() {
       return connected;
     },
+    /**
+     * Handle event event
+     * @param handler - the handler
+     * @returns the result
+     */
     onEvent(handler) {
       handlers.add(handler);
       return () => handlers.delete(handler);
     },
+    /**
+     * Handle status event
+     * @param handler - the handler
+     * @returns the result
+     */
     onStatus(handler) {
       statusHandlers.add(handler);
       return () => statusHandlers.delete(handler);
     },
+    /**
+     * Disconnect operation
+     */
     disconnect() {
       disposed = true;
       if (timer) clearTimeout(timer);

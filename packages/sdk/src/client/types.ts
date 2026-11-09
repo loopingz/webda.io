@@ -24,6 +24,9 @@ export const MUTATION_KINDS: ReadonlySet<OperationKind> = new Set<OperationKind>
 
 /** The REST route of an operation, as the router registered it */
 export interface RestExposure {
+  /**
+   * Method
+   */
   method: HttpMethod;
   /** Path template with `{name}` parameters, e.g. `/companies/{pid.0}/users/{uuid}` */
   path: string;
@@ -67,6 +70,9 @@ export type GraphQLSelection = Record<string, 1 | GraphQLSelectionField>;
 
 /** Where and how GraphQL exposes an operation, read from the schema of `GraphQLService` */
 export interface GraphQLExposure {
+  /**
+   * Kind
+   */
   kind: "query" | "mutation" | "subscription";
   /** Root field name */
   name: string;
@@ -89,23 +95,65 @@ export interface GraphQLExposure {
 
 /** One operation of the application and every way the server exposes it */
 export interface OperationDescriptor {
+  /**
+   * Unique identifier
+   */
   id: string;
   /** Schema name of the input, `void` when none; a trailing `?` marks a partial (ignoreRequired) input */
   input: string;
+  /**
+   * Output
+   */
   output: string;
+  /**
+   * Streaming
+   */
   streaming: OperationStreaming;
+  /**
+   * REST
+   */
   rest?: RestExposure;
+  /**
+   * GraphQL
+   */
   graphql?: GraphQLExposure;
+  /**
+   * GRPC
+   */
   grpc?: { service: string; rpc: string };
   /** Model id when the operation is CRUD, an action or a behavior of a model */
   model?: string;
+  /**
+   * Kind
+   */
   kind?: OperationKind;
+  /**
+   * Action
+   */
   action?: { name: string; global?: boolean };
+  /**
+   * Behavior
+   */
   behavior?: { attribute: string; action: string };
+  /**
+   * Permission
+   */
   permission?: string;
+  /**
+   * Summary
+   */
   summary?: string;
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Tags
+   */
   tags?: string[];
+  /**
+   * Whether deprecated is enabled
+   */
   deprecated?: boolean;
 }
 
@@ -114,14 +162,29 @@ export type OperationsManifest = Record<string, OperationDescriptor>;
 
 /** A link relation of a model */
 export interface ModelLinkDescriptor {
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Model
+   */
   model: string;
+  /**
+   * Type
+   */
   type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
 }
 
 /** A query relation of a model (`ModelRelated`) */
 export interface ModelQueryDescriptor {
+  /**
+   * Attribute
+   */
   attribute: string;
+  /**
+   * Model
+   */
   model: string;
   /** Attribute of the target model holding this model's id */
   targetAttribute?: string;
@@ -129,15 +192,39 @@ export interface ModelQueryDescriptor {
 
 /** What the runtime needs to know about a model */
 export interface ModelDescriptor {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Short name
+   */
   shortName: string;
+  /**
+   * Plural
+   */
   plural: string;
+  /**
+   * Primary key
+   */
   primaryKey: string[];
+  /**
+   * Primary key separator
+   */
   primaryKeySeparator?: string;
   /** Ancestor model ids, nearest first */
   ancestors: string[];
+  /**
+   * Parent
+   */
   parent?: { attribute: string; model: string };
+  /**
+   * Links
+   */
   links: ModelLinkDescriptor[];
+  /**
+   * Queries
+   */
   queries: ModelQueryDescriptor[];
   /** Attributes with a `date-time` or `date` format, revived as `Date` */
   dates: string[];
@@ -161,6 +248,9 @@ export type ModelsManifest = Record<string, ModelDescriptor>;
 
 /** What the application serves (`manifest.transports` and `manifest.offline`), generated as `SERVER` */
 export interface ServerManifest {
+  /**
+   * Transports
+   */
   transports: {
     rest?: { url: string };
     graphql?: { url: string; subscriptions?: boolean };
@@ -177,7 +267,13 @@ export interface ServerManifest {
 
 /** Input and output types of one operation */
 export interface OperationSignature {
+  /**
+   * Input
+   */
   input: unknown;
+  /**
+   * Output
+   */
   output: unknown;
 }
 
@@ -192,6 +288,9 @@ export type OperationsMap<Ops = Record<string, OperationSignature>> = Record<key
 export interface CallContext {
   /** Extra headers for this call */
   headers?: Record<string, string>;
+  /**
+   * Signal
+   */
   signal?: AbortSignal;
   /**
    * Ids of the parents of a nested model, root first: they fill the `{pid.N}` path parameters of a nested REST route
@@ -211,6 +310,9 @@ export type CacheMode = "default" | "no-store" | "force-cache" | "reload";
 
 /** Options of a call through the client */
 export interface CallOptions extends CallContext {
+  /**
+   * Cache
+   */
   cache?: CacheMode;
 }
 
@@ -254,7 +356,13 @@ export interface Transport {
 
 /** A page of query results */
 export interface QueryResult<T> {
+  /**
+   * Results
+   */
   results: T[];
+  /**
+   * Continuation token
+   */
   continuationToken?: string;
   /**
    * Total of the query, when asked with `count` and allowed by the model: with relation "gte", the total is at least
@@ -265,7 +373,13 @@ export interface QueryResult<T> {
 
 /** Total of a query: `relation` "eq" for an exact total, "gte" when the server stopped counting at `value` */
 export interface QueryTotal {
+  /**
+   * Value
+   */
   value: number;
+  /**
+   * Relation
+   */
   relation: "eq" | "gte";
 }
 
@@ -274,8 +388,14 @@ export type PrimaryKeyInput = string | Record<string, string | number>;
 
 /** What changed in the cache */
 export interface ChangeEvent {
+  /**
+   * Model
+   */
   model: string;
   /** Entity uid, undefined when a whole model was invalidated */
   uid?: string;
+  /**
+   * Type
+   */
   type: "set" | "delete" | "invalidate";
 }

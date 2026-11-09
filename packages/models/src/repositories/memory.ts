@@ -59,9 +59,13 @@ export class MemoryRepository<
   T extends ModelClass,
   K extends Map<string, string> = Map<string, string>
 > extends AbstractRepository<T> {
+  /**
+   * Storage
+   */
   protected storage: K;
 
   /**
+   * Create a new MemoryRepository instance
    * @param model - The model class constructor
    * @param pks - Primary key field names
    * @param separator - Composite key separator (default: "_")

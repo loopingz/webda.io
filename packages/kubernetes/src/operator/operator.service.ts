@@ -134,8 +134,17 @@ export class KubernetesOperatorParameters extends ServiceParameters implements K
 export class KubernetesOperator<
   T extends KubernetesOperatorParameters = KubernetesOperatorParameters
 > extends Service<T> {
+  /**
+   * Controllers
+   */
   protected controllers: ModelController[] = [];
+  /**
+   * Elector
+   */
   protected elector?: LeaderElector;
+  /**
+   * Metrics
+   */
   declare metrics: {
     reconcile_total: Counter;
     reconcile_duration: Histogram;
@@ -213,6 +222,7 @@ export class KubernetesOperator<
   }
 
   /**
+   * Get the name of the leader election Lease
    * @returns the name of the leader election Lease
    */
   getLeaseName(): string {
@@ -220,6 +230,7 @@ export class KubernetesOperator<
   }
 
   /**
+   * Get the namespace of the leader election Lease: the parameter, else the namespace of the first model's store
    * @returns the namespace of the leader election Lease: the parameter, else the namespace of the first model's store
    */
   getLeaseNamespace(): string {

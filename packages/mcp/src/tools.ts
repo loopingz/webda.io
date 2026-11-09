@@ -110,9 +110,13 @@ export function operationsFingerprint(ops: Record<string, OperationDefinition>):
  * Registry of MCP tools built from operations
  */
 export class ToolRegistry {
+  /**
+   * Entries
+   */
   protected entries: Map<string, ToolEntry> = new Map();
 
   /**
+   * Create a new ToolRegistry instance
    * @param resolve - schema resolver used to build input/output schemas
    */
   constructor(protected resolve: SchemaResolver) {}

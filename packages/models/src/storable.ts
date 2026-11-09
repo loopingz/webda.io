@@ -97,14 +97,29 @@ export type ConcreteStorable<T = any, K extends keyof T = any> = Storable<T, K> 
  */
 export interface ModelClass<S extends Storable = Storable> {
   new (arg: any): S;
+  /**
+   * Prototype
+   */
   prototype: S;
+  /**
+   * Perform ref
+   */
   ref<T extends ModelClass>(this: T, key: SettablePrimaryKey<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
+  /**
+   * Perform iterate
+   */
   iterate<T extends ModelClass>(
     this: T,
     query: string,
     params?: QueryParameters
   ): AsyncGenerator<InstanceType<T>, any, any>;
+  /**
+   * Create operation
+   */
   create<T extends ModelClass>(this: T, data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
+  /**
+   * Query operation
+   */
   query<T extends ModelClass>(
     this: T,
     query: string,
@@ -113,7 +128,13 @@ export interface ModelClass<S extends Storable = Storable> {
     results: InstanceType<T>[];
     continuationToken?: string;
   }>;
+  /**
+   * Register serializer
+   */
   registerSerializer(overwrite?: boolean, identifier?: string): void;
+  /**
+   * Get the deserializers
+   */
   getDeserializers<T extends ModelClass>(): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined;
 }
 

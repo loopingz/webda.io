@@ -199,6 +199,7 @@ export class UnpackedApplication extends Application {
   }
 
   /**
+   * Get empty git information
    * @param _name - the name to use
    * @param _version - the version string
    * @returns empty git information

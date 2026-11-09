@@ -10,6 +10,9 @@ import type {
 } from "../../protocol/index.js";
 import { TransportError, type Transport } from "./transport.js";
 
+/**
+ * HTTP transport options interface
+ */
 export interface HttpTransportOptions {
   /** Base URL of the Webda REST API */
   baseUrl: string;
@@ -33,6 +36,7 @@ export async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenera
   const decoder = new TextDecoder();
   let buffer = "";
   /**
+   * Block
    * @param block - lines of one event, already normalized to \n
    * @returns the event, undefined when it carries no data
    */
@@ -81,11 +85,13 @@ export async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenera
  */
 export class HttpTransport implements Transport {
   /**
+   * Create a new HttpTransport instance
    * @param options - transport options
    */
   constructor(protected options: HttpTransportOptions) {}
 
   /**
+   * Return its URL
    * @param name - operation
    * @returns its URL
    */
@@ -94,6 +100,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
+   * Request operation
    * @param name - operation
    * @param body - JSON body
    * @param extra - extra init
@@ -121,7 +128,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
-   *
+   * Return the page of changes
    * @param req - the req
    * @returns the page of changes
    */
@@ -130,7 +137,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
-   *
+   * Push operation
    * @param req - the req
    * @returns one result per mutation
    */
@@ -139,7 +146,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
-   *
+   * Return the page of objects
    * @param req - the req
    * @returns the page of objects
    */
@@ -148,7 +155,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
-   *
+   * Perform watch
    * @param req - the req
    * @param signal - the signal
    */

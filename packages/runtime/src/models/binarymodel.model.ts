@@ -19,11 +19,20 @@ type ProxyTarget = Record<string | symbol, unknown>;
  * Binary Model is a model that store its data in a binary file
  */
 export class BinaryModel<T = any> extends CoreModel {
+  /**
+   * Data
+   */
   @NotEnumerable
   __data: T;
 
+  /**
+   * Binary
+   */
   __binary: Binary;
 
+  /**
+   * Whether data updated is enabled
+   */
   @NotEnumerable
   __dataUpdated: boolean = false;
 
@@ -111,7 +120,7 @@ export class BinaryModel<T = any> extends CoreModel {
   }
 
   /**
-   *
+   * Update binary
    */
   async updateBinary() {
     if (!this.__dataUpdated) {

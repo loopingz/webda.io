@@ -6,19 +6,49 @@ import { AzureParameters, getAzureCredential } from "./azure-parameters.js";
 
 /** Azure Monitor Logs Ingestion settings. */
 export class AzureMonitorLoggerParameters extends AzureParameters {
+  /**
+   * Endpoint
+   */
   endpoint!: string;
+  /**
+   * Rule ID
+   */
   ruleId!: string;
+  /**
+   * Stream name
+   */
   streamName!: string;
+  /**
+   * Log level
+   */
   logLevel: WorkerLogLevel = "INFO";
+  /**
+   * Batch size
+   */
   batchSize = 100;
+  /**
+   * Flush interval
+   */
   flushInterval = 5000;
+  /**
+   * Max buffered logs
+   */
   maxBufferedLogs = 10000;
 }
 
 /** Columns declared in the Data Collection Rule's stream. */
 export interface AzureLogRecord extends Record<string, unknown> {
+  /**
+   * Time generated
+   */
   TimeGenerated: string;
+  /**
+   * Level
+   */
   Level: WorkerLogLevel;
+  /**
+   * Message
+   */
   Message: string;
 }
 
@@ -26,12 +56,33 @@ export interface AzureLogRecord extends Record<string, unknown> {
  * @WebdaModda
  */
 export class AzureMonitorLogger extends Service<AzureMonitorLoggerParameters> {
+  /**
+   * Parameters
+   */
   static Parameters = AzureMonitorLoggerParameters;
+  /**
+   * Client
+   */
   protected client!: LogsIngestionClient;
+  /**
+   * Buffer
+   */
   protected buffer: AzureLogRecord[] = [];
+  /**
+   * Sending
+   */
   protected sending?: Promise<void>;
+  /**
+   * Timer
+   */
   protected timer?: ReturnType<typeof setInterval>;
+  /**
+   * Message listener
+   */
   protected messageListener?: (message: WorkerMessage) => void;
+  /**
+   * Result listener off
+   */
   protected resultListenerOff?: () => void;
   /** Number of records dropped because the bounded buffer was full. */
   droppedLogs = 0;

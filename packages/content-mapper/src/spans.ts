@@ -36,7 +36,13 @@ export const SpanMapKind = {
 
 /** Result of splicing a plan into one file. */
 export interface MappedText {
+  /**
+   * Text
+   */
   text: string;
+  /**
+   * Mappings
+   */
   mappings: SpanMapping[];
 }
 

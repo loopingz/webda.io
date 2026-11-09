@@ -13,8 +13,17 @@ import type {
  * How the OfflineClient reaches the SyncService operations
  */
 export interface Transport {
+  /**
+   * Perform pull
+   */
   pull(req: PullRequest): Promise<PullResponse>;
+  /**
+   * Push operation
+   */
   push(req: PushRequest): Promise<PushResponse>;
+  /**
+   * Perform snapshot
+   */
   snapshot(req: SnapshotRequest): Promise<SnapshotResponse>;
   /** Optional live hints; the client pulls on each */
   watch?(req: WatchRequest, signal: AbortSignal): AsyncIterable<WatchEvent>;
@@ -25,6 +34,7 @@ export interface Transport {
  */
 export class TransportError extends Error {
   /**
+   * Create a new TransportError instance
    * @param status - HTTP-like status, 0 for network errors
    * @param message - error message
    */

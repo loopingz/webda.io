@@ -16,7 +16,13 @@ export type RequestLogBody =
  * Captured error attached to a request, when one was thrown.
  */
 export interface RequestLogError {
+  /**
+   * Message
+   */
   message: string;
+  /**
+   * Stack
+   */
   stack?: string;
 }
 
@@ -24,11 +30,29 @@ export interface RequestLogError {
  * A single entry in the request log
  */
 export interface RequestLogEntry {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Method
+   */
   method: string;
+  /**
+   * URL
+   */
   url: string;
+  /**
+   * Timestamp
+   */
   timestamp: number;
+  /**
+   * Status code
+   */
   statusCode?: number;
+  /**
+   * Duration
+   */
   duration?: number;
   /** Captured request headers (lowercased keys, single string values). */
   requestHeaders?: Record<string, string>;
@@ -54,10 +78,25 @@ export type RequestLogSummary = Pick<
  * Optional details that can be attached to an existing entry after capture.
  */
 export interface RequestLogDetails {
+  /**
+   * Request headers
+   */
   requestHeaders?: Record<string, string>;
+  /**
+   * Request body
+   */
   requestBody?: RequestLogBody;
+  /**
+   * Response headers
+   */
   responseHeaders?: Record<string, string>;
+  /**
+   * Response body
+   */
   responseBody?: RequestLogBody;
+  /**
+   * Error
+   */
   error?: RequestLogError;
 }
 
@@ -69,6 +108,9 @@ export type RequestLogEvent =
   | { type: "result"; id: string; statusCode: number; duration: number }
   | { type: "404"; id: string; method: string; url: string };
 
+/**
+ * Event callback type definition
+ */
 type EventCallback = (event: RequestLogEvent) => void;
 
 /**
@@ -77,8 +119,17 @@ type EventCallback = (event: RequestLogEvent) => void;
  * When the buffer is full, the oldest entry is evicted to make room for the new one.
  */
 export class RequestLog {
+  /**
+   * Entries
+   */
   private entries: RequestLogEntry[] = [];
+  /**
+   * Index
+   */
   private index = new Map<string, RequestLogEntry>();
+  /**
+   * Subscribers
+   */
   private subscribers: Set<EventCallback> = new Set();
 
   /**

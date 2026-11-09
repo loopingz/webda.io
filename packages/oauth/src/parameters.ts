@@ -69,6 +69,7 @@ export function validateClient(id: string, client: any): void {
 }
 
 /**
+ * Check whether HTTP URL
  * @param value - value to check
  * @returns true when it is an absolute http or https URL
  */
@@ -83,7 +84,10 @@ function isHttpUrl(value: unknown): boolean {
 
 /** OAuthServer parameters */
 export class OAuthServerParameters extends ServiceParameters {
-  /** @default "/oauth" */
+  /**
+   * URL
+   * @default "/oauth"
+   */
   url: string;
   /**
    * Issuer; defaults to the request origin. When set, the access tokens carry it as `iss` with the RFC 9068
@@ -99,7 +103,10 @@ export class OAuthServerParameters extends ServiceParameters {
   resources: string[];
   /** Static clients by id; `null` removes a built-in client */
   clients: Record<string, Omit<OAuthClient, "id"> | null>;
-  /** @default true */
+  /**
+   * Whether client metadata documents is enabled
+   * @default true
+   */
   clientMetadataDocuments: boolean;
   /**
    * Hosts allowed to serve Client ID Metadata Documents.
@@ -107,9 +114,15 @@ export class OAuthServerParameters extends ServiceParameters {
    * private address check (so internal hosts can be listed)
    */
   clientMetadataHosts: string[];
-  /** @default 5 */
+  /**
+   * Client metadata timeout
+   * @default 5
+   */
   clientMetadataTimeout: number;
-  /** @default 3600 */
+  /**
+   * Client metadata cache TTL
+   * @default 3600
+   */
   clientMetadataCacheTtl: number;
   /** Application login page, receives `?redirect=` */
   loginUrl: string;
@@ -123,15 +136,30 @@ export class OAuthServerParameters extends ServiceParameters {
   accessTtl?: number;
   /** Refresh token lifetime (s); defaults to TokenService */
   refreshTtl?: number;
-  /** @default 60 */
+  /**
+   * Code TTL
+   * @default 60
+   */
   codeTtl: number;
-  /** @default 600 */
+  /**
+   * Device code TTL
+   * @default 600
+   */
   deviceCodeTtl: number;
-  /** @default 5 */
+  /**
+   * Device poll interval
+   * @default 5
+   */
   devicePollInterval: number;
-  /** @default true */
+  /**
+   * Whether remember consent is enabled
+   * @default true
+   */
   rememberConsent: boolean;
-  /** @default 7776000 */
+  /**
+   * Remember consent TTL
+   * @default 7776000
+   */
   rememberConsentTtl: number;
   /** Lifetime of a registered client never used (s)
    * @default 86400 */

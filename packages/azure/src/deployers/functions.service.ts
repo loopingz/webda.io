@@ -11,14 +11,41 @@ export class AzureFunctionsDeployerParameters
   extends AzureArmDeployerParameters
   implements AzureFunctionsPackageOptions
 {
+  /**
+   * Function app
+   */
   functionApp!: string;
+  /**
+   * Storage account
+   */
   storageAccount!: string;
+  /**
+   * Plan
+   */
   plan?: string;
+  /**
+   * Zip path
+   */
   zipPath = "dist/azure-functions.zip";
+  /**
+   * Memory
+   */
   memory = 2048;
+  /**
+   * Maximum instance count
+   */
   maximumInstanceCount = 100;
+  /**
+   * App settings
+   */
   appSettings: Record<string, string | SecretString> = {};
+  /**
+   * Triggers
+   */
   triggers?: AzureTrigger[];
+  /**
+   * Deployment timeout
+   */
   deploymentTimeout = 600000;
 }
 
@@ -26,6 +53,9 @@ export class AzureFunctionsDeployerParameters
  * @WebdaModda
  */
 export class AzureFunctionsDeployer extends AzureArmDeployer<AzureFunctionsDeployerParameters> implements Deployer {
+  /**
+   * Parameters
+   */
   static Parameters = AzureFunctionsDeployerParameters;
 
   /**

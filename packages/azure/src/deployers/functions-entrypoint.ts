@@ -9,8 +9,17 @@ import {
 } from "@webda/core";
 import { AzureFunctionServer } from "../services/functionserver.service.js";
 
+/**
+ * Azure function application interface
+ */
 export interface AzureFunctionApplication {
+  /**
+   * Server
+   */
   server: AzureFunctionServer;
+  /**
+   * Instance
+   */
   instance: InstanceStorage;
 }
 
@@ -62,6 +71,9 @@ export function createAzureHandlers(boot = bootAzureFunctionServer) {
   };
 }
 
+/**
+ * Azure trigger type definition
+ */
 export type AzureTrigger =
   | { name: string; type: "servicebus"; queueName: string; connection: string }
   | { name: string; type: "blob"; path: string; connection: string }

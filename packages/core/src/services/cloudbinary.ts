@@ -16,7 +16,13 @@ import {
  * Default binary parameters
  */
 export class CloudBinaryParameters extends BinaryParameters {
+  /**
+   * Prefix
+   */
   prefix?: string;
+  /**
+   * Content storage
+   */
   contentStorage?: {
     register?: boolean;
     default?: boolean;

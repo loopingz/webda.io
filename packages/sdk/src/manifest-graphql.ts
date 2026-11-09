@@ -13,12 +13,33 @@ import type { SdkManifestModel, SdkManifestOperation } from "./manifest.js";
  * The CRUD fields `GraphQLService.generateSchema()` gives a model (`GraphQLModelFields` of `@webda/graphql`)
  */
 interface ModelFields {
+  /**
+   * Type
+   */
   type: string;
+  /**
+   * Get
+   */
   get: string;
+  /**
+   * Key
+   */
   key: string;
+  /**
+   * Query
+   */
   query: string;
+  /**
+   * Create
+   */
   create?: string;
+  /**
+   * Update
+   */
   update?: string;
+  /**
+   * Delete
+   */
   delete?: string;
 }
 
@@ -36,6 +57,7 @@ function namedType(type: any): any {
 }
 
 /**
+ * Check whether object type
  * @param type - a named GraphQL type
  * @returns true for an output object type (one with fields and no input coercion)
  */
@@ -44,6 +66,7 @@ function isObjectType(type: any): boolean {
 }
 
 /**
+ * Check whether input object type
  * @param type - a named GraphQL type
  * @returns true for an input object type
  */
@@ -110,6 +133,7 @@ export function describeGraphQL(
   }
 
   /**
+   * Type
    * @param type - an output type
    * @param depth - nesting
    * @returns its selection set, undefined for a scalar
@@ -160,6 +184,7 @@ export function describeGraphQL(
   };
 
   /**
+   * Type
    * @param type - an input type
    * @returns its fields, GraphQL name to JSON key, undefined when it is not an input object
    */

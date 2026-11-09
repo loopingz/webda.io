@@ -35,9 +35,13 @@ export interface McpSessionEntry {
  * In-memory MCP sessions with idle eviction
  */
 export class McpSessionManager {
+  /**
+   * Sessions
+   */
   protected sessions: Map<string, McpSessionEntry> = new Map();
 
   /**
+   * Create a new McpSessionManager instance
    * @param timeoutMs - idle time before eviction
    * @param now - clock (injectable for tests)
    */
@@ -47,6 +51,7 @@ export class McpSessionManager {
   ) {}
 
   /**
+   * Add operation
    * @param entry - session to track
    */
   add(entry: McpSessionEntry): void {
@@ -68,6 +73,7 @@ export class McpSessionManager {
   }
 
   /**
+   * Remove operation
    * @param id - session id to forget (does not close it)
    */
   remove(id: string): void {
@@ -75,6 +81,7 @@ export class McpSessionManager {
   }
 
   /**
+   * Return all sessions
    * @returns all sessions
    */
   all(): McpSessionEntry[] {
@@ -128,6 +135,7 @@ export class McpSessionManager {
   }
 
   /**
+   * Close operation
    * @param entry - session to close and remove
    */
   protected async close(entry: McpSessionEntry): Promise<void> {

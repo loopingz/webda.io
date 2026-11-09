@@ -5,10 +5,25 @@ import type { ChangeEvent, QueryTotal } from "./types.js";
  * Where the cache keeps its entries: synchronous key/value strings, as `localStorage`
  */
 export interface CacheStorageAdapter {
+  /**
+   * Perform get
+   */
   get(key: string): string | undefined;
+  /**
+   * Perform set
+   */
   set(key: string, value: string): void;
+  /**
+   * Delete operation
+   */
   delete(key: string): void;
+  /**
+   * Perform keys
+   */
   keys(): string[];
+  /**
+   * Clear operation
+   */
   clear(): void;
 }
 
@@ -16,9 +31,13 @@ export interface CacheStorageAdapter {
  * Default storage: a Map
  */
 export class MemoryCacheStorage implements CacheStorageAdapter {
+  /**
+   * Entries
+   */
   protected entries = new Map<string, string>();
 
   /**
+   * Return the value
    * @param key - the key
    * @returns the value
    */
@@ -27,6 +46,7 @@ export class MemoryCacheStorage implements CacheStorageAdapter {
   }
 
   /**
+   * Perform set
    * @param key - the key
    * @param value - the value
    */
@@ -35,6 +55,7 @@ export class MemoryCacheStorage implements CacheStorageAdapter {
   }
 
   /**
+   * Delete operation
    * @param key - the key
    */
   delete(key: string): void {
@@ -42,6 +63,7 @@ export class MemoryCacheStorage implements CacheStorageAdapter {
   }
 
   /**
+   * Return every key
    * @returns every key
    */
   keys(): string[] {
@@ -58,10 +80,25 @@ export class MemoryCacheStorage implements CacheStorageAdapter {
 
 /** The subset of the Web Storage API the adapter needs */
 export interface WebStorageLike {
+  /**
+   * Get the item
+   */
   getItem(key: string): string | null;
+  /**
+   * Set the item
+   */
   setItem(key: string, value: string): void;
+  /**
+   * Remove item
+   */
   removeItem(key: string): void;
+  /**
+   * Perform key
+   */
   key(index: number): string | null;
+  /**
+   * Length
+   */
   readonly length: number;
 }
 
@@ -70,6 +107,7 @@ export interface WebStorageLike {
  */
 export class WebStorageCacheStorage implements CacheStorageAdapter {
   /**
+   * Create a new WebStorageCacheStorage instance
    * @param storage - `localStorage` or `sessionStorage`
    * @param prefix - key prefix, to share the storage with the application
    */
@@ -79,6 +117,7 @@ export class WebStorageCacheStorage implements CacheStorageAdapter {
   ) {}
 
   /**
+   * Return the value
    * @param key - the key
    * @returns the value
    */
@@ -87,6 +126,7 @@ export class WebStorageCacheStorage implements CacheStorageAdapter {
   }
 
   /**
+   * Perform set
    * @param key - the key
    * @param value - the value
    */
@@ -99,6 +139,7 @@ export class WebStorageCacheStorage implements CacheStorageAdapter {
   }
 
   /**
+   * Delete operation
    * @param key - the key
    */
   delete(key: string): void {
@@ -106,6 +147,7 @@ export class WebStorageCacheStorage implements CacheStorageAdapter {
   }
 
   /**
+   * Return every key of the cache
    * @returns every key of the cache
    */
   keys(): string[] {
@@ -133,11 +175,17 @@ export interface CacheOptions {
   staleWhileRevalidate?: boolean;
   /** Most entities kept; the oldest are evicted beyond it */
   maxEntries?: number;
+  /**
+   * Storage
+   */
   storage?: CacheStorageAdapter;
 }
 
 /** A cached entity */
 export interface EntityEntry {
+  /**
+   * Data
+   */
   data: Record<string, unknown>;
   /** Time of the last write */
   at: number;
@@ -145,10 +193,19 @@ export interface EntityEntry {
 
 /** A cached query: the uids of its results, re-hydrated from the entities */
 export interface QueryEntry {
+  /**
+   * Uids
+   */
   uids: string[];
+  /**
+   * Continuation token
+   */
   continuationToken?: string;
   /** Total of the query, when it was asked */
   total?: QueryTotal;
+  /**
+   * At
+   */
   at: number;
 }
 
@@ -156,12 +213,25 @@ export interface QueryEntry {
  * Normalized cache: one entry per `model + uid`, query results stored as lists of uids
  */
 export class EntityCache extends Emitter<{ change: ChangeEvent }> {
+  /**
+   * TTL
+   */
   readonly ttl: number;
+  /**
+   * Whether stale while revalidate is enabled
+   */
   readonly staleWhileRevalidate: boolean;
+  /**
+   * Max entries
+   */
   readonly maxEntries: number;
+  /**
+   * Storage
+   */
   protected storage: CacheStorageAdapter;
 
   /**
+   * Create a new EntityCache instance
    * @param options - cache policy
    */
   constructor(options: CacheOptions = {}) {
@@ -173,6 +243,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Return the storage key
    * @param model - model id
    * @param uid - entity uid
    * @returns the storage key
@@ -182,6 +253,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Query key
    * @param model - model id
    * @param key - query key
    * @returns the storage key
@@ -191,6 +263,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Read operation
    * @param key - storage key
    * @returns the parsed entry
    */
@@ -206,6 +279,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Check whether fresh
    * @param entry - a cached entry
    * @returns true when the entry is within the ttl
    */
@@ -214,6 +288,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Get the cached entity
    * @param model - model id
    * @param uid - entity uid
    * @returns the cached entity
@@ -248,6 +323,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Delete entity
    * @param model - model id
    * @param uid - entity uid
    */
@@ -257,6 +333,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Get the cached query
    * @param model - model id
    * @param key - query key
    * @returns the cached query
@@ -266,6 +343,7 @@ export class EntityCache extends Emitter<{ change: ChangeEvent }> {
   }
 
   /**
+   * Set the query
    * @param model - model id
    * @param key - query key
    * @param uids - uids of the results

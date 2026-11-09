@@ -61,7 +61,7 @@ export class CronDefinition {
   operationId: string;
 
   /**
-   *
+   * Create a new CronDefinition instance
    * @param cron - the cron expression
    * @param input - the operation input
    * @param serviceName - the service name
@@ -108,12 +108,25 @@ type CrontabEntry = Partial<CronDefinition> & {
 };
 
 /**
+ * Cron service implementation
  * @WebdaModda
  */
 class CronService extends Service {
+  /**
+   * Whether enable is enabled
+   */
   enable: boolean;
+  /**
+   * Crons
+   */
   crons: CrontabEntry[] = [];
+  /**
+   * Crontab schedule
+   */
   crontabSchedule: (cron: string, cb: () => any) => { stop: () => any } = schedule;
+  /**
+   * Whether scanned is enabled
+   */
   private _scanned: boolean = false;
   /** Crons scheduled by {@link run}, started on the cluster leader only */
   protected scheduled: CrontabEntry[] = [];

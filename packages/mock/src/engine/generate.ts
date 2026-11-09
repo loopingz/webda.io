@@ -6,8 +6,14 @@ import { SessionPool } from "./pool.js";
 import { inferKind } from "./infer.js";
 import type { AIProvider } from "../ai/provider.js";
 
+/**
+ * Mode type definition
+ */
 export type Mode = "test" | "dev" | "demo" | "load" | "custom";
 
+/**
+ * Generate options type definition
+ */
 export type GenerateOptions<T = unknown> = {
   count?: number;
   seed?: number;
@@ -18,8 +24,14 @@ export type GenerateOptions<T = unknown> = {
   strict?: boolean;
 };
 
+/**
+ * Model class type definition
+ */
 type ModelClass<T> = new (...args: any[]) => T;
 
+/**
+ * Mock context type definition
+ */
 export type MockContext = {
   faker: Faker;
   rng: () => number;

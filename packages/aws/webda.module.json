@@ -237,6 +237,7 @@
             "properties": {
               "StageName": {
                 "default": "the deployment name",
+                "description": "Stage name",
                 "type": "string"
               }
             },
@@ -931,6 +932,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {
@@ -1282,6 +1284,13 @@
         "additionalProperties": false,
         "description": "LambdaServer parameters",
         "properties": {
+          "allowedLaunchServices": {
+            "description": "Optional allowlist of service names permitted for `command: \"launch\"` invocations",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "lambdaRequestHeader": {
             "description": "Header to add to the response with the Lambda request id",
             "type": "string"
@@ -1323,6 +1332,7 @@
           },
           "contentStorage": {
             "additionalProperties": false,
+            "description": "Content storage",
             "properties": {
               "default": {
                 "default": false,
@@ -1401,12 +1411,20 @@
             "description": "Skip CloudFormation on deploy",
             "type": "boolean"
           },
+          "allowedEndpoints": {
+            "description": "Optional allowlist of endpoints selectable through `?endpoint=` in content URLs",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "bucket": {
             "description": "Bucket to store the binaries in",
             "type": "string"
           },
           "contentStorage": {
-            "$ref": "#/definitions/contentStorage"
+            "$ref": "#/definitions/contentStorage",
+            "description": "Content storage"
           },
           "credentialProfiles": {
             "$ref": "#/definitions/Record%3Cstring%2C%20%7B%20accessKeyId%3A%20string%20%7C%20SecretString%3B%20secretAccessKey%3A%20string%20%7C%20SecretString%3B%20sessionToken%3F%3A%20string%20%7C%20SecretString%3B%20%7D%3E",
@@ -1449,6 +1467,7 @@
             "type": "number"
           },
           "prefix": {
+            "description": "Prefix",
             "type": "string"
           },
           "region": {

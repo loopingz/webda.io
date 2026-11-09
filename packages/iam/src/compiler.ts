@@ -68,6 +68,7 @@ export type AttachmentRow = [principal: string, sub: string];
 const PRINCIPAL = /^(user:.+|group:.+|app:.+|app-group:.+|app-issuer:.+|authenticated|authenticated-app|anonymous)$/;
 
 /**
+ * Return the Casbin subject of a policy
  * @param name - the policy name
  * @returns the Casbin subject of a policy
  */
@@ -76,6 +77,7 @@ export function policySubject(name: string): string {
 }
 
 /**
+ * Check whether valid principal
  * @param principal - the principal
  * @returns true for `user:<id>`, `group:<name>`, `app:<name>`, `app-group:<name>`, `app-issuer:<issuer>`,
  * `authenticated`, `authenticated-app` or `anonymous`
@@ -171,6 +173,7 @@ export function compilePolicies(docs: PolicyDocument[]): PolicyRow[] {
 }
 
 /**
+ * Return the attachments
  * @param config - principal to policy names, as in the IAMService parameters
  * @returns the attachments
  */

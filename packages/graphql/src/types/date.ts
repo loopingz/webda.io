@@ -3,6 +3,11 @@ import { GraphQLScalarType, Kind } from "graphql";
 export const DateScalar = new GraphQLScalarType({
   name: "Date",
   description: "Date custom scalar type",
+  /**
+   * Serialize operation
+   * @param value - the value
+   * @returns the result
+   */
   serialize(value) {
     // Stores serializing to JSON return dates as ISO strings or timestamps
     const date = typeof value === "string" || typeof value === "number" ? new Date(value) : value;
@@ -11,12 +16,22 @@ export const DateScalar = new GraphQLScalarType({
     }
     throw Error("GraphQL Date Scalar serializer expected a `Date` object");
   },
+  /**
+   * Parse value
+   * @param value - the value
+   * @returns the result
+   */
   parseValue(value) {
     if (typeof value === "string") {
       return new Date(value); // Convert incoming integer to Date
     }
     throw new Error("GraphQL Date Scalar parser expected a `string`");
   },
+  /**
+   * Parse literal
+   * @param ast - the AST
+   * @returns the result
+   */
   parseLiteral(ast) {
     if (ast.kind === Kind.STRING) {
       // Convert hard-coded AST string to integer and then to Date

@@ -13,6 +13,7 @@ import { assertSealedWrites, openSealed } from "./sealed.js";
  */
 export class Collection<T = any> {
   /**
+   * Create a new Collection instance
    * @param client - the owning client
    * @param model - model identifier, e.g. `MyApp/Task`
    */
@@ -22,6 +23,7 @@ export class Collection<T = any> {
   ) {}
 
   /**
+   * Return the stored record id
    * @param key - scalar key or key object
    * @returns the stored record id
    */
@@ -125,6 +127,7 @@ export class Collection<T = any> {
   }
 
   /**
+   * Return the local value (sealed fields opened), undefined when missing or deleted
    * @param key - the object key
    * @returns the local value (sealed fields opened), undefined when missing or deleted
    */
@@ -148,6 +151,7 @@ export class Collection<T = any> {
   }
 
   /**
+   * Return a function removing the listener
    * @param event - "change"
    * @param fn - listener, called for this model only
    * @returns a function removing the listener

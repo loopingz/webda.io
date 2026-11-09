@@ -29,12 +29,33 @@ export interface DebugInfo {
 
 /** A relation declared on a model. */
 export interface ModelRelations {
+  /**
+   * Parent
+   */
   parent?: { attribute: string; model: string };
+  /**
+   * Links
+   */
   links?: { attribute: string; model: string; type?: string }[];
+  /**
+   * Queries
+   */
   queries?: { attribute: string; model: string }[];
+  /**
+   * Maps
+   */
   maps?: { attribute: string; model: string }[];
+  /**
+   * Children
+   */
   children?: string[];
+  /**
+   * Binaries
+   */
   binaries?: { attribute: string; cardinality: string }[];
+  /**
+   * Behaviors
+   */
   behaviors?: { attribute: string; behavior: string }[];
 }
 
@@ -64,57 +85,174 @@ export interface DebugModel {
 
 /** A metric exposed by a service. */
 export interface DebugMetric {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Full name
+   */
   fullName?: string;
+  /**
+   * Help
+   */
   help?: string;
+  /**
+   * Type
+   */
   type: string;
+  /**
+   * Label names
+   */
   labelNames?: string[];
+  /**
+   * Values
+   */
   values?: { value: number; labels?: Record<string, string> }[];
 }
 
 /** An entry of `GET /api/services`. */
 export interface DebugServiceInfo {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Type
+   */
   type: string;
+  /**
+   * State
+   */
   state: string;
+  /**
+   * Capabilities
+   */
   capabilities: Record<string, unknown>;
+  /**
+   * Configuration
+   */
   configuration: Record<string, unknown>;
+  /**
+   * Schema
+   */
   schema?: JsonSchema;
+  /**
+   * Metrics
+   */
   metrics?: DebugMetric[];
 }
 
 /** The subset of JSON Schema the schema form understands. */
 export interface JsonSchema {
+  /**
+   * $ref
+   */
   $ref?: string;
+  /**
+   * Type
+   */
   type?: string;
+  /**
+   * Title
+   */
   title?: string;
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Properties
+   */
   properties?: Record<string, JsonSchema>;
+  /**
+   * Required
+   */
   required?: string[];
+  /**
+   * Items
+   */
   items?: JsonSchema;
+  /**
+   * Enum
+   */
   enum?: unknown[];
+  /**
+   * Const
+   */
   const?: unknown;
+  /**
+   * Default
+   */
   default?: unknown;
+  /**
+   * Format
+   */
   format?: string;
+  /**
+   * Pattern
+   */
   pattern?: string;
+  /**
+   * Minimum
+   */
   minimum?: number;
+  /**
+   * Maximum
+   */
   maximum?: number;
+  /**
+   * Min length
+   */
   minLength?: number;
+  /**
+   * Max length
+   */
   maxLength?: number;
+  /**
+   * Definitions
+   */
   definitions?: Record<string, JsonSchema>;
   [key: string]: unknown;
 }
 
 /** An entry of `GET /api/operations`. */
 export interface DebugOperation {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Input
+   */
   input?: string;
+  /**
+   * Output
+   */
   output?: string;
+  /**
+   * Input schema
+   */
   inputSchema?: JsonSchema;
+  /**
+   * Output schema
+   */
   outputSchema?: JsonSchema;
+  /**
+   * REST
+   */
   rest?: { method?: string; url?: string; path?: string };
+  /**
+   * Summary
+   */
   summary?: string;
+  /**
+   * Tags
+   */
   tags?: string[];
+  /**
+   * Implementor
+   */
   implementor?: { type: "service" | "model"; name: string; method?: string; code?: string };
   [key: string]: unknown;
 }
@@ -128,25 +266,73 @@ export type DebugRequestBody =
 
 /** An entry of `GET /api/requests` (summary) and `GET /api/requests/:id` (full). */
 export interface DebugRequest {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Method
+   */
   method?: string;
+  /**
+   * URL
+   */
   url?: string;
+  /**
+   * Timestamp
+   */
   timestamp?: number;
+  /**
+   * Status code
+   */
   statusCode?: number;
+  /**
+   * Duration
+   */
   duration?: number;
+  /**
+   * Request headers
+   */
   requestHeaders?: Record<string, string>;
+  /**
+   * Request body
+   */
   requestBody?: DebugRequestBody;
+  /**
+   * Response headers
+   */
   responseHeaders?: Record<string, string>;
+  /**
+   * Response body
+   */
   responseBody?: DebugRequestBody;
+  /**
+   * Error
+   */
   error?: { message: string; stack?: string };
 }
 
 /** An entry of `GET /api/logs`. */
 export interface DebugLogEntry {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Timestamp
+   */
   timestamp?: number;
+  /**
+   * Level
+   */
   level: string;
+  /**
+   * Message
+   */
   message: string;
+  /**
+   * Args
+   */
   args?: unknown[];
 }
 

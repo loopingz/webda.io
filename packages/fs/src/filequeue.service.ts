@@ -209,6 +209,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
+   * Clean up internal test data
    * @inheritdoc
    */
   async __clean() {

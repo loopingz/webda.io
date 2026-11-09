@@ -18,6 +18,7 @@ const CONTENT_TYPES: Record<RestStreamFormat, string> = {
 };
 
 /**
+ * Check whether response gone
  * @param response - an HTTP/1.1 or HTTP/2 (compatibility API) response
  * @returns whether it is over or its connection gone
  */
@@ -33,15 +34,37 @@ export function isResponseGone(response: ServerResponse): boolean {
  * normal HTTP error response. The context never ends the response by itself, see {@link RestStreamingOperationContext.finish}.
  */
 export class RestStreamingOperationContext extends StreamingOperationContext {
+  /**
+   * Started
+   */
   private started = false;
+  /**
+   * Finished
+   */
   private finished = false;
+  /**
+   * Timer
+   */
   private timer?: NodeJS.Timeout;
+  /**
+   * Beginning
+   */
   private beginning?: Promise<void>;
+  /**
+   * Queued
+   */
   private queued: string[] = [];
+  /**
+   * Need drain
+   */
   private needDrain = false;
+  /**
+   * Aborted
+   */
   private aborted = false;
 
   /**
+   * Create a new RestStreamingOperationContext instance
    * @param httpContext - the request
    * @param response - the HTTP response to stream to
    * @param format - how to frame the chunks
@@ -77,6 +100,7 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
   }
 
   /**
+   * Get whether the status line and headers were sent
    * @returns whether the status line and headers were sent
    */
   get hasStarted(): boolean {
@@ -92,6 +116,7 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
   }
 
   /**
+   * Get whether the client is gone or the response is over
    * @returns whether the client is gone or the response is over
    */
   get disconnected(): boolean {

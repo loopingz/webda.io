@@ -84,6 +84,7 @@ export class SQLRepository<T extends ModelClass> extends MemoryRepository<T> {
   }
 
   /**
+   * Return the identifier of its topmost ancestor (itself included) carrying metadata
    * @param model - a model class
    * @returns the identifier of its topmost ancestor (itself included) carrying metadata
    */

@@ -5,6 +5,9 @@ import { patch } from "./engine/patch.js";
 import type { Delta } from "./types.js";
 import type { VersionedPatch } from "./history.js";
 
+/**
+ * Render options type definition
+ */
 export type RenderOptions = {
   /** Unified-diff context lines. Default: 3. */
   context?: number;

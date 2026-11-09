@@ -12,7 +12,10 @@ export interface AzureDeployerInfo {
    * @returns merged resource tags
    */
   getDefaultTags(tags?: Record<string, string>): Record<string, string>;
-  /** @returns ARM expression identifying the application's managed identity principal */
+  /**
+   * Get aRM expression identifying the application's managed identity principal
+   * @returns ARM expression identifying the application's managed identity principal
+   */
   getAppPrincipalId(): string;
 }
 

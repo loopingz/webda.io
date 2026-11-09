@@ -207,6 +207,9 @@ export function unwrapRepository<T extends ModelClass>(repo: Repository<T>): Abs
  *   - Writes execute against `target` first (enforcing write conditions) and mirror to `source`.
  */
 export class MigrationRepository<T extends ModelClass> extends AbstractRepository<T> {
+  /**
+   * Model ID
+   */
   protected readonly modelId: string;
 
   /**
@@ -461,10 +464,25 @@ export class MigrationRepository<T extends ModelClass> extends AbstractRepositor
   }
 }
 
+/**
+ * Active transfer lease interface
+ */
 interface ActiveTransferLease {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Owner
+   */
   owner: string;
+  /**
+   * Lease until
+   */
   leaseUntil: number;
+  /**
+   * Lease duration
+   */
   leaseDuration: number;
 }
 

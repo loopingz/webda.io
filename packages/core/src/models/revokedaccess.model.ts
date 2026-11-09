@@ -5,6 +5,9 @@ import { Model, WEBDA_PRIMARY_KEY } from "@webda/models";
  * @WebdaModel
  */
 export class RevokedAccess extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["key"] as const;
   /** `fam:<family>` or `user:<userId>` */
   key: string;

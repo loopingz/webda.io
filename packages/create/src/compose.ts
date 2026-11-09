@@ -21,10 +21,25 @@ export function overlayNames(store: Store, transports: Transport[], sdk: boolean
   return [...names, ...TRANSPORT_OVERLAYS.filter(name => transports.includes(name)), ...(sdk ? ["sdk"] : [])];
 }
 
+/**
+ * Composed interface
+ */
 export interface Composed {
+  /**
+   * Files
+   */
   files: FileMap;
+  /**
+   * Package JSON
+   */
   packageJson: Record<string, any>;
+  /**
+   * Configuration
+   */
   config: Record<string, any>;
+  /**
+   * Agent notes
+   */
   agentNotes: string[];
 }
 

@@ -40,6 +40,7 @@ export class SyncTransportAdapter implements SyncTransport {
   watch?: (req: WatchRequest, signal: AbortSignal) => AsyncIterable<WatchEvent>;
 
   /**
+   * Create a new SyncTransportAdapter instance
    * @param client - the SDK client
    * @param operations - ids of the `Sync.*` operations
    */
@@ -54,6 +55,7 @@ export class SyncTransportAdapter implements SyncTransport {
   }
 
   /**
+   * Return the page of changes
    * @param req - the pull request
    * @returns the page of changes
    */
@@ -62,6 +64,7 @@ export class SyncTransportAdapter implements SyncTransport {
   }
 
   /**
+   * Push operation
    * @param req - the mutations
    * @returns their results
    */
@@ -70,6 +73,7 @@ export class SyncTransportAdapter implements SyncTransport {
   }
 
   /**
+   * Return the page of objects
    * @param req - the scope and continuation
    * @returns the page of objects
    */
@@ -101,6 +105,7 @@ export interface OfflineOptions {
 }
 
 /**
+ * Split query
  * @param query - a WebdaQL query
  * @returns its filter and its trailing `ORDER BY` / `LIMIT` / `OFFSET` clauses
  */
@@ -138,6 +143,7 @@ export function splitQuery(query: string): {
 }
 
 /**
+ * Return the value
  * @param object - an object
  * @param path - a dotted attribute path
  * @returns the value
@@ -153,9 +159,13 @@ function valueAt(object: any, path: string): any {
  * An object outside the synced scopes is read through the transports.
  */
 export class OfflineBackend implements ModelBackend {
+  /**
+   * Remote
+   */
   protected readonly remote: RemoteBackend;
 
   /**
+   * Create a new OfflineBackend instance
    * @param support - the offline extension
    * @param descriptor - the model
    */
@@ -167,6 +177,7 @@ export class OfflineBackend implements ModelBackend {
   }
 
   /**
+   * Return the key `
    * @param uid - an uid
    * @returns the key `@webda/offline` uses (the primary key attributes)
    */
@@ -191,6 +202,7 @@ export class OfflineBackend implements ModelBackend {
   }
 
   /**
+   * Return the local object; one the replica does not hold is read through the transports
    * @param uid - the uid
    * @param options - call options
    * @returns the local object; one the replica does not hold is read through the transports
@@ -243,6 +255,7 @@ export class OfflineBackend implements ModelBackend {
   }
 
   /**
+   * Create operation
    * @param data - the object
    * @returns the local object
    */
@@ -251,6 +264,7 @@ export class OfflineBackend implements ModelBackend {
   }
 
   /**
+   * Update operation
    * @param uid - the uid
    * @param data - every attribute (merged: the replica patches)
    * @returns the local object
@@ -260,6 +274,7 @@ export class OfflineBackend implements ModelBackend {
   }
 
   /**
+   * Patch operation
    * @param uid - the uid
    * @param data - some attributes
    * @returns the local object
@@ -270,6 +285,7 @@ export class OfflineBackend implements ModelBackend {
   }
 
   /**
+   * Delete operation
    * @param uid - the uid
    */
   async delete(uid: string): Promise<void> {
@@ -294,10 +310,17 @@ export class OfflineSupport
   models: string[] = [];
   /** How the replica reaches the `Sync.*` operations */
   transport?: SyncTransportAdapter;
+  /**
+   * Replica promise
+   */
   protected replicaPromise?: Promise<OfflineClient>;
+  /**
+   * Replica client
+   */
   protected replicaClient?: OfflineClient;
 
   /**
+   * Create a new OfflineSupport instance
    * @param options - storage, scopes and sync options
    */
   constructor(readonly options: OfflineOptions) {
@@ -305,6 +328,7 @@ export class OfflineSupport
   }
 
   /**
+   * Attach operation
    * @param client - the client
    * @throws SdkError when the application has no `SyncService` or the extension is already attached
    */
@@ -343,6 +367,7 @@ export class OfflineSupport
   }
 
   /**
+   * Return the offline backend of a synced model, undefined for the others
    * @param descriptor - a model
    * @returns the offline backend of a synced model, undefined for the others
    */
@@ -351,6 +376,7 @@ export class OfflineSupport
   }
 
   /**
+   * Return the replica, once `
    * @returns the replica, once `@webda/offline/client` is loaded
    * @throws SdkError when the extension is not attached to a client
    */
@@ -364,6 +390,7 @@ export class OfflineSupport
   }
 
   /**
+   * Get the `OfflineClient`, undefined until loaded
    * @returns the `OfflineClient`, undefined until loaded
    */
   get replica(): OfflineClient | undefined {
@@ -371,6 +398,7 @@ export class OfflineSupport
   }
 
   /**
+   * Get the sync loop status
    * @returns the sync loop status
    */
   get status(): SyncStatus {
@@ -378,6 +406,7 @@ export class OfflineSupport
   }
 
   /**
+   * Return its uid in the SDK
    * @param model - model id
    * @param key - key of the object in the replica
    * @returns its uid in the SDK
@@ -429,6 +458,7 @@ export class OfflineSupport
   }
 
   /**
+   * Return the open conflicts
    * @returns the open conflicts
    */
   async conflicts(): Promise<ConflictInfo[]> {

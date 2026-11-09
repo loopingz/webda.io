@@ -2,12 +2,18 @@ import { diff3Merge } from "node-diff3";
 
 import { VersioningError } from "../errors.js";
 
+/**
+ * Line conflict region type definition
+ */
 export type LineConflictRegion = {
   base: string;
   ours: string;
   theirs: string;
 };
 
+/**
+ * Line merge result type definition
+ */
 export type LineMergeResult = {
   merged: string;
   conflicts: LineConflictRegion[];

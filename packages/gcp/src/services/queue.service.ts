@@ -62,6 +62,9 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * Used in receiver mode to store the next message received
    */
   private receiverPromise?: Promise<MessageReceipt<any>[]>;
+  /**
+   * Receiver resolve
+   */
   private receiverResolve?: (value: MessageReceipt<any>[]) => void;
   /**
    * Messages received and not yet acknowledged, indexed by ackId

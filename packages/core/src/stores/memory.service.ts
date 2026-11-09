@@ -12,6 +12,9 @@ import { Command } from "../services/command.js";
 import type { MigratableStore } from "./capability.js";
 import { mapRawPage, mapRawPatch, type RawPage, type RawPatch, type RawTable } from "./migration.js";
 
+/**
+ * Storage map interface
+ */
 export interface StorageMap {
   [key: string]: string;
 }
@@ -71,7 +74,13 @@ export class MemoryStoreParameters extends StoreParameters {
 
 /** Readable stream that serializes a MemoryModelMap to line-delimited JSON */
 class LDJSONMemoryStreamWriter extends Readable {
+  /**
+   * Data
+   */
   private data: any[];
+  /**
+   * Index
+   */
   private index: number = 0;
 
   /** Create a new LDJSONMemoryStreamWriter
@@ -95,8 +104,17 @@ class LDJSONMemoryStreamWriter extends Readable {
 
 /** Writable stream that parses line-delimited JSON or legacy JSON format into a Map */
 class LDJSONMemoryStreamReader extends Writable {
+  /**
+   * Current
+   */
   current: string = "";
+  /**
+   * Old format
+   */
   oldFormat: string = undefined;
+  /**
+   * Whether first bytes is enabled
+   */
   firstBytes: boolean = true;
   /** Create a new LDJSONMemoryStreamReader
    * @param data - the map to populate from the stream
@@ -163,6 +181,9 @@ class LDJSONMemoryStreamReader extends Writable {
  * Indexed by stored type: a query of one model never parses the documents of the other models of the store.
  */
 class MemoryModelMap extends TypeIndexedMap {
+  /**
+   * Persistence
+   */
   persistence: () => void;
   /**
    * Set a value and trigger persistence callback

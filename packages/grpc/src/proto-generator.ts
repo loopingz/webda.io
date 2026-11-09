@@ -148,7 +148,12 @@ function schemaToMessageName(schemaRef: string): string {
   const tail = (decoded.includes("/") ? decoded.split("/").pop() : decoded) ?? decoded;
   // Drop generic args (`<...>`) entirely — proto3 has no generic concept and
   // the unresolved `T` made the generated schema collapse them to `<{}>`.
-  const stripped = tail.replace(/<[^>]*>/g, "");
+  let stripped = tail;
+  let prev: string;
+  do {
+    prev = stripped;
+    stripped = stripped.replace(/<[^>]*>/g, "");
+  } while (stripped !== prev);
   // Sanitize anything left that proto3 doesn't accept in an identifier.
   // proto3 idents match `[A-Za-z_][A-Za-z0-9_]*`; splitting on every other
   // char and PascalCasing keeps the original word boundaries readable.

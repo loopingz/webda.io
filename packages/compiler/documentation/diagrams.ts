@@ -26,8 +26,17 @@ import { Constructor } from "@webda/utils";
  * Abstract diagram with the common replacement methods
  */
 export abstract class Diagram {
+  /**
+   * Whether append is enabled
+   */
   append: boolean;
+  /**
+   * Content
+   */
   content: string;
+  /**
+   * File
+   */
   file: string;
 
   /** Create a new Diagram.

@@ -42,9 +42,21 @@ export interface AWSEventsHandler {
  * Result returned to the API Gateway
  */
 export interface LambdaServerResult {
+  /**
+   * Headers
+   */
   headers?: any;
+  /**
+   * Status code
+   */
   statusCode?: number;
+  /**
+   * Multi value headers
+   */
   multiValueHeaders?: any;
+  /**
+   * Body
+   */
   body?: any;
 }
 

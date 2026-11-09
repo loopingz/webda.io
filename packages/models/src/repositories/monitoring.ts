@@ -1,6 +1,15 @@
+/**
+ * Query operation type definition
+ */
 export type QueryOperation = "query" | "iterate" | "aggregate" | "count" | "deleteMany" | "updateMany";
 
+/**
+ * Query execution info interface
+ */
 export interface QueryExecutionInfo {
+  /**
+   * Operation
+   */
   operation: QueryOperation;
   /** Model identifier (useModelId) */
   model: string;
@@ -16,6 +25,9 @@ export interface QueryExecutionInfo {
   error?: Error;
 }
 
+/**
+ * Query monitor options interface
+ */
 export interface QueryMonitorOptions {
   /** Called after every monitored operation, success or failure */
   onQuery?: (info: QueryExecutionInfo) => void;

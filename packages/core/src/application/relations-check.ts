@@ -14,12 +14,33 @@ export type DiagnosticCode = "R1" | "R2" | "R3" | "R4" | "R5";
  * Diagnostic result from relations check
  */
 export interface RelationDiagnostic {
+  /**
+   * Level
+   */
   level: DiagnosticLevel;
+  /**
+   * Code
+   */
   code: DiagnosticCode;
+  /**
+   * Message
+   */
   message: string;
+  /**
+   * Source model
+   */
   sourceModel: string;
+  /**
+   * Source attribute
+   */
   sourceAttribute: string;
+  /**
+   * Target model
+   */
   targetModel: string;
+  /**
+   * Target attribute
+   */
   targetAttribute?: string;
 }
 

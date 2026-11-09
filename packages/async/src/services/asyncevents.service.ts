@@ -28,6 +28,7 @@ export class AsyncEvent {
   static ServiceTag = "#Webda:Service:";
 
   /**
+   * Create a new AsyncEvent instance
    * @param service - the emitter: a service, a model class or its serialized name
    * @param type - the event type
    * @param payload - the event payload
@@ -104,18 +105,25 @@ interface QueueMap {
 }
 
 /**
+ * Configuration parameters for EventService
  * @inheritdoc
  */
 export class EventServiceParameters extends ServiceParameters {
   /**
    * Queues to post async events to
    */
-  /** @default {} */
+  /**
+   * Queues
+   * @default {}
+   */
   queues!: { [key: string]: string };
   /**
    * Make the event sending asynchronous
    */
-  /** @default false */
+  /**
+   * Whether sync is enabled
+   * @default false
+   */
   sync!: boolean;
 
   /**
@@ -132,13 +140,26 @@ export class EventServiceParameters extends ServiceParameters {
 }
 
 /**
+ * Event service implementation
  * @category CoreServices
  * @WebdaModda AsyncEvents
  */
 class EventService<T extends EventServiceParameters = EventServiceParameters> extends Service<T> {
+  /**
+   * Callbacks
+   */
   _callbacks: Record<string, Array<(payload: any, event: AsyncEvent) => unknown>> = {};
+  /**
+   * Queues
+   */
   _queues: QueueMap = {};
+  /**
+   * Default queue
+   */
   _defaultQueue: string = "";
+  /**
+   * Whether async is enabled
+   */
   _async!: boolean;
 
   /**

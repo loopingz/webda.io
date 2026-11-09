@@ -8,11 +8,21 @@ import { stringifySetCookie } from "cookie";
 import { useCore, useDynamicService, useService } from "../core/hooks.js";
 
 /**
+ * Cookie implementation
  * @category CoreFeatures
  */
 class Cookie {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Value
+   */
   value: string;
+  /**
+   * Options
+   */
   options: any;
 }
 
@@ -37,11 +47,17 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    */
   _cookie: Map<string, Cookie>;
   /**
-   *
+   * Headers
    */
   headers: Map<string, string>;
+  /**
+   * Route
+   */
   _route: any;
 
+  /**
+   * Ended
+   */
   _ended: Promise<any> = undefined;
   /**
    * Whether the session was already saved
@@ -53,6 +69,9 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    */
   protected headersFlushed: boolean;
 
+  /**
+   * Init
+   */
   private _init: Promise<this>;
 
   /**
@@ -162,7 +181,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   }
 
   /**
-   *
+   * Get the response code
    * @returns the result
    */
   getResponseCode() {
@@ -403,7 +422,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   }
 
   /**
-   *
+   * Flush headers
    */
   async flushHeaders(): Promise<void> {
     if (this.flushed) return;

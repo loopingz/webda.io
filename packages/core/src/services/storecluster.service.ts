@@ -7,7 +7,13 @@ export class StoreClusterServiceParameters extends ClusterServiceParameters {}
 
 /** Lease fields of the Registry entry */
 interface LeaseEntry {
+  /**
+   * Owner
+   */
   owner?: string;
+  /**
+   * Lease until
+   */
   leaseUntil?: number;
 }
 
@@ -22,12 +28,16 @@ interface LeaseEntry {
 export class StoreClusterService<
   T extends StoreClusterServiceParameters = StoreClusterServiceParameters
 > extends ClusterService<T> {
+  /**
+   * Parameters
+   */
   static Parameters = StoreClusterServiceParameters;
 
   /** `leaseUntil` last written by this instance */
   protected leaseUntil?: number;
 
   /**
+   * Return the Registry entry id of the lease
    * @returns the Registry entry id of the lease
    */
   protected leaseId(): string {

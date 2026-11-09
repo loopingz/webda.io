@@ -12,6 +12,9 @@ export class TaskServiceParameters extends Service.Parameters {}
  * @WebdaModda
  */
 export class TaskService<T extends TaskServiceParameters = TaskServiceParameters> extends Service<T> {
+  /**
+   * Parameters
+   */
   static Parameters = TaskServiceParameters;
 
   /**

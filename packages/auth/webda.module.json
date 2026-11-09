@@ -191,6 +191,7 @@
             "properties": {
               "policy": {
                 "default": ".{8,}",
+                "description": "Policy",
                 "type": "string"
               },
               "verifier": {
@@ -232,14 +233,17 @@
             "properties": {
               "failedBeforeDelay": {
                 "default": 3,
+                "description": "Failed before delay",
                 "type": "number"
               },
               "lockout": {
                 "default": 900000,
+                "description": "Lockout",
                 "type": "number"
               },
               "resendDelay": {
                 "default": 14400000,
+                "description": "Resend delay",
                 "type": "number"
               }
             },
@@ -254,6 +258,10 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "baseUrl": {
+            "description": "Optional canonical origin (e.g. \"https://api.example.com\") used to build emailed verification and recovery links\ninstead of trusting the request Host header",
+            "type": "string"
           },
           "mailer": {
             "default": "Mailer",
@@ -559,7 +567,14 @@
     },
     "Authentication.providers.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "auth/providers",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Authentication.providers.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -601,14 +616,28 @@
     },
     "Authentication.me.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "auth/me",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Authentication.me.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "Authentication.logout.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/logout",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Authentication.logout.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -623,7 +652,16 @@
       },
       "required": [
         "refreshToken"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/refresh",
+        "path": [],
+        "query": [],
+        "body": [
+          "refreshToken"
+        ]
+      }
     },
     "Authentication.refresh.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -631,12 +669,15 @@
       "description": "Tokens returned by a successful login or refresh",
       "properties": {
         "accessToken": {
+          "description": "Access token",
           "type": "string"
         },
         "expiresIn": {
+          "description": "Expires in",
           "type": "number"
         },
         "refreshToken": {
+          "description": "Refresh token",
           "type": "string"
         }
       },
@@ -649,7 +690,14 @@
     },
     "Authentication.idents.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "get",
+        "template": "auth/idents",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "Authentication.idents.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -700,7 +748,17 @@
       "required": [
         "provider",
         "providerUid"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/idents/unlink",
+        "path": [],
+        "query": [],
+        "body": [
+          "provider",
+          "providerUid"
+        ]
+      }
     },
     "Authentication.unlink.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -708,7 +766,14 @@
     },
     "CertificateProvider.link.input": {
       "type": "object",
-      "properties": {}
+      "properties": {},
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/certificate/link",
+        "path": [],
+        "query": [],
+        "body": []
+      }
     },
     "CertificateProvider.link.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -717,12 +782,15 @@
           "additionalProperties": false,
           "properties": {
             "accessToken": {
+              "description": "Access token",
               "type": "string"
             },
             "expiresIn": {
+              "description": "Expires in",
               "type": "number"
             },
             "refreshToken": {
+              "description": "Refresh token",
               "type": "string"
             },
             "status": {
@@ -796,7 +864,17 @@
       "required": [
         "email",
         "password"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/email/login",
+        "path": [],
+        "query": [],
+        "body": [
+          "email",
+          "password"
+        ]
+      }
     },
     "EmailPasswordProvider.login.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -805,12 +883,15 @@
           "additionalProperties": false,
           "properties": {
             "accessToken": {
+              "description": "Access token",
               "type": "string"
             },
             "expiresIn": {
+              "description": "Expires in",
               "type": "number"
             },
             "refreshToken": {
+              "description": "Refresh token",
               "type": "string"
             },
             "status": {
@@ -873,7 +954,19 @@
       "required": [
         "email",
         "password"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/email/register",
+        "path": [],
+        "query": [],
+        "body": [
+          "email",
+          "password",
+          "token",
+          "profile"
+        ]
+      }
     },
     "EmailPasswordProvider.register.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -887,7 +980,16 @@
       },
       "required": [
         "email"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/email/verification",
+        "path": [],
+        "query": [],
+        "body": [
+          "email"
+        ]
+      }
     },
     "EmailPasswordProvider.startVerification.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -902,7 +1004,16 @@
       },
       "required": [
         "token"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/email/verify",
+        "path": [],
+        "query": [],
+        "body": [
+          "token"
+        ]
+      }
     },
     "EmailPasswordProvider.verify.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -927,7 +1038,16 @@
       },
       "required": [
         "email"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/password/recovery",
+        "path": [],
+        "query": [],
+        "body": [
+          "email"
+        ]
+      }
     },
     "EmailPasswordProvider.startRecovery.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -946,7 +1066,17 @@
       "required": [
         "token",
         "password"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/password/recover",
+        "path": [],
+        "query": [],
+        "body": [
+          "token",
+          "password"
+        ]
+      }
     },
     "EmailPasswordProvider.recover.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1017,7 +1147,18 @@
       "required": [
         "current",
         "next"
-      ]
+      ],
+      "x-webda-rest": {
+        "method": "post",
+        "template": "auth/password/change",
+        "path": [],
+        "query": [],
+        "body": [
+          "current",
+          "next",
+          "escrow"
+        ]
+      }
     },
     "EmailPasswordProvider.changePassword.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

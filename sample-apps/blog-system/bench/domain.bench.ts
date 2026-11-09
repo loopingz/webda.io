@@ -119,6 +119,9 @@ class BlogDomainBench extends BlogBench {
  */
 @suite
 class BlogDomainNoAuditBench extends BlogDomainBench {
+  /**
+   * Audit
+   */
   audit = false;
 
   /**

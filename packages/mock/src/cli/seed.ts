@@ -1,3 +1,6 @@
+/**
+ * Seed parsed type definition
+ */
 export type SeedParsed = {
   spec: Record<string, number>;
   specPath?: string;

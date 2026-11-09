@@ -20,6 +20,7 @@ export interface SourcedToken {
  */
 export interface TokenSource {
   /**
+   * Get a token for this audience
    * @param audience - the target audience
    * @returns a token for this audience
    */

@@ -17,9 +17,15 @@ export const FLOW_SUFFIX = ".flow.ts";
 
 /** One parameter of a service operation, as the typed call takes it. */
 export interface OperationParameter {
+  /**
+   * Name
+   */
   name: string;
   /** Position in the method signature (context parameters included). */
   index: number;
+  /**
+   * Whether optional is enabled
+   */
   optional: boolean;
 }
 
@@ -33,7 +39,13 @@ export interface ServiceOperation {
 
 /** A service class with operations. */
 export interface OperationService {
+  /**
+   * Class name
+   */
   className: string;
+  /**
+   * File name
+   */
   fileName: string;
   /** Operations by capitalized method name. */
   operations: Map<string, ServiceOperation>;

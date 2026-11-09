@@ -20,6 +20,7 @@ export const ThingModel = { name: "Thing" };
 /** Operations of every shape the GraphQL transport must place. */
 export class GraphQLFixtureService extends Service {
   /**
+   * Load parameters
    * @param params - raw parameters
    * @returns parameters
    */
@@ -28,6 +29,7 @@ export class GraphQLFixtureService extends Service {
   }
 
   /**
+   * Return counts
    * @param project - project id
    * @returns counts
    */
@@ -36,6 +38,7 @@ export class GraphQLFixtureService extends Service {
   }
 
   /**
+   * Rename operation
    * @param name - a name
    * @returns it upper-cased
    */
@@ -53,6 +56,7 @@ export class GraphQLFixtureService extends Service {
   }
 
   /**
+   * Return a scalar, with a void output schema
    * @returns a scalar, with a void output schema
    */
   version() {
@@ -60,6 +64,7 @@ export class GraphQLFixtureService extends Service {
   }
 
   /**
+   * Return a secret, only for alice
    * @returns a secret, only for alice
    */
   secret() {
@@ -67,6 +72,7 @@ export class GraphQLFixtureService extends Service {
   }
 
   /**
+   * Fail operation
    * @returns never
    */
   fail() {
@@ -74,6 +80,7 @@ export class GraphQLFixtureService extends Service {
   }
 
   /**
+   * Return never
    * @returns never
    */
   crash() {

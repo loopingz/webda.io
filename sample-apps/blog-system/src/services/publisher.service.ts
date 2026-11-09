@@ -7,9 +7,13 @@ import { Post } from "../models/Post.model.js";
 export class PublisherParameters extends Service.Parameters {}
 
 /**
+ * Publisher implementation
  * @WebdaModda
  */
 export class Publisher<T extends PublisherParameters = PublisherParameters> extends Service<T> {
+  /**
+   * Parameters
+   */
   static Parameters = PublisherParameters;
 
   /**

@@ -9,12 +9,14 @@ import type { Session, WebContext } from "@webda/core";
  */
 export interface McpAuthenticator {
   /**
+   * Authenticate operation
    * @param ctx - the HTTP request context
    * @returns the caller session
    */
   authenticate(ctx: WebContext): Promise<Session>;
 
   /**
+   * Return the absolute protected resource metadata URL advertised in the `WWW-Authenticate` challenge, if any
    * @param ctx - the HTTP request context
    * @returns the absolute protected resource metadata URL advertised in the `WWW-Authenticate` challenge, if any
    */
@@ -27,6 +29,7 @@ export interface McpAuthenticator {
  */
 export class SessionAuthenticator implements McpAuthenticator {
   /**
+   * Authenticate operation
    * @param ctx - the HTTP request context
    * @returns the request session
    */

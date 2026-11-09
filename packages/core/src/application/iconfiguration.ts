@@ -14,6 +14,9 @@ export interface CachedModule extends WebdaModule {
   project: ProjectInformation;
 }
 
+/**
+ * Section enum enumeration
+ */
 export enum SectionEnum {
   Moddas = "moddas",
   Deployers = "deployers",
@@ -26,6 +29,9 @@ export enum SectionEnum {
  */
 export type Section = "moddas" | "deployers" | "models" | "beans";
 
+/**
+ * Static website type definition
+ */
 export type StaticWebsite = {
   url: string;
   path?: string;
@@ -58,6 +64,9 @@ export interface ConfigurationEncryption {
   };
 }
 
+/**
+ * Service group type definition
+ */
 export type ServiceGroup = {
   services?: any;
   parameters: any;
@@ -65,10 +74,19 @@ export type ServiceGroup = {
 
 /** Runtime policies for a model and its behavior attributes, separate from persisted instance data. */
 export interface ModelConfiguration {
+  /**
+   * Parameters
+   */
   parameters?: Record<string, any>;
+  /**
+   * Behaviors
+   */
   behaviors?: Record<string, Record<string, any>>;
 }
 
+/**
+ * Unpacked configuration type definition
+ */
 export type UnpackedConfiguration = {
   version: 4;
   /**
@@ -174,6 +192,9 @@ export type UnpackedConfiguration = {
   $import?: string[] | string;
 };
 
+/**
+ * Configuration type definition
+ */
 export type Configuration = UnpackedConfiguration & {
   /**
    * Cached modules to avoid scanning node_modules

@@ -11,6 +11,7 @@
         "definitions": {
           "contentStorage#2": {
             "additionalProperties": false,
+            "description": "Content storage",
             "properties": {
               "default": {
                 "default": false,
@@ -37,7 +38,8 @@
         "description": "Configuration parameters for the filesystem-backed binary storage service.",
         "properties": {
           "contentStorage": {
-            "$ref": "#/definitions/contentStorage%232"
+            "$ref": "#/definitions/contentStorage%232",
+            "description": "Content storage"
           },
           "folder": {
             "description": "Define the folder to store objects in",
@@ -67,6 +69,7 @@
             "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
           },
           "prefix": {
+            "description": "Prefix",
             "type": "string"
           },
           "type": {
@@ -201,6 +204,7 @@
             "properties": {
               "enabled": {
                 "default": true,
+                "description": "Whether enabled is enabled",
                 "type": "boolean"
               },
               "maxRows": {

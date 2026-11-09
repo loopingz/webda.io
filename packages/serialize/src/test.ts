@@ -3,6 +3,9 @@ import * as assert from "assert";
 
 /** Multi-factor authentication token with serialize/deserialize support. */
 class MFA {
+  /**
+   * Secret
+   */
   secret: string = "";
   /** Create an MFA instance with an optional secret.
    * @param secret - the MFA secret value
@@ -38,6 +41,9 @@ class MFA {
 
 const WEBDA_FIELDS = Symbol("webda_fields");
 
+/**
+ * Field definition type definition
+ */
 type FieldDefinition =
   | {
       fromDTO?: (dto: any) => any;
@@ -45,18 +51,33 @@ type FieldDefinition =
       instance?: Constructor<any>;
     }
   | Constructor<any>;
+/**
+ * With fields interface
+ */
 interface WithFields {
   new (...args: any[]): any;
+  /**
+   * [webda fields]
+   */
   [WEBDA_FIELDS]: Record<string, FieldDefinition>;
 }
 
 /** Example model with Date and MFA fields for testing serialization round-trips. */
 class AClass {
+  /**
+   * [webda fields]
+   */
   static [WEBDA_FIELDS]: Record<string, FieldDefinition> = {
     date: Date,
     mfa: MFA
   };
+  /**
+   * Date
+   */
   date: Date = new Date();
+  /**
+   * MFA
+   */
   mfa: MFA = new MFA();
 
   /**
@@ -105,11 +126,20 @@ class AClass {
 
 /** Extended model adding an extra Date field to verify inherited serialization. */
 class BClass extends AClass {
+  /**
+   * [webda fields]
+   */
   static [WEBDA_FIELDS]: Record<string, FieldDefinition> = {
     ...AClass[WEBDA_FIELDS],
     otherDate: Date
   };
+  /**
+   * Name
+   */
   name!: string;
+  /**
+   * Other date
+   */
   otherDate!: Date;
 }
 

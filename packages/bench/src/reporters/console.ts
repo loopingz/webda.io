@@ -32,6 +32,7 @@ export function toTextTable(results: BenchResult[]): string {
  */
 export class ConsoleReporter implements Reporter {
   /**
+   * Create a new ConsoleReporter instance
    * @param write - output function
    */
   constructor(protected write: (text: string) => void = text => console.log(text)) {}

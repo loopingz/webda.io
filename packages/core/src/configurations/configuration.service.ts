@@ -13,7 +13,7 @@ import { useApplication } from "../application/hooks.js";
  */
 interface ConfigurationProvider {
   /**
-   *
+   * Get the configuration
    * @param id of the configuration to retrieve
    */
   getConfiguration(id: string): Promise<{ [key: string]: any }>;
@@ -87,6 +87,9 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Configuration events type definition
+ */
 export type ConfigurationEvents = {
   "Configuration.Applied": Record<string, any>;
   "Configuration.Applying": any;
@@ -112,9 +115,12 @@ class ConfigurationService<
   extends Service<T, E>
   implements ConfigurationProvider
 {
+  /**
+   * Serialized configuration
+   */
   protected serializedConfiguration: any;
   /**
-   *
+   * Next check
    */
   protected nextCheck: number;
   /**
@@ -213,7 +219,7 @@ class ConfigurationService<
   }
 
   /**
-   *
+   * Get current configuration
    * @param _id - the identifier
    * @returns current configuration
    */
@@ -290,7 +296,7 @@ class ConfigurationService<
   }
 
   /**
-   *
+   * Bootstrap operation
    * @param core - the Core instance
    */
   async bootstrap(core: Core): Promise<void> {

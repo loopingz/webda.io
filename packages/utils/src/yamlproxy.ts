@@ -50,8 +50,17 @@ export class YAMLProxy {
   }
 }
 
+/**
+ * YAML proxies interface
+ */
 interface YAMLProxies {
+  /**
+   * Get the proxy
+   */
   getProxy(): any;
+  /**
+   * Clone operation
+   */
   clone(): any;
 }
 
@@ -277,6 +286,12 @@ class YAMLMap implements YAMLProxies {
    */
   getProxy(): any {
     return new Proxy(this, {
+      /**
+       * Perform get
+       * @param target - the target
+       * @param prop - the prop
+       * @returns the result
+       */
       get(target, prop) {
         if (prop === "toString") {
           return () => nodesMap.get(target).toString();
@@ -289,6 +304,13 @@ class YAMLMap implements YAMLProxies {
         }
         return target[prop];
       },
+      /**
+       * Perform set
+       * @param target - the target
+       * @param prop - the prop
+       * @param value - the value
+       * @returns the result
+       */
       set(target, prop, value) {
         if (!target[prop]) {
           const newValue = createYAMLNode(value);
@@ -310,6 +332,12 @@ class YAMLMap implements YAMLProxies {
         target[prop] = value;
         return true;
       },
+      /**
+       * Delete property
+       * @param target - the target
+       * @param prop - the prop
+       * @returns the result
+       */
       deleteProperty(target, prop) {
         target.getYAMLNodes().items = target
           .getYAMLNodes()

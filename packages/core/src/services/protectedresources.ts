@@ -12,6 +12,7 @@ export interface ProtectedResource {
 }
 
 /**
+ * Return the protected resources of the current instance
  * @returns the protected resources of the current instance
  */
 function useResources(): ProtectedResource[] {
@@ -42,6 +43,7 @@ export function unregisterProtectedResource(path: string): void {
 }
 
 /**
+ * List protected resources
  * @returns the registered protected resources
  */
 export function listProtectedResources(): ProtectedResource[] {
@@ -49,6 +51,7 @@ export function listProtectedResources(): ProtectedResource[] {
 }
 
 /**
+ * Resolve protected resources
  * @param origin - origin of the application, used for the resources without a canonical URI
  * @returns the absolute URI of every registered resource
  */

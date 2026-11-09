@@ -106,6 +106,9 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  * @WebdaModda
  */
 export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends CloudBinary<T> {
+  /**
+   * Schemes
+   */
   readonly schemes = ["file"];
   /**
    * Used for hmac

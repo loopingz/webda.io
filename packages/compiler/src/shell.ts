@@ -84,13 +84,31 @@ function mergeDependencyModules(projectPath: string, mod: any) {
   }
 }
 
+/**
+ * Arguments interface
+ */
 interface Arguments {
+  /**
+   * App path
+   */
   appPath: string;
+  /**
+   * Internal value
+   */
   _: string[];
 }
 
+/**
+ * Build arguments interface
+ */
 interface BuildArguments extends Arguments {
+  /**
+   * Whether watch is enabled
+   */
   watch: boolean;
+  /**
+   * Whether force is enabled
+   */
   force: boolean;
 }
 
@@ -103,7 +121,13 @@ function isBuildCommand(argv: Arguments): argv is BuildArguments {
   return argv._[0] === "build";
 }
 
+/**
+ * Code arguments interface
+ */
 interface CodeArguments extends Arguments {
+  /**
+   * Module
+   */
   module: string[];
 }
 /**

@@ -9,30 +9,105 @@
 
 /** A JSON Schema draft-07 document or subschema. */
 export interface JSONSchema7 {
+  /**
+   * $schema
+   */
   $schema?: string;
+  /**
+   * $ref
+   */
   $ref?: string;
+  /**
+   * $id
+   */
   $id?: string;
+  /**
+   * $comment
+   */
   $comment?: string;
+  /**
+   * Title
+   */
   title?: string;
+  /**
+   * Description
+   */
   description?: string;
+  /**
+   * Default
+   */
   default?: unknown;
+  /**
+   * Const
+   */
   const?: unknown;
+  /**
+   * Enum
+   */
   enum?: unknown[];
+  /**
+   * Type
+   */
   type?: string | string[];
+  /**
+   * Format
+   */
   format?: string;
+  /**
+   * Properties
+   */
   properties?: Record<string, JSONSchema7>;
+  /**
+   * Required
+   */
   required?: string[];
+  /**
+   * Additional properties
+   */
   additionalProperties?: boolean | JSONSchema7;
+  /**
+   * Items
+   */
   items?: JSONSchema7 | JSONSchema7[];
+  /**
+   * Min items
+   */
   minItems?: number;
+  /**
+   * Max items
+   */
   maxItems?: number;
+  /**
+   * Any of
+   */
   anyOf?: JSONSchema7[];
+  /**
+   * All of
+   */
   allOf?: JSONSchema7[];
+  /**
+   * Not
+   */
   not?: JSONSchema7;
+  /**
+   * Definitions
+   */
   definitions?: Record<string, JSONSchema7>;
+  /**
+   * Content encoding
+   */
   contentEncoding?: string;
+  /**
+   * Content media type
+   */
   contentMediaType?: string;
+  /**
+   * Pattern
+   */
   pattern?: string;
+  /**
+   * Whether read only is enabled
+   */
   readOnly?: boolean;
   /** JSDoc tags can set arbitrary keywords. */
   [keyword: string]: unknown;
@@ -55,6 +130,7 @@ export class SchemaConversionError extends Error {
   readonly typeName: string;
 
   /**
+   * Create a new SchemaConversionError instance
    * @param message - what could not be converted
    * @param path - schema path of the offending property
    * @param typeName - stringified type

@@ -29,6 +29,7 @@ export async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenera
   const decoder = new TextDecoder();
   let buffer = "";
   /**
+   * Block
    * @param block - lines of one event, already normalized to \n
    * @returns the event, undefined when it carries no data
    */
@@ -120,8 +121,17 @@ function errorOf(body: unknown): { message?: string; code?: string } {
  * A request to send: the URL and the JSON body left after the path and query parameters are taken from the input
  */
 export interface PreparedRequest {
+  /**
+   * URL
+   */
   url: string;
+  /**
+   * Method
+   */
   method: string;
+  /**
+   * Body
+   */
   body?: unknown;
 }
 
@@ -133,14 +143,19 @@ export interface PreparedRequest {
  * (`Accept: application/x-ndjson`) with a server-sent events fallback, bidirectional ones open a WebSocket.
  */
 export class HttpTransport implements Transport {
+  /**
+   * Name
+   */
   readonly name = "rest";
 
   /**
+   * Create a new HttpTransport instance
    * @param options - transport options
    */
   constructor(protected options: HttpTransportOptions) {}
 
   /**
+   * Return true when the operation has a REST route a plain request can carry
    * @param op - the operation
    * @returns true when the operation has a REST route a plain request can carry
    */
@@ -254,6 +269,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
+   * Return the error to throw
    * @param response - a failed response
    * @returns the error to throw
    */
@@ -274,6 +290,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
+   * Call operation
    * @param op - the operation
    * @param input - the input
    * @param ctx - the call context
@@ -295,6 +312,7 @@ export class HttpTransport implements Transport {
   }
 
   /**
+   * Stream operation
    * @param op - the operation
    * @param input - the input
    * @param ctx - the call context

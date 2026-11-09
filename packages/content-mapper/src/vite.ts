@@ -27,9 +27,19 @@ export function webdaContentMapper(options: WebdaContentMapperOptions = {}): Plu
   return {
     name: "webda-content-mapper",
     enforce: "pre",
+    /**
+     * Perform config resolved
+     * @param config - the config
+     */
     configResolved(config) {
       root = config.root;
     },
+    /**
+     * Transform operation
+     * @param code - the code
+     * @param id - the ID
+     * @returns the result
+     */
     transform(code, id) {
       const file = id.split("?")[0];
       if (!include.test(file)) {
@@ -42,6 +52,9 @@ export function webdaContentMapper(options: WebdaContentMapperOptions = {}): Plu
       }
       return { code: outcome.text, map: null };
     },
+    /**
+     * Build end
+     */
     buildEnd() {
       session?.dispose();
       session = undefined;

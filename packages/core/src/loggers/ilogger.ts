@@ -23,7 +23,13 @@ export function setWorkerOutput(output: WorkerOutput) {
  * Logger default implementation
  */
 export class Logger implements WorkoutLogger {
+  /**
+   * Context
+   */
   context: any = {};
+  /**
+   * Output
+   */
   private _output: WorkerOutput;
 
   /** Set the worker output target */

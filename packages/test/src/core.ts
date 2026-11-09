@@ -61,7 +61,13 @@ export interface TestSettings extends SharedSettings {
 
 /** Settings accepted by lifecycle decorators (`@beforeAll`, `@beforeEach`, `@afterEach`, `@afterAll`). */
 export interface LifecycleSettings {
+  /**
+   * Timeout
+   */
   timeout?: number;
+  /**
+   * Slow
+   */
   slow?: number;
 }
 
@@ -500,6 +506,9 @@ export const suite: ReturnType<typeof createClassDecorator> & {
   }
 ) as any;
 
+/**
+ * Method decorator type definition
+ */
 type MethodDecorator = (value: AnyMethod, context: ClassMethodDecoratorContext) => AnyMethod | void;
 
 /**

@@ -46,9 +46,15 @@ export interface FlowCompileError {
   file: string;
   /** Offset in the authored file. */
   start: number;
+  /**
+   * Length
+   */
   length: number;
   /** Always {@link FLOW_ERROR}. */
   code: number;
+  /**
+   * Message
+   */
   message: string;
 }
 
@@ -56,6 +62,9 @@ export interface FlowCompileError {
 export interface FlowCompileResult {
   /** Flows without errors, by id. */
   flows: Record<string, CompiledFlow>;
+  /**
+   * Errors
+   */
   errors: FlowCompileError[];
 }
 
@@ -116,7 +125,13 @@ const STATEMENT_NAMES: Partial<Record<SyntaxKind, string>> = {
 
 /** Where a flow class or flow id is declared, to report a duplicate. */
 interface Declared {
+  /**
+   * File
+   */
   file: string;
+  /**
+   * Node
+   */
   node: Node;
   /** Whether the duplicate error was already reported at this place. */
   reported?: boolean;
@@ -139,6 +154,7 @@ class MethodCompiler {
   protected catchVars = new Set<string>();
 
   /**
+   * Create a new MethodCompiler instance
    * @param ctx - analysis context
    * @param sf - the flow file
    * @param method - the method

@@ -36,20 +36,51 @@ export interface WorkQueueOptions {
  * process it again after a delay.
  */
 export class WorkQueue {
+  /**
+   * Queue
+   */
   protected queue: string[] = [];
+  /**
+   * Queued
+   */
   protected queued = new Set<string>();
+  /**
+   * Processing
+   */
   protected processing = new Set<string>();
   /** keys added while processed */
   protected dirty = new Set<string>();
+  /**
+   * Failures
+   */
   protected failures = new Map<string, number>();
+  /**
+   * Timers
+   */
   protected timers = new Map<string, NodeJS.Timeout>();
+  /**
+   * Stopped
+   */
   protected stopped = false;
+  /**
+   * Idle
+   */
   protected idle: (() => void)[] = [];
+  /**
+   * Concurrency
+   */
   protected concurrency: number;
+  /**
+   * Base delay
+   */
   protected baseDelay: number;
+  /**
+   * Max delay
+   */
   protected maxDelay: number;
 
   /**
+   * Create a new WorkQueue instance
    * @param handler - process a key
    * @param options - concurrency and backoff
    */
@@ -63,6 +94,7 @@ export class WorkQueue {
   }
 
   /**
+   * Get the keys waiting to be processed
    * @returns the keys waiting to be processed
    */
   get depth(): number {
@@ -118,6 +150,7 @@ export class WorkQueue {
   }
 
   /**
+   * Drain operation
    * @returns once no key is queued nor processed
    */
   async drain(): Promise<void> {

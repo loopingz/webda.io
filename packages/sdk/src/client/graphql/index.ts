@@ -47,11 +47,18 @@ const STATUS_BY_CODE: Record<string, number> = {
 
 /** A GraphQL error, as the server formats it */
 interface FormattedError {
+  /**
+   * Message
+   */
   message?: string;
+  /**
+   * Extensions
+   */
   extensions?: { code?: string; [key: string]: unknown };
 }
 
 /**
+ * Return the SdkError of the first error
  * @param errors - the errors of a GraphQL response
  * @param body - the whole response
  * @param status - HTTP status of the response, used when the error has no known code: an error without code in a
@@ -139,6 +146,7 @@ export function projectSelection(selection: GraphQLSelection, paths: string[], k
 }
 
 /**
+ * Return the uid of the target
  * @param value - a relation value
  * @param link - how to reshape it
  * @returns the uid of the target
@@ -189,15 +197,23 @@ export function reshape(value: unknown, selection: GraphQLSelection | undefined)
  * normalize into the cache the same way; `{ select: ["name", "owner.name"] }` narrows them to a projection.
  */
 export class GraphQLTransport implements Transport {
+  /**
+   * Name
+   */
   readonly name = "graphql";
+  /**
+   * WS
+   */
   protected ws?: Promise<WsClient>;
 
   /**
+   * Create a new GraphQLTransport instance
    * @param options - transport options
    */
   constructor(protected options: GraphQLTransportOptions) {}
 
   /**
+   * Return true when the GraphQL schema exposes it
    * @param op - the operation
    * @returns true when the GraphQL schema exposes it
    */
@@ -292,6 +308,7 @@ export class GraphQLTransport implements Transport {
   }
 
   /**
+   * Call operation
    * @param op - the operation
    * @param input - the input
    * @param ctx - the call context
@@ -327,6 +344,7 @@ export class GraphQLTransport implements Transport {
   }
 
   /**
+   * Return the `graphql-ws` client, created on the first subscription
    * @returns the `graphql-ws` client, created on the first subscription
    */
   protected client(): Promise<WsClient> {
@@ -389,6 +407,7 @@ export class GraphQLTransport implements Transport {
   }
 
   /**
+   * Return the SdkError
    * @param err - what `graphql-ws` threw: GraphQL errors, a close event or an error
    * @returns the SdkError
    */

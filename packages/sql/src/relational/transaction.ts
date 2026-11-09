@@ -29,9 +29,13 @@ export type Transact = <R>(fn: (tx: SQLClient) => Promise<R>) => Promise<R>;
  * FIFO lock: each `run` starts once the previous one settled, whether it resolved or rejected
  */
 export class AsyncMutex {
+  /**
+   * Tail
+   */
   private tail: Promise<unknown> = Promise.resolve();
 
   /**
+   * Run operation
    * @param fn - the exclusive section
    * @returns the function result
    */

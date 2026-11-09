@@ -17,6 +17,7 @@ class ThrottlerItem {
     public name: string
   ) {}
   /**
+   * Return a string representation of this instance
    * @returns A human-readable status string, e.g. `"myTask: IN-PROGRESS"` or `"myTask: QUEUED"`.
    */
   toString() {
@@ -54,6 +55,7 @@ export class Throttler {
   protected _failed: Error | null = null;
 
   /**
+   * Create a new Throttler instance
    * @param concurrency - Maximum number of promises to execute concurrently (default `10`).
    * @param failFast - When `true` (default), reject all pending items immediately on the first failure.
    */

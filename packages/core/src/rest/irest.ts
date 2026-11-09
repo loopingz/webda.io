@@ -26,9 +26,21 @@ export interface OpenAPIWebdaDefinition extends DeepPartial<OpenAPIV3.PathItemOb
    * Tags defined for all methods
    */
   tags?: string[];
+  /**
+   * Post
+   */
   post?: OpenApiWebdaOperation;
+  /**
+   * Put
+   */
   put?: OpenApiWebdaOperation;
+  /**
+   * Patch
+   */
   patch?: OpenApiWebdaOperation;
+  /**
+   * Get
+   */
   get?: OpenApiWebdaOperation;
 }
 
@@ -82,6 +94,9 @@ export const Route = createMethodDecorator(
  * Operation object with optional schemas
  */
 export interface OpenApiWebdaOperation extends DeepPartial<OpenAPIV3.OperationObject> {
+  /**
+   * Schemas
+   */
   schemas?: {
     input?: JSONSchema7 | string;
     output?: JSONSchema7 | string;
@@ -92,6 +107,9 @@ export interface OpenApiWebdaOperation extends DeepPartial<OpenAPIV3.OperationOb
  * Route Information default information
  */
 export interface RouteInfo {
+  /**
+   * Model
+   */
   model?: Repository;
   /**
    * HTTP Method to expose
@@ -203,14 +221,29 @@ export interface CORSFilter<T extends IWebContext = IWebContext> {
   checkRequest(context: T, type: "CORS"): Promise<boolean>;
 }
 
+/**
+ * I router interface
+ */
 export interface IRouter {
   /**
    * Add to context information and executor based on the http context
    */
   exportOpenAPI(arg0: boolean): any;
+  /**
+   * Register model URL
+   */
   registerModelUrl(arg0: any, prefix: string): unknown;
+  /**
+   * Register request filter
+   */
   registerRequestFilter(filter: RequestFilter);
+  /**
+   * Register CORS filter
+   */
   registerCORSFilter(filter: CORSFilter);
+  /**
+   * Execute operation
+   */
   execute(context: IWebContext): Promise<void>;
   /**
    * Add a route alias dynamically

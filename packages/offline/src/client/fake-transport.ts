@@ -17,13 +17,31 @@ import type { Transport } from "./transport/transport.js";
  * whose cursor is the log index, revision checks like the real server
  */
 export class FakeServer implements Transport {
+  /**
+   * Objects
+   */
   objects = new Map<string, { ref: SyncRef; rev: number; object: any }>();
+  /**
+   * Log
+   */
   log: string[] = [];
+  /**
+   * Received
+   */
   received: PushRequest[] = [];
+  /**
+   * Applied
+   */
   applied = new Set<string>();
+  /**
+   * Pull calls
+   */
   pullCalls = 0;
   /** Cursors below this index are "too old" */
   horizon = 0;
+  /**
+   * Failure
+   */
   protected failure?: Error;
 
   /**
@@ -35,7 +53,7 @@ export class FakeServer implements Transport {
   }
 
   /**
-   *
+   * Check operation
    */
   protected check(): void {
     const failure = this.failure;
@@ -58,7 +76,7 @@ export class FakeServer implements Transport {
   }
 
   /**
-   *
+   * Return the page of changes
    * @param req - the req
    * @returns the page of changes
    */
@@ -87,7 +105,7 @@ export class FakeServer implements Transport {
   }
 
   /**
-   *
+   * Return the page of objects
    * @param req - the req
    * @returns the page of objects
    */
@@ -102,7 +120,7 @@ export class FakeServer implements Transport {
   }
 
   /**
-   *
+   * Push operation
    * @param req - the req
    * @returns one result per mutation
    */

@@ -10,6 +10,7 @@ import type { ConflictInfo, ConflictStrategy } from "./client.js";
 import { clone, deepEqual, type LocalRecord } from "./record.js";
 
 /**
+ * Return the record in conflict state
  * @param record - the record
  * @param result - the merge result
  * @param ancestor - common ancestor
@@ -76,6 +77,7 @@ export function rebase(
 }
 
 /**
+ * Return resolutions for every conflict, or "defer"
  * @param strategy - the configured strategy
  * @param info - the conflict
  * @returns resolutions for every conflict, or "defer"
@@ -91,6 +93,7 @@ export async function strategyResolutions(
 }
 
 /**
+ * Return the chosen value
  * @param resolution - a resolution
  * @param conflict - the conflict it answers
  * @returns the chosen value

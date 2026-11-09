@@ -5,13 +5,13 @@ import { isWorkerLogLevel, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutpu
 import { WorkerLogger } from "./index.js";
 
 /**
- * Internal shape passed to sprintf when formatting a log line
- */
-/**
  * Stream a console logger writes its log lines to
  */
 export type ConsoleLogStream = "stdout" | "stderr";
 
+/**
+ * Internal shape passed to sprintf when formatting a log line
+ */
 interface WorkerLogMessage {
   /** Formatted message text */
   m: string;

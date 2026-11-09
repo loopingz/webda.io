@@ -57,6 +57,7 @@ const KNOWN_METHODS = new Set(["CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "P
  */
 export class ForceableRootSampler implements tracing.Sampler {
   /**
+   * Create a new ForceableRootSampler instance
    * @param delegate - the sampler used for every other root span
    */
   constructor(protected delegate: tracing.Sampler) {}
@@ -86,6 +87,7 @@ export class ForceableRootSampler implements tracing.Sampler {
   }
 
   /**
+   * Return a string representation of this instance
    * @returns the sampler description
    */
   toString(): string {
@@ -133,12 +135,25 @@ export class SessionIdSpanProcessor implements tracing.SpanProcessor {
  * {@link OtelRequestTracer.decide}. The server duration metric is recorded for every request, traced or not.
  */
 export class OtelRequestTracer implements RequestTracer {
+  /**
+   * Tracer
+   */
   protected tracer = trace.getTracer("@webda/otel");
+  /**
+   * Whether to is trusted source
+   */
   protected isTrustedSource: (ip: string) => boolean;
+  /**
+   * HTTP duration
+   */
   protected httpDuration: Histogram;
+  /**
+   * RPC duration
+   */
   protected rpcDuration: Histogram;
 
   /**
+   * Create a new OtelRequestTracer instance
    * @param service - the service holding the configuration and verifying the tokens
    */
   constructor(protected service: OtelService) {
@@ -231,6 +246,7 @@ export class OtelRequestTracer implements RequestTracer {
   }
 
   /**
+   * Return `{method} {path}` for HTTP, `{service}/{method}` for gRPC
    * @param request - the request
    * @returns `{method} {path}` for HTTP, `{service}/{method}` for gRPC
    */
@@ -242,6 +258,7 @@ export class OtelRequestTracer implements RequestTracer {
   }
 
   /**
+   * Return the HTTP method, `_OTHER` when unknown
    * @param request - the request
    * @returns the HTTP method, `_OTHER` when unknown
    */
@@ -251,6 +268,7 @@ export class OtelRequestTracer implements RequestTracer {
   }
 
   /**
+   * Return the RPC service and method from `/pkg.Service/Method`
    * @param request - the gRPC request
    * @returns the RPC service and method from `/pkg.Service/Method`
    */
@@ -263,6 +281,7 @@ export class OtelRequestTracer implements RequestTracer {
   }
 
   /**
+   * Return the network protocol version, `2` for HTTP/2
    * @param request - the request
    * @returns the network protocol version, `2` for HTTP/2
    */
@@ -295,6 +314,7 @@ export class OtelRequestTracer implements RequestTracer {
   }
 
   /**
+   * Request attributes
    * @param request - the request
    * @returns the span attributes known when the request starts
    */
@@ -307,6 +327,7 @@ export class OtelRequestTracer implements RequestTracer {
   }
 
   /**
+   * Check whether error
    * @param request - the request
    * @param status - the response status
    * @returns true when the status is a server error (5xx, or a non-zero gRPC status)

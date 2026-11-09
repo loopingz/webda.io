@@ -17,32 +17,83 @@ const COLORS: Record<EdgeType | "binary", string> = {
 
 /** A positioned node. */
 export interface GraphNodeLayout {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Short name
+   */
   shortName: string;
+  /**
+   * X
+   */
   x: number;
+  /**
+   * Y
+   */
   y: number;
+  /**
+   * W
+   */
   w: number;
+  /**
+   * H
+   */
   h: number;
+  /**
+   * Model
+   */
   model: DebugModel;
+  /**
+   * Whether to is selected
+   */
   isSelected: boolean;
 }
 
 /** A positioned edge. */
 export interface GraphEdgeLayout {
+  /**
+   * From
+   */
   from: GraphNodeLayout;
+  /**
+   * To
+   */
   to: GraphNodeLayout;
+  /**
+   * Type
+   */
   type: EdgeType;
+  /**
+   * Label
+   */
   label?: string;
 }
 
 /** Result of {@link buildGraph}. */
 export interface GraphLayout {
+  /**
+   * Nodes
+   */
   nodes: GraphNodeLayout[];
+  /**
+   * Edges
+   */
   edges: GraphEdgeLayout[];
+  /**
+   * Width
+   */
   width: number;
+  /**
+   * Height
+   */
   height: number;
 }
 
+/**
+ * Child map type definition
+ */
 type ChildMap = Record<string, string[]>;
 
 /**
@@ -291,8 +342,17 @@ function GraphNode(props: { node: GraphNodeLayout; onClick: (id: string) => void
 
 /** Props of {@link ModelGraph}. */
 export interface ModelGraphProps {
+  /**
+   * Models
+   */
   models: DebugModel[];
+  /**
+   * Selected ID
+   */
   selectedId: string | null;
+  /**
+   * On select
+   */
   onSelect: (id: string) => void;
 }
 

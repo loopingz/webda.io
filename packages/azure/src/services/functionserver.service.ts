@@ -19,6 +19,9 @@ import {
 
 /** Non-HTTP bindings dispatch to services implementing this contract. */
 export interface AzureEventsHandler {
+  /**
+   * Handle azure event
+   */
   handleAzureEvent(
     source: "servicebus" | "blob" | "timer",
     event: unknown,
@@ -28,12 +31,21 @@ export interface AzureEventsHandler {
 
 /** Azure Functions HTTP adapter settings. */
 export class AzureFunctionServerParameters extends ServiceParameters {
+  /**
+   * Request ID header
+   */
   requestIdHeader = "x-request-id";
 }
 
 /** Collect bytes directly, preserving binary responses from write() and streaming routes. */
 class AzureFunctionContext extends WebContext {
+  /**
+   * Chunks
+   */
   readonly chunks: Buffer[];
+  /**
+   * Saved headers
+   */
   private savedHeaders: ReturnType<WebContext["getResponseHeaders"]> = {};
   /**
    * Initialize the Azure integration.
@@ -94,6 +106,9 @@ class AzureFunctionContext extends WebContext {
  * @WebdaModda
  */
 export class AzureFunctionServer extends Service<AzureFunctionServerParameters> {
+  /**
+   * Parameters
+   */
   static Parameters = AzureFunctionServerParameters;
 
   /**

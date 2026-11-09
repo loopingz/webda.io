@@ -2,6 +2,9 @@ import { SessionPool } from "./pool.js";
 import { generate, type GenerateOptions } from "./generate.js";
 import { makeFaker } from "./faker.js";
 
+/**
+ * Model class type definition
+ */
 type ModelClass<T> = new (...args: any[]) => T;
 
 /**

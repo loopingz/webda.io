@@ -93,6 +93,9 @@ export class ProxyParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class ProxyService<T extends ProxyParameters = ProxyParameters> extends Service<T> {
+  /**
+   * Metrics
+   */
   metrics: {
     http_request_total: Counter;
     http_request_in_flight: Gauge;

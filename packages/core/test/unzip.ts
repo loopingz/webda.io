@@ -5,10 +5,25 @@ import { inflateRawSync } from "node:zlib";
  * A file read from a zip archive
  */
 export interface UnzippedEntry {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Method
+   */
   method: number;
+  /**
+   * Mode
+   */
   mode: number;
+  /**
+   * Crc
+   */
   crc: number;
+  /**
+   * Data
+   */
   data: Buffer;
 }
 

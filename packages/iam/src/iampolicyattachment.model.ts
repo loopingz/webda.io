@@ -20,6 +20,7 @@ export class IAMPolicyAttachment extends CoreModel {
   policy: string;
 
   /**
+   * Create a new IAMPolicyAttachment instance
    * @param data - initial data
    */
   constructor(data?: Partial<IAMPolicyAttachment>) {

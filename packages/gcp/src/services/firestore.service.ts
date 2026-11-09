@@ -28,8 +28,17 @@ export type FireStoreIndexOrder = { [key: string]: Set<"asc" | "desc"> };
  * could not apply natively and that was applied in memory (`true` if none)
  */
 export interface FireStoreFindResult<T> {
+  /**
+   * Results
+   */
   results: T[];
+  /**
+   * Filter
+   */
   filter: WebdaQL.Expression | true;
+  /**
+   * Continuation token
+   */
   continuationToken?: string;
 }
 
@@ -56,14 +65,20 @@ export class FireStoreParameters extends StoreParameters {
    * When not specified, the first model uses `collection` and others use their identifier
    * lowercased with "/" replaced by "_".
    */
-  /** @default {} */
+  /**
+   * Collections
+   * @default {}
+   */
   collections!: { [modelIdentifier: string]: string };
   /**
    * To allow efficient query on several fields
    *
    * @see https://firebase.google.com/docs/firestore/query-data/queries
    */
-  /** @default [] */
+  /**
+   * Compound indexes
+   * @default []
+   */
   compoundIndexes!: FireStoreIndex[];
 
   /**
@@ -148,6 +163,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
   protected compoundIndexes: { [key: string]: FireStoreIndexOrder } = {};
 
   /**
+   * Create a new FireStoreRepository instance
    * @param model - the model class
    * @param pks - primary key field names
    * @param firestore - the Firestore client
@@ -674,6 +690,9 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
  * @WebdaModda GoogleCloudFireStore
  */
 export default class FireStore<K extends FireStoreParameters = FireStoreParameters> extends Store<K> {
+  /**
+   * Firestore
+   */
   firestore!: Firestore;
 
   /**

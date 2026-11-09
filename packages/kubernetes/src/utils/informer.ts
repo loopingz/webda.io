@@ -43,8 +43,17 @@ export interface KubernetesInformerOptions {
   maxRestartDelay?: number;
 }
 
+/**
+ * Object event type definition
+ */
 type ObjectEvent = "add" | "update" | "delete" | "change";
+/**
+ * Object listener type definition
+ */
 type ObjectListener<T> = (obj: T) => void;
+/**
+ * Listeners type definition
+ */
 type Listeners<T> = {
   [K in ObjectEvent]: ObjectListener<T>[];
 } & {
@@ -59,6 +68,7 @@ type Listeners<T> = {
  */
 class NotifyingWatch extends k8s.Watch {
   /**
+   * Create a new NotifyingWatch instance
    * @param config - the kubernetes configuration
    * @param beforeWatch - called before each watch request
    * @param afterWatch - called when a watch request is accepted
@@ -113,9 +123,15 @@ class NotifyingWatch extends k8s.Watch {
  * - `error`: a list or a watch failed, the informer restarts
  */
 export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesObject> {
+  /**
+   * Informer
+   */
   protected informer: k8s.ListWatch<T>;
   /** objects of the last successful list, until the cache is updated with them */
   protected pendingSync?: T[];
+  /**
+   * Listeners
+   */
   protected listeners: Listeners<T> = {
     add: [],
     update: [],
@@ -126,10 +142,25 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
     synced: [],
     watching: []
   };
+  /**
+   * Stopped
+   */
   protected stopped = true;
+  /**
+   * Restart timer
+   */
   protected restartTimer?: NodeJS.Timeout;
+  /**
+   * Current restart delay
+   */
   protected currentRestartDelay: number;
+  /**
+   * Restart delay
+   */
   protected restartDelay: number;
+  /**
+   * Max restart delay
+   */
   protected maxRestartDelay: number;
   /**
    * Whether a list succeeded since the creation of the informer
@@ -137,6 +168,7 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
   synced = false;
 
   /**
+   * Create a new KubernetesInformer instance
    * @param params - the kubernetes parameters, `timeout` applies to the list requests (not to the watch)
    * @param resource - the custom resources to watch
    * @param options - restart policy
@@ -220,6 +252,7 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
   }
 
   /**
+   * List operation
    * @param namespace - only the objects of this namespace
    * @returns the known objects
    */
@@ -228,6 +261,7 @@ export class KubernetesInformer<T extends k8s.KubernetesObject = k8s.KubernetesO
   }
 
   /**
+   * Return the object, undefined when unknown
    * @param name - name of the object
    * @param namespace - namespace of the object, for namespaced resources
    * @returns the object, undefined when unknown

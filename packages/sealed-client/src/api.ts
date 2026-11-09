@@ -103,6 +103,7 @@ export interface RestKeysApiOptions {
 /** A `User.Keys.*` REST call failed */
 export class KeysApiError extends Error {
   /**
+   * Create a new KeysApiError instance
    * @param status - HTTP status
    * @param message - error message
    */
@@ -144,6 +145,10 @@ export function restKeysApi(fetchLike: FetchLike, userId: string, options: RestK
   };
   const action = (method: string, name: string, body: object) => call(method, `${user}/keys.${name}`, body);
   return {
+    /**
+     * Get the keys
+     * @returns the result
+     */
     async getKeys() {
       const { keys } = (await call("GET", user)) ?? {};
       return { publicKeys: keys?.publicKeys ?? [], devices: keys?.devices ?? [] };

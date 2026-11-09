@@ -31,6 +31,7 @@ export class KubernetesClusterServiceParameters extends ClusterServiceParameters
   namespace?: string;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -54,12 +55,16 @@ export class KubernetesClusterServiceParameters extends ClusterServiceParameters
 export class KubernetesClusterService<
   T extends KubernetesClusterServiceParameters = KubernetesClusterServiceParameters
 > extends ClusterService<T> {
+  /**
+   * Parameters
+   */
   static Parameters = KubernetesClusterServiceParameters;
 
   /** Lease logic, the election loop is the one of ClusterService */
   protected elector?: LeaderElector;
 
   /**
+   * Get the elector of the lease
    * @returns the elector of the lease
    */
   protected getElector(): LeaderElector {

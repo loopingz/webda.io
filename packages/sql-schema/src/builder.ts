@@ -45,6 +45,9 @@ export interface RelationalSchemaOptions extends Partial<SchemaLayoutOptions> {
  * A table outside the plan a foreign key may reference
  */
 export interface ReferencedTable {
+  /**
+   * Table
+   */
   table: string;
   /**
    * Its key columns, one per key part of the reference
@@ -57,6 +60,7 @@ export interface ReferencedTable {
  */
 export class SchemaBuildError extends Error {
   /**
+   * Create a new SchemaBuildError instance
    * @param message - the reason
    */
   constructor(message: string) {
@@ -99,7 +103,13 @@ export const ATTRIBUTES_COLUMN = "attributes";
  * A physical key column of a table
  */
 interface KeyColumn {
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Type
+   */
   type: ColumnType;
 }
 
@@ -107,13 +117,25 @@ interface KeyColumn {
  * A table being built
  */
 interface TableDraft {
+  /**
+   * Name
+   */
   name: string;
   /**
    * Members, root first (by depth in the hierarchy)
    */
   members: SchemaModelMetadata[];
+  /**
+   * Primary key fields
+   */
   primaryKeyFields: string[];
+  /**
+   * Primary key separator
+   */
   primaryKeySeparator?: string;
+  /**
+   * Columns
+   */
   columns: Map<string, ColumnPlan & { declaredBy: Set<string> }>;
 }
 
@@ -133,9 +155,13 @@ interface TableDraft {
  *   per group name
  */
 export class RelationalSchemaBuilder {
+  /**
+   * Layout
+   */
   private readonly layout: SchemaLayoutOptions;
 
   /**
+   * Create a new RelationalSchemaBuilder instance
    * @param options - the builder options
    */
   constructor(private readonly options: RelationalSchemaOptions = {}) {
@@ -175,22 +201,65 @@ export function buildSchemaPlan(
  * The state of one build
  */
 class PlanBuilder {
+  /**
+   * Handled
+   */
   private readonly handled = new Map<string, SchemaModelMetadata>();
+  /**
+   * Known
+   */
   private readonly known = new Map<string, SchemaModelMetadata>();
+  /**
+   * Table names
+   */
   private readonly tableNames = new Map<string, string>();
+  /**
+   * Drafts
+   */
   private readonly drafts = new Map<string, TableDraft>();
+  /**
+   * Key columns cache
+   */
   private readonly keyColumnsCache = new Map<string, KeyColumn[]>();
+  /**
+   * Resolving
+   */
   private readonly resolving = new Set<string>();
+  /**
+   * Junctions
+   */
   private readonly junctions: TablePlan[] = [];
+  /**
+   * Relations
+   */
   private readonly relations: RelationPlan[] = [];
+  /**
+   * Relation keys
+   */
   private readonly relationKeys = new Map<string, RelationPlan>();
+  /**
+   * Foreign keys
+   */
   private readonly foreignKeys = new Map<string, ForeignKeyPlan>();
+  /**
+   * Indexes
+   */
   private readonly indexes = new Map<string, IndexPlan>();
+  /**
+   * Models
+   */
   private readonly models: { [identifier: string]: ModelPlan } = {};
+  /**
+   * Model columns
+   */
   private readonly modelColumns = new Map<string, Set<string>>();
+  /**
+   * Warnings
+   */
   private readonly warnings: SchemaWarning[] = [];
 
   /**
+   * Create a new PlanBuilder instance
    * @param layout - the layout options
    * @param options - the builder options
    * @param models - the planned models
@@ -209,6 +278,7 @@ class PlanBuilder {
   }
 
   /**
+   * Build operation
    * @returns the plan
    */
   build(): RelationalSchemaPlan {
@@ -230,6 +300,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return its physical column name
    * @param name - a field or derived name
    * @returns its physical column name
    */
@@ -238,6 +309,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return the identifiers of its ancestors, closest first
    * @param meta - a planned model
    * @returns the identifiers of its ancestors, closest first
    */
@@ -246,6 +318,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return its table name
    * @param identifier - a planned model
    * @returns its table name
    */
@@ -300,6 +373,7 @@ class PlanBuilder {
   }
 
   /**
+   * Warn operation
    * @param code - the warning code
    * @param meta - the model
    * @param attribute - the attribute
@@ -311,6 +385,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return its stored schema and whether it is required
    * @param meta - a model
    * @param field - a field
    * @returns its stored schema and whether it is required
@@ -379,6 +454,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return the column type of the key field, without enum
    * @param meta - the model declaring the key field
    * @param field - the key field
    * @returns the column type of the key field, without enum
@@ -423,6 +499,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return the target, without warning
    * @param relation - the relation
    * @returns the target, without warning
    */
@@ -466,6 +543,7 @@ class PlanBuilder {
   }
 
   /**
+   * Perform use column
    * @param meta - a model
    * @param column - a column it uses
    */
@@ -570,6 +648,7 @@ class PlanBuilder {
   }
 
   /**
+   * Check reserved
    * @param reserved - the system column names
    * @param draft - the table
    * @param meta - the model
@@ -628,6 +707,7 @@ class PlanBuilder {
   }
 
   /**
+   * Check whether recorded
    * @param draft - a table
    * @param relation - a relation
    * @returns whether a model of the table (an ancestor) already recorded the relation
@@ -676,6 +756,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return the separator of its composite key
    * @param target - a model
    * @returns the separator of its composite key
    */
@@ -687,6 +768,7 @@ class PlanBuilder {
   }
 
   /**
+   * Check whether key prefix
    * @param draft - a table
    * @param columns - columns
    * @returns whether the columns start the primary key (already indexed by it)
@@ -743,6 +825,7 @@ class PlanBuilder {
   }
 
   /**
+   * Add foreign key
    * @param table - the referencing table
    * @param columns - the referencing columns
    * @param references - the referenced table
@@ -770,6 +853,7 @@ class PlanBuilder {
   }
 
   /**
+   * Add index
    * @param table - the table
    * @param columns - the columns
    * @param unique - a unique index
@@ -788,6 +872,7 @@ class PlanBuilder {
   }
 
   /**
+   * Finish indexes
    * @returns the indexes, without the plain ones a unique index on the same columns makes redundant
    */
   private finishIndexes(): IndexPlan[] {
@@ -798,6 +883,7 @@ class PlanBuilder {
   }
 
   /**
+   * Return its primary key column names
    * @param draft - a model table
    * @returns its primary key column names
    */
@@ -1017,6 +1103,7 @@ class PlanBuilder {
 }
 
 /**
+ * Return its sort rank: key columns first, in key order
  * @param primaryKey - the primary key columns
  * @param name - a column
  * @returns its sort rank: key columns first, in key order

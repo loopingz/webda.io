@@ -21,6 +21,7 @@ import type { AttributeTarget, JunctionWrite, MappedSource, RowWrite } from "./m
 import type { Transact } from "./transaction.js";
 
 /**
+ * Check whether subclass of
  * @param type - a model identifier
  * @param model - another model identifier
  * @returns whether the application declares the model as an ancestor of the type
@@ -34,7 +35,13 @@ export function isSubclassOf(type: string, model: string): boolean {
  * What a relational store gives a repository
  */
 export interface RelationalRepositoryOptions {
+  /**
+   * Plan
+   */
   plan: RelationalSchemaPlan;
+  /**
+   * Table
+   */
   table: TablePlan;
   /**
    * The client, or a function returning the store's current one
@@ -44,8 +51,17 @@ export interface RelationalRepositoryOptions {
    * Runs statements in one transaction on one connection
    */
   transact: Transact;
+  /**
+   * Dialect
+   */
   dialect: RelationalDialect;
+  /**
+   * Separator
+   */
   separator?: string;
+  /**
+   * Prepare
+   */
   prepare?: () => Promise<void>;
 }
 
@@ -57,10 +73,17 @@ export interface RelationalRepositoryOptions {
  * application versions keeps the columns a version does not know.
  */
 export class RelationalRepository<T extends ModelClass> extends SQLRepository<T> {
+  /**
+   * Mapping
+   */
   readonly mapping: TableMapping;
+  /**
+   * Transact
+   */
   protected readonly transact: Transact;
 
   /**
+   * Create a new RelationalRepository instance
    * @param model - the model class
    * @param pks - primary key field names
    * @param options - the plan, the table and the connection
@@ -81,6 +104,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Get the engine syntax
    * @returns the engine syntax
    */
   protected get sql(): RelationalDialect {
@@ -88,6 +112,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the quoted identifier
    * @param name - a column or table name
    * @returns the quoted identifier
    */
@@ -110,6 +135,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the description of the attribute, for messages
    * @param attribute - a WebdaQL attribute
    * @returns the description of the attribute, for messages
    */
@@ -211,6 +237,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the comparison rendered for the column type, `IN` as `=` alternatives
    * @param column - a quoted (qualified) column
    * @param type - its type
    * @param expression - the comparison
@@ -230,6 +257,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the JSON comparison, `IN` as `=` alternatives
    * @param column - a JSON column
    * @param path - the path inside it
    * @param expression - the comparison
@@ -303,6 +331,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the column qualified by its table
    * @param table - a junction table
    * @param column - one of its columns
    * @returns the column qualified by its table
@@ -312,6 +341,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the sub-query on the junction rows of the current row
    * @param table - a junction table
    * @param conditions - conditions on its rows
    * @param negate - `NOT EXISTS`
@@ -329,6 +359,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the condition on the target columns, `FALSE` when the key does not split into its parts
    * @param table - a junction table
    * @param relation - its relation
    * @param value - a target key, joined for a composite key
@@ -345,6 +376,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the comparison on a target key part, a link field or the link attributes
    * @param table - a junction table
    * @param path - the attribute path inside an item
    * @param expression - the comparison
@@ -440,6 +472,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the field the column holds
    * @param column - a column name of the table
    * @returns the field the column holds
    */
@@ -448,6 +481,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the condition selecting the row
    * @param primaryKey - a primary key, an object or the model instance
    * @param args - the statement parameters, extended with the key values
    * @returns the condition selecting the row
@@ -463,6 +497,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the quoted columns a read selects: every column of the table
    * @returns the quoted columns a read selects: every column of the table
    */
   protected selectList(): string {
@@ -473,6 +508,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the owner key values of its junction rows, in owner column order
    * @param row - a row of the table
    * @param junction - a junction table
    * @returns the owner key values of its junction rows, in owner column order
@@ -482,6 +518,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return its column name
    * @param field - a field of the model
    * @returns its column name
    */
@@ -527,6 +564,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the columns of the mapped rows (or of their junction rows) holding the owner key, and the owner columns
    * @param source - a filled `ModelsMapped`
    * @returns the columns of the mapped rows (or of their junction rows) holding the owner key, and the owner columns
    *   they match, in the same order
@@ -609,6 +647,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Convert to instances
    * @param rows - rows of the table
    * @returns the model instances, their junction and filled `ModelsMapped` attributes set
    */
@@ -658,6 +697,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Map error
    * @param q - the statement that failed (or its kind: a deferred foreign key fails at `COMMIT`)
    * @param err - the error
    * @returns the Webda error of a foreign key violation or of a unique index collision (a primary key violation is
@@ -680,6 +720,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the fields it covers when the plan knows it, what the engine said otherwise
    * @param violation - a violated unique index, by name or by columns
    * @returns the fields it covers when the plan knows it, what the engine said otherwise
    */
@@ -699,6 +740,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the relation it enforces, undefined for a junction key or an unknown constraint
    * @param constraint - a foreign key constraint name
    * @returns the relation it enforces, undefined for a junction key or an unknown constraint
    */
@@ -756,6 +798,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Check whether numeric
    * @param column - a column
    * @returns whether it holds a number
    */
@@ -808,6 +851,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Convert to JSON record
    * @param item - an object or plain data
    * @param fallbackType - the type stamped when the object declares none
    * @returns its serialized JSON, `__type` set when known
@@ -817,6 +861,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the identifier of the repository model
    * @returns the identifier of the repository model
    */
   protected modelIdentifier(): string {
@@ -882,6 +927,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the condition selecting the junction rows of the owner
    * @param table - a junction table
    * @param owner - the owner object (its primary key fields)
    * @param args - the statement parameters, extended
@@ -1087,6 +1133,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the `_lastUpdate` assignment when the table has that column, empty otherwise
    * @param args - the statement parameters, extended
    * @returns the `_lastUpdate` assignment when the table has that column, empty otherwise
    */
@@ -1128,6 +1175,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return its JSON column, or its junction when it is a simple link array
    * @param collection - a collection attribute
    * @returns its JSON column, or its junction when it is a simple link array
    * @throws WebdaError.BadRequest for any other attribute
@@ -1147,6 +1195,7 @@ export class RelationalRepository<T extends ModelClass> extends SQLRepository<T>
   }
 
   /**
+   * Return the number of junction rows of the owner
    * @param tx - the transaction client
    * @param table - a junction table
    * @param owner - the owner object (its primary key fields)

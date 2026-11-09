@@ -23,6 +23,7 @@ export interface MessageReceipt<T = any> {
 }
 
 /**
+ * Configuration parameters for Queue
  * @inheritdoc
  */
 export class QueueParameters extends ServiceParameters {
@@ -102,6 +103,9 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    * Delayer between two receives returning no message
    */
   protected idleDelayer: WaitDelayer;
+  /**
+   * Event prototype
+   */
   eventPrototype: new () => T;
 
   /**

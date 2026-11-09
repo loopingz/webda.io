@@ -48,6 +48,7 @@ export class PostgresListener {
   protected stopping = false;
 
   /**
+   * Create a new PostgresListener instance
    * @param config - connection settings forwarded to `pg.Client`
    * @param channel - channel to LISTEN to, must be a valid lowercase Postgres identifier
    * @param options - callbacks and reconnection settings
@@ -59,6 +60,7 @@ export class PostgresListener {
   ) {}
 
   /**
+   * Get true while LISTEN is active
    * @returns true while LISTEN is active
    */
   get connected(): boolean {

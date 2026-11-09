@@ -26,11 +26,29 @@ export interface Reconcilable {
  * A condition of a resource status
  */
 export interface ResourceCondition {
+  /**
+   * Type
+   */
   type: string;
+  /**
+   * Status
+   */
   status: "True" | "False" | "Unknown";
+  /**
+   * Reason
+   */
   reason?: string;
+  /**
+   * Message
+   */
   message?: string;
+  /**
+   * Observed generation
+   */
   observedGeneration?: number;
+  /**
+   * Last transition time
+   */
   lastTransitionTime?: string;
 }
 
@@ -98,16 +116,35 @@ export interface ControllerOptions {
  * writes included, are not reconciled again.
  */
 export class ModelController {
+  /**
+   * Resources
+   */
   protected resources: CustomResources;
+  /**
+   * Repository
+   */
   protected repository: Repository<any>;
+  /**
+   * Filter
+   */
   protected filter: KubernetesRepository<any>;
+  /**
+   * Informer
+   */
   protected informer?: KubernetesInformer<CustomResource>;
+  /**
+   * Queue
+   */
   protected queue?: WorkQueue;
+  /**
+   * Resync timer
+   */
   protected resyncTimer?: NodeJS.Timeout;
   /** generation of each object last reconciled, successfully or not */
   protected attempted = new Map<string, number>();
 
   /**
+   * Create a new ModelController instance
    * @param model - the model
    * @param store - the store of the model
    * @param options - queue, resync and finalizer

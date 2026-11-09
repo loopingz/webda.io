@@ -177,6 +177,9 @@ type IssuerConfig = Required<Omit<TrustedIssuer, "jwksUri">> & Pick<TrustedIssue
  * Runtime state of a trusted issuer
  */
 interface IssuerState {
+  /**
+   * Configuration
+   */
   config: IssuerConfig;
   /**
    * Remote key set
@@ -217,6 +220,7 @@ const ACCESS_TOKEN_TYPE = "at+jwt";
 const USER_CLAIMS = ["sub", "ident", "fam"];
 
 /**
+ * Check whether access token type
  * @param typ - a JWT `typ` header
  * @returns true for an OAuth access token type, in its short or media type form
  */
@@ -245,6 +249,7 @@ function isSecureUrl(url: unknown): boolean {
 }
 
 /**
+ * Return true when the claim, or one of its values for an array, matches
  * @param value - a claim value
  * @param patterns - accepted globs
  * @returns true when the claim, or one of its values for an array, matches
@@ -256,6 +261,7 @@ function claimMatches(value: unknown, patterns: string | string[]): boolean {
 }
 
 /**
+ * Return a loggable reason, never containing the token
  * @param err - an error
  * @returns a loggable reason, never containing the token
  */
@@ -608,6 +614,7 @@ export class OIDCVerifier<T extends OIDCVerifierParameters = OIDCVerifierParamet
   }
 
   /**
+   * Fetch metadata
    * @param url - a discovery url
    * @returns the response, redirects refused
    */

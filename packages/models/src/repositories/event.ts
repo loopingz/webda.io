@@ -25,6 +25,7 @@ import { WEBDA_TEST } from "./repository.js";
  */
 export class EventRepository<T extends ModelClass = any> extends AbstractRepository<T> {
   /**
+   * Create a new EventRepository instance
    * @param model - The model class constructor
    * @param pks - Array of primary key field names
    * @param repository - The underlying repository to delegate storage operations to

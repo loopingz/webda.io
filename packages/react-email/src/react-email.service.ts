@@ -33,6 +33,7 @@ export class ReactEmailParameters extends ServiceParameters {
   sourceMap?: Record<string, string>;
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this with the defaults
    */
@@ -87,9 +88,15 @@ export class ReactEmailService<T extends ReactEmailParameters = ReactEmailParame
    */
   @Command("react-email build", { description: "Precompile react-email templates to mustache", phase: "application" })
   static async buildTemplates(
-    /** @alias s @description Folder of the email components */
+    /**
+     * Source
+     * @alias s @description Folder of the email components
+     */
     source: string = "./emails",
-    /** @alias o @description Folder of the generated mustache templates */
+    /**
+     * Output
+     * @alias o @description Folder of the generated mustache templates
+     */
     output: string = "./templates",
     /** @description Format the generated html */
     pretty: boolean = true,
@@ -104,7 +111,13 @@ export class ReactEmailService<T extends ReactEmailParameters = ReactEmailParame
 }
 
 declare module "@webda/core" {
+  /**
+   * Services map interface
+   */
   interface ServicesMap {
+    /**
+     * React email service
+     */
     ReactEmailService: ReactEmailService;
   }
 }

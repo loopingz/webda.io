@@ -5,6 +5,9 @@ import { useDebugConnection } from "../connection.js";
 export interface ConnectionStatusProps {
   /** Show the label next to the dot */
   withLabel?: boolean;
+  /**
+   * Class name
+   */
   className?: string;
 }
 

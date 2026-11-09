@@ -26,41 +26,101 @@ class WebdaDate extends Date {
 }
 /** Base model identified by a slug with creator/updater tracking. */
 export class SlugModel extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY]: readonly "slug"[] = ["slug"];
+  /**
+   * Slug
+   */
   slug: string;
+  /**
+   * Creator
+   */
   creator: ModelLink<User>;
+  /**
+   * Creation date
+   */
   creationDate: Date;
+  /**
+   * Last update
+   */
   lastUpdate: WebdaDate;
+  /**
+   * Last updater
+   */
   lastUpdater: ModelLink<User>;
 }
 
 /** Blog entry with multiple authors and an approver. */
 export class Blog extends SlugModel {
+  /**
+   * Authors
+   */
   authors: ModelLinksSimpleArray<User>;
+  /**
+   * Approver
+   */
   approver: ModelLink<User>;
 }
 
 /** Content section with a title and description. */
 export class Section extends SlugModel {
+  /**
+   * Title
+   */
   title: string;
+  /**
+   * Description
+   */
   description: string;
 }
 
 /** Named group of users with hierarchical parent-child relationships. */
 export class Group extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY] = ["name"] as const;
+  /**
+   * Name
+   */
   name: string;
+  /**
+   * Members
+   */
   members: ModelLinksArray<User, { permission: "admin" | "member" }>;
+  /**
+   * Parent
+   */
   parent: ModelParent<Group>;
+  /**
+   * Subgroups
+   */
   subgroups: ModelRelated<Group, "parent">;
 }
 
 /** User with blogs, groups, friends, and a linked profile. */
 export class User extends UuidModel {
+  /**
+   * Blogs
+   */
   blogs: ModelRelated<Blog, "authors">;
+  /**
+   * Groups
+   */
   groups: ModelRelated<Group, "members">;
+  /**
+   * Friends
+   */
   friends: ModelLinksSimpleArray<User>;
+  /**
+   * Approved blogs
+   */
   approvedBlogs: ModelRelated<Blog, "approver">;
+  /**
+   * Whether active is enabled
+   */
   active: boolean;
   /**
    * One to one relation with profile
@@ -75,9 +135,21 @@ export class User extends UuidModel {
  * One to one relation with user
  */
 export class Profile extends Model {
+  /**
+   * [webda primary key]
+   */
   [WEBDA_PRIMARY_KEY]: readonly "user"[] = ["user"];
+  /**
+   * User
+   */
   user: PrimaryKeyType<User>;
+  /**
+   * Language
+   */
   language: string;
+  /**
+   * Picture
+   */
   picture: string;
 }
 

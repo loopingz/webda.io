@@ -17,8 +17,17 @@ export type SchemaStep =
  * `after` statement fails (drop the invalid index)
  */
 export interface OnlineStatements {
+  /**
+   * Inside
+   */
   inside: string[];
+  /**
+   * After
+   */
   after: string[];
+  /**
+   * On failure
+   */
   onFailure?: string[];
 }
 
@@ -30,6 +39,9 @@ export interface LiveColumn {
    * The engine type mapped back to a plan type, undefined when the dialect does not know the type
    */
   type?: ColumnType;
+  /**
+   * Whether nullable is enabled
+   */
   nullable: boolean;
   /**
    * The engine type name, for messages
@@ -41,6 +53,9 @@ export interface LiveColumn {
  * A table as the database describes it
  */
 export interface LiveTable {
+  /**
+   * Columns
+   */
   columns: { [name: string]: LiveColumn };
   /**
    * Names of the indexes of the table
@@ -60,6 +75,9 @@ export interface LiveTable {
  * The tables of a plan as the database describes them: a planned table absent from `tables` does not exist
  */
 export interface LiveSchema {
+  /**
+   * Tables
+   */
   tables: { [name: string]: LiveTable };
 }
 
@@ -75,16 +93,19 @@ export interface RelationalDialect extends SQLDialect {
    */
   readonly inlineForeignKeys: boolean;
   /**
+   * Return the quoted identifier
    * @param identifier - a table, column, index or constraint name
    * @returns the quoted identifier
    */
   quote(identifier: string): string;
   /**
+   * Return the DDL type
    * @param type - a plan column type
    * @returns the DDL type
    */
   columnType(type: ColumnType): string;
   /**
+   * Render step
    * @param step - a schema change
    * @returns the idempotent statements applying it
    */
@@ -97,6 +118,7 @@ export interface RelationalDialect extends SQLDialect {
    */
   renderOnlineStep?(step: SchemaStep): OnlineStatements;
   /**
+   * Render contract step
    * @param step - a contract step
    * @returns the statements applying it, empty when the engine cannot (reported, never failed)
    */
@@ -115,6 +137,7 @@ export interface RelationalDialect extends SQLDialect {
    */
   schemaLock(name: string): string | undefined;
   /**
+   * Return the expression as text
    * @param expr - a SQL expression
    * @returns the expression as text
    */
@@ -204,11 +227,13 @@ export interface RelationalDialect extends SQLDialect {
    */
   columnJsonItemCondition(column: string, index: number, field: string, valueParam: number): string;
   /**
+   * Check whether foreign key violation
    * @param err - an error thrown by the client
    * @returns the violated constraint when the error is a foreign key violation, undefined otherwise
    */
   isForeignKeyViolation(err: unknown): { constraint?: string } | undefined;
   /**
+   * Return what a unique violation hit: the table, the constraint or index name when the engine reports it, and
    * @param err - an error thrown by the client
    * @returns what a unique violation hit: the table, the constraint or index name when the engine reports it, and
    *   whether it is the primary key; undefined for any other error
@@ -220,11 +245,20 @@ export interface RelationalDialect extends SQLDialect {
  * A unique violation as a dialect reports it
  */
 export interface UniqueViolation {
+  /**
+   * Table
+   */
   table?: string;
+  /**
+   * Constraint
+   */
   constraint?: string;
   /**
    * The columns of the violated index, when the engine names them instead of the index
    */
   columns?: string[];
+  /**
+   * Whether primary key is enabled
+   */
   primaryKey: boolean;
 }

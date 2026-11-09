@@ -130,6 +130,7 @@ export function challengeScope(session: Session | undefined, operationId: string
 }
 
 /**
+ * Return the insufficient_scope JSON-RPC error
  * @param session - caller session
  * @param operationId - refused operation
  * @returns the insufficient_scope JSON-RPC error

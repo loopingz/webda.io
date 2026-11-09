@@ -28,13 +28,25 @@ import type { Node } from "typescript/ast";
 
 /** A JSDoc comment node: either literal text or a `{@link}`. */
 interface CommentPart {
+  /**
+   * Kind
+   */
   kind: SyntaxKind;
+  /**
+   * Text
+   */
   text: string;
+  /**
+   * Name
+   */
   name?: Node;
 }
 
 /** A JSDoc block attached to a node. */
 interface JSDocBlock {
+  /**
+   * Comment
+   */
   comment?: readonly CommentPart[];
 }
 

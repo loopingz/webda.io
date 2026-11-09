@@ -63,6 +63,7 @@ export interface RawTable {
  */
 export class MigrationUnsupported extends WebdaError.CodeError {
   /**
+   * Create a new MigrationUnsupported instance
    * @param store - the store name
    */
   constructor(store: string) {
@@ -276,6 +277,7 @@ export const DEFAULT_MIGRATION_LEASE = 5 * 60 * 1000;
  */
 export class MigrationAlreadyRunning extends WebdaError.CodeError {
   /**
+   * Create a new MigrationAlreadyRunning instance
    * @param id - registry entry
    * @param owner - runner holding the lease
    * @param until - end of its lease, epoch ms
@@ -299,6 +301,7 @@ export function incrementCount(counts: Record<string, number>, key: string, n: n
 }
 
 /**
+ * Return an empty table report
  * @returns an empty table report
  */
 export function emptyTableReport(): MigrationTableReport {
@@ -306,6 +309,7 @@ export function emptyTableReport(): MigrationTableReport {
 }
 
 /**
+ * Return the progress of a fresh run (the keys set to undefined clear a previous run when saved)
  * @returns the progress of a fresh run (the keys set to undefined clear a previous run when saved)
  */
 export function emptyProgress(): MigrationProgress {

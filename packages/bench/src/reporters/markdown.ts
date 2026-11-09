@@ -45,6 +45,7 @@ export function toMarkdown(results: BenchResult[], title?: string): string {
  */
 export class MarkdownReporter implements Reporter {
   /**
+   * Create a new MarkdownReporter instance
    * @param file - markdown file to append to, defaults to `GITHUB_STEP_SUMMARY`
    * @param title - title of the table
    */

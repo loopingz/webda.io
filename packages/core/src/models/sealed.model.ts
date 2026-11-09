@@ -21,6 +21,9 @@ import { assertB64u, checkPublicJwk, isObject } from "./userkeys.model.js";
  * A user that can receive sealed values: its `keys` behavior serves the active public key
  */
 export interface SealedRecipient {
+  /**
+   * Keys
+   */
   keys?: { getActivePublicKey(): PublicKeyEntry | undefined };
 }
 
@@ -29,6 +32,7 @@ export interface SealedRecipient {
  */
 export interface SealedRecipientResolver {
   /**
+   * Get the recipient user id, undefined when there is none
    * @param field - sealed attribute name
    * @returns the recipient user id, undefined when there is none
    */
@@ -78,6 +82,9 @@ export class SealedFieldParameters extends Parameters {
  * @WebdaBehavior Webda/Sealed
  */
 export class SealedField<T = any> {
+  /**
+   * Parameters
+   */
   static Parameters = SealedFieldParameters;
 
   /** Envelope version */
@@ -92,6 +99,7 @@ export class SealedField<T = any> {
   ct?: string;
 
   /**
+   * Check whether set
    * @returns true when a complete envelope is stored
    */
   isSet(): boolean {
@@ -220,6 +228,7 @@ export class SealedField<T = any> {
   }
 
   /**
+   * Return the model identifier, part of the AAD
    * @param instance - model holding the field
    * @param attribute - field name
    * @returns the model identifier, part of the AAD
@@ -240,6 +249,7 @@ export class SealedField<T = any> {
   }
 
   /**
+   * Serialize this instance to a JSON-compatible value
    * @returns the envelope, undefined when no field is stored, the partial fields as-is when the envelope is incomplete
    * (corrupted data is kept, not silently dropped)
    */
@@ -253,6 +263,7 @@ export class SealedField<T = any> {
   }
 
   /**
+   * Get the model holding this field and its attribute name
    * @returns the model holding this field and its attribute name
    * @throws Error when the field is not attached to a model
    */

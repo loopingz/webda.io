@@ -30,6 +30,9 @@ const replacePackages = {
 // Only source migrations belong here. Accessors, loadParameters and
 // deserializers used to be written into the source as well; `webdac build`
 // generates what is still needed through `@webda/content-mapper`.
+/**
+ * Webda morpher options type definition
+ */
 type WebdaMorpherOptions = {
   project?: ProjectOptions;
   pretend?: boolean;
@@ -41,7 +44,13 @@ type WebdaMorpherOptions = {
 
 /** Applies a set of source migration modules (import moves, capability registrations) to project source files */
 export class WebdaMorpher {
+  /**
+   * Project
+   */
   project: Project;
+  /**
+   * Modules
+   */
   modules: { [key: string]: (sourceFile: SourceFile) => void } = {
     updateImports: sourceFile => updateImports(sourceFile, replacePackages),
     capabilities: removeFilterRegistrations

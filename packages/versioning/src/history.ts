@@ -18,6 +18,9 @@ export type VersionedPatch = {
   readonly id?: string;
 };
 
+/**
+ * Versioned patch meta type definition
+ */
 export type VersionedPatchMeta = {
   timestamp?: number;
   author?: string;

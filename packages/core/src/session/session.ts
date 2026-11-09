@@ -7,8 +7,17 @@ export type MfaState = "none" | "pending" | "verified";
 
 /** Verification of one MFA operation on one owner, with its original timestamp. */
 export interface MfaVerification {
+  /**
+   * Method
+   */
   method: string;
+  /**
+   * Verified at
+   */
   verifiedAt: number;
+  /**
+   * Owner
+   */
   owner: string;
 }
 
@@ -16,11 +25,23 @@ export interface MfaVerification {
  * Options for {@link Session.login}
  */
 export interface LoginOptions {
+  /**
+   * Provider
+   */
   provider?: string;
+  /**
+   * Amr
+   */
   amr?: string[];
+  /**
+   * MFA
+   */
   mfa?: MfaState;
   /** When the second factor was verified (ms), only kept with `mfa: "verified"` */
   mfaAt?: number;
+  /**
+   * MFA verifications
+   */
   mfaVerifications?: Record<string, MfaVerification>;
 }
 
@@ -54,6 +75,9 @@ export interface ApplicationIdentity {
  * Session
  */
 export class Session {
+  /**
+   * Whether changed is enabled
+   */
   @NotEnumerable
   protected changed: boolean = false;
   /**
@@ -97,6 +121,9 @@ export class Session {
    * Undefined unless `mfa === "verified"`; sessions verified before it existed have none and are never fresh
    */
   mfaAt?: number;
+  /**
+   * MFA verifications
+   */
   mfaVerifications?: Record<string, MfaVerification>;
 
   /**
@@ -226,6 +253,7 @@ export class Session {
   }
 
   /**
+   * Return ms since the second factor was verified, Infinity when it never was
    * @param now - reference time (ms)
    * @returns ms since the second factor was verified, Infinity when it never was
    */
@@ -251,7 +279,10 @@ export class Session {
     this.transientAmr = [...(this.transientAmr ?? []), method];
   }
 
-  /** @returns authentication methods safe to persist in a cookie or token */
+  /**
+   * Get authentication methods safe to persist in a cookie or token
+   * @returns authentication methods safe to persist in a cookie or token
+   */
   getPersistentAmr(): string[] {
     return (this.amr ?? []).filter(method => !this.transientAmr?.includes(method));
   }

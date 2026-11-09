@@ -20,16 +20,49 @@ import { armLiteral, armValue } from "../template.js";
 
 /** Cosmos DB NoSQL settings. All models in the store share a typed container. */
 export class CosmosStoreParameters extends StoreParameters implements AzureServiceParameters {
+  /**
+   * Endpoint
+   */
   endpoint!: string;
+  /**
+   * Key
+   */
   key?: string | SecretString;
+  /**
+   * Database
+   */
   database!: string;
+  /**
+   * Container
+   */
   container!: string;
+  /**
+   * Partition key
+   */
   partitionKey = "/id";
+  /**
+   * Create if not exists
+   */
   createIfNotExists = false;
+  /**
+   * Throughput
+   */
   throughput?: number;
+  /**
+   * Tenant ID
+   */
   tenantId?: string;
+  /**
+   * Client ID
+   */
   clientId?: string;
+  /**
+   * Client secret
+   */
   clientSecret?: string | SecretString;
+  /**
+   * Subscription ID
+   */
   subscriptionId?: string;
 
   /**
@@ -96,6 +129,9 @@ export function cosmosQuery(query: QL.Query): SqlQuerySpec {
   return { query: `SELECT * FROM c WHERE ${filter}${order ? ` ORDER BY ${order}` : ""}`, parameters };
 }
 
+/**
+ * Cosmos document type definition
+ */
 type CosmosDocument = Record<string, any> & { id: string; value: Record<string, any>; _etag?: string };
 
 /** Typed Cosmos repository. A serializer envelope preserves dates, behaviors and concrete model types. */
@@ -501,7 +537,13 @@ export class CosmosRepository<T extends ModelClass> extends MemoryRepository<T> 
  * @WebdaModda
  */
 export class CosmosStore extends Store<CosmosStoreParameters> implements AzureContributor {
+  /**
+   * Parameters
+   */
   static Parameters = CosmosStoreParameters;
+  /**
+   * Client
+   */
   protected client!: CosmosClient;
 
   /**

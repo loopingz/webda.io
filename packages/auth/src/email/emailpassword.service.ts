@@ -45,7 +45,10 @@ export class EmailPasswordParameters extends ServiceParameters {
    * @default { "policy": ".{8,}" }
    */
   password: {
-    /** @default ".{8,}" */
+    /**
+     * Policy
+     * @default ".{8,}"
+     */
     policy: string;
     verifier?: string;
   };
@@ -53,11 +56,20 @@ export class EmailPasswordParameters extends ServiceParameters {
    * @default { "resendDelay": 14400000, "failedBeforeDelay": 3, "lockout": 900000 }
    */
   throttle: {
-    /** @default 14400000 */
+    /**
+     * Resend delay
+     * @default 14400000
+     */
     resendDelay: number;
-    /** @default 3 */
+    /**
+     * Failed before delay
+     * @default 3
+     */
     failedBeforeDelay: number;
-    /** @default 900000 */
+    /**
+     * Lockout
+     * @default 900000
+     */
     lockout: number;
   };
   /**
@@ -84,6 +96,7 @@ export class EmailPasswordParameters extends ServiceParameters {
   trustEmailVerification?: boolean | string[];
 
   /**
+   * Load operation
    * @param params - raw parameters
    * @returns this
    */
@@ -129,6 +142,7 @@ function allowedProfileKeys(model: any): Set<string> {
 }
 
 /**
+ * Sanitize profile
  * @param model - user model
  * @param profile - client supplied profile
  * @returns the profile restricted to the attributes the model allows
@@ -161,8 +175,14 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   extends Service<T>
   implements AuthProvider
 {
+  /**
+   * Parameters
+   */
   static Parameters = EmailPasswordParameters;
 
+  /**
+   * Provider name
+   */
   readonly providerName = "email";
 
   /** @override */
@@ -204,6 +224,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   }
 
   /**
+   * Get public info
    * @returns public info
    */
   getPublicInfo(): ProviderInfo {
@@ -211,6 +232,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   }
 
   /**
+   * Get the email ident
    * @param email - normalised email
    * @returns the email ident
    */
@@ -234,6 +256,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   }
 
   /**
+   * Send mail
    * @param template - mail template
    * @param to - recipient
    * @param url - link
@@ -553,6 +576,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   }
 
   /**
+   * Return true when the session is logged as the user of the token
    * @param claims - verified token claims
    * @param claims.sub - user id
    * @param ctx - context

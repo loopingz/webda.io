@@ -45,7 +45,13 @@ export function compareValues(a: unknown, b: unknown): number {
  * Running computation of one metric
  */
 interface Accumulator {
+  /**
+   * Add operation
+   */
   add(item: any): void;
+  /**
+   * Perform result
+   */
   result(): unknown;
 }
 
@@ -137,9 +143,13 @@ function createAccumulator(metric: Metric): Accumulator {
  * conformance tests.
  */
 export class Aggregator {
+  /**
+   * Groups
+   */
   protected groups = new Map<string, { keys: unknown[]; accumulators: [string, Accumulator][] }>();
 
   /**
+   * Create a new Aggregator instance
    * @param query - the aggregation; validated here
    * @param maxGroups - throw AGGREGATION_TOO_MANY_GROUPS beyond this number of groups
    */
@@ -230,9 +240,21 @@ export interface AggregationInput {
    * WebdaQL filter, without ORDER BY / LIMIT / OFFSET
    */
   filter?: string;
+  /**
+   * Group by
+   */
   groupBy?: readonly string[];
+  /**
+   * Metrics
+   */
   metrics: Record<string, MetricInput>;
+  /**
+   * Order by
+   */
   orderBy?: readonly AggregationOrder[];
+  /**
+   * Limit
+   */
   limit?: number;
 }
 

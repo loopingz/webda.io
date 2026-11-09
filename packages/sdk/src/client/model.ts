@@ -16,6 +16,7 @@ export function quoteValue(value: string | number | boolean): string {
  */
 export class Link<T extends SdkModel = SdkModel> {
   /**
+   * Create a new Link instance
    * @param client - the client
    * @param model - target model id
    * @param uid - uid of the target
@@ -31,6 +32,7 @@ export class Link<T extends SdkModel = SdkModel> {
   }
 
   /**
+   * Return the target, from the cache when fresh
    * @param options - call options
    * @returns the target, from the cache when fresh
    */
@@ -39,6 +41,7 @@ export class Link<T extends SdkModel = SdkModel> {
   }
 
   /**
+   * Return a string representation of this instance
    * @returns the uid
    */
   toString(): string {
@@ -46,6 +49,7 @@ export class Link<T extends SdkModel = SdkModel> {
   }
 
   /**
+   * Serialize this instance to a JSON-compatible value
    * @returns the uid, or the reference with its embedded fields
    */
   toJSON(): unknown {
@@ -54,6 +58,7 @@ export class Link<T extends SdkModel = SdkModel> {
 }
 
 /**
+ * Return the target's uid
  * @param client - the client
  * @param model - target model id
  * @param data - the target's attributes, its primary key included
@@ -105,6 +110,7 @@ export class Links<T extends SdkModel = SdkModel> extends Array<Link<T>> {
   }
 
   /**
+   * Create a new Links instance
    * @param client - the client
    * @param model - target model id
    * @param uids - the uids
@@ -115,6 +121,7 @@ export class Links<T extends SdkModel = SdkModel> extends Array<Link<T>> {
   }
 
   /**
+   * Get every target
    * @param options - call options
    * @returns every target
    */
@@ -123,6 +130,7 @@ export class Links<T extends SdkModel = SdkModel> extends Array<Link<T>> {
   }
 
   /**
+   * Serialize this instance to a JSON-compatible value
    * @returns the uids
    */
   toJSON(): unknown[] {
@@ -143,6 +151,7 @@ export class LinksArray<T extends SdkModel = SdkModel, Extra extends object = ob
   }
 
   /**
+   * Create a new LinksArray instance
    * @param client - the client
    * @param model - target model id
    * @param items - the stored references
@@ -155,6 +164,7 @@ export class LinksArray<T extends SdkModel = SdkModel, Extra extends object = ob
   }
 
   /**
+   * Get every target
    * @param options - call options
    * @returns every target
    */
@@ -163,6 +173,7 @@ export class LinksArray<T extends SdkModel = SdkModel, Extra extends object = ob
   }
 
   /**
+   * Serialize this instance to a JSON-compatible value
    * @returns the stored references
    */
   toJSON(): unknown[] {
@@ -174,9 +185,13 @@ export class LinksArray<T extends SdkModel = SdkModel, Extra extends object = ob
  * References stored as a map of `{ uuid, ...fields }` (`ModelLinksMap`)
  */
 export class LinksMap<T extends SdkModel = SdkModel, Extra extends object = object> {
+  /**
+   * Entries
+   */
   protected readonly entries: Record<string, Link<T> & Extra> = {};
 
   /**
+   * Create a new LinksMap instance
    * @param client - the client
    * @param model - target model id
    * @param items - the stored references
@@ -188,6 +203,7 @@ export class LinksMap<T extends SdkModel = SdkModel, Extra extends object = obje
   }
 
   /**
+   * Return the reference
    * @param key - the key
    * @returns the reference
    */
@@ -196,6 +212,7 @@ export class LinksMap<T extends SdkModel = SdkModel, Extra extends object = obje
   }
 
   /**
+   * Return the keys
    * @returns the keys
    */
   keys(): string[] {
@@ -203,6 +220,7 @@ export class LinksMap<T extends SdkModel = SdkModel, Extra extends object = obje
   }
 
   /**
+   * Return the references
    * @returns the references
    */
   values(): Array<Link<T> & Extra> {
@@ -210,6 +228,7 @@ export class LinksMap<T extends SdkModel = SdkModel, Extra extends object = obje
   }
 
   /**
+   * Get every target, by key
    * @param options - call options
    * @returns every target, by key
    */
@@ -220,6 +239,7 @@ export class LinksMap<T extends SdkModel = SdkModel, Extra extends object = obje
   }
 
   /**
+   * Serialize this instance to a JSON-compatible value
    * @returns the stored references
    */
   toJSON(): Record<string, unknown> {
@@ -232,6 +252,7 @@ export class LinksMap<T extends SdkModel = SdkModel, Extra extends object = obje
  */
 export class Related<T extends SdkModel = SdkModel> {
   /**
+   * Create a new Related instance
    * @param client - the client
    * @param model - target model id
    * @param targetAttribute - attribute of the target holding this object's uid
@@ -260,6 +281,7 @@ export class Related<T extends SdkModel = SdkModel> {
   }
 
   /**
+   * Convert to query
    * @param filter - WebdaQL filter, with optional `ORDER BY` / `LIMIT` / `OFFSET`
    * @returns the full query
    */
@@ -273,6 +295,7 @@ export class Related<T extends SdkModel = SdkModel> {
   }
 
   /**
+   * Query operation
    * @param filter - WebdaQL filter
    * @param options - call options; `count` also returns the total of the related objects
    * @returns the page
@@ -282,6 +305,7 @@ export class Related<T extends SdkModel = SdkModel> {
   }
 
   /**
+   * Return every object, page after page
    * @param filter - WebdaQL filter
    * @param options - call options
    * @returns every object, page after page
@@ -309,9 +333,13 @@ const CLIENT = Symbol("webda:client");
  * `LinksArray` / `LinksMap` / `Related`, `date-time` attributes are revived as `Date`.
  */
 export class SdkModel<Data extends object = Record<string, unknown>> {
+  /**
+   * [client]
+   */
   declare [CLIENT]: ModelClient<any>;
 
   /**
+   * Create a new SdkModel instance
    * @param client - the model client
    * @param data - the raw object
    */
@@ -321,6 +349,7 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
   }
 
   /**
+   * Get the model client
    * @returns the model client
    */
   getClient(): ModelClient<any> {
@@ -388,6 +417,7 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
   }
 
   /**
+   * Get the primary key, the uid of a single-attribute key
    * @returns the primary key, the uid of a single-attribute key
    */
   getPrimaryKey(): PrimaryKeyInput {
@@ -397,6 +427,7 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
   }
 
   /**
+   * Get the serialized primary key
    * @returns the serialized primary key
    */
   getUUID(): string {
@@ -404,6 +435,7 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
   }
 
   /**
+   * Get the parents' uids for a nested model, root first (only the direct parent is known from the object)
    * @returns the parents' uids for a nested model, root first (only the direct parent is known from the object)
    */
   getParents(): string[] | undefined {
@@ -414,6 +446,7 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
   }
 
   /**
+   * Serialize this instance to a JSON-compatible value
    * @returns the raw attributes, as the server stores them
    */
   toJSON(): Record<string, unknown> {
@@ -426,6 +459,7 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
   }
 
   /**
+   * Return the options with the parents of this object
    * @param options - call options
    * @returns the options with the parents of this object
    */

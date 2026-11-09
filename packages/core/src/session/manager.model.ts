@@ -16,6 +16,7 @@ import { type ModelClass, type Repository, UuidModel } from "@webda/models";
  */
 export interface BearerTokenResolver {
   /**
+   * Resolve bearer
    * @param token - the Bearer token
    * @param context - the context
    * @returns a logged stateless session, or undefined when the token is not for this resolver
@@ -54,6 +55,7 @@ export function unregisterBearerResolver(resolver: BearerTokenResolver): void {
 }
 
 /**
+ * Return the registered Bearer resolvers
  * @returns the registered Bearer resolvers
  */
 export function useBearerResolvers(): readonly BearerTokenResolver[] {
@@ -224,7 +226,13 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
 
 /** Persistent session data stored in a model with a TTL */
 export class SessionModel extends UuidModel {
+  /**
+   * TTL
+   */
   ttl: number;
+  /**
+   * Session
+   */
   session: any;
   /** Create a new SessionModel
    * @param data - the session data
@@ -272,9 +280,15 @@ export class CookieSessionParameters extends ServiceParameters {
 export class CookieSessionManager<
   T extends CookieSessionParameters = CookieSessionParameters
 > extends SessionManager<T> {
+  /**
+   * Crypto service
+   */
   @Inject("CryptoService")
   cryptoService: CryptoService;
 
+  /**
+   * Session model
+   */
   sessionModel: Repository<ModelClass<SessionModel>>;
 
   /**

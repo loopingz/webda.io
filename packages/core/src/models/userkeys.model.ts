@@ -107,6 +107,7 @@ export function assertB64u(value: unknown, what: string, length?: number | [numb
 }
 
 /**
+ * Check whether object
  * @param value - value
  * @returns true for a plain object
  */
@@ -278,6 +279,9 @@ function checkEscrows(escrows: Escrows, kid: string): Escrows {
  * @WebdaBehavior Webda/UserKeys
  */
 export class UserKeys {
+  /**
+   * Parameters
+   */
   static Parameters = UserKeysParameters;
 
   /** Public keys, oldest first: the newest non-retired one is active */
@@ -293,6 +297,7 @@ export class UserKeys {
   devices: UserDevice[] = [];
 
   /**
+   * Create a new UserKeys instance
    * @param data - initial or stored data
    */
   constructor(data?: any) {
@@ -313,6 +318,7 @@ export class UserKeys {
   }
 
   /**
+   * Check whether setup
    * @returns true once the keys are set up
    */
   isSetup(): boolean {
@@ -339,6 +345,7 @@ export class UserKeys {
   }
 
   /**
+   * Return the owner, refusing a detached behavior
    * @returns the owner, refusing a detached behavior
    */
   private requireOwner(): any {
@@ -447,6 +454,7 @@ export class UserKeys {
   }
 
   /**
+   * Check whether it has escrow
    * @param kind - escrow kind
    * @returns true when an escrow of this kind is stored
    */

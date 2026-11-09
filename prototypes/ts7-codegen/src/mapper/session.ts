@@ -48,6 +48,9 @@ export interface TransformTiming {
   analyzeMs: number;
   /** Splicing edits and building the span map. */
   spliceMs: number;
+  /**
+   * Total ms
+   */
   totalMs: number;
   /** False when the buffer was unchanged and the snapshot was reused. */
   changed: boolean;
@@ -55,7 +58,13 @@ export interface TransformTiming {
 
 /** A transform result plus what it cost. */
 export interface TransformOutcome extends MappedText {
+  /**
+   * Timing
+   */
   timing: TransformTiming;
+  /**
+   * Edit count
+   */
   editCount: number;
 }
 
@@ -65,15 +74,31 @@ const ms = (from: bigint) => Number(process.hrtime.bigint() - from) / 1e6;
  * A resident `Program` + `Checker` that answers `transform` requests.
  */
 export class WarmSession {
+  /**
+   * API
+   */
   private readonly api: API;
+  /**
+   * Options
+   */
   private readonly options: WarmSessionOptions;
+  /**
+   * Generators
+   */
   private readonly generators: Generator[];
   /** Live buffer text per file, served to the resident program. */
   private readonly overlay = new Map<string, string>();
+  /**
+   * Snapshot
+   */
   private snapshot: any;
   /** Cost of the initial program construction. */
   readonly startupMs: number;
 
+  /**
+   * Create a new WarmSession instance
+   * @param options - the options
+   */
   constructor(options: WarmSessionOptions) {
     this.options = options;
     this.generators = options.generators ?? [
@@ -91,11 +116,18 @@ export class WarmSession {
     this.startupMs = ms(t0);
   }
 
-  /** Files in the resident program, for benchmarking. */
+  /**
+   * Files in the resident program, for benchmarking.
+   * @returns the file count
+   */
   get fileCount(): number {
     return this.project().program.getSourceFileNames().length;
   }
 
+  /**
+   * Perform project
+   * @returns the result
+   */
   private project(): Project {
     return this.snapshot.getProjects()[0];
   }

@@ -6,13 +6,23 @@ import { DebugClient } from "../client.js";
  * Press Enter to toggle detail view showing schema, relations, and actions.
  */
 export class ModelsPanel extends ScrollablePanel {
+  /**
+   * Name
+   */
   name = "Models";
+  /**
+   * Models
+   */
   private models: any[] = [];
+  /**
+   * Detail mode
+   */
   private detailMode = false;
   /** Number of visible rows in the viewport (updated on render) */
   private visibleRows = 0;
 
   /**
+   * Create a new ModelsPanel instance
    * @param client - Debug API client
    */
   constructor(private client: DebugClient) {
@@ -125,8 +135,18 @@ export class ModelsPanel extends ScrollablePanel {
     if (!model) return;
 
     const lines: { render: (t: any, w: number) => void }[] = [];
+    /**
+     * Add text line
+     * @param text - the text
+     * @param style - the style
+     */
     const addText = function addTextLine(text: string, style?: string) {
       lines.push({
+        /**
+         * Render text
+         * @param t - the t
+         * @param w - the w
+         */
         render: function renderText(t: any, w: number) {
           const s = text.substring(0, w);
           if (style === "bold") t.bold(s);
@@ -136,8 +156,16 @@ export class ModelsPanel extends ScrollablePanel {
         }
       });
     };
+    /**
+     * Add empty line
+     */
     const addEmpty = function addEmptyLine() {
-      lines.push({ render: function renderEmpty() {} });
+      lines.push({
+        /**
+         * Render empty
+         */
+        render: function renderEmpty() {}
+      });
     };
 
     addText(`  Model: ${model.id}`, "bold");

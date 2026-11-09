@@ -55,9 +55,21 @@ export interface LeaderCallbacks {
  * once, before its lease can expire for the others.
  */
 export class LeaderElector {
+  /**
+   * Timer
+   */
   protected timer?: NodeJS.Timeout;
+  /**
+   * Running
+   */
   protected running = false;
+  /**
+   * Lease duration
+   */
   protected leaseDuration: number;
+  /**
+   * Retry period
+   */
   protected retryPeriod: number;
   /**
    * Whether this candidate holds the lease
@@ -65,6 +77,7 @@ export class LeaderElector {
   leading = false;
 
   /**
+   * Create a new LeaderElector instance
    * @param api - the coordination API
    * @param options - the lease and timings
    * @param callbacks - leadership changes

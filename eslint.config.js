@@ -29,7 +29,7 @@ export default [
       jsdoc
     },
     files: ["**/*.ts", "**/*.tsx"],
-    ignores: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**"],
+    ignores: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**", "test/**"],
     rules: {
       "unused-imports/no-unused-imports": "error",
       "@typescript-eslint/no-explicit-any": "off",
@@ -51,11 +51,23 @@ export default [
           require: {
             ClassDeclaration: true,
             MethodDefinition: true,
-            FunctionDeclaration: true
+            FunctionDeclaration: true,
+            FunctionExpression: true
           },
-          checkConstructors: true
+          contexts: [
+            "TSInterfaceDeclaration",
+            "TSTypeAliasDeclaration",
+            "TSEnumDeclaration",
+            "PropertyDefinition",
+            "TSInterfaceBody > TSPropertySignature",
+            "TSInterfaceBody > TSMethodSignature"
+          ],
+          checkConstructors: true,
+          checkGetters: true,
+          checkSetters: true
         }
       ],
+      "jsdoc/require-description": ["error", { contexts: ["any"], descriptionStyle: "any", exemptedBy: ["override"] }],
       "jsdoc/require-param": ["error", { exemptedBy: ["override"] }],
       "jsdoc/require-param-description": "error",
       "jsdoc/require-returns": ["error", { exemptedBy: ["override"] }],
@@ -66,7 +78,7 @@ export default [
     plugins: {
       "unused-imports": unusedImports
     },
-    files: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**"],
+    files: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**", "test/**"],
     rules: {
       "unused-imports/no-unused-imports": "error",
       "@typescript-eslint/no-explicit-any": "off",

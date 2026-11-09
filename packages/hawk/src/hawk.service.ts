@@ -33,15 +33,30 @@ export function compileSafeAnchoredRegExp(pattern: string): RegExp | undefined {
  * Hawk Credentials representation
  */
 export interface HawkCredentials {
+  /**
+   * Unique identifier
+   */
   id: string;
+  /**
+   * Key
+   */
   key: string;
+  /**
+   * Algorithm
+   */
   algorithm: string;
 }
 /**
  * Contains the hawk context
  */
 export interface HawkContext {
+  /**
+   * Artifacts
+   */
   artifacts: any;
+  /**
+   * Credentials
+   */
   credentials: any;
 }
 /**
@@ -90,6 +105,9 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
   extends Service<T>
   implements RequestFilter<WebContext>, CORSFilter<WebContext>
 {
+  /**
+   * Registry entry
+   */
   static RegistryEntry = "HawkOrigins";
   /**
    * CryptoService
@@ -155,7 +173,13 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
       await this.getOrigins();
       // Keep the origins registry in sync with the keys
       // The inherited model event marker is optional; describe the repository events used here explicitly.
+      /**
+       * Key event type definition
+       */
       type KeyEvent = "Created" | "Updated" | "Patched";
+      /**
+       * Key listener type definition
+       */
       type KeyListener = (event: { object?: ApiKey }) => void;
       const repo = useRepository(this.model) as {
         on(event: KeyEvent, listener: KeyListener): void;

@@ -66,6 +66,7 @@ export class FakeIdP {
   oauthMetadataOnly = false;
 
   /**
+   * Create a new FakeIdP instance
    * @param issuer - the issuer url
    */
   constructor(public issuer: string = ISSUER) {}
@@ -126,6 +127,7 @@ export class FakeIdP {
   };
 
   /**
+   * Return the number of JWKS requests
    * @returns the number of JWKS requests
    */
   jwksCalls(): number {

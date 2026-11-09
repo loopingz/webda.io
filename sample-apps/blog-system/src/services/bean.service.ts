@@ -17,6 +17,9 @@ import { getCompletions, fieldsFromSchema, type CompletionField, type Completion
  * Parameters for the TestBean service
  */
 export class TestBeanParameters extends Service.Parameters {
+  /**
+   * Service
+   */
   service: ServiceName;
 }
 

@@ -76,8 +76,17 @@ export class SQLitePubSubParameters extends ServiceParameters implements SQLiteC
   }
 }
 
+/**
+ * Subscriber interface
+ */
 interface Subscriber<T> {
+  /**
+   * Callback
+   */
   callback: (event: T) => Promise<void>;
+  /**
+   * Proto
+   */
   proto?: { new (): T };
   /**
    * Last delivered message id: only messages published after the subscription are delivered
@@ -99,11 +108,29 @@ export default class SQLitePubSubService<
   T = any,
   K extends SQLitePubSubParameters = SQLitePubSubParameters
 > extends PubSubService<T, K> {
+  /**
+   * Handle
+   */
   protected handle?: SQLiteHandle;
+  /**
+   * Subscribers
+   */
   protected subscribers: Set<Subscriber<T>> = new Set();
+  /**
+   * Timer
+   */
   protected timer?: NodeJS.Timeout;
+  /**
+   * Data version
+   */
   protected dataVersion?: number;
+  /**
+   * Last purge
+   */
   protected lastPurge = 0;
+  /**
+   * Polling
+   */
   protected polling = false;
   /**
    * Wake-up by a publisher of this process (the shared handle emits for every table)
@@ -122,6 +149,7 @@ export default class SQLitePubSubService<
   };
 
   /**
+   * Get the validated table name
    * @returns the validated table name
    */
   protected get table(): string {
@@ -129,6 +157,7 @@ export default class SQLitePubSubService<
   }
 
   /**
+   * Return the channel name
    * @returns the channel name
    */
   protected channel(): string {
@@ -144,6 +173,7 @@ export default class SQLitePubSubService<
   }
 
   /**
+   * Get the client
    * @returns the client
    * @throws when the service is not initialized
    */

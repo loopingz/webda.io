@@ -26,7 +26,7 @@ export type PostgresIsolationLevel = "READ COMMITTED" | "REPEATABLE READ" | "SER
 const ISOLATION_LEVELS: PostgresIsolationLevel[] = ["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"];
 
 /**
- *
+ * Configuration parameters for Postgres
  */
 export class PostgresParameters extends SQLStoreParameters {
   /**
@@ -97,6 +97,9 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
   extends SQLStore<K>
   implements MigratableStore
 {
+  /**
+   * Client
+   */
   client: pg.Client | pg.Pool;
   /**
    * True when {@link client} is a shared pool acquired from the registry.
@@ -182,6 +185,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
   }
 
   /**
+   * Get the isolation level of the transactions, checked: it is written in the BEGIN statement
    * @returns the isolation level of the transactions, checked: it is written in the BEGIN statement
    * @throws WebdaError.CodeError for an unknown level
    */

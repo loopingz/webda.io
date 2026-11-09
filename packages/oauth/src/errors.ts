@@ -3,6 +3,7 @@ import { WebdaError } from "@webda/core";
 /** RFC 6749 error, rendered as `{ error, error_description }` */
 export class OAuthError extends WebdaError.HttpError {
   /**
+   * Create a new OAuthError instance
    * @param error - OAuth error code
    * @param description - human readable description
    * @param status - HTTP status
@@ -17,6 +18,7 @@ export class OAuthError extends WebdaError.HttpError {
   }
 
   /**
+   * Serialize this instance to a JSON-compatible value
    * @returns the RFC 6749 error body
    */
   toJSON(): { error: string; error_description: string } {

@@ -17,6 +17,7 @@ const SPLIT = 4096;
  */
 export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
   /**
+   * Same site
    * @default lax
    */
   sameSite?: "none" | "strict" | "lax";
@@ -34,6 +35,7 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
    */
   _maxAge?: Duration;
   /**
+   * Set max age
    * @minimum 1
    * @default 7d
    */
@@ -48,10 +50,12 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
     return this._maxAge?.toSeconds() ?? 86400 * 7;
   }
   /**
+   * Path
    * @default /
    */
   path?: string;
   /**
+   * Whether HTTP only is enabled
    * @default true
    */
   httpOnly?: boolean;

@@ -15,6 +15,7 @@ export class SampleAppTest extends WebdaApplicationTest {
   extraServices: Record<string, any> = {};
 
   /**
+   * Get the sample application path
    * @returns the sample application path
    */
   getTestConfiguration(): any {
@@ -22,6 +23,7 @@ export class SampleAppTest extends WebdaApplicationTest {
   }
 
   /**
+   * Perform tweak app
    * @param app - the test application
    */
   async tweakApp(app: TestApplication): Promise<void> {
@@ -33,6 +35,7 @@ export class SampleAppTest extends WebdaApplicationTest {
   }
 
   /**
+   * Get the generator
    * @returns the generator
    */
   get generator(): SdkGenerator {

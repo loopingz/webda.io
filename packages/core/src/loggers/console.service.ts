@@ -14,6 +14,9 @@ import { useWorkerOutput } from "./ilogger.js";
 export class ConsoleLoggerService<
   T extends ConsoleLoggerServiceParameters = ConsoleLoggerServiceParameters
 > extends LoggerService<T> {
+  /**
+   * Workout logger
+   */
   workoutLogger: ConsoleLogger;
   /**
    * Resolve dependencies and create the underlying ConsoleLogger

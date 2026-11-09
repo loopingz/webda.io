@@ -1341,5 +1341,204 @@ class CliPackagedApplicationTest {
     }
     assert.ok(app.getModda("App/Local"));
     assert.ok(app.getModda("B/Service"));
+
+    // loadOperations when .webda/operations.json exists
+    write(join(this.appPath, ".webda/operations.json"), { operations: {}, schemas: {} });
+    assert.deepStrictEqual(loadOperations(this.appPath), { operations: {}, schemas: {} });
+
+    // loadApplication when .webda/packaged.json exists
+    write(join(this.appPath, ".webda/packaged.json"), { deployment: "Prod" });
+    assert.ok(!(loadApplication(this.appPath) instanceof UnpackedApplication));
+
+    // hasInlineMarker catch block when file contains "$packaged" but is invalid JSON
+    const badPkg = join(this.root, "bad-pkg");
+    write(join(badPkg, "webda.config.json"), "{ invalid json with $packaged ");
+    assert.strictEqual(isPackagedApplication(badPkg), false);
+
+    // isSubclassType with empty type
+    const { isSubclassType } = await import("./cli.js");
+    assert.strictEqual(isSubclassType(app, "", "App/Local"), false);
+  }
+
+  @test
+  async additionalCliCoverage() {
+    // schemaToOptions array type, boolean prop, and extractInput --file
+    const inputFile = join(this.root, "input.json");
+    write(inputFile, { tags: ["a", "b"] });
+    const calls: OperationCall[] = [];
+    const ops = makeOps(
+      { "Item.Create": { id: "Item.Create", input: "itemInput", output: "void" } },
+      {
+        itemInput: {
+          type: "object",
+          properties: {
+            tags: { type: "array" },
+            boolProp: true as any
+          }
+        }
+      }
+    );
+    const cli = buildCli(
+      ops,
+      async call => {
+        calls.push(call);
+      },
+      ["item", "create", "--file", inputFile]
+    );
+    await cli.parseAsync();
+    assert.deepStrictEqual(calls[0].input, { tags: ["a", "b"] });
+
+    // addServiceCommandsToCli when group also has a leaf command with the same name
+    const yargsMod = (await import("yargs")).default;
+    const executedCmds: string[] = [];
+    const groupCli = addServiceCommandsToCli(
+      yargsMod(["cfg", "cfg"]),
+      {
+        cfg: {
+          description: "Base cfg",
+          services: [{ name: "S", type: "T", method: "m" }],
+          args: { flag: { type: "boolean" } },
+          requires: [],
+          phases: ["initialized"]
+        },
+        "cfg sub": {
+          description: "Sub cfg",
+          services: [{ name: "S", type: "T", method: "sub" }],
+          args: {},
+          requires: [],
+          phases: ["initialized"]
+        }
+      },
+      async name => {
+        executedCmds.push(name);
+      }
+    );
+    await groupCli.parseAsync();
+    assert.deepStrictEqual(executedCmds, ["cfg"]);
+  }
+
+  @test
+  async runCliServiceCommandsAndBeanOperations() {
+    const app = join(this.root, "cli-exec-app");
+    mkdirSync(app, { recursive: true });
+    write(join(app, "package.json"), { name: "mini", version: "1.0.0", type: "module" });
+    write(join(app, "webda.config.json"), { version: 4, services: {} });
+    write(join(app, "deployments/Dev.json"), { parameters: { env: "dev" }, units: {}, resources: {} });
+    write(
+      join(app, "bean.js"),
+      `export class CustomCfg { load(p) { Object.assign(this, p); return this; } }
+export class MyBean {
+  static async staticCmd() { return 0; }
+  async runCmd() { return 0; }
+  async doOp(count, active, label) { return { count, active, label }; }
+  async strOp() { return "string-output"; }
+}
+`
+    );
+    write(join(app, "webda.module.json"), {
+      $schema: "https://webda.io/schemas/webda.module.v4.json",
+      moddas: {
+        "Mini/Svc": {
+          Import: "bean.js:MyBean",
+          commands: {
+            appcmd: { method: "staticCmd", description: "App phase cmd", phase: "application" },
+            initcmd: { method: "runCmd", description: "Init phase cmd", phase: "initialized" }
+          }
+        }
+      },
+      beans: {
+        "Mini/MyBean": {
+          Import: "bean.js:MyBean",
+          Configuration: "bean.js:CustomCfg"
+        }
+      },
+      deployers: {},
+      models: {},
+      schemas: {}
+    });
+    write(join(app, ".webda/operations.json"), {
+      operations: {
+        "MyBean.DoOp": { id: "MyBean.DoOp", input: "opInput", output: "void" },
+        "MyBean.StrOp": { id: "MyBean.StrOp", input: "void", output: "void" },
+        "MyBean.MissingMethod": { id: "MyBean.MissingMethod", input: "void", output: "void" },
+        "UnknownSvc.Nope": { id: "UnknownSvc.Nope", input: "void", output: "void" }
+      },
+      schemas: {
+        opInput: {
+          type: "object",
+          properties: {
+            skipBool: true as any,
+            count: { type: "number", description: "Count" },
+            active: { type: "boolean" },
+            label: { type: "string" }
+          }
+        }
+      }
+    });
+
+    const origLog = console.log;
+    const origInfo = console.info;
+    const origWarn = console.warn;
+    const origError = console.error;
+    const origDebug = console.debug;
+    const origTrace = console.trace;
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    const init = vi.spyOn(Core.prototype, "init").mockResolvedValue(undefined as any);
+    const stop = vi.spyOn(Core.prototype, "stop").mockResolvedValue(undefined);
+    const beanInstance = {
+      runCmd: async () => 0,
+      doOp: async (count: any, active: any, label: any) => ({ count, active, label }),
+      strOp: async () => "string-output"
+    };
+    const services = vi
+      .spyOn(Core.prototype, "getServices")
+      .mockReturnValue({ "Mini/MyBean": beanInstance, Svc: beanInstance } as any);
+    try {
+      // 1. Service command in application phase (with -d Dev and default console-patch=true)
+      await runCli({ appPath: app, argv: ["-d", "Dev", "appcmd"] });
+      await new Promise<void>(resolve => setImmediate(resolve));
+
+      // 2. Service command in initialized phase
+      await runCli({ appPath: app, argv: ["initcmd", "--console-patch=false"] });
+      await new Promise<void>(resolve => setImmediate(resolve));
+
+      // 3. Operation command with non-TTY missing input (and bean injection via ensureServiceInConfig)
+      const prevIsTTY = process.stdin.isTTY;
+      try {
+        (process.stdin as any).isTTY = false;
+        await runCli({ appPath: app, argv: ["mybean", "doop", "--console-patch=false", "--count", "5"] });
+        await new Promise<void>(resolve => setImmediate(resolve));
+      } finally {
+        (process.stdin as any).isTTY = prevIsTTY;
+      }
+
+      // 5. Operation returning a string
+      await runCli({ appPath: app, argv: ["mybean", "strop", "--console-patch=false"] });
+      await new Promise<void>(resolve => setImmediate(resolve));
+
+      // 6. Operation with missing method -> process.exit(1)
+      const exitThrow = vi.spyOn(process, "exit").mockImplementation((code => {
+        throw new Error(`EXIT_${code}`);
+      }) as any);
+      await assert.rejects(
+        runCli({ appPath: app, argv: ["mybean", "missingmethod", "--console-patch=false"] }),
+        /EXIT_1/
+      );
+
+      // 7. Operation with unknown service -> process.exit(1)
+      await assert.rejects(runCli({ appPath: app, argv: ["unknownsvc", "nope", "--console-patch=false"] }), /EXIT_1/);
+      exitThrow.mockRestore();
+    } finally {
+      console.log = origLog;
+      console.info = origInfo;
+      console.warn = origWarn;
+      console.error = origError;
+      console.debug = origDebug;
+      console.trace = origTrace;
+      services.mockRestore();
+      stop.mockRestore();
+      init.mockRestore();
+      exit.mockRestore();
+    }
   }
 }

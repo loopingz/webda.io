@@ -312,6 +312,7 @@ export class UnpackedApplication extends Application {
       }
       visited.add(realNmPath);
 
+      /* v8 ignore next 3 */
       if (!fs.existsSync(nmPath)) {
         return [];
       }

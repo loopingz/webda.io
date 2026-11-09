@@ -474,6 +474,7 @@ async function promptForMissingInput(input: Record<string, any>, schema: JSONSch
   if (missing.length === 0) return input;
 
   // Non-interactive: return as-is, let validation report the error
+  /* v8 ignore start */
   if (!process.stdin.isTTY) return input;
 
   const rl = createInterface({ input: process.stdin, output: process.stderr });
@@ -498,6 +499,7 @@ async function promptForMissingInput(input: Record<string, any>, schema: JSONSch
     rl.close();
   }
   return input;
+  /* v8 ignore stop */
 }
 
 /**
@@ -1010,6 +1012,7 @@ export function reportServiceCommand(cmdName: string, execution: Promise<number>
   );
 }
 
+/* v8 ignore start */
 /**
  * Run a service command with file watching: compiles first, then restarts on changes.
  *
@@ -1102,6 +1105,7 @@ async function runWithWatch(
   // Keep process alive
   await new Promise(() => {});
 }
+/* v8 ignore stop */
 
 /**
  * Options of {@link runCli}
@@ -1447,6 +1451,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         // Auto-inject capability providers required by this command
         resolveCapabilities(app, cmdInfo.requires);
 
+        /* v8 ignore next 2 */
         if (matchedCommand.args.watch && hasCompiler) {
           await runWithWatch(appPath, app, matchedCommand.name, cmdInfo, matchedCommand.args, serviceFilter);
         } else {

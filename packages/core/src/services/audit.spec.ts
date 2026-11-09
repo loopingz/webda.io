@@ -283,7 +283,12 @@ class AuditServiceTest extends WebdaApplicationTest {
   @test
   async entryIsTheRegisteredModel() {
     assert.strictEqual(useApplication().getModelId(AuditEntry), "Webda/AuditEntry");
-    assert.strictEqual(useApplication().getModelId(new AuditEntry()), "Webda/AuditEntry");
+    const entry = new AuditEntry();
+    assert.strictEqual(useApplication().getModelId(entry), "Webda/AuditEntry");
+    assert.ok(entry.toJSON());
+    (entry as any).timestamp = "2026-01-01T00:00:00.000Z";
+    assert.ok(entry.timestamp instanceof Date);
+    assert.ok(entry.toJSON());
   }
 
   @test

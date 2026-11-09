@@ -56,6 +56,7 @@ class EmbeddedPrometheusTest extends WebdaInternalTest {
     await emitCoreEvent("Webda.Request", { context: ctx });
     await emitCoreEvent("Webda.Result", { context: ctx });
     await this.execute(ctx, "localhost", "GET", "/metrics");
+    await this.webda.getService<any>("PrometheusService").serveMetrics(ctx);
     await emitCoreEvent("Webda.Request", { context: ctx });
     await emitCoreEvent("Webda.Result", { context: ctx });
     // TODO Revisit

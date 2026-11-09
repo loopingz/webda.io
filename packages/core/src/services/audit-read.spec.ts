@@ -349,6 +349,17 @@ class AuditReadTest extends WebdaApplicationTest {
       () => this.call("Audit.Subject", { model: "Webda/Nope", key: "x" }, { id: "admin", roles: ["admin"] }),
       this.isError(WebdaError.NotFound)
     );
+    const app = this.webda.getApplication();
+    const origGetModelId = app.getModelId.bind(app);
+    app.getModelId = () => undefined as any;
+    try {
+      await assert.rejects(
+        () => this.call("Audit.Subject", { model: "Webda/User", key: "x" }, { id: "admin", roles: ["admin"] }),
+        this.isError(WebdaError.NotFound)
+      );
+    } finally {
+      app.getModelId = origGetModelId;
+    }
   }
 
   @test

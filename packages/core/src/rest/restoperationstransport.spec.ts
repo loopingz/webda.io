@@ -951,6 +951,10 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       () => this.routerHttp({ method: "PUT", url: "/qb/companies/c1/users", body: "null" }),
       (err: any) => err instanceof WebdaError.BadRequest
     );
+    await assert.rejects(
+      () => this.routerHttp({ method: "PUT", url: "/qb/companies/c1/users", body: "123" }),
+      (err: any) => err instanceof WebdaError.BadRequest
+    );
     // No body at all queries everything, like {"q": ""}
     const all = await this.routerHttp<{ results: any[] }>({ method: "PUT", url: "/qb/companies/c1/users" });
     assert.deepStrictEqual(
@@ -983,10 +987,10 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       () =>
         this.routerHttp({
           method: "PUT",
-          url: "/iq/company",
+          url: "/iq/companies",
           body: { q: "invalid ][[ query syntax !!!" }
         }),
-      (err: any) => err instanceof WebdaError.HttpError
+      (err: any) => err instanceof WebdaError.BadRequest
     );
   }
 
@@ -1270,5 +1274,79 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     assert.ok(result !== undefined, "OpenAPI route should return content");
     assert.ok(typeof result === "string", "OpenAPI should return HTML string");
     assert.ok((<string>result).includes("swagger-ui"), "Should contain swagger-ui reference");
+  }
+
+  @test
+  async additionalRestTransportCoverage() {
+    const transport: any = new RESTOperationsTransport(
+      "TestRESTTransportCov",
+      new RESTOperationsTransportParameters().load({ url: "/cov/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+
+    // 1. exposeUpdateRoute servedBy helper when only Update or only Patch is present
+    transport.exposeUpdateRoute("/cov/only-update", "Company", "WebdaSampleApplication/Company", {
+      "Company.Update": { id: "Company.Update", service: "DomainService", method: "modelUpdate" }
+    });
+    transport.exposeUpdateRoute("/cov/only-patch", "Company", "WebdaSampleApplication/Company", {
+      "Company.Patch": { id: "Company.Patch", service: "DomainService", method: "modelPatch" }
+    });
+
+    // 2. attachWebSockets when upgradeOperation rejects -> socket.destroy()
+    transport.webSocketRoutes.set("/ws-fail", "Ws.Fail");
+    let upgradeHandler: any;
+    const fakeServer: any = {
+      on: (evt: string, fn: any) => {
+        if (evt === "upgrade") upgradeHandler = fn;
+      }
+    };
+    transport.attachWebSockets(fakeServer, useInstanceStorage());
+    let destroyed = false;
+    const origUpgrade = transport.upgradeOperation;
+    transport.upgradeOperation = async () => {
+      throw new Error("upgrade boom");
+    };
+    upgradeHandler({ url: "/ws-fail" }, { destroy: () => (destroyed = true) }, Buffer.alloc(0));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(destroyed, true);
+    transport.upgradeOperation = origUpgrade;
+
+    // 3. upgradeOperation when runWebSocketOperation rejects -> ws.close(1011, "Internal server error")
+    useInstanceStorage().operations!["Ws.Fail"] = {
+      id: "Ws.Fail",
+      service: "RestBindingService",
+      method: "mixed",
+      input: "void",
+      output: "void"
+    };
+    const fakeHttpService: any = {
+      getName: () => "FakeHttp",
+      server: fakeServer,
+      getContextFromRequest: async () => {
+        const ctx = new WebContext(new HttpContext("localhost", "GET", "/ws-fail"));
+        ctx.newSession();
+        return ctx;
+      }
+    };
+    this.registerService(fakeHttpService);
+    let closedCode = 0;
+    transport.webSocketServer = {
+      handleUpgrade: (_req: any, _socket: any, _head: any, cb: (ws: any) => void) => {
+        cb({
+          close: (code: number) => {
+            closedCode = code;
+          }
+        });
+      }
+    };
+    transport.runWebSocketOperation = async () => {
+      throw new Error("ws op boom");
+    };
+    await transport.upgradeOperation("Ws.Fail", fakeServer, {} as any, {} as any, Buffer.alloc(0));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(closedCode, 1011);
+    delete useInstanceStorage().operations!["Ws.Fail"];
   }
 }

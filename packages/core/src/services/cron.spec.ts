@@ -562,7 +562,7 @@ class CronExecutionTest extends WebdaApplicationTest {
       const service = new LeaderCronService("native", cluster);
       this.services.push(service);
       service.schedule("3 * * * *", () => {}, "before run");
-      service.run(false).catch(() => {});
+      service.work("false").catch(() => {});
       service.schedule("4 * * * *", () => {}, "after run");
       await new Promise(resolve => setImmediate(resolve));
       assert.deepStrictEqual(service.recorded, []);

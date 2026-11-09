@@ -378,6 +378,36 @@ class ClusterServiceTest extends WebdaApplicationTest {
     assert.strictEqual(params.leaseName, "leader");
     assert.ok(params.instanceId);
   }
+
+  @test
+  async additionalClusterCoverage() {
+    // 1. LocalCluster callback error (line 361)
+    const unreg = whenLeader(() => {
+      throw new Error("local fail");
+    });
+    await new Promise(resolve => setImmediate(resolve));
+    unreg();
+
+    // 2. stop() when release() rejects (line 265)
+    const cluster = fakeCluster();
+    (cluster as any).leading = true;
+    (cluster as any).release = async () => {
+      throw new Error("release fail");
+    };
+    await cluster.stop();
+
+    // 3. attempt() when stopped during acquireOrRenew and release() rejects (lines 288-289)
+    const cluster2 = fakeCluster();
+    (cluster2 as any).running = true;
+    cluster2.result = async () => {
+      (cluster2 as any).running = false;
+      return true;
+    };
+    (cluster2 as any).release = async () => {
+      throw new Error("release fail on stop");
+    };
+    await (cluster2 as any).attempt();
+  }
 }
 
 @suite
@@ -601,6 +631,8 @@ class EarlyService extends Service {
       () => void this.calls.push("fn"),
       () => void this.calls.push("deregistered")
     );
+    const off = whenLeader(() => void this.calls.push("removed"));
+    off();
     return this;
   }
 }

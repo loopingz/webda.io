@@ -1281,10 +1281,24 @@ class CliPackagedApplicationTest {
     mkdirSync(join(this.appPath, "node_modules"));
     symlinkSync(store, join(this.appPath, "node_modules/b"));
     const git = (...args: string[]) =>
-      execFileSync("git", ["-c", "user.email=test@webda.io", "-c", "user.name=test", ...args], {
-        cwd: this.root,
-        stdio: "pipe"
-      });
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.email=test@webda.io",
+          "-c",
+          "user.name=test",
+          "-c",
+          "commit.gpgsign=false",
+          "-c",
+          "tag.gpgSign=false",
+          ...args
+        ],
+        {
+          cwd: this.root,
+          stdio: "pipe"
+        }
+      );
     git("init", "-q");
     git("add", "-A");
     git("commit", "-q", "-m", "init");

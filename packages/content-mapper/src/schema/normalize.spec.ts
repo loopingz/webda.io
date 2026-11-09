@@ -170,4 +170,18 @@ describe("normalizeDefinitions", () => {
     // Existing was seen first at the root, so the root entry wins.
     assert.strictEqual(out.definitions.Existing.title, "from-root");
   });
+
+  it("handles malformed URI-encoded refs without crashing", () => {
+    const input = {
+      type: "object",
+      definitions: {
+        "%E0%A4%A": { type: "string" }
+      },
+      properties: {
+        badRef: { $ref: "#/definitions/%E0%A4%A" }
+      }
+    };
+    const out = normalizeDefinitions(input);
+    assert.strictEqual(out.properties.badRef.$ref, "#/definitions/%E0%A4%A");
+  });
 });

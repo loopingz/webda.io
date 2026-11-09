@@ -1676,4 +1676,68 @@ class DebugServiceCollectDetailsTest {
     assert.ok(result);
     assert.strictEqual(result.error?.message, "boom");
   }
+
+  @test
+  async coversParametersResponseBodyThrowAndEndpoints() {
+    const params = new DebugService.Parameters();
+    assert.strictEqual(params.captureRequests, true);
+
+    // Response body throwing is swallowed
+    const ctx: any = {
+      getHttpContext: () => ({ getHeaders: () => ({}) }),
+      getResponseHeaders: () => ({}),
+      getResponseBody: () => {
+        throw new Error("response body error");
+      },
+      getExtension: () => undefined
+    };
+    const details = await (this.service as any).collectDetails(ctx);
+    assert.ok(details);
+    assert.strictEqual(details.responseBody, undefined);
+
+    // LogBuffer event broadcast
+    this.service.resolve();
+    (this.service as any).logBuffer.listener({
+      type: "log",
+      timestamp: 1,
+      log: { level: "INFO", args: ["msg"] }
+    });
+
+    // Real DebugService /api/models, /api/unknown (404), and internal error (500)
+    await this.service.startDebugServer(0);
+    const port = ((this.service as any).server as Server).address().port;
+    try {
+      const modelsRes = await fetch(`http://localhost:${port}/api/models`, { headers: auth(this.service) });
+      assert.strictEqual(modelsRes.status, 200);
+      const notFoundRes = await fetch(`http://localhost:${port}/api/unknown-route`, { headers: auth(this.service) });
+      assert.strictEqual(notFoundRes.status, 404);
+      const origGetEntries = (this.service as any).logBuffer.getEntries;
+      (this.service as any).logBuffer.getEntries = () => {
+        throw new Error("unexpected log error");
+      };
+      try {
+        const errRes = await fetch(`http://localhost:${port}/api/logs`, { headers: auth(this.service) });
+        assert.strictEqual(errRes.status, 500);
+      } finally {
+        (this.service as any).logBuffer.getEntries = origGetEntries;
+      }
+    } finally {
+      await this.service.stop();
+    }
+
+    // IPv6 loopback unavailable warning (non-EADDRINUSE)
+    const svc2 = new DebugService();
+    svc2.resolve();
+    const origListen = (svc2 as any).listen.bind(svc2);
+    (svc2 as any).listen = async (p: number, host: string) => {
+      if (host === "::1") {
+        const err: any = new Error("EAFNOSUPPORT");
+        err.code = "EAFNOSUPPORT";
+        throw err;
+      }
+      return origListen(p, host);
+    };
+    await svc2.startDebugServer(0);
+    await svc2.stop();
+  }
 }

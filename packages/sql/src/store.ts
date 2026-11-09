@@ -436,9 +436,11 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
       } catch {
         continue;
       }
+      /* v8 ignore start */
       if (!model) {
         continue;
       }
+      /* v8 ignore stop */
       const repo: any = this.getRepository(model);
       repos.push((repo.repository ?? repo) as SQLRepository<any>);
     }

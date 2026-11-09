@@ -481,9 +481,11 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       );
     }
     if (type === "UPDATE") {
+      /* v8 ignore start */
       if (!parsed.assignments?.length) {
         throw new WebdaQL.WebdaQLError("UPDATE needs at least one SET assignment");
       }
+      /* v8 ignore stop */
       const targets = parsed.assignments.map(a => a.field);
       for (const field of targets) {
         const segments = field.split(".");

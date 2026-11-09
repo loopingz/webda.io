@@ -324,4 +324,9 @@ describe("InteractiveConsoleLoggerTest", () => {
     // Verify returnInput was called via the output having processed the input
     assert.ok(logger.input);
   });
+
+  it("testImportInquirer", async () => {
+    const mod = await (logger as any).importInquirer();
+    assert.ok(mod);
+  });
 });

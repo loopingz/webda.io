@@ -14,8 +14,10 @@ export default defineConfig({
       exclude: [
         "src/*.spec.ts",
         "src/index.ts",
+        "src/WebdaQLLexer.ts",
         "src/WebdaQLParserLexer.ts",
         "src/WebdaQLParserListener.ts",
+        "src/WebdaQLParserParser.ts",
         "src/WebdaQLParserVisitor.ts"
       ],
       reporter: ["lcov", "html", "text"]

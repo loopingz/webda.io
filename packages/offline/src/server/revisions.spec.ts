@@ -66,6 +66,22 @@ class RevisionsTest extends SyncTest {
     assert.strictEqual(stored._rev, 3);
     // One entry per write: the extra _rev increment of a collection write is not logged twice
     assert.strictEqual((await this.changes()).length, 3);
+
+    // Object-form increments and throwing repo.get in Update listener
+    const repo: any = useRepository(Note);
+    const objIncrements: any = { count: 1 };
+    await repo.emit("PartialUpdate", { partial_update: { increments: objIncrements } });
+    assert.strictEqual(objIncrements._rev, 1);
+
+    const origGet = repo.get;
+    repo.get = () => Promise.reject(new Error("get failed"));
+    try {
+      const updateObj: any = { title: "err" };
+      await repo.emit("Update", { object_id: "missing-id", object: updateObj });
+      assert.strictEqual(updateObj._rev, 1);
+    } finally {
+      repo.get = origGet;
+    }
   }
 
   @test

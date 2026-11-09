@@ -87,6 +87,7 @@ describe("WarmSession", () => {
 
       expect(out.editCount).toBeGreaterThan(0);
       expect(out.mappings.length).toBeGreaterThan(0);
+      expect(session.fileCount).toBeGreaterThan(0);
     } finally {
       session.dispose();
     }

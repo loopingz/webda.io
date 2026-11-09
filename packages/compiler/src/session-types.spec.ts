@@ -79,6 +79,35 @@ class GenerateSessionTypesTest {
     const out = readFileSync(join(this.tmp, ".webda/session-types.d.ts"), "utf-8");
     assert.ok(out.includes("Session as __ResolvedSession"));
   }
+
+  @test
+  throwsWhenModuleJsonIsMissing() {
+    this.writeJson("webda.config.json", { version: 3, session: "MyApp/Session" });
+    assert.throws(() => generateSessionTypes(this.tmp), /webda\.module\.json is missing/);
+  }
+
+  @test
+  supportsRelativeAndAbsoluteModelImports() {
+    this.writeJson("webda.config.json", { version: 3, session: "MyApp/Session" });
+    this.writeJson("webda.module.json", {
+      models: {
+        list: { "MyApp/Session": "./src/models/session.ts:Session" }
+      }
+    });
+    generateSessionTypes(this.tmp);
+    let out = readFileSync(join(this.tmp, ".webda/session-types.d.ts"), "utf-8");
+    assert.ok(out.includes('from "../src/models/session.js"'));
+
+    // Import inside .webda so relative(outDir, absImportFile) does not start with "."
+    this.writeJson("webda.module.json", {
+      models: {
+        list: { "MyApp/Session": join(this.tmp, ".webda/local-session.ts") + ":Session" }
+      }
+    });
+    generateSessionTypes(this.tmp);
+    out = readFileSync(join(this.tmp, ".webda/session-types.d.ts"), "utf-8");
+    assert.ok(out.includes('from "./local-session.js"'));
+  }
 }
 
 @suite

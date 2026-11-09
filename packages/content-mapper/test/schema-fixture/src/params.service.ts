@@ -221,3 +221,53 @@ export class SecretParameters extends ServiceParameters {
 
 /** Service whose parameters hold secrets. */
 export class SecretService extends Service<SecretParameters> {}
+
+/**
+ * Alias that opts into schema inheritance.
+ * @schemaInherits
+ * @format email
+ */
+export type InheritedEmail = string;
+
+/** Generic box for JSDoc link tests. */
+export interface Box<T> {
+  item: T;
+}
+
+/** Interface using @schemaInherits alias. */
+export interface InheritedHolder {
+  contactEmail?: InheritedEmail;
+}
+
+/** Enum with implicit, explicit, and expression members. */
+export enum MixedEnum {
+  First,
+  Second = 5,
+  Third,
+  Fourth = "four" as any
+}
+
+/** Parameters exercising additional SchemaConverter branches. */
+export class CoverageParameters extends ServiceParameters {
+  bigLit?: 10n;
+  bigVal?: bigint;
+  neverVal!: never;
+  regexVal?: RegExp;
+  holder?: InheritedHolder;
+  enumVal!: MixedEnum;
+  emptyUnion?: (() => void) | symbol;
+  boolCollapse?: true | false | { customFlag: boolean };
+  skipArray?: (() => void)[];
+  tupleSkipOpt?: [string, () => void, number?, ...boolean[]];
+  readonlyTuple?: readonly ["a", 1];
+  buf?: Uint8Array;
+  falseDefault: boolean = false;
+  nullDefault: string | null = null;
+  /**
+   * See {@link Box<string>| the box} and {@link Box<number} for details.
+   */
+  linkedGeneric?: string;
+}
+
+/** Service for coverage parameters. */
+export class CoverageService extends Service<CoverageParameters> {}

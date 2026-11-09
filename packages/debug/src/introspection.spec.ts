@@ -16,8 +16,15 @@ import {
 // Mock data
 // ---------------------------------------------------------------------------
 
+const mockTestMethod = function testMethod() {
+  return "hello";
+};
+
 const mockModelClass = {
   name: "Task",
+  prototype: {
+    directMethod: mockTestMethod
+  },
   Metadata: {
     Identifier: "MyApp/Task",
     Plural: "Tasks",
@@ -53,10 +60,6 @@ const mockServices = {
       }
     }
   }
-};
-
-const mockTestMethod = function testMethod() {
-  return "hello";
 };
 
 const mockOperations = {
@@ -111,6 +114,7 @@ let mockProjectInfo: Record<string, any> | undefined = {
 vi.mock("@webda/core", () => ({
   useApplication: () => ({
     getModels: () => mockModels,
+    getModel: (name: string) => (mockModels as any)[name],
     getConfiguration: () => mockConfig,
     getProjectInfo: () => mockProjectInfo,
     getPackageDescription: () => mockPackageDescription,
@@ -119,6 +123,10 @@ vi.mock("@webda/core", () => ({
   }),
   useCore: () => ({
     getServices: () => mockServices,
+    getModelStore: () => ({
+      getName: () => "Store",
+      constructor: { name: "MemoryStore" }
+    }),
     getService: (name: string) => {
       if (name === "DomainService")
         return {
@@ -345,6 +353,24 @@ class GetOperationsTest {
     assert.strictEqual(publish.implementor.name, "MyApp/Task");
     assert.strictEqual(publish.implementor.method, "publish");
     assert.ok(publish.implementor.code, "Should include method source code");
+  }
+
+  @test
+  resolvesDirectModelOperationImplementor() {
+    (mockOperations as any)["Task.Direct"] = {
+      input: "void",
+      output: "void",
+      model: "MyApp/Task",
+      method: "directMethod"
+    };
+    try {
+      const direct = getOperations().find(o => o.id === "Task.Direct")!;
+      assert.strictEqual(direct.implementor?.type, "model");
+      assert.strictEqual(direct.implementor?.method, "directMethod");
+      assert.ok(direct.implementor?.code?.includes("hello"));
+    } finally {
+      delete (mockOperations as any)["Task.Direct"];
+    }
   }
 
   @test

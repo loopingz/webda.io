@@ -1,5 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import * as casbin from "casbin";
+import * as sinon from "sinon";
 import { compileAttachments, compilePolicies, PolicyDocument } from "./compiler.js";
 import { IAMRequestContext, PolicyEngine } from "./engine.js";
 
@@ -174,6 +176,23 @@ class EngineTest {
   async emptyEngine() {
     const engine = await PolicyEngine.build([], []);
     assert.notStrictEqual(await engine.decide(["user:x"], "A.B", ctx("A.B")), true);
+    const orig = casbin.Enforcer.prototype.addFunction;
+    const stub = sinon.stub(casbin.Enforcer.prototype, "addFunction").callsFake(async function mockAddFunction(
+      this: any,
+      name,
+      fn
+    ) {
+      const res = await orig.call(this, name, fn);
+      if (name === "attached") {
+        this.fm = undefined;
+      }
+      return res;
+    });
+    try {
+      await assert.rejects(() => PolicyEngine.build([], []), /Cannot install the IAM globMatch in Casbin/);
+    } finally {
+      stub.restore();
+    }
   }
 
   async nonBooleanEngine() {

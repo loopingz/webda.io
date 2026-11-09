@@ -80,6 +80,30 @@ describe("DashboardLocationTest", () => {
     window.localStorage.setItem("webda.debug.port", "18181");
     assert.strictEqual(hasUsedDashboard(), true);
   });
+
+  it("handlesUnavailableStorageAndSsrGracefully", () => {
+    const desc = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new Error("SecurityError: storage disabled");
+      }
+    });
+    try {
+      assert.strictEqual(getStoredPort(), 18181);
+    } finally {
+      if (desc) Object.defineProperty(window, "localStorage", desc);
+    }
+
+    const origWindow = globalThis.window;
+    // @ts-expect-error testing SSR environment without window
+    delete globalThis.window;
+    try {
+      assert.deepStrictEqual(readHostedSession(), { port: 18181, telemetry: true });
+    } finally {
+      globalThis.window = origWindow;
+    }
+  });
 });
 
 describe("VersionGatingTest", () => {

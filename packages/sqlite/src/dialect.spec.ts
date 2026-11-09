@@ -43,6 +43,8 @@ describe("helpers", () => {
     expect(jsonPath(["a", "b"])).toBe("$.a.b");
     expect(jsonPath(["tags", "0"])).toBe("$.tags[0]");
     expect(jsonPath(["list", "1", "v"])).toBe("$.list[1].v");
+    expect(() => jsonPath(["bad-key!"])).toThrow("Invalid attribute: bad-key!");
+    expect(new SQLiteDialect().isType("x", "array" as any)).toBe("json_type(x) = 'array'");
   });
 
   it("translates LIKE patterns to GLOB", () => {

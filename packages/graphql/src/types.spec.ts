@@ -15,6 +15,8 @@ vi.mock("@webda/core", async importOriginal => ({
 import {
   GraphQLBoolean,
   GraphQLInputObjectType,
+  GraphQLList,
+  GraphQLNonNull,
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLString,
@@ -24,6 +26,7 @@ import {
 } from "graphql";
 import { GraphQLService } from "./graphql.service.js";
 import { AnyScalarType } from "./types/any.js";
+import { DateScalar } from "./types/date.js";
 import { restoreInputKeys } from "./names.js";
 
 /**
@@ -252,5 +255,35 @@ describe("GraphQL named types", () => {
     expect(restored["available-balance"]).toBe("1");
     expect(({} as any).polluted).toBeUndefined();
     expect(Object.getPrototypeOf(restored)).toBe(Object.prototype);
+
+    const listType = new GraphQLNonNull(new GraphQLList(input));
+    expect(restoreInputKeys(listType, [{ availableBalance: "2" }])).toEqual([{ "available-balance": "2" }]);
+    expect(restoreInputKeys(new GraphQLList(input), { availableBalance: "3" })).toEqual({
+      "available-balance": "3"
+    });
+  });
+
+  it("handles date-time, array $ref items, map objects, null properties, loadParameters, and handleModel", () => {
+    const svc = service();
+    expect(svc.loadParameters({}).url).toBe("/graphql");
+    expect(svc.handleModel({} as any, "Test", {})).toBe(true);
+    const arrayDef = svc.getJsonSchemaDefinition(
+      { type: "array", items: { $ref: "#/definitions/Item" } },
+      { Item: { type: "string" } }
+    );
+    expect(arrayDef.items).toEqual({ type: "string" });
+    expect(svc.getGraphQLSchemaFromSchema({ type: "string", format: "date-time" }, "DT")?.type).toBe(DateScalar);
+    expect(svc.getGraphQLSchemaFromSchema({ type: "object" }, "MapNoProps")?.type).toBe(AnyScalarType);
+    expect(
+      svc.getGraphQLSchemaFromSchema(
+        { type: "object", properties: { __priv: { type: "string" }, nulled: { type: "null" } } },
+        "MapEmptyProps"
+      )?.type
+    ).toBe(AnyScalarType);
+    const fields = svc.getGraphQLFieldsFromSchema(
+      { type: "object", properties: { ok: { type: "string" }, nulled: { type: "null" } } },
+      "WithNullField"
+    );
+    expect(Object.keys(fields)).toEqual(["ok"]);
   });
 });

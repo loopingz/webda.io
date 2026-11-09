@@ -102,6 +102,7 @@ function resolveWorker(projectRoot: string): string {
     try {
       const worker = createRequire(join(base, "index.js")).resolve("@webda/content-mapper/schema-worker-cli");
       if (existsSync(worker)) return worker;
+      /* v8 ignore start */
     } catch {
       // Not resolvable from here; try the next base.
     }
@@ -110,6 +111,7 @@ function resolveWorker(projectRoot: string): string {
     "Building requires @webda/content-mapper to be installed and built (lib/schema/worker-cli.js). " +
       "Install it alongside @webda/compiler, or point WEBDA_SCHEMA_WORKER at the worker."
   );
+  /* v8 ignore stop */
 }
 
 /**

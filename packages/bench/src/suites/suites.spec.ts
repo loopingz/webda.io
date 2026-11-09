@@ -7,7 +7,7 @@ import { CancelablePromise } from "@webda/utils";
 import { resolveProfile } from "../profile.js";
 import type { BenchResult } from "../result.js";
 import { benchPubSub } from "./pubsub.js";
-import { benchQueue } from "./queue.js";
+import { benchQueue, stopConsumer } from "./queue.js";
 import { benchStore } from "./store.js";
 import { useServiceType } from "./fixtures.js";
 
@@ -168,11 +168,12 @@ class BenchSuitesTest extends WebdaApplicationTest {
       {
         backend: "MemoryQueue",
         createQueue: name => this.addService(MemoryQueue, { expire: 1, timeout: 1 } as any, name),
+        purge: async q => (q as any).__clean(),
         rawReceive: false,
         inconsistentSize: true
       },
       {
-        profile: { ...this.profile, queueMaxConsumers: [2], rates: [100] },
+        profile: { ...this.profile, queueMaxConsumers: [2], rates: [100], consumeWorkMs: 1 },
         reporters: [],
         filter: () => true,
         queueName: "SpecBenchQueueNoRaw"
@@ -240,5 +241,123 @@ class BenchSuitesTest extends WebdaApplicationTest {
         return [k, messages * k, messages * k];
       })
     );
+  }
+
+  @test
+  async edgeCases() {
+    await stopConsumer(undefined, 10);
+
+    const fastProfile = {
+      ...this.profile,
+      warmupOps: 0,
+      ops: 2,
+      queryOps: 1,
+      scanOps: 1,
+      concurrency: [1],
+      dataset: 2,
+      messages: 2,
+      rates: [100],
+      openLoopDurationMs: 20,
+      queueMaxConsumers: [1],
+      redelivery: false,
+      drainTimeoutMs: 15,
+      payloadSizes: [100]
+    };
+
+    // Store failure checks: get -> undefined, exists -> true, query -> empty, deleteMany -> 0
+    const storeResults = await benchStore(
+      {
+        backend: "BrokenStore",
+        createStore: async (name, models) => {
+          const store = await this.addService(MemoryStore, { models } as any, name);
+          const origGetRepository = store.getRepository.bind(store);
+          store.getRepository = (model: any) => {
+            const repo = origGetRepository(model);
+            repo.get = async () => undefined;
+            repo.exists = async () => true;
+            repo.query = async () => ({ results: [], continuationToken: undefined });
+            repo.deleteMany = async () => 0;
+            return repo;
+          };
+          return store;
+        }
+      },
+      {
+        profile: fastProfile,
+        reporters: [],
+        filter: name => ["store.get", "store.exists", "store.query.eq", "store.deleteMany"].includes(name),
+        storeName: "SpecBrokenStore"
+      }
+    );
+    assert.ok(storeResults.find(r => r.scenario === "store.get").errors > 0);
+    assert.ok(storeResults.find(r => r.scenario === "store.exists").errors > 0);
+    assert.ok(storeResults.find(r => r.scenario === "store.query.eq").errors > 0);
+    assert.ok(storeResults.find(r => r.scenario === "store.deleteMany").failures.length > 0);
+
+    // Queue duplicate deliveries in drain.raw, consume, and e2e.latency
+    const queueResults = await benchQueue(
+      {
+        backend: "DupQueue",
+        createQueue: async name => {
+          const q = await this.addService(MemoryQueue, { expire: 1, timeout: 1 } as any, name);
+          const origReceive = q.receiveMessage.bind(q);
+          q.receiveMessage = async (proto?: any) => {
+            const items = await origReceive(proto);
+            return [...items, ...items];
+          };
+          return q;
+        },
+        inconsistentSize: true
+      },
+      {
+        profile: fastProfile,
+        reporters: [],
+        filter: name => ["queue.drain.raw", "queue.consume", "queue.e2e.latency"].includes(name),
+        queueName: "SpecDupQueue"
+      }
+    );
+    assert.ok((queueResults.find(r => r.scenario === "queue.drain.raw").checks.duplicated as number) > 0);
+    assert.ok((queueResults.find(r => r.scenario === "queue.consume").checks.duplicated as number) > 0);
+    assert.ok((queueResults.find(r => r.scenario === "queue.e2e.latency").checks.duplicated as number) > 0);
+
+    // PubSub duplicate deliveries, unbound subscription timeout, and payload delivery timeout
+    class EdgePubSub extends LocalPubSub {
+      dropMessages = false;
+      override async sendMessage(event: any): Promise<void> {
+        if (this.dropMessages) return;
+        const data = JSON.stringify(event);
+        setImmediate(() => {
+          LocalPubSub.bus.emit("message", data);
+          LocalPubSub.bus.emit("message", data);
+        });
+      }
+      override consume(callback: (event: any) => Promise<void>, proto?: any): CancelablePromise {
+        return super.consume(callback, proto, undefined);
+      }
+    }
+    let publisherInstance: EdgePubSub | undefined;
+    const pubsubResults = await benchPubSub(
+      {
+        backend: "EdgePubSub",
+        createPubSub: async name => {
+          const svc = (await this.addService(EdgePubSub as any, {}, name)) as unknown as EdgePubSub;
+          if (name.endsWith("Publisher")) publisherInstance = svc;
+          return svc;
+        }
+      },
+      {
+        profile: { ...fastProfile, ops: 1, drainTimeoutMs: 5 },
+        reporters: [],
+        filter: name => {
+          if (name === "pubsub.payload" && publisherInstance) {
+            publisherInstance.dropMessages = true;
+          }
+          return ["pubsub.e2e.throughput", "pubsub.payload"].includes(name);
+        },
+        namePrefix: "EdgePubSub"
+      }
+    );
+    assert.ok((pubsubResults.find(r => r.scenario === "pubsub.e2e.throughput").checks.duplicated as number) > 0);
+    assert.ok(pubsubResults.find(r => r.scenario === "pubsub.payload").errors > 0);
   }
 }

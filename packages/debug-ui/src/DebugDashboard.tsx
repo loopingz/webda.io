@@ -206,8 +206,10 @@ function Panel(props: { id: PanelId }): React.JSX.Element | null {
       return <ConfigPanel />;
     case "logs":
       return <LogsPanel />;
+    /* v8 ignore start */
     default:
       return null;
+    /* v8 ignore stop */
   }
 }
 

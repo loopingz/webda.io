@@ -255,6 +255,18 @@ test("SQLFilter functions", () => {
       sql: `CONCAT_WS(" ", "Hello", "World") = 'Hello World'`
     }).match(event2)
   ).toBe(true);
+
+  expect(() =>
+    FiltersHelper.get({
+      sql: `ABS(1, 2) = 1`
+    }).match(event2)
+  ).toThrow(/Too many arguments/);
+
+  expect(() =>
+    FiltersHelper.get({
+      sql: `UNKNOWN_FN(1) = 1`
+    }).match(event2)
+  ).toThrow(/Unknown function/);
 });
 
 test("SQLFilter converters", () => {

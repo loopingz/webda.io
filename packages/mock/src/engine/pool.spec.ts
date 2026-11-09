@@ -50,5 +50,7 @@ class SessionPoolTest {
     pool.add(new User("a"));
     pool.add(new User("b"));
     expect(pool.pickMany(User, 10).length).toBe(2);
+    expect(pool.size(User)).toBe(2);
+    expect(pool.size(Order)).toBe(0);
   }
 }

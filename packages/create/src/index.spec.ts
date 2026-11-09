@@ -1,11 +1,11 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { main, MainDeps } from "./index.js";
-import { OptionsError } from "./options.js";
-import type { Runner } from "./install.js";
+import { defaultDeps, main, MainDeps } from "./index.js";
+import { OptionsError, parseCliArgs } from "./options.js";
+import { spawnRunner, type Runner } from "./install.js";
 
 /**
  * Minimal templates for the CLI tests
@@ -161,5 +161,32 @@ class MainTest {
     }));
     assert.strictEqual(await main(d), 1);
     assert.ok(logs.some(line => line.includes("spawn npm ENOENT")));
+  }
+
+  @test
+  async helpDefaultDepsSpawnRunnerAndExtraPositionals() {
+    const { d, logs } = deps(["--help"]);
+    assert.strictEqual(await main(d), 0);
+    assert.ok(logs.some(line => line.includes("Usage: npm create @webda")));
+
+    const versionsPath = new URL("./versions.json", import.meta.url);
+    const createdVersions = !existsSync(versionsPath);
+    if (createdVersions) {
+      writeFileSync(versionsPath, "{}");
+    }
+    try {
+      const def = await defaultDeps();
+      assert.ok(def.cwd);
+      def.log("test log");
+    } finally {
+      if (createdVersions) {
+        unlinkSync(versionsPath);
+      }
+    }
+
+    const res = spawnRunner("true", [], process.cwd());
+    assert.strictEqual(res.status, 0);
+
+    assert.throws(() => parseCliArgs(["dir1", "dir2"]), OptionsError);
   }
 }

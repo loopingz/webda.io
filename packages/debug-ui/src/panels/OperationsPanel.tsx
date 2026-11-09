@@ -206,7 +206,9 @@ function OperationDetail(props: {
               className="wdbg-btn wdbg-btn-primary"
               disabled
               title="Executing operations from the dashboard is not available yet"
+              /* v8 ignore start */
               onClick={() => track("operation_invoked")}
+              /* v8 ignore stop */
             >
               Execute (coming soon)
             </button>

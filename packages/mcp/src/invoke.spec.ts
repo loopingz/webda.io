@@ -199,4 +199,18 @@ class InvokeTest extends McpFixtureTest {
     assert.ok(!text.includes("\uFFFD"));
     assert.ok(text.includes("[output truncated:"));
   }
+
+  @test
+  async logsWarningWhenProgressChunkHandlerThrows() {
+    registerFixture();
+    const res = await runOperation("Fixture.Count", {
+      session: new Session(),
+      input: { n: 2 },
+      onChunk: () => {
+        throw new Error("progress notification failed");
+      }
+    });
+    assert.strictEqual(res.streamed, true);
+    assert.strictEqual((res.value as unknown[]).length, 2);
+  }
 }

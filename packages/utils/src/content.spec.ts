@@ -363,6 +363,25 @@ class MemoryContentStorageContractTest {
   async streamErrorDoesNotLeaveCorruptedFile() {
     await this.contract.streamErrorDoesNotLeaveCorruptedFile();
   }
+
+  @test
+  async detectsCorruptedStreamRoundTrip() {
+    const corruptedContract = ContentStorageContract(async () => {
+      const storage = new MemoryContentStorage();
+      const origGet = storage.getContent.bind(storage);
+      storage.getContent = async (url, options) => {
+        await origGet(url, options);
+        return toReadable(Buffer.alloc(5 * 1024 * 1024 + 128 * 1024, 255));
+      };
+      return {
+        storage,
+        baseUrl: "memory://corrupt-bucket"
+      };
+    })();
+    await corruptedContract.setup();
+    await assert.rejects(() => corruptedContract.roundTripStreamWithoutLength(), /Received bytes did not match/);
+    await corruptedContract.teardown();
+  }
 }
 
 @suite
@@ -443,5 +462,24 @@ class FileContentStorageContractTest {
   @test
   async streamErrorDoesNotLeaveCorruptedFile() {
     await this.contract.streamErrorDoesNotLeaveCorruptedFile();
+  }
+
+  @test
+  async detectsCorruptedStreamRoundTrip() {
+    const corruptedContract = ContentStorageContract(async () => {
+      const storage = new MemoryContentStorage();
+      const origGet = storage.getContent.bind(storage);
+      storage.getContent = async (url, options) => {
+        await origGet(url, options);
+        return toReadable(Buffer.alloc(5 * 1024 * 1024 + 128 * 1024, 255));
+      };
+      return {
+        storage,
+        baseUrl: "memory://corrupt-bucket"
+      };
+    })();
+    await corruptedContract.setup();
+    await assert.rejects(() => corruptedContract.roundTripStreamWithoutLength(), /Received bytes did not match/);
+    await corruptedContract.teardown();
   }
 }

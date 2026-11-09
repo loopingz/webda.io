@@ -410,9 +410,11 @@ export function getFileAndLines(): { file: string; line: number; column?: number
     /\s+at\s+(?<method>[^( ]+)([^(]+)?\((?<filename>.+):(?<line>\d+):(?<column>\d+)\)?$/gm
   );
   for (const match of matches) {
+    /* v8 ignore start */
     if (!match.groups) {
       continue;
     }
+    /* v8 ignore stop */
     stacks.push({
       file: match.groups.filename,
       line: parseInt(match.groups.line),

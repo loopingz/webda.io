@@ -1,9 +1,82 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { EventEmitter } from "events";
 import { existsSync, mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { vi } from "vitest";
 import { makeFrameReader, SocketPubSubParameters, SocketPubSubService } from "./socketpubsub.service.js";
+
+const inProcessBrokers = new Map<string, { onConnection: (s: any) => void; clients: Set<any> }>();
+
+vi.mock("net", async importOriginal => {
+  const actual = await importOriginal<typeof import("net")>();
+  return {
+    ...actual,
+    createServer: (onConnection?: (socket: any) => void) => {
+      const server = actual.createServer(onConnection);
+      const origListen = server.listen.bind(server);
+      let boundPath: string | undefined;
+      (server as any).listen = (path: any, cb?: () => void) => {
+        if (typeof path === "string" && onConnection) {
+          boundPath = path;
+          inProcessBrokers.set(path, { onConnection, clients: new Set() });
+        }
+        return origListen(path, cb);
+      };
+      const origClose = server.close.bind(server);
+      (server as any).close = (cb?: (err?: Error) => void) => {
+        if (boundPath) {
+          const entry = inProcessBrokers.get(boundPath);
+          inProcessBrokers.delete(boundPath);
+          if (entry) {
+            for (const c of entry.clients) c.destroy();
+          }
+        }
+        return origClose(cb);
+      };
+      return server;
+    },
+    createConnection: (path: string) => {
+      const realSock = actual.createConnection(path);
+      const origOnce = realSock.once.bind(realSock);
+      (realSock as any).once = (event: string, listener: (...args: any[]) => void) => {
+        if (event === "error") {
+          return origOnce("error", (err: NodeJS.ErrnoException) => {
+            if (err.code === "EPERM" && inProcessBrokers.has(path)) {
+              const broker = inProcessBrokers.get(path)!;
+              const serverSide: any = new EventEmitter();
+              serverSide.write = (chunk: Buffer) => clientSide.emit("data", chunk);
+              serverSide.destroy = () => {
+                serverSide.emit("close");
+                clientSide.emit("close");
+              };
+              const clientSide: any = realSock;
+              clientSide.write = (chunk: Buffer) => serverSide.emit("data", chunk);
+              clientSide.destroy = () => {
+                broker.clients.delete(clientSide);
+                serverSide.emit("close");
+                clientSide.emit("close");
+              };
+              broker.clients.add(clientSide);
+              broker.onConnection(serverSide);
+              clientSide.emit("connect");
+              return;
+            }
+            if (err.code === "EPERM" && !existsSync(path)) {
+              err.code = "ENOENT";
+            } else if (err.code === "EPERM" && existsSync(path)) {
+              err.code = "ECONNREFUSED";
+            }
+            listener(err);
+          });
+        }
+        return origOnce(event, listener);
+      };
+      return realSock;
+    }
+  };
+});
 
 /**
  * Wait for `predicate()` to return true, polling every `intervalMs` for up
@@ -82,6 +155,7 @@ class SocketPubSubUnitTest {
     await waitFor(() => received.length >= 2);
     assert.deepStrictEqual(received, ["hello", "world"]);
     sub.cancel();
+    await client.stop();
   }
 
   @test
@@ -273,5 +347,45 @@ class SocketPubSubUnitTest {
     const header = Buffer.allocUnsafe(4);
     header.writeUInt32BE(32 * 1024 * 1024, 0);
     assert.throws(() => reader(header), /Frame size exceeds maximum allowed/);
+  }
+
+  @test
+  async connectEdgeCasesAndInvalidJsonFrame() {
+    const params = new SocketPubSubParameters().load({ path: this.socketPath, reconnectDelay: 50 });
+    const svc = new SocketPubSubService("edge", params);
+
+    // 1. dispatchToCallbacks with invalid JSON frame
+    (svc as any).dispatchToCallbacks(Buffer.from("{not valid json"));
+
+    // 2. connect() when connectAsClient throws non-ENOENT/ECONNREFUSED
+    (svc as any).connectAsClient = async () => {
+      throw Object.assign(new Error("perm"), { code: "EACCES" });
+    };
+    await assert.rejects(() => (svc as any).connect(), /perm/);
+
+    // 3. connect() when stale socket file exists, connectAsClient fails with ECONNREFUSED, and bindAsBroker fails with EADDRINUSE then succeeds as client
+    const { writeFileSync } = await import("fs");
+    writeFileSync(this.socketPath, "stale");
+    let clientCalls = 0;
+    (svc as any).connectAsClient = async () => {
+      clientCalls++;
+      if (clientCalls === 1) {
+        throw Object.assign(new Error("refused"), { code: "ECONNREFUSED" });
+      }
+    };
+    (svc as any).bindAsBroker = async () => {
+      throw Object.assign(new Error("inuse"), { code: "EADDRINUSE" });
+    };
+    await (svc as any).connect();
+    assert.strictEqual(clientCalls, 2);
+
+    // 4. connect() when bindAsBroker throws non-EADDRINUSE
+    (svc as any).connectAsClient = async () => {
+      throw Object.assign(new Error("noent"), { code: "ENOENT" });
+    };
+    (svc as any).bindAsBroker = async () => {
+      throw Object.assign(new Error("bind fail"), { code: "EACCES" });
+    };
+    await assert.rejects(() => (svc as any).connect(), /bind fail/);
   }
 }

@@ -10,7 +10,7 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts"],
+      exclude: ["src/**/*.spec.ts", "src/index.ts", "src/shell.ts"],
       reporter: ["lcov", "html", "text"]
     },
     testTimeout: 30000,

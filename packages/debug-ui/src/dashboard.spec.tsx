@@ -169,6 +169,10 @@ describe("DebugDashboard", () => {
     await screen.findByText("Server started");
     fireEvent.click(screen.getByRole("tab", { name: "Models" }));
     await screen.findByText("Model Graph");
+    fireEvent.click(screen.getByRole("tab", { name: "Services" }));
+    await screen.findByText("Router");
+    fireEvent.click(screen.getByRole("tab", { name: "Operations" }));
+    await screen.findByText("User.Create");
     fireEvent.click(screen.getByRole("tab", { name: "Requests" }));
     fireEvent.click(await screen.findByText("200"));
     await screen.findByText("Response Body");
@@ -266,5 +270,32 @@ describe("helpers", () => {
       assert.ok(message.lines.length > 0);
     }
     assert.ok(failureMessage("unreachable", "http://127.0.0.1:18181", "local").lines[0].includes("--local"));
+  });
+
+  it("handles disabled provider, optional endpoint failure and default context", async () => {
+    // 1. Default context outside provider
+    let disconnected: ReturnType<typeof useDebugConnection> | undefined;
+    function Consumer() {
+      disconnected = useDebugConnection();
+      return null;
+    }
+    render(<Consumer />);
+    assert.strictEqual(disconnected?.status, "idle");
+    const unsub = disconnected!.subscribe(() => {});
+    unsub();
+
+    // 2. Provider with enabled=false
+    render(
+      <DebugConnectionProvider mode="hosted" port={18181} enabled={false}>
+        <Consumer />
+      </DebugConnectionProvider>
+    );
+    assert.strictEqual(disconnected?.status, "idle");
+
+    // 3. Optional endpoint failure falls back to empty array
+    const routes = healthyRoutes();
+    delete routes["/api/logs"];
+    renderDashboard(routes);
+    await screen.findByText("0 logs");
   });
 });

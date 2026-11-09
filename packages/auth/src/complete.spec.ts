@@ -258,4 +258,113 @@ class CompleteTest extends AuthTest {
     assert.strictEqual(ctx.getCurrentUserId(), user.getUUID());
     assert.strictEqual((await Ident.ref(Ident.key("x@y.com", "email")).get()).getUser().toString(), user.getUUID());
   }
+
+  @test
+  async linkIdentityAndCompleteAsEdgeCases() {
+    const user = await this.emailUser("link@x.com", true);
+    const other = await this.emailUser("other-link@x.com", true);
+    const ctx = await this.ctx();
+    ctx.getSession().login(user.getUUID(), "link@x.com:email");
+
+    // 1. Link new identity, then link again idempotently (line 448)
+    assert.deepStrictEqual(await this.inContext(ctx, () => this.auth.linkIdentity(google("lk1"))), {
+      status: "linked"
+    });
+    assert.deepStrictEqual(await this.inContext(ctx, () => this.auth.linkIdentity(google("lk1"))), {
+      status: "linked"
+    });
+
+    // 2. Link adopts an unowned ident (lines 451-452)
+    await Ident.getRepository().create(new Ident({ ...Ident.key("lk-orphan", "google") } as any));
+    assert.deepStrictEqual(await this.inContext(ctx, () => this.auth.linkIdentity(google("lk-orphan"))), {
+      status: "linked"
+    });
+    assert.strictEqual((await Ident.ref(Ident.key("lk-orphan", "google")).get()).getUser().toString(), user.getUUID());
+
+    // 3. linkIdentity concurrent create error handling (lines 464-467)
+    const repo = Ident.getRepository();
+    const origCreate = repo.create.bind(repo);
+    repo.create = async () => {
+      throw new Error("DB failure");
+    };
+    try {
+      await assert.rejects(() => this.inContext(ctx, () => this.auth.linkIdentity(google("lk-err"))), /DB failure/);
+    } finally {
+      repo.create = origCreate;
+    }
+
+    // Already exists where winner belongs to current user vs other user
+    repo.create = async () => {
+      await origCreate(new Ident({ ...Ident.key("lk-race1", "google"), _user: user.getUUID() } as any));
+      throw new Error("Already exists");
+    };
+    try {
+      assert.deepStrictEqual(await this.inContext(ctx, () => this.auth.linkIdentity(google("lk-race1"))), {
+        status: "linked"
+      });
+    } finally {
+      repo.create = origCreate;
+    }
+
+    repo.create = async () => {
+      await origCreate(new Ident({ ...Ident.key("lk-race2", "google"), _user: other.getUUID() } as any));
+      throw new Error("Already exists");
+    };
+    try {
+      await rejectsWith(
+        () => this.inContext(ctx, () => this.auth.linkIdentity(google("lk-race2"))),
+        IdentLinkedElsewhere
+      );
+    } finally {
+      repo.create = origCreate;
+    }
+
+    // 4. completeAs line 546: findIdent returns undefined first, then returns ident on second check
+    const origFindIdent = (this.auth as any).findIdent.bind(this.auth);
+    let calls = 0;
+    (this.auth as any).findIdent = async (p: string, u: string) => {
+      calls++;
+      if (u === "race-find" && calls === 1) {
+        await origCreate(new Ident({ ...Ident.key("race-find", "google"), _user: user.getUUID() } as any));
+        return undefined;
+      }
+      return origFindIdent(p, u);
+    };
+    try {
+      const c2 = await this.ctx();
+      const res: any = await this.inContext(c2, () => this.auth.complete(google("race-find")));
+      assert.strictEqual(res.status, "ok");
+    } finally {
+      (this.auth as any).findIdent = origFindIdent;
+    }
+
+    // 5. completeAs line 581 (non-Already-exists error on primary ident create) & line 596 (extra email ident create)
+    repo.create = async () => {
+      throw new Error("Fatal store error");
+    };
+    try {
+      const c3 = await this.ctx();
+      await assert.rejects(() => this.inContext(c3, () => this.auth.complete(google("err-prim"))), /Fatal store error/);
+    } finally {
+      repo.create = origCreate;
+    }
+
+    let createCount = 0;
+    repo.create = async (item: any) => {
+      createCount++;
+      if (createCount === 2) {
+        throw new Error("Already exists");
+      }
+      return origCreate(item);
+    };
+    try {
+      const c4 = await this.ctx();
+      const res: any = await this.inContext(c4, () =>
+        this.auth.complete(google("extra-race", "extra-race@x.com", true))
+      );
+      assert.strictEqual(res.status, "ok");
+    } finally {
+      repo.create = origCreate;
+    }
+  }
 }

@@ -3,15 +3,16 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import React from "react";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { DebugConnectionProvider } from "./connection.js";
-import { ConfigPanel } from "./panels/ConfigPanel.js";
+import { ConfigPanel, JsonTree } from "./panels/ConfigPanel.js";
 import { LogsPanel } from "./panels/LogsPanel.js";
 import { ModelsPanel } from "./panels/ModelsPanel.js";
-import { OperationsPanel } from "./panels/OperationsPanel.js";
+import { OperationsPanel, randomValue } from "./panels/OperationsPanel.js";
 import { mergeRequests, RequestsPanel } from "./panels/RequestsPanel.js";
 import { ServicesPanel } from "./panels/ServicesPanel.js";
 import { ancestorsOf, buildGraph, fitScale, MIN_FIT_SCALE, visibleModels } from "./components/ModelGraph.js";
 import { highlightJS } from "./components/CodeBlock.js";
-import { resolveRef } from "./components/SchemaForm.js";
+import { resolveRef, SchemaForm } from "./components/SchemaForm.js";
+import { formatBytes } from "./components/ui.js";
 import {
   FakeWebSocket,
   healthyRoutes,
@@ -207,6 +208,38 @@ describe("ModelsPanel", () => {
     const user = graph.nodes.find(n => n.id === "Sample/User")!;
     assert.ok(core.y < user.y, "children are drawn below their parent");
   });
+
+  it("wraps multiple root trees across bands, draws map relations, and observes resize", async () => {
+    const roots = Array.from({ length: 10 }, (_, i) => ({
+      id: `App/Root${i}`,
+      plural: "",
+      actions: [],
+      relations: i === 0 ? { maps: [{ model: "App/Root1", attribute: "mapAttr" }] } : {},
+      metadata: {}
+    }));
+    const graph = buildGraph(roots, null, 400);
+    assert.ok(new Set(graph.nodes.map(n => n.y)).size > 1, "multiple roots wrap into bands");
+    assert.ok(graph.edges.some(e => e.type === "map" && e.label === "mapAttr"));
+
+    let disconnected = false;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {
+          disconnected = true;
+        }
+      }
+    );
+    const { unmount } = await renderPanel(<ModelsPanel />);
+    const item = await screen.findByText("Sample/Post");
+    fireEvent.keyDown(item.closest('[role="option"]')!, { key: "Enter" });
+    await screen.findByText("author");
+    fireEvent.click(screen.getByText("Model Graph"));
+    await screen.findByTestId("model-graph");
+    unmount();
+    assert.strictEqual(disconnected, true);
+  });
 });
 
 describe("OperationsPanel", () => {
@@ -251,6 +284,135 @@ describe("OperationsPanel", () => {
     const resolved = resolveRef({ $ref: "#/definitions/Address", description: "Home" }, defs);
     assert.strictEqual(resolved?.type, "object");
     assert.strictEqual(resolved?.description, "Home");
+  });
+
+  it("generates random values for all schema types and formats", () => {
+    assert.strictEqual(randomValue(undefined), null);
+    assert.strictEqual(randomValue({ const: "fixed" }), "fixed");
+    assert.strictEqual(randomValue({ type: "string", format: "email" }), "user@example.com");
+    assert.strictEqual(randomValue({ type: "string", format: "uri" }), "https://example.com");
+    assert.ok(String(randomValue({ type: "string", format: "date-time" })).includes("T"));
+    assert.match(String(randomValue({ type: "string", format: "date" })), /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(String(randomValue({ type: "string", format: "uuid" })).length > 10);
+    assert.strictEqual(randomValue({ type: "string", pattern: "^a" }, "code"), "match-code");
+    assert.strictEqual(String(randomValue({ type: "string", minLength: 8 }, "ab")).length, 8);
+    assert.strictEqual(typeof randomValue({ type: "number", minimum: 1, maximum: 5 }), "number");
+    assert.strictEqual(typeof randomValue({ type: "integer", minimum: 1, maximum: 5 }), "number");
+    assert.strictEqual(typeof randomValue({ type: "boolean" }), "boolean");
+    assert.ok(Array.isArray(randomValue({ type: "array", items: { type: "string" } })));
+    assert.ok(Array.isArray(randomValue({ type: "array" })));
+    assert.deepStrictEqual(randomValue({ type: "object" }), {});
+    assert.strictEqual(randomValue({ type: "unknown" as any }), null);
+  });
+
+  it("renders SchemaForm with object textareas, arrays and empty schemas", () => {
+    const empty = render(<SchemaForm schema={{ type: "object" }} values={{}} onChange={() => {}} />);
+    assert.ok(empty.getByText("No fields defined in schema"));
+    empty.unmount();
+
+    let latest: Record<string, unknown> = {
+      nestedObj: { sub: "init" },
+      choice: "a",
+      flag: true,
+      count: 10,
+      ratio: 0.5,
+      rawObj: { a: 1 },
+      strArr: ["one"],
+      intArr: [1],
+      numArr: [1.5],
+      objArr: [{ label: "x" }],
+      freeArr: [{ k: "v" }]
+    };
+    const Wrapper = () => {
+      const [vals, setVals] = React.useState<Record<string, unknown>>(latest);
+      return (
+        <SchemaForm
+          schema={{
+            type: "object",
+            title: "FormTitle",
+            description: "FormDesc",
+            properties: {
+              nestedObj: { type: "object", properties: { sub: { type: "string" } } },
+              choice: { type: "string", enum: ["a", "b"] },
+              flag: { type: "boolean" },
+              count: { type: "integer", default: 5 },
+              ratio: { type: "number" },
+              rawObj: { type: "object" },
+              strArr: { type: "array", items: { type: "string" } },
+              intArr: { type: "array", items: { type: "integer" } },
+              numArr: { type: "array", items: { type: "number" } },
+              objArr: { type: "array", items: { type: "object", properties: { label: { type: "string" } } } },
+              freeArr: { type: "array", items: { type: "object" } }
+            }
+          }}
+          values={vals}
+          onChange={v => {
+            latest = v;
+            setVals(v);
+          }}
+        />
+      );
+    };
+    const { container } = render(<Wrapper />);
+    // Change nested object, enum, boolean, integer, number
+    fireEvent.change(screen.getByDisplayValue("init"), { target: { value: "updated" } });
+    assert.deepStrictEqual(latest.nestedObj, { sub: "updated" });
+
+    fireEvent.change(screen.getByDisplayValue("a"), { target: { value: "b" } });
+    assert.strictEqual(latest.choice, "b");
+    fireEvent.change(screen.getByDisplayValue("b"), { target: { value: "" } });
+    assert.strictEqual(latest.choice, undefined);
+
+    fireEvent.change(screen.getByDisplayValue("true"), { target: { value: "false" } });
+    assert.strictEqual(latest.flag, false);
+    fireEvent.change(screen.getByDisplayValue("false"), { target: { value: "" } });
+    assert.strictEqual(latest.flag, undefined);
+
+    fireEvent.change(screen.getByDisplayValue("10"), { target: { value: "20" } });
+    assert.strictEqual(latest.count, 20);
+    fireEvent.change(screen.getByDisplayValue("20"), { target: { value: "" } });
+    assert.strictEqual(latest.count, undefined);
+
+    fireEvent.change(screen.getByDisplayValue("0.5"), { target: { value: "2.5" } });
+    assert.strictEqual(latest.ratio, 2.5);
+
+    const objArea = screen.getByPlaceholderText("JSON object");
+    fireEvent.change(objArea, { target: { value: "{invalid" } });
+    fireEvent.change(objArea, { target: { value: '{"a":2}' } });
+    assert.deepStrictEqual(latest.rawObj, { a: 2 });
+
+    const strInput = screen.getByDisplayValue("one");
+    fireEvent.change(strInput, { target: { value: "two" } });
+    assert.deepStrictEqual(latest.strArr, ["two"]);
+
+    const intInput = screen.getByDisplayValue("1");
+    fireEvent.change(intInput, { target: { value: "42" } });
+    assert.deepStrictEqual(latest.intArr, [42]);
+
+    const numInput = screen.getByDisplayValue("1.5");
+    fireEvent.change(numInput, { target: { value: "3.25" } });
+    assert.deepStrictEqual(latest.numArr, [3.25]);
+
+    const objPropInput = screen.getByDisplayValue("x");
+    fireEvent.change(objPropInput, { target: { value: "y" } });
+    assert.deepStrictEqual(latest.objArr, [{ label: "y" }]);
+
+    const freeArea = screen.getByPlaceholderText("JSON");
+    fireEvent.change(freeArea, { target: { value: "{bad" } });
+    fireEvent.change(freeArea, { target: { value: '{"k":"v2"}' } });
+    assert.deepStrictEqual(latest.freeArr, [{ k: "v2" }]);
+
+    // Add and remove items
+    const addButtons = screen.getAllByText("+ Add item");
+    for (const btn of addButtons) {
+      fireEvent.click(btn);
+    }
+    const removeButtons = screen.getAllByTitle("Remove item");
+    fireEvent.click(removeButtons[0]);
+
+    // Toggle collapsible header
+    const header = container.querySelector(".wdbg-sf-collapsible-header")!;
+    fireEvent.click(header);
   });
 });
 
@@ -312,12 +474,55 @@ describe("RequestsPanel", () => {
       ]
     );
   });
+
+  it("renders binary and truncated bodies, formats bytes, and handles generic detail errors", async () => {
+    assert.strictEqual(formatBytes(null), "-");
+    assert.strictEqual(formatBytes(512), "512 B");
+    assert.strictEqual(formatBytes(2048), "2.0 KB");
+    assert.strictEqual(formatBytes(2 * 1024 * 1024), "2.00 MB");
+
+    const routes = healthyRoutes();
+    routes["/api/requests/r1"] = {
+      id: "r1",
+      timestamp: 1700000000000,
+      method: "POST",
+      url: "/users",
+      statusCode: 200,
+      duration: 12,
+      requestBody: { kind: "binary", size: 128, preview: "deadbeef" },
+      responseBody: { kind: "text-truncated", size: 4096, content: "hello" }
+    };
+    routes["/api/requests/r2"] = { status: 500, body: { error: "Server exploded" } };
+    await renderPanel(<RequestsPanel />, routes);
+    fireEvent.click(await screen.findByText("200"));
+    await screen.findByText(/Binary, 128 B/);
+    screen.getByText(/\[truncated — total 4.0 KB\]/);
+    fireEvent.click(screen.getByText("404"));
+    await screen.findByText(/HTTP 500/);
+  });
 });
 
 describe("LogsPanel", () => {
   it("filters by level, searches and receives live entries", async () => {
-    await renderPanel(<LogsPanel />);
+    const origGetItem = Object.getPrototypeOf(window.localStorage).getItem;
+    let throwLogLevel = true;
+    const spy = vi.spyOn(Object.getPrototypeOf(window.localStorage), "getItem").mockImplementation(function mockGetItem(
+      this: Storage,
+      key: string
+    ) {
+      if (key === "webda-log-level" && throwLogLevel) {
+        throwLogLevel = false;
+        throw new Error("storage blocked");
+      }
+      return origGetItem.call(this, key);
+    });
+    try {
+      await renderPanel(<LogsPanel />);
+    } finally {
+      spy.mockRestore();
+    }
     await screen.findByText("Server started");
+    fireEvent.click(screen.getByLabelText("Auto-scroll"));
     assert.strictEqual(screen.queryByText("Loading models"), null, "DEBUG is hidden by the default INFO level");
     fireEvent.change(screen.getByLabelText("Minimum level"), { target: { value: "DEBUG" } });
     await screen.findByText("Loading models");
@@ -345,6 +550,13 @@ describe("ConfigPanel", () => {
     screen.getByText('"eu-west-1"');
     fireEvent.click(screen.getByText("JSON"));
     await screen.findByText(/"Webda\/Router"/);
+    fireEvent.click(screen.getByText("Tree"));
+    await screen.findByText("parameters:", { exact: false });
+
+    const { container } = render(<JsonTree value={["x", "y"]} name="arr" />);
+    const toggle = container.querySelector(".wdbg-json-toggle")!;
+    fireEvent.click(toggle);
+    assert.ok(container.textContent?.includes("2 items"));
   });
 
   it("is reported missing on servers without /api/config", async () => {

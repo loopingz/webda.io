@@ -19,13 +19,21 @@ export default defineConfig({
       provider: "v8",
       allowExternal: true,
       include: [
+        "src/**/*.ts",
         normalizePath(resolve(__dirname, "src/**/*.ts")),
         normalizePath(resolve(__dirname, "../sql/src/**/*.ts"))
       ],
-      exclude: ["**/*.spec.ts", "**/*.bench.ts", "**/src/index.ts", "**/src/test/**"],
+      exclude: [
+        "**/*.spec.ts",
+        "**/*.bench.ts",
+        "**/src/index.ts",
+        "**/src/relational/index.ts",
+        "../sql/src/relational/dialect.ts",
+        "**/src/test/**"
+      ],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
-    include: ["src/**/*.spec.ts"]
+    include: ["src/**/*.spec.ts", "../sql/src/**/*.spec.ts"]
   }
 });

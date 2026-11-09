@@ -1,12 +1,19 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { registerOperation, useService } from "@webda/core";
+import { HttpContext, registerOperation, useApplication, useService } from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { FIXTURE_SERVICES, fixtureGate, McpFixtureTest, registerFixture } from "../test/fixture.js";
+import {
+  createInProcessConnection,
+  FIXTURE_SERVICES,
+  fixtureGate,
+  McpFixtureTest,
+  registerFixture
+} from "../test/fixture.js";
 import { McpService } from "./mcpservice.service.js";
+import { toRequest } from "./bridge.js";
 import { request } from "node:http";
 
 const INIT = {
@@ -218,9 +225,17 @@ class McpHttpTest extends McpFixtureTest {
    */
   async rawPost(headers: Record<string, string>, body: any): Promise<number> {
     await this.url();
+    const http = useService("HttpServer" as any) as any;
     return new Promise((resolve, reject) => {
       const req = request(
-        { host: "127.0.0.1", port: this.port, path: "/mcp", method: "POST", headers: { ...HEADERS, ...headers } },
+        {
+          host: "127.0.0.1",
+          port: this.port,
+          path: "/mcp",
+          method: "POST",
+          headers: { ...HEADERS, ...headers },
+          createConnection: createInProcessConnection(http.server) as any
+        },
         res => {
           res.resume();
           resolve(res.statusCode);
@@ -393,5 +408,66 @@ class McpHttpTest extends McpFixtureTest {
       mcp.getParameters().forwardHeaders = [];
       await client.close();
     }
+  }
+
+  @test
+  async coversBridgeArrayHeadersAndServiceEdgeCases() {
+    // 1. toRequest with array-valued header
+    const httpCtx = new HttpContext("localhost", "POST", "/mcp", "http", 8080, {
+      "x-multi": ["a", "b"] as any,
+      "x-undef": undefined as any
+    });
+    const fakeCtx: any = {
+      getHttpContext: () => httpCtx,
+      getRequestBody: async () => "{}"
+    };
+    const webReq = await toRequest(fakeCtx);
+    assert.strictEqual(webReq.headers.get("x-multi"), "a, b");
+
+    // 2. resolve() when authenticator does not implement authenticate()
+    const mcp = useService<McpService>("Mcp");
+    const origAuth = mcp.getParameters().authenticator;
+    mcp.getParameters().authenticator = "Fixture";
+    try {
+      assert.throws(() => mcp.resolve(), /must implement authenticate/);
+    } finally {
+      mcp.getParameters().authenticator = origAuth;
+      mcp.resolve();
+    }
+
+    // 3. init() schema resolver catch when getSchema throws
+    const app = useApplication();
+    const origGetSchema = app.getSchema.bind(app);
+    app.getSchema = () => {
+      throw new Error("schema failure");
+    };
+    try {
+      assert.strictEqual((mcp as any).tools.resolve("Any"), undefined);
+    } finally {
+      app.getSchema = origGetSchema;
+    }
+
+    // 4. requestOrigin when new URL throws & isHostAllowed when allowedHosts includes "*"
+    const badHostHttp = new HttpContext("localhost", "POST", "/mcp", "http", 8080, {
+      host: "bad:host:port"
+    });
+    const badHostCtx: any = { getHttpContext: () => badHostHttp };
+    assert.strictEqual((mcp as any).requestOrigin(badHostCtx), undefined);
+    const origAllowedHosts = mcp.getParameters().allowedHosts;
+    mcp.getParameters().allowedHosts = ["*"];
+    try {
+      assert.strictEqual((mcp as any).isHostAllowed(badHostCtx), true);
+    } finally {
+      mcp.getParameters().allowedHosts = origAllowedHosts;
+    }
+
+    // 5. JSON-RPC batch containing initialize without session id
+    const batchRes = await fetch(await this.url(), {
+      method: "POST",
+      headers: HEADERS,
+      body: JSON.stringify([INIT])
+    });
+    assert.strictEqual(batchRes.status, 200);
+    await batchRes.body?.cancel();
   }
 }

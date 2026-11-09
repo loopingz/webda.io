@@ -651,11 +651,13 @@ export function reflectAttributes(ctx: AnalysisContext, sf: any, cls: any): Reco
  */
 function constraintOf(ctx: AnalysisContext, type: any): any {
   if (!type?.isTypeParameter?.()) return undefined;
+  /* v8 ignore start */
   try {
     return (ctx.checker as any).getConstraintOfTypeParameter?.(type);
   } catch {
     return undefined;
   }
+  /* v8 ignore stop */
 }
 
 /** Relations recorded for a model. */

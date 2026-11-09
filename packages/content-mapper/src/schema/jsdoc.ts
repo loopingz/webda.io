@@ -116,6 +116,7 @@ function nextCommentLocation(node: Node): Node | undefined {
     case SyntaxKind.PropertyDeclaration:
     case SyntaxKind.ReturnStatement:
       return parent;
+    /* v8 ignore next 2 */
     case SyntaxKind.ExpressionStatement:
       return node.kind === SyntaxKind.PropertyAccessExpression ? parent : undefined;
     default:

@@ -26,6 +26,7 @@ import {
 } from "./serializers.js";
 import { Readable } from "node:stream";
 import { getCommonJS } from "./esm.js";
+import { globMatch, iamGlobMatch, MAX_GLOB_PATTERN_LENGTH, MAX_GLOB_VALUE_LENGTH } from "./glob.js";
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../test/jsonutils/";
 const PACKAGE_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../";
@@ -165,6 +166,7 @@ class UtilsTest {
       assert.deepStrictEqual(FileUtils.load(file), { test: "plop" });
 
       assert.throws(() => FileUtils.save({}, "./Dockerfile.zzz"), /Unknown format/);
+      assert.throws(() => FileUtils.save({}, "test.json", "invalid" as any), /Unknown format: invalid/);
     } finally {
       FileUtils.clean(
         "test/jsonutils/writeTest.json.gz",
@@ -529,5 +531,20 @@ plop: test
         unlinkSync(linkPath);
       }
     }
+  }
+
+  @test
+  globMatching() {
+    assert.strictEqual(iamGlobMatch(123, "a*"), false);
+    assert.strictEqual(iamGlobMatch("abc", null), false);
+    assert.throws(() => iamGlobMatch("a", "x".repeat(MAX_GLOB_PATTERN_LENGTH + 1)), /globMatch argument too long/);
+    assert.throws(() => iamGlobMatch("x".repeat(MAX_GLOB_VALUE_LENGTH + 1), "a"), /globMatch argument too long/);
+    assert.strictEqual(globMatch("users/read", "users/*"), true);
+    assert.strictEqual(globMatch("users/read", "users/r?ad"), true);
+    assert.strictEqual(globMatch("users/read", "users/r*d*"), true);
+    assert.strictEqual(globMatch("users/read_more_end", "users/*more*end"), true);
+    assert.strictEqual(globMatch("users/read_more_wrong", "users/*more*end"), false);
+    assert.strictEqual(globMatch("users/read", "users/write"), false);
+    assert.strictEqual(globMatch("users/a/b", "users/*"), false);
   }
 }

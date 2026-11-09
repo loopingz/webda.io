@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     allowOnly: true,
     testTimeout: 20000,
+    setupFiles: ["./test/setup.ts"],
     coverage: {
       enabled: true,
       provider: "v8",

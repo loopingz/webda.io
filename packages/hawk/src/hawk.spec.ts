@@ -6,6 +6,7 @@ import {
   InstanceCache,
   useCrypto,
   useDynamicService,
+  useRegistry,
   useRouter,
   WebContext,
   WebdaError
@@ -310,6 +311,9 @@ class HawkServiceTest extends WebdaApplicationTest {
       }),
       "cov"
     );
+    await assert.rejects(() => test.getApiKey("any"), WebdaError.Forbidden);
+    await useRegistry().delete(HawkService.RegistryEntry);
+    assert.strictEqual(await test.getOrigins(), undefined);
     await test.stop();
   }
 

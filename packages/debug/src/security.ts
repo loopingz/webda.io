@@ -227,6 +227,7 @@ export function browserOpenCommand(url: string, os: string = platform()): { comm
   return { command: "xdg-open", args: [url] };
 }
 
+/* v8 ignore start */
 /**
  * Open a URL in the default browser without going through a shell.
  *
@@ -242,3 +243,4 @@ export function openInBrowser(url: string): void {
     // Best effort
   }
 }
+/* v8 ignore stop */

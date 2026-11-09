@@ -68,12 +68,14 @@ export function lineMerge3(base: string, ours: string, theirs: string): LineMerg
         ours: joinLines(chunk.conflict.a),
         theirs: joinLines(chunk.conflict.b)
       });
+      /* v8 ignore start -- defensive guard against unexpected node-diff3 chunk shape */
     } else {
       throw new VersioningError(
         "BAD_FORMAT",
         `lineMerge3: unexpected chunk shape from node-diff3: ${JSON.stringify(chunk)}`
       );
     }
+    /* v8 ignore stop */
   }
 
   return {

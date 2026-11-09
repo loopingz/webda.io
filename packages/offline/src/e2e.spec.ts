@@ -3,10 +3,70 @@ import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import * as nodeHttp from "node:http";
+import { Duplex } from "node:stream";
 import { Note, SyncTest } from "../test/fixture.js";
 import { HttpTransport } from "./client/transport/http.js";
 import { MemoryStorage } from "./client/storage/memory.js";
 import { OfflineClient } from "./client/client.js";
+
+/**
+ * Create an in-memory Duplex socket pair connected to an HTTP server
+ * @param server - node HTTP server instance
+ * @returns createConnection callback for http.request
+ */
+function createInProcessConnection(server: any) {
+  return () => {
+    const clientSock: any = new Duplex({
+      read() {},
+      write(chunk, _enc, cb) {
+        cb();
+        setImmediate(() => {
+          if (!serverSock.destroyed) {
+            if (serverSock.isPaused()) serverSock.resume();
+            serverSock.push(chunk);
+          }
+        });
+      },
+      final(cb) {
+        cb();
+        setImmediate(() => {
+          if (!serverSock.destroyed) serverSock.push(null);
+        });
+      }
+    });
+    const serverSock: any = new Duplex({
+      read() {},
+      write(chunk, _enc, cb) {
+        cb();
+        setImmediate(() => {
+          if (!clientSock.destroyed) {
+            if (clientSock.isPaused()) clientSock.resume();
+            clientSock.push(chunk);
+          }
+        });
+      },
+      final(cb) {
+        cb();
+        setImmediate(() => {
+          if (!clientSock.destroyed) clientSock.push(null);
+        });
+      }
+    });
+    for (const s of [clientSock, serverSock]) {
+      s.setTimeout = () => s;
+      s.setNoDelay = () => s;
+      s.setKeepAlive = () => s;
+      s.address = () => server.address?.() ?? { port: 0 };
+      s.remoteAddress = "127.0.0.1";
+    }
+    clientSock.on("close", () => serverSock.destroy());
+    serverSock.on("close", () => clientSock.destroy());
+    server.emit("connection", serverSock);
+    queueMicrotask(() => clientSock.emit("connect"));
+    return clientSock;
+  };
+}
 
 @suite
 class OfflineE2ETest extends SyncTest {
@@ -42,9 +102,61 @@ class OfflineE2ETest extends SyncTest {
   }
 
   async client(onConflict: any = "manual") {
+    const baseUrl = await this.url();
+    const http: any = useService("HttpServer" as any);
+    const inProcessFetch: typeof fetch = (input: any, init: RequestInit = {}) => {
+      const parsed = new URL(typeof input === "string" ? input : input.url);
+      return new Promise<Response>((resolve, reject) => {
+        const req = nodeHttp.request(
+          {
+            hostname: parsed.hostname,
+            port: parsed.port,
+            path: parsed.pathname + parsed.search,
+            method: init.method ?? "GET",
+            headers: init.headers as any,
+            createConnection: createInProcessConnection(http.server) as any
+          },
+          res => {
+            const stream = new ReadableStream<Uint8Array>({
+              start(controller) {
+                res.on("data", (chunk: Buffer) => controller.enqueue(new Uint8Array(chunk)));
+                res.on("end", () => {
+                  try {
+                    controller.close();
+                  } catch {
+                    // already closed
+                  }
+                });
+                res.on("error", err => controller.error(err));
+              },
+              cancel() {
+                req.destroy();
+              }
+            });
+            resolve(
+              new Response(stream, {
+                status: res.statusCode ?? 200,
+                statusText: res.statusMessage ?? "OK",
+                headers: res.headers as any
+              })
+            );
+          }
+        );
+        if (init.signal) {
+          if (init.signal.aborted) {
+            req.destroy();
+          } else {
+            init.signal.addEventListener("abort", () => req.destroy(), { once: true });
+          }
+        }
+        req.on("error", reject);
+        if (init.body) req.write(init.body);
+        req.end();
+      });
+    };
     return new OfflineClient({
       storage: new MemoryStorage(),
-      transport: new HttpTransport({ baseUrl: await this.url() }),
+      transport: new HttpTransport({ baseUrl, fetch: inProcessFetch }),
       scopes: [{ model: "Test/Note", query: "status = 'open'" }],
       onConflict,
       syncInterval: 0,

@@ -30,8 +30,17 @@ export class StatementService extends Service<StatementParameters> {
     void query;
   }
 
+  /**
+   * Run an optional statement.
+   * @param statement - optional statement
+   */
+  runOptional(statement: number | WebdaQLStatement<Article>): void {
+    void statement;
+  }
+
   /** Call sites the generator must inspect. */
   calls(): void {
+    this.runOptional("SELECT title");
     this.run("SELECT title, author.name WHERE status = 'x' ORDER BY title");
     this.run("SELECT titel, author WHERE status = 'x'");
     this.run("UPDATE SET status = 'archived', author.name = ? WHERE createdAt < ?");

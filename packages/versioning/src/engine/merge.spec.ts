@@ -159,6 +159,10 @@ class Merge3ArraysTest {
     const c = r.conflicts[0];
     expect(c.kind).toBe("delete-modify");
     expect(c.path).toBe("/items/1");
+    const r2 = merge3(base, theirs, ours, this.cfg);
+    expect(r2.clean).toBe(false);
+    expect(r2.conflicts[0].kind).toBe("delete-modify");
+    expect(r2.conflicts[0].path).toBe("/items/1");
   }
 
   @test({ name: "JSON-pointer-escapes ids containing '/' or '~'" })

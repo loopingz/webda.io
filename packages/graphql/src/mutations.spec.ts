@@ -1,7 +1,15 @@
 import { describe, it } from "vitest";
 import * as assert from "assert";
-import { runWithInstanceStorage } from "@webda/core";
-import { createFromInput, isInputAttribute, loadForAction, updateFromInput } from "./mutations.js";
+import { GraphQLError } from "graphql";
+import { runWithInstanceStorage, WebdaError } from "@webda/core";
+import {
+  asGraphQL,
+  createFromInput,
+  isInputAttribute,
+  loadForAction,
+  operationError,
+  updateFromInput
+} from "./mutations.js";
 
 /**
  * Minimal model double: a `password` behavior attribute, an in-memory store
@@ -259,5 +267,48 @@ describe("GraphQL mutations", () => {
       assert.deepStrictEqual(move, refused);
       assert.strictEqual(FakeModel.stored.get("k3").parent, "p-bob");
     });
+  });
+
+  it("propagates unexpected errors and maps 4xx CodeErrors and broken metadata", async () => {
+    await assert.rejects(
+      () =>
+        asGraphQL(async () => {
+          throw new Error("boom");
+        }),
+      /boom/
+    );
+    const gqlErr = new GraphQLError("already graphql");
+    assert.strictEqual(operationError(gqlErr), gqlErr);
+    const conflictErr = operationError(new WebdaError.Conflict("already exists"));
+    assert.strictEqual(conflictErr.extensions?.code, "OPERATION_REFUSED");
+
+    class FailingRepoModel extends FakeModel {
+      getRepository() {
+        return {
+          create: async () => {
+            throw new Error("storage failure");
+          }
+        };
+      }
+    }
+    await assert.rejects(() => createFromInput(FailingRepoModel as any, { uuid: "f1" }, {} as any), /storage failure/);
+
+    let throwMeta = false;
+    class BrokenMetaModel extends FakeModel {
+      static getProtectedAttributes(): string[] {
+        throwMeta = true;
+        return [];
+      }
+      static get Metadata(): any {
+        if (throwMeta) {
+          throwMeta = false;
+          throw new Error("broken metadata");
+        }
+        return FakeModel.Metadata;
+      }
+    }
+    FakeModel.stored.set("bm1", new BrokenMetaModel().load({ uuid: "bm1", name: "Old" }));
+    const updated = await updateFromInput(BrokenMetaModel as any, "bm1", { uuid: "bm1", name: "New" }, {} as any);
+    assert.strictEqual(updated.name, "New");
   });
 });

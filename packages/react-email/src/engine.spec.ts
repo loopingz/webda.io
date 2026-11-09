@@ -129,10 +129,13 @@ class ReactEmailEngineTest extends TemplateServiceTestBase {
     assert.strictEqual(await this.svc().has("helper"), false);
     await assert.rejects(() => this.svc().render("helper"), TemplateNotFoundError);
     await assert.rejects(() => this.svc().renderAll("helper"), TemplateNotFoundError);
-    assert.deepStrictEqual(
-      await (getTemplateEngine("react-email") as ReactEmailEngine).parts(resolve("test/emails/helper.tsx")),
-      []
-    );
+    const engine = getTemplateEngine("react-email") as ReactEmailEngine;
+    assert.deepStrictEqual(await engine.parts(resolve("test/emails/helper.tsx")), []);
+    await assert.rejects(() => engine.parts(resolve("test/emails/missing-file.tsx")));
+    const circular: any = {};
+    circular.self = circular;
+    const html = await this.svc().render("welcome", circular);
+    assert.ok(html.includes("Welcome"));
   }
 
   @test

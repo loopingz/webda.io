@@ -21,6 +21,7 @@ import { PrependCondition } from "@webda/ql";
 import * as assert from "assert";
 import { Kind } from "graphql";
 import { createClient } from "graphql-ws";
+import { Duplex } from "node:stream";
 import { describe, it } from "vitest";
 import WebSocket from "ws";
 import { GraphQLService } from "./graphql.service.js";
@@ -582,15 +583,70 @@ class GraphQLServiceTest extends WebdaApplicationTest {
       await SecureCookie.save("webda", ctx, { userId: user } as any);
       headers.Cookie = `webda=${(<any>ctx)._cookie["webda"].value}`;
     }
+    const http = useService("HttpServer" as any) as any;
+    const url = await this.wsUrl();
+    const createConnection = () => {
+      const clientSock: any = new Duplex({
+        read() {},
+        write(chunk, _enc, cb) {
+          cb();
+          setImmediate(() => {
+            if (!serverSock.destroyed) {
+              if (serverSock.isPaused()) serverSock.resume();
+              serverSock.push(chunk);
+            }
+          });
+        },
+        final(cb) {
+          cb();
+          setImmediate(() => {
+            if (!serverSock.destroyed) serverSock.push(null);
+          });
+        }
+      });
+      const serverSock: any = new Duplex({
+        read() {},
+        write(chunk, _enc, cb) {
+          cb();
+          setImmediate(() => {
+            if (!clientSock.destroyed) {
+              if (clientSock.isPaused()) clientSock.resume();
+              clientSock.push(chunk);
+            }
+          });
+        },
+        final(cb) {
+          cb();
+          setImmediate(() => {
+            if (!clientSock.destroyed) clientSock.push(null);
+          });
+        }
+      });
+      for (const s of [clientSock, serverSock]) {
+        s.setTimeout = () => s;
+        s.setNoDelay = () => s;
+        s.setKeepAlive = () => s;
+        s.address = () => ({ port: this.port });
+        s.remoteAddress = "127.0.0.1";
+        s.on("newListener", (ev: string) => {
+          if (ev === "data") queueMicrotask(() => s.resume());
+        });
+      }
+      clientSock.on("close", () => serverSock.destroy());
+      serverSock.on("close", () => clientSock.destroy());
+      http.server.emit("connection", serverSock);
+      queueMicrotask(() => clientSock.emit("connect"));
+      return clientSock;
+    };
     return createClient({
-      url: await this.wsUrl(),
+      url,
       webSocketImpl: class extends WebSocket {
         /**
          * @param address - server url
          * @param protocols - subprotocols
          */
         constructor(address, protocols) {
-          super(address, protocols, { headers });
+          super(address, protocols, { headers, createConnection: createConnection as any });
         }
       }
     });
@@ -912,6 +968,39 @@ class GraphQLServiceTest extends WebdaApplicationTest {
     }
     // Schemas that need a default type
     assert.ok(this.service.getGraphQLSchemaFromSchema({ type: "array", items: { type: "null" } }, "plop"));
+
+    // Plain object in services without getClientEvents is skipped
+    const services = this.webda.getServices() as any;
+    services.PlainObjectService = {};
+    try {
+      this.service.generateSchema();
+    } finally {
+      delete services.PlainObjectService;
+    }
+
+    // getCurrentUserModel throws if user's class is not a registered model
+    await assert.rejects(
+      () =>
+        (this.service as any).getCurrentUserModel({
+          getCurrentUser: async () => ({})
+        }),
+      /Current user model is not registered/
+    );
+
+    // assertFilterQuery ignores unparseable queries (left to query path)
+    assert.doesNotThrow(() => this.service.assertFilterQuery("INVALID >>> QUERY"));
+
+    // endpoint throws if handler is not initialized
+    const savedHandler = this.service.handler;
+    this.service.handler = undefined;
+    try {
+      await assert.rejects(
+        () => this.service.endpoint(new WebContext(new HttpContext("localhost", "POST", "/graphql"))),
+        /GraphQL service is not initialized/
+      );
+    } finally {
+      this.service.handler = savedHandler;
+    }
   }
 
   @test

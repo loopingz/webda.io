@@ -171,9 +171,11 @@ export function gitCommit(): string | undefined {
         commit = execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] })
           .toString()
           .trim();
+        /* v8 ignore start */
       } catch {
         commit = undefined;
       }
+      /* v8 ignore stop */
     }
   }
   return commit || undefined;

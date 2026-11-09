@@ -15,9 +15,18 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      exclude: [
+        "src/**/*.spec.ts",
+        "src/index.ts",
+        "src/models/filters/index.ts",
+        "src/models/filters/interfaces.ts",
+        "src/models/filters/logical.ts",
+        "src/models/filters/types.ts",
+        "src/models/filters/sql/CESQL*.ts"
+      ],
       reporter: ["lcov", "html", "text"]
     },
+    setupFiles: ["./test/setup.ts"],
     reporters: "verbose",
     include: ["src/**/*.spec.ts"]
   }

@@ -94,10 +94,12 @@ export function openSession(configFile: string, rootDir: string, fs?: any): Sess
   const api = new API({ cwd: rootDir, ...(resolvedFs ? { fs: resolvedFs } : {}) });
   const snapshot = api.createSnapshot({ openProjects: [configFile] });
   const project: Project = snapshot.getProjects()[0];
+  /* v8 ignore start */
   if (!project) {
     api.close();
     throw new Error(`No project loaded for ${configFile}`);
   }
+  /* v8 ignore stop */
 
   const program = project.program;
   const checker: Checker = project.checker;

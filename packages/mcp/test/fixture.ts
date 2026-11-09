@@ -7,11 +7,94 @@ import {
   registerOperation,
   registerSchema,
   useApplication,
-  useContext
+  useContext,
+  useService
 } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
+import { request as httpRequest } from "node:http";
+import { Duplex } from "node:stream";
 import type { McpAuthenticator } from "../src/auth.js";
+
+/**
+ * Create an in-memory Duplex socket pair connected to an HTTP server
+ * @param server - node HTTP server instance
+ * @returns createConnection callback for http.request
+ */
+export function createInProcessConnection(server: any) {
+  return () => {
+    const clientSock: any = new Duplex({
+      /** No-op read */
+      read() {},
+      /**
+       * Forward chunk to server
+       * @param chunk - data chunk
+       * @param _enc - encoding
+       * @param cb - callback
+       */
+      write(chunk, _enc, cb) {
+        cb();
+        setImmediate(() => {
+          if (!serverSock.destroyed) {
+            if (serverSock.isPaused()) serverSock.resume();
+            serverSock.push(chunk);
+          }
+        });
+      },
+      /**
+       * Forward EOF to server
+       * @param cb - callback
+       */
+      final(cb) {
+        cb();
+        setImmediate(() => {
+          if (!serverSock.destroyed) serverSock.push(null);
+        });
+      }
+    });
+    const serverSock: any = new Duplex({
+      /** No-op read */
+      read() {},
+      /**
+       * Forward chunk to client
+       * @param chunk - data chunk
+       * @param _enc - encoding
+       * @param cb - callback
+       */
+      write(chunk, _enc, cb) {
+        cb();
+        setImmediate(() => {
+          if (!clientSock.destroyed) {
+            if (clientSock.isPaused()) clientSock.resume();
+            clientSock.push(chunk);
+          }
+        });
+      },
+      /**
+       * Forward EOF to client
+       * @param cb - callback
+       */
+      final(cb) {
+        cb();
+        setImmediate(() => {
+          if (!clientSock.destroyed) clientSock.push(null);
+        });
+      }
+    });
+    for (const s of [clientSock, serverSock]) {
+      s.setTimeout = () => s;
+      s.setNoDelay = () => s;
+      s.setKeepAlive = () => s;
+      s.address = () => server.address?.() ?? { port: 0 };
+      s.remoteAddress = "127.0.0.1";
+    }
+    clientSock.on("close", () => serverSock.destroy());
+    serverSock.on("close", () => clientSock.destroy());
+    server.emit("connection", serverSock);
+    queueMicrotask(() => clientSock.emit("connect"));
+    return clientSock;
+  };
+}
 
 /**
  * Gate used by Fixture.Gate to prove SSE chunks are delivered incrementally
@@ -296,6 +379,9 @@ export const FIXTURE_SERVICES = {
  * Base class: a real Webda application with the fixture service
  */
 export class McpFixtureTest extends WebdaApplicationTest {
+  /** Saved global fetch */
+  private originalFetch?: typeof globalThis.fetch;
+
   /**
    * Get the configuration
    * @returns the configuration
@@ -311,5 +397,122 @@ export class McpFixtureTest extends WebdaApplicationTest {
   async tweakApp(app: TestApplication): Promise<void> {
     app.addModda("Webda/McpFixtureService", McpFixtureService);
     app.addModda("Webda/HeaderAuthenticator", HeaderAuthenticator);
+  }
+
+  /** @override */
+  async beforeAll(init: boolean = true): Promise<void> {
+    await super.beforeAll(init);
+    this.originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: any, initReq?: RequestInit) => {
+      let http: any;
+      try {
+        http = useService("HttpServer" as any);
+      } catch {
+        // no HttpServer in this suite
+      }
+      if (!http?.server) {
+        return this.originalFetch!(input, initReq);
+      }
+      const parsed = new URL(typeof input === "string" || input instanceof URL ? String(input) : input.url);
+      const reqHeaders: Record<string, string> = { host: parsed.host };
+      new Headers(initReq?.headers).forEach((v, k) => {
+        reqHeaders[k] = v;
+      });
+      return new Promise<Response>((resolve, reject) => {
+        const req = httpRequest(
+          {
+            method: initReq?.method ?? "GET",
+            path: parsed.pathname + parsed.search,
+            headers: reqHeaders,
+            createConnection: createInProcessConnection(http.server) as any
+          },
+          res => {
+            const body =
+              res.statusCode === 204 || res.statusCode === 304 || (initReq?.method ?? "GET").toUpperCase() === "HEAD"
+                ? null
+                : new ReadableStream({
+                    /**
+                     * Start stream
+                     * @param controller - stream controller
+                     */
+                    start(controller) {
+                      res.on("data", chunk => {
+                        try {
+                          controller.enqueue(new Uint8Array(chunk));
+                        } catch {}
+                      });
+                      res.on("end", () => {
+                        try {
+                          controller.close();
+                        } catch {}
+                      });
+                      res.on("close", () => {
+                        if (!res.complete) {
+                          try {
+                            controller.error(new DOMException("The operation was aborted.", "AbortError"));
+                          } catch {}
+                        }
+                      });
+                      res.on("error", err => {
+                        try {
+                          controller.error(err);
+                        } catch {}
+                      });
+                    },
+                    /** Cancel stream */
+                    cancel() {
+                      req.destroy();
+                    }
+                  });
+            const respHeaders = new Headers();
+            for (const [k, v] of Object.entries(res.headers)) {
+              if (Array.isArray(v)) {
+                for (const item of v) respHeaders.append(k, item);
+              } else if (v !== undefined) {
+                respHeaders.set(k, v);
+              }
+            }
+            resolve(
+              new Response(body, {
+                status: res.statusCode ?? 200,
+                statusText: res.statusMessage,
+                headers: respHeaders
+              })
+            );
+          }
+        );
+        req.on("error", reject);
+        if (initReq?.signal) {
+          if (initReq.signal.aborted) {
+            req.destroy();
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+            return;
+          }
+          initReq.signal.addEventListener(
+            "abort",
+            () => {
+              req.destroy();
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+            },
+            { once: true }
+          );
+        }
+        if (initReq?.body !== undefined && initReq?.body !== null) {
+          req.end(
+            typeof initReq.body === "string" || Buffer.isBuffer(initReq.body) ? initReq.body : String(initReq.body)
+          );
+        } else {
+          req.end();
+        }
+      });
+    }) as typeof globalThis.fetch;
+  }
+
+  /** @override */
+  async afterAll(): Promise<void> {
+    if (this.originalFetch) {
+      globalThis.fetch = this.originalFetch;
+    }
+    await super.afterAll();
   }
 }

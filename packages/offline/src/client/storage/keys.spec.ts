@@ -76,6 +76,11 @@ describe("EncryptedStorage key providers", () => {
     await s.removeProvider("p1");
     s.lock();
     expect(await code(s.unlock(fakeProvider("p1")))).toBe("NO_KEY");
+
+    await s.unlock(fakeProvider("p2"));
+    await s.addProvider(fakeProvider("p4"));
+    await s.removeProvider("p2");
+    expect(await code(s.addProvider(fakeProvider("p5")))).toBe("NO_KEY");
   });
 
   it("refuses to remove the last provider", async () => {

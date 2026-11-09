@@ -94,4 +94,12 @@ export class Receipt {
   toJSON(): { amount: number } {
     return { amount: this.amount };
   }
+
+  /**
+   * Accept an input DTO explicitly.
+   * @param data - input shape
+   */
+  fromDto(data: { amount: number }): void {
+    this.amount = data.amount;
+  }
 }

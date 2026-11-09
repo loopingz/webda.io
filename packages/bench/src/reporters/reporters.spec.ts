@@ -272,6 +272,7 @@ class ReportersTest {
     assert.strictEqual(main(["compare", base, current, "--threshold", "0.5"], log), 2);
     assert.strictEqual(main(["compare", base], log), 2);
     assert.strictEqual(main(["help"], log), 0);
+    assert.strictEqual(main(["help"]), 0);
     assert.strictEqual(main(["unknown"], log), 2);
   }
 }

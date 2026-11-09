@@ -113,7 +113,9 @@ function firstParameterType(signature: Signature, location: Node, options: Model
   const declaration =
     parameter?.valueDeclaration?.resolve(options.project) ?? parameter?.declarations[0]?.resolve(options.project);
   if (declaration) return options.checker.getTypeAtLocation(declaration);
+  /* v8 ignore start */
   return parameter
     ? options.checker.getTypeOfSymbolAtLocation(parameter, location)
     : options.checker.getParameterType(signature, 0);
+  /* v8 ignore stop */
 }

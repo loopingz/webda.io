@@ -152,8 +152,9 @@ export async function benchPubSub(
       () => bound.resolve(true)
     );
     active.push(consumer);
-    if (!(await withTimeout(bound.promise, BIND_TIMEOUT_MS))) {
-      useLog("WARN", `[bench] ${service.getName()} subscription not bound after ${BIND_TIMEOUT_MS}ms`);
+    const bindTimeoutMs = Math.min(BIND_TIMEOUT_MS, profile.drainTimeoutMs);
+    if (!(await withTimeout(bound.promise, bindTimeoutMs))) {
+      useLog("WARN", `[bench] ${service.getName()} subscription not bound after ${bindTimeoutMs}ms`);
     }
     // Do not return the consumer: it is a promise pending until cancelled, an async function would wait for it
   };

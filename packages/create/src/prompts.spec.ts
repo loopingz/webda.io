@@ -1,7 +1,20 @@
+import * as clack from "@clack/prompts";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
+import { vi } from "vitest";
 import { OptionsError, parseCliArgs } from "./options.js";
-import { Prompter, resolveOptions } from "./prompts.js";
+import { clackPrompter, Prompter, resolveOptions } from "./prompts.js";
+
+vi.mock("@clack/prompts", async importOriginal => {
+  const actual = await importOriginal<typeof import("@clack/prompts")>();
+  return {
+    ...actual,
+    text: vi.fn(async (opts: any) => opts.initialValue),
+    select: vi.fn(async (opts: any) => opts.initialValue),
+    multiselect: vi.fn(async (opts: any) => opts.initialValues),
+    isCancel: vi.fn((val: any) => val === Symbol.for("cancel"))
+  };
+});
 
 /**
  * Prompter returning scripted answers and recording the questions asked
@@ -111,5 +124,15 @@ class PromptsTest {
       resolveOptions(parseCliArgs([]), { interactive: true, prompter: new CancelPrompter(), cwd: "/work" }),
       /Cancelled/
     );
+  }
+
+  @test
+  async clackPrompterMethodsAndCancel() {
+    assert.strictEqual(await clackPrompter.text("Msg", "init"), "init");
+    assert.strictEqual(await clackPrompter.select("Sel", ["a", "b"], "a"), "a");
+    assert.deepStrictEqual(await clackPrompter.multiselect("Multi", ["a", "b"], ["a"]), ["a"]);
+
+    vi.mocked(clack.text).mockResolvedValueOnce(Symbol.for("cancel") as any);
+    await assert.rejects(() => clackPrompter.text("Msg", "init"), OptionsError);
   }
 }

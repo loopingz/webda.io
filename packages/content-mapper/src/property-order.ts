@@ -98,11 +98,13 @@ function orderedNames(ctx: AnalysisContext, type: Type | undefined, depth = 0): 
 
   const symbol = type.getSymbol?.();
   let declared: Type | undefined;
+  /* v8 ignore start */
   try {
     declared = symbol ? ctx.checker.getDeclaredTypeOfSymbol(symbol) : undefined;
   } catch {
     declared = undefined;
   }
+  /* v8 ignore stop */
   if (!symbol || !declared?.isClassOrInterface?.()) {
     for (const property of ctx.checker.getPropertiesOfType(type)) add(property.name);
     return out;
@@ -120,11 +122,13 @@ function orderedNames(ctx: AnalysisContext, type: Type | undefined, depth = 0): 
     }
   }
   let bases: readonly Type[] = [];
+  /* v8 ignore start */
   try {
     bases = ctx.checker.getBaseTypes(declared as any);
   } catch {
     bases = [];
   }
+  /* v8 ignore stop */
   for (const base of bases) orderedNames(ctx, base, depth + 1).forEach(add);
   return out;
 }

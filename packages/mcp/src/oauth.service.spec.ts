@@ -576,4 +576,24 @@ class McpBearerSessionTest extends McpOAuthBase {
       unregisterOperationAuthorizer(delay as any);
     }
   }
+
+  @test
+  async coversParametersPublicUrlAndFallbacks() {
+    const auth = useService("McpAuth") as McpOAuthAuthenticator;
+    const params = McpOAuthAuthenticator.createConfiguration({ publicUrl: "https://mcp.example.com/" });
+    assert.strictEqual(params.publicUrl, "https://mcp.example.com");
+
+    // Fallback in absolute() when host header cannot be parsed as URL
+    const http = new HttpContext("localhost", "GET", "/.well-known/oauth-protected-resource/api/mcp", "http", 8080, {
+      host: "bad:host:port"
+    });
+    let body = "";
+    const ctx: any = {
+      getHttpContext: () => http,
+      setHeader: () => {},
+      write: (b: string) => (body += b)
+    };
+    await auth.metadata(ctx);
+    assert.strictEqual(JSON.parse(body).resource, "http://localhost:8080/api/mcp");
+  }
 }

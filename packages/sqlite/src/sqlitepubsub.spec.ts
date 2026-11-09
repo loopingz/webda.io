@@ -232,6 +232,13 @@ class SQLitePubSubTest extends WebdaApplicationTest {
     await assert.rejects(() => orphan.sendMessage("nope"), /not connected/);
     const bad = new SQLitePubSubService("bad", new SQLitePubSubParameters().load({ table: "bad-table" }));
     await assert.rejects(() => bad.resolve().init(), /Invalid table name/);
+    // Poll error handling and stop with active subscriber timer
+    sub.consume(async () => {});
+    const origTable = sub.getParameters().table;
+    sub.getParameters().table = "nonexistent_table";
+    (sub as any).poll(true);
+    sub.getParameters().table = origTable;
+    await sub.stop();
   }
 
   @test

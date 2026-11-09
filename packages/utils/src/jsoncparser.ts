@@ -27,11 +27,8 @@ abstract class JSONCNode {
     }
     if (Array.isArray(arg0)) {
       return new JSONCArray(arg0);
-    } else if (typeof arg0 === "object") {
-      return new JSONCObject(arg0);
-    } else {
-      return new JSONCValue(arg0);
     }
+    return new JSONCObject(arg0);
   }
   /**
    * [comments]

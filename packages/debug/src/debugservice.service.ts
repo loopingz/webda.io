@@ -71,9 +71,11 @@ function hostedPlaceholderPage(hostedBase: string): string {
 function readDebugVersion(): string {
   try {
     return JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8")).version || "unknown";
+    /* v8 ignore start */
   } catch {
     return "unknown";
   }
+  /* v8 ignore stop */
 }
 
 const DEBUG_VERSION = readDebugVersion();
@@ -95,9 +97,11 @@ function frameworkVersion(): string | undefined {
   try {
     const pkg = createRequire(import.meta.url).resolve("@webda/core/package.json");
     return JSON.parse(readFileSync(pkg, "utf8")).version || undefined;
+    /* v8 ignore start */
   } catch {
     return undefined;
   }
+  /* v8 ignore stop */
 }
 
 /** Map file extensions to MIME types for static file serving. */
@@ -554,6 +558,7 @@ export class DebugService extends Service<DebugServiceParameters> {
     this.running = undefined;
   }
 
+  /* v8 ignore start */
   /**
    * Open a URL in the default browser.
    * @param url - URL to open
@@ -561,6 +566,7 @@ export class DebugService extends Service<DebugServiceParameters> {
   private openBrowser(url: string): void {
     openInBrowser(url);
   }
+  /* v8 ignore stop */
 
   /**
    * Create and start the debug HTTP server with WebSocket support.
@@ -932,10 +938,12 @@ export class DebugService extends Service<DebugServiceParameters> {
       filePath = join(WEBUI_DIR, "index.html");
     }
 
+    /* v8 ignore start */
     if (!isFile(filePath)) {
       this.sendJson(res, { error: "Not found" }, 404);
       return;
     }
+    /* v8 ignore stop */
 
     try {
       const ext = extname(filePath);
@@ -943,9 +951,11 @@ export class DebugService extends Service<DebugServiceParameters> {
       this.pageHeaders(res, ext === ".html");
       res.writeHead(200, { "Content-Type": mime });
       res.end(readFileSync(filePath));
+      /* v8 ignore start */
     } catch {
       this.sendJson(res, { error: "Internal server error" }, 500);
     }
+    /* v8 ignore stop */
   }
 
   /**

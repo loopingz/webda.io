@@ -355,17 +355,45 @@ class EmailLoginTest extends EmailTest {
 
   @test
   async profileOnlyAllowsModelAttributes() {
-    const res: any = await this.op("Auth.Email.Register", {
-      email: "pf@x.com",
-      password: "longenough",
-      profile: { displayName: "P", locale: "fr", notAnAttribute: "x", password: "x", _avatar: "y" }
+    const UserModel: any = this.auth.getUserModel();
+    const meta = UserModel.Metadata;
+    Object.defineProperty(UserModel, "Metadata", {
+      value: {
+        ...meta,
+        Relations: {
+          ...meta.Relations,
+          links: [{ attribute: "lnk" }],
+          queries: [{ attribute: "qry" }],
+          maps: [{ attribute: "mp" }],
+          binaries: [{ attribute: "bin" }]
+        }
+      },
+      configurable: true
     });
+    let res: any;
+    try {
+      res = await this.op("Auth.Email.Register", {
+        email: "pf@x.com",
+        password: "longenough",
+        profile: { displayName: "P", locale: "fr", notAnAttribute: "x", password: "x", _avatar: "y" }
+      });
+    } finally {
+      Object.defineProperty(UserModel, "Metadata", { value: meta, configurable: true });
+    }
     const user: any = await this.auth.getUserModel().ref(res.user.uuid).get();
     assert.strictEqual(user.displayName, "P");
     assert.strictEqual(user.locale, "fr");
     assert.strictEqual(user.notAnAttribute, undefined);
     assert.notStrictEqual(user._avatar, "y");
     assert.ok(await user.password.verify("longenough"));
+
+    // Registering when already logged in throws Gone (line 370)
+    const loggedCtx = await this.ctx();
+    loggedCtx.getSession().login(user.getUUID(), "pf@x.com:email");
+    await assert.rejects(
+      () => this.op("Auth.Email.Register", { email: "pf2@x.com", password: "longenough" }, loggedCtx),
+      { code: "GONE" }
+    );
   }
 
   @test

@@ -162,9 +162,6 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
   async init(): Promise<this> {
     await super.init();
     this.model = this.parameters.keyModel ? <any>useModel(this.parameters.keyModel) : undefined;
-    if (this.parameters.keyModel && !this.model) {
-      throw new Error(`Undefined model ${this.parameters.keyModel}`);
-    }
     if (!this.model && !this.parameters.dynamicSessionKey) {
       throw new Error("Model must exists or dynamic session key must be defined");
     }

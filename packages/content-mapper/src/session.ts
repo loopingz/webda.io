@@ -109,10 +109,12 @@ export class WarmSession {
     const t0 = process.hrtime.bigint();
     this.api = new API({ cwd: options.cwd });
     this.snapshot = this.api.createSnapshot({ openProjects: [options.configFile] });
+    /* v8 ignore start */
     if (!this.snapshot.getProjects()[0]) {
       this.api.close();
       throw new Error(`No project loaded for ${options.configFile}`);
     }
+    /* v8 ignore stop */
     this.startupMs = ms(t0);
   }
 

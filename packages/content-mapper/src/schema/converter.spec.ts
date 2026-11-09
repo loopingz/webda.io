@@ -541,4 +541,37 @@ describe("sealed fields", () => {
       expect(properties.other["x-webda-sealed"]).toBeUndefined();
     }
   });
+
+  it("handles additional converter types, buffer strategies, callable root error, and missing parameters", () => {
+    const covSchema = schemaOf("params.service.ts", "CoverageService");
+    expect(covSchema.properties!.bigLit.type).toBe("number");
+    expect(covSchema.properties!.bigVal.type).toBe("integer");
+    expect(covSchema.properties!.regexVal.format).toBe("regex");
+    expect(covSchema.properties!.readonlyTuple.const).toEqual(["a", 1]);
+    expect(covSchema.properties!.linkedGeneric.description).toContain("{@link Box<string>the box}");
+
+    // Test all buffer strategies
+    const covParamsDecl = classOf("params.service.ts", "CoverageParameters");
+    for (const strategy of ["array", "binary", "hex", "base64"] as const) {
+      const converter = new SchemaConverter({
+        project: session.ctx.project,
+        checker: session.ctx.checker,
+        bufferStrategy: strategy
+      });
+      const built = converter.fromNode(covParamsDecl);
+      expect(built.properties!.buf).toBeDefined();
+    }
+
+    // Callable type at root throws SchemaConversionError
+    const broadDecl = classOf("params.service.ts", "BroadParameters");
+    const helperMethod = broadDecl.members.find((m: any) => m.name?.text === "helper")!;
+    const helperType = session.ctx.checker.getTypeAtLocation(helperMethod);
+    const rootConverter = new SchemaConverter({ project: session.ctx.project, checker: session.ctx.checker });
+    expect(() => rootConverter.fromType(helperType, helperMethod)).toThrow(/cannot convert a callable type/);
+
+    // findParametersNode returns undefined when class has no ServiceParameters
+    expect(
+      findParametersNode(classOf("dto.model.ts", "Invoice"), session.ctx.checker, session.ctx.project)
+    ).toBeUndefined();
+  });
 });

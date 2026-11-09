@@ -469,6 +469,92 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
       const apartFks = (await apart.getClient()!.query(`PRAGMA foreign_key_list("rel_comment")`)).rows.map(r => r.from);
       assert.ok(!apartFks.includes("moderator"), apartFks.join(", "));
       assert.ok((await this.columns("rel_comment", apart)).includes("moderator"));
+
+      // Additional coverage for RelationalStoreSupport / RelationalSchemaManager / SchemaVersionRegistry edge cases
+      const rel = (apart as any).relational;
+      const unbuiltManager = Object.create(Object.getPrototypeOf(rel.manager));
+      unbuiltManager.options = { name: "Test" };
+      assert.throws(() => unbuiltManager.requirePlan(), /not built/);
+
+      // SchemaVersionRegistry error wrapping on all() and register()
+      const brokenVersions = Object.create(Object.getPrototypeOf(rel.versions));
+      brokenVersions.options = { store: "Broken" };
+      brokenVersions.repository = () => ({
+        query: async () => {
+          throw new Error("db down");
+        },
+        exists: async () => {
+          throw new Error("db down");
+        }
+      });
+      await assert.rejects(() => brokenVersions.all(), /Broken/);
+      await assert.rejects(() => brokenVersions.register("1.0.0", rel.getSchemaPlan()), /Broken/);
+
+      // registerVersion with forced table/model changes and heartbeat interval
+      rel.changes = [
+        { forced: true, table: "rel_user", column: "email" },
+        { forced: true, model: "Rel/User", attribute: "email" }
+      ];
+      apart.getParameters().versionHeartbeat = 0.01;
+      const origHb = rel.versions.heartbeat.bind(rel.versions);
+      await rel.registerVersion();
+      rel.versions.heartbeat = async () => {
+        throw new Error("hb fail");
+      };
+      await new Promise(r => setTimeout(r, 25));
+      rel.stop();
+      rel.versions.heartbeat = origHb;
+
+      // getSchemaPlan when SCHEMA_VERSION_MODEL is in _modelsHierarchy
+      const savedPlan = rel.manager.plan;
+      rel.manager.plan = undefined;
+      apart._modelsHierarchy["Webda/SchemaVersion"] = {} as any;
+      assert.throws(() => rel.getSchemaPlan(), /version registry/);
+      delete apart._modelsHierarchy["Webda/SchemaVersion"];
+      rel.manager.plan = savedPlan;
+
+      // sync without live parameter (covers line 426 check/register callbacks)
+      await rel.sync(apart.getClient()!);
+
+      // importFromJson edge cases: RELATIONAL_IMPORT_SOURCE, MODEL_NOT_PLANNED and empty targets
+      await assert.rejects(() => fk.importFromJsonb(fk as any), /is not a JSON store/);
+      await assert.rejects(() => fk.importFromJsonb(registry, { models: ["Webda/OwnerModel"] }), /not stored by/);
+      const emptyPlan = { ...rel.getSchemaPlan(), tables: [] };
+      rel.manager.plan = emptyPlan;
+      assert.deepStrictEqual(await apart.importFromJsonb(registry), []);
+      rel.manager.plan = savedPlan;
+
+      // schemaCommand diff with drift, checkCommand edge cases, contractCommand nothing to contract, retireCommand no match
+      const logLines: string[] = [];
+      const origLog = console.log;
+      console.log = (...args: any[]) => void logLines.push(args.join(" "));
+      try {
+        const origDiff = rel.manager.diff.bind(rel.manager);
+        rel.manager.diff = async () => ({ statements: [], drift: [{ message: "extra col" }] });
+        assert.strictEqual(
+          await rel.schemaCommand(false, true, false, async () => ({
+            client: apart.getClient()!,
+            close: async () => {}
+          })),
+          1
+        );
+        rel.manager.diff = origDiff;
+
+        assert.strictEqual(await rel.checkCommand("nonexistent-version", false, false), 2);
+        assert.strictEqual(await rel.checkCommand(undefined, true, true), 0);
+        assert.strictEqual(await rel.checkCommand(undefined, false, false), 0);
+        const origContract = rel.manager.contract.bind(rel.manager);
+        rel.manager.contract = async () => [];
+        assert.strictEqual(
+          await rel.contractCommand(false, async () => ({ client: apart.getClient()!, close: async () => {} })),
+          0
+        );
+        rel.manager.contract = origContract;
+        assert.strictEqual(await rel.retireCommand("nonexistent-version"), 1);
+      } finally {
+        console.log = origLog;
+      }
+      await apart.stop();
     } finally {
       await registry.stop();
       this.registerService(previous, "Registry");

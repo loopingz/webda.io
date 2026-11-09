@@ -139,6 +139,9 @@ describe("analytics iframe bridge", () => {
         params: { panel: "logs" }
       }
     );
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { debug_api_version: "1" }), {
+      debug_api_version: "1"
+    });
     assert.strictEqual(
       validateAnalyticsMessage({ type: ANALYTICS_MESSAGE_TYPE, event: "model_selected", params: {} }),
       undefined

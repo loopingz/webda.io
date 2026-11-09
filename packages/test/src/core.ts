@@ -413,11 +413,12 @@ export const suite: ReturnType<typeof createClassDecorator> & {
           describe = executers["describe.skip"] ?? executers.describe;
         } else if (suiteMeta.settings?.execution === "todo") {
           describe = executers["describe.todo"]!;
-          /* v8 ignore next 4 -- all framework have todo */
+          /* v8 ignore start -- all framework have todo */
           if (!describe) {
             useLog("INFO", "Skipping suite (no .todo support)", suiteName);
             continue;
           }
+          /* v8 ignore stop */
         }
 
         describe(suiteName, () => {
@@ -447,18 +448,20 @@ export const suite: ReturnType<typeof createClassDecorator> & {
             let exec: FrameworkExecuters["test"] | undefined = executers.test;
             if (t.mode === "todo" || t.mode === "skip") {
               exec = executers[`test.${t.mode}`];
-              /* v8 ignore next 4 -- all framework have todo and skip */
+              /* v8 ignore start -- all framework have todo and skip */
               if (!exec) {
                 useLog("INFO", `Skipping test (no .${t.settings?.execution ?? t.mode} support)`, t.name);
                 return;
               }
+              /* v8 ignore stop */
             }
             if (t.mode === "only") {
               exec = executers["test.only"];
-              /* v8 ignore next 3 -- all framework have only */
+              /* v8 ignore start -- all framework have only */
               if (!exec) {
                 exec = executers.test;
               }
+              /* v8 ignore stop */
             }
             /**
              * Create a test executor that will call the beforeEach, the test and the afterEach

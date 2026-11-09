@@ -263,3 +263,167 @@ class AuthorizerTest {
     assert.strictEqual(result, undefined);
   }
 }
+
+@suite
+class AdditionalCoreDirectoryCoverageTest extends WebdaInternalTest {
+  @test
+  async coverAsyncQueueCoreHooksInstanceStorageAndOperations() {
+    const { AsyncQueue } = await import("./asyncqueue.js");
+    const { Core } = await import("./core.js");
+    const { useModelRepository } = await import("./hooks.js");
+    const {
+      createCoreHook,
+      createHook,
+      registerInteruptableProcess,
+      unregisterInteruptableProcess,
+      useInstanceStorage
+    } = await import("./instancestorage.js");
+    const {
+      callOperation,
+      checkOperationPermission,
+      parseSubjectKey,
+      resolveArguments,
+      resolveOperationSubject,
+      serializeSubjectKey,
+      setOperationSubject
+    } = await import("./operations.js");
+    const { User } = await import("../models/user.model.js");
+    const { SimpleOperationContext } = await import("../contexts/simplecontext.js");
+    const { useApplication } = await import("../application/hooks.js");
+
+    // 1. AsyncQueue.ended
+    const q = new AsyncQueue<number>();
+    assert.strictEqual(q.ended, false);
+    q.end();
+    assert.strictEqual(q.ended, true);
+
+    // 2. instancestorage hooks & interruptable processes
+    const [getRouterHook, setRouterHook] = createCoreHook("router");
+    const fakeRouter: any = { routed: true };
+    setRouterHook(fakeRouter);
+    assert.strictEqual(getRouterHook(), fakeRouter);
+    setRouterHook(undefined);
+
+    const [getCustom, setCustom] = createHook("myCustomKey");
+    setCustom("myCustomKey");
+    assert.strictEqual(getCustom(), "myCustomKey");
+
+    let canceled = 0;
+    const proc = {
+      cancel: async () => {
+        canceled++;
+      }
+    };
+    registerInteruptableProcess(proc);
+    unregisterInteruptableProcess(proc);
+    registerInteruptableProcess(proc);
+
+    // 3. hooks.ts useModelRepository
+    assert.ok(useModelRepository("Webda/User"));
+
+    // 4. core.ts getModelStore(instance), getModelStore(undefined), getModelStoreCached scores, getApiUrl, getLocales, slow initService, stop with interruptables, deserialize
+    assert.ok(this.webda.getModelStore(new User()));
+    assert.throws(() => this.webda.getModelStore(undefined as any), /Model not found/);
+
+    const app = useApplication();
+    const origGetImpl = app.getImplementations.bind(app);
+    try {
+      const storeScore2: any = { handleModel: () => 2 };
+      const storeScore1: any = { handleModel: () => 1 };
+      const storeScore0: any = { handleModel: () => 0 };
+      app.getImplementations = () => ({ s2: storeScore2, s1: storeScore1 }) as any;
+      class DummyModel1 {}
+      assert.strictEqual((this.webda as any).getModelStoreCached(DummyModel1), storeScore1);
+      app.getImplementations = () => ({ s0: storeScore0 }) as any;
+      class DummyModel0 {}
+      assert.strictEqual((this.webda as any).getModelStoreCached(DummyModel0), storeScore0);
+    } finally {
+      app.getImplementations = origGetImpl;
+    }
+
+    (this.webda as any).configuration = {
+      ...this.webda.getConfiguration(),
+      parameters: { apiUrl: "http://localhost:18080" }
+    };
+    assert.strictEqual(this.webda.getApiUrl("v1/users"), "http://localhost:18080/v1/users");
+    assert.strictEqual(this.webda.getApiUrl("/v1/users"), "http://localhost:18080/v1/users");
+    assert.deepStrictEqual(this.webda.getLocales(), ["en-GB"]);
+    this.webda.getConfiguration().parameters.locales = ["fr-FR"];
+    assert.deepStrictEqual(this.webda.getLocales(), ["fr-FR"]);
+
+    // initService > 1000ms warning
+    this.webda.getServices()["__slow"] = {
+      init: async () => {}
+    } as any;
+    const origNow = Date.now;
+    let tick = 1000;
+    Date.now = () => {
+      tick += 1500;
+      return tick;
+    };
+    try {
+      await (this.webda as any).initService("__slow");
+    } finally {
+      Date.now = origNow;
+      delete this.webda.getServices()["__slow"];
+    }
+
+    await this.webda.stop();
+    assert.strictEqual(canceled, 1);
+    unregisterInteruptableProcess(proc);
+
+    // 5. operations.ts uncovered branches
+    const ctx = new SimpleOperationContext();
+    await ctx.init();
+    assert.throws(() => checkOperationPermission(ctx, "Unknown.Op"), /Unknown\.Op Unknown/);
+    assert.strictEqual(serializeSubjectKey(["a", "b"], "scalar"), undefined);
+    assert.strictEqual(parseSubjectKey(["a", "b"], '"not-an-object"'), undefined);
+    assert.strictEqual(parseSubjectKey(["a", "b"], { a: "1" }), undefined);
+
+    const { runWithContext } = await import("../contexts/execution.js");
+    ctx.setExtension("operation", "Some.Op");
+    assert.throws(
+      () => runWithContext(ctx, () => setOperationSubject({ model: "Webda/User", key: undefined })),
+      /Invalid operation subject/
+    );
+
+    class UnregisteredModel {}
+    assert.strictEqual(
+      resolveOperationSubject(ctx, { id: "U", method: "m", model: UnregisteredModel as any, static: false }, ["id1"]),
+      undefined
+    );
+
+    // validatedStream non-ValidationError rethrow
+    const streamCtx = new SimpleOperationContext();
+    await streamCtx.init();
+    streamCtx.setExtension(
+      "operationInputStream",
+      (async function* gen() {
+        yield { x: 1 };
+      })()
+    );
+    const [iter] = await resolveArguments(streamCtx, {
+      id: "Stream.Op",
+      method: "m",
+      input: "BoomStreamSchema",
+      streaming: "client"
+    });
+    await assert.rejects(async () => {
+      for await (const _ of iter) {
+        // consume
+      }
+    }, /Schema not found: BoomStreamSchema/);
+
+    // subjectOf catch block during callOperation when context.model is unresolvable
+    useInstanceStorage().operations["BadSubject.Op"] = {
+      id: "BadSubject.Op",
+      service: "Registry",
+      method: "getName",
+      context: { model: "Webda/DefinitelyMissingModel" }
+    };
+    const callCtx = new SimpleOperationContext();
+    await callCtx.init();
+    await callOperation(callCtx, "BadSubject.Op");
+    delete useInstanceStorage().operations["BadSubject.Op"];
+  }
+}

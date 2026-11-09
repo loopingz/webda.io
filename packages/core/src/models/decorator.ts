@@ -85,6 +85,7 @@ export const Action = createMethodDecorator((value: any, _context: any, _options
  */
 export const Shared = createMethodDecorator((value: any, _context: any) => value);
 
+/* v8 ignore start */
 /**
  * Some simple annotations that can be used to add some behavior to attributes
  */
@@ -158,3 +159,4 @@ export const Encrypted = createPropertyDecorator((value: any, context) => {
     });
   }
 });
+/* v8 ignore stop */

@@ -113,16 +113,16 @@ function outputOf(op: OperationDescriptor, message: unknown): unknown {
  * @returns the messages
  */
 async function* messagesOf(call: NodeJS.ReadableStream & { cancel(): void }): AsyncGenerator<unknown> {
-  let complete = false;
+  let active: { cancel(): void } | undefined = call;
   try {
     for await (const message of call as AsyncIterable<unknown>) yield message;
-    complete = true;
+    active = undefined;
   } catch (err) {
-    complete = true;
+    active = undefined;
     throw grpcError(err);
   } finally {
     // The consumer left early: cancel the call
-    if (!complete) call.cancel();
+    active?.cancel();
   }
 }
 

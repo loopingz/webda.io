@@ -1,42 +1,29 @@
 import { Bean, Route, Service, ServiceParameters } from "@webda/core";
 
 /**
- * Later export service implementation
  * @WebdaModda
  */
 class LaterExportService extends Service {}
 
 /**
- * Not export service implementation
  * @WebdaModda
  */
 class NotExportService extends Service {}
 
 /**
- * Not extending service implementation
  * @WebdaModda
  */
 export class NotExtendingService {}
 
 /**
- * Not extending deployer implementation
  * @WebdaDeployer
  */
 export class NotExtendingDeployer {}
 
-/**
- * Bad bean implementation
- */
 @Bean
 export class BadBean {}
 
-/**
- * Bad bean from route implementation
- */
 export class BadBeanFromRoute {
-  /**
-   * Test operation
-   */
   @Route("/test")
   test() {}
 }
@@ -45,27 +32,12 @@ export class BadBeanFromRoute {
  * Check for the subdefinition within bean
  */
 interface GoodBeanSubDefinition {
-  /**
-   * Toto
-   */
   toto: string;
-  /**
-   * Num
-   */
   num: number;
 }
 
-/**
- * Configuration parameters for GoodBean
- */
 class GoodBeanParameters extends ServiceParameters {
-  /**
-   * Subdefinition
-   */
   subdefinition: GoodBeanSubDefinition;
-  /**
-   * Subdefinition2
-   */
   subdefinition2: GoodBeanSubDefinition;
 }
 /**
@@ -77,7 +49,6 @@ export class GoodBean extends Service<GoodBeanParameters> {}
 export { LaterExportService };
 
 /**
- * Schema test interface
  * @WebdaSchema
  */
 export interface SchemaTest {
@@ -96,7 +67,6 @@ export interface SchemaTest {
 }
 
 /**
- * Schema test2 implementation
  * @WebdaSchema AnotherSchema
  * @SchemaAdditionalProperties You can add more properties
  */
@@ -120,7 +90,6 @@ export class SchemaTest2 {
    */
   age: number;
   /**
-   * Unique identifier
    * @readOnly
    */
   uuid: string;

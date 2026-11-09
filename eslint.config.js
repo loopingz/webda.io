@@ -29,7 +29,7 @@ export default [
       jsdoc
     },
     files: ["**/*.ts", "**/*.tsx"],
-    ignores: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**"],
+    ignores: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**", "test/**"],
     rules: {
       "unused-imports/no-unused-imports": "error",
       "@typescript-eslint/no-explicit-any": "off",
@@ -78,7 +78,7 @@ export default [
     plugins: {
       "unused-imports": unusedImports
     },
-    files: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**"],
+    files: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**", "test/**"],
     rules: {
       "unused-imports/no-unused-imports": "error",
       "@typescript-eslint/no-explicit-any": "off",

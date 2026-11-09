@@ -198,6 +198,10 @@ export class SubSubProject3 extends AnotherSubProject<Test, TestDoc2[]> {}
 /** Concrete sub-sub-project with custom actions for testing action exposure. */
 export class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
   /**
+   * Reference to unexported subclass used for compiler test coverage
+   */
+  static readonly _unexportedSubclass = SubSubProject2;
+  /**
    * Attribute1
    */
   attribute1: string;

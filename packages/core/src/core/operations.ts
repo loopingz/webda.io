@@ -935,7 +935,7 @@ export function maskValue(val: unknown, seen = new WeakSet<object>()): unknown {
   if (val === null || val === undefined) {
     return val;
   }
-  if (typeof val === "object" && val !== null && "getValue" in val && typeof (val as any).getValue === "function") {
+  if (typeof val === "object" && "getValue" in val && typeof (val as any).getValue === "function") {
     return SECRET_MASK;
   }
   if (typeof val !== "object") {

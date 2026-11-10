@@ -1451,9 +1451,10 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         // Auto-inject capability providers required by this command
         resolveCapabilities(app, cmdInfo.requires);
 
-        /* v8 ignore next 2 */
+        /* v8 ignore start */
         if (matchedCommand.args.watch && hasCompiler) {
           await runWithWatch(appPath, app, matchedCommand.name, cmdInfo, matchedCommand.args, serviceFilter);
+          /* v8 ignore stop */
         } else {
           const core = new Core(app);
           const { shutdown, interrupt } = createCommandShutdown(core);

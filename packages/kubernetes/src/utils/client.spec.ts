@@ -15,6 +15,14 @@ class GetKubernetesApiClientTest {
   withConfig() {
     assert.throws(() => getKubernetesApiClient({ config: "./test/kubeconfig" }), /Unknown format/);
     assert.throws(() => getKubernetesApiClient(<any>{ config: {} }), /No active cluster/);
+    assert.throws(
+      () =>
+        getKubernetesApiClient(
+          <any>{ config: { clusters: [], users: [], contexts: [], currentContext: "" }, timeout: 100 },
+          k8s.AppsV1Api
+        ),
+      /No active cluster/
+    );
     assert.ok(getKubernetesApiClient(<any>{ config: FAKE_KUBECONFIG }) instanceof k8s.KubernetesObjectApi);
     assert.ok(getKubernetesApiClient(<any>{ config: FAKE_KUBECONFIG }, k8s.AppsV1Api) instanceof k8s.AppsV1Api);
   }

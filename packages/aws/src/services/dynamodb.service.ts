@@ -1211,10 +1211,11 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
       } catch {
         continue;
       }
-      /* v8 ignore next 3 */
+      /* v8 ignore start */
       if (!model) {
         continue;
       }
+      /* v8 ignore stop */
       const repo: any = this.getRepository(model);
       repos.push((repo.repository ?? repo) as DynamoRepository<any>);
     }

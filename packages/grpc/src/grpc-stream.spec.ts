@@ -504,6 +504,16 @@ class GrpcStreamTest {
     req.emit("data", createGrpcFrame(Buffer.from("{}")));
     await new Promise(resolve => setImmediate(resolve));
     assert.strictEqual(state.trailers!["grpc-status"], "13");
+
+    // Synchronous throw in onMessage handler
+    const reqSync = createMockRequest();
+    const stateSync = createMockResponse();
+    const streamSync = new GrpcStream(reqSync as any, stateSync.res, createJsonMethodDef());
+    streamSync.onMessage(() => {
+      throw new Error("sync boom");
+    });
+    reqSync.emit("data", createGrpcFrame(Buffer.from("{}")));
+    assert.strictEqual(stateSync.trailers!["grpc-status"], "13");
   }
 }
 

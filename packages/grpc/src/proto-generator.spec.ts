@@ -715,5 +715,20 @@ class ProtoGeneratorTest {
     );
     assert.match(proto, /rpc Connect\(stream \w+\) returns \(stream \w+\);/);
     assert.match(proto, /rpc Watch\(google\.protobuf\.Empty\) returns \(stream \w+\);/);
+
+    // Invalid URI escape sequences in schemaRef and $ref fall back to raw strings
+    const badUriProto = generateProto(
+      { "Bad.Op": { id: "Bad.Op", input: "Bad%E0%A4%A", output: "void" } } as any,
+      {
+        "Bad%E0%A4%A": {
+          type: "object",
+          properties: {
+            nested: { $ref: "#/definitions/Nested%E0%A4%A" }
+          }
+        }
+      } as any,
+      "webda"
+    );
+    assert.ok(badUriProto.includes("message BadE0A4A"));
   }
 }

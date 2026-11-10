@@ -433,10 +433,11 @@ export async function packageApplication(app: Application, options: PackageOptio
     } else {
       // Version conflict: nest under the requiring package
       target = `${parent}/node_modules/${name}`;
-      /* v8 ignore next 3 */
+      /* v8 ignore start */
       if (placed.some(pkg => pkg.target === target)) {
         continue;
       }
+      /* v8 ignore stop */
     }
     placed.push({ real, target });
     addPackageFiles(real, target, files, accept);

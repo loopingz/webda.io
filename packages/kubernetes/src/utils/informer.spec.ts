@@ -228,6 +228,8 @@ class KubernetesInformerTest {
       { restartDelay: 50 }
     );
     await this.informer.start();
+    // Second error while restartTimer is already active is ignored
+    (this.informer as any).onError(new Error("duplicate error"));
     await this.informer.stop();
     await new Promise(resolve => setTimeout(resolve, 150));
     assert.strictEqual(this.api.lists.length, 1);

@@ -989,23 +989,40 @@ class StoreAggregationTest extends WebdaApplicationTest {
     const tmpDir = mkdtempSync(join(tmpdir(), "webda-memstore-"));
     try {
       const pFile = join(tmpDir, "mem.dat");
-      // Write legacy JSON format to cover LDJSONMemoryStreamReader oldFormat
-      writeFileSync(pFile, JSON.stringify({ k1: '{"uuid":"k1"}' }));
+      // First init catches error in init() when load() fails (line 323)
+      writeFileSync(pFile, 'k1\t{"uuid":"k1"}\n');
       const pStore = new MemoryStore("pStore", {
-        persistence: { path: pFile, delay: 50, key: "secret-key" }
+        persistence: { path: pFile, delay: 20 }
       } as any);
       pStore.resolve();
-      // First init fails to decrypt legacy plain file with key -> catches error in init() (line 323)
+      const origLoad = pStore.load.bind(pStore);
+      pStore.load = async () => {
+        throw new Error("load error");
+      };
       await pStore.init();
-      // Trigger storage.set while persistencePromise is active
-      pStore.persistencePromise = new Promise(resolve => setTimeout(resolve, 80));
+      pStore.load = origLoad;
+      await pStore.load();
+
+      // Trigger storage.set while persistencePromise is active (line 340-342)
+      pStore.persistencePromise = new Promise(resolve => setTimeout(resolve, 60));
       pStore.storage.set("k2", '{"uuid":"k2"}');
-      await new Promise(resolve => setTimeout(resolve, 60));
+      await new Promise(resolve => setTimeout(resolve, 35));
       await pStore.persistencePromise;
       pStore.persistencePromise = null;
-      // Trigger storage.set to schedule persistenceTimeout, then call stop() to clearTimeout and persist with key
-      pStore.storage.set("k3", '{"uuid":"k3"}');
-      await pStore.stop();
+
+      // Clear persistenceTimeout and trigger storage.set when persistencePromise is null so timeout() executes persist() (lines 344-346)
+      pStore.persistenceTimeout = undefined;
+      pStore.storage.set("k2b", '{"uuid":"k2b"}');
+      await new Promise(resolve => setTimeout(resolve, 45));
+
+      // Encrypt and stop with active persistenceTimeout
+      const pStoreEnc = new MemoryStore("pStoreEnc", {
+        persistence: { path: pFile, delay: 500, key: "secret-key" }
+      } as any);
+      pStoreEnc.resolve();
+      await pStoreEnc.init();
+      pStoreEnc.storage.set("k3", '{"uuid":"k3"}');
+      await pStoreEnc.stop();
 
       // Reload encrypted file with key
       const pStore2 = new MemoryStore("pStore2", {

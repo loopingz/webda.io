@@ -123,11 +123,12 @@ export function useModelRepository<T extends Model>(
 export function getMachineId() {
   try {
     return process.env["WEBDA_MACHINE_ID"] || machineIdSync();
-    /* v8 ignore next 5 */
+    /* v8 ignore start */
   } catch (err) {
     // Useful in k8s pod
     return process.env["HOSTNAME"];
   }
+  /* v8 ignore stop */
 }
 
 /**

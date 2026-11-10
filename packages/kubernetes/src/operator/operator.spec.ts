@@ -328,10 +328,43 @@ class KubernetesOperatorTest extends WebdaApplicationTest {
     await settle();
     assert.strictEqual(Tenant.calls.length, 2);
     // The other one takes over when the leader stops
+    (first as any).elector.callbacks.onError?.(new Error("leader warn"));
     await first.stop();
     await until(() => (second as any).elector.leading);
     await this.tenants.patch("acme", { name: "Acme 3" });
     await until(() => Tenant.calls.length === 3);
+
+    // Controller process/update 404 and non-404/409 error paths
+    const ctrl = (second as any).controllers[0];
+    const origGet = ctrl.resources.get.bind(ctrl.resources);
+    const origReplace = ctrl.resources.replace.bind(ctrl.resources);
+    try {
+      ctrl.resources.get = async () => {
+        throw new k8s.ApiException(404, "not found", undefined, {});
+      };
+      await ctrl.process("missing");
+      await ctrl.update("missing", () => true);
+
+      ctrl.resources.get = async () => {
+        throw new Error("get 500");
+      };
+      await assert.rejects(() => ctrl.process("err"), /get 500/);
+      await assert.rejects(() => ctrl.update("err", () => true), /get 500/);
+
+      ctrl.resources.get = async () => ({ metadata: { name: "x" } });
+      ctrl.resources.replace = async () => {
+        throw new k8s.ApiException(404, "not found", undefined, {});
+      };
+      await ctrl.update("x", () => true);
+
+      ctrl.resources.replace = async () => {
+        throw new Error("replace 500");
+      };
+      await assert.rejects(() => ctrl.update("x", () => true), /replace 500/);
+    } finally {
+      ctrl.resources.get = origGet;
+      ctrl.resources.replace = origReplace;
+    }
   }
 
   @test

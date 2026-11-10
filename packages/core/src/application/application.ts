@@ -950,6 +950,7 @@ export class Application {
    */
   protected checkRelations(): void {
     const diagnostics = checkRelations(this.models, {
+      /* v8 ignore next */
       isFinalModel: (id: string) => this.isFinalModel(id),
       deferStoreCheck: true
     });

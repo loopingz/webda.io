@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as path from "path";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { Application, UnpackedApplication, useApplication, validateModelSchema } from "../index.js";
 import { CoreModel } from "../models/coremodel.model.js";
@@ -464,29 +464,22 @@ class ApplicationTest extends WebdaInternalTest {
       // addModel with undefined model
       assert.strictEqual(packagedApp.addModel("Webda/UndefinedModel", undefined), packagedApp);
 
-      // importFile with withExport=false and missing export
+      // loadModule with missing Configuration export and importFile with withExport=false / missing export
+      const modDir = path.join(root, "mod");
+      mkdirSync(modDir, { recursive: true });
+      writeFileSync(path.join(modDir, "package.json"), JSON.stringify({ name: "mod", type: "module" }));
+      writeFileSync(path.join(modDir, "svc.js"), "export class Svc {}");
       const testApp = new TestInternalApplication(__dirname + "/../../test/config.json");
-      assert.strictEqual(await testApp["importFile"]("./../../test/moddas/fakeservice.js", false), undefined);
-      assert.strictEqual(
-        await testApp["importFile"]("./../../test/moddas/fakeservice.js:NonExistentExport", true),
-        undefined
-      );
-
-      // getImplementations
+      const svcJsPath = path.join(modDir, "svc.js");
+      assert.strictEqual(await testApp["importFile"](svcJsPath, false), undefined);
+      assert.strictEqual(await testApp["importFile"](`${svcJsPath}:NonExistentExport`, true), undefined);
+      // getImplementations & loadModule(undefined)
       class DummyService {}
       class SubDummyService extends DummyService {}
       testApp.addModda("Webda/DummyService", DummyService as any);
       const impls = testApp.getImplementations(new SubDummyService() as any);
       assert.strictEqual(impls["Webda/DummyService"], DummyService);
-
-      // loadModule(undefined)
       await testApp.loadModule(undefined as any);
-
-      // loadModule with missing Configuration export
-      const modDir = path.join(root, "mod");
-      mkdirSync(modDir, { recursive: true });
-      writeFileSync(path.join(modDir, "package.json"), JSON.stringify({ name: "mod", type: "module" }));
-      writeFileSync(path.join(modDir, "svc.js"), "export class Svc {}");
       await testApp.loadModule(
         {
           moddas: {
@@ -508,7 +501,7 @@ class ApplicationTest extends WebdaInternalTest {
         Identifier: "Webda/RelModelA",
         Ancestors: [],
         Subclasses: [],
-        Relations: { b: { type: "LINK", model: "Webda/RelModelB", targetProperty: "a" } as any },
+        Relations: { queries: [{ attribute: "b", model: "Webda/RelModelB" }] as any },
         PrimaryKey: ["uuid"],
         Events: [],
         Schemas: {},
@@ -524,6 +517,7 @@ class ApplicationTest extends WebdaInternalTest {
       const wsRoot = path.join(root, "ws");
       const pkgDir = path.join(wsRoot, "packages", "my-app");
       mkdirSync(path.join(wsRoot, "node_modules"), { recursive: true });
+      symlinkSync(path.join(wsRoot, "missing-symlink-target"), path.join(wsRoot, "node_modules", "broken-link"));
       mkdirSync(pkgDir, { recursive: true });
       writeFileSync(
         path.join(wsRoot, "package.json"),

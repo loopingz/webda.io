@@ -148,7 +148,7 @@ class ServiceTest extends WebdaApplicationTest {
     (svc as any).addRoute("relative", ["GET"], () => {});
     // addRoute when Router service is missing
     const router = this.webda.getServices()["Router"];
-    delete this.webda.getServices()["Router"];
+    this.webda.getServices()["Router"] = null as any;
     try {
       (svc as any).addRoute("/abs-no-router", ["GET"], () => {});
     } finally {

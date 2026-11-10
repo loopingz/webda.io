@@ -684,6 +684,17 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
       ["Created:own:own@webda.io:User", "Deleted:own"]
     );
     await store.stop();
+    // Watcher error callbacks (watcher.ts lines 116, 132 and kubernetesstore.service.ts line 280)
+    await store.startWatchers();
+    const w0 = (store as any).watchers[0];
+    const origReposOf = w0.repositoriesOf.bind(w0);
+    w0.repositoriesOf = () => {
+      throw new Error("w0 error");
+    };
+    await w0.onChange({ metadata: { name: "err1" } }, true);
+    await w0.onDelete({ metadata: { name: "err1" } });
+    w0.repositoriesOf = origReposOf;
+    await store.stop();
     // Stopped: no more event
     await external.create(resource("after", { email: "after@webda.io" }));
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -705,6 +716,71 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
       // Two stores defining the same resources differently
       this.registerService(new KubernetesStore("other", this.parameters({ models: ["Webda/User"] }))).resolve();
       await assert.rejects(() => exporter.crdExport(target), /The stores k8s and other define users.test.webda.io/);
+
+      // Repository and Store error propagation paths (lines 275-276, 353, 376, 391, 486 of kubernetesrepository.ts and 371 of kubernetesstore.service.ts)
+      const rawRepo = this.store.createRepository(useModel("Webda/User"));
+      const origRes = (rawRepo as any).resources;
+      let statusAttempts = 0;
+      (rawRepo as any).resources = {
+        ...origRes,
+        replace: async (r: any) => r,
+        get: async () => ({ metadata: { name: "u1" }, spec: {}, status: {} }),
+        replaceStatus: async () => {
+          statusAttempts++;
+          if (statusAttempts === 1) throw new k8s.ApiException(409, "conflict", undefined, {});
+          throw new Error("status 500");
+        },
+        create: async () => {
+          throw new Error("create 500");
+        }
+      };
+      (rawRepo as any).statusFields = ["_mfaAttempts"];
+      await assert.rejects(
+        () =>
+          (rawRepo as any).write(
+            { metadata: { name: "u1", labels: {}, annotations: {} }, spec: {}, status: { _mfaAttempts: 0 } },
+            { uuid: "u1", _mfaAttempts: 1 }
+          ),
+        /status 500/
+      );
+      await assert.rejects(() => rawRepo.create({ uuid: "u-err" }), /create 500/);
+
+      const origRead = (rawRepo as any).read.bind(rawRepo);
+      (rawRepo as any).read = async () => ({ metadata: { name: "u1" }, spec: { uuid: "u1" } });
+      await assert.rejects(
+        () =>
+          (rawRepo as any).mutate(
+            "u1",
+            async () => {
+              throw new Error("custom mutate error");
+            },
+            { missing: "store" }
+          ),
+        /custom mutate error/
+      );
+      (rawRepo as any).read = async () => {
+        throw new Error("read 500");
+      };
+      await assert.rejects(() => rawRepo.exists("u1" as any), /read 500/);
+      await assert.rejects(() => rawRepo.delete("u1" as any, "email" as any, "a@b.c"), /read 500/);
+      (rawRepo as any).read = origRead;
+      (rawRepo as any).resources = origRes;
+
+      const origGetResources = this.store.getResources.bind(this.store);
+      let delCount = 0;
+      this.store.getResources = (() => ({
+        listAll: async () => [{ metadata: { name: "a" } }, { metadata: { name: "b" } }],
+        delete: async () => {
+          delCount++;
+          if (delCount === 1) throw new k8s.ApiException(404, "not found", undefined, {});
+          throw new Error("clean 500");
+        }
+      })) as any;
+      try {
+        await assert.rejects(() => this.store.__clean(), /clean 500/);
+      } finally {
+        this.store.getResources = origGetResources;
+      }
     } finally {
       rmSync(target, { recursive: true, force: true });
     }

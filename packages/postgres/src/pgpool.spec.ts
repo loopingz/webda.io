@@ -278,7 +278,9 @@ class PgPoolTest extends WebdaApplicationTest {
         delete modelsMap["Test/ViewChild"];
       }
 
-      // Single-client stop error swallow
+      // Single-client stop error swallow and migrate wrapper
+      (store as any).migrateCommand = async () => 0;
+      assert.strictEqual(await store.migrate(true), 0);
       store.client = new FakeClient() as any;
       await store.stop();
 

@@ -295,6 +295,14 @@ class SdkManifestSyntheticTest extends SampleAppTest {
         Schemas: { Output: { type: "object" }, Input: { type: "object", properties: { _owner: { type: "string" } } } }
       };
     }
+    class ChildOfOther {
+      static Metadata = {
+        Identifier: "WebdaDemo/SdkChildOfOther",
+        Plural: "SdkChildOfOthers",
+        Schemas: { Output: { type: "object", properties: { _parent: { type: "string" } } } },
+        Relations: { parent: { model: "WebdaDemo/SdkOther", attribute: "_parent" } }
+      };
+    }
     class Other {
       static Metadata = {
         Identifier: "WebdaDemo/SdkOther",
@@ -305,6 +313,7 @@ class SdkManifestSyntheticTest extends SampleAppTest {
           queries: [
             { attribute: "things", model: "WebdaDemo/SdkThing", targetAttribute: "name" },
             { attribute: "owned", model: "WebdaDemo/SdkInputOnly", targetAttribute: "Owner" },
+            { attribute: "children", model: "WebdaDemo/SdkChildOfOther", targetAttribute: "Other" },
             { attribute: "bare", model: "WebdaDemo/SdkNoSchema", targetAttribute: "Other" },
             { attribute: "gone", model: "WebdaDemo/SdkGone", targetAttribute: "Other" },
             { attribute: "untargeted", model: "WebdaDemo/SdkThing" },
@@ -316,6 +325,7 @@ class SdkManifestSyntheticTest extends SampleAppTest {
     const added = {
       "WebdaDemo/SdkThing": Thing,
       "WebdaDemo/SdkInputOnly": InputOnly,
+      "WebdaDemo/SdkChildOfOther": ChildOfOther,
       "WebdaDemo/SdkOther": Other,
       "WebdaDemo/SdkNoSchema": class NoSchema {
         static Metadata = { Identifier: "WebdaDemo/SdkNoSchema", Plural: "SdkNoSchemas" };
@@ -399,8 +409,8 @@ class SdkManifestSyntheticTest extends SampleAppTest {
       assert.deepStrictEqual(Object.keys(other.shared), ["label"]);
       assert.deepStrictEqual(
         other.relations.queries!.map(query => query.targetAttribute),
-        // Real attribute kept, matched on the input schema, nothing to match, unknown target
-        ["name", "_owner", "Other", "Other", undefined, ""]
+        // Real attribute kept, matched on the input schema, resolved from parent relation, nothing to match, unknown target
+        ["name", "_owner", "_parent", "Other", "Other", undefined, ""]
       );
       // Transports: the REST routes are registered once, the GraphQL schema generated
       assert.deepStrictEqual(manifest.transports, {

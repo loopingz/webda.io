@@ -671,7 +671,7 @@ export class MongoStoreTest extends WebdaApplicationTest {
     await assert.rejects(() => errRepo.create({ uuid: "x" }), /db error/);
     (errRepo as any).aggregationOptions = { maxGroups: 1 };
     await assert.rejects(
-      () => (errRepo as any).executeAggregation({ groupBy: ["a"], metrics: {}, limit: undefined }),
+      () => (errRepo as any).executeAggregation({ groupBy: ["a"], metrics: { c: { fn: "COUNT" } }, limit: undefined }),
       /exceeds 1 groups/
     );
   }

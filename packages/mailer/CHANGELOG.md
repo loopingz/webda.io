@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/mailer-v4.0.0-beta.13...mailer-v4.0.0-beta.14) (2026-11-10)
+
+
+### Bug Fixes
+
+* **mailer:** declare nodemailer transport options in MailerParameters ([#1060](https://github.com/loopingz/webda.io/issues/1060)) ([7e4afb6](https://github.com/loopingz/webda.io/commit/7e4afb646b0f81de90403391c91dfe2bd9d40fe7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.14
+    * @webda/templates bumped to 4.0.0-beta.14
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.14
+
 ## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/mailer-v4.0.0-beta.12...mailer-v4.0.0-beta.13) (2026-11-04)
 
 

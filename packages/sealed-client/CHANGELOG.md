@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/sealed-client-v4.0.0-beta.13...sealed-client-v4.0.0-beta.14) (2026-11-10)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.14
+
 ## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/sealed-client-v4.0.0-beta.12...sealed-client-v4.0.0-beta.13) (2026-11-04)
 
 

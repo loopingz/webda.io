@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.12...utils-v4.0.0-beta.13) (2026-11-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **utils:** JSONC load and parse helpers now return plain data by default. Pass { edit: true } when comments and formatting must survive edits.
+
+### Performance Improvements
+
+* **utils:** make JSONC editing opt-in ([#1058](https://github.com/loopingz/webda.io/issues/1058)) ([8e03c9f](https://github.com/loopingz/webda.io/commit/8e03c9f1bc1cf4efaf724c0a7f407a7196a85c06))
+
 ## [4.0.0-beta.12](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.11...utils-v4.0.0-beta.12) (2026-11-04)
 
 

@@ -414,5 +414,9 @@ class OperationsTest {
     // No spurious service operations
     const opKeys = Object.keys(result.operations);
     assert.strictEqual(opKeys.length, 1, "Should only have the model action operation");
+
+    // Module without schemas
+    const noSchemasResult = generateOperations({ models: {}, beans: {} } as any);
+    assert.deepStrictEqual(noSchemasResult.operations, {});
   }
 }

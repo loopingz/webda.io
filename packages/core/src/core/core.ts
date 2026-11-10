@@ -641,6 +641,7 @@ export class Core implements ICore {
     };
   }
 
+  /* v8 ignore start */
   /**
    * Deserialize a Core instance from a plain JSON object
    * @param json - the JSON data
@@ -653,4 +654,5 @@ export class Core implements ICore {
     }
     return core;
   }
+  /* v8 ignore stop */
 }

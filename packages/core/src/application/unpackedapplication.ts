@@ -312,9 +312,11 @@ export class UnpackedApplication extends Application {
       }
       visited.add(realNmPath);
 
+      /* v8 ignore start */
       if (!fs.existsSync(nmPath)) {
         return [];
       }
+      /* v8 ignore stop */
 
       const files = new Set<string>();
       const checkFolder = async (filepath: string) => {

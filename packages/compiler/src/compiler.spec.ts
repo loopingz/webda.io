@@ -7,7 +7,9 @@ import * as path from "path";
 import { Compiler } from "./index.js";
 import { getGeneratorVersions } from "./compiler.js";
 import { WebdaModule, WebdaProject } from "./definition.js";
+import { generateTypescriptLibrary, reportNamingViolations, writeModule } from "./module.js";
 import { generateOperations } from "./operations.js";
+import { build } from "./schema-backend.js";
 import { FileLogger, MemoryLogger, useWorkerOutput, WorkerOutput } from "@webda/workout";
 const { __dirname } = getCommonJS(import.meta.url);
 
@@ -797,6 +799,176 @@ class CompilerTest {
         JSON.stringify(logs.getMessages())
       );
     } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async projectHelperMethodsAndErrorBranches() {
+    assert.throws(() => new WebdaProject(path.join(tmpdir(), "non-existent-webda-folder-xyz")), /Invalid folder/);
+    const dir = mkdtempSync(path.join(tmpdir(), "webda-proj-"));
+    try {
+      writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "plain-lib", dependencies: { depA: "1" } }));
+      const plainProject = new WebdaProject(dir);
+      assert.strictEqual(plainProject.isApplication(), false);
+      assert.strictEqual(plainProject.completeNamespace("Item"), "Webda/Item");
+      assert.strictEqual(plainProject.completeNamespace("Custom/Item"), "Custom/Item");
+      plainProject.ensureDependency("depA");
+      assert.throws(() => plainProject.ensureDependency("@nonexistent/dep"), /not declared as a dependency/);
+
+      let received = false;
+      plainProject.on("customEvent", () => {
+        received = true;
+      });
+      plainProject.emit("customEvent");
+      assert.strictEqual(received, true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async moduleNamingViolationsAndTypescriptLibraryBranches() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-mod-"));
+    const prevStrict = process.env.WEBDA_STRICT_FILE_NAMING;
+    try {
+      writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "@acme/app", version: "1.0.0" }));
+      writeFileSync(path.join(dir, "webda.config.json"), JSON.stringify({ version: 3, services: { b: {}, a: {} } }));
+      const project = new WebdaProject(dir);
+      const compiler = new Compiler(project);
+
+      const violation = {
+        fileName: path.join(dir, "src", "user.ts"),
+        className: "User",
+        section: "models",
+        expectedSuffix: "user.model.ts"
+      };
+      // Strict mode throws
+      delete process.env.WEBDA_STRICT_FILE_NAMING;
+      assert.throws(() => reportNamingViolations(compiler, [violation]), /cannot claim/);
+
+      // Non-strict mode logs warning
+      process.env.WEBDA_STRICT_FILE_NAMING = "0";
+      reportNamingViolations(compiler, [violation]);
+
+      // writeModule with errors returns undefined
+      assert.strictEqual(
+        writeModule(compiler, { module: {}, namingViolations: [], errors: ["Unresolved target"] }),
+        undefined
+      );
+
+      // generateTypescriptLibrary creates .webda dir, sorts multiple beans, and rethrows session-types errors
+      const mod: any = {
+        beans: {
+          "Acme/ZBean": { Import: "lib/z:ZBean" },
+          "Acme/ABean": { Import: "lib/a:ABean" }
+        },
+        models: {}
+      };
+      generateTypescriptLibrary(compiler, mod);
+      const dts = readFileSync(path.join(dir, ".webda", "module.d.ts"), "utf-8");
+      assert.ok(dts.includes("ABean"));
+      assert.ok(dts.includes("ZBean"));
+
+      // Trigger session types error inside generateTypescriptLibrary
+      writeFileSync(
+        path.join(dir, "webda.config.json"),
+        JSON.stringify({ version: 3, session: "Acme/MissingSession", services: {} })
+      );
+      writeFileSync(path.join(dir, "webda.module.json"), JSON.stringify({ models: { list: {} } }));
+      assert.throws(() => generateTypescriptLibrary(compiler, mod), /MissingSession/);
+    } finally {
+      if (prevStrict === undefined) {
+        delete process.env.WEBDA_STRICT_FILE_NAMING;
+      } else {
+        process.env.WEBDA_STRICT_FILE_NAMING = prevStrict;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async schemaBackendCompileWatchAndCacheEdgeCases() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-edge-"));
+    const prevWorker = process.env.WEBDA_SCHEMA_WORKER;
+    try {
+      // 1. Default resolveGeneratorEntry fallback when appRoot has no node_modules
+      const genVersions = getGeneratorVersions(dir);
+      assert.ok(genVersions["@webda/compiler"]);
+      assert.ok(genVersions["@webda/content-mapper"]);
+
+      writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "edge-app", version: "1.0.0" }));
+      writeFileSync(path.join(dir, "tsconfig.json"), JSON.stringify({ include: ["src/**/*.ts"] }));
+      mkdirSync(path.join(dir, "src"), { recursive: true });
+      const project = new WebdaProject(dir);
+      const compiler = new Compiler(project);
+
+      // 2. requireCompilation creates .webda when missing
+      assert.strictEqual(compiler.requireCompilation(), true);
+      assert.strictEqual(existsSync(path.join(dir, ".webda")), true);
+
+      // 3. requireCompilation when webda.module.json is missing (fileDigest returns undefined)
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), true);
+
+      // 4. requireCompilation when webda.module.json is invalid JSON
+      writeFileSync(path.join(dir, "webda.module.json"), "{invalid");
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), true);
+
+      // 5. WEBDA_SCHEMA_WORKER missing file error in schema-backend + compile catch block
+      process.env.WEBDA_SCHEMA_WORKER = path.join(dir, "missing-worker.mjs");
+      assert.throws(() => build(dir), /WEBDA_SCHEMA_WORKER does not exist/);
+      assert.strictEqual(compiler.compile(true), false);
+
+      // 6. Worker exits with non-zero status
+      const workerScript = path.join(dir, "mock-worker.mjs");
+      writeFileSync(workerScript, `process.stderr.write("fatal worker failure"); process.exit(2);`);
+      process.env.WEBDA_SCHEMA_WORKER = workerScript;
+      assert.throws(() => build(dir), /Build worker failed \(2\): fatal worker failure/);
+
+      // 7. Worker returns errors map
+      writeFileSync(
+        workerScript,
+        `process.stdout.write(JSON.stringify({ errors: { emit: "bad emit" }, results: {} }));`
+      );
+      assert.throws(() => build(dir), /Build worker rejected emit: bad emit/);
+
+      // 8. Worker returns warnings and module with errors (writeModule returns undefined -> compile returns false)
+      writeFileSync(
+        workerScript,
+        `process.stdout.write(JSON.stringify({ results: { emit: { diagnosticCount: 0, diagnostics: "", written: 1, editCounts: {}, warnings: ["sealed warning"] }, module: { module: {}, namingViolations: [], errors: ["broken module"] } } }));`
+      );
+      assert.strictEqual(compiler.compile(true), false);
+
+      // 9. Worker returns valid result -> test watch() and stopWatch()
+      writeFileSync(
+        workerScript,
+        `process.stdout.write(JSON.stringify({ results: { emit: { diagnosticCount: 0, diagnostics: "", written: 1, editCounts: {} }, module: { module: { models: {}, moddas: {}, beans: {}, deployers: {}, schemas: {} }, namingViolations: [], errors: [] } } }));`
+      );
+      const events: string[] = [];
+      await new Promise<void>(resolvePromise => {
+        compiler.watch(ev => {
+          events.push(ev);
+          if (events.length === 2) {
+            // Trigger fs watch callback by writing a file in src/
+            writeFileSync(path.join(dir, "src", "trigger.ts"), "export const a = 1;");
+          } else if (events.length >= 4) {
+            compiler.stopWatch();
+            resolvePromise();
+          }
+        });
+      });
+      assert.deepStrictEqual(events.slice(0, 2), ["MODULE_GENERATION", "MODULE_GENERATED"]);
+      // Default callback argument
+      compiler.watch();
+      compiler.stopWatch();
+    } finally {
+      if (prevWorker === undefined) {
+        delete process.env.WEBDA_SCHEMA_WORKER;
+      } else {
+        process.env.WEBDA_SCHEMA_WORKER = prevWorker;
+      }
       rmSync(dir, { recursive: true, force: true });
     }
   }

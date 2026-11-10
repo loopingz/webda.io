@@ -79,4 +79,21 @@ class McpSessionManagerTest {
       ["auth-1"]
     );
   }
+
+  @test
+  async logsWarningWhenClosingSessionFails() {
+    const manager = new McpSessionManager(500);
+    manager.add({
+      id: "broken",
+      lastSeen: 1000,
+      transport: {
+        close: async () => {
+          throw new Error("transport close error");
+        }
+      } as any,
+      server: { close: async () => {} } as any
+    });
+    await manager.closeAll();
+    assert.strictEqual(manager.all().length, 0);
+  }
 }

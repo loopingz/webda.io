@@ -27,7 +27,7 @@ async function byteByByte(data: Buffer): Promise<Buffer> {
 @suite
 class LayoutTest {
   @test
-  exclusiveBlobCreationDoesNotOverwriteExistingFiles() {
+  async exclusiveBlobCreationDoesNotOverwriteExistingFiles() {
     const folder = mkdtempSync(join(tmpdir(), "webda-oci-exclusive-"));
     try {
       const layout = new ImageLayout(folder);
@@ -61,6 +61,11 @@ class LayoutTest {
       }
       rmSync(join(folder, "blobs", "sha256"), { recursive: true });
       assert.throws(() => layout.writeBlob(data, MediaTypes.OCI_CONFIG), { code: "ENOENT" });
+      assert.throws(() => layout.blobPath("md5:1234"), /Unsupported digest/);
+      await assert.rejects(
+        () => layout.writeStream(Readable.from([Buffer.from("abc")]), sha256("other")),
+        /Digest mismatch/
+      );
     } finally {
       rmSync(folder, { recursive: true, force: true });
     }

@@ -1,3 +1,4 @@
+import { useApplication } from "@webda/core";
 import {
   WebdaApplicationTest,
   checkLegacyTypeLease,
@@ -76,7 +77,49 @@ class SQLiteStoreLegacyTypesTest extends WebdaApplicationTest {
   }
 
   @test
-  startup() {
-    return checkLegacyTypeStartup(this.harness);
+  async startup() {
+    await checkLegacyTypeStartup(this.harness);
+    const store = this.stores[0];
+    if (store) {
+      await store.migrate(true, 100, true);
+      // Cover SQLStore edge cases (resolveTable/resolveTableModel without metadata, unknown model in models, rawPages unreadable JSON)
+      class NoMeta {}
+      const app = useApplication();
+      (app.getModels() as any)["Test/NoMeta"] = NoMeta;
+      (app.getModels() as any)["Test/NullModel"] = undefined;
+      const origTable = store.getParameters().table!;
+      store.resolveTable("Test/NoMeta" as any);
+      store.resolveTableModel("Test/NoMeta" as any);
+      const origModels = store.getParameters().models;
+      store.getParameters().models = ["Unknown/ModelId"];
+      (store as any).tableRootOf(origTable);
+      const origHierarchy = store._modelsHierarchy;
+      (store as any)._modelsHierarchy = {
+        "Unknown/ModelId": {},
+        "Test/NullModel": {},
+        ...store._modelsHierarchy
+      };
+      store.getRepositories();
+      store.getRawTables();
+      store.getParameters().models = origModels;
+      (store as any)._modelsHierarchy = origHierarchy;
+      delete (app.getModels() as any)["Test/NoMeta"];
+      delete (app.getModels() as any)["Test/NullModel"];
+      const tbl = store.getRawTables()[0].name;
+      await store.getClient()!.query(`INSERT OR REPLACE INTO ${tbl}(uuid, data) VALUES(?1, ?2)`, ["bad-json", "{}"]);
+      const origDecode = (store as any).dialect.decode;
+      (store as any).dialect.decode = () => {
+        throw new Error("corrupt");
+      };
+      try {
+        const page = await store.rawPages(tbl, 10);
+        if (!page.rows.some(r => r.unreadable)) {
+          throw new Error("Expected unreadable row");
+        }
+      } finally {
+        (store as any).dialect.decode = origDecode;
+        await store.getClient()!.query(`DELETE FROM ${tbl} WHERE uuid = ?1`, ["bad-json"]);
+      }
+    }
   }
 }

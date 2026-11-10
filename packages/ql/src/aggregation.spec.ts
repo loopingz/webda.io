@@ -210,6 +210,18 @@ class AggregatorTest {
       ],
       "null sorts last in DESC"
     );
+    // Equal orderBy keys fall through to 0
+    assert.strictEqual(
+      run(
+        {
+          groupBy: ["owner.uuid"],
+          metrics: { n: { fn: "COUNT" } },
+          orderBy: [{ key: "n", direction: "DESC" }]
+        },
+        ITEMS
+      ).length,
+      3
+    );
   }
 
   @test

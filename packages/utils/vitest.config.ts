@@ -10,7 +10,7 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/*.ts"],
-      exclude: ["src/*.spec.ts", "src/browser.ts"],
+      exclude: ["src/*.spec.ts", "src/browser.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
     },
     setupFiles: ["./vitest.chdir.mts"],

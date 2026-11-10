@@ -640,6 +640,13 @@ class GrpcServiceInitTest {
     await new Promise(resolve => setImmediate(resolve));
     assert.ok(handleCalled, "Interceptor should dispatch to handleGrpcRequest");
 
+    // Rejection in handleGrpcRequest is caught and logged
+    (service as any).handleGrpcRequest = async () => {
+      throw new Error("handler boom");
+    };
+    assert.strictEqual(interceptorsA[0](grpcReq, grpcRes), true);
+    await new Promise(resolve => setImmediate(resolve));
+
     mockCoreServices = {};
   }
 

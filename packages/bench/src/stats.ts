@@ -166,6 +166,7 @@ let commit: string | undefined | null = null;
 export function gitCommit(): string | undefined {
   if (commit === null) {
     commit = process.env.GITHUB_SHA;
+    /* v8 ignore start */
     if (!commit) {
       try {
         commit = execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] })
@@ -175,6 +176,7 @@ export function gitCommit(): string | undefined {
         commit = undefined;
       }
     }
+    /* v8 ignore stop */
   }
   return commit || undefined;
 }

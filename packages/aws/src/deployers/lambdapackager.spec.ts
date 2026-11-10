@@ -146,6 +146,8 @@ class LambdaPackagerCommandTest extends WebdaApplicationTest {
     );
     assert.strictEqual(packager.getParameters().zipPath, "dist/lambda-${package.version}.zip");
     // @ts-ignore protected
+    assert.ok(packager.getApplication());
+    // @ts-ignore protected
     vi.spyOn(packager, "getApplication").mockReturnValue(this.fixture.getApp());
     const result = await packager.package();
     // The deployment variables are replaced, the package version comes from the application

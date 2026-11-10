@@ -128,4 +128,92 @@ class TestConfigurationService extends WebdaInternalSimpleTest {
     await service.checkUpdate();
     assert.strictEqual(mock.callCount, 0);
   }
+
+  @test
+  async additionalConfigurationCoverage() {
+    const { mkdtempSync, mkdirSync, rmSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { FileConfigurationService } = await import("./fileconfiguration.service.js");
+    const { KubernetesConfigurationParameters, KubernetesConfigurationService } =
+      await import("./kubernetesconfiguration.service.js");
+
+    const params = new ConfigurationServiceParameters().load({ sources: ["ConfigurationProvider:a", "selfId"] });
+    assert.strictEqual(params.checkIntervalMs, 3600000);
+    const service = new ConfigurationService("ConfigurationService", params);
+    service.resolve();
+    assert.strictEqual(
+      service.canTriggerConfiguration("selfId", () => {}),
+      false
+    );
+
+    // Invalid source service without getConfiguration
+    const badParams = new ConfigurationServiceParameters().load({ source: "DefinedMailer:a" });
+    const badService = new ConfigurationService("BadConfig", badParams);
+    assert.throws(() => badService.resolve(), /is not implementing ConfigurationProvider interface/);
+
+    // Non-dynamic provider sets interval in init(), updates nextCheck in checkUpdate(), and deletes own service entry
+    const provider = useService<TestConfigurationProvider>("ConfigurationProvider");
+    provider.setConfiguration("a", {
+      services: {
+        SelfConfig: { type: "Webda/ConfigurationService" },
+        SampleService: { email: { text: "FromA" } }
+      }
+    });
+    provider.setConfiguration("b", {
+      services: {
+        SampleService: { email: { text: "FromB" } }
+      }
+    });
+    const origCanTrigger = provider.canTriggerConfiguration;
+    try {
+      provider.canTriggerConfiguration = () => false;
+      const multiParams = new ConfigurationServiceParameters().load({
+        sources: ["ConfigurationProvider:a", "ConfigurationProvider:b"],
+        checkInterval: 3600
+      });
+      const multiService = new ConfigurationService("SelfConfig", multiParams);
+      await multiService.bootstrap(this.webda);
+      await multiService.init();
+      await multiService["checkUpdate"](true);
+      await multiService.stop();
+    } finally {
+      provider.canTriggerConfiguration = origCanTrigger;
+    }
+
+    // FileConfigurationService extensionless getFilePath and missing file without default
+    const root = mkdtempSync(join(tmpdir(), "webda-cfg-cov-"));
+    try {
+      const existingJson = join(root, "existing.json");
+      writeFileSync(existingJson, JSON.stringify({ services: {}, parameters: { k: 1 } }));
+      const fileSvc = new FileConfigurationService(
+        "FileCfg",
+        new ConfigurationServiceParameters().load({ default: { services: {}, parameters: {} } })
+      );
+      assert.strictEqual(fileSvc.getFilePath(join(root, "existing")), existingJson);
+      assert.strictEqual(fileSvc.getFilePath(join(root, "created")), join(root, "created.yaml"));
+
+      const noDefaultSvc = new FileConfigurationService("FileCfgNoDef", new ConfigurationServiceParameters().load({}));
+      noDefaultSvc.getParameters().default = undefined;
+      assert.throws(() => noDefaultSvc.getFilePath(join(root, "missing.json")), /Configuration file not found/);
+
+      // KubernetesConfigurationParameters and KubernetesConfigurationService error branches
+      assert.throws(
+        () => new KubernetesConfigurationParameters().load({ default: { services: { S: {} } } }),
+        /does not support default configuration/
+      );
+      const kubeSvc = new KubernetesConfigurationService("KubeCfg", new KubernetesConfigurationParameters().load({}));
+      assert.throws(() => kubeSvc.getFilePath(join(root, "no-kube-dir")), /Kubernetes configuration source not found/);
+      kubeSvc.sourcePaths["gone"] = join(root, "no-kube-dir");
+      assert.throws(
+        () => kubeSvc.canTriggerConfiguration("gone", () => {}),
+        /Kubernetes configuration source not found/
+      );
+      const emptyKubeDir = join(root, "empty-kube");
+      mkdirSync(emptyKubeDir, { recursive: true });
+      await assert.rejects(() => kubeSvc.getConfiguration(emptyKubeDir), /Kubernetes configuration source not valid/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
 }

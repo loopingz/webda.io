@@ -606,7 +606,20 @@ class BearerResolverTest extends WebdaApplicationTest {
 
   @test
   async sendCookieClearsStaleChunksAndSessionModelSaves() {
-    const { SecureCookie } = await import("./cookie.js");
+    const { CookieOptions, SecureCookie } = await import("./cookie.js");
+    const { SessionModel } = await import("./manager.model.js");
+
+    // CookieOptions maxAge setter and domain: true
+    const ctx0 = await this.newContext();
+    const co = new CookieOptions({ maxAge: "2d", domain: true }, ctx0.getHttpContext());
+    assert.strictEqual(co.maxAge, 86400 * 2);
+    assert.strictEqual(co.domain, ctx0.getHttpContext().getHostName());
+
+    // SecureCookie.load with non-WebContext
+    const dummySession = {};
+    assert.strictEqual(await SecureCookie.load("webda", dummySession, {} as any), dummySession);
+
+    // SecureCookie.sendCookie splitting (> 4096 chars) & SecureCookie.load reassembling chunks
     const cookiesSent: Record<string, any> = {};
     const fakeCtx: any = {
       cookie: (name: string, value: string, opts: any) => {
@@ -616,25 +629,93 @@ class BearerResolverTest extends WebdaApplicationTest {
         getCookies: () => ({ webda: "part1", webda2: "part2" })
       })
     };
-    SecureCookie.sendCookie(fakeCtx, "webda", "short", { maxAge: 3600 });
+    SecureCookie.sendCookie(fakeCtx, "webda", "x".repeat(5000), new CookieOptions({ maxAge: 3600 }));
+    assert.ok(cookiesSent.webda2.value.length > 0);
+
+    // Clear stale chunks when short value sent
+    SecureCookie.sendCookie(fakeCtx, "webda", "short", new CookieOptions({ maxAge: 3600 }));
     assert.strictEqual(cookiesSent.webda.value, "short");
     assert.strictEqual(cookiesSent.webda2.value, "");
     assert.strictEqual(cookiesSent.webda2.opts.maxAge, 0);
 
+    // Load reassembles split cookies
+    const splitCtx = await this.newContext();
+    splitCtx.getHttpContext().cookies = { webda: "bad1", webda2: "bad2" };
+    await SecureCookie.load("webda", {}, splitCtx);
+
+    // SessionModel constructor
+    const sm1 = new SessionModel({ ttl: 123, session: { u: 1 } });
+    assert.strictEqual(sm1.ttl, 123);
+    const sm2 = new SessionModel({});
+    assert.strictEqual(sm2.ttl, 0);
+
+    // addCertificateFactor error handling & isOutdated error handling
     const manager: any = useService("SessionManager");
+    assert.ok((await manager.load({} as any)) instanceof Session);
+    await manager.save({} as any, new Session());
+
+    registerCertificateResolver({
+      mode: "factor",
+      resolveCertificate: async () => {
+        throw new Error("cert resolve failed");
+      }
+    });
+    try {
+      const certCtx = await this.newContext();
+      certCtx.getHttpContext().setClientCertificate({ subject: { CN: "alice" }, verified: true } as any);
+      const s = new Session();
+      s.login("u1", "x:email");
+      await manager.addCertificateFactor(certCtx, s);
+    } finally {
+      registerCertificateResolver(undefined);
+    }
+
+    registerUserResolver({
+      resolve: async () => {
+        throw new Error("user store down");
+      }
+    });
+    try {
+      const s = new Session();
+      s.login("u1", "x:email");
+      s.authAt = 1000;
+      assert.strictEqual(await manager.isOutdated(s), true);
+    } finally {
+      registerUserResolver(undefined);
+    }
+
+    // sessionModel load (with and without cookie.sub) and save (create and update)
     const prevModel = manager.sessionModel;
     try {
+      let exists = false;
       manager.sessionModel = {
-        exists: async () => false,
-        create: async () => {},
-        update: async () => {}
+        exists: async () => exists,
+        create: async () => {
+          exists = true;
+        },
+        update: async () => {},
+        get: async () => ({ session: { userId: "u1", identUsed: "a@b.c:email" } })
       };
       const ctx = await this.newContext();
+      // load without cookie when sessionModel is active
+      const anonLoaded = await manager.load(ctx);
+      assert.ok(anonLoaded.uuid);
+
       const s: any = new Session();
       s.uuid = "sess-1";
       s.login("u1", "a@b.c:email");
+      // First save -> create
+      await manager.save(ctx, s);
+      // Second save -> update
       await manager.save(ctx, s);
       assert.ok(ctx.getResponseCookies()?.webda);
+
+      // Load with cookie containing sub
+      const loadCtx = await this.newContext();
+      loadCtx.getHttpContext().cookies = { webda: ctx.getResponseCookies().webda.value };
+      const loadedFromStore = await manager.load(loadCtx);
+      assert.strictEqual(loadedFromStore.uuid, "sess-1");
+      assert.strictEqual(loadedFromStore.userId, "u1");
     } finally {
       manager.sessionModel = prevModel;
     }

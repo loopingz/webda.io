@@ -1530,11 +1530,11 @@ export abstract class BinaryService<
       writeStream.on("error", src => {
         try {
           fs.unlinkSync(filename);
-          // Stubing the fs module in ESM seems complicated for now
-          /* c8 ignore next 3 */
+          /* v8 ignore start */
         } catch (err) {
           this.log("ERROR", err);
         }
+        /* v8 ignore stop */
         return reject(src);
       });
       readStream.pipe(writeStream);

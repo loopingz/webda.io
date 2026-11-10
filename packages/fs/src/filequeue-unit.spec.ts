@@ -194,10 +194,12 @@ class FileQueueUnitTest {
   @test
   async messageOrdering() {
     // Messages should be returned in order of creation (FIFO by birthtime)
-    await this.queue.sendMessage({ order: 1 });
-    // Small delay to ensure different birthtimes
-    await new Promise(resolve => setTimeout(resolve, 10));
-    await this.queue.sendMessage({ order: 2 });
+    // Write zzzz.json first, then 0000.json second so readdirSync order is reversed relative to birthtimeMs
+    fs.writeFileSync(path.join(this.tmpDir, "zzzz.json"), JSON.stringify({ order: 1 }));
+    await new Promise(resolve => setTimeout(resolve, 15));
+    fs.writeFileSync(path.join(this.tmpDir, "0000.json"), JSON.stringify({ order: 2 }));
+    await new Promise(resolve => setTimeout(resolve, 15));
+    fs.writeFileSync(path.join(this.tmpDir, "mmmm.json"), JSON.stringify({ order: 3 }));
 
     const msg1 = await this.queue.receiveMessage();
     assert.strictEqual(msg1.length, 1);
@@ -209,6 +211,12 @@ class FileQueueUnitTest {
     const msg2 = await this.queue.receiveMessage();
     assert.strictEqual(msg2.length, 1);
     assert.deepStrictEqual(msg2[0].Message, { order: 2 });
+    await this.queue.deleteMessage(msg2[0].ReceiptHandle);
+
+    const msg3 = await this.queue.receiveMessage();
+    assert.strictEqual(msg3.length, 1);
+    assert.deepStrictEqual(msg3[0].Message, { order: 3 });
+    await this.queue.deleteMessage(msg3[0].ReceiptHandle);
   }
 
   @test

@@ -40,6 +40,7 @@ import {
   registerGraphQLFixture
 } from "../test/fixture.js";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
+import { Duplex } from "node:stream";
 import WebSocket from "ws";
 import { GraphQLService } from "./graphql.service.js";
 import { GraphQLOperationContext, graphqlPlacement, operationFieldName } from "./operations.js";
@@ -110,6 +111,13 @@ describe("operation placement", () => {
         ["maybe", "Object"]
       ]
     );
+    const singleInputSchema = {
+      type: "object",
+      properties: { "bad-key": { type: "string" } }
+    };
+    (svc as any).app = { getSchema: () => singleInputSchema };
+    const single = svc.operationArgs({ input: "X.single" } as any, "XSingle");
+    assert.deepStrictEqual(single.toInput({ input: { badKey: "v" } }), { "bad-key": "v" });
   });
 });
 
@@ -123,10 +131,11 @@ describe("GraphQLOperationContext", () => {
     return ctx;
   };
 
-  it("keeps a non-streamed result", () => {
-    const ctx = new GraphQLOperationContext(new WebContext(new HttpContext("localhost", "POST", "/graphql")), {});
+  it("keeps a non-streamed result", async () => {
+    const ctx = new GraphQLOperationContext(new WebContext(new HttpContext("localhost", "POST", "/graphql")), { a: 1 });
     assert.ok(ctx.write({ a: 1 }));
     assert.deepStrictEqual(ctx.result, { a: 1 });
+    assert.strictEqual((await ctx.getRawInput()).toString(), '{"a":1}');
   });
 
   it("queues chunks without their private keys and ends on finish", async () => {
@@ -507,25 +516,97 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
   async requestFiltersApplyToTheWebSocketUpgrade() {
     registerGraphQLFixture();
     useRouter().registerRequestFilter({
-      checkRequest: async ctx => ctx.getHttpContext().getUniqueHeader("x-block") !== "yes"
+      checkRequest: async ctx => {
+        if (ctx.getHttpContext().getUniqueHeader("x-throw") === "yes") {
+          throw new Error("upgrade filter boom");
+        }
+        return ctx.getHttpContext().getUniqueHeader("x-block") !== "yes";
+      }
     });
     const http = useService("HttpServer" as any) as any;
     await http.start("127.0.0.1", 0);
     await until(() => http.server?.listening);
     const url = `ws://127.0.0.1:${http.server.address().port}/graphql`;
+    const createConnection = () => {
+      const clientSock: any = new Duplex({
+        read() {},
+        write(chunk, _enc, cb) {
+          cb();
+          setImmediate(() => {
+            if (!serverSock.destroyed) {
+              if (serverSock.isPaused()) serverSock.resume();
+              serverSock.push(chunk);
+            }
+          });
+        },
+        final(cb) {
+          cb();
+          setImmediate(() => {
+            if (!serverSock.destroyed) serverSock.push(null);
+          });
+        }
+      });
+      const serverSock: any = new Duplex({
+        read() {},
+        write(chunk, _enc, cb) {
+          cb();
+          setImmediate(() => {
+            if (!clientSock.destroyed) {
+              if (clientSock.isPaused()) clientSock.resume();
+              clientSock.push(chunk);
+            }
+          });
+        },
+        final(cb) {
+          cb();
+          setImmediate(() => {
+            if (!clientSock.destroyed) clientSock.push(null);
+          });
+        }
+      });
+      for (const s of [clientSock, serverSock]) {
+        s.setTimeout = () => s;
+        s.setNoDelay = () => s;
+        s.setKeepAlive = () => s;
+        s.address = () => ({ port: 0 });
+        s.remoteAddress = "127.0.0.1";
+      }
+      clientSock.on("close", () => serverSock.destroy());
+      serverSock.on("close", () => clientSock.destroy());
+      http.server.emit("connection", serverSock);
+      queueMicrotask(() => clientSock.emit("connect"));
+      return clientSock;
+    };
     try {
-      const blocked = new WebSocket(url, "graphql-transport-ws", { headers: { "x-block": "yes" } });
+      const blocked = new WebSocket(url, "graphql-transport-ws", {
+        headers: { "x-block": "yes" },
+        createConnection: createConnection as any
+      });
       const status = await new Promise<number>(resolve => {
         blocked.on("unexpected-response", (_req, res) => resolve(res.statusCode!));
         blocked.on("error", () => resolve(0));
       });
       assert.strictEqual(status, 403);
-      const accepted = new WebSocket(url, "graphql-transport-ws");
+      const crashed = new WebSocket(url, "graphql-transport-ws", {
+        headers: { "x-throw": "yes" },
+        createConnection: createConnection as any
+      });
+      await new Promise<void>(resolve => {
+        crashed.on("error", () => resolve());
+        crashed.on("close", () => resolve());
+      });
+      const accepted = new WebSocket(url, "graphql-transport-ws", {
+        createConnection: createConnection as any
+      });
       await new Promise<void>((resolve, reject) => {
         accepted.on("open", () => resolve());
         accepted.on("error", reject);
       });
-      accepted.close();
+      const closedByProtocol = new Promise<number>(resolve => {
+        accepted.on("close", code => resolve(code));
+      });
+      accepted.send("not-json");
+      assert.strictEqual(await closedByProtocol, 4400);
     } finally {
       await http.stop?.();
     }

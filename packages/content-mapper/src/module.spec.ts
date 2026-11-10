@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -63,6 +64,11 @@ describe("module helpers", () => {
     const sorted = sortObject({ b: 1, a: 2, B: 3, c: 0 }, v => (v ? v * 10 : 0));
     expect(Object.keys(sorted)).toEqual(["B", "a", "b"]);
     expect(sorted).toEqual({ B: 30, a: 20, b: 10 });
+  });
+
+  it("resolves namespaceOf from scoped package.json, parent folders, or returns undefined", () => {
+    expect(namespaceOf(join(repo, "packages", "models", "src"))).toBe("Webda");
+    expect(namespaceOf("/")).toBeUndefined();
   });
 });
 
@@ -829,6 +835,87 @@ describe("module primary key separator", () => {
       expect(buildModelPrimaryKeySeparator(session.ctx, classOf(session, "keyed.model.ts", "Plain"))).toBeUndefined();
     } finally {
       session.dispose();
+    }
+  });
+
+  it("handles declarative WEBDA_ACTIONS, bare @NotEnumerable, ModelLinksMap, unresolvable ModelLinksAny, and unexported parameters", () => {
+    const tmpDir = realpathSync(mkdtempSync(join(tmpdir(), "content-mapper-mod-")));
+    try {
+      const corePkg = join(tmpDir, "node_modules", "@webda", "core");
+      const modelsPkg = join(tmpDir, "node_modules", "@webda", "models");
+      mkdirSync(corePkg, { recursive: true });
+      mkdirSync(modelsPkg, { recursive: true });
+      writeFileSync(join(corePkg, "package.json"), JSON.stringify({ name: "@webda/core", types: "index.d.ts" }));
+      writeFileSync(
+        join(corePkg, "index.d.ts"),
+        `export class ServiceParameters {}\nexport class Service<T extends ServiceParameters = ServiceParameters> {}\n`
+      );
+      writeFileSync(join(modelsPkg, "package.json"), JSON.stringify({ name: "@webda/models", types: "index.d.ts" }));
+      writeFileSync(
+        join(modelsPkg, "index.d.ts"),
+        `export declare const WEBDA_ACTIONS: unique symbol;\n` +
+          `export class Model {}\n` +
+          `export class ModelLinksMap<T> {}\n` +
+          `export class ModelLinksAny<K, T> {}\n`
+      );
+
+      mkdirSync(join(tmpDir, "src"), { recursive: true });
+      writeFileSync(
+        join(tmpDir, "src", "local-sym.model.ts"),
+        `import { Model } from "@webda/models";\n` +
+          `declare const WEBDA_ACTIONS: unique symbol;\n` +
+          `export class LocalSymItem extends Model {\n` +
+          `  declare [WEBDA_ACTIONS]: { ignored: () => void };\n` +
+          `}\n`
+      );
+      writeFileSync(
+        join(tmpDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { strict: false, experimentalDecorators: true, types: [] },
+          include: ["src/**/*"]
+        })
+      );
+      writeFileSync(
+        join(tmpDir, "src", "items.model.ts"),
+        `import { Model, WEBDA_ACTIONS, ModelLinksMap, ModelLinksAny } from "@webda/models";\n` +
+          `import { Service, ServiceParameters } from "@webda/core";\n` +
+          `declare const NotEnumerable: PropertyDecorator;\n` +
+          `declare const ns: { Dec: () => MethodDecorator };\n` +
+          `declare const LOCAL_ACTIONS: unique symbol;\n` +
+          `class UnexportedModelParams {}\n` +
+          `class UnexportedServiceParams extends ServiceParameters {}\n` +
+          `class PlainTarget {}\n` +
+          `export class LinkedItem extends Model {\n` +
+          `  declare [LOCAL_ACTIONS]: { ignored: () => void };\n` +
+          `}\n` +
+          `export class MainItem extends Model {\n` +
+          `  static Parameters = UnexportedModelParams;\n` +
+          `  declare [WEBDA_ACTIONS]: { declarativeAct: () => void };\n` +
+          `  @NotEnumerable\n` +
+          `  skippedProp: string = "";\n` +
+          `  mapped: ModelLinksMap<LinkedItem>;\n` +
+          `  brokenPoly: ModelLinksAny<string, PlainTarget>;\n` +
+          `  @ns.Dec()\n` +
+          `  otherMethod(): void {}\n` +
+          `}\n` +
+          `/** @WebdaModda BadModda */\n` +
+          `export class BadModda extends Service<UnexportedServiceParams> {}\n`
+      );
+      const session = openSession(join(tmpDir, "tsconfig.json"), tmpDir);
+      try {
+        const res = generateWebdaModule(session.ctx, { appPath: tmpDir, namespace: "Test" });
+        expect(res.module.models["Test/MainItem"].Actions).toHaveProperty("declarativeAct");
+        expect(res.module.models["Test/MainItem"].Relations.links).toEqual([
+          { attribute: "mapped", model: "Test/LinkedItem", type: "LINKS_MAP" }
+        ]);
+        expect(res.errors.some(e => e.includes("Cannot resolve polymorphic targets"))).toBe(true);
+        expect(res.errors.some(e => e.includes("UnexportedModelParams"))).toBe(true);
+        expect(res.errors.some(e => e.includes("UnexportedServiceParams"))).toBe(true);
+      } finally {
+        session.dispose();
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
     }
   });
 });

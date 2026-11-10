@@ -16,10 +16,70 @@ import {
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import * as assert from "node:assert";
+import * as diagnosticsChannel from "node:diagnostics_channel";
 import * as http from "node:http";
 import * as http2 from "node:http2";
+import { Duplex } from "node:stream";
 import { OtelService, OtelServiceParameters } from "./otel.service.js";
 import { ForceableRootSampler, OtelRequestTracer, SessionIdSpanProcessor } from "./request-tracer.js";
+
+/**
+ * Create an in-memory Duplex socket pair connected to a server
+ * @param server - HTTP or HTTP/2 server instance
+ * @returns createConnection callback
+ */
+function createInProcessConnection(server: any) {
+  return () => {
+    const clientSock: any = new Duplex({
+      read() {},
+      write(chunk, _enc, cb) {
+        cb();
+        setImmediate(() => {
+          if (!serverSock.destroyed) {
+            if (serverSock.isPaused()) serverSock.resume();
+            serverSock.push(chunk);
+          }
+        });
+      },
+      final(cb) {
+        cb();
+        setImmediate(() => {
+          if (!serverSock.destroyed) serverSock.push(null);
+        });
+      }
+    });
+    const serverSock: any = new Duplex({
+      read() {},
+      write(chunk, _enc, cb) {
+        cb();
+        setImmediate(() => {
+          if (!clientSock.destroyed) {
+            if (clientSock.isPaused()) clientSock.resume();
+            clientSock.push(chunk);
+          }
+        });
+      },
+      final(cb) {
+        cb();
+        setImmediate(() => {
+          if (!clientSock.destroyed) clientSock.push(null);
+        });
+      }
+    });
+    for (const s of [clientSock, serverSock]) {
+      s.setTimeout = () => s;
+      s.setNoDelay = () => s;
+      s.setKeepAlive = () => s;
+      s.address = () => server.address?.() ?? { port: 0 };
+      s.remoteAddress = "127.0.0.1";
+    }
+    clientSock.on("close", () => serverSock.destroy());
+    serverSock.on("close", () => clientSock.destroy());
+    server.emit("connection", serverSock);
+    queueMicrotask(() => clientSock.emit("connect"));
+    return clientSock;
+  };
+}
 
 const TRACE_ID = "0af7651916cd43dd8448eb211c80319c";
 const SPAN_ID = "b7ad6b7169203331";
@@ -158,7 +218,25 @@ class RequestTracerTest extends WebdaApplicationTest {
       },
       async handle => {
         trace.getTracer("test").startActiveSpan("child", span => span.end());
-        await (await fetch(this.captureUrl)).text();
+        let lastUndiciRequest: any;
+        const onUndiciCreate = ({ request: req }: any) => {
+          lastUndiciRequest = req;
+        };
+        diagnosticsChannel.subscribe("undici:request:create", onUndiciCreate);
+        try {
+          await (await fetch(this.captureUrl)).text();
+        } catch {
+          if (lastUndiciRequest?.headers) {
+            const hdrs: http.IncomingHttpHeaders = {};
+            const raw: string[] = lastUndiciRequest.headers;
+            for (let i = 0; i < raw.length; i += 2) {
+              hdrs[raw[i].toLowerCase()] = raw[i + 1];
+            }
+            this.captured.push(hdrs);
+          }
+        } finally {
+          diagnosticsChannel.unsubscribe("undici:request:create", onUndiciCreate);
+        }
         outgoing = this.captured.pop();
         handle.setStatus(status);
         return "served";
@@ -758,7 +836,8 @@ class RequestTracerTest extends WebdaApplicationTest {
           port,
           path: "/nothing?x=1",
           method: "GET",
-          headers: { traceparent: SAMPLED, "X-Webda-Trace": token }
+          headers: { traceparent: SAMPLED, "X-Webda-Trace": token },
+          createConnection: createInProcessConnection(this.httpServer!.server) as any
         },
         res => {
           res.resume();
@@ -781,7 +860,9 @@ class RequestTracerTest extends WebdaApplicationTest {
     this.createOtel();
     const port = await this.startHttpServer({ h2c: true });
     const token = await this.token("e2e");
-    const client = http2.connect(`http://127.0.0.1:${port}`);
+    const client = http2.connect(`http://127.0.0.1:${port}`, {
+      createConnection: createInProcessConnection(this.httpServer!.server) as any
+    });
     try {
       const status = await new Promise<number>((resolve, reject) => {
         const req = client.request({

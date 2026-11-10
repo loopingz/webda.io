@@ -2,6 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import { PrependCondition, WebdaQLError, parse } from "@webda/ql";
 import { UuidModel } from "../model.model.js";
+import { AbstractRepository } from "./abstract.js";
 import { EventRepository } from "./event.js";
 import { MemoryRepository } from "./memory.js";
 
@@ -41,12 +42,12 @@ class FallbackRepository extends MemoryRepository<typeof Task> {
 
   /** @override */
   async deleteMany(statement: any, params?: any): Promise<number> {
-    return this.deleteManyByKey(statement, params);
+    return AbstractRepository.prototype.deleteMany.call(this, statement, params);
   }
 
   /** @override */
   async updateMany(statement: any, params?: any): Promise<number> {
-    return this.updateManyByKey(statement, params);
+    return AbstractRepository.prototype.updateMany.call(this, statement, params);
   }
 
   /** @override */
@@ -378,6 +379,26 @@ class BulkStatementsTest {
     };
     assert.strictEqual(await repo.updateMany("UPDATE SET title = 'x'"), 2);
     assert.strictEqual((await repo.query("title = 'x'")).results.length, 2);
+    // Nested assignment: get() deletes t1 meanwhile, then get() fails while t3 still exists
+    const get = repo.get.bind(repo);
+    let t1Gets = 0;
+    repo.get = async (key: any) => {
+      if (String(key) === "t1" && ++t1Gets === 2) {
+        await repo.delete("t1");
+        throw new Error("Not found: t1");
+      }
+      return get(key);
+    };
+    assert.strictEqual(await repo.updateMany("UPDATE SET profile.level = 9"), 1);
+    let t3Gets = 0;
+    repo.get = async (key: any) => {
+      if (String(key) === "t3" && ++t3Gets === 2) {
+        throw new Error("get failed");
+      }
+      return get(key);
+    };
+    await assert.rejects(() => repo.updateMany("UPDATE SET profile.level = 10"), /get failed/);
+    repo.get = get;
     // Any other failure still stops the statement
     repo.patch = async () => {
       throw new Error("backend down");

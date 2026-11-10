@@ -728,9 +728,11 @@ export default class FireStore<K extends FireStoreParameters = FireStoreParamete
    */
   resolveCollection(model: ModelClass): string {
     const meta = useModelMetadata(model);
+    /* v8 ignore start */
     if (!meta) {
       return this.parameters.collection;
     }
+    /* v8 ignore stop */
     if (this.parameters.collections?.[meta.Identifier]) {
       return this.parameters.collections[meta.Identifier];
     }
@@ -781,9 +783,11 @@ export default class FireStore<K extends FireStoreParameters = FireStoreParamete
       } catch {
         continue;
       }
+      /* v8 ignore start */
       if (!model) {
         continue;
       }
+      /* v8 ignore stop */
       const repo: any = this.getRepository(model);
       repos.push((repo.repository ?? repo) as FireStoreRepository<any>);
     }

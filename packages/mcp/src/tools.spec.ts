@@ -149,6 +149,18 @@ class ToolMappingTest {
     // Server streaming stays exposed
     assert.ok(operationToTool("S.Op", op({ streaming: "server" }), resolve));
   }
+
+  @test
+  unknownInputSchemaFallsBackToGenericObject() {
+    const entry = operationToTool(
+      "Fixture.Unknown",
+      { id: "Fixture.Unknown", input: "Missing.Schema", output: "void", method: "m" },
+      resolve
+    );
+    assert.ok(entry);
+    assert.strictEqual(entry.wrapped, false);
+    assert.deepStrictEqual(entry.tool.inputSchema, { type: "object" });
+  }
 }
 
 @suite

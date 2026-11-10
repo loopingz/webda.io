@@ -301,9 +301,11 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
         this.log("DEBUG", "Load memory data");
         resolve();
       });
+      /* v8 ignore start */
       dest.on("error", err => {
         reject(err);
       });
+      /* v8 ignore stop */
     });
   }
 

@@ -22,6 +22,7 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { useRegistry } from "../models/registry.model.js";
 import { CryptoServiceParameters } from "./icryptoservice.js";
 import { useApplication } from "../application/hooks.js";
+import { runWithInstanceStorage } from "../core/instancestorage.js";
 
 /**
  *
@@ -646,5 +647,40 @@ class CryptoConfigurationTest {
     await CryptoService.encryptConfiguration(data, { migrate: "test" });
     assert.strictEqual(data.secret, "crypt:test:" + Buffer.from("legacy").toString("base64"));
     assert.strictEqual(data.other, "crypt:test:" + Buffer.from("t").toString("base64"));
+  }
+
+  @test
+  async additionalCryptoServiceCoverage() {
+    // 1. getJWKS with unexportable publicKey (lines 566, 570)
+    const svc: any = new CryptoService("c-cov", {});
+    svc.keys = { bad: { publicKey: "not-a-valid-key" } };
+    assert.deepStrictEqual(svc.getJWKS(), { keys: [] });
+
+    // 2. getCurrentKeys with keys set and current undefined (line 756)
+    svc.current = undefined;
+    await assert.rejects(() => svc.getCurrentKeys(), /No current key/);
+
+    // 3. load() when keysFile is set (line 619)
+    const dir = mkdtempSync(join(tmpdir(), "webda-crypto-cov-"));
+    try {
+      const kf = join(dir, "keys.json");
+      writeFileSync(kf, JSON.stringify({ current: "k1", key_k1: newKeySet() }));
+      const svcFile = new CryptoService("c-file", { keysFile: kf } as any);
+      assert.strictEqual(await svcFile.load(), true);
+
+      // 4. pkiList with invalid pki value (line 1510)
+      const cfgFile = join(dir, "webda.config.json");
+      writeFileSync(cfgFile, JSON.stringify({ secret: "crypt:pki:invalid-format" }));
+      const status = await runWithInstanceStorage(
+        { application: { getPath: () => dir, getConfiguration: () => ({}) } as any },
+        () => CryptoService.pkiList(cfgFile)
+      );
+      assert.strictEqual(status.values["<invalid>"], 1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+
+    // 5. none encrypter needsUpgrade (line 1698)
+    assert.strictEqual(CryptoService.getEncrypter("none").needsUpgrade?.("x"), false);
   }
 }

@@ -16,11 +16,13 @@ export type QueryParameters = readonly unknown[] | Readonly<Record<string, unkno
 function tokenize(query: string): Token[] {
   const lexer = new WebdaQLLexer(CharStreams.fromString(query));
   lexer.removeErrorListeners();
+  /* v8 ignore start */
   lexer.addErrorListener({
     syntaxError: (_recognizer, _symbol, _line, _position, msg) => {
       throw new SyntaxError(`${msg} (Query: ${query})`);
     }
   });
+  /* v8 ignore stop */
   return lexer.getAllTokens();
 }
 

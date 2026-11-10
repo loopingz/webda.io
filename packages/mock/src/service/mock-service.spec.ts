@@ -23,5 +23,9 @@ class MockServiceUnitTest {
     const svc = new MockService(undefined, "mock", { mode: "test", seed: 7 });
     const rows = await svc.generate(Sample, { count: 1 });
     expect(rows.length).toBe(1);
+    const seeded = await svc.seed({ Sample: 2 }, { models: [Sample] });
+    expect(seeded.Sample.length).toBe(2);
+    await svc.seed({});
+    await svc.clear(["Sample"]);
   }
 }

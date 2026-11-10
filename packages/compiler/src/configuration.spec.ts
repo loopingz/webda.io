@@ -325,4 +325,45 @@ class ConfigurationSchemaTest {
     assert.strictEqual(readFileSync(configPath, "utf-8"), "{");
     assert.strictEqual(readFileSync(deploymentPath, "utf-8"), "{");
   }
+
+  @test
+  handlesNestedServiceDefinitionsMissingSchemasAndFalsyServices() {
+    const baseApp = createMockApp();
+    const app: ConfigSchemaApplication = {
+      ...baseApp,
+      getModdas: () => ({
+        "Test/MyService": {},
+        "Test/NoSchemaService": {}
+      }),
+      getDeployers: () => ({
+        "Test/MyDeployer": {},
+        "Test/NoSchemaDeployer": {}
+      }),
+      getSchema: (type: string) => {
+        if (type.includes("NoSchema")) {
+          return undefined as any;
+        }
+        return {
+          type: "object",
+          properties: { type: { type: "string" } },
+          required: ["type", "apiKey"],
+          definitions: {
+            NestedOption: { type: "string" }
+          }
+        };
+      },
+      getConfiguration: () => ({
+        services: {
+          myService: { type: "Test/MyService" },
+          emptyService: undefined
+        }
+      })
+    };
+    const configSchemaPath = path.join(this.tempDir, "full-config.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, "full-deployment.schema.json");
+    generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath, true);
+    const configSchema = FileUtils.load(configSchemaPath);
+    assert.ok(configSchema.definitions.NestedOption);
+    assert.deepStrictEqual(configSchema.definitions["ServiceType$Test$MyService"].required, ["type", "apiKey"]);
+  }
 }

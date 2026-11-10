@@ -2,6 +2,7 @@ import {
   callOperation,
   emitCoreEvent,
   canCallOperation,
+  HttpContext,
   OperationContext,
   registerOperation,
   registerSchema,
@@ -11,8 +12,11 @@ import {
   useApplication,
   useCore,
   useSystem,
+  WebContext,
   WebdaError
 } from "@webda/core";
+import { Repositories } from "@webda/models";
+import * as sinon from "sinon";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { IAMTest } from "../test/fixture.js";
@@ -361,6 +365,43 @@ class IAMServiceTest extends IAMTest {
       await this.service.authorize(admin, "IAMPolicy.Create", { input: { name: "Ok", statements: [] }, probe: false }),
       true
     );
+    const checkStub = sinon.stub(this.service as any, "checkPolicyInput");
+    try {
+      checkStub.restore();
+      const fakeInput = Object.defineProperty({ name: "Ok" }, "statements", {
+        get() {
+          throw new Error("unexpected getter error");
+        }
+      });
+      await assert.rejects(
+        () => this.service.authorize(admin, "IAMPolicy.Update", { input: fakeInput, probe: false }),
+        /unexpected getter error/
+      );
+    } finally {
+      checkStub.restore();
+    }
+    const webCtx = new WebContext(new HttpContext("test.webda.io", "POST", "/tasks", "http", 80, {}));
+    const builtWeb: any = await (this.service as any).buildRequest(webCtx, "Tasks.Public", { probe: false });
+    assert.strictEqual(builtWeb.ctx.http.host, "test.webda.io");
+    assert.strictEqual(builtWeb.ctx.http.method, "POST");
+    const repoHas = sinon.stub(Repositories, "has").returns(false);
+    const noRepoSvc = new IAMService(
+      "NoRepo",
+      new IAMServiceParameters().load({
+        reloadDelay: 0,
+        reloadInterval: 0.005,
+        policies: [{ name: "P", statements: [{ effect: "allow", operations: ["*"] }] }] as any
+      })
+    );
+    noRepoSvc.resolve();
+    try {
+      await noRepoSvc.init();
+      await this.sleep(15);
+    } finally {
+      repoHas.restore();
+      await noRepoSvc.stop();
+      unregisterOperationAuthorizer((noRepoSvc as any).authorizer);
+    }
     const editor = new IAMContext({ uuid: "u1", groups: ["editors"] });
     await editor.init();
     assert.notStrictEqual(await this.service.authorize(editor, "IAMPolicy.Create", { input: bad, probe: false }), true);

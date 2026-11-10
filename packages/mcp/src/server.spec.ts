@@ -9,15 +9,18 @@ import {
   unregisterFeatureFlagProvider,
   unregisterOperationAuthorizer,
   useApplication,
-  useInstanceStorage
+  useInstanceStorage,
+  useService,
+  WebdaError
 } from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { BrokenModel, GadgetModel, WideModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
 import { createMcpServer, toolAccess } from "./server.js";
 import { sessionContext } from "./invoke.js";
 import { ToolRegistry } from "./tools.js";
-import { ResourceRegistry } from "./resources.js";
+import { encodeCursor, ResourceRegistry } from "./resources.js";
 
 @suite
 class McpServerTest extends McpFixtureTest {
@@ -409,5 +412,88 @@ class McpServerTest extends McpFixtureTest {
     assert.ok(error);
     assert.match(error.message, /Internal error/);
     assert.ok(!/db password/.test(error.message));
+  }
+
+  @test
+  async handlesResourceErrorsAndEmptyOrInvalidCursors() {
+    registerFixture();
+    const fixture = useService("Fixture" as any) as any;
+    const origGetThing = fixture.getThing;
+    fixture.getThing = (slug: string) => {
+      if (slug === "mcp_err") {
+        throw new McpError(ErrorCode.InvalidParams, "Custom MCP error");
+      }
+      if (slug === "bad_req") {
+        throw new WebdaError.BadRequest("Bad slug format");
+      }
+      return origGetThing.call(fixture, slug);
+    };
+    try {
+      const client = await this.connect();
+      await assert.rejects(client.readResource({ uri: "webda://Thing/mcp_err" }), /Custom MCP error/);
+      await assert.rejects(client.readResource({ uri: "webda://Thing/bad_req" }), /Bad slug format/);
+      await assert.rejects(client.listResources({ cursor: encodeCursor({ model: "UnknownModel" }) }), /Invalid cursor/);
+    } finally {
+      fixture.getThing = origGetThing;
+    }
+
+    // Also test server with empty resources registry and server without resources option
+    const tools = new ToolRegistry(name => useApplication().getSchema(name));
+    tools.build(useInstanceStorage().operations);
+    const emptyResources = new ResourceRegistry(["*"]);
+    emptyResources.build({});
+    const serverWithEmptyResources = createMcpServer({
+      info: { name: "test", version: "1.0.0" },
+      tools,
+      resources: emptyResources,
+      maxOutputBytes: 1024,
+      getSession: () => new Session()
+    });
+    const [cTrans1, sTrans1] = InMemoryTransport.createLinkedPair();
+    await serverWithEmptyResources.connect(sTrans1);
+    const client1 = new Client({ name: "spec", version: "1.0.0" });
+    await client1.connect(cTrans1);
+    assert.deepStrictEqual((await client1.listResources()).resources, []);
+
+    const serverWithoutResources = createMcpServer({
+      info: { name: "test", version: "1.0.0" },
+      tools,
+      maxOutputBytes: 1024,
+      getSession: () => new Session()
+    });
+    const [cTrans2, sTrans2] = InMemoryTransport.createLinkedPair();
+    await serverWithoutResources.connect(sTrans2);
+    const client2 = new Client({ name: "spec", version: "1.0.0" });
+    await client2.connect(cTrans2);
+    assert.ok((await client2.listTools()).tools.length > 0);
+  }
+
+  @test
+  async logsWarningWhenProgressNotificationRejects() {
+    registerFixture();
+    const tools = new ToolRegistry(name => useApplication().getSchema(name));
+    tools.build(useInstanceStorage().operations);
+    const server = createMcpServer({
+      info: { name: "test", version: "1.0.0" },
+      tools,
+      maxOutputBytes: 1024,
+      getSession: () => new Session()
+    });
+    const [cTrans, sTrans] = InMemoryTransport.createLinkedPair();
+    await server.connect(sTrans);
+    const client = new Client({ name: "spec", version: "1.0.0" });
+    await client.connect(cTrans);
+    const origNotification = server.notification.bind(server);
+    server.notification = async () => {
+      throw new Error("notification transport failure");
+    };
+    try {
+      const res = await client.callTool({ name: "Fixture.Count", arguments: { n: 2 } }, undefined, {
+        onprogress: () => {}
+      });
+      assert.strictEqual(JSON.parse((res.content[0] as any).text).items.length, 2);
+    } finally {
+      server.notification = origNotification;
+    }
   }
 }

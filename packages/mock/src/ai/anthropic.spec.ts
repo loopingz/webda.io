@@ -1,6 +1,16 @@
-import { expect } from "vitest";
+import { expect, vi } from "vitest";
 import { suite, test } from "@webda/test";
 import { AnthropicProvider } from "./anthropic.js";
+
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: class {
+    messages = {
+      create: async (params: any) => ({
+        content: params.messages[0].content === "empty" ? [] : [{ type: "text", text: "mocked-claude" }]
+      })
+    };
+  }
+}));
 
 @suite("AnthropicProvider — unit (no real network)")
 class AnthropicProviderUnitTest {
@@ -20,5 +30,12 @@ class AnthropicProviderUnitTest {
     } finally {
       if (prevKey) process.env.ANTHROPIC_API_KEY = prevKey;
     }
+  }
+
+  @test({ name: "complete() returns text block from SDK and empty string when none" })
+  async completesWithMockedSdk() {
+    const p = new AnthropicProvider({ apiKey: "sk-test", model: "claude-test" });
+    expect(await p.complete("hello", { maxTokens: 100 })).toBe("mocked-claude");
+    expect(await p.complete("empty")).toBe("");
   }
 }

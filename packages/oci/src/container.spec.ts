@@ -117,7 +117,24 @@ class ContainerDeployerTest extends WebdaApplicationTest {
     await assert.rejects(() => this.deployer().push(), /needs an 'image'/);
     const registry = await new FakeRegistry().start();
     try {
+      const baseManifest = {
+        schemaVersion: 2,
+        mediaType: "application/vnd.oci.image.manifest.v1+json",
+        config: {
+          mediaType: "application/vnd.oci.image.config.v1+json",
+          digest: registry.addBlob(
+            "base/app",
+            Buffer.from(
+              JSON.stringify({ architecture: "amd64", os: "linux", rootfs: { type: "layers", diff_ids: [] } })
+            )
+          ),
+          size: 2
+        },
+        layers: []
+      };
+      registry.addManifest("base/app", "latest", baseManifest);
       const deployer = this.deployer({
+        baseImage: `${registry.host}/base/app:latest`,
         image: `${registry.host}/my/app`,
         tags: ["1.0.0"],
         output: join(this.folder, "push")

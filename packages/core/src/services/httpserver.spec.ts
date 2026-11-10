@@ -8,6 +8,7 @@ import * as nodePath from "node:path";
 import { PassThrough } from "node:stream";
 import { WebdaApplicationTest } from "../test/index.js";
 import { HttpServer, HttpServerParameters } from "./httpserver.service.js";
+import { InsufficientScope } from "./scopeauthorizer.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { ContextProvider, ContextProviderInfo } from "../contexts/icontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
@@ -1769,6 +1770,85 @@ class HttpServerTest extends WebdaApplicationTest {
     await closed;
     while ((this.server as any).sessions.size > 0) {
       await new Promise(resolve => setTimeout(resolve, 5));
+    }
+  }
+
+  @test
+  async additionalHttpServerCoverage() {
+    // 1. flushHeaders with isHttp2 = true and setCookies
+    (this.server as any).isHttp2 = true;
+    const setHeaders: Record<string, any> = {};
+    const mockRes: any = {
+      headersSent: false,
+      setHeader: (k: string, v: any) => {
+        setHeaders[k] = v;
+      }
+    };
+    const webCtx = new WebContext(new HttpContext("localhost", "GET", "/"), mockRes);
+    webCtx.cookie("c1", "v1");
+    this.server.flushHeaders(webCtx);
+    assert.ok(Array.isArray(setHeaders["Set-Cookie"]));
+    (this.server as any).isHttp2 = false;
+
+    // 2. handleWebRequest with InsufficientScope & res.headersSent branch
+    const router = useRouter();
+    router.addRouteToRouter("/scope-err", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: () => {
+        throw new InsufficientScope("my.op");
+      }
+    });
+    router.addRouteToRouter("/headers-sent", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: (ctx: WebContext) => {
+        ctx.flushHeaders();
+        ctx.write("partial");
+      }
+    });
+    const port = await this.startServer();
+    const res1 = await httpRequest({ hostname: "127.0.0.1", port, path: "/scope-err", method: "GET" });
+    assert.strictEqual(res1.statusCode, 403);
+    assert.strictEqual(res1.headers["www-authenticate"], 'Bearer error="insufficient_scope", scope="my.op"');
+
+    const res2 = await httpRequest({ hostname: "127.0.0.1", port, path: "/headers-sent", method: "GET" });
+    assert.strictEqual(res2.body, "partial");
+
+    // 3. _webdaHandler uncaughtException listener
+    const handler = process.listeners("uncaughtException").find((l: any) => l._webda) as any;
+    assert.ok(handler);
+    handler({ code: "ERR_STREAM_PREMATURE_CLOSE" });
+    let exitedWith: number | undefined;
+    const origExit = process.exit;
+    process.exit = ((code?: number) => {
+      exitedWith = code;
+    }) as any;
+    try {
+      handler(new Error("fatal"));
+    } finally {
+      process.exit = origExit;
+    }
+    assert.strictEqual(exitedWith, 1);
+
+    // 4. redirectPlainHttp when listeners.length !== 1
+    (this.server as any).redirectPlainHttp({ listeners: () => [] });
+
+    // 5. getContextFromRequest when extractClientCertificate throws non-BadRequest
+    const req1: any = {
+      headers: { host: "localhost" },
+      method: "GET",
+      url: "/scope-err",
+      socket: { remoteAddress: "127.0.0.1", address: () => ({ port: 8080 }) }
+    };
+    const origExtract = (this.server as any).extractClientCertificate;
+    (this.server as any).extractClientCertificate = () => {
+      throw new Error("unexpected cert error");
+    };
+    try {
+      await assert.rejects(() => this.server.getContextFromRequest(req1, {} as any), /unexpected cert error/);
+    } finally {
+      (this.server as any).extractClientCertificate = origExtract;
     }
   }
 }

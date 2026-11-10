@@ -57,6 +57,7 @@ class JSONCParserTest {
   async parseFalseKeyword() {
     const result = JSONCParser.parse("false");
     assert.strictEqual(result, false);
+    assert.strictEqual(JSONCParser.parse("/* comment */ false"), false);
   }
 
   @test
@@ -166,6 +167,7 @@ class JSONCParserTest {
   async parseStringWithEscapes() {
     const result = JSONCParser.parse('"test\\"quote"');
     assert.strictEqual(result, 'test"quote');
+    assert.strictEqual(JSONCParser.parse('/* comment */ "test\\"quote"'), 'test"quote');
   }
 
   @test
@@ -283,12 +285,16 @@ class JSONCParserTest {
     // Covers lines 277-279 (empty array formatting)
     const result = JSONCParser.parse("[]");
     assert.strictEqual(result.length, 0);
+    const editArr = JSONCParser.parse("[/* comment */]", { edit: true });
+    assert.strictEqual(editArr.length, 0);
   }
 
   @test
   async parseEmptyObject() {
     const result = JSONCParser.parse("{}");
     assert.deepStrictEqual(result, {});
+    const editObj = JSONCParser.parse("{/* comment */}", { edit: true });
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(editObj)), {});
   }
 
   @test

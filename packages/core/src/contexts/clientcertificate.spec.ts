@@ -32,16 +32,17 @@ class ClientCertificateTest {
     assert.deepStrictEqual(parseDistinguishedName(undefined as any), { attributes: {}, dn: "" });
     // Node.js quotes values with special characters
     assert.deepStrictEqual(parseDistinguishedName('CN="a, b"').attributes, { CN: "a, b" });
+    // Invalid JSON escape inside quotes falls back to stripping quotes
+    assert.deepStrictEqual(parseDistinguishedName('CN="bad\\xescape"').attributes, { CN: "bad\\xescape" });
   }
 
   @test
   subjectAltName() {
     assert.strictEqual(parseSubjectAltName(undefined), undefined);
-    assert.deepStrictEqual(parseSubjectAltName('DNS:a.example.com, email:a@example.com, URI:"spiffe://x/a,b"'), [
-      "DNS:a.example.com",
-      "email:a@example.com",
-      "URI:spiffe://x/a,b"
-    ]);
+    assert.deepStrictEqual(
+      parseSubjectAltName('DNS:a.example.com, email:a@example.com, URI:"spiffe://x/a,b", URI:"spiffe://x/a\\"b"'),
+      ["DNS:a.example.com", "email:a@example.com", "URI:spiffe://x/a,b", 'URI:spiffe://x/a"b']
+    );
   }
 
   @test

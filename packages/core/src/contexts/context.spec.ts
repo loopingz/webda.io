@@ -777,4 +777,120 @@ class GlobalContextTest {
     const ctx = new GlobalContext();
     assert.throws(() => ctx.getOutputStream(), /You cannot write to a global context/);
   }
+
+  @test
+  async additionalContextCoverage() {
+    const { PassThrough, Readable, Transform } = await import("node:stream");
+    const { EventEmitter } = await import("node:events");
+    const { Context, IOperationContext } = await import("./icontext.js");
+    const { RestStreamingOperationContext } = await import("./restcontext.js");
+
+    // HttpContext.getRawBodyAsString non-RangeError and getRawBody Readable error
+    const httpCtx = new HttpContext("test.webda.io", "POST", "/");
+    await assert.rejects(
+      () =>
+        httpCtx.getRawBodyAsString(1024, 1000, {
+          toString() {
+            throw new TypeError("bad encoding object");
+          }
+        } as any),
+      /bad encoding object/
+    );
+    const errStream = new Readable({
+      read() {
+        this.destroy(new Error("stream read error"));
+      }
+    });
+    httpCtx.setBody(errStream);
+    await assert.rejects(() => httpCtx.getRawBody(), /stream read error/);
+
+    // Context / IOperationContext base methods (setExtension, end, init, flushHeaders twice, pipeline, parameter)
+    const opCtx = new SimpleOperationContext();
+    assert.strictEqual(await Context.prototype.init.call(opCtx), opCtx);
+    assert.strictEqual(Context.prototype.setExtension.call(opCtx, "extKey", "extVal"), opCtx);
+    assert.strictEqual(Context.prototype.getExtension.call(opCtx, "extKey"), "extVal");
+    assert.strictEqual(IOperationContext.prototype.parameter.call(opCtx, "missing", "defVal"), "defVal");
+    await Context.prototype.end.call(opCtx);
+    await opCtx.end();
+    await opCtx.flushHeaders();
+
+    // pipeline with transform stream + PipelineOptions
+    const upper = new Transform({
+      transform(chunk, _enc, cb) {
+        cb(null, Buffer.from(chunk.toString().toUpperCase()));
+      }
+    });
+    await opCtx.pipeline(Readable.from(["hello"]), upper, { signal: new AbortController().signal });
+    assert.strictEqual(opCtx.getOutput(), "HELLO");
+
+    // pipeline premature close vs error on output stream
+    for (const code of ["ERR_STREAM_PREMATURE_CLOSE", "EOTHER"]) {
+      const customCtx = new SimpleOperationContext();
+      const fakeOut = new PassThrough();
+      customCtx.getOutputStream = async () => fakeOut as any;
+      const src = new PassThrough();
+      const p = customCtx.pipeline(src);
+      const err: any = new Error("out error");
+      err.code = code;
+      setImmediate(() => fakeOut.emit("error", err));
+      if (code === "ERR_STREAM_PREMATURE_CLOSE") {
+        await p;
+      } else {
+        await assert.rejects(p, /out error/);
+      }
+    }
+
+    // WebContext.isEnded and end() with non-WritableStreamBuffer (with and without _body)
+    for (const bodyText of ["some-body", ""]) {
+      const pt = new PassThrough();
+      const wctx = new WebContext(new HttpContext("test.webda.io", "GET", "/"), pt);
+      if (bodyText) {
+        (wctx as any)._body = bodyText;
+      }
+      assert.strictEqual(wctx.isEnded(), undefined);
+      await wctx.end();
+      assert.ok(wctx.isEnded());
+    }
+
+    // RestStreamingOperationContext HTTP/2 header filtering, custom header, keepAlive error catch, and waitForDrain error
+    const fakeRes: any = Object.assign(new EventEmitter(), {
+      req: { httpVersionMajor: 2 },
+      writableEnded: false,
+      destroyed: false,
+      writeHead: () => {},
+      write: () => false,
+      end: () => {}
+    });
+    const streamOut = new RestStreamingOperationContext(
+      new HttpContext("test.webda.io", "GET", "/"),
+      fakeRes,
+      "sse",
+      undefined,
+      5,
+      { "Transfer-Encoding": "chunked" },
+      []
+    );
+    streamOut.setHeader("X-Custom", "1");
+    streamOut.setHeader("Connection", "keep-alive");
+    await streamOut.begin();
+    streamOut["sendChunk"]({ a: 1 });
+    const drainPromise = streamOut["waitForDrain"](new AbortController().signal);
+    setImmediate(() => fakeRes.emit("error", new Error("res write error")));
+    await assert.rejects(drainPromise, /res write error/);
+    streamOut.stopKeepAlive();
+
+    // startKeepAlive when begin() rejects
+    const failStreamOut = new RestStreamingOperationContext(
+      new HttpContext("test.webda.io", "GET", "/"),
+      fakeRes,
+      "sse",
+      undefined,
+      5
+    );
+    failStreamOut.setExtension("operationStreaming", true);
+    (failStreamOut as any).begin = () => Promise.reject(new Error("begin failed"));
+    failStreamOut.startKeepAlive();
+    await new Promise(r => setTimeout(r, 15));
+    failStreamOut.stopKeepAlive();
+  }
 }

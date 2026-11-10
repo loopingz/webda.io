@@ -5,8 +5,12 @@ import { Router, RouterParameters } from "./router.service.js";
 import { runWithContext } from "../contexts/execution.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
-import { CorsOriginFilter } from "./originfilter.js";
+import { CorsOriginFilter, OriginFilter, WebsiteOriginFilter } from "./originfilter.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
+import { emitCoreEvent } from "../events/events.js";
+import { User } from "../models/user.model.js";
+import { hasSchema } from "../schemas/hooks.js";
+import { useApplication } from "../application/hooks.js";
 
 /**
  * CORS response headers are sent for the allowed websites only
@@ -27,6 +31,7 @@ class RouterCorsTest extends WebdaApplicationTest {
     await this.router.init();
     this.router.addRouteToRouter("/test", {
       methods: ["GET", "POST"],
+      executor: "Router",
       _method: async (ctx: WebContext) => ctx.write({ ok: true })
     } as any);
     return core;
@@ -267,6 +272,7 @@ class RouterCorsTest extends WebdaApplicationTest {
     let executed = 0;
     this.router.addRouteToRouter("/csrf-target", {
       methods: ["POST"],
+      executor: "Router",
       _method: async () => {
         executed++;
       }
@@ -311,5 +317,133 @@ class RouterCorsTest extends WebdaApplicationTest {
       })
     );
     assert.strictEqual(await this.router.checkRequest(noSessionPostCtx), true);
+  }
+
+  @test
+  async additionalRouterAndOriginFilterCoverage() {
+    // 1. OriginFilter & WebsiteOriginFilter
+    const of = new OriginFilter(["https://other.com", "api.example.com"]);
+    const ctxOrigin = new WebContext(new HttpContext("other.com", "GET", "/test", "https", 443, {}));
+    assert.strictEqual(await of.checkRequest(ctxOrigin), true);
+    const ctxHost = new WebContext(new HttpContext("api.example.com", "GET", "/test", "https", 443, {}));
+    assert.strictEqual(await of.checkRequest(ctxHost), true);
+    const ctxMiss = new WebContext(new HttpContext("nope.com", "GET", "/test", "https", 443, {}));
+    assert.strictEqual(await of.checkRequest(ctxMiss), false);
+
+    const wofObj = new WebsiteOriginFilter({ url: "https://a.com" });
+    assert.strictEqual(await wofObj.checkRequest(ctxMiss), false);
+    const wofStr = new WebsiteOriginFilter("https://other.com");
+    assert.strictEqual(await wofStr.checkRequest(ctxOrigin), true);
+    const wofArr = new WebsiteOriginFilter(["api.example.com"]);
+    assert.strictEqual(await wofArr.checkRequest(ctxHost), true);
+    const wofWild = new WebsiteOriginFilter(["*"]);
+    assert.strictEqual(await wofWild.checkRequest(ctxMiss), true);
+
+    // 2. hasSchema with a Storable instance
+    assert.strictEqual(typeof hasSchema(new User()), "boolean");
+
+    // 3. Router Webda.Init event listener (line 313) & getModelUrl(Storable) (line 325)
+    emitCoreEvent("Webda.Init", undefined as any);
+    assert.strictEqual(this.router.getModelUrl(new User()), undefined);
+
+    // 4. addRouteToRouter with overrideWarning = true (lines 379-383)
+    this.router.getParameters().overrideWarning = true;
+    this.router.addRouteToRouter("/overlap-warn", {
+      methods: ["GET"],
+      executor: "Router",
+      _method: async () => {}
+    } as any);
+    this.router.addRouteToRouter("/overlap-warn", {
+      methods: ["GET"],
+      executor: "Router",
+      _method: async () => {}
+    } as any);
+    this.router.addRouteToRouter("/overlap-warn", {
+      methods: ["POST"],
+      executor: "Router",
+      _method: async () => {}
+    } as any);
+
+    // 5. getOpenAPISchema string & object (lines 816-821)
+    assert.deepStrictEqual(this.router.getOpenAPISchema("MySchema"), { $ref: "#/components/schemas/MySchema" });
+    assert.deepStrictEqual(this.router.getOpenAPISchema({ type: "string" }), { type: "string" });
+    assert.deepStrictEqual(this.router.getOpenAPISchema(undefined), { $ref: "#/components/schemas/Object" });
+
+    // 6. completeOpenAPI with {?*q} and POST route with schemas.input (lines 853, 930)
+    this.router.addRouteToRouter("/openapi-cov{?*q}", {
+      methods: ["POST"],
+      executor: "Router",
+      _method: async () => {},
+      openapi: {
+        post: {
+          schemas: {
+            input: "MyInput",
+            output: "MyOutput"
+          }
+        }
+      }
+    } as any);
+    this.router.remapRoutes();
+    const doc: any = { openapi: "3.0.0", info: { title: "T", version: "1" }, paths: {}, tags: [] };
+    this.router.completeOpenAPI(doc, false);
+    assert.ok(doc.paths["/openapi-cov"]?.post?.requestBody);
+
+    // 7. route execution with string _method and executor service name (lines 1129-1132)
+    let called = false;
+    const mySvc: any = {
+      getName: () => "StringMethodSvc",
+      getOpenApiReplacements: () => ({}),
+      myHandler: async () => {
+        called = true;
+      }
+    };
+    this.registerService(mySvc);
+    this.router.addRouteToRouter("/str-method", {
+      methods: ["GET"],
+      executor: "StringMethodSvc",
+      _method: "myHandler"
+    } as any);
+    this.router.remapRoutes();
+    const strCtx = new WebContext(new HttpContext("api.example.com", "GET", "/str-method", "https", 443, {}));
+    strCtx.newSession();
+    await runWithContext(strCtx, () => this.router.execute(strCtx));
+    assert.strictEqual(called, true);
+
+    // 8. exportOpenAPI with author/license as objects and model schema with empty required: [] (lines 1283-1292, 1359)
+    const app = useApplication();
+    const origPkg = app.getPackageDescription;
+    app.getPackageDescription = () => ({
+      name: "pkg",
+      version: "1.0.0",
+      author: { name: "AuthorObj" },
+      license: { name: "MITObj" }
+    });
+    const schemas = app.getSchemas();
+    schemas["WebdaCore/User"] = { type: "object", required: [] };
+    try {
+      const exported = this.router.exportOpenAPI();
+      assert.strictEqual(exported.info.contact?.name, "AuthorObj");
+      assert.strictEqual(exported.info.license?.name, "MITObj");
+    } finally {
+      app.getPackageDescription = origPkg;
+    }
+
+    // 9. discoverRoutes with non-method executor, undefined finalUrl, and valid route (lines 1461-1471)
+    class FakeDiscoveredService {
+      static routes = {
+        "/bad": [{ executor: "notAMethod", methods: ["GET"] }],
+        skip: [{ executor: "goodMethod", methods: ["GET"] }],
+        "/good": [{ executor: "goodMethod", methods: ["GET"], openapi: {} }]
+      };
+      notAMethod = 123;
+      getName() {
+        return "FakeDiscoveredService";
+      }
+      goodMethod() {}
+      getUrl(path: string) {
+        return path.startsWith("/") ? path : undefined;
+      }
+    }
+    this.router.discoverRoutes([undefined as any, new FakeDiscoveredService() as any]);
   }
 }

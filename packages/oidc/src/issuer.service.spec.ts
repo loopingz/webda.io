@@ -3,6 +3,7 @@ import {
   registerOperation,
   Service,
   unregisterOperationAuthorizer,
+  useApplication,
   useCore,
   useCrypto,
   useService,
@@ -225,5 +226,14 @@ class OIDCIssuerTest extends OIDCTest {
       delete useCore().getServices()["IAM"];
       await verifier.stop();
     }
+  }
+
+  @test
+  async missingIssuerNameThrows() {
+    this.stub(useApplication(), "getPackageDescription").returns({} as any);
+    await assert.rejects(
+      () => this.addService(OIDCIssuer, { issuer: ORDERS } as any, "OIDCIssuerNoName"),
+      OIDCConfigurationError
+    );
   }
 }

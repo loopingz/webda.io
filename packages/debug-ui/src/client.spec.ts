@@ -147,6 +147,38 @@ describe("DebugClientSocketTest", () => {
       vi.useRealTimers();
     }
   });
+
+  it("handlesWebSocketConstructorThrowAndErrorEvent", async () => {
+    vi.useFakeTimers();
+    try {
+      let shouldThrow = true;
+      installWebSocket();
+      const OrigWS = globalThis.WebSocket;
+      vi.stubGlobal(
+        "WebSocket",
+        class extends (OrigWS as any) {
+          constructor(url: string, protocols?: string | string[]) {
+            if (shouldThrow) {
+              shouldThrow = false;
+              throw new Error("WebSocket blocked");
+            }
+            super(url, protocols);
+          }
+        }
+      );
+      const client = createDebugClient({ baseUrl: "http://localhost:18181", token: TOKEN });
+      const socket = client.connect();
+      assert.strictEqual(FakeWebSocket.instances.length, 0);
+      await vi.advanceTimersByTimeAsync(600);
+      assert.strictEqual(FakeWebSocket.instances.length, 1);
+      FakeWebSocket.instances[0].open();
+      (FakeWebSocket.instances[0] as any).listeners.error[0]({});
+      assert.strictEqual(FakeWebSocket.instances[0].readyState, FakeWebSocket.CLOSED);
+      socket.disconnect();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("exchangeBootstrapCode", () => {

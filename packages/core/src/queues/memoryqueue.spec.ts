@@ -284,6 +284,7 @@ class MemoryQueueTest extends QueueTest {
     assert.strictEqual(queue.getParameters().expire, 1, "1s");
     assert.strictEqual(queue.getParameters().expireMs, 1000, "1s should be convert to ms");
     assert.strictEqual(new MemoryQueueParameters().load().expire, 30, "default should be 30s");
+    assert.strictEqual(new MemoryQueueParameters().timeoutMs, 0);
     queue.__clean();
     // Should not have issue with unknown receipt
     await queue.deleteMessage("bouzouf");

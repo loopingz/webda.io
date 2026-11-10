@@ -116,6 +116,32 @@ class LeaderElectorTest {
     this.api.failures = [500];
     await until(() => !a.elector.leading);
     assert.ok(a.events.includes("error:500"));
+
+    // Error on stop() when release() fails, and non-409 errors on createNamespacedLease / replaceNamespacedLease
+    await until(() => a.elector.leading);
+    this.api.failures = [500];
+    await a.elector.stop();
+    assert.strictEqual(a.elector.leading, false);
+
+    const k8s = await import("@kubernetes/client-node");
+    const b = this.candidate("b");
+    (b.elector as any).api = {
+      readNamespacedLease: async () => {
+        throw new k8s.ApiException(404, "not found", undefined, {});
+      },
+      createNamespacedLease: async () => {
+        throw new Error("create lease error");
+      }
+    };
+    await assert.rejects(() => b.elector.tryAcquireOrRenew(), /create lease error/);
+
+    (b.elector as any).api = {
+      readNamespacedLease: async () => ({ spec: {} }),
+      replaceNamespacedLease: async () => {
+        throw new Error("replace lease error");
+      }
+    };
+    await assert.rejects(() => b.elector.tryAcquireOrRenew(), /replace lease error/);
   }
 
   @test

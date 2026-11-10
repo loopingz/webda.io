@@ -91,7 +91,8 @@ class Route53Test {
           return {
             HostedZones: [
               { Id: "1", Name: "io.", CallerReference: "" },
-              { Id: "2", Name: "webda.io.", CallerReference: "" }
+              { Id: "2", Name: "webda.io.", CallerReference: "" },
+              { Id: "0", Name: "io.", CallerReference: "" }
             ],
             NextMarker: "next"
           };

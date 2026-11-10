@@ -243,3 +243,70 @@ class ElasticSearchTest extends ElasticSearchBaseTest {
     assert.strictEqual((await useRegistry().get(`storeMigration.ESService.reindex.users`)).count >= 2, true);
   }
 }
+
+@suite
+class ElasticSearchUnitTest extends WebdaApplicationTest {
+  @test
+  async unitCoverage() {
+    const User: any = useModel("Webda/User");
+    const SimpleUser: any = useModel("Webda/SimpleUser");
+    const service = new ElasticSearchService(
+      "es-unit",
+      new ElasticSearchServiceParameters().load({
+        client: { node: "http://localhost:9200" },
+        indexes: {
+          users: { model: "Webda/User" }
+        }
+      })
+    );
+    await service.resolve().init();
+    try {
+      const fakeIndex: any = {
+        name: "sub",
+        _model: SimpleUser,
+        _repository: {
+          getRootModel: () => User,
+          get: async () => new User()
+        },
+        _listeners: []
+      };
+      assert.strictEqual(await (service as any).isIndexed(fakeIndex, "u1", new SimpleUser()), true);
+      assert.strictEqual(await (service as any).isIndexed(fakeIndex, "u1", undefined), false);
+      await (service as any).onObject(fakeIndex, "u1", undefined, true);
+      await (service as any).onPartialUpdated(fakeIndex, { object_id: "u1", partial_update: {} });
+
+      // Test reindex with continuationToken and onDrop callback
+      const userRepo = useRepository(User);
+      const origQuery = userRepo.query.bind(userRepo);
+      let pageCount = 0;
+      userRepo.query = (async () => {
+        pageCount++;
+        return {
+          results: [new User().load({ uuid: `u-${pageCount}` })],
+          continuationToken: pageCount === 1 ? "tok1" : undefined
+        };
+      }) as any;
+      (service as any)._client = {
+        helpers: {
+          bulk: async (opts: any) => {
+            for (const doc of opts.datasource) {
+              opts.onDocument(doc);
+              opts.onDrop({ document: doc, error: new Error("drop error") });
+            }
+          }
+        },
+        close: async () => {}
+      } as any;
+      try {
+        await service.reindex("users");
+      } finally {
+        userRepo.query = origQuery;
+      }
+      const status: any = await useRegistry().get("storeMigration.es-unit.reindex.users");
+      assert.strictEqual(status.count, 2);
+      assert.strictEqual(status.errors, 2);
+    } finally {
+      await service.stop();
+    }
+  }
+}

@@ -240,9 +240,44 @@ class MigrateTest extends EmailTest {
       seedV3Ident(this.write, "apart", "github", "apart-user");
       const run = await this.auth.migrate(false);
       assert.deepStrictEqual(run.idents, { migrated: 0, skipped: 1, failed: [] });
-      assert.ok(this.storage.has("apart_github"));
+      assert.strictEqual(this.storage.has("apart_github"), true);
     } finally {
       this.auth.getParameters().identModel = "Webda/Ident";
+    }
+  }
+
+  @test
+  async migrateEdgeCases() {
+    // 1. legacyIdentKeys yielding non-legacy key (lines 1091-1092) and reaching MIGRATION_MAX_PASSES (lines 1117-1118)
+    const origKeys = (this.auth as any).legacyIdentKeys.bind(this.auth);
+    let pass = 0;
+    (this.auth as any).legacyIdentKeys = async function* mockLegacyIdentKeys() {
+      pass++;
+      yield "notalegacykey";
+      const uid = `loop${pass}`;
+      seedV3Ident((uidKey: string, doc: any) => this.storage.set(uidKey, JSON.stringify(doc)), uid, "github", "u1");
+      yield `${uid}_github`;
+    }.bind(this);
+    try {
+      const report = await this.auth.migrate(false);
+      assert.strictEqual(report.incomplete, true);
+      assert.strictEqual(report.idents.skipped, 1);
+    } finally {
+      (this.auth as any).legacyIdentKeys = origKeys;
+    }
+
+    // 2. migrateUsers failure when user.save() throws (lines 1140-1141)
+    const userId = await seedV3(this.write, "failuser@x.com", { validated: true, password: "v3password" });
+    const UserModel = this.auth.getUserModel();
+    const origSave = UserModel.prototype.save;
+    UserModel.prototype.save = async () => {
+      throw new Error("save failed");
+    };
+    try {
+      const report = await this.auth.migrate(false);
+      assert.deepStrictEqual(report.users.failed, [userId]);
+    } finally {
+      UserModel.prototype.save = origSave;
     }
   }
 }

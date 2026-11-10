@@ -523,5 +523,23 @@ class CloudFormationDeployerTest extends WebdaApplicationTest {
     assert.strictEqual(res.key, "WebdaSampleApplication/file.yml");
     res = this.deployer.getStringified({ a: 1 }, "/file.json", false);
     assert.strictEqual(res.key, "file.json");
+    // Exercise sleep, completeOpenAPI with paths, APIGatewayDomain with EDGE, and buildLambdaPackage
+    vi.restoreAllMocks();
+    await this.deployer.sleep(0);
+    this.mockAWS();
+    const completed = await this.deployer.completeOpenAPI({
+      info: {},
+      paths: { "/users": { get: {} } }
+    });
+    assert.ok(completed.paths["/users"].get["x-amazon-apigateway-integration"]);
+    this.deployer.template = { Resources: {} };
+    this.deployer.resources.APIGatewayDomain = {
+      DomainName: "edge.webda.io",
+      EndpointConfiguration: { Types: ["EDGE"] }
+    };
+    await this.deployer.APIGatewayDomain();
+    assert.strictEqual(this.deployer.template.Resources.APIGatewayDomain.Properties.CertificateArn, "arn:myfakecertif");
+    vi.spyOn(this.deployer, "buildLambdaPackage").mockRestore();
+    await assert.rejects(() => this.deployer.buildLambdaPackage({ zipPath: "/nonexistent/dir/test.zip" }));
   }
 }

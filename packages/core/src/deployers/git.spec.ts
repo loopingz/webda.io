@@ -15,12 +15,26 @@ import { getGitInformation, nextSnapshotVersion } from "./git.js";
  * @param args - git arguments
  */
 function git(cwd: string, ...args: string[]) {
-  execFileSync("git", ["-c", "user.email=test@webda.io", "-c", "user.name=test", ...args], {
-    cwd,
-    stdio: "pipe",
-    // Fixed commit date: the snapshot version is derived from it
-    env: { ...process.env, GIT_COMMITTER_DATE: "2026-10-04T13:05:07Z", GIT_AUTHOR_DATE: "2026-10-04T13:05:07Z" }
-  });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.email=test@webda.io",
+      "-c",
+      "user.name=test",
+      "-c",
+      "commit.gpgsign=false",
+      "-c",
+      "tag.gpgSign=false",
+      ...args
+    ],
+    {
+      cwd,
+      stdio: "pipe",
+      // Fixed commit date: the snapshot version is derived from it
+      env: { ...process.env, GIT_COMMITTER_DATE: "2026-10-04T13:05:07Z", GIT_AUTHOR_DATE: "2026-10-04T13:05:07Z" }
+    }
+  );
 }
 
 /**

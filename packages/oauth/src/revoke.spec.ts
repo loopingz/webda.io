@@ -3,7 +3,8 @@ import * as assert from "assert";
 import { vi } from "vitest";
 import { RefreshToken, useService } from "@webda/core";
 import { OAuthTest, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
-import { OAuthCode, OAuthDeviceCode, OAuthGrant } from "./models.model.js";
+import { OAuthCode, OAuthDeviceCode, OAuthGrant, OAuthRegisteredClient } from "./models.model.js";
+import { OAuthServer } from "./oauthserver.service.js";
 
 @suite
 class RevokeTest extends OAuthTest {
@@ -417,5 +418,118 @@ class RevokeTest extends OAuthTest {
     assert.strictEqual(server.sweep(), first);
     await first;
     assert.notStrictEqual(server.sweep(), first);
+  }
+
+  @test
+  async edgeCasesInOAuthServer() {
+    const server = useService<any>("OAuthServer");
+    const now = Date.now();
+
+    // 1. resolve() without loginUrl throws OAUTH_LOGIN_URL
+    await assert.rejects(
+      () => this.addService(OAuthServer, { loginUrl: "" } as any, "OAuthNoLogin"),
+      /requires the 'loginUrl' parameter/
+    );
+
+    // 2. redirectHost with malformed URL returns undefined
+    assert.strictEqual(server.redirectHost("not a valid url"), undefined);
+
+    // 3. sweepExpired when OAuthRegisteredClient.delete fails condition (or vanished)
+    await OAuthRegisteredClient.create({
+      uuid: "dcr_test1",
+      name: "Test",
+      redirect_uris: ["http://127.0.0.1/cb"],
+      createdAt: now,
+      expiresAt: now - 1000
+    } as any);
+    const staleClient = await OAuthRegisteredClient.ref("dcr_test1").get();
+    await OAuthRegisteredClient.ref("dcr_test1").patch({ expiresAt: now + 60_000 } as any);
+    const origIterate = OAuthRegisteredClient.iterate.bind(OAuthRegisteredClient);
+    vi.spyOn(OAuthRegisteredClient, "iterate").mockImplementation(((q: string, p: any) =>
+      q === "expiresAt < ?"
+        ? (async function* staleRead() {
+            yield staleClient;
+          })()
+        : origIterate(q, p)) as any);
+    try {
+      server.registrationRequests.set("ip:127.0.0.1", [now]);
+      assert.strictEqual(await server.sweep(), 0);
+    } finally {
+      vi.restoreAllMocks();
+      await OAuthRegisteredClient.ref("dcr_test1").delete();
+    }
+
+    // 4. touchRegisteredClient when client is deleted concurrently
+    await server.touchRegisteredClient("dcr_nonexistent");
+
+    // 5. decideDevice when patch throws condition failure
+    await OAuthDeviceCode.create({
+      userCode: "DDDDDDDD",
+      secretHash: "s",
+      clientId: "app",
+      requestedScope: "Task.*",
+      status: "approved",
+      expiresAt: now + 60_000,
+      interval: 5
+    } as any);
+    assert.strictEqual(
+      await server.decideDevice({ userCode: "DDDDDDDD", clientId: "app" }, { status: "denied" }),
+      false
+    );
+    await OAuthDeviceCode.ref("DDDDDDDD").delete();
+
+    // 6. exchangeDevice when stored.status is unexpected value
+    const secret = "A".repeat(32);
+    const { createHash } = await import("crypto");
+    const secretHash = createHash("sha256").update(secret).digest("hex");
+    await OAuthDeviceCode.create({
+      userCode: "FFFFFFFF",
+      secretHash,
+      clientId: "webda-cli",
+      requestedScope: "Task.*",
+      status: "weird_status" as any,
+      expiresAt: now + 60_000,
+      interval: 5
+    } as any);
+    await assert.rejects(
+      () => server.exchangeDevice({ device_code: `FFFFFFFF.${secret}`, client_id: "webda-cli" }),
+      /Invalid device code/
+    );
+    await OAuthDeviceCode.ref("FFFFFFFF").delete();
+
+    // 7. tokenBody when getRawInputAsString throws
+    const b = await this.browser();
+    vi.spyOn(b.ctx, "getRawInputAsString").mockRejectedValueOnce(new Error("read error"));
+    await assert.rejects(() => server.tokenBody(b.ctx), /Unreadable request body/);
+
+    // 8. requirePending when writePending fails due to oversized userId
+    await this.authorize(b, { scope: "Task.*" });
+    await this.login(b, "u".repeat(5000));
+    await assert.rejects(() => this.op(b, "OAuth.Consent.Get"), /Authorization request is too large/);
+
+    // 9. deviceLookup when writePending fails due to oversized userId
+    await OAuthDeviceCode.create({
+      userCode: "GGGGGGGG",
+      secretHash,
+      clientId: "webda-cli",
+      requestedScope: "Task.*",
+      status: "pending",
+      expiresAt: now + 60_000,
+      interval: 5
+    } as any);
+    await assert.rejects(
+      () => this.op(b, "OAuth.Device.Lookup", { userCode: "GGGG-GGGG" }),
+      /Authorization request is too large/
+    );
+    await OAuthDeviceCode.ref("GGGGGGGG").delete();
+
+    // 10. recordAttempt evicts oldest key when size exceeds LOOKUP_MAX_KEYS (10000)
+    const map = new Map<string, number[]>();
+    for (let i = 0; i < 10_001; i++) {
+      map.set(`k${i}`, [now]);
+    }
+    server.recordAttempt(map, ["k_new"], now);
+    assert.strictEqual(map.size, 10_000);
+    assert.strictEqual(map.has("k0"), false);
   }
 }

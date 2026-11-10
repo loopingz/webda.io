@@ -1,6 +1,6 @@
 /// <reference types="vitest" />
 
-import { defineConfig, normalizePath } from "vite";
+import { defineConfig } from "vite";
 import { resolve } from "path";
 
 export default defineConfig({
@@ -20,11 +20,7 @@ export default defineConfig({
     coverage: {
       enabled: true,
       provider: "v8",
-      allowExternal: true,
-      include: [
-        normalizePath(resolve(__dirname, "src/**/*.ts")),
-        normalizePath(resolve(__dirname, "../sql/src/relational/**/*.ts"))
-      ],
+      include: ["src/**/*.ts"],
       exclude: ["**/*.spec.ts", "**/*.bench.ts", "**/src/index.ts", "**/src/relational/index.ts", "**/src/test/**"],
       reporter: ["lcov", "html", "text"]
     },

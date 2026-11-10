@@ -628,4 +628,78 @@ class QueryTest {
     new WebdaQL.ComparisonExpression("=", "constructor.prototype.polluted", "yes").setAttributeValue(target);
     assert.strictEqual(({} as any).polluted, undefined);
   }
+
+  @test
+  edgeCasesCoverage() {
+    // NowValue.toString() without raw
+    assert.strictEqual(new WebdaQL.NowValue(5000).toString(), "NOW('5s')");
+    assert.strictEqual(new WebdaQL.NowValue(-5000).toString(), "NOW('-5s')");
+    assert.strictEqual(new WebdaQL.NowValue(500).toString(), "NOW('500ms')");
+    assert.strictEqual(new WebdaQL.NowValue(-500).toString(), "NOW('-500ms')");
+    assert.throws(() => WebdaQL.parseDurationToMs(Infinity), /Invalid duration/);
+    assert.throws(() => WebdaQL.parseDurationToMs("-"), /Invalid duration format/);
+    assert.strictEqual(WebdaQL.unescapeStringLiteral("'abc\\'"), "abc\\");
+
+    // visitNowFunction with integerLiteral, numberLiteral, parameter
+    const qInt = new WebdaQL.QueryValidator("a = NOW(10)");
+    assert.ok(qInt.isDynamic());
+    const qNum = new WebdaQL.QueryValidator("a = NOW(1.5)");
+    assert.ok(qNum.isDynamic());
+    assert.throws(() => new WebdaQL.QueryValidator("a = NOW(?)"), /Unbound parameter/);
+
+    // ComparisonExpression.isDynamic() with array containing DynamicValue
+    const qInNow = new WebdaQL.QueryValidator("a IN [NOW()]");
+    assert.ok(qInNow.isDynamic());
+
+    // BooleanExpression.isDynamic() and foldLogical with only non-decisive booleans
+    assert.strictEqual(new WebdaQL.BooleanExpression(true).isDynamic(), false);
+    assert.strictEqual(WebdaQL.parse("TRUE AND TRUE").filter.toString(), "");
+    assert.strictEqual(WebdaQL.parse("FALSE OR FALSE").filter.toString(), "FALSE");
+
+    // QueryValidator.merge into DELETE/UPDATE with ORDER BY or OFFSET
+    const delVal = new WebdaQL.QueryValidator("DELETE WHERE a = 1");
+    assert.throws(() => delVal.merge("b = 2 ORDER BY b"), /take no ORDER BY or OFFSET/);
+
+    // normalizeQuery edge cases
+    assert.strictEqual(WebdaQL.normalizeQuery(WebdaQL.parse("a = NOW()")).toString(), "a = NOW()");
+    assert.strictEqual(WebdaQL.normalizeQuery({ filter: new WebdaQL.BooleanExpression(true) }).toString(), "");
+    assert.strictEqual(WebdaQL.normalizeQuery({ filter: new WebdaQL.BooleanExpression(false) }).toString(), "FALSE");
+    assert.throws(
+      () => WebdaQL.normalizeQuery({ filter: new WebdaQL.BooleanExpression("bad" as any) }),
+      /Invalid expression in WebdaQL query/
+    );
+    const badAnd = new WebdaQL.AndExpression([]);
+    (badAnd as any).children = null;
+    assert.throws(() => WebdaQL.normalizeQuery({ filter: badAnd }), /Invalid expression in WebdaQL query/);
+    const badCompOp = new WebdaQL.ComparisonExpression("=" as any, "a", 1);
+    (badCompOp as any).operator = 123;
+    assert.throws(() => WebdaQL.normalizeQuery({ filter: badCompOp }), /Invalid operator in WebdaQL query/);
+    const badCompIn = new WebdaQL.ComparisonExpression("IN", "a", [] as any);
+    assert.throws(() => WebdaQL.normalizeQuery({ filter: badCompIn }), /Invalid IN values in WebdaQL query/);
+    const badCompLike = new WebdaQL.ComparisonExpression("LIKE", "a", 123 as any);
+    assert.throws(() => WebdaQL.normalizeQuery({ filter: badCompLike }), /LIKE takes a string in WebdaQL query/);
+    assert.throws(() => WebdaQL.normalizeQuery(null as any), /Invalid WebdaQL query object/);
+    assert.throws(
+      () => WebdaQL.normalizeQuery({ type: "UPDATE", assignments: [] } as any),
+      /UPDATE needs at least one SET assignment/
+    );
+    assert.throws(
+      () => WebdaQL.normalizeQuery({ type: "SELECT", fields: [] } as any),
+      /Invalid SELECT field list in WebdaQL query/
+    );
+    assert.throws(
+      () => WebdaQL.normalizeQuery({ filter: new WebdaQL.AndExpression([]), orderBy: "bad" as any }),
+      /Invalid ORDER BY in WebdaQL query/
+    );
+    assert.strictEqual(
+      WebdaQL.normalizeQuery({ filter: new WebdaQL.AndExpression([]), continuationToken: "tok" }).toString(),
+      'OFFSET "tok"'
+    );
+    const badDyn = new WebdaQL.NowValue(0, "bad'syntax");
+    Object.defineProperty(badDyn, "toString", { value: () => "(((" });
+    assert.throws(
+      () => WebdaQL.normalizeQuery({ filter: new WebdaQL.ComparisonExpression("=", "a", badDyn) }),
+      /Invalid WebdaQL query object/
+    );
+  }
 }

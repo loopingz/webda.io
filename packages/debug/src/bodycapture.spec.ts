@@ -228,4 +228,12 @@ class NormalizeHeadersTest {
       "content-type": "application/json"
     });
   }
+
+  @test
+  looksLikeTextHandles4ByteUtf8AndBoundaryStraddle() {
+    // 4-byte UTF-8 emoji and a multi-byte character cut by the sample limit
+    const emoji = Buffer.from("hi 😀 there", "utf8");
+    assert.strictEqual(looksLikeText(emoji), true);
+    assert.strictEqual(looksLikeText(emoji, 4), true);
+  }
 }

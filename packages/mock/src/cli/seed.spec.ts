@@ -22,6 +22,7 @@ class ParseSeedArgsTest {
   noAi() {
     const { options } = parseSeedArgs(["--no-ai"]);
     expect(options.disableAi).toBe(true);
+    expect(parseSeedArgs(["--ai"]).options.disableAi).toBe(false);
   }
 
   @test({ name: "--spec ./seed.json is picked up as a separate path" })

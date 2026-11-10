@@ -181,8 +181,23 @@ class AWSDeployerTest extends WebdaApplicationTest {
   }
 
   @test
-  utilities() {
+  async utilities() {
     const deployer: any = this.deployer;
+    const origLogger = deployer.logger;
+    deployer.logger = undefined;
+    assert.strictEqual(
+      await deployer.waitFor(
+        async resolve => {
+          resolve("done");
+          return true;
+        },
+        1,
+        "wait",
+        0
+      ),
+      "done"
+    );
+    deployer.logger = origLogger;
     assert.strictEqual(deployer.commonPrefix("/test/bouzf", "/test/reffff"), "/test/");
     assert.strictEqual(deployer.commonPrefix("test/bouzf", "/test/reffff"), "");
     assert.strictEqual(deployer.commonPrefix("test/bouzf", "test/bouzf212"), "test/bouzf");
@@ -211,6 +226,15 @@ class AWSDeployerTest extends WebdaApplicationTest {
     assert.ok(actions.includes("s3:ListBucket"));
     // The deployers are not part of the application services
     assert.ok(!this.deployer.getApplicationServices().includes(this.deployer));
+    // Also test a contributor returning a single statement object
+    vi.spyOn(this.deployer, "getApplicationServices").mockReturnValue([
+      {
+        getARNPolicy: () => ({ Sid: "Single", Effect: "Allow", Action: ["sns:Publish"], Resource: "arn:aws:sns:::c" })
+      } as any
+    ]);
+    InstanceCache.clearAll(this.deployer);
+    const singlePolicy = await this.deployer.getPolicyDocument();
+    assert.ok(singlePolicy.Statement.flatMap(s => [].concat(s.Action)).includes("sns:Publish"));
   }
 
   @test
@@ -339,7 +363,8 @@ class AWSDeployerTest extends WebdaApplicationTest {
       uploads.length = 0;
       await this.deployer.putFilesOnBucket("bucket", [
         { key: "buffer.out", src: Buffer.from("bouzouf"), mimetype: "text/plain" },
-        { key: "unknown", src: Buffer.from("data") }
+        { key: "unknown", src: Buffer.from("data") },
+        { src: join(dir, "new.txt") }
       ]);
       assert.strictEqual(uploads[0].Body.toString(), "bouzouf");
       assert.strictEqual(uploads[0].ContentType, "text/plain");

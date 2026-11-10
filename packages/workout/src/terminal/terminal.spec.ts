@@ -165,11 +165,40 @@ describe("TerminalTest", () => {
     assert.strictEqual(terminal.logoWidth, 3);
   });
 
-  it("position", () => {
+  it("position", async () => {
+    stubs["clearScreen"].restore();
     terminal.clearScreen();
     terminal.scrollUp(1);
     terminal.scrollDown(1);
     terminal.scrollUp(-1);
     terminal.scrollDown(-1);
+
+    // router log without msg.log
+    await terminal.router({ type: "log" } as any);
+
+    // Ctrl+C onData
+    const killStub = sinon.stub(process, "kill");
+    try {
+      terminal.onData("\x03");
+      assert.strictEqual(killStub.calledOnce, true);
+    } finally {
+      killStub.restore();
+    }
+
+    // displayHistory when logo has more lines than linesData
+    terminal.height = 32;
+    terminal.width = 60;
+    terminal.setLogo(Array.from({ length: 40 }, () => "LOGO"));
+    terminal.displayHistory(5, true);
+
+    // Constructor when process.stdin.setRawMode is undefined
+    const origRawMode = process.stdin.setRawMode;
+    try {
+      (process.stdin as any).setRawMode = undefined;
+      const t2 = new Terminal(output, "INFO", "", true);
+      t2.close();
+    } finally {
+      process.stdin.setRawMode = origRawMode;
+    }
   });
 });

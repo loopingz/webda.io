@@ -11,6 +11,7 @@ import {
   buildRelations,
   dependencyModelName,
   discoverWebdaObjects,
+  packageOf,
   packageRootOf,
   reflectAttributes,
   type Section
@@ -158,6 +159,12 @@ describe("dependency models", () => {
     expect(packageRootOf(join(root, "src", "models", "b.ts"))).toBe(root);
     mkdirSync(join(tmp, "loose"), { recursive: true });
     expect(packageRootOf(join(tmp, "loose", "a.ts"))).toBeUndefined();
+    expect(packageOf(join(tmp, "loose", "a.ts"))).toBeUndefined();
+
+    const invalidPkg = join(tmp, "invalid-pkg");
+    mkdirSync(invalidPkg, { recursive: true });
+    writeFileSync(join(invalidPkg, "package.json"), "{ invalid json");
+    expect(packageOf(join(invalidPkg, "a.ts"))).toBeUndefined();
   });
 
   it("names a model from the dependency's webda.module.json", () => {
@@ -211,6 +218,56 @@ describe("primary key separator", () => {
       expect("PrimaryKeySeparator" in metadata["Sep/Plain"]).toBe(false);
     } finally {
       session.dispose();
+    }
+  });
+
+  it("discovers deployers and reflects untyped model attributes", () => {
+    const tmpDir = realpathSync(mkdtempSync(join(tmpdir(), "content-mapper-disc-")));
+    try {
+      const corePkg = join(tmpDir, "node_modules", "@webda", "core");
+      const modelsPkg = join(tmpDir, "node_modules", "@webda", "models");
+      mkdirSync(corePkg, { recursive: true });
+      mkdirSync(modelsPkg, { recursive: true });
+      writeFileSync(join(corePkg, "package.json"), JSON.stringify({ name: "@webda/core", types: "index.d.ts" }));
+      writeFileSync(join(corePkg, "index.d.ts"), `export class AbstractDeployer {}\n`);
+      writeFileSync(join(modelsPkg, "package.json"), JSON.stringify({ name: "@webda/models", types: "index.d.ts" }));
+      writeFileSync(join(modelsPkg, "index.d.ts"), `export class Model {}\n`);
+
+      mkdirSync(join(tmpDir, "src"), { recursive: true });
+      writeFileSync(
+        join(tmpDir, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { strict: false, types: [] }, include: ["src/**/*"] })
+      );
+      writeFileSync(
+        join(tmpDir, "src", "items.ts"),
+        `import { AbstractDeployer } from "@webda/core";\n` +
+          `import { Model } from "@webda/models";\n` +
+          `/** @WebdaDeployer MyDep */\n` +
+          `export class MyDeployer extends AbstractDeployer {}\n` +
+          `/** @WebdaDeployer BadDep */\n` +
+          `export class NotADeployer {}\n` +
+          `export class UntypedModel extends Model {\n` +
+          `  untypedProp = 1;\n` +
+          `}\n`
+      );
+      const session = openSession(join(tmpDir, "tsconfig.json"), tmpDir);
+      try {
+        const discovered = discoverWebdaObjects(session.ctx, {
+          appPath: tmpDir,
+          rootDir: join(tmpDir, "src"),
+          outDir: join(tmpDir, "lib"),
+          namespace: "Test"
+        });
+        expect(discovered.some(o => o.section === "deployers" && o.name === "Test/MyDep")).toBe(true);
+        expect(discovered.some(o => o.name === "Test/BadDep")).toBe(false);
+        const sf = session.ctx.sourceFiles.find(f => f.fileName.endsWith("items.ts"))!;
+        const cls = sf.statements.find((s: any) => s.name?.text === "UntypedModel")!;
+        expect(reflectAttributes(session.ctx, sf, cls)).toEqual({ untypedProp: { type: "any" } });
+      } finally {
+        session.dispose();
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
     }
   });
 });

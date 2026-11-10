@@ -360,6 +360,7 @@ class GoogleAuthTest extends AuthTest {
       assert.ok(!ctx.getSession().isLogged());
     }
     assert.strictEqual(this.events.length, 0);
+    await assert.rejects(() => (this.google as any).verifyIdToken("idt-u4", []), { code: "TOKEN_INVALID" });
   }
 
   @test

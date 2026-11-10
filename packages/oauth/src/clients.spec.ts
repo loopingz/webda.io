@@ -413,6 +413,23 @@ describe("ClientRegistry", () => {
     expect(await reg.get("")).toBeUndefined();
     expect(await reg.get(undefined as any)).toBeUndefined();
     expect(await reg.get(12 as any)).toBeUndefined();
+    const resolved = await (reg as any).resolver("127.0.0.1");
+    expect(resolved).toContain("127.0.0.1");
+    const invalidUrlDoc = "https://mcp.example.com/client-bad-logo.json";
+    const regBadLogo = new ClientRegistry(
+      params(),
+      (async () =>
+        new Response(
+          JSON.stringify({
+            client_id: invalidUrlDoc,
+            redirect_uris: ["https://a.example.com/cb"],
+            logo_uri: "not a url"
+          })
+        )) as any,
+      async () => ["93.184.216.34"]
+    );
+    const client = await regBadLogo.get(invalidUrlDoc);
+    expect(client?.logo).toBeUndefined();
   });
 });
 

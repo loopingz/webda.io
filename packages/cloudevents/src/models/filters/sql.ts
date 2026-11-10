@@ -726,9 +726,11 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
   visitBinaryMultiplicativeExpression(ctx: BinaryMultiplicativeExpressionContext): Expression {
     const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
+    /* v8 ignore start */
     if (!["*", "/", "%"].includes(op)) {
       throw new Error("Not implemented");
     }
+    /* v8 ignore stop */
     return new BinaryMultiplicativeExpression(left, right, <"*" | "/" | "%">op).resolve();
   }
 
@@ -738,9 +740,11 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
   visitBinaryAdditiveExpression(ctx: BinaryAdditiveExpressionContext): Expression {
     const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
+    /* v8 ignore start */
     if (!["+", "-"].includes(op)) {
       throw new Error("Not implemented");
     }
+    /* v8 ignore stop */
     return new BinaryAdditiveExpression(left, right, <"+" | "-">op).resolve();
   }
 
@@ -761,9 +765,11 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
   visitBinaryComparisonExpression(ctx: BinaryComparisonExpressionContext): Expression {
     const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
+    /* v8 ignore start */
     if (!["<", ">", "<=", ">=", "!=", "="].includes(op)) {
       throw new Error("Not implemented");
     }
+    /* v8 ignore stop */
     return new BinaryComparisonExpression(left, right, op as any).resolve();
   }
 
@@ -773,9 +779,11 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
   visitBinaryLogicExpression(ctx: BinaryLogicExpressionContext): Expression {
     const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
+    /* v8 ignore start */
     if (!["AND", "OR", "XOR"].includes(op)) {
       throw new Error("Not implemented");
     }
+    /* v8 ignore stop */
     return new BinaryLogicExpression(left, right, <"AND" | "OR" | "XOR">op).resolve();
   }
 

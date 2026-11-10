@@ -1354,10 +1354,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       }
       // Remove empty required as openapi does not like that
       // Our compiler is not generating this anymore but it is additional protection
-      /* c8 ignore next 3 */
+      /* v8 ignore start */
       if (desc.required && desc.required.length === 0) {
         delete desc.required;
       }
+      /* v8 ignore stop */
       // Remove $schema
       delete desc.$schema;
       // Rename all #/definitions/ by #/components/schemas/

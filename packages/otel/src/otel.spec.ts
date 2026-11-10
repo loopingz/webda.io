@@ -20,6 +20,18 @@ class FakeService extends Service {
   myFaultyMethod() {
     throw new Error("Fake");
   }
+
+  myFaultyStringMethod() {
+    throw "StringFake";
+  }
+
+  get throwingSetter() {
+    return () => {};
+  }
+
+  set throwingSetter(_v: any) {
+    throw new Error("read-only setter");
+  }
 }
 
 @suite
@@ -48,12 +60,13 @@ class OtelTest extends WebdaApplicationTest {
   async test() {
     const fake = this.registerService(new FakeService("fake", new ServiceParameters().load({}))).resolve();
     const original = fake.myRecursiveMethod;
-    const service = this.createOtel({ traceExporter: { type: "console", enable: true, sampling: 0.5 } });
+    const service = this.createOtel({ traceExporter: { type: "console", enable: true, sampling: 1 } });
     assert.notStrictEqual(fake.myRecursiveMethod, original);
 
     assert.strictEqual(fake.myRecursiveMethod(), 3);
     assert.strictEqual(await fake.myAsyncMethod(), "async");
     assert.throws(() => fake.myFaultyMethod(), /Fake/);
+    assert.throws(() => fake.myFaultyStringMethod(), /StringFake/);
 
     // Request span, executed twice to cover the sampling
     for (let i = 0; i < 2; i++) {

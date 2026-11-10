@@ -68,4 +68,55 @@ class GenerateTest {
     }
     await expect(generate(WithAI, { count: 1, mode: "test" })).rejects.toThrow(/ai/i);
   }
+
+  @test({ name: "resolves all MockKind variants and non-strict unknown fields" })
+  async allKindsAndBranches() {
+    class AllKinds {
+      @Mock.uuid accessor id!: string;
+      @Mock.fullName accessor fullName!: string;
+      @Mock.phone accessor phone!: string;
+      @Mock.url accessor url!: string;
+      @Mock.avatar accessor avatar!: string;
+      @Mock.lorem({ paragraphs: 1 }) accessor loremPara!: string;
+      @Mock.lorem({ sentences: 2 }) accessor loremSent!: string;
+      @Mock.lorem({ words: 4 }) accessor loremWords!: string;
+      @Mock.pastDate({ within: "year" }) accessor pastYear!: Date;
+      @Mock.pastDate({ within: "month" }) accessor pastMonth!: Date;
+      @Mock.pastDate({ within: "week" }) accessor pastWeek!: Date;
+      @Mock.pastDate({ within: "day" }) accessor pastDay!: Date;
+      @Mock.futureDate({ within: "year" }) accessor futureYear!: Date;
+      @Mock.pick(["a", "b"]) accessor picked!: string;
+      @Mock({ kind: "boolean" }) accessor flag!: boolean;
+      @Mock.custom(ctx => `idx-${ctx.index}`) accessor customField!: string;
+      @Mock.ai({ prompt: "bio", maxTokens: 50 }) accessor bio!: string;
+      @Mock.count(2) accessor relCount!: unknown;
+      @Mock({ kind: "nonexistent" }) accessor unknownKindField!: unknown;
+      accessor unknownUnhinted!: { x: number };
+    }
+
+    // Missing AI provider in dev mode throws inside aiFn
+    await expect(generate(AllKinds, { mode: "dev" })).rejects.toThrow(/no AIProvider/);
+
+    const [row] = await generate(AllKinds, {
+      mode: "dev",
+      seed: 123,
+      ai: { complete: async () => "ai-text" }
+    });
+    expect(typeof row.id).toBe("string");
+    expect(typeof row.fullName).toBe("string");
+    expect(typeof row.phone).toBe("string");
+    expect(typeof row.url).toBe("string");
+    expect(typeof row.avatar).toBe("string");
+    expect(typeof row.loremPara).toBe("string");
+    expect(typeof row.loremSent).toBe("string");
+    expect(typeof row.loremWords).toBe("string");
+    expect(row.pastYear).toBeInstanceOf(Date);
+    expect(row.futureYear).toBeInstanceOf(Date);
+    expect(["a", "b"]).toContain(row.picked);
+    expect(typeof row.flag).toBe("boolean");
+    expect(row.customField).toBe("idx-0");
+    expect(row.bio).toBe("ai-text");
+    expect(row.relCount).toBeUndefined();
+    expect((row as any).unknownKindField).toBeUndefined();
+  }
 }

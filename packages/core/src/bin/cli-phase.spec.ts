@@ -76,5 +76,20 @@ class CliPhaseTest {
     assert.deepStrictEqual(calls, [["a.json", undefined]]);
     // Core is never booted for it
     await assert.rejects(() => bootCoreForCommand(<any>{}, "tool", cmdInfo), /runs without Core/);
+
+    let resolvedCalled = 0;
+    let initCalled = 0;
+    const fakeCore: any = {
+      resolve: async () => {
+        resolvedCalled++;
+      },
+      init: async () => {
+        initCalled++;
+      }
+    };
+    await bootCoreForCommand(fakeCore, "resCmd", { ...cmdInfo, phases: ["resolved"] });
+    assert.strictEqual(resolvedCalled, 1);
+    await bootCoreForCommand(fakeCore, "initCmd", { ...cmdInfo, phases: ["initialized"] });
+    assert.strictEqual(initCalled, 1);
   }
 }

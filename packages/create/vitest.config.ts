@@ -5,6 +5,13 @@ import { defineConfig } from "vite";
 export default defineConfig({
   clearScreen: false,
   test: {
+    coverage: {
+      enabled: true,
+      provider: "v8",
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.spec.ts", "src/bin.ts"],
+      reporter: ["lcov", "html", "text"]
+    },
     reporters: "verbose",
     include: ["src/**/*.spec.ts"]
   }

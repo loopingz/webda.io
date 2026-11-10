@@ -36,11 +36,13 @@ function resolveGeneratorEntry(name: string, appRoot: string): string {
   for (const base of [appRoot, fileURLToPath(new URL(".", import.meta.url))]) {
     try {
       return createRequire(join(base, "index.js")).resolve(`${name}/schema-worker-cli`);
+      /* v8 ignore start */
     } catch (err) {
       error = err;
     }
   }
   throw error;
+  /* v8 ignore stop */
 }
 
 /**

@@ -699,7 +699,29 @@ class FileBackedMapTest {
 
       // clear on non-existent folder doesn't throw
       storage.clear();
+
+      // computeParameters creates the missing folder
+      store.computeParameters();
+      assert.ok(fs.existsSync(nonExistentDir));
+
+      // find() delegates to the model repository
+      (store as any)._models = [MockModel];
+      const findRes = await store.find("" as any);
+      assert.ok(Array.isArray(findRes.results));
     });
+
+    // _upsertItemToCollection when JSONUtils.loadFile returns undefined
+    const { JSONUtils } = await import("@webda/utils");
+    const origLoadFile = JSONUtils.loadFile;
+    JSONUtils.loadFile = () => undefined as any;
+    try {
+      await assert.rejects(
+        () => this.store._upsertItemToCollection("empty_undef", "items", { id: 1 }, 0, undefined, "v", new Date()),
+        StoreNotFoundError
+      );
+    } finally {
+      JSONUtils.loadFile = origLoadFile;
+    }
   }
 }
 

@@ -118,6 +118,12 @@ describe("settleConflict", () => {
     expect(out.state).toBe("created");
     expect(out.baseRev).toBe(0);
     expect(out.current.title).toBe("mine");
+
+    const outText = settleConflict(
+      conflicted,
+      new Map([["", { text: { uuid: "t", title: "from-text", body: "x" } as any }]])
+    )!;
+    expect(outText.current.title).toBe("from-text");
   });
 
   it("accept server delete", () => {

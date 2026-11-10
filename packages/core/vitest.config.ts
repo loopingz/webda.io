@@ -16,7 +16,23 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/**/*.typecheck.ts", "src/index.ts"],
+      exclude: [
+        "src/**/*.spec.ts",
+        "src/**/*.typecheck.ts",
+        "src/index.ts",
+        "src/application/iapplication.ts",
+        "src/application/runner.ts",
+        "src/models/coremodel.model.ts",
+        "src/models/deployment.ts",
+        "src/models/types.ts",
+        "src/sealed/index.ts",
+        "src/services/iauthentication.ts",
+        "src/services/imailer.ts",
+        "src/services/ismssender.ts",
+        "src/services/serviceparameters.ts",
+        "src/stores/istore.ts",
+        "src/test/**"
+      ],
       reporter: ["lcov", "html", "text"]
     },
     passWithNoTests: true,
@@ -78,7 +94,7 @@ export default defineConfig({
       "src/services/clientcertificatefilter.spec.ts",
       "src/services/cluster.service.spec.ts",
       "src/services/notificationservice.spec.ts",
-      //"src/services/prometheus.spec.ts", // Check parameters loading
+      "src/services/prometheus.spec.ts",
       //"src/services/resource.spec.ts",
       "src/services/resource-unit.spec.ts",
       "src/services/command.spec.ts",

@@ -284,6 +284,14 @@ class LocalSessionExchangeTest {
     assert.ok(get.status === 404 || get.status === 405);
     const noBody = await rawRequest(this.port, "/api/session", {}, "POST");
     assert.strictEqual(noBody.status, 400);
+    const badJson = await rawRequest(
+      this.port,
+      "/api/session",
+      { "Content-Type": "application/json" },
+      "POST",
+      "{invalid-json"
+    );
+    assert.strictEqual(badJson.status, 400);
   }
 
   @test

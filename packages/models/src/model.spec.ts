@@ -453,4 +453,63 @@ class ModelTest {
     assert.strictEqual(await Open.canAct(ctx, "get", new Open()), true);
     assert.strictEqual(await Open.canAct(ctx, "anything"), true);
   }
+
+  @test
+  async mockAndRepositoryEdgeCases() {
+    const { Mock, readMockMeta } = IndexExports;
+    class Mocked {
+      @Mock.float({ min: 0, max: 1 })
+      f!: number;
+      @Mock.pastDate({ within: "day" })
+      past!: Date;
+      @Mock.futureDate({ within: "week" })
+      future!: Date;
+      @Mock.custom(() => 42)
+      customVal!: number;
+      @Mock.ai({ prompt: "test" })
+      aiVal!: string;
+    }
+    const meta = readMockMeta(Mocked);
+    assert.strictEqual(meta.f.kind, "float");
+    assert.strictEqual(meta.past.kind, "pastDate");
+    assert.strictEqual(meta.future.kind, "futureDate");
+    assert.strictEqual(meta.customVal.kind, "custom");
+    assert.strictEqual((meta.customVal.options?.fn as any)(), 42);
+    assert.strictEqual(meta.aiVal.kind, "ai");
+
+    // Plain class without .load() method for buildItem and hydratePlainRow
+    class PlainItem {
+      id?: string;
+      name?: string;
+    }
+    const plainRepo = new MemoryRepository(PlainItem as any, ["id"]);
+    const created = await plainRepo.create({ id: "p1", name: "plain" } as any);
+    assert.strictEqual((created as any).name, "plain");
+    const hydrated = (plainRepo as any).hydratePlainRow({ id: "p2", name: "hydrated" });
+    assert.strictEqual(hydrated.name, "hydrated");
+
+    // getPrimaryKey edge cases
+    assert.throws(() => plainRepo.getPrimaryKey(undefined), /Cannot get primary key of undefined\/null/);
+    assert.throws(() => plainRepo.getPrimaryKey(null), /Cannot get primary key of undefined\/null/);
+    assert.strictEqual(plainRepo.getPrimaryKey({ id: "p1" }, true).toString(), "p1");
+    assert.throws(() => plainRepo.getPrimaryKey({}), /Missing primary key field 'id' on object/);
+
+    class AutoIdItem {
+      id = "auto-id";
+    }
+    const autoRepo = new MemoryRepository(AutoIdItem as any, ["id"]);
+    assert.strictEqual(autoRepo.getPrimaryKey({}), "auto-id");
+    assert.strictEqual(autoRepo.getPrimaryKey({}, true).toString(), "auto-id");
+
+    // incrementAttributes with uninitialized intermediate object and prototype guard
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    await memRepo.create({ uuid: "inc1", name: "n", age: 1, collection: [] } as any);
+    const updated = await memRepo.incrementAttributes("inc1", ["nested.deep.count" as any]);
+    assert.strictEqual((updated as any)["nested.deep.count"], 1);
+
+    const origResolvePath = (memRepo as any).resolvePath.bind(memRepo);
+    (memRepo as any).resolvePath = () => ({ holder: Object.prototype, key: "x" });
+    await assert.rejects(() => memRepo.incrementAttributes("inc1", ["x" as any]), /Invalid path segment in 'x'/);
+    (memRepo as any).resolvePath = origResolvePath;
+  }
 }

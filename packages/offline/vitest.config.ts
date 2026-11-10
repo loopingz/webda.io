@@ -17,7 +17,11 @@ export default defineConfig({
         "src/client/index.ts",
         // Test helpers: the in-memory server of the client tests and the storage conformance suite
         "src/client/fake-transport.ts",
-        "src/client/storage/conformance.ts"
+        "src/client/storage/conformance.ts",
+        // Type-only modules
+        "src/client/storage/keys.ts",
+        "src/client/storage/storage.ts",
+        "src/server/syncable.ts"
       ],
       reporter: ["lcov", "html", "text"]
     },

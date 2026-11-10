@@ -531,6 +531,7 @@ class AsyncJobServiceTest extends AsyncTest {
     };
     // Check redirection to good service
     await service.runAsyncOperationAction();
+    await service.runAction();
     assert.deepStrictEqual(calledInfo, {
       JOB_ORCHESTRATOR: "mine",
       JOB_ID: "a",
@@ -917,6 +918,37 @@ class AsyncJobServiceTest extends AsyncTest {
       assert.ok(seen.every(s => s.probe === true));
       context.getParameters().operationId = "User.Revoke";
       await assert.rejects(() => service.launchOperation(context), WebdaError.Forbidden);
+      // Authorizer allows probe, allows input validation, then refuses exact input check
+      const inputAuthorizer = async (_ctx: any, operationId: string, _op: any, options: any) => {
+        if (operationId === "User.Revoke" && !options.probe) {
+          return options.input?.id !== "blocked";
+        }
+        return true;
+      };
+      unregisterOperationAuthorizer(authorizer as any);
+      registerOperationAuthorizer(inputAuthorizer as any);
+      try {
+        const blockedCtx = await this.newContext({ id: "blocked" });
+        await blockedCtx.newSession();
+        blockedCtx.getSession<any>().role = "hr";
+        blockedCtx.getParameters().operationId = "User.Revoke";
+        await assert.rejects(() => service.launchOperation(blockedCtx), WebdaError.Forbidden);
+        const throwInputCtx = await this.newContext({ id: "ok" });
+        await throwInputCtx.newSession();
+        throwInputCtx.getSession<any>().role = "hr";
+        throwInputCtx.getParameters().operationId = "User.Revoke";
+        sinon.stub(throwInputCtx, "getInput").callsFake(async () => {
+          return Object.defineProperty({}, "id", {
+            get() {
+              throw new Error("unexpected schema failure");
+            },
+            enumerable: true
+          });
+        });
+        await assert.rejects(() => service.launchOperation(throwInputCtx), /unexpected schema failure/);
+      } finally {
+        unregisterOperationAuthorizer(inputAuthorizer as any);
+      }
     } finally {
       unregisterOperationAuthorizer(authorizer as any);
       delete useCore().getServices()["async"];

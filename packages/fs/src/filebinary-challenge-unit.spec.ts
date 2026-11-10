@@ -565,4 +565,28 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     await this.binary._cleanUsage(hash, user.getUUID(), "images", "WebdaDemo/ImageUser");
     assert.strictEqual(await this.binary.getUsageCount(hash), 0);
   }
+
+  @test
+  async signedUrlPutUrlFromCtxAndMissingFolderPrecondition() {
+    const ctx = await this.newContext();
+    const signedUrl = await this.binary.getSignedUrlFromMap({ hash: "h1", mimetype: "text/plain" } as any, 60, ctx);
+    assert.ok(signedUrl.includes("/download/data/h1?token="));
+
+    const nonWebCtx: any = { getInput: async () => ({ hash: "h2" }) };
+    const putUrl = await this.binary.getPutUrl(nonWebCtx);
+    assert.ok(putUrl.includes("/upload/data/h2?token="));
+
+    const realWebCtx = Object.assign(Object.create(WebContext.prototype), {
+      getHttpContext: () => ctx.getHttpContext()
+    });
+    const absPutUrl = await this.binary.getPutUrl(realWebCtx, "h3");
+    assert.ok(absPutUrl.includes("/upload/data/h3?token="));
+
+    const content = "no-folder-content";
+    const { hash } = await this.hashes(content);
+    const token = await this.binary.getToken(hash, "PUT");
+    const upload = await this.newContext(content);
+    upload.setParameters({ hash, token });
+    await assert.rejects(() => this.binary.storeBinary(upload), WebdaError.PreconditionFailed);
+  }
 }

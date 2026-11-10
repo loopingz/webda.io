@@ -252,5 +252,45 @@ describe("SQLRepository", () => {
     expect(items[0]).toBeInstanceOf(Item);
     await repo.__clean();
     expect(last().q).toBe("DELETE FROM items");
+
+    // Additional edge cases in SQLRepository
+    expect((repo as any).tableModelClass()).toBeUndefined();
+    expect((repo as any).declaredType(null)).toBeUndefined();
+    await repo.incrementAttributes("a", ["count", { property: "other", value: 2 }] as any);
+    const WebdaQL = await import("@webda/ql");
+    expect(repo.duplicateExpression(new WebdaQL.BooleanExpression(false)).toString()).toBe("FALSE");
+    const customExpr = Object.create(WebdaQL.Expression.prototype);
+    expect(repo.duplicateExpression(customExpr)).toBe(customExpr);
+    await repo.query("name = 'x' ORDER BY a.b ASC OFFSET '5'");
+    expect(() => repo.buildCountSQL(new WebdaQL.AndExpression([]), 0)).toThrow("Invalid count max: 0");
+    expect(() => (repo as any).getStatementCondition({ filter: new WebdaQL.AndExpression([]), limit: -1 })).toThrow(
+      "Invalid LIMIT: -1"
+    );
+
+    // executeAggregation maxGroups exceeded
+    const manyRowsRepo = new SQLRepository(
+      Item as any,
+      ["uuid"],
+      {
+        query: async () => ({
+          rows: [
+            { g0: "a", m0: 1 },
+            { g0: "b", m0: 1 }
+          ],
+          rowCount: 2
+        })
+      },
+      "items",
+      undefined,
+      undefined,
+      undefined,
+      new TagDialect()
+    );
+    (manyRowsRepo as any).aggregationOptions = { maxGroups: 1 };
+    await expect(
+      (manyRowsRepo as any).executeAggregation(
+        WebdaQL.toAggregationQuery({ groupBy: ["status"], metrics: { n: { count: "*" } } })
+      )
+    ).rejects.toThrow(/exceeds 1 groups/);
   });
 });

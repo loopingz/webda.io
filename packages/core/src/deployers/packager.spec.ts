@@ -170,10 +170,24 @@ class PackagerTest {
   async reproducible() {
     // A committed workspace: the packaged configuration bakes the git information
     const git = (...args: string[]) =>
-      execFileSync("git", ["-c", "user.email=test@webda.io", "-c", "user.name=test", ...args], {
-        cwd: this.root,
-        stdio: "pipe"
-      });
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.email=test@webda.io",
+          "-c",
+          "user.name=test",
+          "-c",
+          "commit.gpgsign=false",
+          "-c",
+          "tag.gpgSign=false",
+          ...args
+        ],
+        {
+          cwd: this.root,
+          stdio: "pipe"
+        }
+      );
     git("init", "-q");
     git("add", "-A");
     git("commit", "-q", "-m", "init");
@@ -282,5 +296,46 @@ class PackagerTest {
     writeApplicationPackage(await packageApplication(this.getApp()), output);
     assert.ok(statSync(join(output, "lib/cli.js")).mode & 0o100);
     assert.ok(!(statSync(join(output, "lib/app.js")).mode & 0o100));
+  }
+
+  @test
+  async additionalPackagerAndServiceCoverage() {
+    const { ApplicationPackager } = await import("./packager.service.js");
+    const { runWithInstanceStorage, useInstanceStorage } = await import("../core/instancestorage.js");
+
+    // 1. Symlink cycle in folder, shared dependency (topLevel.get(name) === real), missing required dependency, and external Import
+    symlinkSync(join(this.appPath, "lib"), join(this.appPath, "lib/cycle"));
+    // Make 'lib' also depend on 'c' (same version as 'a' depends on, or 'b' also depend on 'c')
+    const storeB = join(this.root, "node_modules/.pnpm/b@1.0.0/node_modules/b");
+    write(join(storeB, "package.json"), { name: "b", version: "1.0.0", dependencies: { c: "1.0.0" } });
+    // Also add a missing non-optional dependency and shared dependency 'c' to app package.json
+    const pkgJson = JSON.parse(readFileSync(join(this.appPath, "package.json"), "utf-8"));
+    pkgJson.dependencies["missing-dep-xyz"] = "1.0.0";
+    pkgJson.dependencies["c"] = "1.0.0";
+    write(join(this.appPath, "package.json"), pkgJson);
+
+    const app = this.getApp();
+    const cfg = app.getConfiguration();
+    cfg.cachedModules.moddas["Ext/Outside"] = {
+      Import: "../../outside/not-packaged:Outside"
+    } as any;
+    app.getConfiguration = () => cfg;
+    app.getCurrentDeployment = () => "";
+    const pkg = await packageApplication(app);
+    assert.strictEqual(
+      pkg.configuration.cachedModules.moddas["Ext/Outside"].Import,
+      "../../outside/not-packaged:Outside"
+    );
+
+    // 2. ApplicationPackager service getApplication, getConfigurationFile, and package without deployment
+    await runWithInstanceStorage({}, async () => {
+      useInstanceStorage().application = app;
+      (app as any).configurationFile = join(this.appPath, "webda.config.json");
+      const packager = new ApplicationPackager("Packager", {} as any);
+      assert.strictEqual(packager["getApplication"](), app);
+      assert.strictEqual(packager["getConfigurationFile"](app), join(this.appPath, "webda.config.json"));
+      const json = await packager.package(undefined, true);
+      assert.ok(typeof json === "string" && json.includes("$packaged"));
+    });
   }
 }

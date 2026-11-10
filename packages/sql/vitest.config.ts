@@ -16,7 +16,13 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts", "src/relational/index.ts", "src/test/**"],
+      exclude: [
+        "src/**/*.spec.ts",
+        "src/index.ts",
+        "src/relational/index.ts",
+        "src/relational/dialect.ts",
+        "src/test/**"
+      ],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

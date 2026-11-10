@@ -1081,6 +1081,74 @@ class Serializer {
 
     // Wait for the setTimeout in test.ts to complete
     await new Promise(resolve => setTimeout(resolve, 200));
+    const AClassCtor: any = SerializerContext.globalContext.getSerializer("AClass").constructorType;
+    const aInstance = new AClassCtor();
+    assert.deepStrictEqual(aInstance.mfa.toDTO(), { enabled: false });
+    assert.strictEqual(aInstance.mfa.constructor.fromDTO("unused"), undefined);
+    assert.strictEqual(aInstance.mfa.constructor.deserialize({ secret: "abc" }).secret, "abc");
+  }
+
+  @test
+  async testObjectToJSONExtraKeysAndHydrateBehaviors() {
+    let hydrated = false;
+    const fixedDate = new Date("2025-01-01T00:00:00.000Z");
+    class BehaviorEntity {
+      name = "init";
+      computedPrimitive!: number;
+      computedDate!: Date;
+      relationLink!: any;
+      relationUndefined!: any;
+      fnProp!: any;
+      constructor() {
+        Object.defineProperty(this, "computedPrimitive", { value: 42, enumerable: false, writable: true });
+        Object.defineProperty(this, "computedDate", { value: fixedDate, enumerable: false, writable: true });
+        Object.defineProperty(this, "relationLink", {
+          value: {
+            toJSON() {
+              return "target-id";
+            }
+          },
+          enumerable: false,
+          writable: true
+        });
+        Object.defineProperty(this, "relationUndefined", {
+          value: {
+            toJSON() {
+              return undefined;
+            }
+          },
+          enumerable: false,
+          writable: true
+        });
+        Object.defineProperty(this, "fnProp", { value: () => {}, enumerable: false, writable: true });
+      }
+      toJSON() {
+        return {
+          name: this.name,
+          computedPrimitive: this.computedPrimitive,
+          computedDate: this.computedDate,
+          relationLink: "target-id",
+          relationUndefined: "ignored",
+          fnProp: "ignored",
+          skipped: undefined
+        };
+      }
+      __hydrateBehaviors() {
+        hydrated = true;
+      }
+    }
+    const context = new SerializerContext();
+    context.registerSerializer("BehaviorEntity", new ObjectSerializer(BehaviorEntity));
+    const entity = new BehaviorEntity();
+    entity.name = "hello";
+    const serialized = context.serialize(entity);
+    const restored: any = context.deserialize(serialized);
+    assert.ok(restored instanceof BehaviorEntity);
+    assert.strictEqual(restored.name, "hello");
+    assert.strictEqual(restored.computedPrimitive, 42);
+    assert.ok(restored.computedDate instanceof Date);
+    assert.strictEqual(restored.relationLink, "target-id");
+    assert.strictEqual(hydrated, true);
   }
 
   /**

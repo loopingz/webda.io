@@ -143,6 +143,19 @@ class RecoveryTest extends EmailTest {
       await assert.rejects(() => make({ redirects }).init(), new RegExp(`redirects\\.${key}`));
     }
     await assert.rejects(() => make({}).init(), /redirects\.failure/);
+    await assert.rejects(() => make({ mailer: "MissingMailer", redirects: all }).init(), /requires a Mailer service/);
+    this.email.getParameters().password.verifier = "DefinedMailer";
+    try {
+      this.email.resolve();
+      const core: any = useCore();
+      const mailer: any = core.getService("DefinedMailer");
+      mailer.validate = async () => true;
+      const u = new (this.auth.getUserModel())();
+      await (u as any).password.set("custompass");
+    } finally {
+      delete this.email.getParameters().password.verifier;
+      this.email.resolve();
+    }
   }
 
   @test
@@ -209,6 +222,18 @@ class RecoveryTest extends EmailTest {
     const ident = await Ident.ref(Ident.key("free@x.com", "email")).get();
     assert.ok(ident.isVerified());
     assert.strictEqual(ident.getUser().toString(), me);
+    // Non-existent ident with matching sub throws TokenInvalid (line 607)
+    const missingTok = await signEmailToken("verify", { email: "missing-ident@x.com", sub: me });
+    await rejectsWith(() => this.op("Auth.Email.Verify", { token: missingTok }, ctx), "TOKEN_INVALID");
+    // Ident owned by someone else even with matching token sub throws IdentLinkedElsewhere (line 611)
+    const ownedByOther = new Model({
+      ...Ident.key("other-owned@x.com", "email"),
+      email: "other-owned@x.com",
+      _user: "other-u"
+    } as any);
+    await runAsSystem(() => ownedByOther.getRepository().create(ownedByOther));
+    const mismatchTok = await signEmailToken("verify", { email: "other-owned@x.com", sub: me });
+    await rejectsWith(() => this.op("Auth.Email.Verify", { token: mismatchTok }, ctx), "IDENT_LINKED_ELSEWHERE");
   }
 
   @test
@@ -413,5 +438,52 @@ class RecoveryTest extends EmailTest {
       () => this.op("Auth.Password.Change", { current: "brandnewpass", next: "yetanotherpass" }, ctx),
       "THROTTLED"
     );
+
+    // prepareLink concurrent create error handling (lines 516-517), sendMailDetached error (line 534), flushMails (line 547), and missing user ref (lines 641, 674)
+    const repo = Ident.getRepository();
+    const origCreate = repo.create.bind(repo);
+    repo.create = async () => {
+      throw new Error("concurrent create");
+    };
+    try {
+      await assert.rejects(
+        () => this.op("Auth.Email.StartVerification", { email: "race-in@x.com" }, ctx),
+        /concurrent create/
+      );
+      assert.strictEqual(await this.op("Auth.Email.StartVerification", { email: "race-out@x.com" }), undefined);
+    } finally {
+      repo.create = origCreate;
+    }
+
+    const origSend = this.mailer.send.bind(this.mailer);
+    let resolveMail!: () => void;
+    this.mailer.send = () =>
+      new Promise<void>((_, reject) => {
+        resolveMail = () => reject(Object.assign(new Error("mail boom"), { code: "SMTP_ERR" }));
+      });
+    try {
+      (this.email as any).sendMailDetached("EMAIL_REGISTER", "err@x.com", "https://app/verify", "tok");
+      const flushPromise = this.email.flushMails();
+      resolveMail();
+      await flushPromise;
+    } finally {
+      this.mailer.send = origSend;
+    }
+
+    const UserModel = this.auth.getUserModel();
+    const origRef = UserModel.ref.bind(UserModel);
+    (UserModel as any).ref = () => ({
+      get: () => Promise.reject(new Error("user read failed"))
+    });
+    try {
+      assert.strictEqual(await this.op("Auth.Password.StartRecovery", { email: "c@x.com" }), undefined);
+      const recoverTok = await signEmailToken("recover", { email: "c@x.com", sub: ctx.getCurrentUserId() });
+      await rejectsWith(
+        () => this.op("Auth.Password.Recover", { token: recoverTok, password: "validpassword" }),
+        "TOKEN_INVALID"
+      );
+    } finally {
+      (UserModel as any).ref = origRef;
+    }
   }
 }

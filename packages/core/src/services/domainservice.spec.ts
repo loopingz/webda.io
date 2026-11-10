@@ -2,7 +2,15 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import bcrypt from "bcryptjs";
-import { DomainServiceParameters, DomainService, stripPrivateFields } from "./domainservice.service.js";
+import {
+  DomainServiceParameters,
+  DomainService,
+  stripPrivateFields,
+  sanitizeModelInput,
+  prepareCreateInput,
+  getReadOnlyAttributes
+} from "./domainservice.service.js";
+import { registerLoginMfa } from "../models/mfa.model.js";
 import { callOperation, canCallOperation, listOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
@@ -1109,5 +1117,80 @@ class DomainServiceTest extends WebdaApplicationTest {
     });
     assert.strictEqual(events.length, 1);
     assert.strictEqual(events[0].uuid, JSON.stringify({ namespace: "x", slug: "y" }));
+  }
+
+  @test
+  async additionalDomainServiceCoverage() {
+    const { Brand } = this.setupBrandRepo();
+    assert.strictEqual(sanitizeModelInput(Brand, null as any), null);
+    assert.strictEqual(prepareCreateInput(Brand, null as any), null);
+    assert.deepStrictEqual(getReadOnlyAttributes(null), []);
+
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    assert.strictEqual(service.transformName("helloWorld"), "helloWorld");
+
+    // resolveUpdateKey mismatch
+    assert.throws(
+      () => (service as any).resolveUpdateKey({ uuid: "b" }, ["uuid"], { uuid: "a" }),
+      WebdaError.BadRequest
+    );
+
+    // modelQuery non-string query
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setExtension("operationContext", { model: Brand });
+    await runWithContext(ctx, async () => {
+      await assert.rejects(() => service.modelQuery(123 as any), WebdaError.BadRequest);
+    });
+
+    // initOperations when operations is false or models map has null/unmetadated entries
+    const noOps = new DomainService("NoOps", new DomainServiceParameters().load({ operations: false }));
+    noOps.initOperations();
+
+    const models = useApplication().getModels() as any;
+    models["NullModel"] = null;
+    class NoMetaModel extends (Brand as any) {
+      static Metadata: any = undefined;
+    }
+    models["WebdaDemo/NoMetaModel"] = NoMetaModel;
+    try {
+      service.initOperations();
+    } finally {
+      delete models["NullModel"];
+      delete models["WebdaDemo/NoMetaModel"];
+    }
+
+    // modelBehaviorAction with loginMfa
+    await this.withPasswordBehavior(async (_run, User, uuid) => {
+      const modelId = useModelMetadata(User).Identifier;
+      registerLoginMfa({
+        model: modelId,
+        attribute: "password",
+        run: async (_mfa, _action, _method, next) => next()
+      });
+      try {
+        const bCtx = new FakeOpContext();
+        await bCtx.init();
+        await bCtx.newSession();
+        bCtx.setExtension("operationContext", {
+          model: User,
+          attribute: "password",
+          action: "nonexistent",
+          behavior: "Webda/Password",
+          pkFields: ["uuid"]
+        });
+        bCtx.setParameters({ uuid });
+        await runWithContext(bCtx, async () => {
+          // No session.userId -> Unauthorized
+          await assert.rejects(() => service.modelBehaviorAction(), WebdaError.Unauthorized);
+          // Matching session.userId -> loads instance via runAsSystem
+          bCtx.getSession().login(uuid, "ident-1");
+          // verify is not a function on plain object password, hits NotFound after line 1102
+          await assert.rejects(() => service.modelBehaviorAction(), WebdaError.NotFound);
+        });
+      } finally {
+        registerLoginMfa(undefined);
+      }
+    });
   }
 }

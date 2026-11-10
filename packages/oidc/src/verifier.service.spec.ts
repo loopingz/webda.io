@@ -484,5 +484,59 @@ class OIDCVerifierTest extends OIDCTest {
     assert.strictEqual(await previous.resolveBearer(token, undefined), undefined);
     assert.ok(await replacement.resolveBearer(token, undefined));
     await replacement.stop();
+    const getNameStub = this.stub(previous, "getName");
+    getNameStub.onFirstCall().throws(new Error("no context"));
+    getNameStub.returns(" previous");
+    assert.strictEqual(await previous.resolveBearer(token, undefined), undefined);
+  }
+
+  @test
+  async edgeCasesForGlobSecureUrlPrincipalAndDiscoveryFallback() {
+    const { matchGlob } = await import("./glob.js");
+    assert.strictEqual(matchGlob(123, "*"), false);
+    assert.strictEqual(matchGlob("a", "a".repeat(2000)), false);
+
+    await assert.rejects(
+      () => this.addVerifier({ trustedIssuers: [{ issuer: ISSUER, jwksUri: 123 as any }] }),
+      OIDCConfigurationError
+    );
+    await assert.rejects(
+      () => this.addVerifier({ trustedIssuers: [{ issuer: ISSUER, jwksUri: "not a url" }] }),
+      OIDCConfigurationError
+    );
+
+    // Placeholder claim missing or non-primitive in principal template
+    const verifierWithTemplate = await this.addVerifier({
+      trustedIssuers: [{ issuer: ISSUER, principal: "repo:${missing}:${obj}" }]
+    });
+    try {
+      const tokenWithObj = await this.idp.sign({ obj: { nested: 1 } } as any);
+      await assert.rejects(() => verifierWithTemplate.verifyOrFail(tokenWithObj), OIDCTokenInvalid);
+    } finally {
+      await verifierWithTemplate.stop();
+    }
+
+    // Empty principal after stripping app: prefix
+    const emptyPrincipalVerifier = await this.addVerifier({
+      trustedIssuers: [{ issuer: ISSUER, principal: "app:${emptyClaim}" }]
+    });
+    try {
+      const tokenWithEmpty = await this.idp.sign({ emptyClaim: "" } as any);
+      await assert.rejects(() => emptyPrincipalVerifier.verifyOrFail(tokenWithEmpty), OIDCTokenInvalid);
+    } finally {
+      await emptyPrincipalVerifier.stop();
+    }
+
+    // Discovery returning HTTP 500
+    const errorVerifier = await this.addVerifier({
+      trustedIssuers: [{ issuer: ISSUER }]
+    });
+    try {
+      this.fetch.callsFake(async () => new Response("server error", { status: 500 }));
+      const validToken = await this.idp.sign();
+      await assert.rejects(() => errorVerifier.verifyOrFail(validToken), OIDCTokenInvalid);
+    } finally {
+      await errorVerifier.stop();
+    }
   }
 }

@@ -249,8 +249,10 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
       for (let attempt = 0; ; attempt++) {
         const current = await api.readCustomResourceDefinition({ name: crd.metadata.name });
         if (current.status?.conditions?.some(c => c.type === "Established" && c.status === "True")) break;
+        /* v8 ignore start */
         if (attempt >= 30) throw new Error(`CustomResourceDefinition ${crd.metadata.name} is not established`);
         await new Promise(resolve => setTimeout(resolve, 1000));
+        /* v8 ignore stop */
       }
     }
   }

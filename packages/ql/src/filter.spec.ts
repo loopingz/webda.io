@@ -56,6 +56,8 @@ class FilterTest {
 
   @test
   refusesInjectionAndInvalidValues() {
+    assert.throws(() => filterToExpression(null as any), /Filter must be an object/);
+    assert.throws(() => filterToExpression([] as any), /Filter must be an object/);
     assert.throws(() => filterToExpression({ "a' OR 1=1 --": 1 } as any), WebdaQLError);
     assert.throws(() => filterToExpression({ $or: [{ "a = 1 OR b": 1 }] } as any), WebdaQLError);
     assert.throws(() => toWebdaQL({ a: { $nor: [] } } as any), WebdaQLError);

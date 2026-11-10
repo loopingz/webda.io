@@ -64,7 +64,7 @@ export function operationToTool(id: string, op: OperationDefinition, resolve: Sc
     return undefined;
   }
   const hints = op.mcp || {};
-  const input = op.input === undefined || op.input === "void" ? undefined : resolveRef(op.input, resolve);
+  const input = resolveRef(op.input, resolve);
   let inputSchema: JsonSchema;
   let wrapped = false;
   if (op.input === undefined || op.input === "void") {

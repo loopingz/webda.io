@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { suite, test } from "@webda/test";
+import { DEFAULT_CONFIG } from "../config.js";
 import { merge3 } from "../engine/merge.js";
 import { resolve } from "./resolve.js";
 import type { Resolution } from "../types.js";
@@ -61,9 +62,12 @@ class ResolveTest {
 
   @test({ name: "is idempotent when the same resolutions are reapplied" })
   isIdempotentWhenTheSameResolutionsAreReapplied() {
+    expect(DEFAULT_CONFIG).toEqual({ stringStrategy: {}, arrayId: {} });
     const r = merge3({ a: 1 }, { a: 2 }, { a: 3 });
     const once = resolve(r, new Map([["/a", { choose: "ours" }]]));
     const twice = resolve(once, new Map([["/a", { choose: "ours" }]]));
     expect(twice).toEqual(once);
+    expect(() => resolve(r, new Map([["/a", { text: "oops" }]]))).toThrow(/only applies to string conflicts/);
+    expect(() => resolve(r, new Map([["/a", {} as any]]))).toThrow(/invalid Resolution/);
   }
 }

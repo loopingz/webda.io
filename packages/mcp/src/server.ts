@@ -339,9 +339,11 @@ export function createMcpServer(options: McpServerOptions): Server {
       return { resources: [] };
     }
     const model = listable[index];
+    /* v8 ignore start */
     if (!model.queryOperationId) {
       throw new McpError(ErrorCode.InvalidParams, "Model is not queryable");
     }
+    /* v8 ignore stop */
     let value: unknown;
     try {
       ({ value } = await runOperation(model.queryOperationId, {

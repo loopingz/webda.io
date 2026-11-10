@@ -568,6 +568,11 @@ class OAuthProviderTest extends AuthTest {
     await assert.rejects(() => this.op("Auth.Fake.Token", {}), { code: "BAD_REQUEST" });
     await assert.rejects(() => this.op("Auth.Fake.Token", { token: 12 }), { code: "BAD_REQUEST" });
     await assert.rejects(() => this.op("Auth.Fake.Token", { tokens: "x" }), { code: "BAD_REQUEST" });
+    const rawCtx = await this.ctx();
+    rawCtx.getHttpContext().headers["content-type"] = "application/json";
+    await assert.rejects(() => this.inContext(rawCtx, () => this.fake.token(undefined, "x" as any)), {
+      code: "BAD_REQUEST"
+    });
     await assert.rejects(() => this.op("Auth.Fake.Token", { token: "" }), { code: "BAD_REQUEST" });
     this.fake.getParameters().allowedEmailDomains = ["corp.com"];
     const ctx = await this.ctx();
@@ -677,6 +682,24 @@ class OAuthProviderTest extends AuthTest {
     await assert.rejects(() => make({ ...base, redirects: {} }), /redirects\.failure/);
     await assert.rejects(() => make({ ...base, authorized_uris: ["/relative"] }), /authorized_uris/);
     await make(base);
+    const origGetService = this.webda.getService.bind(this.webda);
+    (this.webda as any).getService = (name: string) => (name === "Authentication" ? undefined : origGetService(name));
+    try {
+      await assert.rejects(() => make(base), /requires the Authentication service/);
+    } finally {
+      (this.webda as any).getService = origGetService;
+    }
+    const origAuthUrl = this.fake.getAuthorizationUrl.bind(this.fake);
+    this.fake.getAuthorizationUrl = async () => {
+      throw new Error("auth url failed");
+    };
+    try {
+      const browser = await this.browser();
+      const res = await this.route(browser, "login");
+      assert.strictEqual(res.location, `${KO}?reason=OAUTH_ERROR`);
+    } finally {
+      this.fake.getAuthorizationUrl = origAuthUrl;
+    }
     assert.ok(OAuthProvider);
   }
 }

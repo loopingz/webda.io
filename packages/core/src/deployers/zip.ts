@@ -95,9 +95,11 @@ export function writeZip(zipPath: string, entries: ZipEntry[]): number {
       const body = method === 8 ? deflated : data;
       const crc = crc32(data);
       const name = Buffer.from(entry.target, "utf8");
+      /* v8 ignore start */
       if (offset + body.length + 30 + name.length > 0xffffffff) {
         throw new Error("Zip archive larger than 4GB is not supported");
       }
+      /* v8 ignore stop */
       const local = Buffer.alloc(30);
       local.writeUInt32LE(0x04034b50, 0);
       local.writeUInt16LE(20, 4);

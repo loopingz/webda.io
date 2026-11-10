@@ -6,6 +6,9 @@ import { UnpackedConfiguration } from "../application/application.js";
 import { User } from "../models/user.model.js";
 import { ServiceParameters } from "./serviceparameters.js";
 
+const origCreateConfiguration = DebugMailer.createConfiguration;
+const origFilterParameters = DebugMailer.filterParameters;
+
 @suite
 class DebugMailerTest extends WebdaInternalTest {
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
@@ -22,6 +25,8 @@ class DebugMailerTest extends WebdaInternalTest {
     assert.throws(() => mailer.error(), /FakeError/);
     await assert.rejects(() => mailer.errorAsync(), /FakeError/);
     assert.strictEqual(await mailer.hasNotification(""), true);
+    assert.ok(origCreateConfiguration({}));
+    assert.deepStrictEqual(origFilterParameters({ a: 1 }), { a: 1 });
   }
 
   @test

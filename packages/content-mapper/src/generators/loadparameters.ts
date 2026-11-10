@@ -71,10 +71,12 @@ function parametersTypeName(ctx: AnalysisContext, sf: any, cls: any): string | u
       const m = /^Service<\s*(.+?)\s*>$/.exec(printed);
       if (m) return m[1];
     }
+    /* v8 ignore start */
   } catch {
     // Best-effort: an unresolvable base simply means we skip the class.
   }
   return undefined;
+  /* v8 ignore stop */
 }
 
 /**

@@ -249,6 +249,26 @@ class CertificateProviderTest extends AuthTest {
     const providerUid = this.provider.getIdentity(this.alice)!.providerUid;
     await this.auth.emit("Authentication.Unlinked" as any, { ident: { provider: "certificate", providerUid } } as any);
     assert.strictEqual(await this.provider.resolveCertificate(this.alice, ctx), undefined);
+    // Missing identity field in resolveCertificate returns undefined
+    this.provider.getParameters().identityField = "san.email";
+    assert.strictEqual(await this.provider.resolveCertificate(this.bob, ctx), undefined);
+    this.provider.getParameters().identityField = "fingerprint256";
+    // Cache eviction when CACHE_MAX is reached
+    this.provider.getParameters().autoRegister = true;
+    for (let i = 0; i < 10_000; i++) {
+      (this.provider as any).cache.set(`k${i}`, { value: { userId: "u", identId: "i" }, expires: 0 });
+    }
+    await this.provider.resolveCertificate(this.bob, await this.withCert(this.bob));
+    assert.strictEqual((this.provider as any).cache.size, 1);
+    (this.provider as any).cache.clear();
+    // Non-ok status from complete() returns undefined
+    const origComplete = this.auth.complete.bind(this.auth);
+    this.auth.complete = async () => ({ status: "mfa_required", methods: ["totp"] }) as any;
+    try {
+      assert.strictEqual(await this.provider.resolveCertificate(this.alice, ctx), undefined);
+    } finally {
+      this.auth.complete = origComplete;
+    }
     // cacheTtl 0 disables the cache
     this.provider.getParameters().cacheTtl = 0;
     this.provider.getParameters().autoRegister = true;

@@ -1,7 +1,9 @@
 import { describe, it, beforeEach } from "vitest";
 import * as assert from "assert";
 import {
+  getLogLevelOverride,
   useLog,
+  useLogLevel,
   useOutput,
   useWorkerOutput,
   WorkerInput,
@@ -9,6 +11,7 @@ import {
   WorkerOutput,
   WorkerProgress
 } from "./core.js";
+import { WorkerLogger } from "./loggers/index.js";
 
 function mapper([msg]) {
   const res = {};
@@ -523,5 +526,17 @@ describe("WorkerOutputTest", () => {
     assert.strictEqual(output2.inputs["test-123"].uuid, "test-123");
     // A forwarded input has no local promise: waiting on it must fail instead of resolving undefined
     await assert.rejects(() => output2.waitForInput("test-123"), /cannot be awaited/);
+  });
+
+  it("testUseLogLevelAndDefaultWorkerLoggerLevel", () => {
+    const res = useLogLevel("DEBUG", () => getLogLevelOverride());
+    assert.strictEqual(res, "DEBUG");
+    assert.strictEqual(getLogLevelOverride(), undefined);
+
+    class DummyLogger extends WorkerLogger {
+      onMessage(): void {}
+    }
+    const dummy = new DummyLogger(output);
+    assert.strictEqual(dummy.level(), process.env.LOG_LEVEL || "INFO");
   });
 });

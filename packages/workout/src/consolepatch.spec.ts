@@ -47,10 +47,11 @@ describe("patchConsole", () => {
 
   it("restores the original methods", () => {
     const original = { log: console.log, error: console.error, warn: console.warn };
-    restore = patchConsole(new WorkerOutput());
+    const r1 = patchConsole(new WorkerOutput());
     assert.notStrictEqual(console.log, original.log);
-    restore();
-    restore = undefined;
+    r1();
+    // Calling restore a second time when already restored is a no-op
+    r1();
     assert.strictEqual(console.log, original.log);
     assert.strictEqual(console.error, original.error);
     assert.strictEqual(console.warn, original.warn);

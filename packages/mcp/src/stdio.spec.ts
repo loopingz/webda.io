@@ -105,4 +105,30 @@ class McpStdioTest extends McpFixtureTest {
     stdout.write("after\n");
     assert.strictEqual(read(stdout), "after\n");
   }
+
+  @test
+  async reserveStdoutForwardsDrainEventAndMcpCommandRuns() {
+    const stdout = new PassThrough({ highWaterMark: 1 });
+    const stderr = new PassThrough();
+    const { protocol, restore } = reserveStdout(stdout, stderr);
+    try {
+      let written = false;
+      protocol.write("hello world\n", () => {
+        written = true;
+      });
+      assert.strictEqual(written, false);
+      stdout.emit("drain");
+      assert.strictEqual(written, true);
+    } finally {
+      restore();
+    }
+
+    registerFixture();
+    const service = useService("Mcp" as any) as unknown as McpService;
+    const p = service.mcp("alice");
+    setImmediate(() => {
+      process.stdin.emit("end");
+    });
+    await p;
+  }
 }

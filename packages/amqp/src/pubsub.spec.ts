@@ -38,6 +38,8 @@ class AMQPPubSubTest extends WebdaApplicationTest {
     assert.strictEqual(p.exchange?.type, "fanout2");
     assert.strictEqual(p.subscription, "");
     assert.strictEqual(new AMQPPubSubParameters().load().exchange.type, "fanout");
+    const disconnected = new AMQPPubSubService("d", new AMQPPubSubParameters());
+    assert.throws(() => (disconnected as any).getChannel(), /AMQP service is not connected/);
   }
 
   @test

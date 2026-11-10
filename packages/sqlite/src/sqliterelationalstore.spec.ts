@@ -541,7 +541,14 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
         rel.manager.diff = origDiff;
 
         assert.strictEqual(await rel.checkCommand("nonexistent-version", false, false), 2);
+        const origCompare = rel.versions.compare.bind(rel.versions);
+        rel.versions.compare = () =>
+          [
+            { category: "BLOCK", message: "drop col" },
+            { category: "SAFE", message: "add col" }
+          ] as any;
         assert.strictEqual(await rel.checkCommand(undefined, true, true), 0);
+        rel.versions.compare = origCompare;
         assert.strictEqual(await rel.checkCommand(undefined, false, false), 0);
         const origContract = rel.manager.contract.bind(rel.manager);
         rel.manager.contract = async () => [];

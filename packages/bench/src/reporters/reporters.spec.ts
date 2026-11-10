@@ -105,6 +105,14 @@ class ReportersTest {
     assert.deepStrictEqual(output, []);
     new ConsoleReporter(text => output.push(text)).report([result()]);
     assert.strictEqual(output.length, 1);
+    const origLog = console.log;
+    console.log = (text: string) => output.push(text);
+    try {
+      new ConsoleReporter().report([result()]);
+      assert.strictEqual(output.length, 2);
+    } finally {
+      console.log = origLog;
+    }
   }
 
   @test

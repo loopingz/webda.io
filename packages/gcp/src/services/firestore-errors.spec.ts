@@ -80,6 +80,7 @@ class FireStoreErrorsTest extends WebdaApplicationTest {
       a?: number;
     }
     const plainRepo = new FireStoreRepository(PlainModel as any, ["uuid"], {} as any, "unit");
+    (plainRepo as any).log("WARN", "noop");
     const inst = (plainRepo as any).fromFirestore({ a: 42 });
     assert.strictEqual(inst.a, 42);
     const selfJson: any = { x: 1 };

@@ -80,8 +80,8 @@ function isStatementParameter(ctx: AnalysisContext, type: any): boolean {
   if (!type) return false;
   const aliasSymbol = type.getAliasSymbol?.() ?? type.aliasSymbol;
   if (aliasSymbol?.name === "WebdaQLStatement") return true;
-  if (type.isUnionOrIntersection?.() || type.isUnionType?.() || type.isIntersectionType?.()) {
-    return (type.getTypes?.() ?? type.types ?? []).some((member: any) => isStatementParameter(ctx, member));
+  if (type.isUnionType()) {
+    return type.getTypes().some((member: any) => isStatementParameter(ctx, member));
   }
   return !!ctx.checker.getPropertyOfType(type, "__webdaQLStatement");
 }
@@ -105,8 +105,8 @@ function peelWebdaQLString(ctx: AnalysisContext, type: any): any {
     if (args?.[0]) return args[0];
   }
 
-  if (type.isUnionOrIntersection?.() || type.isUnionType?.() || type.isIntersectionType?.()) {
-    for (const member of type.getTypes?.() ?? type.types ?? []) {
+  if (type.isUnionType()) {
+    for (const member of type.getTypes()) {
       const peeled = peelWebdaQLString(ctx, member);
       if (peeled) return peeled;
     }

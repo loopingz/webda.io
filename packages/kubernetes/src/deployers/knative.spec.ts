@@ -319,6 +319,7 @@ class KnativeDeployerTest extends WebdaApplicationTest {
     ]);
     // Cloud Run has no Eventing, a Service without namespace gives Triggers without one
     const cloudRun = params({ platform: "cloudrun", triggers: [{ broker: "default" }] });
+    assert.deepStrictEqual(buildKnativeTriggers(cloudRun, buildKnativeService(cloudRun)), []);
     assert.deepStrictEqual(
       buildKnativeTriggers(cloudRun, buildKnativeService(cloudRun), message => warnings.push(message)),
       []

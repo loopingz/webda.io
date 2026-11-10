@@ -12,7 +12,7 @@ import { ServicesPanel } from "./panels/ServicesPanel.js";
 import { ancestorsOf, buildGraph, fitScale, MIN_FIT_SCALE, visibleModels } from "./components/ModelGraph.js";
 import { highlightJS } from "./components/CodeBlock.js";
 import { resolveRef, SchemaForm } from "./components/SchemaForm.js";
-import { formatBytes } from "./components/ui.js";
+import { formatBytes, StateBadge } from "./components/ui.js";
 import {
   FakeWebSocket,
   healthyRoutes,
@@ -69,7 +69,21 @@ describe("ServicesPanel", () => {
   });
 
   it("shows configuration, schema form, schema json and metrics tabs", async () => {
-    await renderPanel(<ServicesPanel />);
+    const routes = healthyRoutes();
+    const svcs = routes["/api/services"] as any[];
+    routes["/api/services"] = [
+      {
+        ...svcs[0],
+        metrics: [
+          ...svcs[0].metrics,
+          { name: "mem", type: "gauge", help: "Memory", values: [{ value: 1 }] },
+          { name: "lat", type: "histogram", help: "Latency", values: [{ value: 2 }] },
+          { name: "sum", type: "summary", help: "", values: [] }
+        ]
+      },
+      ...svcs.slice(1)
+    ];
+    await renderPanel(<ServicesPanel />, routes);
     fireEvent.click(await screen.findByText("Router"));
     await screen.findByText("Webda/Router", { selector: "span" });
     assert.ok(screen.getByText("/api"));
@@ -489,6 +503,7 @@ describe("RequestsPanel", () => {
       url: "/users",
       statusCode: 200,
       duration: 12,
+      error: { message: "Partial warning", stack: "Error: Partial warning\n  at handler" },
       requestBody: { kind: "binary", size: 128, preview: "deadbeef" },
       responseBody: { kind: "text-truncated", size: 4096, content: "hello" }
     };
@@ -497,8 +512,18 @@ describe("RequestsPanel", () => {
     fireEvent.click(await screen.findByText("200"));
     await screen.findByText(/Binary, 128 B/);
     screen.getByText(/\[truncated — total 4.0 KB\]/);
+    screen.getByText(/Error: Partial warning/);
     fireEvent.click(screen.getByText("404"));
     await screen.findByText(/HTTP 500/);
+
+    render(
+      <div>
+        <StateBadge />
+        <StateBadge state="initializing" />
+        <StateBadge state="created" />
+        <StateBadge state="custom" />
+      </div>
+    );
   });
 });
 
@@ -553,7 +578,12 @@ describe("ConfigPanel", () => {
     fireEvent.click(screen.getByText("Tree"));
     await screen.findByText("parameters:", { exact: false });
 
-    const { container } = render(<JsonTree value={["x", "y"]} name="arr" />);
+    const { container } = render(
+      <div>
+        <JsonTree value={["x", "y"]} name="arr" />
+        <JsonTree value={{ n: 123, b: true, nil: null, u: undefined }} name="primitives" />
+      </div>
+    );
     const toggle = container.querySelector(".wdbg-json-toggle")!;
     fireEvent.click(toggle);
     assert.ok(container.textContent?.includes("2 items"));

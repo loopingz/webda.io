@@ -26,7 +26,6 @@ export default defineConfig({
       ],
       reporter: ["lcov", "html", "text"]
     },
-    setupFiles: ["./test/setup.ts"],
     reporters: "verbose",
     include: ["src/**/*.spec.ts"]
   }

@@ -2,8 +2,11 @@ import { User } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
+import { EventEmitter } from "node:events";
 import { vi } from "vitest";
-import { FireStoreRepository } from "./firestore.service.js";
+import FireStore, { FireStoreParameters, FireStoreRepository, toFirestore } from "./firestore.service.js";
+import { GCPQueue, GCPQueueParameters } from "./queue.service.js";
+import { GCSFinder } from "./storage.service.js";
 
 @suite
 class FireStoreErrorsTest extends WebdaApplicationTest {
@@ -68,5 +71,84 @@ class FireStoreErrorsTest extends WebdaApplicationTest {
     } finally {
       ref.mockRestore();
     }
+  }
+
+  @test
+  async additionalGcpUnitCoverage() {
+    // 1. fromFirestore without .load(), deleteMany, updateMany
+    class PlainModel {
+      a?: number;
+    }
+    const plainRepo = new FireStoreRepository(PlainModel as any, ["uuid"], {} as any, "unit");
+    const inst = (plainRepo as any).fromFirestore({ a: 42 });
+    assert.strictEqual(inst.a, 42);
+    const selfJson: any = { x: 1 };
+    selfJson.toJSON = () => selfJson;
+    assert.deepStrictEqual(toFirestore(selfJson), { x: 1 });
+
+    const delSpy = vi.spyOn(plainRepo as any, "deleteManyByKey").mockResolvedValue(3);
+    const updSpy = vi.spyOn(plainRepo as any, "updateManyByKey").mockResolvedValue(2);
+    assert.strictEqual(await plainRepo.deleteMany("DELETE"), 3);
+    assert.strictEqual(await plainRepo.updateMany("UPDATE SET a = 1"), 2);
+    delSpy.mockRestore();
+    updSpy.mockRestore();
+
+    // 2. FireStore resolveCollection (!meta), getRepositories (missing/null model), __clean (duplicate collection)
+    class NoMetaUser extends User {}
+    delete (NoMetaUser as any).Metadata;
+    const store = new FireStore(
+      "fs-unit",
+      new FireStoreParameters().load({
+        collection: "shared",
+        collections: { "Webda/User": "shared", "Webda/OwnerModel": "shared" }
+      })
+    );
+    store.firestore = {
+      collection: () => ({ listDocuments: async () => [] })
+    } as any;
+    assert.strictEqual(store.resolveCollection(NoMetaUser as any), "shared");
+
+    (store as any)._modelsHierarchy = {
+      "Missing/Model": {},
+      "Null/Model": {},
+      "Webda/User": {},
+      "Webda/OwnerModel": {}
+    };
+    const app = this.getApplication();
+    const origGetModel = app.getModel.bind(app);
+    app.getModel = ((name: string) => {
+      if (name === "Null/Model") return undefined as any;
+      return origGetModel(name);
+    }) as any;
+    try {
+      await store.__clean();
+    } finally {
+      app.getModel = origGetModel;
+    }
+
+    // 3. GCPQueue receiver error listener (line 180)
+    const q = this.registerService(
+      new GCPQueue(
+        "gcp-q",
+        new GCPQueueParameters().load({ mode: "receiver", subscription: "s", topic: "t", timeout: 10 })
+      )
+    ).resolve();
+    const subEmitter = new EventEmitter();
+    q.pubsub = {
+      subscription: () => subEmitter
+    } as any;
+    const p = q.receiveMessage();
+    subEmitter.emit("error", new Error("receiver error"));
+    assert.deepStrictEqual(await p, []);
+
+    // 4. GCSFinder find with filterPattern mismatch (line 175)
+    const finder = new GCSFinder();
+    (finder as any)._storage = {
+      bucket: () => ({
+        getFiles: async () => [[{ name: "skip.txt" }, { name: "keep.json" }], undefined]
+      })
+    };
+    const found = await finder.find("gs://my-bucket/", { filterPattern: /\.json$/ });
+    assert.deepStrictEqual(found, ["gs://my-bucket/keep.json"]);
   }
 }

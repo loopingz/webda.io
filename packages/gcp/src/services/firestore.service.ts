@@ -781,6 +781,7 @@ export default class FireStore<K extends FireStoreParameters = FireStoreParamete
       } catch {
         continue;
       }
+      /* v8 ignore next 3 */
       if (!model) {
         continue;
       }

@@ -15,7 +15,7 @@ import {
   SCRATCH,
   writeLayoutArchive
 } from "./image.js";
-import { MediaTypes, platformMatches, sha256 } from "./oci.js";
+import { MediaTypes, parsePlatform, platformMatches, sha256 } from "./oci.js";
 import { parseImageReference } from "./reference.js";
 import { RegistryClient } from "./registry.js";
 import type { TarEntry } from "./tar.js";
@@ -147,6 +147,7 @@ class ImageTest {
       )
     );
     assert.ok(!platformMatches(undefined, { os: "linux", architecture: "amd64" }));
+    assert.throws(() => parsePlatform("linux"), /Invalid platform/);
   }
 
   @test
@@ -249,13 +250,29 @@ class ImageTest {
         () => buildImage(this.folder(), ENTRIES, { ...options, credentials: {} }),
         /Cannot get a token/
       );
-      // A single platform base keeps its platform
+      // A single platform base keeps its platform (even when requested platform differs, logging a warning)
       const single = await buildImage(this.folder(), ENTRIES, {
         ...options,
         baseImage: `${registry.host}/base/node:22-arm64`,
-        platforms: ["linux/arm64"]
+        platforms: ["linux/amd64"]
       });
       assert.deepStrictEqual(single.images[0].platform, { os: "linux", architecture: "arm64", variant: "v8" });
+
+      // Empty blob response during buildImage
+      await assert.rejects(
+        () =>
+          buildImage(this.folder(), ENTRIES, {
+            ...options,
+            platforms: ["linux/amd64"],
+            fetch: (async (url: any, init: any) => {
+              if (`${url}`.includes(layers.amd64)) {
+                return new Response(null, { status: 200 });
+              }
+              return fetch(url, init);
+            }) as any
+          }),
+        /Empty blob response/
+      );
     } finally {
       await registry.stop();
     }
@@ -310,6 +327,41 @@ class ImageTest {
       const pushed = await client.getManifest("my/app", "1.0.0");
       assert.strictEqual(pushed.digest, built.root.digest);
       assert.strictEqual(pushed.mediaType, MediaTypes.OCI_INDEX);
+
+      // Missing blob with no base image or empty base blob response during pushImage
+      const missingDigest = sha256("missing-layer-blob");
+      const brokenImage = {
+        ...built,
+        base: undefined,
+        images: [
+          {
+            ...built.images[0],
+            manifest: {
+              ...built.images[0].manifest,
+              layers: [{ mediaType: MediaTypes.OCI_LAYER_GZIP, digest: missingDigest, size: 1 }]
+            }
+          }
+        ]
+      };
+      await assert.rejects(
+        () => pushImage(brokenImage, parseImageReference(`${other.host}/my/app2`), ["1.0.0"]),
+        /no base image to retrieve it from/
+      );
+      await assert.rejects(
+        () =>
+          pushImage(
+            { ...brokenImage, base: parseImageReference(`${source.host}/base/node:22`) },
+            parseImageReference(`${other.host}/my/app2`),
+            ["1.0.0"],
+            {
+              fetch: (async (url: any, init: any) =>
+                init?.method === "HEAD"
+                  ? new Response(null, { status: `${url}`.includes(missingDigest) ? 404 : 200 })
+                  : new Response(null, { status: 200 })) as any
+            }
+          ),
+        /Empty blob response/
+      );
     } finally {
       await source.stop();
       await other.stop();
@@ -389,6 +441,85 @@ class ImageTest {
     assert.strictEqual((await basic.request("GET", "/v2/", [])).status, 200);
     const anonymous = new RegistryClient("registry.example.com", { fetch: basicFetch });
     assert.strictEqual((await anonymous.request("GET", "/v2/", [])).status, 401);
+
+    // Edge cases in RegistryClient
+    const staticChallengeClient = new RegistryClient("registry.example.com", {
+      credentials: { token: "tok" },
+      fetch: (async () =>
+        new Response("", {
+          status: 401,
+          headers: { "www-authenticate": 'Bearer realm="https://auth.example.com/token"' }
+        })) as any
+    });
+    assert.strictEqual((await staticChallengeClient.request("GET", "/v2/", ["s"])).status, 401);
+    assert.strictEqual(
+      await (staticChallengeClient as any).getToken({ scheme: "bearer", parameters: {} }, ["s"]),
+      "tok"
+    );
+
+    const noRealm = new RegistryClient("registry.example.com", {
+      fetch: (async () =>
+        new Response("", { status: 401, headers: { "www-authenticate": 'Bearer service="svc"' } })) as any
+    });
+    await assert.rejects(() => noRealm.request("GET", "/v2/", ["s"]), /without realm/);
+
+    const noToken = new RegistryClient("registry.example.com", {
+      fetch: (async (url: any) =>
+        `${url}`.startsWith("https://auth.example.com")
+          ? new Response("{}", { status: 200 })
+          : new Response("", {
+              status: 401,
+              headers: { "www-authenticate": 'Bearer realm="https://auth.example.com/token"' }
+            })) as any
+    });
+    await assert.rejects(() => noToken.request("GET", "/v2/", ["s"]), /returned no token/);
+
+    const noChallenge = new RegistryClient("registry.example.com", {
+      fetch: (async () => new Response("", { status: 401 })) as any
+    });
+    assert.strictEqual((await noChallenge.request("GET", "/v2/", ["s"])).status, 401);
+
+    const badDigestClient = new RegistryClient("registry.example.com", {
+      fetch: (async () => new Response("{}", { status: 200 })) as any
+    });
+    await assert.rejects(() => badDigestClient.getManifest("app", sha256("wrong")), /has digest/);
+
+    const mount202 = new RegistryClient("registry.example.com", {
+      fetch: (async () => new Response("", { status: 202 })) as any
+    });
+    assert.strictEqual(await mount202.mountBlob("app", sha256("x"), "from"), false);
+
+    const mount404 = new RegistryClient("registry.example.com", {
+      fetch: (async () => new Response("", { status: 404 })) as any
+    });
+    assert.strictEqual(await mount404.mountBlob("app", sha256("x"), "from"), false);
+
+    const errorClient = new RegistryClient("registry.example.com", {
+      fetch: (async (_url: any, init: any) => {
+        if (init?.method === "POST") return new Response("err", { status: 500 });
+        return new Response("err", { status: 500 });
+      }) as any
+    });
+    await assert.rejects(() => errorClient.mountBlob("app", sha256("x"), "from"), /Mount blob .* failed: 500/);
+    await assert.rejects(
+      () => errorClient.uploadBlob("app", sha256("x"), 0, () => Buffer.alloc(0)),
+      /Start upload .* failed: 500/
+    );
+    await assert.rejects(
+      () => errorClient.putManifest("app", "1", Buffer.from("{}"), MediaTypes.OCI_MANIFEST),
+      /Put manifest .* failed: 500/
+    );
+
+    const putUploadFail = new RegistryClient("registry.example.com", {
+      fetch: (async (_url: any, init: any) =>
+        init?.method === "POST"
+          ? new Response("", { status: 202, headers: { location: "/v2/app/blobs/uploads/1" } })
+          : new Response("err", { status: 500 })) as any
+    });
+    await assert.rejects(
+      () => putUploadFail.uploadBlob("app", sha256("x"), 0, () => Buffer.alloc(0)),
+      /Upload of .* failed: 500/
+    );
   }
 
   @test

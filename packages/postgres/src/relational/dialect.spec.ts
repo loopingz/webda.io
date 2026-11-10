@@ -206,6 +206,12 @@ export class PostgresRelationalDialectTest {
     );
     assert.strictEqual(d.columnJsonRemoveItem("files", 1), `COALESCE("files" - 1, '[]'::jsonb)`);
     assert.strictEqual(d.columnJsonItemCondition("files", 1, "hash", 3), `"files"#>>'{1,hash}' = $3`);
+    assert.strictEqual(
+      d.collectionItemCondition("files", undefined, "hash", 3),
+      `(data#>>'{files, undefined}')::jsonb->>'hash'=$3`
+    );
+    assert.ok(d.countStoredTypes("tbl").includes("GROUP BY 1"));
+    assert.strictEqual(d.isObjectRow(), `jsonb_typeof(data) = 'object'`);
     assert.throws(() => d.keyText("a' OR 1=1--"), /Invalid attribute/);
     assert.throws(() => d.jsonText(["a", "b'}--"]), /Invalid attribute/);
     assert.throws(() => d.setCollectionItem("items", 1, -1, "2026-01-01"), /Invalid index/);
@@ -220,6 +226,50 @@ export class PostgresRelationalDialectTest {
       }
     };
     assert.deepStrictEqual(await this.dialect.describeSchema(client, []), { tables: {} });
+
+    let call = 0;
+    const mockClient = {
+      query: async () => {
+        call++;
+        if (call === 1) {
+          return {
+            rows: [
+              {
+                table_name: "rel_post",
+                column_name: "title",
+                data_type: "character varying",
+                character_maximum_length: 200,
+                is_nullable: "YES"
+              },
+              {
+                table_name: "rel_post",
+                column_name: "uuid",
+                data_type: "text",
+                character_maximum_length: null,
+                is_nullable: "NO"
+              }
+            ]
+          };
+        }
+        if (call === 2) {
+          return {
+            rows: [{ tablename: "rel_post", indexname: "idx_post" }]
+          };
+        }
+        return {
+          rows: [
+            { tablename: "rel_post", conname: "fk_valid", convalidated: true },
+            { tablename: "rel_post", conname: "fk_unval", convalidated: false }
+          ]
+        };
+      }
+    };
+    const schema = await this.dialect.describeSchema(mockClient as any, ["rel_post"]);
+    assert.strictEqual(schema.tables.rel_post.columns.title.raw, "character varying(200)");
+    assert.strictEqual(schema.tables.rel_post.columns.uuid.raw, "text");
+    assert.ok(schema.tables.rel_post.indexes.has("idx_post"));
+    assert.ok(schema.tables.rel_post.constraints.has("fk_valid"));
+    assert.ok(schema.tables.rel_post.unvalidated?.has("fk_unval"));
   }
 
   @test

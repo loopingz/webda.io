@@ -655,5 +655,24 @@ export class MongoStoreTest extends WebdaApplicationTest {
       () => this.repo.deleteItemFromCollection("r1", "bad.prop" as any, 0),
       /Invalid collection parameters/
     );
+    assert.deepStrictEqual(mapExpression({} as any), {});
+    assert.strictEqual((this.repo as any).declaredType(null), undefined);
+    const errRepo = new MongoRepository(
+      Row as any,
+      ["uuid"],
+      async () =>
+        ({
+          insertOne: async () => {
+            throw new Error("db error");
+          },
+          aggregate: () => ({ toArray: async () => [{}, {}] })
+        }) as any
+    );
+    await assert.rejects(() => errRepo.create({ uuid: "x" }), /db error/);
+    (errRepo as any).aggregationOptions = { maxGroups: 1 };
+    await assert.rejects(
+      () => (errRepo as any).executeAggregation({ groupBy: ["a"], metrics: {}, limit: undefined }),
+      /exceeds 1 groups/
+    );
   }
 }

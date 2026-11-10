@@ -135,6 +135,34 @@ class AuthTest {
   async helperValidationAndSameOriginAuth() {
     assert.strictEqual(getHelperCredentials("../evil", "ghcr.io"), undefined);
     assert.strictEqual(getHelperCredentials("nonexistent-helper-xyz", "ghcr.io"), undefined);
+    if (process.platform !== "win32") {
+      const binDir = mkdtempSync(join(tmpdir(), "webda-oci-bin-"));
+      const origPath = process.env.PATH;
+      try {
+        const helperPath = join(binDir, "docker-credential-testcred");
+        writeFileSync(
+          helperPath,
+          `#!/bin/sh
+read server
+case "$server" in
+  token.io) echo '{"Username":"<token>","Secret":"id-sec"}' ;;
+  user.io) echo '{"Username":"bob","Secret":"pw-sec"}' ;;
+  empty.io) echo '{"Username":"bob"}' ;;
+  bad.io) echo '{bad-json' ;;
+esac
+`,
+          { mode: 0o755 }
+        );
+        process.env.PATH = `${binDir}:${origPath}`;
+        assert.deepStrictEqual(getHelperCredentials("testcred", "token.io"), { identityToken: "id-sec" });
+        assert.deepStrictEqual(getHelperCredentials("testcred", "user.io"), { username: "bob", password: "pw-sec" });
+        assert.strictEqual(getHelperCredentials("testcred", "empty.io"), undefined);
+        assert.strictEqual(getHelperCredentials("testcred", "bad.io"), undefined);
+      } finally {
+        process.env.PATH = origPath;
+        rmSync(binDir, { recursive: true, force: true });
+      }
+    }
     const seenHeaders: Record<string, string>[] = [];
     const client = new RegistryClient("ghcr.io", {
       credentials: { token: "secret-token" },

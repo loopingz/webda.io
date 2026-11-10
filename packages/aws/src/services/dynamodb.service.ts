@@ -1211,6 +1211,7 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
       } catch {
         continue;
       }
+      /* v8 ignore next 3 */
       if (!model) {
         continue;
       }

@@ -230,4 +230,52 @@ class AMQPQueueTest extends QueueTest {
     await consumer;
     assert.ok(Date.now() - start < 1000);
   }
+
+  @test
+  async unitEdgeCases() {
+    const q = this.registerService(
+      new AMQPQueue(
+        "q-edge",
+        new AMQPQueueParameters().load({ queue: "q", workerDelayer: { type: "linear", interval: 5 } })
+      )
+    ).resolve();
+    assert.throws(() => (q as any).getChannel(), /AMQP service is not connected/);
+    await assert.rejects(() => q.consume(async () => {}), /AMQP service is not connected/);
+
+    let calls = 0;
+    let msgHandled = false;
+    let nullHandled = false;
+    q.conn = {
+      createChannel: async () => {
+        calls++;
+        if (calls <= 2) {
+          throw new Error(`createChannel fail ${calls}`);
+        }
+        return {
+          on: () => {},
+          prefetch: async () => {},
+          ack: () => {
+            throw new Error("ack failed");
+          },
+          close: async () => {},
+          cancel: async () => {},
+          consume: async (_queue: string, cb: (msg: any) => void) => {
+            cb({ content: Buffer.from(JSON.stringify({ a: 1 })), fields: { deliveryTag: 1 } });
+            cb(null);
+            nullHandled = true;
+            return { consumerTag: "tag-1" };
+          }
+        };
+      }
+    } as any;
+
+    const consumer = q.consume(async () => {
+      msgHandled = true;
+    });
+    await waitFor(() => msgHandled && nullHandled, 1000);
+    await this.sleep(20);
+    await consumer.cancel();
+    await consumer;
+    q.conn = undefined;
+  }
 }

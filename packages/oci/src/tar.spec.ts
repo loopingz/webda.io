@@ -39,6 +39,7 @@ class TarTest {
   @test
   sortAndDirectories() {
     const entries = withDirectories([
+      { path: "/", type: "directory", mode: 0o755 },
       { path: "app/x-y", type: "file", mode: 0o644, content: Buffer.from("1") },
       { path: "/app/x/z.js", type: "file", mode: 0o644, content: Buffer.from("2") },
       { path: "app/b.js", type: "file", mode: 0o755, content: Buffer.from("3") }
@@ -110,6 +111,16 @@ class TarTest {
       writeFileSync(path, "abcdef");
       await assert.rejects(async () => {
         for await (const _chunk of generator) {
+          // consume
+        }
+      }, /changed while archiving/);
+
+      writeFileSync(path, "abcdef");
+      const gen2 = generateTar([{ path: "f", type: "file", mode: 0o644, source: path }]);
+      await gen2.next();
+      writeFileSync(path, "a");
+      await assert.rejects(async () => {
+        for await (const _chunk of gen2) {
           // consume
         }
       }, /changed while archiving/);

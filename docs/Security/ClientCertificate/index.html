@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -29,58 +29,12 @@ Webda only accepts that header from its <code>trustedProxies</code>.</li>
 <!-- -->
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="native-mode">Native mode<a href="#native-mode" class="hash-link" aria-label="Direct link to Native mode" title="Direct link to Native mode" translate="no">​</a></h2>
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;HttpServer&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;key&quot;: &quot;/certs/tls.key&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;cert&quot;: &quot;/certs/tls.crt&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;clientCa&quot;: &quot;/certs/ca.crt&quot;, // or a list of files</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;clientAuth&quot;: &quot;optional&quot; // &quot;none&quot; | &quot;optional&quot; | &quot;require&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th><code>clientAuth</code></th><th>Behaviour</th></tr></thead><tbody><tr><td><code>none</code></td><td>No certificate is requested (default without <code>clientCa</code>)</td></tr><tr><td><code>optional</code></td><td>A certificate is requested; clients without one, or with one not signed by <code>clientCa</code>, still connect. The latter is exposed with <code>verified: false</code> (default with <code>clientCa</code>)</td></tr><tr><td><code>require</code></td><td>The TLS handshake fails for clients without a certificate signed by <code>clientCa</code></td></tr></tbody></table>
 <p><code>clientCa</code>/<code>clientAuth</code> need TLS (<code>key</code> and <code>cert</code>, or <code>autoTls</code>): the server refuses to start otherwise. The plain
 HTTP to HTTPS redirect of the TLS port keeps working. HTTP/1.1, HTTP/2, gRPC and GraphQL subscriptions (WebSocket)
 expose the certificate the same way.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="proxy-mode">Proxy mode<a href="#proxy-mode" class="hash-link" aria-label="Direct link to Proxy mode" title="Direct link to Proxy mode" translate="no">​</a></h2>
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;HttpServer&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;trustedProxies&quot;: &quot;10.0.0.0/8&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;clientCertHeader&quot;: &quot;x-forwarded-tls-client-cert&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;clientCertHeaderFormat&quot;: &quot;traefik&quot; // &quot;traefik&quot; | &quot;pem-urlencoded&quot; | &quot;xfcc&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Proxy</th><th><code>clientCertHeader</code></th><th><code>clientCertHeaderFormat</code></th></tr></thead><tbody><tr><td>Traefik <code>passTLSClientCert</code> with <code>pem: true</code></td><td><code>x-forwarded-tls-client-cert</code></td><td><code>traefik</code></td></tr><tr><td>nginx <code>$ssl_client_escaped_cert</code></td><td><code>x-ssl-client-cert</code></td><td><code>pem-urlencoded</code></td></tr><tr><td>Envoy <code>forward_client_cert_details</code></td><td><code>x-forwarded-client-cert</code></td><td><code>xfcc</code></td></tr></tbody></table>
 <ul>
 <li class="">A request carrying <code>clientCertHeader</code> from an address outside <code>trustedProxies</code> is refused with a 400, like the

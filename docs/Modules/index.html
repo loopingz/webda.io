@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -34,282 +34,36 @@
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="foundational-deep-tier">Foundational (deep tier)<a href="#foundational-deep-tier" class="hash-link" aria-label="Direct link to Foundational (deep tier)" title="Direct link to Foundational (deep tier)" translate="no">​</a></h2>
 <p>These packages form the backbone of the framework. Most applications depend on all of them.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/core/">core</a></td><td>Application boot, dependency injection, routing, stores, events, and all base classes.</td></tr><tr><td><a class="" href="/docs/Modules/compiler/">compiler</a></td><td>TypeScript compiler wrapper (<code>webdac</code>) that generates <code>webda.module.json</code>, OpenAPI specs, and JSON schemas at build time.</td></tr><tr><td><a class="" href="/docs/Modules/models/">models</a></td><td>Pre-built domain-model base classes (User, Group, Email, Policy …) ready to extend.</td></tr><tr><td><a class="" href="/docs/Modules/decorators/">decorators</a></td><td>All first-party decorators: <code>@Bean</code>, <code>@Route</code>, <code>@Inject</code>, <code>@Action</code>, <code>@Expose</code>, and more.</td></tr><tr><td><a class="" href="/docs/Modules/content-mapper/">content-mapper</a></td><td>TypeScript content mapping behind <code>webdac build</code>: model metadata, JSON Schema generation and the generated accessors.</td></tr><tr><td><a class="" href="/docs/Modules/ql/">ql</a></td><td>WebdaQL — a portable query language for filtering model collections across every store backend.</td></tr><tr><td><a class="" href="/docs/Modules/graphql/">graphql</a></td><td>Auto-generates a GraphQL schema from your models and wires queries, mutations, and subscriptions.</td></tr><tr><td><a class="" href="/docs/Modules/sdk/">sdk</a></td><td>Generates a typed frontend SDK (types, operations, model clients with a normalized cache, <code>@Shared</code> methods) from the application.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="stores">Stores<a href="#stores" class="hash-link" aria-label="Direct link to Stores" title="Direct link to Stores" translate="no">​</a></h2>
 <p>Plug-and-play persistence backends — swap them via configuration without touching model code.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/fs/">fs</a></td><td>File-system store for local development and testing (JSON files on disk).</td></tr><tr><td><a class="" href="/docs/Modules/mongodb/">mongodb</a></td><td>MongoDB store with full WebdaQL translation and change-stream events.</td></tr><tr><td><a class="" href="/docs/Modules/postgres/">postgres</a></td><td>PostgreSQL store with SQL-backed WebdaQL and connection-pool management.</td></tr><tr><td><a class="" href="/docs/Modules/elasticsearch/">elasticsearch</a></td><td>Elasticsearch store for full-text search and analytics workloads.</td></tr><tr><td><a class="" href="/docs/Modules/aws/">aws</a></td><td>AWS integrations including <strong>DynamoStore</strong> (DynamoDB), <strong>S3Binary</strong>, and CloudFormation/Lambda deployers.</td></tr><tr><td><a class="" href="/docs/Modules/gcp/">gcp</a></td><td>Google Cloud integrations including <strong>FireStore</strong> persistence and GCP deployer.</td></tr><tr><td><a class="" href="/docs/Modules/azure/">azure</a></td><td>Blob binaries, Cosmos DB, Service Bus, Key Vault, Monitor logs, Container Apps and Functions deployers.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="queues--messaging">Queues / Messaging<a href="#queues--messaging" class="hash-link" aria-label="Direct link to Queues / Messaging" title="Direct link to Queues / Messaging" translate="no">​</a></h2>
 <p>Decouple background work and fan-out events with these messaging adapters.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/amqp/">amqp</a></td><td>AMQP 0-9-1 queue adapter (RabbitMQ-compatible) for <code>QueueService</code>.</td></tr><tr><td><a class="" href="/docs/Modules/async/">async</a></td><td>Async Action runner — executes model actions in background workers via any queue backend.</td></tr><tr><td><a class="" href="/docs/Modules/cloudevents/">cloudevents</a></td><td>CloudEvents publisher/subscriber adapter for cross-service event delivery.</td></tr><tr><td><a class="" href="/docs/Modules/workflow/">workflow</a></td><td>Durable workflows: operations chained with control flow, that survive restarts, retry, sleep and run as their launcher.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="authentication">Authentication<a href="#authentication" class="hash-link" aria-label="Direct link to Authentication" title="Direct link to Authentication" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/google-auth/">google-auth</a></td><td>Google OAuth 2.0 provider for <code>@webda/authentication</code>.</td></tr><tr><td><a class="" href="/docs/Modules/hawk/">hawk</a></td><td>Hawk HMAC authentication middleware for machine-to-machine API calls.</td></tr><tr><td><a class="" href="/docs/Modules/oauth/">oauth</a></td><td>OAuth 2.1 authorization server: delegated, operation-scoped tokens with consent, device flow and revocation.</td></tr><tr><td><a class="" href="/docs/Modules/iam/">iam</a></td><td>AWS-IAM-like allow/deny policies on operations, with conditions, evaluated with Casbin.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="protocols">Protocols<a href="#protocols" class="hash-link" aria-label="Direct link to Protocols" title="Direct link to Protocols" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/grpc/">grpc</a></td><td>gRPC server and client transport layer, auto-generated from Protobuf definitions derived from your models.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="cloud--deploy">Cloud / Deploy<a href="#cloud--deploy" class="hash-link" aria-label="Direct link to Cloud / Deploy" title="Direct link to Cloud / Deploy" translate="no">​</a></h2>
 <p>Deployers package your application for cloud execution environments.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/aws/">aws</a></td><td>CloudFormation and Lambda deployers plus AWS-specific services (DynamoDB, S3, SQS …).</td></tr><tr><td><a class="" href="/docs/Modules/gcp/">gcp</a></td><td>Google Cloud Run and GCP infrastructure deployer.</td></tr><tr><td><a class="" href="/docs/Modules/kubernetes/">kubernetes</a></td><td>Kubernetes manifests generator and deployer with Helm-chart output.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="observability">Observability<a href="#observability" class="hash-link" aria-label="Direct link to Observability" title="Direct link to Observability" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/otel/">otel</a></td><td>OpenTelemetry traces, metrics, and logs — zero-code instrumentation for every Webda service.</td></tr><tr><td><a class="" href="/docs/Modules/workout/">workout</a></td><td>Structured logging (<code>useLog</code>), log formatters, and the memory-log test helper.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="testing--dev">Testing / Dev<a href="#testing--dev" class="hash-link" aria-label="Direct link to Testing / Dev" title="Direct link to Testing / Dev" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/test/">test</a></td><td><code>WebdaTest</code> base class, test utilities, and Vitest helpers for unit and integration tests.</td></tr><tr><td><a class="" href="/docs/Modules/debug/">debug</a></td><td>Live-reload dev server, request inspector, and in-browser debug panels.</td></tr><tr><td><a class="" href="/docs/Modules/mock/">mock</a></td><td>Coherent fake-data factory for models — deterministic mocks for repeatable tests.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="build-tooling">Build Tooling<a href="#build-tooling" class="hash-link" aria-label="Direct link to Build Tooling" title="Direct link to Build Tooling" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/compiler/">compiler</a></td><td>See <strong>Foundational</strong> above — <code>webdac</code> drives both the build pipeline and module-manifest generation.</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="utilities">Utilities<a href="#utilities" class="hash-link" aria-label="Direct link to Utilities" title="Direct link to Utilities" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th></tr></thead><tbody><tr><td><a class="" href="/docs/Modules/utils/">utils</a></td><td>Shared helpers: deep-merge, retry, stream utilities, path manipulation, and TypeScript utility types.</td></tr><tr><td><a class="" href="/docs/Modules/serialize/">serialize</a></td><td>JSON serializers and deserializers with support for <code>Date</code>, <code>Buffer</code>, <code>Map</code>, <code>Set</code>, and circular references.</td></tr><tr><td><a class="" href="/docs/Modules/versioning/">versioning</a></td><td>Object-level patch and diff library — compute and apply JSON-Patch-compatible deltas between model versions.</td></tr><tr><td><a class="" href="/docs/Modules/offline/">offline</a></td><td>Offline replicas of models — scoped sync, revision-checked pushes, and 3-way merge conflicts on the client.</td></tr><tr><td><a class="" href="/docs/Modules/cache/">cache</a></td><td>Pluggable in-process and distributed cache adapters (<code>MemoryCache</code>, Redis …).</td></tr><tr><td><a class="" href="/docs/Modules/runtime/">runtime</a></td><td>Runtime detection helpers: environment probing, ESM/CJS bridge utilities, and process lifecycle hooks.</td></tr></tbody></table></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_snva"><a href="https://github.com/loopingz/webda.io/tree/docs/pages/Modules/Modules.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_BSjk" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_XVwX"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/REST/Routes"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Routes</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/Modules/amqp/"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">@webda/amqp</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_EAoX thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#why-webda-is-modular" class="table-of-contents__link toc-highlight">Why @webda is modular</a></li><li><a href="#how-code-generation-amplifies-it" class="table-of-contents__link toc-highlight">How code generation amplifies it</a></li><li><a href="#foundational-deep-tier" class="table-of-contents__link toc-highlight">Foundational (deep tier)</a></li><li><a href="#stores" class="table-of-contents__link toc-highlight">Stores</a></li><li><a href="#queues--messaging" class="table-of-contents__link toc-highlight">Queues / Messaging</a></li><li><a href="#authentication" class="table-of-contents__link toc-highlight">Authentication</a></li><li><a href="#protocols" class="table-of-contents__link toc-highlight">Protocols</a></li><li><a href="#cloud--deploy" class="table-of-contents__link toc-highlight">Cloud / Deploy</a></li><li><a href="#observability" class="table-of-contents__link toc-highlight">Observability</a></li><li><a href="#testing--dev" class="table-of-contents__link toc-highlight">Testing / Dev</a></li><li><a href="#build-tooling" class="table-of-contents__link toc-highlight">Build Tooling</a></li><li><a href="#utilities" class="table-of-contents__link toc-highlight">Utilities</a></li></ul></div></div></div></div></div></main></div></div></div></div>
 </body>
 </html>

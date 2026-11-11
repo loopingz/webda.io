@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -55,46 +55,6 @@ exists to synthesise, at emit time, something you are simply allowed to write do
 </ul>
 <p>Every option below is a different answer to <em>when</em> and <em>where</em> that text gets written.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="3-options-considered">3. Options considered<a href="#3-options-considered" class="hash-link" aria-label="Direct link to 3. Options considered" title="Direct link to 3. Options considered" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th>Authored source</th><th>Build</th><th>Editor</th><th>Verdict</th></tr></thead><tbody><tr><td><strong>A.</strong> Wrapper + hand-rolled LSP proxy</td><td>clean</td><td>temp-dir wrapper</td><td>LSP proxy we own forever</td><td>rejected — unbounded maintenance</td></tr><tr><td><strong>B.</strong> In-place codegen, committed</td><td>contains generated accessors</td><td>plain <code>tsc</code></td><td>correct natively</td><td>rejected — see §7</td></tr><tr><td><strong>C.</strong> Narrow the API so coercion is explicit</td><td>clean</td><td>plain <code>tsc</code></td><td>correct natively</td><td>rejected — breaking API change</td></tr><tr><td><strong>D.</strong> Content mapper + two-pass build</td><td>clean</td><td>two-pass virtual FS</td><td>correct natively</td><td><strong>chosen</strong></td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="4-what-a-content-mapper-is">4. What a content mapper is<a href="#4-what-a-content-mapper-is" class="hash-link" aria-label="Direct link to 4. What a content mapper is" title="Direct link to 4. What a content mapper is" translate="no">​</a></h2>
 <p>Content mappers landed in TypeScript 7.1 (<code>microsoft/typescript-go#4712</code>, completed in
@@ -132,26 +92,6 @@ eslint, prettier, vitest, bundlers and editor syntax highlighting keep treating 
 TypeScript. No tooling outside the compiler needs to know.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="modelts-degrades-gracefully-wts-does-not"><code>.model.ts</code> degrades gracefully; <code>.wts</code> does not<a href="#modelts-degrades-gracefully-wts-does-not" class="hash-link" aria-label="Direct link to modelts-degrades-gracefully-wts-does-not" title="Direct link to modelts-degrades-gracefully-wts-does-not" translate="no">​</a></h3>
 <p>With mappers disabled, the two behave very differently:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th>mappers on</th><th>mappers off</th></tr></thead><tbody><tr><td><code>.model.ts</code></td><td>transformed</td><td><strong>compiles as plain TypeScript</strong></td></tr><tr><td><code>.wts</code></td><td>transformed</td><td><code>TS2307: Cannot find module</code></td></tr></tbody></table>
 <p>This is why we chose a compound suffix over a novel extension. Any tool that is not
 mapper-aware — including the mapper&#x27;s <em>own</em> resident program, see §6 — still sees valid
@@ -263,31 +203,6 @@ it over a ts-morph <code>Project</code> built from <code>sample-app/tsconfig.jso
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="mode-d-has-the-same-failure-class--but-it-is-containable">Mode D has the same failure class — but it is containable<a href="#mode-d-has-the-same-failure-class--but-it-is-containable" class="hash-link" aria-label="Direct link to Mode D has the same failure class — but it is containable" title="Direct link to Mode D has the same failure class — but it is containable" translate="no">​</a></h3>
 <p>If someone creates <code>user.ts</code> instead of <code>user.model.ts</code>, the mapper never runs and the same
 silent bug appears. What changes is frequency and detectability:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th>in-place codegen</th><th>content mapper</th></tr></thead><tbody><tr><td>when it can happen</td><td><strong>every edit</strong></td><td>only when creating a file</td></tr><tr><td>what the guard must do</td><td>re-run the generator and diff</td><td>check a filename</td></tr><tr><td>missing <code>--runExternalCode</code></td><td>n/a</td><td><strong>hard error</strong> (<code>TS18068</code>)</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="8-guardrails">8. Guardrails<a href="#8-guardrails" class="hash-link" aria-label="Direct link to 8. Guardrails" title="Direct link to 8. Guardrails" translate="no">​</a></h2>
 <p>The naming rule must be enforced, or mode D inherits the problem it was chosen to avoid.</p>
@@ -310,35 +225,6 @@ modules are also consumed at build time (<code>compiler/src/shell.ts:49-62</code
 <code>core/src/bin/cli.ts:432</code>), so a check in <code>application.ts</code> alone is not exhaustive.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="9-benchmarks">9. Benchmarks<a href="#9-benchmarks" class="hash-link" aria-label="Direct link to 9. Benchmarks" title="Direct link to 9. Benchmarks" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="method">Method<a href="#method" class="hash-link" aria-label="Direct link to Method" title="Direct link to Method" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>hardware / OS</td><td>Apple Silicon (arm64), macOS</td></tr><tr><td>Node</td><td>v22.19.0</td></tr><tr><td>TypeScript</td><td><code>7.1.0-dev.20260918.1</code> (<code>tsgo</code>)</td></tr><tr><td>fixture</td><td>100 generated models, 165 files total</td></tr><tr><td>model shape</td><td>2 <code>Date</code> fields, 2 <code>ModelLink</code> (one via <code>ManyToOne</code> alias), 2 <code>ModelRelated</code> (one via <code>OneToMany</code>), 1 static, 1 pre-existing accessor, 1 service needing <code>loadParameters</code></td></tr></tbody></table>
 <p>Every model exercises all three coercion kinds and references a class from another file, so
 the checker resolves something on every transform. Wall-clock figures are the median of five
@@ -348,26 +234,6 @@ runs.</p>
 numbers on real packages will be larger; §9.4 gives the real-package figures.</p>
 </blockquote>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="91-full-build">9.1 Full build<a href="#91-full-build" class="hash-link" aria-label="Direct link to 9.1 Full build" title="Direct link to 9.1 Full build" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th style="text-align:right">wall clock</th><th>diagnostics</th></tr></thead><tbody><tr><td>plain <code>tsgo</code>, no mapper</td><td style="text-align:right"><strong>0.03s</strong></td><td>0</td></tr><tr><td><code>tsgo --runExternalCode</code> with the mapper</td><td style="text-align:right"><strong>0.32s</strong></td><td><strong>0</strong></td></tr></tbody></table>
 <p>Breakdown of the difference: Node process spawn ≈ 60ms, mapper resident program startup
 32ms, 100 transforms 192ms (p50 1.80ms, p95 2.70ms, max 8.10ms).</p>
@@ -375,112 +241,15 @@ numbers on real packages will be larger; §9.4 gives the real-package figures.</
 code generation whatsoever; the meaningful comparison is §9.4.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="92-editor-latency">9.2 Editor latency<a href="#92-editor-latency" class="hash-link" aria-label="Direct link to 9.2 Editor latency" title="Direct link to 9.2 Editor latency" translate="no">​</a></h3>
 <p>Real LSP session, typing <code>deletedAt: Date;</code> one character at a time into a model file:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th style="text-align:right"></th></tr></thead><tbody><tr><td>cold open → first diagnostics</td><td style="text-align:right">347ms</td></tr><tr><td><code>didChange</code> → diagnostics, end to end</td><td style="text-align:right">p50 <strong>5.1ms</strong>, p95 8.5ms</td></tr><tr><td>mapper-internal transform</td><td style="text-align:right">p50 3.3ms (snapshot 2.1 + analyze 1.3)</td></tr><tr><td>diagnostics on the valid final text</td><td style="text-align:right">0</td></tr><tr><td>hover on the just-typed field</td><td style="text-align:right"><code>(accessor) Entity042.deletedAt: Date</code></td></tr></tbody></table>
 <p>That last row is the system working end to end: a property typed milliseconds earlier,
 resolved through the checker, rewritten into an accessor, and reported back against the
 authored text.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="93-scaling">9.3 Scaling<a href="#93-scaling" class="hash-link" aria-label="Direct link to 9.3 Scaling" title="Direct link to 9.3 Scaling" translate="no">​</a></h3>
 <p>Only the edited file is re-analysed, so cost tracks program refresh rather than edit size.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th style="text-align:right">models</th><th style="text-align:right">files</th><th style="text-align:right">resident startup</th><th style="text-align:right">keystroke transform</th></tr></thead><tbody><tr><td style="text-align:right">25</td><td style="text-align:right">90</td><td style="text-align:right">30ms</td><td style="text-align:right">2.5ms</td></tr><tr><td style="text-align:right">100</td><td style="text-align:right">165</td><td style="text-align:right">37ms</td><td style="text-align:right">3.4ms</td></tr><tr><td style="text-align:right">400</td><td style="text-align:right">465</td><td style="text-align:right">43ms</td><td style="text-align:right">2.9ms</td></tr><tr><td style="text-align:right">800</td><td style="text-align:right">865</td><td style="text-align:right">76ms</td><td style="text-align:right">5.7ms</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="94-against-the-current-toolchain">9.4 Against the current toolchain<a href="#94-against-the-current-toolchain" class="hash-link" aria-label="Direct link to 9.4 Against the current toolchain" title="Direct link to 9.4 Against the current toolchain" translate="no">​</a></h3>
 <p>Two-pass build over the real packages, <strong>0 diagnostics against the generated code</strong>:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>package</th><th style="text-align:right">pass 1</th><th style="text-align:right">pass 2</th><th style="text-align:right">total</th><th>edits</th></tr></thead><tbody><tr><td>models</td><td style="text-align:right">49ms</td><td style="text-align:right">78ms</td><td style="text-align:right">127ms</td><td>0</td></tr><tr><td>core</td><td style="text-align:right">85ms</td><td style="text-align:right">207ms</td><td style="text-align:right"><strong>292ms</strong></td><td>2 accessors + 17 <code>loadParameters</code></td></tr><tr><td>runtime</td><td style="text-align:right">45ms</td><td style="text-align:right">73ms</td><td style="text-align:right">119ms</td><td>0</td></tr></tbody></table>
 <p>TypeScript 6.0.2 single-pass <code>--noEmit</code> on <code>packages/core</code>, for comparison: <strong>1.44s</strong>
 (median of 3).</p>
@@ -532,61 +301,6 @@ of them.</p>
 so it must resolve from the <strong>application</strong>, not merely transitively through the compiler. It
 belongs in the app template&#x27;s <code>devDependencies</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="fate-of-webdats-plugin">Fate of <code>@webda/ts-plugin</code><a href="#fate-of-webdats-plugin" class="hash-link" aria-label="Direct link to fate-of-webdats-plugin" title="Direct link to fate-of-webdats-plugin" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>file</th><th style="text-align:right">lines</th><th>fate</th></tr></thead><tbody><tr><td><code>index.ts</code> — language-service plugin</td><td style="text-align:right">413</td><td>delete — made unnecessary by real accessors</td></tr><tr><td><code>transform.ts</code> — transformer wiring</td><td style="text-align:right">331</td><td>delete</td></tr><tr><td><code>transforms/accessors.ts</code></td><td style="text-align:right">1324</td><td>delete once the mapper generators land</td></tr><tr><td><code>transforms/module-generator.ts</code></td><td style="text-align:right">513</td><td>delete — scaffold duplicate of <code>compiler/src/module.ts</code></td></tr><tr><td><code>analyzer.ts</code> — <code>computeCoercibleFields</code></td><td style="text-align:right">258</td><td>delete — replaced by the TS7 analyzer</td></tr><tr><td><code>transforms/behaviors.ts</code></td><td style="text-align:right">959</td><td><strong>port</strong></td></tr><tr><td><code>transforms/qlvalidator.ts</code></td><td style="text-align:right">598</td><td><strong>port</strong></td></tr><tr><td><code>coercions.ts</code></td><td style="text-align:right">29</td><td>move into <code>@webda/content-mapper</code></td></tr><tr><td><code>perf.ts</code></td><td style="text-align:right">122</td><td>move into <code>@webda/compiler</code></td></tr></tbody></table>
 <p>Roughly 2.8k lines are deleted and 1.6k must be ported first.</p>
 <blockquote>
@@ -678,23 +392,6 @@ process boundary — the same shape as <code>packages/schema/src/worker.ts</code
 <p>If it worked on Webda&#x27;s sources it would remove the entire port: TypeScript 7 everywhere, no
 TypeScript 6, no hand-written conversion. <strong>It does not, yet.</strong> Measured against
 <code>3.0.0-native.5</code>:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>target</th><th>result</th></tr></thead><tbody><tr><td><code>packages/models</code> → <code>UuidModel</code></td><td><code>Error: unknown node kind=KindThisType (model.model.ts:67:32)</code></td></tr><tr><td><code>sample-app</code> → <code>Company</code></td><td><code>Error: Unhandled case in Node.Text: *ast.ComputedPropertyName</code></td></tr></tbody></table>
 <p>Both are central to how Webda models are written, not edge cases:</p>
 <ul>
@@ -709,31 +406,6 @@ mechanism the whole accessor design rests on.</li>
 semantics the content mapper produces: input uses the <strong>setter</strong> parameter type, output uses
 the <strong>getter</strong> return type (<code>generator.ts:444-471</code>).</p>
 <p>Measured on <code>class User { name; get createdAt(): Date; set createdAt(v: string|number|Date); get computed(): string; readonly id; }</code>:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th>properties</th><th><code>createdAt</code></th></tr></thead><tbody><tr><td><code>@webda/schema</code> <code>dto-in</code></td><td><code>createdAt</code>, <code>name</code></td><td><code>anyOf[string, number, date-time]</code> — the setter type</td></tr><tr><td><code>@webda/schema</code> <code>dto-out</code></td><td><code>computed</code>, <code>createdAt</code>, <code>id</code>, <code>name</code></td><td><code>date-time</code> — the getter type</td></tr><tr><td>native generator</td><td><code>id</code>, <code>name</code></td><td><strong>absent</strong></td></tr></tbody></table>
 <p>The native generator does not emit accessor-backed properties at all, and has no flag to. So
 this is not a mode that can be layered on top: the information never reaches the output, and
@@ -774,31 +446,6 @@ accessors.</p>
 <code>@webda/content-mapper</code>, on the TypeScript 7 checker it already drives.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="why-it-is-smaller-than-it-sounds">Why it is smaller than it sounds<a href="#why-it-is-smaller-than-it-sounds" class="hash-link" aria-label="Direct link to Why it is smaller than it sounds" title="Direct link to Why it is smaller than it sounds" translate="no">​</a></h4>
 <p>The committed corpus is narrow. Measured across core, models, runtime and sample-app:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>total</td><td>4,154 schema nodes, max depth 9</td></tr><tr><td>by origin</td><td>model <code>Schemas</code> 3,350 · modda <code>Schema</code> 1,589 · top-level 804 · bean <code>Schema</code> 41</td></tr><tr><td>keywords used</td><td><code>type</code> 876 · <code>description</code> 525 · <code>additionalProperties</code> 225 · <code>properties</code> 171 · <code>required</code> 156 · <code>$ref</code> 98 · <code>$webda</code> 87 · <code>format</code> 77 · <code>items</code> 38 · <code>enum</code> 19 · <code>allOf</code> 8 · <code>title</code> 6</td></tr><tr><td>distinct <code>$ref</code> definitions</td><td>27</td></tr></tbody></table>
 <p>Twelve keywords. No <code>oneOf</code>, no <code>not</code>, no <code>patternProperties</code>, no conditionals. Webda models
 and service parameters are ordinary object shapes, not arbitrary TypeScript — which is the
@@ -823,27 +470,6 @@ nodes it converts (§11). Measured: 18 of the 68 schemas in the corpus cannot be
 by <em>either</em> implementation running correctly.</p>
 <p>So the harness now scores three outcomes rather than two, and every divergence has to be
 demonstrated, not declared:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>outcome</th><th>meaning</th></tr></thead><tbody><tr><td>identical</td><td>byte-for-byte against the committed artefact</td></tr><tr><td>known divergence</td><td>differs, and the harness <em>proves</em> why — see below</td></tr><tr><td>mismatch</td><td>unexplained; exit code 1</td></tr></tbody></table>
 <p>The load-bearing check is a cross-check against the TypeScript 6 oracle: when the port and
 the oracle agree and only the artefact differs, the artefact is stale. That is verified per
@@ -899,31 +525,6 @@ unchanged at 22/29 through the worker.</p>
 <p>Four differences account for every mismatch found, and all four fail <strong>silently</strong> — each
 produces a valid schema that is quietly wrong, which is exactly the failure class the hard
 constraint exists for.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>symptom</th><th>cause</th></tr></thead><tbody><tr><td>every <code>enum</code> reordered</td><td><code>UnionType.getTypes()</code> returns constituents alphabetically, not by type id</td></tr><tr><td>descriptions missing on inline object types</td><td><code>getDocumentationComment</code> no longer walks a type literal up to its parent property</td></tr><tr><td>descriptions missing on documented bases</td><td>it no longer inherits through <code>extends</code> / <code>implements</code></td></tr><tr><td><code>{@link X}</code> flattened to <code>X</code></td><td>links are rendered rather than returned in source form</td></tr></tbody></table>
 <p>The first is restored by sorting on <code>Type.id</code>: both checkers canonicalise a union by id, and
 ids are issued as types are created, so for the literals of one union that ordering <strong>is</strong>
@@ -1047,36 +648,6 @@ namespaced key would never be found.</li>
 <p>It is a hand-built wrapper whose properties are one generated document per parameter, each
 stripped of its <code>$schema</code>. Everything odd about it follows from that, and all of it is in
 the committed artefact:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th><code>.input</code></th><th><code>.output</code></th></tr></thead><tbody><tr><td><code>$schema</code></td><td>absent</td><td>present</td></tr><tr><td><code>additionalProperties</code></td><td>absent</td><td><code>false</code></td></tr><tr><td>key order</td><td>declaration order</td><td>sorted</td></tr><tr><td><code>required</code></td><td>declaration order, omitted when empty</td><td>sorted</td></tr></tbody></table>
 <p>Every parameter is included, with no filter for <code>context</code> / <code>ctx</code>, so an <code>OperationContext</code>
 argument is expanded in full — <code>Writable</code>, <code>Promise&lt;any&gt;</code> and <code>Error</code> definitions and all.
@@ -1114,26 +685,6 @@ nothing unexplained.</strong></p>
 <p>This found five bugs the four-package corpus never exercised, and two categories of
 artefact that should not have been compared at all.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="thirteen-modules-are-not-comparable-for-two-different-reasons">Thirteen modules are not comparable, for two different reasons<a href="#thirteen-modules-are-not-comparable-for-two-different-reasons" class="hash-link" aria-label="Direct link to Thirteen modules are not comparable, for two different reasons" title="Direct link to Thirteen modules are not comparable, for two different reasons" translate="no">​</a></h4>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>reason</th><th style="text-align:right">count</th><th>which</th></tr></thead><tbody><tr><td>pre-format: no <code>$schema</code>, <code>moddas</code> are bare strings</td><td style="text-align:right">11</td><td>amqp, async, aws, cloudevents, elasticsearch, gcp, google-auth, hawk, kubernetes, mongodb, otel</td></tr><tr><td>no installed dependencies</td><td style="text-align:right">2</td><td><code>test/compiler</code>, <code>test/compiler-operations</code></td></tr></tbody></table>
 <p>The first set was never produced by the generator being replaced — ten of the eleven are
 also <code>!</code>-excluded in <code>pnpm-workspace.yaml</code> as &quot;not yet ready&quot;. The second are compiler test
@@ -1170,23 +721,6 @@ id rather than the schema name, so it silently printed nothing.</li>
 <p>Three kinds of divergence are recognised — unresolved parameters, relation serialisation,
 generic substitution — plus <code>anyOf</code> reordering. Each is checked structurally on every run.
 Two deliberate regressions confirm the harness is not a rubber stamp:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>injected fault</th><th>result</th></tr></thead><tbody><tr><td>drop the automatic <code>default: false</code></td><td>24/48, 15/35, 67/76 — exit 1</td></tr><tr><td>silently drop two real properties</td><td>27/48 — exit 1</td></tr></tbody></table>
 <p>The second is the important one. Accepting a <em>removed</em> property is the most dangerous rule
 in the classifier, so it is allowed only when the reference schema for that property was
@@ -1222,46 +756,6 @@ monorepo was exercised without first adding the package to twelve applications.<
 from <strong>discovery</strong>, so the two can disagree about which schemas exist at all — and only a
 build catches that. Measured across six packages, the build changes exactly the entries
 the harness predicts, with no key added or removed:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>package</th><th style="text-align:right">harness predicts</th><th style="text-align:right">build changes</th></tr></thead><tbody><tr><td><code>packages/core</code></td><td style="text-align:right">2</td><td style="text-align:right">2</td></tr><tr><td><code>packages/fs</code></td><td style="text-align:right">0</td><td style="text-align:right">0</td></tr><tr><td><code>packages/postgres</code></td><td style="text-align:right">3</td><td style="text-align:right">3</td></tr><tr><td><code>packages/runtime</code></td><td style="text-align:right">1</td><td style="text-align:right">1</td></tr><tr><td><code>sample-app</code></td><td style="text-align:right">18</td><td style="text-align:right">18</td></tr><tr><td><code>sample-apps/blog-system</code></td><td style="text-align:right">10</td><td style="text-align:right">10</td></tr></tbody></table>
 <p>It immediately found two defects the harness had been hiding:</p>
 <ul>
@@ -1374,51 +868,6 @@ class by class. Byte-identity is the wrong bar — the generators rewrite access
 with their JSDoc, where the transformers appended them — so member order and comments are
 ignored and everything else is reported.</p>
 <p>Across <code>core</code>, <code>runtime</code>, <code>sample-app</code> and <code>blog-system</code>:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th style="text-align:right">count</th><th>cause</th><th>effect if shipped</th></tr></thead><tbody><tr><td style="text-align:right">32+1</td><td>accessor not generated</td><td><code>Date</code> / relation coercion missing</td></tr><tr><td style="text-align:right">20</td><td><code>toJSON()</code> not generated</td><td>accessor-backed fields vanish from JSON</td></tr><tr><td style="text-align:right">8</td><td>constructor differs</td><td>includes a <code>ReferenceError</code>, below</td></tr><tr><td style="text-align:right">3</td><td><code>__hydrateBehaviors</code> differs</td><td>behaviours not wired on hydration</td></tr><tr><td style="text-align:right">1</td><td><code>ModelRelated</code> initialiser not generated</td><td>relation is <code>undefined</code></td></tr><tr><td style="text-align:right">1</td><td><code>ModelLink</code> setter body differs</td><td>not yet analysed</td></tr><tr><td style="text-align:right">50</td><td>import differences</td><td>13 are a TS6 bug, below</td></tr></tbody></table>
 <p>Stages 4–5 verified the generators against a small fixture, not against the shipped output of
 real packages, which is where these hid. Every row is a <em>silent</em> failure: the code compiles
@@ -1483,43 +932,6 @@ was compiled with tsgo and diffed against its TS6 output before the version bump
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="what-typescript-6-was-getting-wrong">What TypeScript 6 was getting wrong<a href="#what-typescript-6-was-getting-wrong" class="hash-link" aria-label="Direct link to What TypeScript 6 was getting wrong" title="Direct link to What TypeScript 6 was getting wrong" translate="no">​</a></h4>
 <p>The switch changes shipped behaviour, and every change is a correction, verified against the
 output it replaces:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>TypeScript 6 behaviour</th><th>consequence</th></tr></thead><tbody><tr><td><code>AuditEntry.timestamp: number</code> coerced to <code>Date</code></td><td>a numeric timestamp became a <code>Date</code></td></tr><tr><td><code>new ModelLink(T)</code> on a type parameter</td><td><code>ReferenceError</code> on first raw-uuid assignment</td></tr><tr><td><code>[WEBDA_STORAGE]</code> injected into <code>Binary</code></td><td><code>new Binary(attribute, model)</code> lost its service</td></tr><tr><td>base-chain guard keyed on class name</td><td><code>User extends WebdaUser</code> not a model; relations <code>undefined</code></td></tr><tr><td>value imports synthesised from symlinked paths</td><td><code>../../../models/lib/relations.js</code> breaks once installed</td></tr><tr><td><code>.d.ts</code> referencing unimported <code>PrimaryKeyType</code>, bare <code>BelongTo</code></td><td>invalid declarations</td></tr><tr><td>strict naming violation logged, build still succeeded</td><td>the guard never stopped a build</td></tr></tbody></table>
 <p>Module generation still reproduces four TS6 bugs exactly, because <code>webda.module.json</code> is a
 committed artefact and changing it is its own decision: dependency models never resolve
@@ -1572,60 +984,6 @@ scripts in <code>scripts/</code> also use the classic API; none is built or refe
 modules predate the current format. <strong>None of their errors is caused by TypeScript 7.</strong>
 Type-checked on 2026-09-29 under 7.1 and 6.0.2, with the removed <code>@webda/shell</code> dependency
 stripped, the counts are identical:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>package</th><th style="text-align:right">errors</th><th></th><th>package</th><th style="text-align:right">errors</th></tr></thead><tbody><tr><td><code>aws</code></td><td style="text-align:right">598</td><td></td><td><code>mongodb</code></td><td style="text-align:right">27</td></tr><tr><td><code>async</code></td><td style="text-align:right">196</td><td></td><td><code>otel</code></td><td style="text-align:right">22</td></tr><tr><td><code>gcp</code></td><td style="text-align:right">100</td><td></td><td><code>amqp</code></td><td style="text-align:right">18</td></tr><tr><td><code>elasticsearch</code></td><td style="text-align:right">64</td><td></td><td><code>google-auth</code></td><td style="text-align:right">8</td></tr><tr><td><code>hawk</code></td><td style="text-align:right">61</td><td></td><td><code>iam</code></td><td style="text-align:right">no <code>package.json</code></td></tr><tr><td><code>kubernetes</code></td><td style="text-align:right">30</td><td></td><td></td><td style="text-align:right"></td></tr></tbody></table>
 <p>They are the v4 API port — <code>getWebda</code>, <code>emitSync</code>, <code>@testdeck/mocha</code>, <code>WebdaSimpleTest</code>, the
 <code>@webda/shell</code> dependency seven of them still declare — and belong to whoever revives each

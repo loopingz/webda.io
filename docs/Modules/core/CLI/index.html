@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -27,27 +27,6 @@
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="webda-serve"><code>webda serve</code><a href="#webda-serve" class="hash-link" aria-label="Direct link to webda-serve" title="Direct link to webda-serve" translate="no">​</a></h2>
 <p>Starts the application HTTP server in production mode.</p>
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">webda serve</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda serve --port 8080 --bind 0.0.0.0</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda serve --watch   # restart on file changes (requires @webda/compiler)</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody><tr><td><code>--port &lt;n&gt;</code></td><td>Override the HTTP port</td></tr><tr><td><code>--bind &lt;host&gt;</code></td><td>Bind address (default: <code>0.0.0.0</code>)</td></tr><tr><td><code>-w, --watch</code></td><td>Watch mode with auto-restart</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="webda-debug"><code>webda debug</code><a href="#webda-debug" class="hash-link" aria-label="Direct link to webda-debug" title="Direct link to webda-debug" translate="no">​</a></h2>
 <p>Starts the application in development mode with the debug dashboard enabled. The debug dashboard provides a web UI for inspecting running services, requests, logs, and metrics.</p>
@@ -56,23 +35,6 @@
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="webda-openapi"><code>webda openapi</code><a href="#webda-openapi" class="hash-link" aria-label="Direct link to webda-openapi" title="Direct link to webda-openapi" translate="no">​</a></h2>
 <p>Exports the generated OpenAPI 3.0 specification to stdout or a file.</p>
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain"># Print to stdout</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda openapi</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"># Write to a file</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda openapi --output ./openapi.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"># Include hidden routes</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda openapi --includeHidden --output ./openapi-full.json</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody><tr><td><code>-o, --output &lt;file&gt;</code></td><td>Write to file instead of stdout</td></tr><tr><td><code>--includeHidden</code></td><td>Include routes marked as hidden</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="webda-build"><code>webda build</code><a href="#webda-build" class="hash-link" aria-label="Direct link to webda-build" title="Direct link to webda-build" translate="no">​</a></h2>
 <p>Generates protobuf definitions from model operations (for gRPC transport):</p>
@@ -90,41 +52,6 @@
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="application-command-line-webdacli">Application command-line (<code>webda.cli</code>)<a href="#application-command-line-webdacli" class="hash-link" aria-label="Direct link to application-command-line-webdacli" title="Direct link to application-command-line-webdacli" translate="no">​</a></h2>
 <p>The <code>webda.cli</code> section of the application <code>package.json</code> configures its command-line:</p>
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">&quot;webda&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;namespace&quot;: &quot;Loopingz&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;cli&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;name&quot;: &quot;acp-loopingz-runner&quot;,           // program name in --help, instead of &quot;webda&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;defaultCommand&quot;: &quot;serve&quot;,               // run when the arguments name no command</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;bin&quot;: &quot;bin/acp-loopingz-runner.mjs&quot;,    // generated executable, default bin/&lt;name&gt;.mjs</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;include&quot;: [&quot;serve&quot;, &quot;login&quot;, &quot;logout&quot;], // only these commands (with their subcommands); absent: all</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;exclude&quot;: [&quot;Webda/HttpServer:serve&quot;, &quot;migrate&quot;, &quot;openapi&quot;]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Field</th><th>Applies to</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>generated executable (<code>runCli</code>)</td><td>Program name shown in <code>--help</code>; also names the executable. Defaults to the unscoped package name</td></tr><tr><td><code>defaultCommand</code></td><td>generated executable (<code>runCli</code>)</td><td>Command inserted when the arguments name none (<code>acp-loopingz-runner --port 3000</code> runs <code>serve --port 3000</code>); <code>--help</code> and <code>--version</code> alone still show the global help and version</td></tr><tr><td><code>bin</code></td><td><code>webdac build</code></td><td>Path of the generated executable, relative to the package, default <code>bin/&lt;name&gt;.mjs</code></td></tr><tr><td><code>include</code></td><td><code>webda</code> and the executable</td><td>Allow-list of commands, applied before <code>exclude</code>; a command keeps its subcommands (<code>&quot;config&quot;</code> keeps <code>config encrypt</code>, <code>&quot;task&quot;</code> keeps every <code>task</code> operation)</td></tr><tr><td><code>exclude</code></td><td><code>webda</code> and the executable</td><td><code>&quot;Type:command&quot;</code> removes one provider of a command (<code>&quot;Webda/HttpServer:serve&quot;</code>, or <code>&quot;HttpServer:serve&quot;</code>), <code>&quot;command&quot;</code> removes the command with its subcommands</td></tr></tbody></table>
 <p><code>include</code> and <code>exclude</code> apply to <code>webda</code> too, so <code>webda</code> and the application executable offer the same commands. An entry matching no command logs a warning. An excluded provider is not added to the configuration to run the command either.</p>
 <p>They select the operation commands (<code>@Operation</code>, from <code>.webda/operations.json</code>) the same way. The operation <code>RunnerAuth.Login</code> is the command <code>runnerauth login</code>:</p>
@@ -145,64 +72,9 @@
 <p>It runs the application from its package folder, whatever the current directory: relative <code>ResourceService</code> folders resolve from the application folder.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="runcli"><code>runCli</code><a href="#runcli" class="hash-link" aria-label="Direct link to runcli" title="Direct link to runcli" translate="no">​</a></h3>
 <p><code>runCli(options?: { appPath?: string; argv?: string[]; defaultCommand?: string; name?: string }): Promise&lt;void&gt;</code>, exported by <code>@webda/core/lib/bin/cli.js</code></p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>appPath</code></td><td><code>WEBDA_APP_PATH</code>, then <code>.</code></td><td>Application folder (<code>package.json</code>, <code>webda.module.json</code>, <code>.webda/</code>)</td></tr><tr><td><code>argv</code></td><td><code>process.argv.slice(2)</code></td><td>Arguments to parse</td></tr><tr><td><code>defaultCommand</code></td><td><code>webda.cli.defaultCommand</code></td><td>Command inserted when the arguments name none</td></tr><tr><td><code>name</code></td><td><code>webda.cli.name</code>, then <code>webda</code></td><td>Program name in <code>--help</code></td></tr></tbody></table>
 <p>The process exits when the command completes. Importing the module does not start the CLI.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="global-options">Global options<a href="#global-options" class="hash-link" aria-label="Direct link to Global options" title="Direct link to Global options" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody><tr><td><code>--version</code></td><td>Show version number</td></tr><tr><td><code>-w, --watch</code></td><td>Watch for changes, recompile and restart</td></tr><tr><td><code>--service &lt;names&gt;</code></td><td>Filter command to specific service(s), comma-separated</td></tr><tr><td><code>--help</code></td><td>Show help</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="compile-cache">Compile cache<a href="#compile-cache" class="hash-link" aria-label="Direct link to Compile cache" title="Direct link to Compile cache" translate="no">​</a></h2>
 <p>The launcher enables the <a href="https://nodejs.org/api/module.html#module-compile-cache" target="_blank" rel="noopener noreferrer" class="">Node compile cache</a> (Node &gt;= 22.1)

@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,96 +23,11 @@
 <p><strong>Concepts:</strong> Domain-Driven Design with Webda, permissions, one domain served over REST, GraphQL and gRPC.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="what-well-build">What we&#x27;ll build<a href="#what-well-build" class="hash-link" aria-label="Direct link to What we&#x27;ll build" title="Direct link to What we&#x27;ll build" translate="no">​</a></h2>
 <p>By the end of this tutorial you will have a <strong>blog API</strong> exposing the same domain through three transports:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Transport</th><th>Entry point</th><th>Description</th></tr></thead><tbody><tr><td>REST</td><td><code>http://localhost:18080/</code></td><td>CRUD routes for every model, plus every <code>@Operation</code></td></tr><tr><td>GraphQL</td><td><code>http://localhost:18080/graphql</code></td><td>Schema generated from the models: queries, mutations, subscriptions</td></tr><tr><td>gRPC</td><td><code>localhost:50051</code> (h2c)</td><td>Services generated from the operations into <code>.webda/app.proto</code></td></tr></tbody></table>
 <p>The domain is a classic blog with a social layer:</p>
 <div class="language-text codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-text codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">User ──&lt; Post ──&lt; Comment</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            ╲</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">             ╲──&lt; PostTag &gt;── Tag   (many-to-many via join table)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">User ──&lt; UserFollow &gt;── User          (self-referential follower graph)</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p>Every model decides who may do what in its <code>canAct</code> method. Webda <strong>denies by default</strong>: a model without a permission check is refused on every transport. The blog rules are simple: anyone reads, logged-in users write, and only the author edits their own content.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="final-api-surface-rest-excerpt">Final API surface (REST excerpt)<a href="#final-api-surface-rest-excerpt" class="hash-link" aria-label="Direct link to Final API surface (REST excerpt)" title="Direct link to Final API surface (REST excerpt)" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead><tbody><tr><td><code>PUT</code></td><td><code>/users/register</code></td><td>Create an account and open the session</td></tr><tr><td><code>PUT</code></td><td><code>/users/login</code></td><td>Open a session</td></tr><tr><td><code>PUT</code></td><td><code>/users</code></td><td>Query users (WebdaQL in the body)</td></tr><tr><td><code>GET / PUT / PATCH / DELETE</code></td><td><code>/users/{uuid}</code></td><td>Single-user CRUD (owner only for writes)</td></tr><tr><td><code>POST / PUT</code></td><td><code>/posts</code></td><td>Create / query posts</td></tr><tr><td><code>GET / PUT / PATCH / DELETE</code></td><td><code>/posts/{slug}</code></td><td>Single-post CRUD (custom primary key)</td></tr><tr><td><code>PUT</code></td><td><code>/posts/{slug}/publish</code></td><td>Model operation</td></tr><tr><td><code>POST / PUT</code></td><td><code>/comments</code>, <code>/tags</code></td><td>Create / query comments and tags</td></tr><tr><td><code>POST</code></td><td><code>/postTags</code></td><td>Tag a post (join table with a composite key)</td></tr><tr><td><code>GET</code></td><td><code>/version</code></td><td>Service operation with a custom route</td></tr></tbody></table>
 <p>GraphQL and gRPC expose the same model operations and permissions.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="prerequisites">Prerequisites<a href="#prerequisites" class="hash-link" aria-label="Direct link to Prerequisites" title="Direct link to Prerequisites" translate="no">​</a></h2>
@@ -125,59 +40,6 @@
 <li class="">Docker is <strong>not required</strong>: data lives in the default in-memory store</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="the-plan">The plan<a href="#the-plan" class="hash-link" aria-label="Direct link to The plan" title="Direct link to The plan" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Page</th><th>What you do</th></tr></thead><tbody><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/Setup">01 — Setup</a></td><td>Create the project with <code>npm create @webda</code></td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/User-Model">02 — User model</a></td><td>First model, JSDoc validation, <code>canAct</code>, register/login operations</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/Post-Model">03 — Post model</a></td><td>Custom primary key (<code>slug</code>), <code>BelongTo</code>, author-only permissions</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/Comment-Model">04 — Comment model</a></td><td>Two <code>BelongTo</code> relations, the author set by the server</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/Tag-And-PostTag">05 — Tag + PostTag</a></td><td>Static <code>canAct</code>, join table with a composite primary key</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/UserFollow">06 — UserFollow</a></td><td>Self-referential composite-key model</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/Services">07 — Service layer</a></td><td><code>@WebdaModda</code> services, <code>@Bean</code>, <code>@Operation</code> on services</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/REST-API">08 — REST tour</a></td><td>How routes, queries, errors and permissions map to HTTP</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/GraphQL">09 — GraphQL</a></td><td>Add <code>@webda/graphql</code>, run queries and mutations</td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/gRPC">10 — gRPC</a></td><td>Add <code>@webda/grpc</code>, call with <code>grpcurl</code></td></tr><tr><td><a class="" href="/docs/QuickStart/Tutorial-BlogSystem/NextSteps">11 — Next steps</a></td><td>Authentication, persistent stores, deployment, testing</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="quick-clone--i-just-want-to-browse-the-finished-code">Quick clone — I just want to browse the finished code<a href="#quick-clone--i-just-want-to-browse-the-finished-code" class="hash-link" aria-label="Direct link to Quick clone — I just want to browse the finished code" title="Direct link to Quick clone — I just want to browse the finished code" translate="no">​</a></h2>
 <p>The finished application is <code>sample-apps/blog-system</code> in the monorepo. It runs inside the pnpm workspace:</p>

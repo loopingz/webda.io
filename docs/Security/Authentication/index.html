@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -67,167 +67,6 @@ exposes them; the <code>&quot;*&quot;</code> wildcard does not.</p>
 <code>&quot;&lt;providerUid&gt;:&lt;provider&gt;&quot;</code>; emails are normalised (trimmed, lowercased).</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="operations">Operations<a href="#operations" class="hash-link" aria-label="Direct link to Operations" title="Direct link to Operations" translate="no">​</a></h2>
 <p>All operations are exposed through the REST API with the path shown (relative to the API root) and as operations by id.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Operation id</th><th>REST</th><th>Inputs</th><th>Result / notes</th></tr></thead><tbody><tr><td><code>Auth.Providers</code></td><td><code>GET auth/providers</code></td><td>-</td><td>list of <code>{ name, type, startUrl? }</code></td></tr><tr><td><code>Auth.Me</code></td><td><code>GET auth/me</code></td><td>-</td><td>public entry of the user, 404 when not logged in</td></tr><tr><td><code>Auth.Logout</code></td><td><code>POST auth/logout</code></td><td>-</td><td>revokes the refresh family of the session, clears the session; also abandons pending MFA</td></tr><tr><td><code>Auth.Refresh</code></td><td><code>POST auth/refresh</code></td><td><code>refreshToken</code></td><td><code>{ accessToken, refreshToken, expiresIn }</code></td></tr><tr><td><code>Auth.Idents</code></td><td><code>GET auth/idents</code></td><td>-</td><td><code>[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]</code>; upgrades v3 idents first</td></tr><tr><td><code>Auth.Unlink</code></td><td><code>POST auth/idents/unlink</code></td><td><code>provider</code>, <code>providerUid</code></td><td>409 <code>LAST_LOGIN_METHOD</code> if no usable login method would remain (see below)</td></tr><tr><td><code>Auth.Email.Login</code></td><td><code>POST auth/email/login</code></td><td><code>email</code>, <code>password</code></td><td><code>{ status: &quot;ok&quot;, user, accessToken, ... }</code> or <code>{ status: &quot;mfa_required&quot;, methods }</code></td></tr><tr><td><code>Auth.Email.Register</code></td><td><code>POST auth/email/register</code></td><td><code>email</code>, <code>password</code>, <code>token?</code>, <code>profile?</code></td><td><code>{ status: &quot;verification_sent&quot; }</code> (mode <code>before</code>, no token) or the login result</td></tr><tr><td><code>Auth.Email.StartVerification</code></td><td><code>POST auth/email/verification</code></td><td><code>email</code></td><td>204. Logged out: never reveals whether the email exists</td></tr><tr><td><code>Auth.Email.Verify</code></td><td><code>POST auth/email/verify</code></td><td><code>token</code></td><td><code>{ status: &quot;verified&quot; }</code>. Needs a session of the user named by the token</td></tr><tr><td>(GET link)</td><td><code>GET auth/email/verify?token=...</code></td><td><code>token</code></td><td>302 redirect, see below</td></tr><tr><td>(GET link)</td><td><code>GET auth/email/recover?token=...</code></td><td><code>token</code></td><td>302 to <code>redirects.recover?token=...</code> (token not consumed), invalid: <code>redirects.failure?reason=</code></td></tr><tr><td><code>Auth.Password.StartRecovery</code></td><td><code>POST auth/password/recovery</code></td><td><code>email</code></td><td>always 204 (never reveals accounts)</td></tr><tr><td><code>Auth.Password.Recover</code></td><td><code>POST auth/password/recover</code></td><td><code>token</code>, <code>password</code></td><td>sets the password, marks the email verified, ends all sessions (see below); does not log in</td></tr><tr><td><code>Auth.Password.Change</code></td><td><code>POST auth/password/change</code></td><td><code>current</code>, <code>next</code>, <code>escrow?</code></td><td>requires login; ends the other sessions (see below); emits <code>Authentication.PasswordUpdate</code></td></tr><tr><td><code>Auth.&lt;Provider&gt;.Token</code></td><td><code>POST auth/&lt;provider&gt;/token</code></td><td><code>token</code></td><td>OAuth providers, e.g. <code>Auth.Google.Token</code>: the login result (see <a href="#oauth-providers" class="">OAuth providers</a>)</td></tr><tr><td>(GET link)</td><td><code>GET &lt;url&gt;?redirect=...</code></td><td><code>redirect?</code></td><td>OAuth providers: 302 to the provider, see <a href="#oauth-providers" class="">OAuth providers</a></td></tr><tr><td>(GET link)</td><td><code>GET &lt;url&gt;/callback</code></td><td><code>code</code>, <code>state</code></td><td>OAuth providers: 302 to the login target or <code>redirects.failure?reason=</code></td></tr><tr><td><code>User.Mfa.Enroll</code></td><td><code>POST users/{uuid}/mfa.enroll</code></td><td><code>method</code>, <code>input?</code></td><td><code>{ secret, uri }</code>: start TOTP enrollment (URI formatted for authenticator QR code)</td></tr><tr><td><code>User.Mfa.Challenge</code></td><td><code>POST users/{uuid}/mfa.challenge</code></td><td><code>method</code></td><td><code>{ phone, expiresIn }</code>: send a code (SMS), also allowed on a pending session; phone masked</td></tr><tr><td><code>User.Mfa.Confirm</code></td><td><code>POST users/{uuid}/mfa.confirm</code></td><td><code>method</code>, <code>code</code></td><td><code>{ recoveryCodes, ...tokens }</code>: confirm factor, issue recovery codes, re-issue the caller&#x27;s tokens</td></tr><tr><td><code>User.Mfa.Verify</code></td><td><code>POST users/{uuid}/mfa.verify</code></td><td><code>code</code>, <code>method?</code></td><td>verify TOTP code on pending session, issue access/refresh tokens</td></tr><tr><td><code>User.Mfa.Disable</code></td><td><code>POST users/{uuid}/mfa.disable</code></td><td><code>method</code>, <code>code</code></td><td>disable TOTP method (requires current TOTP code or recovery code)</td></tr><tr><td><code>User.Mfa.Recover</code></td><td><code>POST users/{uuid}/mfa.recover</code></td><td><code>code</code></td><td>login with a single-use recovery code on pending session</td></tr><tr><td><code>User.Mfa.RecoveryCodes</code></td><td><code>POST users/{uuid}/mfa.recoveryCodes</code></td><td><code>code</code></td><td><code>{ recoveryCodes }</code>: regenerate recovery codes (requires factor code or recovery code)</td></tr></tbody></table>
 <p><code>Auth.Unlink</code> only counts the <strong>usable</strong> remaining login methods: idents of other providers, plus email idents when
 the user has a password (without one an email ident allows neither login nor recovery). It also refuses to remove the
@@ -286,39 +125,6 @@ the ID token <code>nonce</code>), and hands the identity to <code>Authentication
 redirects to the stored target (or <code>redirects.success</code>), with <code>mfa=required</code> added when the user must still pass
 MFA, or to <code>redirects.failure?reason=&lt;CODE&gt;</code>. Both routes answer <code>Cache-Control: no-store</code>.</li>
 </ol>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Reason</th><th>Cause</th></tr></thead><tbody><tr><td><code>REDIRECT_NOT_ALLOWED</code></td><td>the login <code>redirect</code> does not match <code>authorized_uris</code></td></tr><tr><td><code>STATE_MISMATCH</code></td><td>no pending login cookie, or a wrong, missing, expired, tampered state</td></tr><tr><td><code>PROVIDER_ERROR</code></td><td>the provider answered with <code>error</code> or without code</td></tr><tr><td><code>TOKEN_INVALID</code></td><td>the code exchange or the ID token verification (audience, nonce...) failed</td></tr><tr><td><code>ACCOUNT_EXISTS</code>, <code>EMAIL_DOMAIN_NOT_ALLOWED</code>, ...</td><td>refused by <code>Authentication.complete()</code> (linking, email policy, ...)</td></tr><tr><td><code>OAUTH_ERROR</code></td><td>unexpected failure (logged as a reason code, no detail in the url)</td></tr></tbody></table>
 <p>A browser whose session cookie reaches the callback (<code>lax</code>) while logged in links the provider identity to the current
 account (or gets <code>IDENT_LINKED_ELSEWHERE</code>): linking is a browser-flow action, protected by the state and PKCE.</p>
@@ -527,53 +333,6 @@ one attribute and can be regenerated with any of that attribute&#x27;s enabled f
 declares the behavior and the attempts counters:</p>
 <div class="language-typescript codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-typescript codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">export</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">class</span><span class="token plain"> </span><span class="token class-name">Vault</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">extends</span><span class="token plain"> </span><span class="token class-name">Model</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  mfa</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token constant" style="color:#36acaa">MFA</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  _mfaAttempts</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">number</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token number" style="color:#36acaa">0</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  _lastMfaAttemptAt</span><span class="token operator" style="color:#393A34">?</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">number</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p>The domain service exposes the behavior actions of every such model, allowed by its <code>canAct(context, &quot;mfa.&lt;action&gt;&quot;)</code>:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Operation</th><th>REST</th><th>Input</th><th>Output</th></tr></thead><tbody><tr><td><code>Vault.Mfa.Enroll</code></td><td><code>POST vaults/{uuid}/mfa.enroll</code></td><td><code>method</code></td><td>the factor enrollment data (TOTP: <code>secret, uri</code>)</td></tr><tr><td><code>Vault.Mfa.Challenge</code></td><td><code>POST vaults/{uuid}/mfa.challenge</code></td><td><code>method</code></td><td>the challenge data (SMS: <code>phone, expiresIn</code>)</td></tr><tr><td><code>Vault.Mfa.Confirm</code></td><td><code>POST vaults/{uuid}/mfa.confirm</code></td><td><code>method</code>, <code>code</code></td><td><code>{ recoveryCodes }</code> (first factor only)</td></tr><tr><td><code>Vault.Mfa.Verify</code></td><td><code>POST vaults/{uuid}/mfa.verify</code></td><td><code>code</code>, <code>method?</code></td><td><code>{ method, proof, expiresIn }</code></td></tr><tr><td><code>Vault.Mfa.Disable</code></td><td><code>POST vaults/{uuid}/mfa.disable</code></td><td><code>method</code>, <code>code</code></td><td>-</td></tr><tr><td><code>Vault.Mfa.RecoveryCodes</code></td><td><code>POST vaults/{uuid}/mfa.recoveryCodes</code></td><td><code>code</code></td><td><code>{ recoveryCodes }</code></td></tr></tbody></table>
 <p><code>Verify</code> checks the code against the given method, or every enabled method then the recovery codes (<code>method: &quot;recovery&quot;</code> for a recovery code only). It answers a step-up proof signed by <code>CryptoService</code>, valid 5 minutes, bound to
 the object and to the caller. The operation that needs the second factor checks it:</p>
@@ -615,27 +374,6 @@ issued before <code>mfaAt</code> existed are therefore never fresh).</p>
 <div class="language-ts codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-ts codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token decorator at operator" style="color:#393A34">@</span><span class="token decorator function" style="color:#d73a49">Operation</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> id</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Account.Delete&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> maxMfaAge</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;10m&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> rest</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> method</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;delete&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> path</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;account&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">async</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">deleteAccount</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p>It is checked after the <code>permission</code> query, before the operation authorizers, for every transport (REST, GraphQL, gRPC,
 MCP) and by <code>canCallOperation()</code> listings, which answer <code>false</code> when refused:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Session</th><th>Refusal</th></tr></thead><tbody><tr><td>anonymous, or second factor pending</td><td><code>UNAUTHORIZED</code> (401)</td></tr><tr><td>logged, no second factor (<code>mfa: none</code>)</td><td><code>MFA_REQUIRED</code> (403): <code>maxMfaAge</code> makes MFA mandatory</td></tr><tr><td>verified more than <code>maxMfaAge</code> ago</td><td><code>MFA_STEP_UP_REQUIRED</code> (401), <code>details: { maxAge }</code> (s)</td></tr></tbody></table>
 <p>On <code>MFA_STEP_UP_REQUIRED</code> the client prompts for a code, calls <code>User.Mfa.Verify</code> (or <code>User.Mfa.Recover</code>) on its logged
 session, then retries. The step-up keeps the login (<code>authAt</code>, ident, refresh family), stamps <code>mfaAt</code>, emits
@@ -652,31 +390,6 @@ gives clients the dedicated <code>MFA_STEP_UP_REQUIRED</code> answer and the <co
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="linking-policy">Linking policy<a href="#linking-policy" class="hash-link" aria-label="Direct link to Linking policy" title="Direct link to Linking policy" translate="no">​</a></h2>
 <p><code>linking</code> decides what happens when an <strong>unauthenticated</strong> login presents an email that an existing account owns. Only
 a <strong>verified</strong> email ident counts as an owner under <code>never</code> and <code>verified</code>; an unverified one is treated as absent.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Policy</th><th>Provider asserts the email as verified (and trusted)</th><th>Provider does not assert verification</th></tr></thead><tbody><tr><td><code>never</code></td><td><code>ACCOUNT_EXISTS</code> (log in, then link)</td><td><code>ACCOUNT_EXISTS</code></td></tr><tr><td><code>verified</code></td><td>linked to the owning account</td><td><code>ACCOUNT_EXISTS</code></td></tr><tr><td><code>always</code></td><td>linked (admin accepted risk, owner may be unverified)</td><td>linked</td></tr></tbody></table>
 <p>Other rules:</p>
 <ul>
@@ -688,188 +401,12 @@ a <strong>verified</strong> email ident counts as an owner under <code>never</co
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="events">Events<a href="#events" class="hash-link" aria-label="Direct link to Events" title="Direct link to Events" translate="no">​</a></h2>
 <p>Listen on the <code>Authentication</code> service. All payloads include <code>context</code>.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Event</th><th>Payload</th></tr></thead><tbody><tr><td><code>Authentication.Register</code></td><td><code>user</code>, <code>data</code>, <code>identId</code>, <code>identity</code></td></tr><tr><td><code>Authentication.Login</code></td><td><code>userId</code>, <code>user</code>, <code>identId</code>, <code>ident</code>, <code>provider</code>, <code>identity</code></td></tr><tr><td><code>Authentication.LoginFailed</code></td><td><code>user</code> (undefined for an unknown email)</td></tr><tr><td><code>Authentication.Logout</code></td><td>-</td></tr><tr><td><code>Authentication.GetMe</code></td><td><code>user</code></td></tr><tr><td><code>Authentication.PasswordCreate</code></td><td><code>user</code>, <code>password</code></td></tr><tr><td><code>Authentication.PasswordUpdate</code></td><td><code>user</code>, <code>password</code></td></tr><tr><td><code>Authentication.Linked</code></td><td><code>user</code>, <code>ident</code></td></tr><tr><td><code>Authentication.Unlinked</code></td><td><code>user</code>, <code>ident</code> (projection: <code>uuid</code>, <code>provider</code>, <code>providerUid</code>, <code>email</code>, <code>verifiedAt</code>, <code>lastUsedAt</code>, <code>userId</code>; no provider tokens nor profile)</td></tr><tr><td><code>Authentication.MfaEnabled</code></td><td><code>user</code>, <code>userId</code>, <code>method</code></td></tr><tr><td><code>Authentication.MfaDisabled</code></td><td><code>user</code>, <code>userId</code>, <code>method</code></td></tr><tr><td><code>Authentication.MfaVerified</code></td><td><code>user</code>, <code>userId</code>, <code>method</code>, <code>stepUp</code> (true when a logged session verified again)</td></tr><tr><td><code>Authentication.MfaFailed</code></td><td><code>user</code>, <code>userId</code>, <code>method</code></td></tr></tbody></table>
 <p>The <code>identity</code> of <code>Authentication.Register</code> and <code>Authentication.Login</code> never carries the provider <code>tokens</code> (see
 <a href="#oauth-providers" class="">OAuth providers</a>). <code>Authentication.Register</code> is emitted before the new user is saved: it can still
 change it. <code>Authentication.LoginFailed</code>
 carries <code>{ context, user }</code> only (<code>user</code> is undefined for an unknown email).</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="errors">Errors<a href="#errors" class="hash-link" aria-label="Direct link to Errors" title="Direct link to Errors" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Code</th><th>HTTP</th><th>Meaning</th></tr></thead><tbody><tr><td><code>ACCOUNT_EXISTS</code></td><td>409</td><td>An account owns this email, log in to link</td></tr><tr><td><code>IDENT_LINKED_ELSEWHERE</code></td><td>409</td><td>The ident belongs to another user</td></tr><tr><td><code>IDENT_CONFLICT</code></td><td>409</td><td>A v3 ident upgrades onto a key another user holds</td></tr><tr><td><code>LAST_LOGIN_METHOD</code></td><td>409</td><td>The last login method cannot be removed</td></tr><tr><td><code>INVALID_CREDENTIALS</code></td><td>403</td><td>Wrong email or password</td></tr><tr><td><code>REGISTRATION_DISABLED</code></td><td>403</td><td>Automatic registration is off</td></tr><tr><td><code>EMAIL_DOMAIN_NOT_ALLOWED</code></td><td>403</td><td>The provider policy refuses this email (domain, or not verified)</td></tr><tr><td><code>TOKEN_INVALID</code></td><td>403</td><td>Malformed, wrong purpose, revoked or reused token</td></tr><tr><td><code>TOKEN_EXPIRED</code></td><td>410</td><td>Expired emailed token</td></tr><tr><td><code>THROTTLED</code></td><td>429</td><td>Too many attempts, or a mail was sent too recently</td></tr><tr><td><code>INVALID_MFA_CODE</code></td><td>401</td><td>Invalid, replayed, or unrecognised MFA verification or recovery code</td></tr><tr><td><code>MFA_NOT_ENABLED</code></td><td>400</td><td>MFA (or specific method) is not enabled for the user</td></tr><tr><td><code>MFA_ALREADY_ENABLED</code></td><td>409</td><td>Factor method is already enabled for the user</td></tr><tr><td><code>MFA_NOT_PENDING</code></td><td>401</td><td>Session is neither logged in nor pending second factor verification</td></tr><tr><td><code>MFA_REQUIRED</code></td><td>403</td><td>The operation has <code>maxMfaAge</code> and the user has no second factor</td></tr><tr><td><code>MFA_STEP_UP_REQUIRED</code></td><td>401</td><td>Second factor older than <code>maxMfaAge</code>, <code>details.maxAge</code> in seconds</td></tr><tr><td><code>INVALID_PHONE</code></td><td>400</td><td>The SMS enrollment phone is not an E.164 number (<code>+</code> country code)</td></tr><tr><td><code>PASSWORD_POLICY</code></td><td>400</td><td>The password does not satisfy the policy</td></tr><tr><td><code>INVALID_IDENT</code></td><td>400</td><td>Malformed ident</td></tr><tr><td><code>UNSUPPORTED_MEDIA_TYPE</code></td><td>415</td><td><code>Auth.&lt;Provider&gt;.Token</code> called without a JSON body</td></tr><tr><td><code>BAD_REQUEST</code></td><td>400</td><td><code>complete()</code> called for a provider name that is not registered</td></tr></tbody></table>
 <p>Importable from <code>@webda/auth</code> (<code>AccountExists</code>, <code>Throttled</code>, <code>InvalidMfaCode</code>, <code>MfaNotEnabled</code>, ...).</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="password-policy">Password policy<a href="#password-policy" class="hash-link" aria-label="Direct link to Password policy" title="Direct link to Password policy" translate="no">​</a></h2>

@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -32,46 +32,6 @@
 <p>With <code>npm run debug</code>, open <code>http://localhost:18080/graphql</code> in a browser for the GraphiQL explorer (<code>exposeGraphiQL</code> defaults to on in debug mode).</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="4-what-the-schema-contains">4. What the schema contains<a href="#4-what-the-schema-contains" class="hash-link" aria-label="Direct link to 4. What the schema contains" title="Direct link to 4. What the schema contains" translate="no">​</a></h3>
 <p>For each model, with <code>Post</code> as the example:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>GraphQL</th><th>Kind</th><th>Same as REST</th></tr></thead><tbody><tr><td><code>Post(slug: String)</code></td><td>query</td><td><code>Post.Get</code></td></tr><tr><td><code>Posts(query: String)</code> → <code>PostQueryResult</code></td><td>query</td><td><code>Posts.Query</code></td></tr><tr><td><code>createPost(Post: PostInput)</code></td><td>mutation</td><td><code>Post.Create</code></td></tr><tr><td><code>updatePost(uuid: String, Post: PostInput)</code></td><td>mutation</td><td><code>Post.Update</code></td></tr><tr><td><code>deletePost(uuid: String)</code> → <code>{ success }</code></td><td>mutation</td><td><code>Post.Delete</code></td></tr><tr><td><code>Post(slug:)</code>, <code>Posts(query:)</code>, <code>PostEvents(slug:)</code>, <code>PostsEvents</code></td><td>subscription</td><td>repository events</td></tr></tbody></table>
 <ul>
 <li class="">The single-object query takes the primary key field (<code>Post(slug:)</code>, <code>User(uuid:)</code>); the <code>update</code>/<code>delete</code> mutations name the key argument <code>uuid</code>, whatever the key is.</li>

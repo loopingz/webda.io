@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,116 +23,6 @@
 <div class="language-json codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockTitle__A1_">deployments/azure.json</div><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-json codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token property" style="color:#36acaa">&quot;units&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;name&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Api&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Webda/AzureContainerAppsDeployer&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;registry&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;myacr&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;resourceGroup&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;my-app-${deployment}&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;subscriptionId&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;${env.AZURE_SUBSCRIPTION_ID}&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;location&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;westeurope&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;createResourceGroup&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token boolean" style="color:#36acaa">true</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;containerApp&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token property" style="color:#36acaa">&quot;minReplicas&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token number" style="color:#36acaa">1</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token property" style="color:#36acaa">&quot;env&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;DB_PASSWORD&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;secretRef&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;database-password&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;secrets&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;database-password&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;${env.DB_PASSWORD}&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;templateOutput&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;dist/azure-template.json&quot;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">]</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#FF9901"></path></svg></div>
 <div class="language-sh codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-sh codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">webda -d azure azure template --output dist/review.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda -d azure container build</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda -d azure deploy</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p><code>azure template</code> performs no build, push or Azure deployment. It uses the first image tag for review. <code>deploy</code> builds with <code>@webda/oci</code>, pushes the image and deploys its immutable digest. Its result contains <code>image</code>, <code>digest</code>, <code>fqdn</code>, <code>revision</code> and ARM outputs. <code>templateOutput</code> records the exact deployed template, with secret values represented by secure parameter references.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Behavior</th></tr></thead><tbody><tr><td><code>resourceGroup</code></td><td>required</td><td>ARM deployment scope</td></tr><tr><td><code>subscriptionId</code></td><td><code>AZURE_SUBSCRIPTION_ID</code></td><td>Target subscription</td></tr><tr><td><code>location</code></td><td><code>westeurope</code></td><td>Resource region</td></tr><tr><td><code>createResourceGroup</code></td><td><code>false</code></td><td>Create/update the resource group</td></tr><tr><td><code>image</code></td><td><code>&lt;registry&gt;.azurecr.io/&lt;package-name&gt;</code></td><td>OCI repository; required without <code>registry</code></td></tr><tr><td><code>registryAuth</code></td><td><code>aad</code></td><td>ACR token exchange for publishing; <code>identity</code> uses existing OCI publishing credentials; <code>none</code> also omits pull authentication</td></tr><tr><td><code>containerApp.name</code></td><td>normalized unit name</td><td>Container App name, 2–32 characters</td></tr><tr><td><code>containerApp.cpu</code> / <code>memory</code></td><td><code>0.5</code> / <code>1Gi</code></td><td>Container resources</td></tr><tr><td><code>containerApp.minReplicas</code> / <code>maxReplicas</code></td><td><code>0</code> / <code>10</code></td><td>Replica limits</td></tr><tr><td><code>containerApp.ingress</code></td><td>external HTTP, port 18080</td><td>Set <code>false</code> for workers</td></tr><tr><td><code>containerApp.env</code></td><td><code>{}</code></td><td>Explicit values override contributed environment variables</td></tr><tr><td><code>containerApp.probes</code> / <code>scaleRules</code></td><td>omitted</td><td>Native Container Apps probes and KEDA scale rules</td></tr><tr><td><code>environment.name</code></td><td><code>&lt;resourceGroup&gt;-env</code></td><td>Managed environment</td></tr><tr><td><code>environment.id</code></td><td>omitted</td><td>Reuse an environment and skip its creation and Log Analytics</td></tr><tr><td><code>logAnalytics</code></td><td><code>{}</code></td><td>Workspace name/retention overrides; <code>false</code> disables workspace creation</td></tr><tr><td><code>resourceTags</code></td><td>deployment and git version</td><td>Azure resource tags; OCI <code>tags</code> remain image tags</td></tr><tr><td><code>secrets</code></td><td><code>{}</code></td><td>String, <code>SecretString</code>, or <code>{keyVaultUrl, identity}</code> per secret</td></tr><tr><td><code>crons</code></td><td><code>true</code></td><td>Export declared crons as scheduled jobs</td></tr><tr><td><code>customResources</code></td><td><code>[]</code></td><td>Additional ARM resource objects, or a named map of them</td></tr><tr><td><code>deploymentName</code></td><td>unit name and timestamp</td><td>ARM deployment history name</td></tr></tbody></table>
 <p>Inherited OCI options include <code>baseImage</code>, <code>tags</code>, <code>platforms</code>, <code>package</code>, <code>credentials</code>, image environment and entrypoint settings. Pin the base image digest for reproducible releases. The deployer leaves the image command and entrypoint intact; jobs supply <code>cron run --id &lt;export-id&gt;</code> arguments. Container Apps accepts five cron fields, or a six-field Webda expression whose seconds field is <code>0</code>; sub-minute schedules fail validation.</p>
 <p>The deployer creates a user-assigned identity before image pull permissions are needed. The app and its jobs share this identity, and the runtime receives its client ID through <code>AZURE_CLIENT_ID</code>. Their system-assigned identities are also enabled. Azure contributors grant data access to the shared identity, so scheduled jobs receive the same permissions as HTTP handlers. ACR must already exist, and the deployment identity needs permission to publish images and create role assignments.</p>

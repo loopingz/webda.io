@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -49,47 +49,6 @@ or <code>prototype</code>. Path segments cannot be all digits (<code>tags.0</cod
 change:</strong> a filter on an attribute named in uppercase like one of them (<code>COUNT = 1</code>) no longer parses. Lowercase
 names stay attributes: <code>count = 1 AND min = 2</code> is still a filter.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="where-statements-are-accepted">Where statements are accepted<a href="#where-statements-are-accepted" class="hash-link" aria-label="Direct link to Where statements are accepted" title="Direct link to Where statements are accepted" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Entry point</th><th>Plain filter</th><th><code>SELECT</code> field list</th><th><code>DELETE</code> / <code>UPDATE</code></th></tr></thead><tbody><tr><td>Query operations (REST, gRPC, MCP), <code>Audit.Query</code></td><td>yes</td><td><strong>400</strong></td><td><strong>400</strong></td></tr><tr><td>GraphQL query and <code>filter</code> arguments, subscriptions, links and maps</td><td>yes</td><td><strong>BAD_USER_INPUT</strong></td><td><strong>BAD_USER_INPUT</strong></td></tr><tr><td><code>Repository.query()</code> / <code>iterate()</code>, <code>Model.query()</code></td><td>yes</td><td>refused (<code>WebdaQLError</code>)</td><td>refused (<code>WebdaQLError</code>)</td></tr><tr><td><code>Repository.deleteMany()</code></td><td>no</td><td>no</td><td><code>DELETE</code> only</td></tr><tr><td><code>Repository.updateMany()</code></td><td>no</td><td>no</td><td><code>UPDATE</code> only</td></tr></tbody></table>
 <p><strong>Field lists are a parse-level feature</strong>: nothing projects results on them yet (GraphQL selection sets already choose the fields). <strong>DELETE and UPDATE are repository-level operations</strong>: they never run through the Query operations exposed to clients. A <code>__</code> field in a field list or a SET target is refused like a <code>__</code> filter.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="bulk-operations-on-repositories">Bulk operations on repositories<a href="#bulk-operations-on-repositories" class="hash-link" aria-label="Direct link to Bulk operations on repositories" title="Direct link to Bulk operations on repositories" translate="no">​</a></h2>
@@ -103,36 +62,6 @@ names stay attributes: <code>count = 1 AND min = 2</code> is still a filter.</p>
 <li class="">Each matching object is updated once, even when the SET changes a field of the WHERE.</li>
 </ul>
 <p>How each store runs them:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Store</th><th>DELETE</th><th>UPDATE</th></tr></thead><tbody><tr><td>Memory, File</td><td>directly on the storage map, in one synchronous pass</td><td>same</td></tr><tr><td>MongoDB</td><td><code>deleteMany</code> with the translated filter</td><td><code>updateMany</code> with <code>$set</code> (dotted targets create their parents)</td></tr><tr><td>PostgreSQL</td><td>one <code>DELETE ... WHERE</code></td><td>one <code>UPDATE ... SET data = jsonb_set(...) WHERE</code>; SET paths and values are bound, the WHERE is written from the parsed query</td></tr><tr><td>DynamoDB, Firestore</td><td>generic fallback: keys collected first (up to LIMIT), then deleted one by one</td><td>generic fallback: keys collected first, then patched one by one</td></tr></tbody></table>
 <p>An object deleted while the fallback runs is skipped and left out of the count. With a <code>LIMIT</code>, MongoDB and PostgreSQL first select the matching keys (the WHERE is kept on the write too) (backends have no LIMIT on bulk writes). The generic fallback (<code>AbstractRepository.deleteManyByKey</code> / <code>updateManyByKey</code>) uses the repository&#x27;s own <code>delete</code> / <code>patch</code> primitives, which emit no event on a store repository; native DynamoDB and Firestore batch writes are a follow-up.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="comparison-semantics-across-stores">Comparison semantics across stores<a href="#comparison-semantics-across-stores" class="hash-link" aria-label="Direct link to Comparison semantics across stores" title="Direct link to Comparison semantics across stores" translate="no">​</a></h2>

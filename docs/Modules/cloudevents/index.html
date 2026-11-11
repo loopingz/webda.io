@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -35,46 +35,6 @@
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockTitle__A1_">webda.config.jsonc</div><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;CloudEventsReceiver&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/CloudEventsReceiver&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;url&quot;: &quot;/cloudevents&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;strict&quot;: false,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;filters&quot;: [{ &quot;prefix&quot;: { &quot;type&quot;: &quot;com.acme.&quot; } }],</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;dedupe&quot;: true</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;Events&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/KnativeBrokerPubSub&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;namespace&quot;: &quot;apps&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;broker&quot;: &quot;default&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;receiver&quot;: &quot;CloudEventsReceiver&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#FF9901"></path></svg></div>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="webdacloudeventsreceiver"><code>Webda/CloudEventsReceiver</code><a href="#webdacloudeventsreceiver" class="hash-link" aria-label="Direct link to webdacloudeventsreceiver" title="Direct link to webdacloudeventsreceiver" translate="no">​</a></h3>
 <p>A <code>POST</code> route receiving CloudEvents in the binary (<code>ce-*</code> headers), structured (<code>application/cloudevents+json</code>) and batch (<code>application/cloudevents-batch+json</code>) HTTP content modes, dispatched to handlers registered by exact <code>type</code> or predicate.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>url</code></td><td><code>/cloudevents</code></td><td>Path of the route</td></tr><tr><td><code>strict</code></td><td><code>false</code></td><td><code>specversion</code> must be <code>1.0</code>, required attributes non-empty, <code>time</code> RFC3339, plus the SDK schema (<code>dataschema</code> URI, ...)</td></tr><tr><td><code>filters</code></td><td>—</td><td>CloudEvents Subscriptions filters (<code>exact</code>, <code>prefix</code>, <code>suffix</code>, <code>all</code>, <code>any</code>, <code>sql</code>), non-matching events are acknowledged unhandled</td></tr><tr><td><code>dedupe</code></td><td><code>false</code></td><td>Acknowledge an event already handled with the same <code>source</code> and <code>id</code> (in-memory, per replica)</td></tr><tr><td><code>dedupeTtl</code></td><td><code>3600000</code></td><td>Milliseconds an entry is remembered</td></tr><tr><td><code>dedupeSize</code></td><td><code>10000</code></td><td>Entries kept, the oldest are evicted</td></tr></tbody></table>
 <p>Response contract: <code>202</code> acknowledges (<code>200</code> with the reply CloudEvent when a handler returns one), <code>400</code> refuses a malformed or invalid event (no retry), <code>500</code> when a handler throws (the sender retries; a thrown <code>WebdaError.HttpError</code> keeps its status). Delivery is at-least-once: keep the handlers idempotent. The <code>CloudEvents.Received</code>, <code>CloudEvents.Handled</code> and <code>CloudEvents.Failed</code> events are emitted around the dispatch.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="webdaknativebrokerpubsub"><code>Webda/KnativeBrokerPubSub</code><a href="#webdaknativebrokerpubsub" class="hash-link" aria-label="Direct link to webdaknativebrokerpubsub" title="Direct link to webdaknativebrokerpubsub" translate="no">​</a></h3>

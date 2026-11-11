@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -40,31 +40,6 @@
 <p>FileBinary uploads through the server, so it attaches right after its own upload; its <code>complete</code> resolves once the binary is linked and answers <code>412</code> otherwise.</p>
 <p>A pending S3 upload that is never completed is swept after <code>pendingTimeout</code> seconds: the marker, and the uploaded data when nothing else uses it.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>maxUploadSize</code></td><td>none</td><td>Maximum size in bytes. When set, the challenge must announce a finite, non-negative <code>size</code> no larger than the limit. S3Binary signs the URL with that <code>ContentLength</code> and checks the stored size on dedup.</td></tr><tr><td><code>urlExpiry</code></td><td><code>30</code></td><td>Lifetime, in seconds, of the presigned URLs.</td></tr><tr><td><code>pendingTimeout</code></td><td><code>86400</code></td><td>S3Binary only: seconds before a pending upload is swept.</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="events">Events<a href="#events" class="hash-link" aria-label="Direct link to Events" title="Direct link to Events" translate="no">​</a></h3>
 <p><code>Binary.UploadSuccess</code> is emitted once for each newly linked item, whatever the path (server upload, challenge dedup or <code>complete</code>), with <code>{ object, service, target }</code>. Linking a hash that is already attached to the attribute does not emit it again. For an attribute declared as a <code>Binaries</code> collection (or any <code>BinariesImpl</code> subclass) the event fires per item.</p>

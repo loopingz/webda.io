@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -77,91 +77,6 @@
 <div class="language-text codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-text codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">HTTP Request</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    |</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    v</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">HttpContext (parse headers, cookies, body)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    |</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    v</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">OperationContext / WebContext (typed I/O)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    |</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    v</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">SessionManager.load() (JWT from cookie)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    |</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    v</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">Router.execute() (match route, run filters)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    |</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    v</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">Service method (business logic)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    |</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    v</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">SessionManager.save() (persist if dirty)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    |</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    v</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">HTTP Response</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="hooks-api">Hooks API<a href="#hooks-api" class="hash-link" aria-label="Direct link to Hooks API" title="Direct link to Hooks API" translate="no">​</a></h2>
 <p>The hooks pattern provides access to framework singletons from any point in the call stack, powered by <code>AsyncLocalStorage</code>:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Hook</th><th>Returns</th><th>Use case</th></tr></thead><tbody><tr><td><code>useCore()</code></td><td><code>Core</code></td><td>Access the runtime engine</td></tr><tr><td><code>useApplication()</code></td><td><code>Application</code></td><td>Access project metadata and configuration</td></tr><tr><td><code>useService(name)</code></td><td>Typed service</td><td>Get a named service (<code>&quot;Registry&quot;</code>, <code>&quot;CryptoService&quot;</code>, etc.)</td></tr><tr><td><code>useDynamicService(name)</code></td><td><code>Service</code></td><td>Get a service by arbitrary name</td></tr><tr><td><code>useModel(name)</code></td><td><code>ModelDefinition</code></td><td>Get a model class with metadata</td></tr><tr><td><code>useModelId(object)</code></td><td><code>string</code></td><td>Get the model identifier for an instance</td></tr><tr><td><code>useModelStore(name)</code></td><td><code>IStore</code></td><td>Get the store assigned to a model</td></tr><tr><td><code>useModelRepository(name)</code></td><td><code>Repository</code></td><td>Get the repository for a model</td></tr><tr><td><code>useContext()</code></td><td><code>Context</code></td><td>Get the current request context</td></tr><tr><td><code>useCurrentUser()</code></td><td><code>User</code></td><td>Get the authenticated user</td></tr><tr><td><code>useCurrentUserId()</code></td><td><code>string</code></td><td>Get the user ID or <code>&quot;system&quot;</code></td></tr><tr><td><code>useLogger(class)</code></td><td><code>Logger</code></td><td>Get a logger with class context</td></tr><tr><td><code>useMetric(type, config)</code></td><td>Counter/Gauge/Histogram</td><td>Create a prometheus metric</td></tr><tr><td><code>useParameters()</code></td><td><code>Configuration[&quot;parameters&quot;]</code></td><td>Get global configuration parameters</td></tr><tr><td><code>getMachineId()</code></td><td><code>string</code></td><td>Get a stable machine identifier</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="dependency-injection">Dependency Injection<a href="#dependency-injection" class="hash-link" aria-label="Direct link to Dependency Injection" title="Direct link to Dependency Injection" translate="no">​</a></h2>
 <p>Services declare dependencies with the <code>@Inject</code> decorator:</p>
@@ -185,55 +100,6 @@ Backticks and backslashes outside placeholders are ordinary text.</p>
 <div class="language-typescript codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-typescript codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">*</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">as</span><span class="token plain"> WebdaError </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;@webda/core&quot;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">throw</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">new</span><span class="token plain"> </span><span class="token class-name">WebdaError</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">NotFound</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;User not found&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">throw</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">new</span><span class="token plain"> </span><span class="token class-name">WebdaError</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">Forbidden</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;Insufficient permissions&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">throw</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">new</span><span class="token plain"> </span><span class="token class-name">WebdaError</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">BadRequest</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;Invalid input&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;VALIDATION_ERROR&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">throw</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">new</span><span class="token plain"> </span><span class="token class-name">WebdaError</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">Redirect</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;https://example.com/new-location&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="ecosystem">Ecosystem<a href="#ecosystem" class="hash-link" aria-label="Direct link to Ecosystem" title="Direct link to Ecosystem" translate="no">​</a></h2>
 <p><code>@webda/core</code> is the foundation. The full framework includes:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Purpose</th></tr></thead><tbody><tr><td><code>@webda/models</code></td><td>Model base classes, relations, repositories</td></tr><tr><td><code>@webda/compiler</code></td><td>TypeScript compiler with schema generation</td></tr><tr><td><code>@webda/utils</code></td><td>Utilities (debounce, dirty tracking, state machines) and shared TypeScript utility types</td></tr><tr><td><code>@webda/workout</code></td><td>Logging infrastructure</td></tr><tr><td><code>@webda/test</code></td><td>Multi-framework test decorators (vitest, jest, mocha, bun)</td></tr><tr><td><code>@webda/ql</code></td><td>WebdaQL query language</td></tr><tr><td><code>@webda/cloudevents</code></td><td>CloudEvents filtering</td></tr><tr><td><code>@webda/cache</code></td><td>Caching decorators</td></tr><tr><td><code>@webda/serialize</code></td><td>Serialization framework</td></tr><tr><td><code>@webda/content-mapper</code></td><td>JSON Schema generator</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="deep-dive-sub-pages">Deep-dive sub-pages<a href="#deep-dive-sub-pages" class="hash-link" aria-label="Direct link to Deep-dive sub-pages" title="Direct link to Deep-dive sub-pages" translate="no">​</a></h2>
 <ul>
@@ -265,6 +131,7 @@ Backticks and backslashes outside placeholders are ordinary text.</p>
 <li class=""><a class="" href="/typedoc/core/classes/ConfigurationService">ConfigurationService</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MemoryQueue">MemoryQueue</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MemoryStore">MemoryStore</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/MigrationStore">MigrationStore</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/Queue">Queue</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/ResourceService">ResourceService</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/Store">Store</a></li>
@@ -362,6 +229,8 @@ Backticks and backslashes outside placeholders are ordinary text.</p>
 <li class=""><a class="" href="/typedoc/core/classes/MfaRequired">MfaRequired</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MfaStepUpRequired">MfaStepUpRequired</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MigrationAlreadyRunning">MigrationAlreadyRunning</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/MigrationRepository">MigrationRepository</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/MigrationStoreParameters">MigrationStoreParameters</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MigrationUnsupported">MigrationUnsupported</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/ModelAnyRef">ModelAnyRef</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/ModelLinksAny">ModelLinksAny</a></li>
@@ -517,12 +386,14 @@ Backticks and backslashes outside placeholders are ordinary text.</p>
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationOptions">MigrationOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationProgress">MigrationProgress</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationReport">MigrationReport</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/MigrationStoreStatus">MigrationStoreStatus</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationTableReport">MigrationTableReport</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelAction">ModelAction</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelBacklink">ModelBacklink</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelBacklinkOptions">ModelBacklinkOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelClass">ModelClass</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelConfiguration">ModelConfiguration</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/ModelMigrationProgress">ModelMigrationProgress</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelTypesSource">ModelTypesSource</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/NotificationService">NotificationService</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/OpenAPIWebdaDefinition">OpenAPIWebdaDefinition</a></li>
@@ -554,6 +425,7 @@ Backticks and backslashes outside placeholders are ordinary text.</p>
 <li class=""><a class="" href="/typedoc/core/interfaces/RouteAliasDefinition">RouteAliasDefinition</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/RouteInfo">RouteInfo</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/RunCommandOptions">RunCommandOptions</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/RunMigrationOptions">RunMigrationOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/SealedRecipient">SealedRecipient</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/SealedRecipientResolver">SealedRecipientResolver</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/SecondFactorProvider">SecondFactorProvider</a></li>
@@ -620,6 +492,8 @@ Backticks and backslashes outside placeholders are ordinary text.</p>
 <li class=""><a class="" href="/typedoc/core/type-aliases/MfaAction">MfaAction</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/MfaState">MfaState</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/MigrationPatcher">MigrationPatcher</a></li>
+<li class=""><a class="" href="/typedoc/core/type-aliases/MigrationStoreEvents">MigrationStoreEvents</a></li>
+<li class=""><a class="" href="/typedoc/core/type-aliases/MigrationStoreState">MigrationStoreState</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/Modda">Modda</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/ModelActions">ModelActions</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/ModelAnyRefWithData">ModelAnyRefWithData</a></li>
@@ -909,6 +783,7 @@ Backticks and backslashes outside placeholders are ordinary text.</p>
 <li class=""><a class="" href="/typedoc/core/functions/unregisterOperationTransactionParticipant">unregisterOperationTransactionParticipant</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/unregisterProtectedResource">unregisterProtectedResource</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/unsealContinuationToken">unsealContinuationToken</a></li>
+<li class=""><a class="" href="/typedoc/core/functions/unwrapRepository">unwrapRepository</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/useApplication">useApplication</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/useBearerResolvers">useBearerResolvers</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/useBehaviorParameters">useBehaviorParameters</a></li>

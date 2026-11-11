@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -32,91 +32,6 @@ image digest on any machine.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h2>
 <p>Every string accepts the deployment templates: <code>${package.version}</code>, <code>${git.commit}</code>, <code>${deployment}</code>,
 <code>${deployer.name}</code>, <code>${env.MY_VAR}</code>, ...</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>baseImage</code></td><td><code>node:22-slim</code></td><td>Base image, <code>scratch</code> for none</td></tr><tr><td><code>image</code></td><td></td><td>Repository to push to, without tag; required to push</td></tr><tr><td><code>tags</code></td><td><code>[&quot;${git.version}&quot;]</code></td><td>Tags of the image, invalid characters are replaced by <code>-</code></td></tr><tr><td><code>workdir</code></td><td><code>/app</code></td><td>Folder of the application in the image</td></tr><tr><td><code>entrypoint</code></td><td><code>[&quot;node&quot;, &quot;&lt;workdir&gt;/node_modules/@webda/core/lib/bin/cli.js&quot;]</code></td><td>Entrypoint of the image</td></tr><tr><td><code>cmd</code></td><td><code>[&quot;serve&quot;, &quot;--bind&quot;, &quot;0.0.0.0&quot;]</code></td><td>Arguments of the entrypoint</td></tr><tr><td><code>env</code></td><td><code>{ &quot;NODE_ENV&quot;: &quot;production&quot; }</code></td><td>Environment variables</td></tr><tr><td><code>labels</code></td><td></td><td>Labels added to the default OCI ones</td></tr><tr><td><code>user</code></td><td>the base image one</td><td>User the container runs as</td></tr><tr><td><code>exposedPorts</code></td><td><code>[&quot;18080/tcp&quot;]</code></td><td>Exposed ports</td></tr><tr><td><code>platforms</code></td><td><code>[&quot;linux/amd64&quot;]</code></td><td>Platforms to build, several produce a multi-platform index</td></tr><tr><td><code>output</code></td><td><code>.webda/oci/${deployer.name}</code></td><td>OCI layout folder, or a tar archive when ending with <code>.tar</code></td></tr><tr><td><code>mtime</code></td><td><code>SOURCE_DATE_EPOCH</code>, or <code>0</code></td><td>Modification time of the files and creation time of the image</td></tr><tr><td><code>credentials</code></td><td></td><td>Credentials per registry host, override <code>~/.docker/config.json</code></td></tr><tr><td><code>insecureRegistries</code></td><td></td><td>Registries reached over plain http (<code>localhost</code> always is)</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="registry-credentials">Registry credentials<a href="#registry-credentials" class="hash-link" aria-label="Direct link to Registry credentials" title="Direct link to Registry credentials" translate="no">​</a></h2>
 <p>Credentials come from <code>~/.docker/config.json</code> (including credential helpers), unless the <code>credentials</code> parameter sets

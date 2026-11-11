@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -22,63 +22,12 @@
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="grammar-overview">Grammar overview<a href="#grammar-overview" class="hash-link" aria-label="Direct link to Grammar overview" title="Direct link to Grammar overview" translate="no">​</a></h2>
 <div class="language-text codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-text codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">webdaql     : (statement | filterQuery) EOF ;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">filterQuery : expression? orderExpression? limitExpression? offsetExpression? ;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">statement   : SELECT fieldList whereClause? orderExpression? limitExpression? offsetExpression?</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            | DELETE whereClause? limitExpression?</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            | UPDATE SET assignmentList whereClause? limitExpression? ;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p>The statements (<code>SELECT</code>, <code>DELETE</code>, <code>UPDATE</code>) are described in <a class="" href="/docs/Modules/ql/Statements">Statements</a>: field lists are parse-level only and DELETE / UPDATE run through the repository <code>deleteMany</code> / <code>updateMany</code>, never through the Query operations. A plain filter query is an implicit SELECT of every field; it is composed of four optional sections, always in this order:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Section</th><th>Syntax</th><th>Purpose</th></tr></thead><tbody><tr><td>Filter</td><td><code>expression</code></td><td>Predicate — which records to include</td></tr><tr><td>Order</td><td><code>ORDER BY field [ASC|DESC], ...</code></td><td>Sort order</td></tr><tr><td>Limit</td><td><code>LIMIT &lt;integer&gt;</code></td><td>Maximum number of results</td></tr><tr><td>Offset</td><td><code>OFFSET &quot;&lt;token&gt;&quot;</code></td><td>Continuation token for pagination</td></tr></tbody></table>
 <p>Values (and the <code>LIMIT</code> / <code>OFFSET</code> values) can also be <code>?</code> or <code>:name</code> placeholders, bound from parameters: see <a class="" href="/docs/Modules/ql/Parameters">Parameters</a>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="filter-expressions">Filter expressions<a href="#filter-expressions" class="hash-link" aria-label="Direct link to Filter expressions" title="Direct link to Filter expressions" translate="no">​</a></h2>
 <div class="language-antlr codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-antlr codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">expression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    : identifier LIKE (stringLiteral | parameter)       #likeExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | identifier IN (setExpression | parameter)         #inExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | identifier CONTAINS (stringLiteral | parameter)   #containsExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | identifier IS NULL                      #isNullExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | identifier IS NOT NULL                  #isNotNullExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | identifier (= | != | &gt;= | &lt;= | &lt; | &gt;) (values | parameter | functionCall)   #binaryComparisonExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | expression AND expression               #andLogicExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | expression OR expression                #orLogicExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | LR_BRACKET expression RR_BRACKET        #subExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    | atom                                    #atomExpression</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="value-types">Value types<a href="#value-types" class="hash-link" aria-label="Direct link to Value types" title="Direct link to Value types" translate="no">​</a></h2>
 <p>WQL supports three primitive value types in filter expressions:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Type</th><th>Examples</th></tr></thead><tbody><tr><td><strong>String</strong></td><td><code>&#x27;published&#x27;</code>, <code>&quot;hello world&quot;</code> (single or double quotes)</td></tr><tr><td><strong>Number</strong></td><td><code>42</code>, <code>0</code>, <code>-5</code>, <code>3.14</code> (no exponent form such as <code>1e3</code>)</td></tr><tr><td><strong>Boolean</strong></td><td><code>TRUE</code>, <code>FALSE</code></td></tr></tbody></table>
 <p>Sets, used by <code>IN</code>, are written with square brackets: <code>status IN [&#x27;draft&#x27;, &#x27;review&#x27;]</code>. They cannot be empty.</p>
 <p>A character the grammar does not know (for example <code>#</code>) is a syntax error; it is never silently ignored.</p>
@@ -113,51 +62,6 @@
 <li class=""><code>NOW(?)</code> / <code>NOW(:param)</code>: parameterized offset.</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="supported-duration-units">Supported duration units<a href="#supported-duration-units" class="hash-link" aria-label="Direct link to Supported duration units" title="Direct link to Supported duration units" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Unit</th><th>Suffixes</th><th>Example</th></tr></thead><tbody><tr><td>Milliseconds</td><td><code>ms</code></td><td><code>NOW(&#x27;-500ms&#x27;)</code></td></tr><tr><td>Seconds</td><td><code>s</code>, <code>sec</code></td><td><code>NOW(&#x27;-30s&#x27;)</code></td></tr><tr><td>Minutes</td><td><code>m</code>, <code>min</code></td><td><code>NOW(&#x27;-15m&#x27;)</code></td></tr><tr><td>Hours</td><td><code>h</code>, <code>hr</code></td><td><code>NOW(&#x27;+2h&#x27;)</code></td></tr><tr><td>Days</td><td><code>d</code>, <code>day</code></td><td><code>NOW(&#x27;-7d&#x27;)</code></td></tr><tr><td>Months</td><td><code>mo</code>, <code>mon</code>, <code>month</code></td><td><code>NOW(&#x27;-1mo&#x27;)</code></td></tr><tr><td>Years</td><td><code>y</code>, <code>yr</code>, <code>year</code></td><td><code>NOW(&#x27;-1y&#x27;)</code></td></tr></tbody></table>
 <p>Offsets can combine segments, such as <code>NOW(&#x27;-1d2h&#x27;)</code> (1 day and 2 hours in the past) or <code>NOW(&#x27;+1h30m&#x27;)</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="dynamic-evaluation">Dynamic evaluation<a href="#dynamic-evaluation" class="hash-link" aria-label="Direct link to Dynamic evaluation" title="Direct link to Dynamic evaluation" translate="no">​</a></h3>

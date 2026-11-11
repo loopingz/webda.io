@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -37,6 +37,7 @@
 <li class=""><a class="" href="/typedoc/core/classes/ConfigurationService">ConfigurationService</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MemoryQueue">MemoryQueue</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MemoryStore">MemoryStore</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/MigrationStore">MigrationStore</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/Queue">Queue</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/ResourceService">ResourceService</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/Store">Store</a></li>
@@ -134,6 +135,8 @@
 <li class=""><a class="" href="/typedoc/core/classes/MfaRequired">MfaRequired</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MfaStepUpRequired">MfaStepUpRequired</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MigrationAlreadyRunning">MigrationAlreadyRunning</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/MigrationRepository">MigrationRepository</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/MigrationStoreParameters">MigrationStoreParameters</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/MigrationUnsupported">MigrationUnsupported</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/ModelAnyRef">ModelAnyRef</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/ModelLinksAny">ModelLinksAny</a></li>
@@ -289,12 +292,14 @@
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationOptions">MigrationOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationProgress">MigrationProgress</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationReport">MigrationReport</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/MigrationStoreStatus">MigrationStoreStatus</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/MigrationTableReport">MigrationTableReport</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelAction">ModelAction</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelBacklink">ModelBacklink</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelBacklinkOptions">ModelBacklinkOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelClass">ModelClass</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelConfiguration">ModelConfiguration</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/ModelMigrationProgress">ModelMigrationProgress</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ModelTypesSource">ModelTypesSource</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/NotificationService">NotificationService</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/OpenAPIWebdaDefinition">OpenAPIWebdaDefinition</a></li>
@@ -326,6 +331,7 @@
 <li class=""><a class="" href="/typedoc/core/interfaces/RouteAliasDefinition">RouteAliasDefinition</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/RouteInfo">RouteInfo</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/RunCommandOptions">RunCommandOptions</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/RunMigrationOptions">RunMigrationOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/SealedRecipient">SealedRecipient</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/SealedRecipientResolver">SealedRecipientResolver</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/SecondFactorProvider">SecondFactorProvider</a></li>
@@ -392,6 +398,8 @@
 <li class=""><a class="" href="/typedoc/core/type-aliases/MfaAction">MfaAction</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/MfaState">MfaState</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/MigrationPatcher">MigrationPatcher</a></li>
+<li class=""><a class="" href="/typedoc/core/type-aliases/MigrationStoreEvents">MigrationStoreEvents</a></li>
+<li class=""><a class="" href="/typedoc/core/type-aliases/MigrationStoreState">MigrationStoreState</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/Modda">Modda</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/ModelActions">ModelActions</a></li>
 <li class=""><a class="" href="/typedoc/core/type-aliases/ModelAnyRefWithData">ModelAnyRefWithData</a></li>
@@ -681,6 +689,7 @@
 <li class=""><a class="" href="/typedoc/core/functions/unregisterOperationTransactionParticipant">unregisterOperationTransactionParticipant</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/unregisterProtectedResource">unregisterProtectedResource</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/unsealContinuationToken">unsealContinuationToken</a></li>
+<li class=""><a class="" href="/typedoc/core/functions/unwrapRepository">unwrapRepository</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/useApplication">useApplication</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/useBearerResolvers">useBearerResolvers</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/useBehaviorParameters">useBehaviorParameters</a></li>

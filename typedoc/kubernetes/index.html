@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -36,135 +36,12 @@
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="configuration">Configuration<a href="#configuration" class="hash-link" aria-label="Direct link to Configuration" title="Direct link to Configuration" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="kuberunner-async-job-runner">KubeRunner (async job runner)<a href="#kuberunner-async-job-runner" class="hash-link" aria-label="Direct link to KubeRunner (async job runner)" title="Direct link to KubeRunner (async job runner)" translate="no">​</a></h3>
 <div class="language-json codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-json codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token property" style="color:#36acaa">&quot;services&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token property" style="color:#36acaa">&quot;kubeRunner&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;KubeRunner&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;jobImage&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;my-registry/my-webda-app:latest&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;context&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;my-k8s-context&quot;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token property" style="color:#36acaa">&quot;asyncJobService&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;AsyncJobService&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;queue&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;AsyncActionsQueue&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;runners&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;kubeRunner&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>jobImage</code></td><td>string</td><td>—</td><td>Yes*</td><td>Docker image to use for the Kubernetes Job pod (<code>*</code> or <code>jobResources</code>)</td></tr><tr><td><code>jobResources</code></td><td>object | string</td><td>—</td><td>Yes*</td><td>Full Kubernetes Job manifest (object or path to YAML file) overriding the default template</td></tr><tr><td><code>config</code></td><td>string | object</td><td>—</td><td>No</td><td>Kubernetes config path or inline <code>K8sConfiguration</code> (defaults to in-cluster config)</td></tr><tr><td><code>context</code></td><td>string</td><td>—</td><td>No</td><td>Kubernetes context name (from kubeconfig) to use</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="knativedeployer-knative-serving--cloud-run">KnativeDeployer (Knative Serving / Cloud Run)<a href="#knativedeployer-knative-serving--cloud-run" class="hash-link" aria-label="Direct link to KnativeDeployer (Knative Serving / Cloud Run)" title="Direct link to KnativeDeployer (Knative Serving / Cloud Run)" translate="no">​</a></h3>
 <p>A deployment unit generating and applying a <code>serving.knative.dev/v1</code> Service for the application image,
 usually chained to the <code>Webda/ContainerDeployer</code> of <code>@webda/oci</code>:</p>
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockTitle__A1_">deployments/production.jsonc</div><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;units&quot;: [</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    { &quot;name&quot;: &quot;image&quot;, &quot;type&quot;: &quot;Webda/ContainerDeployer&quot;, &quot;image&quot;: &quot;ghcr.io/acme/api&quot; },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;name&quot;: &quot;knative&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/KnativeDeployer&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;containerDeployer&quot;: &quot;image&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;namespace&quot;: &quot;apps&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;minScale&quot;: 1,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;env&quot;: { &quot;NODE_ENV&quot;: &quot;production&quot; }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  ]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#FF9901"></path></svg></div>
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">webda -d production knative manifest   # print the Service without touching the cluster</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda -d production deploy             # push the image, create or server-side apply the Service, wait for Ready</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda -d production knative status     # URL, revisions, traffic</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">webda -d production knative delete --yes</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>image</code> / <code>containerDeployer</code></td><td>string</td><td>—</td><td>Image to deploy, or the <code>ContainerDeployer</code> unit pushing it (the revision is pinned to its digest)</td></tr><tr><td><code>namespace</code> / <code>name</code></td><td>string</td><td><code>default</code> / package</td><td>Target namespace, Service name sanitized to DNS-1123</td></tr><tr><td><code>minScale</code> / <code>maxScale</code> / <code>target</code></td><td>number</td><td><code>0</code> / — / —</td><td>Autoscaling annotations</td></tr><tr><td><code>containerConcurrency</code></td><td>number</td><td><code>0</code></td><td>Concurrent requests per replica, <code>0</code> for unlimited</td></tr><tr><td><code>env</code> / <code>envFrom</code> / <code>resources</code></td><td>object</td><td><code>{}</code> / <code>[]</code> / —</td><td>Container settings</td></tr><tr><td><code>port</code> / <code>healthPath</code></td><td>number / string</td><td><code>8080</code> / <code>/healthz</code></td><td>Listening port (injected as <code>PORT</code>) and readiness probe path (enabled through <code>WEBDA_HEALTH_PATH</code>)</td></tr><tr><td><code>traffic</code></td><td>array</td><td>latest 100%</td><td>Traffic split between revisions</td></tr><tr><td><code>revisionSuffix</code></td><td>string</td><td><code>${git.short}</code></td><td>Deterministic revision names</td></tr><tr><td><code>platform</code></td><td>string</td><td><code>knative</code></td><td><code>cloudrun</code> adjusts the manifest for <code>gcloud run services replace</code></td></tr><tr><td><code>triggers</code></td><td>array</td><td><code>[]</code></td><td>Knative Eventing <code>Trigger</code>s delivering a Broker to the <code>Webda/CloudEventsReceiver</code> route (<code>path</code>)</td></tr><tr><td><code>template</code> / <code>output</code></td><td>object | string</td><td>—</td><td>Deep-merged overrides, file the manifest is written to</td></tr><tr><td><code>config</code> / <code>context</code> / <code>timeout</code></td><td></td><td>kubeconfig</td><td>Cluster access, as the other services</td></tr></tbody></table>
 <p>The application needs no Knative-specific configuration: the <code>HttpServer</code> listens on <code>$PORT</code>, answers the
 readiness probe on <code>healthPath</code> and drains its in-flight requests on <code>SIGTERM</code>. With <code>triggers</code>, <code>knative manifest</code>
@@ -183,66 +60,6 @@ conflict); <code>=</code> and <code>IN</code> on <code>labelFields</code> are fi
 <p><code>webda kubernetes crd export --target ./crds</code> writes the definitions to apply, or set <code>installCrds: true</code> to create
 them at init (needs the rights on <code>customresourcedefinitions</code>). <code>webda kubernetes rbac export --target ./rbac.yaml</code>
 writes the Roles, ClusterRole and bindings the stores and operators need.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>group</code></td><td>— (required)</td><td>API group of the custom resources</td></tr><tr><td><code>version</code></td><td><code>v1</code></td><td>API version</td></tr><tr><td><code>namespace</code></td><td><code>default</code></td><td>Namespace of the resources (ignored for <code>Cluster</code> scope)</td></tr><tr><td><code>scope</code></td><td><code>Namespaced</code></td><td><code>Namespaced</code> or <code>Cluster</code></td></tr><tr><td><code>labelFields</code></td><td><code>{}</code></td><td>Fields mirrored as labels, by model</td></tr><tr><td><code>statusFields</code></td><td><code>{}</code></td><td>Fields written through the status subresource, by model</td></tr><tr><td><code>installCrds</code></td><td><code>false</code></td><td>Create or update the definitions at init</td></tr><tr><td><code>maxRetries</code></td><td><code>5</code></td><td>Attempts of a read-modify-write on conflicts</td></tr><tr><td><code>watch</code></td><td><code>false</code></td><td>Emit the repository events of the changes made by others (kubectl, GitOps, another replica)</td></tr><tr><td><code>config</code>, <code>context</code>, <code>timeout</code></td><td>in-cluster / kubeconfig, 10000 ms</td><td>Kubernetes client</td></tr></tbody></table>
 <p>Kubernetes is not a database: use it for configuration-like models (tens to thousands of objects, at most ~1.5 MiB
 each). A label field must hold label-compatible values; resources created with kubectl need the labels too to be found

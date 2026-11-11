@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -50,26 +50,6 @@ environment provides differently.</li>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="example-a-local-file-for-development-an-encrypted-configmap-in-kubernetes">Example: a local file for development, an encrypted ConfigMap in Kubernetes<a href="#example-a-local-file-for-development-an-encrypted-configmap-in-kubernetes" class="hash-link" aria-label="Direct link to Example: a local file for development, an encrypted ConfigMap in Kubernetes" title="Direct link to Example: a local file for development, an encrypted ConfigMap in Kubernetes" translate="no">​</a></h3>
 <p>Keep the application configuration free of secrets and load them from a configuration source, which each environment
 maps to its own place:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Environment</th><th>Configuration source</th><th>Secrets</th></tr></thead><tbody><tr><td>Local development</td><td><code>FileConfiguration</code> on <code>local.config.jsonc</code></td><td>plain values, the file is ignored by git</td></tr><tr><td>Deployed (k8s)</td><td><code>KubernetesConfigurationService</code> on a ConfigMap</td><td>encrypted with the <code>pki</code> encrypter, committed</td></tr></tbody></table>
 <!-- -->
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="1-the-application-no-secret-a-file-source-for-development">1. The application: no secret, a file source for development<a href="#1-the-application-no-secret-a-file-source-for-development" class="hash-link" aria-label="Direct link to 1. The application: no secret, a file source for development" title="Direct link to 1. The application: no secret, a file source for development" translate="no">​</a></h4>
@@ -90,36 +70,6 @@ ConfigMap is not mounted on this machine, and the command does not load it.</p>
 <div class="language-yaml codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-yaml codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token key atrule" style="color:#00a4db">volumes</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">name</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> webda</span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain">config</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token key atrule" style="color:#00a4db">configMap</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">name</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> webda</span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain">config </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token key atrule" style="color:#00a4db">containers</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">name</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> app</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token key atrule" style="color:#00a4db">volumeMounts</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">name</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> webda</span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain">config</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">mountPath</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> /etc/webda/config</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">readOnly</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> </span><span class="token boolean important" style="color:#36acaa">true</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p>The pod decrypts the values when it loads the ConfigMap, and again each time the ConfigMap changes.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="value-formats">Value formats<a href="#value-formats" class="hash-link" aria-label="Direct link to Value formats" title="Direct link to Value formats" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Written by you</th><th>Written by <code>webda config encrypt</code></th><th>Decrypted to</th></tr></thead><tbody><tr><td><code>encrypt:&lt;encrypter&gt;:value</code></td><td><code>crypt:&lt;encrypter&gt;:&lt;data&gt;</code></td><td>a <code>SecretString</code></td></tr><tr><td><code>sencrypt:&lt;encrypter&gt;:value</code></td><td><code>scrypt:&lt;encrypter&gt;:&lt;data&gt;</code></td><td>a plain <code>string</code></td></tr><tr><td><code>encrypt:value</code></td><td><code>crypt:&lt;default&gt;:&lt;data&gt;</code></td><td>a <code>SecretString</code></td></tr><tr><td><code>sencrypt:value</code></td><td><code>scrypt:&lt;default&gt;:&lt;data&gt;</code></td><td>a plain <code>string</code></td></tr></tbody></table>
 <p>A value still marked <code>encrypt:</code> when the application starts is passed as is, with a warning in the logs.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="default-encrypter">Default encrypter<a href="#default-encrypter" class="hash-link" aria-label="Direct link to Default encrypter" title="Direct link to Default encrypter" translate="no">​</a></h3>
@@ -147,47 +97,6 @@ only available with <code>getValue()</code>.</p>
 secrets, SMTP authentication, registry credentials...) accept a <code>SecretString</code>. Use <code>scrypt:</code> only for a third-party
 module that requires a plain string.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="encrypters">Encrypters<a href="#encrypters" class="hash-link" aria-label="Direct link to Encrypters" title="Direct link to Encrypters" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Name</th><th>Package</th><th>Key</th><th>Use it for</th></tr></thead><tbody><tr><td><code>local</code></td><td><code>@webda/core</code></td><td>the machine id, or the <code>WEBDA_MACHINE_ID</code> variable</td><td>local development secrets, never shared</td></tr><tr><td><code>password</code></td><td><code>@webda/runtime</code></td><td>a password, from <code>WEBDA_CONFIG_PASSWORD</code> or a prompt</td><td>small teams sharing a password out of band</td></tr><tr><td><code>gcp</code></td><td><code>@webda/gcp</code></td><td>a Google Cloud KMS key, <code>WEBDA_GCP_KMS_KEY</code> to encrypt</td><td>production, access managed by IAM</td></tr><tr><td><code>pki</code></td><td><code>@webda/core</code></td><td>RSA key pairs: public keys in the repository, private keys in the runtime</td><td>anyone encrypts, only the application decrypts</td></tr><tr><td><code>none</code></td><td><code>@webda/core</code></td><td>none, the value stays in clear text</td><td>a secret field holding a public value</td></tr></tbody></table>
 <p>An encrypter is available once its package is a dependency of the application: the package registers it when the
 application loads its modules.</p>
@@ -251,54 +160,8 @@ keys out of git:</p>
 </li>
 </ol>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="options">Options<a href="#options" class="hash-link" aria-label="Direct link to Options" title="Direct link to Options" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>activeKey</code></td><td></td><td>key id used to encrypt the new values</td></tr><tr><td><code>publicKeys</code></td><td><code>.webda/keys</code></td><td>directory of the public keys <code>&lt;kid&gt;.pub.pem</code>, relative to the application</td></tr><tr><td><code>privateKeys</code></td><td><code>WEBDA_PKI_PRIVATE_KEYS_DIR</code>, then <code>/etc/webda/pki</code></td><td>directory of the private keys <code>&lt;kid&gt;.pem</code> or <code>&lt;kid&gt;</code></td></tr></tbody></table>
 <p>The keys are looked up in this order:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Key</th><th>Sources, in priority order</th></tr></thead><tbody><tr><td>Public key <code>&lt;kid&gt;</code></td><td><code>&lt;publicKeys&gt;/&lt;kid&gt;.pub.pem</code>, then derived from the private key if it is available</td></tr><tr><td>Private key <code>&lt;kid&gt;</code></td><td><code>WEBDA_PKI_PRIVATE_KEY_&lt;KID&gt;</code> (PEM, kid uppercased, <code>-</code> and <code>.</code> replaced by <code>_</code>), then <code>&lt;privateKeys&gt;/&lt;kid&gt;.pem</code> or <code>&lt;privateKeys&gt;/&lt;kid&gt;</code></td></tr><tr><td>Private key passphrase</td><td><code>WEBDA_PKI_PASSPHRASE</code>, optional</td></tr></tbody></table>
 <p>Encrypting never needs a private key, decrypting never needs a public key. Only RSA keys of 3072 bits or more are
 accepted.</p>

@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -87,99 +87,6 @@ natively, or stream objects through the in-memory <code>Aggregator</code>.</p>
 <div class="language-typescript codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-typescript codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> getCompletions</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> fieldsFromSchema </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;@webda/ql&quot;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> fields </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> name</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;status&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> type</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;string&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">enum</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;draft&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;published&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> name</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;viewCount&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> type</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;integer&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> items</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> prefix </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">getCompletions</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;status = &#x27;dr&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token number" style="color:#36acaa">12</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> fields </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// =&gt; items offer &quot;&#x27;draft&#x27;&quot;, replacing range [9, 13]</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p>See <a href="https://github.com/loopingz/webda.io/tree/main/docs/pages/Modules/ql/Completion.md" target="_blank" rel="noopener noreferrer" class="">Code Completion</a>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="api-reference">API reference<a href="#api-reference" class="hash-link" aria-label="Direct link to API reference" title="Direct link to API reference" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Export</th><th>Description</th></tr></thead><tbody><tr><td><code>QueryValidator</code></td><td>Parses a WQL string; <code>eval(obj)</code> evaluates it, <code>toString()</code> normalizes it</td></tr><tr><td><code>bind(query, params)</code></td><td>Binds <code>?</code> / <code>:name</code> placeholders to escaped values</td></tr><tr><td><code>escape(parts, values)</code></td><td>Escapes template literal values (used by the compile-time rewrite)</td></tr><tr><td><code>validateSyntax(query)</code></td><td>Checks a query against the grammar without evaluating it; placeholders allowed</td></tr><tr><td><code>PrependCondition(query, condition)</code></td><td>Merges a condition in front of an existing query, preserving ORDER BY / LIMIT / OFFSET</td></tr><tr><td><code>ExpressionBuilder</code></td><td>ANTLR visitor that builds the optimized expression AST</td></tr><tr><td><code>AndExpression</code></td><td>Logic AND node</td></tr><tr><td><code>OrExpression</code></td><td>Logic OR node</td></tr><tr><td><code>ComparisonExpression</code></td><td>Comparison leaf node</td></tr><tr><td><code>parse(query, allowedFields?)</code></td><td>Parses a filter or statement; <code>allowedFields</code> checks SELECT fields and SET targets</td></tr><tr><td><code>validateQueryFields(query, allowed)</code></td><td>Checks SELECT fields and SET targets against a field list</td></tr><tr><td><code>assertFilterQuery(query)</code></td><td>Refuses DELETE, UPDATE, SELECT field lists and aggregations</td></tr><tr><td><code>toAggregationQuery(input, params?)</code></td><td>Converts the object form of an aggregation to a validated <code>AggregationQuery</code></td></tr><tr><td><code>validateAggregation(query)</code></td><td>Validates an <code>AggregationQuery</code> (paths, aliases, functions, ORDER BY, LIMIT)</td></tr><tr><td><code>Aggregator</code></td><td>In-memory aggregation engine: <code>add(item)</code> then <code>rows()</code></td></tr><tr><td><code>compareValues(a, b)</code></td><td>The cross-backend ordering of aggregated values (null &lt; numbers &lt; strings)</td></tr><tr><td><code>AggregationError</code></td><td>Runtime aggregation error with a <code>code</code> (<code>AGGREGATION_NOT_NATIVE</code>, <code>AGGREGATION_TOO_MANY_GROUPS</code>)</td></tr><tr><td><code>Query</code></td><td>Parsed query result: <code>{ type, filter, fields?, assignments?, aggregation?, orderBy?, limit?, continuationToken? }</code></td></tr><tr><td><code>OrderBy</code></td><td><code>{ field: string; direction: &quot;ASC&quot; | &quot;DESC&quot; }</code></td></tr><tr><td><code>getCompletions(query, caret, opts)</code></td><td>Returns grammar-driven code completion candidates at a caret offset</td></tr><tr><td><code>fieldsFromSchema(schema, maxDepth?)</code></td><td>Flattens a JSON schema into completion fields with dotted paths</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="see-also">See also<a href="#see-also" class="hash-link" aria-label="Direct link to See also" title="Direct link to See also" translate="no">​</a></h3>
 <ul>

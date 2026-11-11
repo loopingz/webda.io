@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -32,35 +32,6 @@ and <code>deserialize()</code> methods into the source; those modules are gone.<
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="migration-modules">Migration modules<a href="#migration-modules" class="hash-link" aria-label="Direct link to Migration modules" title="Direct link to Migration modules" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="updateimports"><code>updateImports</code><a href="#updateimports" class="hash-link" aria-label="Direct link to updateimports" title="Direct link to updateimports" translate="no">​</a></h3>
 <p>Rewrites import paths to reflect package reorganizations between Webda versions. For example:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Old import</th><th>New import</th></tr></thead><tbody><tr><td><code>@webda/core:FileStore</code></td><td><code>@webda/fs</code></td></tr><tr><td><code>@webda/core:WebdaQL</code></td><td><code>@webda/ql</code></td></tr><tr><td><code>@webda/core:JSONUtils</code></td><td><code>@webda/utils</code></td></tr><tr><td><code>@webda/core:CoreModelDefinition</code></td><td><code>@webda/core:ModelClass</code></td></tr><tr><td><code>@testdeck/mocha</code></td><td><code>@webda/test</code></td></tr></tbody></table>
 <p>An import whose names have all moved is removed; side-effect imports (<code>import &quot;@webda/core&quot;</code>) and
 default imports are left alone.</p>
@@ -72,23 +43,6 @@ the request-filter or CORS-filter interfaces are now registered automatically fr
 <p><code>WebdaMorpher</code> opens a ts-morph <code>Project</code> from <code>&lt;appPath&gt;/tsconfig.json</code>. Each module is a function
 <code>(sourceFile: SourceFile) =&gt; void</code>, and only files whose text changed are saved.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="options">Options<a href="#options" class="hash-link" aria-label="Direct link to Options" title="Direct link to Options" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody><tr><td><code>--module &lt;name&gt;</code></td><td>Run only these module(s). Repeatable.</td></tr><tr><td><code>--appPath</code></td><td>Path to the app directory (default: <code>.</code>)</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="verify">Verify<a href="#verify" class="hash-link" aria-label="Direct link to Verify" title="Direct link to Verify" translate="no">​</a></h2>
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain"># Run the compiler tests (includes the morpher fixtures in test/4.0)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">cd packages/compiler</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">pnpm test</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>

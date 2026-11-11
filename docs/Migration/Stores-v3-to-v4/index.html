@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -21,47 +21,6 @@
 <p>With the Memory, File, PostgreSQL, SQLite, MongoDB and DynamoDB stores, Webda 4 reads the data Webda 3 wrote, on the
 same database, without a manual step. You run <code>webda migrate</code> when you choose: it rewrites the Webda 3 types to the
 Webda 4 format, can be resumed, and is safe to run again.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Store</th><th>Webda 3 types read</th><th><code>webda migrate</code></th><th>Startup check</th></tr></thead><tbody><tr><td><code>MemoryStore</code>, <code>FileStore</code></td><td>yes</td><td>yes</td><td>scan, up to <code>maxRows</code></td></tr><tr><td><code>PostgresStore</code>, <code>SQLiteStore</code></td><td>yes</td><td>yes</td><td>exact (<code>GROUP BY</code>)</td></tr><tr><td><code>MongoStore</code></td><td>yes</td><td>yes</td><td>exact (<code>$group</code>)</td></tr><tr><td><code>DynamoStore</code></td><td>yes</td><td>yes</td><td>scan, up to <code>maxRows</code></td></tr><tr><td><code>FireStore</code></td><td>not filtered</td><td>no</td><td>no</td></tr></tbody></table>
 <p><code>FireStore</code> neither stamps nor filters <code>__type</code>: its documents stay visible whatever type Webda 3 stored, and they
 load as the model of their collection. The authentication data (idents, users) has its own command,

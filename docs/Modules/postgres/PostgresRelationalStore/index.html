@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.8d2f1379.css">
-<script src="/assets/js/runtime~main.d95c974a.js" defer="defer"></script>
-<script src="/assets/js/main.3d1587a6.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.daf2ccde.css">
+<script src="/assets/js/runtime~main.54f17626.js" defer="defer"></script>
+<script src="/assets/js/main.5603c706.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -24,178 +24,16 @@ junction tables for the link collections, indexes. The schema is generated from 
 are the same as with the JSONB <a class="" href="/docs/Modules/postgres/PostgresStore"><code>PostgresStore</code></a>.</p>
 <div class="language-json codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-json codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token property" style="color:#36acaa">&quot;services&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token property" style="color:#36acaa">&quot;Registry&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Webda/PostgresStore&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;postgresqlServer&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;host&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;localhost&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;database&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;webda&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token property" style="color:#36acaa">&quot;domain&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Webda/PostgresRelationalStore&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;models&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;MyApp/User&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;MyApp/Post&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;MyApp/Comment&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;MyApp/Tag&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;postgresqlServer&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;host&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;localhost&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;database&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;webda&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;usePool&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token boolean" style="color:#36acaa">true</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token property" style="color:#36acaa">&quot;schemaSync&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;alter&quot;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="jsonb-or-relational">JSONB or relational?<a href="#jsonb-or-relational" class="hash-link" aria-label="Direct link to JSONB or relational?" title="Direct link to JSONB or relational?" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th><code>PostgresStore</code> (JSONB)</th><th><code>PostgresRelationalStore</code></th></tr></thead><tbody><tr><td>Table layout</td><td><code>uuid</code>, <code>data jsonb</code></td><td>one typed column per field</td></tr><tr><td>Schema changes</td><td>none needed</td><td>additive, at <code>init()</code> or by hand</td></tr><tr><td>Unknown properties</td><td>kept in <code>data</code></td><td>kept in the <code>_extra</code> JSONB column</td></tr><tr><td>Links</td><td>a key inside <code>data</code></td><td>a column with a foreign key</td></tr><tr><td>Link collections</td><td>an array inside <code>data</code></td><td>a junction table</td></tr><tr><td>Can be the <code>Registry</code></td><td>yes</td><td><strong>no</strong> (<code>init()</code> fails)</td></tr><tr><td>Models</td><td>listed or fallback</td><td><strong>listed only</strong></td></tr></tbody></table>
 <p>Keep the JSONB store as <code>Registry</code> (it accepts every model, configuration and internal state) and use the relational
 store for the domain models whose shape is stable. Both can share one <code>postgresqlServer</code> (pools are shared by
 configuration).</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h2>
 <p>Those of <code>PostgresStore</code> (<code>postgresqlServer</code>, <code>usePool</code>, <code>models</code>, <code>tables</code>), plus:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>schemaSync</code></td><td><code>&quot;create&quot;</code></td><td><code>none</code>, <code>create</code> (missing tables, with their indexes and foreign keys), <code>alter</code> (<code>create</code> plus the missing columns, indexes and foreign keys of existing tables), <code>validate</code> (write nothing, fail on any difference)</td></tr><tr><td><code>columnNaming</code></td><td><code>&quot;preserve&quot;</code></td><td><code>preserve</code> keeps the field names (quoted camelCase), <code>snake_case</code> converts them</td></tr><tr><td><code>extraColumn</code></td><td><code>&quot;_extra&quot;</code></td><td>JSONB column of the properties the model schema does not declare, <code>false</code> to refuse them</td></tr><tr><td><code>foreignKeys</code></td><td><code>true</code></td><td>create the foreign key constraints</td></tr><tr><td><code>foreignKeysToJsonb</code></td><td><code>false</code></td><td>also create a foreign key to the <code>uuid</code> of the JSONB table of a model served by a <code>PostgresStore</code> (the <code>Registry</code>) on the same server and database with a table per model; that table is created at <code>init()</code></td></tr><tr><td><code>numericAsDecimal</code></td><td><code>false</code></td><td>map JSON <code>number</code> to <code>NUMERIC</code> instead of <code>DOUBLE PRECISION</code></td></tr><tr><td><code>appVersion</code></td><td>package.json</td><td>the application version recorded in the <code>Webda/SchemaVersion</code> registry</td></tr><tr><td><code>allowIncompatible</code></td><td><code>[]</code></td><td>elements (<code>&lt;table&gt;</code>, <code>&lt;table&gt;.&lt;column&gt;</code>, <code>&lt;model&gt;</code>, <code>&lt;model&gt;.&lt;attribute&gt;</code>) whose blocking changes against a live version are accepted (<code>BLOCK</code> becomes <code>WARN</code>, recorded in <code>forced</code>)</td></tr><tr><td><code>versionHeartbeat</code></td><td><code>60</code></td><td>seconds between two heartbeats of the version in the registry, <code>0</code> for none</td></tr><tr><td><code>versionTtl</code></td><td><code>600</code></td><td>seconds after its last heartbeat a version still counts as live</td></tr></tbody></table>
 <p><code>table</code> (one shared table) is refused, <code>autoCreateTable</code> is replaced by <code>schemaSync</code>, <code>views</code> and <code>viewPrefix</code> do
 nothing (the tables are already typed). A <code>tables</code> override must be a lowercase identifier (<code>[a-z_][a-z0-9_]*</code>).</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="mapping">Mapping<a href="#mapping" class="hash-link" aria-label="Direct link to Mapping" title="Direct link to Mapping" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Model</th><th>Table</th></tr></thead><tbody><tr><td><code>string</code> (<code>maxLength</code>, <code>format</code>)</td><td><code>TEXT</code>, <code>VARCHAR(n)</code>, <code>TIMESTAMPTZ</code> (<code>date-time</code> or <code>Date</code>), <code>DATE</code>; <code>enum</code> adds a <code>CHECK</code></td></tr><tr><td><code>integer</code> / <code>number</code> / <code>boolean</code></td><td><code>BIGINT</code> / <code>DOUBLE PRECISION</code> / <code>BOOLEAN</code></td></tr><tr><td>objects, arrays, unions, untyped</td><td><code>JSONB</code>; nested paths stay queryable (<code>meta.a = 1</code>)</td></tr><tr><td>primary key</td><td><code>TEXT</code> column(s) and the primary key constraint (composite keys supported)</td></tr><tr><td><code>ModelParent</code> / <code>BelongTo</code></td><td>key column(s) + <code>FOREIGN KEY ... ON DELETE CASCADE</code></td></tr><tr><td><code>ModelLink</code> / <code>ManyToOne</code> / <code>OneToOne</code></td><td>key column(s) + <code>FOREIGN KEY ... ON DELETE NO ACTION</code>, indexed (<code>OneToOne</code>: unique)</td></tr><tr><td><code>ModelLinksSimpleArray</code> / <code>ManyToMany</code> / <code>ModelLinksMap</code></td><td>junction table <code>&lt;table&gt;_&lt;attribute&gt;</code> (owner key, target key, <code>_position</code> or <code>key</code>, link attributes or <code>attributes</code> JSONB)</td></tr><tr><td><code>ModelRelated</code> / <code>OneToMany</code> / <code>ModelsMapped</code></td><td>no storage; a <code>ModelsMapped</code> is filled on read from the rows of its model (see <a href="#mapped-attributes" class="">Mapped attributes</a>)</td></tr><tr><td>a link to a model of another store</td><td>column + index, no foreign key, one <code>WARN</code> at init; with <code>foreignKeysToJsonb</code>, a foreign key to the <code>uuid</code> of its JSONB table</td></tr><tr><td><code>@Index</code> / <code>@Unique</code> JSDoc tag on an attribute</td><td>an index (unique with <code>@Unique</code>) on its column(s); <code>@Index &lt;name&gt;</code> on several attributes builds one composite index</td></tr><tr><td>subclasses</td><td>the table of their closest listed ancestor, with an indexed <code>__type</code> column; <code>useRepository(Dog).query(&quot;&quot;)</code> filters on it</td></tr><tr><td>unknown properties</td><td>the <code>_extra</code> JSONB column, merged under the typed columns on read</td></tr></tbody></table>
 <p>Every column is created <strong>nullable</strong> (the model schema validates <code>required</code>); foreign keys are <code>DEFERRABLE INITIALLY DEFERRED</code>, so self references and cycles insert in one transaction.</p>
 <div class="language-ts codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-ts codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">class</span><span class="token plain"> </span><span class="token class-name">User</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">extends</span><span class="token plain"> </span><span class="token class-name">UuidModel</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token doc-comment comment" style="color:#999988;font-style:italic">/** @Unique */</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  email</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token doc-comment comment" style="color:#999988;font-style:italic">/** @Index byNameDay */</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  name</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token doc-comment comment" style="color:#999988;font-style:italic">/** @Index byNameDay */</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  day</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
@@ -287,75 +125,6 @@ JSONB column); <code>deleteMany</code> is one <code>DELETE</code>.</li>
 <li class="">Aggregations and <code>count</code> run in SQL (<code>native: true</code>).</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="errors">Errors<a href="#errors" class="hash-link" aria-label="Direct link to Errors" title="Direct link to Errors" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Situation</th><th>Error</th></tr></thead><tbody><tr><td>duplicate primary key on <code>create</code></td><td><code>Error(&quot;Already exists: &lt;key&gt;&quot;)</code></td></tr><tr><td>a key listed twice in a link collection (<code>tags: [&quot;t1&quot;, &quot;t1&quot;]</code>) on <code>create</code>, <code>update</code> or <code>patch</code></td><td><code>WebdaError.BadRequest</code> naming the attribute</td></tr><tr><td>collision on a unique index (<code>@Unique</code>, <code>OneToOne</code>) on <code>create</code>, <code>update</code> or <code>patch</code></td><td><code>WebdaError.Conflict</code> naming the fields</td></tr><tr><td>foreign key violation on insert or update (unknown link target)</td><td><code>WebdaError.BadRequest</code> naming the relation</td></tr><tr><td>delete of a row still referenced (<code>NO ACTION</code>)</td><td><code>WebdaError.Conflict</code></td></tr><tr><td>duplicate key appended to a simple link array</td><td><code>WebdaError.Conflict</code></td></tr><tr><td><code>ORDER BY</code> on a junction attribute or a composite reference; a comparison a junction cannot answer (<code>tags = &#x27;t1&#x27;</code>); a filter on a filled <code>ModelsMapped</code> or on an unknown field without <code>_extra</code>; collection operation on a scalar; <code>incrementAttributes</code> on a non-numeric column</td><td><code>WebdaError.BadRequest</code></td></tr><tr><td>service named <code>Registry</code></td><td><code>WebdaError.CodeError(&quot;RELATIONAL_STORE_AS_REGISTRY&quot;)</code></td></tr><tr><td><code>table</code> parameter</td><td><code>WebdaError.CodeError(&quot;RELATIONAL_SHARED_TABLE&quot;)</code></td></tr><tr><td>repository of a model not listed</td><td><code>WebdaError.CodeError(&quot;MODEL_NOT_PLANNED&quot;)</code></td></tr><tr><td><code>schemaSync: &quot;validate&quot;</code> with a difference</td><td><code>SchemaDriftError</code> (<code>SCHEMA_DRIFT</code>)</td></tr><tr><td>plan incompatible with a live application version</td><td><code>SchemaIncompatibleError</code> (409, fatal at <code>init()</code>)</td></tr><tr><td><code>Registry</code> unreachable at <code>init()</code></td><td><code>SchemaRegistryError</code> (<code>SCHEMA_REGISTRY_UNAVAILABLE</code>, fatal)</td></tr><tr><td><code>Webda/SchemaVersion</code> listed in the store models</td><td><code>WebdaError.CodeError(&quot;RELATIONAL_SCHEMA_VERSION_MODEL&quot;)</code></td></tr><tr><td><code>importFromJsonb</code> from a relational store, or of a model whose JSONB table is the relational one</td><td><code>WebdaError.CodeError(&quot;RELATIONAL_IMPORT_SOURCE&quot; | &quot;RELATIONAL_IMPORT_TABLE&quot;)</code></td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="mapped-attributes">Mapped attributes<a href="#mapped-attributes" class="hash-link" aria-label="Direct link to Mapped attributes" title="Direct link to Mapped attributes" translate="no">​</a></h2>
 <p>A <code>ModelsMapped&lt;Post, &quot;author&quot;, &quot;title&quot;&gt;</code> is a denormalized copy kept by a <code>ModelMapper</code> on the document stores. When

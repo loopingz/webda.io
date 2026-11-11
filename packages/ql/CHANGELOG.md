@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.10...ql-v4.0.0-beta.11) (2026-11-10)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.13
+
 ## [4.0.0-beta.10](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.9...ql-v4.0.0-beta.10) (2026-11-04)
 
 

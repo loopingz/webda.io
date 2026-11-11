@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.13...versioning-v4.0.0-beta.14) (2026-11-10)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.14
+    * @webda/models bumped to 4.0.0-beta.14
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.14
+    * @webda/models bumped to 4.0.0-beta.14
+
 ## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.12...versioning-v4.0.0-beta.13) (2026-11-04)
 
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-beta.13...mcp-v4.0.0-beta.14) (2026-11-10)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.14
+    * @webda/core bumped to 4.0.0-beta.14
+    * @webda/utils bumped to 4.0.0-beta.13
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.14
+
 ## [4.0.0-beta.13](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-beta.12...mcp-v4.0.0-beta.13) (2026-11-04)
 
 

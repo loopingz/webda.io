@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -82,7 +82,7 @@ one: the statements (DDL excepted) run on it rather than on <code>client</code><
 <blockquote>
 <p><strong>[WEBDA_TEST]</strong>: <code>object</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:325</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:329</p>
 <p>Test utilities - clears all stored data</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="clear">clear<a href="#clear" class="hash-link" aria-label="Direct link to clear" title="Direct link to clear" translate="no">​</a></h4>
 <blockquote>
@@ -121,7 +121,7 @@ one: the statements (DDL excepted) run on it rather than on <code>client</code><
 <blockquote>
 <p><code>protected</code> <strong>maxListeners</strong>: <code>number</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:334</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:336</p>
 <p>Max-listeners hint kept for Node <code>EventEmitter</code> API compatibility. Not
 enforced — repositories use an unbounded <code>Set</code> per event.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="inherited-from-3">Inherited from<a href="#inherited-from-3" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
@@ -173,7 +173,8 @@ enforced — repositories use an unbounded <code>Set</code> per event.</p>
 <blockquote>
 <p><code>protected</code> <strong>storage</strong>: <code>Map</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:39</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:42</p>
+<p>Storage</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="inherited-from-8">Inherited from<a href="#inherited-from-8" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
 <p><code>MemoryRepository.storage</code></p>
 <hr>
@@ -236,7 +237,7 @@ store for its repositories from the first store init) or kept across a stop()/in
 <blockquote>
 <p><strong>__clean</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:298</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:299</p>
 <p>Delete all rows from the table (used in tests).</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-5">Returns<a href="#returns-5" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>Promise</code>&lt;<code>void</code>&gt;</p>
@@ -245,7 +246,7 @@ store for its repositories from the first store init) or kept across a stop()/in
 <blockquote>
 <p><strong>acceptedTypes</strong>(): <code>string</code>[]</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:69</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:71</p>
 <p>Every stored <code>__type</code> value of this model and its transitive subclasses, for stores filtering in their query
 language</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-6">Returns<a href="#returns-6" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
@@ -258,7 +259,7 @@ language</p>
 <blockquote>
 <p><strong>aggregate</strong>&lt;<code>G</code>, <code>M</code>&gt;(<code>spec</code>, <code>params?</code>): <code>Promise</code>&lt;<code>AggregationResult</code>&lt;<code>AggregatedRow</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;, <code>G</code>, <code>M</code>&gt;&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:269</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:271</p>
 <p>Keep the full generic signature here (not <code>spec: any</code>): concrete repositories are used
 directly in code and tests, and must expose the typed rows.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-1">Type Parameters<a href="#type-parameters-1" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
@@ -280,7 +281,7 @@ directly in code and tests, and must expose the typed rows.</p>
 <blockquote>
 <p><code>protected</code> <strong>aggregateInMemory</strong>(<code>query</code>): <code>Promise</code>&lt;<code>Record</code>&lt;<code>string</code>, <code>unknown</code>&gt;[]&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:314</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:316</p>
 <p>Aggregate by streaming the filtered items</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="query">query<a href="#query" class="hash-link" aria-label="Direct link to query" title="Direct link to query" translate="no">​</a></h5>
@@ -296,7 +297,7 @@ directly in code and tests, and must expose the typed rows.</p>
 <blockquote>
 <p><code>protected</code> <strong>applyAssignments</strong>&lt;<code>O</code>&gt;(<code>target</code>, <code>assignments</code>): <code>O</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:179</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:181</p>
 <p>Set the assignments of an UPDATE on an object, creating the intermediate objects of dotted paths</p>
 <p>Targets were checked by <a href="#parsestatement" class="">parseStatement</a>: letters, digits and <code>_</code> only, no <code>__</code> segment, no
 <code>Object.prototype</code> member name.</p>
@@ -320,7 +321,7 @@ directly in code and tests, and must expose the typed rows.</p>
 <blockquote>
 <p><strong>backfillTypes</strong>(): <code>Promise</code>&lt;<code>number</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:69</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:70</p>
 <p>Stamp the rows written before <code>__type</code> stamping with the table model: they keep belonging to it, and a later
 change of the table model cannot reassign them</p>
 <p>Idempotent; only the repository of the table model writes. Equivalent SQL (PostgreSQL):
@@ -333,7 +334,7 @@ change of the table model cannot reassign them</p>
 <blockquote>
 <p><strong>belongsToModel</strong>(<code>stored?</code>): <code>boolean</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:75</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:77</p>
 <p>Whether a stored row belongs to this model, for stores filtering in memory</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-4">Parameters<a href="#parameters-4" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="stored">stored?<a href="#stored" class="hash-link" aria-label="Direct link to stored?" title="Direct link to stored?" translate="no">​</a></h5>
@@ -349,7 +350,7 @@ change of the table model cannot reassign them</p>
 <blockquote>
 <p><strong>buildAggregationSQL</strong>(<code>query</code>, <code>where?</code>): <code>object</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:250</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:251</p>
 <p>Translate an aggregation to SQL</p>
 <p>The query is validated again here and paths are checked once more, so they are safe to interpolate.
 Columns get positional names (<code>gN</code> per group path, <code>mN</code> / <code>nN</code> / <code>sN</code> per metric index), mapped back to
@@ -383,7 +384,7 @@ MIN / MAX select a numeric and a text candidate, merged by decode.</p>
 <blockquote>
 <p><code>protected</code> <strong>buildClassFilter</strong>(): <code>string</code> | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:186</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:190</p>
 <p>Build the WebdaQL class-filter clause <code>__type IN [&#x27;A&#x27;, &#x27;B&#x27;, ...]</code> covering
 <code>this.model</code>&#x27;s identifier and every transitive descendant.</p>
 <p>Returns <code>undefined</code> when the model carries no <code>Metadata</code>.</p>
@@ -397,7 +398,7 @@ MIN / MAX select a numeric and a text candidate, merged by decode.</p>
 <blockquote>
 <p><code>protected</code> <strong>buildClassFilterIdentifiers</strong>(): <code>string</code>[] | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:177</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:181</p>
 <p>Collect the WebdaQL class-filter identifier list — <code>this.model</code>&#x27;s
 identifier and every transitive descendant.</p>
 <p>Returns <code>undefined</code> when the model carries no <code>Metadata</code> (plain unit-test
@@ -414,7 +415,7 @@ preserving the pre-fix behavior for those bare classes.</p>
 <blockquote>
 <p><strong>buildCountSQL</strong>(<code>filter</code>, <code>max?</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:269</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:270</p>
 <p>Translate a count to SQL: one <code>COUNT(*)</code> over the filter, or over a sub-select stopped at max + 1 rows so a
 capped count reads at most max + 1 rows</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-7">Parameters<a href="#parameters-7" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -432,7 +433,7 @@ capped count reads at most max + 1 rows</p>
 <blockquote>
 <p><code>protected</code> <strong>buildItem</strong>(<code>data</code>): <code>InstanceType</code>&lt;<code>T</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:99</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:101</p>
 <p>Build the model instance to create from the incoming data</p>
 <p>Primary key fields that are undefined or null are dropped from the data so a
 key generated by the model constructor (e.g. UuidModel) is not overwritten.
@@ -451,7 +452,7 @@ Repositories must read the storage key from the returned instance.</p>
 <blockquote>
 <p><code>protected</code> <strong>checkAggregationFallback</strong>(<code>query</code>, <code>reason</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:285</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:287</p>
 <p>Apply the fallback policy before aggregating or counting in memory</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-9">Parameters<a href="#parameters-9" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="query-2">query<a href="#query-2" class="hash-link" aria-label="Direct link to query" title="Direct link to query" translate="no">​</a></h5>
@@ -471,7 +472,7 @@ Repositories must read the storage key from the returned instance.</p>
 <blockquote>
 <p><code>protected</code> <strong>checkCondition</strong>&lt;<code>K</code>&gt;(<code>item</code>, <code>conditionField?</code>, <code>condition?</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:67</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:71</p>
 <p>Verify an optimistic locking condition on an item</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-3">Type Parameters<a href="#type-parameters-3" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="k">K<a href="#k" class="hash-link" aria-label="Direct link to K" title="Direct link to K" translate="no">​</a></h5>
@@ -497,7 +498,7 @@ Repositories must read the storage key from the returned instance.</p>
 <blockquote>
 <p><code>protected</code> <strong>checkItemWriteCondition</strong>(<code>item</code>, <code>index</code>, <code>itemWriteConditionField</code>, <code>itemWriteCondition</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:317</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:321</p>
 <p>Verify a write condition on a collection item</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-11">Parameters<a href="#parameters-11" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="item-1">item<a href="#item-1" class="hash-link" aria-label="Direct link to item" title="Direct link to item" translate="no">​</a></h5>
@@ -523,7 +524,7 @@ Repositories must read the storage key from the returned instance.</p>
 <blockquote>
 <p><code>protected</code> <strong>checkPath</strong>(<code>attribute</code>): <code>string</code>[]</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:112</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:113</p>
 <p>Check the segments of a path written inside a SQL literal: letters, digits and <code>_</code>, like WebdaQL identifiers</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-12">Parameters<a href="#parameters-12" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="attribute">attribute<a href="#attribute" class="hash-link" aria-label="Direct link to attribute" title="Direct link to attribute" translate="no">​</a></h5>
@@ -539,7 +540,7 @@ Repositories must read the storage key from the returned instance.</p>
 <blockquote>
 <p><code>protected</code> <strong>collectStatementKeys</strong>(<code>statement</code>): <code>Promise</code>&lt;<code>PrimaryKeyType</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;[]&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:186</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:188</p>
 <p>Keys of the objects matching the WHERE of a statement, collected before any change so an update changing a
 WHERE field cannot meet the same object twice; at most LIMIT keys</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-13">Parameters<a href="#parameters-13" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -556,7 +557,7 @@ WHERE field cannot meet the same object twice; at most LIMIT keys</p>
 <blockquote>
 <p><strong>configureAggregation</strong>(<code>options</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:241</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:243</p>
 <p>Copy the known options (fallback, maxGroups, warn); undefined values keep the current ones</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-14">Parameters<a href="#parameters-14" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="options">options<a href="#options" class="hash-link" aria-label="Direct link to options" title="Direct link to options" translate="no">​</a></h5>
@@ -572,7 +573,7 @@ WHERE field cannot meet the same object twice; at most LIMIT keys</p>
 <blockquote>
 <p><strong>configureMonitoring</strong>(<code>options</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:246</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:248</p>
 <p>Configure the query monitoring policy, called by the owning store</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-15">Parameters<a href="#parameters-15" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="options-1">options<a href="#options-1" class="hash-link" aria-label="Direct link to options" title="Direct link to options" translate="no">​</a></h5>
@@ -587,7 +588,7 @@ WHERE field cannot meet the same object twice; at most LIMIT keys</p>
 <blockquote>
 <p><strong>count</strong>(<code>filter?</code>, <code>params?</code>, <code>options?</code>): <code>Promise</code>&lt;<code>CountResult</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:291</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:293</p>
 <p>Parse the filter, refuse statements, drop ORDER BY / LIMIT / OFFSET and run <a href="#executecount" class="">executeCount</a></p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-16">Parameters<a href="#parameters-16" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="filter-1">filter?<a href="#filter-1" class="hash-link" aria-label="Direct link to filter?" title="Direct link to filter?" translate="no">​</a></h5>
@@ -607,7 +608,7 @@ WHERE field cannot meet the same object twice; at most LIMIT keys</p>
 <blockquote>
 <p><code>protected</code> <strong>countInMemory</strong>(<code>filter</code>, <code>max?</code>): <code>Promise</code>&lt;<code>Omit</code>&lt;<code>CountResult</code>, <code>&quot;native&quot;</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:308</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:310</p>
 <p>Count by streaming the filtered items, stopping at max + 1</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-17">Parameters<a href="#parameters-17" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="filter-2">filter<a href="#filter-2" class="hash-link" aria-label="Direct link to filter" title="Direct link to filter" translate="no">​</a></h5>
@@ -626,7 +627,7 @@ WHERE field cannot meet the same object twice; at most LIMIT keys</p>
 <blockquote>
 <p><strong>create</strong>(<code>data</code>, <code>_save?</code>): <code>Promise</code>&lt;<code>any</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:205</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:206</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-18">Parameters<a href="#parameters-18" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="data-1">data<a href="#data-1" class="hash-link" aria-label="Direct link to data" title="Direct link to data" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -641,7 +642,7 @@ WHERE field cannot meet the same object twice; at most LIMIT keys</p>
 <blockquote>
 <p><code>protected</code> <strong>currentTypeOf</strong>(<code>instance</code>, <code>stored?</code>): <code>string</code> | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:140</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:144</p>
 <p>The <code>__type</code> to attach to a loaded instance: the current identifier of its class, the stored value when it is
 unknown or ambiguous (never rewritten to a guess), the repository model identifier for an untyped row</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-19">Parameters<a href="#parameters-19" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -661,7 +662,7 @@ unknown or ambiguous (never rewritten to a guess), the repository model identifi
 <blockquote>
 <p><code>protected</code> <strong>declaredType</strong>(<code>item</code>): <code>string</code> | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:167</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:168</p>
 <p>The type an object written by the application declares: the <code>__type</code> its row was read with (non-enumerable,
 set by <a href="#fromjson" class="">fromJSON</a>), else the identifier of its class. Plain data declares none, whatever its keys.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-20">Parameters<a href="#parameters-20" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -676,7 +677,7 @@ set by <a href="#fromjson" class="">fromJSON</a>), else the identifier of its cl
 <blockquote>
 <p><strong>delete</strong>(<code>primaryKey</code>, <code>conditionField?</code>, <code>condition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:211</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:212</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-21">Parameters<a href="#parameters-21" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey">primaryKey<a href="#primarykey" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -693,7 +694,7 @@ set by <a href="#fromjson" class="">fromJSON</a>), else the identifier of its cl
 <blockquote>
 <p><strong>deleteItemFromCollection</strong>(<code>primaryKey</code>, <code>collection</code>, <code>index</code>, <code>itemWriteConditionField?</code>, <code>itemWriteCondition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:221</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:222</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-22">Parameters<a href="#parameters-22" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-1">primaryKey<a href="#primarykey-1" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -714,7 +715,7 @@ set by <a href="#fromjson" class="">fromJSON</a>), else the identifier of its cl
 <blockquote>
 <p><strong>deleteMany</strong>(<code>statement</code>, <code>params?</code>): <code>Promise</code>&lt;<code>number</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:283</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:284</p>
 <p>Delete in bulk with one <code>DELETE ... WHERE</code>: no per-object event (see <code>Repository.deleteMany</code>)</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-23">Parameters<a href="#parameters-23" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="statement-1">statement<a href="#statement-1" class="hash-link" aria-label="Direct link to statement" title="Direct link to statement" translate="no">​</a></h5>
@@ -730,7 +731,7 @@ set by <a href="#fromjson" class="">fromJSON</a>), else the identifier of its cl
 <blockquote>
 <p><code>protected</code> <strong>deleteManyByKey</strong>(<code>statement</code>, <code>params?</code>): <code>Promise</code>&lt;<code>number</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:204</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:206</p>
 <p>Generic <code>deleteMany</code>: collect the matching keys (up to LIMIT), then delete them one by one with this
 repository&#x27;s <code>delete</code> primitive</p>
 <p>Used by stores without a native bulk delete. On a store repository the primitive emits no event.</p>
@@ -751,7 +752,7 @@ repository&#x27;s <code>delete</code> primitive</p>
 <blockquote>
 <p><strong>deserialize</strong>(<code>item</code>): <code>InstanceType</code>&lt;<code>T</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:121</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:125</p>
 <p>Unserialize the object from a string</p>
 <p>Beyond restoring the concrete type via <code>@webda/serialize</code>&#x27;s
 <code>$serializer.type</code> typeKey, this also surfaces the storage envelope&#x27;s
@@ -782,7 +783,7 @@ the query side too (see <code>query</code>).</p>
 <blockquote>
 <p><code>protected</code> <strong>deserializeEnvelope</strong>(<code>item</code>, <code>raw</code>, <code>stored?</code>): <code>any</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:132</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:136</p>
 <p>Deserialize a serializer envelope</p>
 <p>A row written under a model&#x27;s former identifier (renamed, see <code>@WebdaAlias</code>) names a serializer that no longer
 exists: it is deserialized with the serializer of the class its <code>__type</code> resolves to.</p>
@@ -806,7 +807,7 @@ exists: it is deserialized with the serializer of the class its <code>__type</co
 <blockquote>
 <p><strong>duplicateExpression</strong>(<code>expression</code>): <code>Expression</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:227</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:228</p>
 <p>Duplicate and translate a WebdaQL expression into SQL JSON path expressions.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-27">Parameters<a href="#parameters-27" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="expression">expression<a href="#expression" class="hash-link" aria-label="Direct link to expression" title="Direct link to expression" translate="no">​</a></h5>
@@ -820,7 +821,7 @@ exists: it is deserialized with the serializer of the class its <code>__type</co
 <blockquote>
 <p><strong>emit</strong>&lt;<code>K</code>&gt;(<code>event</code>, <code>data</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:359</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:361</p>
 <p>Emit an event to all registered listeners and await their completion.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-4">Type Parameters<a href="#type-parameters-4" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="k-1">K<a href="#k-1" class="hash-link" aria-label="Direct link to K" title="Direct link to K" translate="no">​</a></h5>
@@ -841,7 +842,7 @@ exists: it is deserialized with the serializer of the class its <code>__type</co
 <blockquote>
 <p><strong>excludePrimaryKey</strong>(<code>object</code>): <code>any</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:123</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:125</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-29">Parameters<a href="#parameters-29" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="object">object<a href="#object" class="hash-link" aria-label="Direct link to object" title="Direct link to object" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -854,7 +855,7 @@ exists: it is deserialized with the serializer of the class its <code>__type</co
 <blockquote>
 <p><code>protected</code> <strong>execute</strong>(<code>q</code>, <code>values?</code>): <code>Promise</code>&lt;{ <code>rowCount</code>: <code>number</code>; <code>rows</code>: <code>any</code>[]; }&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:90</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:91</p>
 <p>Run a statement once <a href="#prepare" class="">prepare</a> has resolved: on the transaction of the current async chain when there is
 one, otherwise on the store client.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-30">Parameters<a href="#parameters-30" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -872,7 +873,7 @@ one, otherwise on the store client.</p>
 <blockquote>
 <p><code>protected</code> <strong>executeAggregation</strong>(<code>query</code>): <code>Promise</code>&lt;<code>AggregationResult</code>&lt;<code>any</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:255</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:256</p>
 <p>GROUP BY over the data JSON column</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-31">Parameters<a href="#parameters-31" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="query-3">query<a href="#query-3" class="hash-link" aria-label="Direct link to query" title="Direct link to query" translate="no">​</a></h5>
@@ -886,7 +887,7 @@ one, otherwise on the store client.</p>
 <blockquote>
 <p><code>protected</code> <strong>executeCount</strong>(<code>filter</code>, <code>max?</code>): <code>Promise</code>&lt;<code>CountResult</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:271</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:272</p>
 <p>COUNT(*) over the data JSON column</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-32">Parameters<a href="#parameters-32" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="filter-3">filter<a href="#filter-3" class="hash-link" aria-label="Direct link to filter" title="Direct link to filter" translate="no">​</a></h5>
@@ -902,7 +903,7 @@ one, otherwise on the store client.</p>
 <blockquote>
 <p><strong>exists</strong>(<code>primaryKey</code>): <code>Promise</code>&lt;<code>boolean</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:213</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:214</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-33">Parameters<a href="#parameters-33" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-2">primaryKey<a href="#primarykey-2" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -915,7 +916,7 @@ one, otherwise on the store client.</p>
 <blockquote>
 <p><code>protected</code> <strong>fieldText</strong>(<code>field</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:118</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:119</p>
 <p>SQL text of a top-level field, for write conditions: the JSON key here, a column in a relational table</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-34">Parameters<a href="#parameters-34" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="field">field<a href="#field" class="hash-link" aria-label="Direct link to field" title="Direct link to field" translate="no">​</a></h5>
@@ -929,7 +930,7 @@ one, otherwise on the store client.</p>
 <blockquote>
 <p><code>protected</code> <strong>findModelClass</strong>(<code>identifier</code>): <code>any</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:157</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:161</p>
 <p>Find the class to hydrate a row typed <code>identifier</code> (a Webda 3 legacy form included): the resolved model when it
 is the repository model or one of its transitive subclasses, the repository model for an ancestor type or an
 unknown or ambiguous type</p>
@@ -947,7 +948,7 @@ unknown or ambiguous type</p>
 <blockquote>
 <p><code>protected</code> <strong>fromJSON</strong>(<code>stored</code>): <code>InstanceType</code>&lt;<code>T</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:201</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:202</p>
 <p>Deserialize a raw JSON object from the database into a model instance.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-36">Parameters<a href="#parameters-36" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="stored-3">stored<a href="#stored-3" class="hash-link" aria-label="Direct link to stored" title="Direct link to stored" translate="no">​</a></h5>
@@ -961,7 +962,7 @@ unknown or ambiguous type</p>
 <blockquote>
 <p><strong>fromUID</strong>(<code>uid</code>): <code>ModelRefWithCreate</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:105</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:107</p>
 <p>Return a ref from the uuid</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-37">Parameters<a href="#parameters-37" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="uid">uid<a href="#uid" class="hash-link" aria-label="Direct link to uid" title="Direct link to uid" translate="no">​</a></h5>
@@ -977,7 +978,7 @@ unknown or ambiguous type</p>
 <blockquote>
 <p><strong>get</strong>(<code>primaryKey</code>): <code>Promise</code>&lt;<code>any</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:203</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:204</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-38">Parameters<a href="#parameters-38" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-3">primaryKey<a href="#primarykey-3" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -990,7 +991,7 @@ unknown or ambiguous type</p>
 <blockquote>
 <p><strong>getAllowedFields</strong>(): <code>string</code>[] | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:151</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:153</p>
 <p>Field paths of the model, from its metadata (<code>Reflection</code> and the stored, input and output schemas)</p>
 <p>Used to validate UPDATE SET targets.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-48">Returns<a href="#returns-48" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
@@ -1003,7 +1004,7 @@ unknown or ambiguous type</p>
 <blockquote>
 <p><code>protected</code> <strong>getClassCondition</strong>(): <code>string</code> | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:135</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:136</p>
 <p>SQL condition restricting rows to this model and its subclasses, whatever form their <code>__type</code> has (Webda 3 short,
 lower-case and aliased types included); rows without a stamp (written before stamping) and rows typed as a
 strict ancestor of the table model belong to the table model and its ancestors</p>
@@ -1015,7 +1016,7 @@ strict ancestor of the table model belong to the table model and its ancestors</
 <blockquote>
 <p><strong>getCompletionFields</strong>(): <code>CompletionField</code>[]</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:156</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:158</p>
 <p>Completion fields of the model, flattened from its schemas</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-50">Returns<a href="#returns-50" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>CompletionField</code>[]</p>
@@ -1027,7 +1028,7 @@ strict ancestor of the table model belong to the table model and its ancestors</
 <blockquote>
 <p><code>protected</code> <strong>getFilterCondition</strong>(<code>filter</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:261</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:262</p>
 <p>SQL condition selecting the rows of this model matching a filter: the filter and the class condition</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-39">Parameters<a href="#parameters-39" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="filter-4">filter<a href="#filter-4" class="hash-link" aria-label="Direct link to filter" title="Direct link to filter" translate="no">​</a></h5>
@@ -1041,7 +1042,7 @@ strict ancestor of the table model belong to the table model and its ancestors</
 <blockquote>
 <p><strong>getMaxListeners</strong>(): <code>number</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:347</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:349</p>
 <p>EventEmitter-compatibility shim. Returns the max-listeners hint.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-52">Returns<a href="#returns-52" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>number</code></p>
@@ -1054,7 +1055,7 @@ strict ancestor of the table model belong to the table model and its ancestors</
 <blockquote>
 <p><strong>getPrimaryKey</strong>(<code>object</code>, <code>forceObject?</code>): <code>PrimaryKeyType</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:125</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:127</p>
 <p>Get the primary key value for an object as a scalar or string.</p>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-40">Parameters<a href="#parameters-40" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h5>
 <h6 class="anchor anchorTargetStickyNavbar_S7XE" id="object-1">object<a href="#object-1" class="hash-link" aria-label="Direct link to object" title="Direct link to object" translate="no">​</a></h6>
@@ -1069,7 +1070,7 @@ strict ancestor of the table model belong to the table model and its ancestors</
 <blockquote>
 <p><strong>getPrimaryKey</strong>(<code>object</code>, <code>forceObject</code>): <code>PrimaryKey</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:127</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:129</p>
 <p>Get the primary key value for an object as a structured key object.</p>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-41">Parameters<a href="#parameters-41" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h5>
 <h6 class="anchor anchorTargetStickyNavbar_S7XE" id="object-2">object<a href="#object-2" class="hash-link" aria-label="Direct link to object" title="Direct link to object" translate="no">​</a></h6>
@@ -1085,7 +1086,7 @@ strict ancestor of the table model belong to the table model and its ancestors</
 <blockquote>
 <p><strong>getQueryCondition</strong>(<code>writeCondition</code>, <code>writeConditionField</code>, <code>params</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:185</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:186</p>
 <p>Build a SQL WHERE sub-expression from a write-condition.</p>
 <p>An <code>undefined</code> or <code>null</code> expected value means the field is absent: it is matched with <code>IS NULL</code>, as <code>= NULL</code> is
 never true in SQL (a missing key and a JSON null both read as NULL)</p>
@@ -1107,7 +1108,7 @@ never true in SQL (a missing key and a JSON null both read as NULL)</p>
 <blockquote>
 <p><strong>getRootModel</strong>(): <code>T</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:47</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:48</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-56">Returns<a href="#returns-56" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>T</code></p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="inherited-from-40">Inherited from<a href="#inherited-from-40" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
@@ -1117,7 +1118,7 @@ never true in SQL (a missing key and a JSON null both read as NULL)</p>
 <blockquote>
 <p><code>protected</code> <strong>getStatementCondition</strong>(<code>statement</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:278</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:279</p>
 <p>SQL condition selecting the rows a statement targets: its WHERE, restricted to the first LIMIT rows when the
 statement has a LIMIT (DELETE and UPDATE have none on every engine)</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-43">Parameters<a href="#parameters-43" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -1132,7 +1133,7 @@ statement has a LIMIT (DELETE and UPDATE have none on every engine)</p>
 <blockquote>
 <p><code>protected</code> <strong>getSync</strong>(<code>primaryKey</code>): <code>InstanceType</code>&lt;<code>T</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:55</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:59</p>
 <p>Synchronous read used by conditional writes to keep check-and-set atomic</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-44">Parameters<a href="#parameters-44" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-4">primaryKey<a href="#primarykey-4" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
@@ -1148,7 +1149,7 @@ statement has a LIMIT (DELETE and UPDATE have none on every engine)</p>
 <blockquote>
 <p><strong>getTable</strong>(): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:75</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:76</p>
 <p><strong><code>Internal</code></strong></p>
 <p>The backing table name for this repository&#x27;s model.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-59">Returns<a href="#returns-59" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
@@ -1160,7 +1161,8 @@ Not part of the @webda/models Repository interface.</p>
 <blockquote>
 <p><strong>getTableRoot</strong>(): <code>ModelClass</code>&lt;<code>Storable</code>&lt;<code>any</code>, <code>any</code>&gt;&gt; | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:57</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:59</p>
+<p>Get the model owning the untyped rows of the storage</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-60">Returns<a href="#returns-60" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>ModelClass</code>&lt;<code>Storable</code>&lt;<code>any</code>, <code>any</code>&gt;&gt; | <code>undefined</code></p>
 <p>the model owning the untyped rows of the storage</p>
@@ -1171,7 +1173,7 @@ Not part of the @webda/models Repository interface.</p>
 <blockquote>
 <p><strong>getUID</strong>(<code>object</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:129</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:131</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-45">Parameters<a href="#parameters-45" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="object-3">object<a href="#object-3" class="hash-link" aria-label="Direct link to object" title="Direct link to object" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -1184,7 +1186,7 @@ Not part of the @webda/models Repository interface.</p>
 <blockquote>
 <p><code>protected</code> <strong>hydratePlainRow</strong>(<code>raw</code>): <code>InstanceType</code>&lt;<code>T</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:165</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:169</p>
 <p>Hydrate a plain JSON row as an instance of the repository model (or of the transitive subclass named by its
 <code>__type</code>; an ancestor type hydrates as the repository model), the same way document stores hydrate their rows;
 a row typed as an unrelated model is refused</p>
@@ -1202,7 +1204,7 @@ a row typed as an unrelated model is refused</p>
 <blockquote>
 <p><strong>incrementAttribute</strong>&lt;<code>K</code>, <code>L</code>&gt;(<code>primaryKey</code>, <code>info</code>, <code>_conditionField?</code>, <code>_condition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:137</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:139</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-5">Type Parameters<a href="#type-parameters-5" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="k-2">K<a href="#k-2" class="hash-link" aria-label="Direct link to K" title="Direct link to K" translate="no">​</a></h5>
 <p><code>K</code> <em>extends</em> <code>string</code></p>
@@ -1226,7 +1228,7 @@ a row typed as an unrelated model is refused</p>
 <blockquote>
 <p><strong>incrementAttributes</strong>(<code>primaryKey</code>, <code>info</code>, <code>_conditionField?</code>, <code>_condition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:217</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:218</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-48">Parameters<a href="#parameters-48" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-6">primaryKey<a href="#primarykey-6" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -1245,7 +1247,7 @@ a row typed as an unrelated model is refused</p>
 <blockquote>
 <p><code>protected</code> <strong>isPlainRow</strong>(<code>raw</code>): <code>boolean</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:149</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:153</p>
 <p>Whether a stored row is a plain JSON object without a serializer envelope</p>
 <p>Rows written by earlier versions (e.g. a v3 FileStore folder or MemoryStore persistence file) store the
 object itself, its type in a top-level <code>__type</code>.</p>
@@ -1263,7 +1265,7 @@ object itself, its type in a top-level <code>__type</code>.</p>
 <blockquote>
 <p><strong>iterate</strong>(<code>queryStr</code>): <code>AsyncGenerator</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;, <code>any</code>, <code>any</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:294</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:295</p>
 <p>— iterate via paginated SQL queries</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-50">Parameters<a href="#parameters-50" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="querystr">queryStr<a href="#querystr" class="hash-link" aria-label="Direct link to queryStr" title="Direct link to queryStr" translate="no">​</a></h5>
@@ -1277,7 +1279,7 @@ object itself, its type in a top-level <code>__type</code>.</p>
 <blockquote>
 <p><code>protected</code> <strong>jsonPath</strong>(<code>path</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:238</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:239</p>
 <p>JSON expression of a dotted path, JSON null folded into SQL NULL</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-51">Parameters<a href="#parameters-51" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="path">path<a href="#path" class="hash-link" aria-label="Direct link to path" title="Direct link to path" translate="no">​</a></h5>
@@ -1291,7 +1293,7 @@ object itself, its type in a top-level <code>__type</code>.</p>
 <blockquote>
 <p><code>protected</code> <strong>keptTypeExpression</strong>(<code>mapParam</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:160</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:161</p>
 <p>SQL expression of the <code>__type</code> a written row keeps: its stored type, rewritten to the current identifier when it
 is a legacy form of this model family</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-52">Parameters<a href="#parameters-52" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -1306,7 +1308,7 @@ is a legacy form of this model family</p>
 <blockquote>
 <p><code>protected</code> <strong>keyColumns</strong>(): <code>string</code>[]</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:128</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:129</p>
 <p>Columns identifying a row: <code>uuid</code> here, the primary key columns in a relational table</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-69">Returns<a href="#returns-69" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>string</code>[]</p>
@@ -1316,7 +1318,7 @@ is a legacy form of this model family</p>
 <blockquote>
 <p><code>protected</code> <strong>legacyTypeMap</strong>(): <code>Record</code>&lt;<code>string</code>, <code>string</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:153</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:154</p>
 <p>Stored types to rewrite when a row of this model family is written: each legacy form (short, lower-case, alias)
 to its current identifier, and the ancestor types of the table model to the table model</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-70">Returns<a href="#returns-70" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
@@ -1327,7 +1329,7 @@ to its current identifier, and the ancestor types of the table model to the tabl
 <blockquote>
 <p><code>protected</code> <strong>legacyTypeRewrites</strong>(): <code>Record</code>&lt;<code>string</code>, <code>string</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:88</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:90</p>
 <p>Stored types a write of this model family rewrites, for stores updating rows in place: each form of a model
 (current, short, lower-case, alias) to its current identifier, and the ancestor types of the table root to the
 table root identifier</p>
@@ -1341,7 +1343,7 @@ table root identifier</p>
 <blockquote>
 <p><code>protected</code> <strong>listKeysOfModel</strong>(<code>ids?</code>): <code>string</code>[]</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:230</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:234</p>
 <p>List the storage keys that may belong to this model</p>
 <p>A storage shared by several models holds foreign entries whose key shape can be invalid for this
 repository: they are skipped from the stored <code>__type</code> before any parsing. Entries are kept when their stored
@@ -1364,7 +1366,7 @@ Map-like storage is scanned, parsing every entry.</p>
 <blockquote>
 <p><strong>mapExpressionAttribute</strong>(<code>attribute</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:99</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:100</p>
 <p>Map an expression attribute path array to the SQL text of the value</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-54">Parameters<a href="#parameters-54" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="attribute-1">attribute<a href="#attribute-1" class="hash-link" aria-label="Direct link to attribute" title="Direct link to attribute" translate="no">​</a></h5>
@@ -1378,7 +1380,7 @@ Map-like storage is scanned, parsing every entry.</p>
 <blockquote>
 <p><strong>mapJsonAttribute</strong>(<code>attribute</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:105</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:106</p>
 <p>Map an expression attribute path array to its JSON value (not its text)</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-55">Parameters<a href="#parameters-55" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="attribute-2">attribute<a href="#attribute-2" class="hash-link" aria-label="Direct link to attribute" title="Direct link to attribute" translate="no">​</a></h5>
@@ -1392,7 +1394,7 @@ Map-like storage is scanned, parsing every entry.</p>
 <blockquote>
 <p><code>protected</code> <strong>matchStorage</strong>(<code>statement</code>): <code>object</code>[]</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:269</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:273</p>
 <p>Keys of the stored objects of this model matching a statement&#x27;s WHERE, at most LIMIT</p>
 <p>Synchronous: the statement then runs without yielding, so no other write interleaves and an object is
 never met twice.</p>
@@ -1410,7 +1412,7 @@ never met twice.</p>
 <blockquote>
 <p><code>protected</code> <strong>monitor</strong>&lt;<code>R</code>&gt;(<code>operation</code>, <code>query</code>, <code>fn</code>, <code>details</code>): <code>Promise</code>&lt;<code>R</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:260</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:262</p>
 <p>Helper that times a query operation, catches and rethrows errors, and calls onQuery safely</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-6">Type Parameters<a href="#type-parameters-6" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="r">R<a href="#r" class="hash-link" aria-label="Direct link to R" title="Direct link to R" translate="no">​</a></h5>
@@ -1438,7 +1440,7 @@ never met twice.</p>
 <blockquote>
 <p><strong>off</strong>&lt;<code>K</code>&gt;(<code>event</code>, <code>listener</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:329</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:331</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-7">Type Parameters<a href="#type-parameters-7" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="k-3">K<a href="#k-3" class="hash-link" aria-label="Direct link to K" title="Direct link to K" translate="no">​</a></h5>
 <p><code>K</code> <em>extends</em> <code>string</code> | <code>number</code> | <code>symbol</code></p>
@@ -1456,7 +1458,7 @@ never met twice.</p>
 <blockquote>
 <p><strong>on</strong>&lt;<code>K</code>&gt;(<code>event</code>, <code>listener</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:325</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:327</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-8">Type Parameters<a href="#type-parameters-8" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="k-4">K<a href="#k-4" class="hash-link" aria-label="Direct link to K" title="Direct link to K" translate="no">​</a></h5>
 <p><code>K</code> <em>extends</em> <code>string</code> | <code>number</code> | <code>symbol</code></p>
@@ -1474,7 +1476,7 @@ never met twice.</p>
 <blockquote>
 <p><strong>once</strong>&lt;<code>K</code>&gt;(<code>event</code>, <code>listener</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:327</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:329</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-9">Type Parameters<a href="#type-parameters-9" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="k-5">K<a href="#k-5" class="hash-link" aria-label="Direct link to K" title="Direct link to K" translate="no">​</a></h5>
 <p><code>K</code> <em>extends</em> <code>string</code> | <code>number</code> | <code>symbol</code></p>
@@ -1492,7 +1494,7 @@ never met twice.</p>
 <blockquote>
 <p><code>protected</code> <strong>parseLegacyUID</strong>(<code>uid</code>): <code>PrimaryKey</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt; | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:121</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:123</p>
 <p>Parse a uid through the model&#x27;s <code>parseLegacyUID</code> hook</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-61">Parameters<a href="#parameters-61" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="uid-1">uid<a href="#uid-1" class="hash-link" aria-label="Direct link to uid" title="Direct link to uid" translate="no">​</a></h5>
@@ -1508,7 +1510,7 @@ never met twice.</p>
 <blockquote>
 <p><code>protected</code> <strong>parseStatement</strong>(<code>type</code>, <code>statement</code>, <code>params?</code>): <code>Promise</code>&lt;<code>Query</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:169</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:171</p>
 <p>Parse a bulk statement and check it is of the expected type</p>
 <p>For an UPDATE, every SET target is checked: no primary key field, no private (<code>__</code>) segment, no
 <code>constructor</code>/<code>prototype</code> segment, and a field of the model when its metadata lists them.</p>
@@ -1536,7 +1538,7 @@ never met twice.</p>
 <blockquote>
 <p><strong>parseUID</strong>(<code>uid</code>, <code>forceObject?</code>): <code>PrimaryKeyType</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt; | <code>PrimaryKey</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:115</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:117</p>
 <p>Parse a serialized primary key</p>
 <p>A composite key that does not split into the primary key fields is offered to the model&#x27;s optional
 <code>static parseLegacyUID(uid)</code> hook (see <code>WEBDA_LEGACY_UID</code>): the returned key keeps the raw uid as its
@@ -1556,7 +1558,7 @@ uid is rejected.</p>
 <blockquote>
 <p><strong>patch</strong>(<code>primaryKey</code>, <code>data</code>, <code>conditionField?</code>, <code>condition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:209</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:210</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-64">Parameters<a href="#parameters-64" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-7">primaryKey<a href="#primarykey-7" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -1575,7 +1577,7 @@ uid is rejected.</p>
 <blockquote>
 <p><strong>query</strong>(<code>queryStr</code>): <code>Promise</code>&lt;{ <code>continuationToken?</code>: <code>string</code>; <code>results</code>: <code>InstanceType</code>&lt;<code>T</code>&gt;[]; }&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:229</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:230</p>
 <p>— use SQL WHERE clause instead of in-memory scan</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-65">Parameters<a href="#parameters-65" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="querystr-1">queryStr<a href="#querystr-1" class="hash-link" aria-label="Direct link to queryStr" title="Direct link to queryStr" translate="no">​</a></h5>
@@ -1589,7 +1591,7 @@ uid is rejected.</p>
 <blockquote>
 <p><strong>ref</strong>(<code>key</code>): <code>ModelRefWithCreate</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:135</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:137</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-66">Parameters<a href="#parameters-66" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="key">key<a href="#key" class="hash-link" aria-label="Direct link to key" title="Direct link to key" translate="no">​</a></h5>
 <p><code>PK</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;, <code>InstanceType</code>&lt;<code>T</code>&gt;[<em>typeof</em> <code>WEBDA_PRIMARY_KEY</code>][<code>number</code>]&gt;</p>
@@ -1602,7 +1604,7 @@ uid is rejected.</p>
 <blockquote>
 <p><strong>removeAttribute</strong>(<code>primaryKey</code>, <code>attribute</code>, <code>conditionField?</code>, <code>condition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:215</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:216</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-67">Parameters<a href="#parameters-67" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-8">primaryKey<a href="#primarykey-8" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -1621,7 +1623,7 @@ uid is rejected.</p>
 <blockquote>
 <p><strong>removeListener</strong>&lt;<code>K</code>&gt;(<code>event</code>, <code>listener</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:342</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:344</p>
 <p>EventEmitter-compatibility alias for <a href="#off" class="">off</a>. Consumers that treat a
 repository as a Node <code>EventEmitter</code> (e.g. <code>@webda/runtime</code> <code>EventIterator</code>)
 call <code>removeListener</code>.</p>
@@ -1644,7 +1646,7 @@ call <code>removeListener</code>.</p>
 <blockquote>
 <p><code>protected</code> <strong>resolvePath</strong>(<code>item</code>, <code>path</code>): <code>object</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:296</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:300</p>
 <p>Resolve the parent object and last key of a dotted path, creating intermediate objects</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-69">Parameters<a href="#parameters-69" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="item-5">item<a href="#item-5" class="hash-link" aria-label="Direct link to item" title="Direct link to item" translate="no">​</a></h5>
@@ -1671,7 +1673,7 @@ call <code>removeListener</code>.</p>
 <blockquote>
 <p><code>protected</code> <strong>rootAncestorTypes</strong>(): <code>Record</code>&lt;<code>string</code>, <code>string</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:147</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:148</p>
 <p>Stored types naming a strict ancestor of the table model (e.g. <code>CoreModel</code> in a table of an application model):
 such rows belong to the table model, like unstamped rows</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-89">Returns<a href="#returns-89" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
@@ -1683,7 +1685,7 @@ the table</p>
 <blockquote>
 <p><code>protected</code> <strong>safeOnQuery</strong>(<code>info</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:251</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:253</p>
 <p>Safely invoke the onQuery callback without throwing into the caller</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-70">Parameters<a href="#parameters-70" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="info-2">info<a href="#info-2" class="hash-link" aria-label="Direct link to info" title="Direct link to info" translate="no">​</a></h5>
@@ -1698,7 +1700,7 @@ the table</p>
 <blockquote>
 <p><strong>serialize</strong>(<code>item</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:97</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:101</p>
 <p>Serialize the object to a string</p>
 <p>This method is used to allow switching between different serialization methods</p>
 <p>The serialized payload is also stamped with a top-level <code>__type</code> field
@@ -1731,7 +1733,7 @@ payload is byte-identical to the previous implementation.</p>
 <blockquote>
 <p><strong>setAttribute</strong>&lt;<code>K</code>, <code>L</code>&gt;(<code>primaryKey</code>, <code>attribute</code>, <code>value</code>, <code>conditionField?</code>, <code>condition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:133</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:135</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-11">Type Parameters<a href="#type-parameters-11" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="k-7">K<a href="#k-7" class="hash-link" aria-label="Direct link to K" title="Direct link to K" translate="no">​</a></h5>
 <p><code>K</code> <em>extends</em> <code>string</code></p>
@@ -1757,7 +1759,7 @@ payload is byte-identical to the previous implementation.</p>
 <blockquote>
 <p><strong>setMaxListeners</strong>(<code>n</code>): <code>this</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:353</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:355</p>
 <p>EventEmitter-compatibility shim. Records the max-listeners hint (no enforcement).</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-73">Parameters<a href="#parameters-73" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="n">n<a href="#n" class="hash-link" aria-label="Direct link to n" title="Direct link to n" translate="no">​</a></h5>
@@ -1773,7 +1775,7 @@ payload is byte-identical to the previous implementation.</p>
 <blockquote>
 <p><strong>setTableRoot</strong>(<code>root?</code>): <code>this</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:53</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:54</p>
 <p>Set the model owning the untyped rows of the storage</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-74">Parameters<a href="#parameters-74" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="root">root?<a href="#root" class="hash-link" aria-label="Direct link to root?" title="Direct link to root?" translate="no">​</a></h5>
@@ -1789,7 +1791,7 @@ payload is byte-identical to the previous implementation.</p>
 <blockquote>
 <p><strong>setupTable</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:82</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:83</p>
 <p><strong><code>Internal</code></strong></p>
 <p>Ensure the backing table for this repository&#x27;s model exists.
 Owns the per-model DDL of the store: it runs on the store client, never in an operation transaction (a rollback
@@ -1802,7 +1804,7 @@ Not part of the @webda/models Repository interface.</p>
 <blockquote>
 <p><code>protected</code> <strong>sqlQuery</strong>(<code>q</code>, <code>values?</code>): <code>Promise</code>&lt;{ <code>rowCount</code>: <code>number</code>; <code>rows</code>: <code>any</code>[]; }&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:192</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:193</p>
 <p>Run a raw SQL query and return typed results.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-75">Parameters<a href="#parameters-75" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="q-1">q<a href="#q-1" class="hash-link" aria-label="Direct link to q" title="Direct link to q" translate="no">​</a></h5>
@@ -1819,7 +1821,7 @@ Not part of the @webda/models Repository interface.</p>
 <blockquote>
 <p><code>protected</code> <strong>tableModelClass</strong>(): <code>any</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:140</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:141</p>
 <p>The class of the table model, when it is this model or one of its subclasses</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-97">Returns<a href="#returns-97" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>any</code></p>
@@ -1829,7 +1831,7 @@ Not part of the @webda/models Repository interface.</p>
 <blockquote>
 <p><code>protected</code> <strong>tableRootAncestorTypes</strong>(): <code>string</code>[]</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:81</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:83</p>
 <p>Stored types naming a strict ancestor of the table root (e.g. <code>UuidModel</code> in a table of an application model),
 for stores filtering in their query language: such rows belong to the table root, like untyped rows</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-98">Returns<a href="#returns-98" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
@@ -1842,7 +1844,7 @@ for stores filtering in their query language: such rows belong to the table root
 <blockquote>
 <p><code>protected</code> <strong>toStoredJSON</strong>(<code>item</code>, <code>fallbackType?</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:174</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:175</p>
 <p>The JSON stored for an object: its fields, and its declared type in <code>__type</code> (see <a href="#declaredtype" class="">declaredType</a>)</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-76">Parameters<a href="#parameters-76" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="item-7">item<a href="#item-7" class="hash-link" aria-label="Direct link to item" title="Direct link to item" translate="no">​</a></h5>
@@ -1859,7 +1861,7 @@ for stores filtering in their query language: such rows belong to the table root
 <blockquote>
 <p><code>protected</code> <strong>typeResolver</strong>(): <code>ModelTypeResolver</code></p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:63</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:65</p>
 <p>Resolver of the stored <code>__type</code>: the installed application one when it knows the model, else the model&#x27;s own
 hierarchy with exact identifiers only</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-100">Returns<a href="#returns-100" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
@@ -1872,7 +1874,7 @@ hierarchy with exact identifiers only</p>
 <blockquote>
 <p><code>protected</code> <strong>typeText</strong>(): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:123</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:124</p>
 <p>SQL text of the stored <code>__type</code> of a row: the JSON key here, the <code>__type</code> column in a relational table</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-101">Returns<a href="#returns-101" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>string</code></p>
@@ -1882,7 +1884,7 @@ hierarchy with exact identifiers only</p>
 <blockquote>
 <p><strong>update</strong>(<code>data</code>, <code>conditionField?</code>, <code>condition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:207</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:208</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-77">Parameters<a href="#parameters-77" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="data-4">data<a href="#data-4" class="hash-link" aria-label="Direct link to data" title="Direct link to data" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -1899,7 +1901,7 @@ hierarchy with exact identifiers only</p>
 <blockquote>
 <p><strong>updateMany</strong>(<code>statement</code>, <code>params?</code>): <code>Promise</code>&lt;<code>number</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:292</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:293</p>
 <p>Update in bulk with one <code>UPDATE ... SET data = &lt;assignments&gt; WHERE</code>: no per-object event (see
 <code>Repository.updateMany</code>)</p>
 <p>SET paths and values are bound parameters (the statement went through the grammar, see <code>parseStatement</code>); the
@@ -1918,7 +1920,7 @@ parents of a dotted target are created when missing, an existing array parent is
 <blockquote>
 <p><code>protected</code> <strong>updateManyByKey</strong>(<code>statement</code>, <code>params?</code>): <code>Promise</code>&lt;<code>number</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:214</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:216</p>
 <p>Generic <code>updateMany</code>: collect the matching keys (up to LIMIT), then patch them one by one with this
 repository&#x27;s <code>patch</code> primitive. A dotted target reads the object to rewrite its top-level field.</p>
 <p>Used by stores without a native bulk update. On a store repository the primitive emits no event.</p>
@@ -1939,7 +1941,7 @@ repository&#x27;s <code>patch</code> primitive. A dotted target reads the object
 <blockquote>
 <p><strong>upsert</strong>(<code>data</code>): <code>Promise</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:131</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:133</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-80">Parameters<a href="#parameters-80" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="data-5">data<a href="#data-5" class="hash-link" aria-label="Direct link to data" title="Direct link to data" translate="no">​</a></h5>
 <p><code>Helpers</code>&lt;<code>InstanceType</code>&lt;<code>T</code>&gt;&gt;</p>
@@ -1952,7 +1954,7 @@ repository&#x27;s <code>patch</code> primitive. A dotted target reads the object
 <blockquote>
 <p><strong>upsertItemToCollection</strong>(<code>primaryKey</code>, <code>collection</code>, <code>item</code>, <code>index?</code>, <code>itemWriteConditionField?</code>, <code>itemWriteCondition?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:219</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:220</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-81">Parameters<a href="#parameters-81" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="primarykey-10">primaryKey<a href="#primarykey-10" class="hash-link" aria-label="Direct link to primaryKey" title="Direct link to primaryKey" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -1975,7 +1977,7 @@ repository&#x27;s <code>patch</code> primitive. A dotted target reads the object
 <blockquote>
 <p><code>protected</code> <strong>writeIfPresent</strong>(<code>key</code>, <code>write</code>): <code>Promise</code>&lt;<code>boolean</code>&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/abstract.d.ts:194</p>
+<p>Defined in: packages/models/lib/repositories/abstract.d.ts:196</p>
 <p>Run one write of the generic fallback; an object deleted since the keys were collected is skipped</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-82">Parameters<a href="#parameters-82" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="key-2">key<a href="#key-2" class="hash-link" aria-label="Direct link to key" title="Direct link to key" translate="no">​</a></h5>
@@ -1996,7 +1998,8 @@ repository&#x27;s <code>patch</code> primitive. A dotted target reads the object
 <blockquote>
 <p><code>static</code> <strong>rootIdentifier</strong>(<code>model</code>): <code>string</code> | <code>undefined</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/repository.d.ts:60</p>
+<p>Defined in: packages/sql/lib/repository.d.ts:61</p>
+<p>Return the identifier of its topmost ancestor (itself included) carrying metadata</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-83">Parameters<a href="#parameters-83" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="model-2">model<a href="#model-2" class="hash-link" aria-label="Direct link to model" title="Direct link to model" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -2009,7 +2012,7 @@ repository&#x27;s <code>patch</code> primitive. A dotted target reads the object
 <blockquote>
 <p><code>static</code> <strong>simulateFind</strong>&lt;<code>T</code>&gt;(<code>query</code>, <code>uuids</code>, <code>repository</code>): <code>Promise</code>&lt;{ <code>continuationToken?</code>: <code>string</code>; <code>results</code>: <code>InstanceType</code>&lt;<code>T</code>&gt;[]; }&gt;</p>
 </blockquote>
-<p>Defined in: packages/models/lib/repositories/memory.d.ts:239</p>
+<p>Defined in: packages/models/lib/repositories/memory.d.ts:243</p>
 <p>Allow to simulate a find on a list of uuids
 It is static to be reusable by other repository like FileRepository</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="type-parameters-12">Type Parameters<a href="#type-parameters-12" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>

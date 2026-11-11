@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -25,36 +25,6 @@
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="1-create-the-project">1. Create the project<a href="#1-create-the-project" class="hash-link" aria-label="Direct link to 1. Create the project" title="Direct link to 1. Create the project" translate="no">​</a></h3>
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">npm create @webda my-blog -- --store memory --transports rest --yes</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">cd my-blog</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
 <p><code>@webda/create</code> writes the project, installs the dependencies and initializes a git repository. The options after <code>--</code> are passed to the generator:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Option</th><th>Values</th><th>Default</th></tr></thead><tbody><tr><td><code>--store</code></td><td><code>memory</code>, <code>file</code>, <code>mongodb</code>, <code>postgres</code></td><td><code>memory</code></td></tr><tr><td><code>--transports</code></td><td>comma list of <code>rest</code>, <code>graphql</code>, <code>grpc</code>, <code>mcp</code></td><td><code>rest</code></td></tr><tr><td><code>--namespace</code></td><td>application namespace (PascalCase)</td><td>from the directory: <code>MyBlog</code></td></tr><tr><td><code>--yes</code>, <code>-y</code></td><td>accept the defaults, never prompt</td><td></td></tr></tbody></table>
 <p>We start with REST only and add GraphQL and gRPC on pages 09 and 10 to see what each one needs. (<code>--transports rest,graphql,grpc</code> would set them up right away.)</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="2-look-around">2. Look around<a href="#2-look-around" class="hash-link" aria-label="Direct link to 2. Look around" title="Direct link to 2. Look around" translate="no">​</a></h3>
@@ -80,31 +50,6 @@
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="4-build">4. Build<a href="#4-build" class="hash-link" aria-label="Direct link to 4. Build" title="Direct link to 4. Build" translate="no">​</a></h3>
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">npm run build</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
 <p><code>webdac build</code> compiles <code>src/</code> to <code>lib/</code> and generates:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>File</th><th>Description</th></tr></thead><tbody><tr><td><code>webda.module.json</code></td><td>Every model, service and bean the compiler found — loaded at runtime</td></tr><tr><td><code>.webda/config.schema.json</code></td><td>JSON Schema of <code>webda.config.json</code> — powers IDE autocomplete</td></tr><tr><td><code>.webda/operations.json</code></td><td>Every operation id with its input and output schemas</td></tr><tr><td><code>.webda/module.d.ts</code></td><td>Types of your models, included by <code>tsconfig.json</code></td></tr></tbody></table>
 <div class="theme-admonition theme-admonition-note admonition_ZJHD alert alert--secondary"><div class="admonitionHeading_ILTK"><span class="admonitionIcon_Aucw"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942 0 0 1-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28.28 0 .52.09.7.28.18.19.28.42.28.7 0 .28-.09.52-.28.7a1 1 0 0 1-.7.3c-.28 0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27 0 .48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14 0-5.7 2.54-5.7 5.68 0 3.14 2.56 5.7 5.7 5.7s5.7-2.55 5.7-5.7c0-3.15-2.56-5.69-5.7-5.69v.01zM7 .98c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"></path></svg></span>Generated files</div><div class="admonitionContent_bWj3"><p>Never edit <code>webda.module.json</code>, <code>lib/</code> or anything inside <code>.webda/</code> by hand. They are regenerated on every build.</p></div></div>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="5-start-the-server">5. Start the server<a href="#5-start-the-server" class="hash-link" aria-label="Direct link to 5. Start the server" title="Direct link to 5. Start the server" translate="no">​</a></h3>

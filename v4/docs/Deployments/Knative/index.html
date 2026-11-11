@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -58,173 +58,6 @@ pod termination grace period) and expect requests longer than the grace period t
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h2>
 <p>Every string accepts the deployment templates (<code>${package.version}</code>, <code>${git.short}</code>, <code>${deployment}</code>,
 <code>${deployer.name}</code>, <code>${env.MY_VAR}</code>, ...).</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>config</code> / <code>context</code></td><td>string | object / string</td><td>default kubeconfig</td><td>Cluster access, see <a class="" href="/v4/docs/Deployments/Kubernetes/">Kubernetes</a>; <code>config</code> can be encrypted with <code>webda config encrypt</code></td></tr><tr><td><code>timeout</code></td><td>number</td><td>—</td><td>Milliseconds before a Kubernetes API request is aborted</td></tr><tr><td><code>platform</code></td><td><code>&quot;knative&quot;</code> | <code>&quot;cloudrun&quot;</code></td><td><code>&quot;knative&quot;</code></td><td>Adjusts the manifest for Cloud Run, see below</td></tr><tr><td><code>namespace</code></td><td>string</td><td><code>&quot;default&quot;</code></td><td>Namespace of the Service (the project on Cloud Run)</td></tr><tr><td><code>name</code></td><td>string</td><td><code>&quot;${package.name}&quot;</code></td><td>Name of the Service, sanitized to a DNS-1123 label (<code>@acme/api</code> gives <code>acme-api</code>)</td></tr><tr><td><code>image</code></td><td>string</td><td>—</td><td>Image to deploy, required unless <code>containerDeployer</code> provides it</td></tr><tr><td><code>containerDeployer</code></td><td>string</td><td>—</td><td>Name of a <code>Webda/ContainerDeployer</code> unit: <code>deploy</code> pushes with it and deploys the digest</td></tr><tr><td><code>env</code></td><td>object</td><td><code>{}</code></td><td>Environment variables, <code>WEBDA_HEALTH_PATH</code> is added from <code>healthPath</code></td></tr><tr><td><code>envFrom</code></td><td><code>{ secretRef?, configMapRef?, prefix? }[]</code></td><td><code>[]</code></td><td>Secrets and ConfigMaps loaded as environment variables</td></tr><tr><td><code>minScale</code></td><td>number</td><td><code>0</code></td><td><code>autoscaling.knative.dev/min-scale</code>: <code>0</code> scales to zero when idle</td></tr><tr><td><code>maxScale</code></td><td>number</td><td>—</td><td><code>autoscaling.knative.dev/max-scale</code></td></tr><tr><td><code>target</code></td><td>number</td><td>—</td><td><code>autoscaling.knative.dev/target</code>: concurrent requests per replica the autoscaler aims for</td></tr><tr><td><code>containerConcurrency</code></td><td>number</td><td><code>0</code></td><td>Hard limit of concurrent requests per replica, <code>0</code> for unlimited (Node handles concurrency, do not use <code>1</code>)</td></tr><tr><td><code>timeoutSeconds</code></td><td>number</td><td><code>300</code></td><td>Request timeout of the revision</td></tr><tr><td><code>resources</code></td><td><code>{ limits?, requests? }</code></td><td>—</td><td>Compute resources of the container</td></tr><tr><td><code>port</code></td><td>number</td><td><code>8080</code></td><td><code>containerPort</code>, injected as <code>PORT</code></td></tr><tr><td><code>healthPath</code></td><td>string</td><td><code>&quot;/healthz&quot;</code></td><td>Readiness probe path, <code>&quot;&quot;</code> for a TCP probe</td></tr><tr><td><code>traffic</code></td><td><code>{ revisionName?, latestRevision?, percent, tag? }[]</code></td><td><code>[{ &quot;latestRevision&quot;: true, &quot;percent&quot;: 100 }]</code></td><td>Traffic split, a <code>tag</code> gives the target its own URL</td></tr><tr><td><code>revisionSuffix</code></td><td>string</td><td><code>&quot;${git.short}&quot;</code></td><td>Revision name <code>&lt;name&gt;-&lt;suffix&gt;</code>, <code>&quot;&quot;</code> to let Knative generate it</td></tr><tr><td><code>serviceAccountName</code></td><td>string</td><td>—</td><td>Service account of the pods</td></tr><tr><td><code>visibility</code></td><td><code>&quot;public&quot;</code> | <code>&quot;cluster-local&quot;</code></td><td><code>&quot;public&quot;</code></td><td><code>cluster-local</code> keeps the Service off the external ingress</td></tr><tr><td><code>annotations</code></td><td>object</td><td><code>{}</code></td><td>Annotations of the revision template, added to the autoscaling ones (set <code>autoscaling.knative.dev/class</code> here for the HPA autoscaler)</td></tr><tr><td><code>labels</code></td><td>object</td><td><code>{}</code></td><td>Labels of the revision template</td></tr><tr><td><code>template</code></td><td>object | string</td><td>—</td><td>Overrides deep-merged on the generated Service: an object or the path of a YAML/JSON file; arrays replace</td></tr><tr><td><code>output</code></td><td>string</td><td>—</td><td>File the manifest is written to: <code>knative manifest</code> writes it instead of printing, <code>deploy</code> writes it before applying</td></tr><tr><td><code>readyTimeout</code></td><td>number</td><td><code>300</code></td><td>Seconds <code>deploy</code> waits for the Service to be Ready</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="revisions">Revisions<a href="#revisions" class="hash-link" aria-label="Direct link to Revisions" title="Direct link to Revisions" translate="no">​</a></h3>
 <p>With the default <code>revisionSuffix</code>, the revision is named after the commit (<code>api-4f2a1c3</code>): deploying the
@@ -286,36 +119,6 @@ Service on <code>path</code> (<code>/cloudevents</code>), so the receiver <code>
 Knative Eventing: <code>triggers</code> are dropped with a warning, use Eventarc.</p>
 <div class="language-ts codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-ts codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> CloudEventHandler</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> CloudEventsReceiver</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> KnativeBrokerPubSub </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;@webda/cloudevents&quot;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> Service</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> useService </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;@webda/core&quot;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> CloudEvent </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;cloudevents&quot;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">class</span><span class="token plain"> </span><span class="token class-name">Orders</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">extends</span><span class="token plain"> </span><span class="token class-name">Service</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// Discovered by the receiver when it initializes, like @Route by the Router</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token decorator at operator" style="color:#393A34">@</span><span class="token decorator function" style="color:#d73a49">CloudEventHandler</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;com.acme.order.created&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">async</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">onCreated</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">event</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> CloudEvent</span><span class="token operator" style="color:#393A34">&lt;</span><span class="token plain">Order</span><span class="token operator" style="color:#393A34">&gt;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token keyword" style="color:#00009f">await</span><span class="token plain"> Order</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">ref</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">event</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">data</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">id</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">patch</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> status</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;received&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token comment" style="color:#999988;font-style:italic">// Optional reply, sent back in the response (the Broker delivers it like any event)</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token keyword" style="color:#00009f">return</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">new</span><span class="token plain"> </span><span class="token class-name">CloudEvent</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> type</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;com.acme.order.received&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> source</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;/orders&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> data</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> id</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> event</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">data</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">id </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// Or at runtime, by type or predicate; the returned function unsubscribes</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> receiver </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token generic-function function" style="color:#d73a49">useService</span><span class="token generic-function generic class-name operator" style="color:#393A34">&lt;</span><span class="token generic-function generic class-name">CloudEventsReceiver</span><span class="token generic-function generic class-name operator" style="color:#393A34">&gt;</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;CloudEventsReceiver&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">receiver</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">subscribe</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">event </span><span class="token operator" style="color:#393A34">=&gt;</span><span class="token plain"> event</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">type</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">startsWith</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;com.acme.&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">async</span><span class="token plain"> event </span><span class="token operator" style="color:#393A34">=&gt;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">...</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">await</span><span class="token plain"> </span><span class="token generic-function function" style="color:#d73a49">useService</span><span class="token generic-function generic class-name operator" style="color:#393A34">&lt;</span><span class="token generic-function generic class-name">KnativeBrokerPubSub</span><span class="token generic-function generic class-name operator" style="color:#393A34">&gt;</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;Events&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">sendMessage</span><span class="token punctuation" style="color:#393A34">(</span><span class="token keyword" style="color:#00009f">new</span><span class="token plain"> </span><span class="token class-name">CloudEvent</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> type</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;com.acme.order.created&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> source</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;/orders&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> data</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> order </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="delivery-contract">Delivery contract<a href="#delivery-contract" class="hash-link" aria-label="Direct link to Delivery contract" title="Direct link to Delivery contract" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Answer</th><th>When</th><th>Knative</th></tr></thead><tbody><tr><td><code>202</code></td><td>Every handler succeeded (also: no handler, filtered out, duplicate)</td><td>Acknowledged</td></tr><tr><td><code>200</code> with a CloudEvent</td><td>A handler returned a reply (binary mode, a batch in batch mode)</td><td>Acknowledged, reply delivered</td></tr><tr><td><code>400</code></td><td>Not a CloudEvent, or an invalid one (<code>strict</code> adds the SDK schema)</td><td>Not retried</td></tr><tr><td><code>500</code></td><td>A handler threw (a <code>WebdaError.HttpError</code> keeps its own status)</td><td>Retried, then dead-lettered</td></tr></tbody></table>
 <p>A batch is acknowledged as a whole: one failing handler refuses the batch and the sender redelivers it. Delivery
 is <strong>at-least-once</strong>: a retry after a lost acknowledgement runs the handler again, so handlers must be idempotent.

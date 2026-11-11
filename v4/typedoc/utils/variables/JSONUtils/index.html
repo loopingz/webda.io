@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,7 +23,7 @@
 <blockquote>
 <p><code>const</code> <strong>JSONUtils</strong>: <code>object</code></p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/df539e28343db1f0776543ef658148b3d655ed95/packages/utils/src/serializers.ts#L476" target="_blank" rel="noopener noreferrer" class="">packages/utils/src/serializers.ts:476</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/16fbc5692c3d4ed01bda7ace6f9f48ede8593e6f/packages/utils/src/serializers.ts#L506" target="_blank" rel="noopener noreferrer" class="">packages/utils/src/serializers.ts:506</a></p>
 <p>Simple JSON utils</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="type-declaration">Type Declaration<a href="#type-declaration" class="hash-link" aria-label="Direct link to Type Declaration" title="Direct link to Type Declaration" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="duplicate">duplicate<a href="#duplicate" class="hash-link" aria-label="Direct link to duplicate" title="Direct link to duplicate" translate="no">​</a></h3>
@@ -40,25 +40,31 @@
 <p>A deep clone of the object.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="loadfile">loadFile<a href="#loadfile" class="hash-link" aria-label="Direct link to loadFile" title="Direct link to loadFile" translate="no">​</a></h3>
 <blockquote>
-<p><strong>loadFile</strong>: (<code>filename</code>) =&gt; <code>any</code></p>
+<p><strong>loadFile</strong>: (<code>filename</code>, <code>options</code>) =&gt; <code>any</code></p>
 </blockquote>
 <p>Load a JSON file. Shorthand for <code>FileUtils.load(filename, &quot;json&quot;)</code>.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-1">Parameters<a href="#parameters-1" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="filename">filename<a href="#filename" class="hash-link" aria-label="Direct link to filename" title="Direct link to filename" translate="no">​</a></h5>
 <p><code>string</code></p>
 <p>Path to the JSON file to load.</p>
+<h5 class="anchor anchorTargetStickyNavbar_S7XE" id="options">options?<a href="#options" class="hash-link" aria-label="Direct link to options?" title="Direct link to options?" translate="no">​</a></h5>
+<p><a class="" href="/v4/typedoc/utils/interfaces/JSONCParseOptions"><code>JSONCParseOptions</code></a> = <code>{}</code></p>
+<p>Set <code>edit: true</code> to preserve comments and formatting when saving.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-1">Returns<a href="#returns-1" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>any</code></p>
 <p>The parsed object.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="parse">parse<a href="#parse" class="hash-link" aria-label="Direct link to parse" title="Direct link to parse" translate="no">​</a></h3>
 <blockquote>
-<p><strong>parse</strong>: (<code>value</code>) =&gt; <code>any</code></p>
+<p><strong>parse</strong>: (<code>value</code>, <code>options</code>) =&gt; <code>any</code></p>
 </blockquote>
-<p>Parse a JSON data</p>
+<p>Parse JSON or JSONC into plain data by default.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="value-1">value<a href="#value-1" class="hash-link" aria-label="Direct link to value" title="Direct link to value" translate="no">​</a></h5>
 <p><code>string</code></p>
 <p>to parse</p>
+<h5 class="anchor anchorTargetStickyNavbar_S7XE" id="options-1">options?<a href="#options-1" class="hash-link" aria-label="Direct link to options?" title="Direct link to options?" translate="no">​</a></h5>
+<p><a class="" href="/v4/typedoc/utils/interfaces/JSONCParseOptions"><code>JSONCParseOptions</code></a> = <code>{}</code></p>
+<p>Set <code>edit: true</code> to preserve comments and formatting.</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-2">Returns<a href="#returns-2" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>any</code></p>
 <p>object parsed</p>

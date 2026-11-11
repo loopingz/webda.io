@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -32,39 +32,6 @@ attach a policy to <code>anonymous</code> for them, or narrow <code>scope</code>
 <p>A logged-in caller whose user record cannot be loaded is refused; it is never treated as group-less.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="conditions">Conditions<a href="#conditions" class="hash-link" aria-label="Direct link to Conditions" title="Direct link to Conditions" translate="no">​</a></h2>
 <p>Casbin expressions over <code>r.ctx</code>:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Field</th><th>Content</th></tr></thead><tbody><tr><td><code>r.ctx.operationId</code></td><td>operation id</td></tr><tr><td><code>r.ctx.user</code></td><td><code>{ uuid, groups, roles }</code>, undefined for anonymous</td></tr><tr><td><code>r.ctx.session</code></td><td>session (read-only JSON copy)</td></tr><tr><td><code>r.ctx.input</code></td><td>validated operation input (read-only JSON copy)</td></tr><tr><td><code>r.ctx.http</code></td><td><code>{ method, ip, host }</code> for HTTP calls</td></tr><tr><td><code>r.ctx.now</code></td><td>epoch milliseconds</td></tr></tbody></table>
 <p>Allowed: literals, arrays, comparisons, <code>&amp;&amp;</code>, <code>||</code>, <code>!</code>, arithmetic, <code>? :</code>, and the functions <code>globMatch</code>, <code>keyMatch</code>,
 <code>ipMatch</code>, <code>includes</code>. Access to <code>constructor</code>, <code>__proto__</code> and <code>prototype</code>, other functions, and computed keys that
@@ -91,39 +58,6 @@ policies at runtime; map them to a store. Their operations are always governed b
 configuration policy name. An invalid stored policy keeps the previous policies in force.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="coverage">Coverage<a href="#coverage" class="hash-link" aria-label="Direct link to Coverage" title="Direct link to Coverage" translate="no">​</a></h2>
 <p>IAM is an operation authorizer: it governs <strong>only</strong> calls that go through <code>callOperation</code> / <code>canCallOperation</code>.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Path</th><th>Governed by IAM</th></tr></thead><tbody><tr><td>REST operations (<code>RESTOperationsTransport</code>, model CRUD)</td><td>yes</td></tr><tr><td>gRPC (<code>@webda/grpc</code>)</td><td>yes</td></tr><tr><td>MCP tools and resources (<code>@webda/mcp</code>)</td><td>yes (listings in probe mode, calls with their input)</td></tr><tr><td>Async jobs (<code>@webda/async</code>)</td><td>at submission, as the caller; the job itself runs <strong>anonymous</strong> (below)</td></tr><tr><td>GraphQL (<code>@webda/graphql</code>)</td><td><strong>no</strong>: model <code>canAct</code> only (IAM models are refused, below)</td></tr><tr><td>Plain <code>@Route</code> / <code>addRoute</code> handlers, direct service calls</td><td><strong>no</strong></td></tr></tbody></table>
 <ul>
 <li class=""><strong>GraphQL</strong> resolves models through their <code>canAct</code>, not through operations, so IAM policies do not apply to your

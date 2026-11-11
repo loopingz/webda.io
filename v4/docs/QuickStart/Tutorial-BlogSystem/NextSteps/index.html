@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -27,60 +27,11 @@
 <p>The blog handles accounts itself (<code>User.register</code> / <code>User.login</code>, bcrypt hashes in a private field), which keeps the tutorial self-contained. For a real application, use <a class="" href="/v4/docs/Security/Authentication"><code>@webda/auth</code></a>: login providers (email and password with verification and recovery, OAuth), account linking, and access/refresh tokens. The <code>canAct</code> rules you wrote keep working: they only read <code>context.getCurrentUserId()</code>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="persistent-stores">Persistent stores<a href="#persistent-stores" class="hash-link" aria-label="Direct link to Persistent stores" title="Direct link to Persistent stores" translate="no">​</a></h2>
 <p>Models are saved in the default <code>Registry</code> store, in memory. Switching to a database is a configuration change: replace the <code>Registry</code> service in <code>webda.config.json</code> and add the package. No model code changes.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Store</th><th>Package</th><th><code>Registry</code> configuration</th><th>Connection</th></tr></thead><tbody><tr><td>files</td><td><code>@webda/fs</code></td><td><code>{ &quot;type&quot;: &quot;Webda/FileStore&quot;, &quot;folder&quot;: &quot;./data&quot; }</code></td><td></td></tr><tr><td>MongoDB</td><td><code>@webda/mongo</code></td><td><code>{ &quot;type&quot;: &quot;Webda/MongoStore&quot;, &quot;collection&quot;: &quot;registry&quot; }</code></td><td><code>WEBDA_MONGO_URL</code></td></tr><tr><td>PostgreSQL</td><td><code>@webda/postgres</code></td><td><code>{ &quot;type&quot;: &quot;Webda/PostgresStore&quot;, &quot;table&quot;: &quot;registry&quot; }</code></td><td><code>PGHOST</code>, <code>PGPORT</code>, <code>PGUSER</code>, <code>PGPASSWORD</code>, <code>PGDATABASE</code></td></tr></tbody></table>
 <div class="language-json codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockTitle__A1_">webda.config.json (services excerpt)</div><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-json codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token property" style="color:#36acaa">&quot;services&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token property" style="color:#36acaa">&quot;Registry&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;type&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Webda/PostgresStore&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token property" style="color:#36acaa">&quot;table&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;registry&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#FF9901"></path></svg></div>
 <p>Credentials come from environment variables, never from the configuration file. <code>npm create @webda my-app -- --store postgres</code> sets this up with a <code>docker-compose.yml</code> and a <code>.env.example</code>. See <a class="" href="/v4/docs/Concepts/Stores/">Stores</a>, <a class="" href="/v4/docs/Modules/mongodb/"><code>@webda/mongodb</code></a> and <a class="" href="/v4/docs/Modules/postgres/"><code>@webda/postgres</code></a>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="deployment">Deployment<a href="#deployment" class="hash-link" aria-label="Direct link to Deployment" title="Direct link to Deployment" translate="no">​</a></h2>
 <p>Environments are files in <code>deployments/&lt;name&gt;.json</code>: their <code>parameters</code> and <code>services</code> override <code>webda.config.json</code>, and their <code>units</code> list the deployers. Select one with <code>-d &lt;name&gt;</code> placed <strong>before</strong> the command (<code>npx webda -d production serve</code>) or with <code>WEBDA_DEPLOYMENT=production</code>.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Target</th><th>Package</th><th>Deployer types</th></tr></thead><tbody><tr><td>Container image (built without Docker)</td><td><code>@webda/oci</code></td><td><code>Webda/ContainerDeployer</code></td></tr><tr><td>AWS Lambda package, CloudFormation stack</td><td><code>@webda/aws</code></td><td><code>Webda/LambdaPackager</code>, <code>Webda/CloudFormationDeployer</code></td></tr></tbody></table>
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">npm install @webda/oci</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">npm run build</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">npx webda -d production container push</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
 <p>See <a class="" href="/v4/docs/Deployments/">Deployments</a>, <a class="" href="/v4/docs/Deployments/Kubernetes/">Kubernetes</a> and <a class="" href="/v4/docs/Modules/aws/"><code>@webda/aws</code></a>.</p>
@@ -100,46 +51,6 @@
 <li class="">HTTPS and HTTP/2 on the main port with <code>&quot;autoTls&quot;: true</code>.</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="other-packages-you-may-find-useful">Other packages you may find useful<a href="#other-packages-you-may-find-useful" class="hash-link" aria-label="Direct link to Other packages you may find useful" title="Direct link to Other packages you may find useful" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Package</th><th>Description</th><th>Link</th></tr></thead><tbody><tr><td><code>@webda/otel</code></td><td>OpenTelemetry traces, metrics and logs</td><td><a class="" href="/v4/docs/Modules/otel/"><code>@webda/otel</code></a></td></tr><tr><td><code>@webda/mock</code></td><td>Coherent mock data for <code>@webda/models</code> classes</td><td><a class="" href="/v4/docs/Modules/mock/"><code>@webda/mock</code></a></td></tr><tr><td><code>@webda/elasticsearch</code></td><td>Elasticsearch integration</td><td><a class="" href="/v4/docs/Modules/elasticsearch/"><code>@webda/elasticsearch</code></a></td></tr><tr><td><code>@webda/cache</code></td><td>Method-level caching with decorators and TTL</td><td><a class="" href="/v4/docs/Modules/cache/"><code>@webda/cache</code></a></td></tr><tr><td><code>@webda/amqp</code></td><td>AMQP (RabbitMQ) queues</td><td><a class="" href="/v4/docs/Modules/amqp/"><code>@webda/amqp</code></a></td></tr><tr><td><code>@webda/cloudevents</code></td><td>CloudEvents discovery and subscriptions</td><td><a class="" href="/v4/docs/Modules/cloudevents/"><code>@webda/cloudevents</code></a></td></tr></tbody></table>
 <hr>
 <p>(end of tutorial — return to the <a class="" href="/v4/docs/QuickStart/">QuickStart index</a>)</p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_snva"><a href="https://github.com/loopingz/webda.io/tree/docs/pages/QuickStart/Tutorial-BlogSystem/11-NextSteps.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_BSjk" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_XVwX"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/v4/docs/QuickStart/Tutorial-BlogSystem/gRPC"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">10 — gRPC</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/v4/docs/QuickStart/Tutorial"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">Tutorial - Contact list</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_EAoX thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#authentication" class="table-of-contents__link toc-highlight">Authentication</a></li><li><a href="#persistent-stores" class="table-of-contents__link toc-highlight">Persistent stores</a></li><li><a href="#deployment" class="table-of-contents__link toc-highlight">Deployment</a></li><li><a href="#testing" class="table-of-contents__link toc-highlight">Testing</a></li><li><a href="#more-transports" class="table-of-contents__link toc-highlight">More transports</a></li><li><a href="#other-features-of-the-sample-app" class="table-of-contents__link toc-highlight">Other features of the sample app</a></li><li><a href="#other-packages-you-may-find-useful" class="table-of-contents__link toc-highlight">Other packages you may find useful</a></li></ul></div></div></div></div></div></main></div></div></div></div>

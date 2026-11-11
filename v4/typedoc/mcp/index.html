@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -38,101 +38,6 @@
 <div class="language-bash codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-bash codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">pnpm add @webda/mcp</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="configuration">Configuration<a href="#configuration" class="hash-link" aria-label="Direct link to Configuration" title="Direct link to Configuration" translate="no">​</a></h2>
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;mcp&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/McpService&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;url&quot;: &quot;/mcp&quot;, // HTTP endpoint; false disables HTTP (stdio only)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;operations&quot;: [&quot;*&quot;, &quot;!User.Delete&quot;], // standard OperationsTransport filter</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;resources&quot;: { &quot;models&quot;: [&quot;*&quot;] }, // false disables resources; model ids or &quot;*&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;sessionTimeout&quot;: 1800, // seconds of inactivity before an MCP session is evicted</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;allowedOrigins&quot;: [], // extra Origin values accepted besides the request host</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;allowedHosts&quot;: [&quot;localhost&quot;, &quot;127.0.0.1&quot;, &quot;::1&quot;], // Host header hostnames accepted (any port); &quot;*&quot; disables the check</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;maxSessions&quot;: 1000, // cap on open MCP HTTP sessions; at the cap the least recently used one is closed</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;maxOutputBytes&quot;: 1048576 // larger tool/resource outputs are truncated with a notice</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // &quot;serverName&quot;: &quot;my-app&quot;, // defaults to the application package name</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // &quot;serverVersion&quot;: &quot;1.0.0&quot;, // defaults to the application package version</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // &quot;stdio&quot;: { &quot;user&quot;: &quot;&lt;userId&gt;&quot; }, // default --user for `webda mcp`</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // &quot;authenticator&quot;: &quot;myAuthenticator&quot;, // service implementing McpAuthenticator; default uses the Webda session</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // &quot;listOutOfScopeTools&quot;: false, // list the tools an OAuth token scope does not cover</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // &quot;forwardHeaders&quot;: [&quot;x-example-key&quot;] // request headers the operations see through getHttpContext()</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>url</code></td><td>string | false</td><td><code>&quot;/mcp&quot;</code></td><td>HTTP endpoint; <code>false</code> disables HTTP (stdio only)</td></tr><tr><td><code>operations</code></td><td>string[]</td><td><code>[&quot;*&quot;]</code></td><td>Operation filter, with <code>!</code> for exclusions</td></tr><tr><td><code>resources</code></td><td><code>{ models: string[] }</code> | false</td><td><code>{ &quot;models&quot;: [&quot;*&quot;] }</code></td><td>Models exposed as resources; <code>false</code> disables resources</td></tr><tr><td><code>sessionTimeout</code></td><td>number</td><td><code>1800</code></td><td>Seconds of inactivity before an MCP session is evicted</td></tr><tr><td><code>allowedOrigins</code></td><td>string[]</td><td><code>[]</code></td><td>Extra <code>Origin</code> values accepted besides the request host</td></tr><tr><td><code>allowedHosts</code></td><td>string[]</td><td><code>[&quot;localhost&quot;, &quot;127.0.0.1&quot;, &quot;::1&quot;]</code></td><td>Hostnames accepted on the <code>Host</code> header (any port); <code>&quot;*&quot;</code> disables the check</td></tr><tr><td><code>maxSessions</code></td><td>number</td><td><code>1000</code></td><td>Cap on open HTTP sessions; at the cap a new <code>initialize</code> closes the least recently used session, whose next request gets <code>404</code> (clients then re-initialize)</td></tr><tr><td><code>maxOutputBytes</code></td><td>number</td><td><code>1048576</code></td><td>Larger tool/resource outputs are truncated with a notice</td></tr><tr><td><code>serverName</code></td><td>string</td><td>application package name</td><td>Server name announced to clients</td></tr><tr><td><code>serverVersion</code></td><td>string</td><td>application package version</td><td>Server version announced to clients</td></tr><tr><td><code>stdio.user</code></td><td>string</td><td>none</td><td>Default <code>--user</code> for <code>webda mcp</code></td></tr><tr><td><code>authenticator</code></td><td>string</td><td>none</td><td>Name of a service implementing <code>McpAuthenticator</code>; the default uses the Webda session</td></tr><tr><td><code>listOutOfScopeTools</code></td><td>boolean</td><td><code>false</code></td><td>With <code>McpOAuthAuthenticator</code>, also list the tools the token scope does not cover (see <a href="#oauth" class="">OAuth</a>)</td></tr><tr><td><code>forwardHeaders</code></td><td>string[]</td><td><code>[]</code></td><td>Request headers passed to the operations a tool call or resource read runs (see <a href="#request-headers" class="">Request headers</a>); never <code>authorization</code> or <code>cookie</code></td></tr></tbody></table>
 <blockquote>
 <p><strong>Remote deployments must set <code>allowedHosts</code>.</strong> The Host header is checked on every HTTP request as DNS-rebinding protection: unless your public hostname(s) are listed (or the value is <code>&quot;*&quot;</code>), every request gets <code>403 Host not allowed</code>.</p>
@@ -152,36 +57,6 @@
 through consent and then call with a scoped bearer token bound to this endpoint. Step-by-step client setup:
 <a href="https://github.com/loopingz/webda.io/blob/main/docs/pages/Modules/mcp/ConnectingAgents.md" target="_blank" rel="noopener noreferrer" class="">Connecting agents</a>.</p>
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;McpOAuthAuthenticator&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/McpOAuthAuthenticator&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;publicUrl&quot;: &quot;https://api.example.com&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;Mcp&quot;: { &quot;type&quot;: &quot;Webda/McpService&quot;, &quot;authenticator&quot;: &quot;McpOAuthAuthenticator&quot; }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter (authenticator)</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>publicUrl</code></td><td>none (request host, development only)</td><td>Public origin of the application, including any external path prefix</td></tr><tr><td><code>authorizationServers</code></td><td><code>publicUrl</code> or the request origin</td><td>Authorization servers advertised in the metadata</td></tr><tr><td><code>resourceMetadataPath</code></td><td><code>/.well-known/oauth-protected-resource</code></td><td>Path of the protected resource metadata</td></tr><tr><td><code>scopesSupported</code></td><td><code>*</code>, <code>&lt;Group&gt;.*</code>, <code>offline_access</code></td><td>Scopes advertised in the metadata, like the Webda authorization server</td></tr></tbody></table>
 <p><strong>Audience binding.</strong> The resource is <code>publicUrl</code> + the <code>McpService</code> <code>url</code> (<code>https://api.example.com/mcp</code> above). It
 is registered with the <code>OAuthServer</code>, advertised in the metadata, and every token must carry it as audience (RFC 8707):

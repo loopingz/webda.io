@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -26,71 +26,6 @@ tables and indexes. Relational stores render the same plan in their own dialect 
 <p>It has no runtime dependency: no database, no logging, no Webda core. Warnings are returned in the plan.</p>
 <div class="language-ts codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-ts codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">import</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> blockingChanges</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> buildSchemaPlan</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> compareSchemaPlans</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> planHash </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">from</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;@webda/sql-schema&quot;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> plan </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">buildSchemaPlan</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  models</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">map</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">m </span><span class="token operator" style="color:#393A34">=&gt;</span><span class="token plain"> m</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">Metadata</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    tables</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token string-property property" style="color:#36acaa">&quot;MyApp/Post&quot;</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;posts&quot;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    knownModels</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> allModels</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">map</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">m </span><span class="token operator" style="color:#393A34">=&gt;</span><span class="token plain"> m</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">Metadata</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token comment" style="color:#999988;font-style:italic">// resolve references to models of other stores</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// Before migrating a database shared by several running versions</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> changes </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">compareSchemaPlans</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">[</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> version</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;1.2.0&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> plan</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> livePlan </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> plan</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">if</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token function" style="color:#d73a49">blockingChanges</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">changes</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">length</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// refuse to start</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="mapping">Mapping<a href="#mapping" class="hash-link" aria-label="Direct link to Mapping" title="Direct link to Mapping" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Model</th><th>Plan</th></tr></thead><tbody><tr><td><code>string</code> (<code>maxLength</code>, <code>format</code>, <code>enum</code>)</td><td><code>text</code>, <code>varchar(n)</code>, <code>timestamptz</code> (<code>date-time</code> or <code>Date</code>), <code>date</code>, <code>uuid</code>, enum values</td></tr><tr><td><code>integer</code> / <code>number</code> / <code>boolean</code></td><td><code>bigint</code> / <code>double</code> (<code>decimal</code> with <code>numericAsDecimal</code>) / <code>boolean</code></td></tr><tr><td>objects, arrays, unions, <code>$ref</code>, untyped</td><td><code>json</code></td></tr><tr><td>not in <code>required</code></td><td>nullable</td></tr><tr><td>subclasses</td><td>the table of their closest planned ancestor (<code>__type</code> column), unless <code>tables</code> names their own</td></tr><tr><td><code>ModelParent</code> / <code>BelongTo</code></td><td>key column(s) + foreign key <code>ON DELETE CASCADE</code></td></tr><tr><td><code>ModelLink</code> / <code>RelateTo</code> / <code>ManyToOne</code></td><td>key column(s) + foreign key <code>ON DELETE NO ACTION</code>; <code>OneToOne</code> adds a unique index</td></tr><tr><td><code>ModelLinksSimpleArray</code></td><td>junction <code>&lt;table&gt;_&lt;attribute&gt;</code> (owner key, target key, <code>_position</code>)</td></tr><tr><td><code>ModelLinksArray</code> / <code>ManyToMany</code> / <code>Contains</code></td><td>same junction + one column per link attribute (<code>attributes</code> json when none is declared)</td></tr><tr><td><code>ModelLinksMap</code></td><td>junction keyed by (owner key, <code>key</code>)</td></tr><tr><td><code>ModelRelated</code> / <code>OneToMany</code> / <code>ModelsMapped</code></td><td>no storage (a <code>map</code> relation keeps its link and attributes: the relational stores fill it on read)</td></tr><tr><td>reference to a model outside the plan</td><td>column + index, no foreign key, <code>CROSS_STORE_REFERENCE</code> warning; a foreign key to the table <code>referencedTables</code> names for the model</td></tr><tr><td><code>@Index</code> / <code>@Unique</code> tags (<code>Relations.indexes</code>)</td><td>an index (unique with <code>@Unique</code>) on the attribute&#x27;s column(s); attributes sharing a group name form one composite index</td></tr><tr><td>unknown properties</td><td><code>_extra</code> json column (<code>extraColumn: false</code> to disable)</td></tr></tbody></table>
 <p>Composite primary keys are supported; a reference to a composite key gets one column per key part
 (<code>&lt;attribute&gt;_&lt;key&gt;</code>). Constraint and index names are cut with a hash suffix to fit 63 characters.</p>

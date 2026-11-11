@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,46 +23,6 @@
 <p><code>SealedField</code> is a <a class="" href="/v4/docs/Concepts/Models/Behaviors">Behavior</a> (<code>@WebdaBehavior Webda/Sealed</code>). Its <code>UserKeys</code> counterpart on the <code>User</code> model (<code>user.keys</code>, <code>@WebdaBehavior Webda/UserKeys</code>) stores the user public keys, the escrows and the encrypted keyring. The client side lives in the <a href="https://github.com/loopingz/webda.io/tree/main/packages/sealed-client" target="_blank" rel="noopener noreferrer" class=""><code>@webda/sealed-client</code></a> package (<code>KeyVault</code>).</p>
 <p>The <code>Note</code> model of the sample app and <code>packages/core/src/models/sealed.e2e.spec.ts</code> are a working end-to-end example.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="sealedfield-or-encryptedfield">SealedField or EncryptedField<a href="#sealedfield-or-encryptedfield" class="hash-link" aria-label="Direct link to SealedField or EncryptedField" title="Direct link to SealedField or EncryptedField" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th></th><th><code>EncryptedField</code></th><th><code>SealedField</code></th></tr></thead><tbody><tr><td>Key</td><td>server key (<code>CryptoService</code>)</td><td>user key pair, private key only on user devices</td></tr><tr><td>Server can read</td><td>yes (<code>await field.get()</code>)</td><td><strong>no</strong>: there is no <code>get()</code>/<code>open()</code></td></tr><tr><td>Protects against</td><td>database dump, backup</td><td>database dump, backup, operator reading stored data</td></tr><tr><td>Server-side logic</td><td>can use the value (send an email, call an API)</td><td>cannot use the value</td></tr><tr><td>Lost password</td><td>nothing lost</td><td>data lost unless a device or a recovery code exists</td></tr><tr><td>Use for</td><td>provider tokens, API keys the server must use</td><td>private notes, documents, health data</td></tr></tbody></table>
 <p><code>EncryptedField</code> is unchanged. Choose <code>SealedField</code> only when the server does not need the value.</p>
 <p><code>SealedField</code> protects what the server <strong>stores</strong>, not a server that is compromised while running: with a password escrow, the server sees the login password at each login and can derive the password KEK (see <a href="#threat-model-and-limits" class="">Threat model and limits</a>).</p>

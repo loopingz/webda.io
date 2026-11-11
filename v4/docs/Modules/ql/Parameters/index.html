@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -34,67 +34,9 @@
 <p>Placeholders are found by the WQL lexer: a <code>?</code> or <code>:name</code> inside a quoted string is part of the string, not a placeholder (<code>time = &#x27;10:30&#x27; AND x = ?</code>).</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="escaping">Escaping<a href="#escaping" class="hash-link" aria-label="Direct link to Escaping" title="Direct link to Escaping" translate="no">​</a></h3>
 <p>Parameters and template literals share the same escaping:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Value</th><th>Written as</th></tr></thead><tbody><tr><td>string</td><td><code>&#x27;it&#x27;&#x27;s&#x27;</code> (single quotes, <code>&#x27;</code> doubled, <code>\</code> escaped)</td></tr><tr><td>number</td><td><code>42</code>, <code>-7</code>, <code>3.14</code> (<code>NaN</code>, <code>Infinity</code> and numbers needing an exponent are rejected)</td></tr><tr><td>boolean</td><td><code>TRUE</code> / <code>FALSE</code></td></tr><tr><td><code>Date</code></td><td>its ISO string, quoted</td></tr><tr><td>array</td><td><code>[&#x27;a&#x27;, &#x27;b&#x27;]</code>, for <code>IN</code> (empty or nested arrays are rejected)</td></tr><tr><td>object, function, symbol</td><td>rejected</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="null-values">Null values<a href="#null-values" class="hash-link" aria-label="Direct link to Null values" title="Direct link to Null values" translate="no">​</a></h3>
 <p>WQL has no <code>NULL</code> value, only the <code>IS NULL</code> / <code>IS NOT NULL</code> operators, so <code>null</code> and <code>undefined</code> are rewritten:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Query</th><th>Value</th><th>Result</th></tr></thead><tbody><tr><td><code>x = ?</code></td><td><code>null</code> / <code>undefined</code></td><td><code>x IS NULL</code></td></tr><tr><td><code>x != ?</code></td><td><code>null</code> / <code>undefined</code></td><td><code>x IS NOT NULL</code></td></tr><tr><td>any other position (<code>&gt;</code>, <code>LIKE</code>, <code>IN</code>, inside a set, <code>LIMIT</code>)</td><td><code>null</code> / <code>undefined</code></td><td>error</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="errors">Errors<a href="#errors" class="hash-link" aria-label="Direct link to Errors" title="Direct link to Errors" translate="no">​</a></h3>
 <p>Binding throws a <code>WebdaQLError</code> when:</p>

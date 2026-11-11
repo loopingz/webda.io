@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -26,66 +26,10 @@ GitHub Actions, GCP service accounts...</p>
 <p>It is about <strong>workloads</strong> (applications, jobs, CI), not users: user login stays with <code>@webda/auth</code>.</p>
 <!-- -->
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="services">Services<a href="#services" class="hash-link" aria-label="Direct link to Services" title="Direct link to Services" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Service</th><th>Role</th></tr></thead><tbody><tr><td><code>Webda/OIDCIssuer</code></td><td>Publishes <code>/.well-known/openid-configuration</code> and mints audience-scoped workload tokens</td></tr><tr><td><code>Webda/OIDCVerifier</code></td><td>Trusts a list of issuers, turns a valid <code>Authorization: Bearer</code> into an application session</td></tr><tr><td><code>Webda/OIDCClient</code></td><td>Gets a token for a target audience and calls other applications with it</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="oidcissuer">OIDCIssuer<a href="#oidcissuer" class="hash-link" aria-label="Direct link to OIDCIssuer" title="Direct link to OIDCIssuer" translate="no">​</a></h3>
 <p>The issuer signs with the <code>CryptoService</code> asymmetric keys and publishes them through the <code>CryptoService</code> JWKS route,
 so the <code>CryptoService</code> needs an <code>url</code>.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>issuer</code></td><td>required</td><td>Public URL, <code>https</code> (plain <code>http</code> is only accepted for <code>localhost</code>), no query</td></tr><tr><td><code>name</code></td><td>application package name</td><td>Tokens carry <code>sub: app:&lt;name&gt;</code> and <code>webda_app: &lt;name&gt;</code></td></tr><tr><td><code>tokenTtl</code></td><td><code>300</code></td><td>Token lifetime in seconds</td></tr><tr><td><code>algorithm</code></td><td><code>RS256</code></td><td><code>RS256</code>, <code>RS384</code>, <code>RS512</code>, <code>PS256</code> or <code>ES256</code> (EC keys). Symmetric algorithms are refused</td></tr><tr><td><code>audiences</code></td><td><code>[&quot;*&quot;]</code></td><td>Audiences this application may mint tokens for (globs, <code>*</code> does not cross <code>/</code>)</td></tr></tbody></table>
 <p><code>useOIDCIssuer().mint(audience, extraClaims?)</code> returns <code>{ token, expiresAt }</code>. Extra claims cannot override <code>iss</code>,
 <code>sub</code>, <code>aud</code>, <code>exp</code>, <code>nbf</code>, <code>iat</code>, <code>jti</code> nor <code>webda_app</code>.</p>
@@ -100,142 +44,12 @@ another algorithm;</li>
 10 minutes by default).</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="oidcverifier">OIDCVerifier<a href="#oidcverifier" class="hash-link" aria-label="Direct link to OIDCVerifier" title="Direct link to OIDCVerifier" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>audience</code></td><td>required</td><td>Default expected audience, usually this application public URL</td></tr><tr><td><code>trustedIssuers</code></td><td><code>[]</code></td><td>See below</td></tr><tr><td><code>clockTolerance</code></td><td><code>30</code></td><td>Clock skew in seconds</td></tr><tr><td><code>maxTokenAge</code></td><td><code>3600</code></td><td>Max lifetime (<code>exp - iat</code>) in seconds</td></tr><tr><td><code>jwksCacheTtl</code></td><td><code>600</code></td><td>Discovery and JWKS cache in seconds</td></tr><tr><td><code>requestTimeout</code></td><td><code>5000</code></td><td>Discovery and JWKS request timeout in milliseconds</td></tr></tbody></table>
 <p>Each trusted issuer:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Field</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>issuer</code></td><td>required</td><td>Compared <strong>exactly</strong> to the token <code>iss</code></td></tr><tr><td><code>jwksUri</code></td><td>discovered</td><td>Skip discovery, useful for issuers that are not URLs</td></tr><tr><td><code>audiences</code></td><td><code>[audience]</code></td><td>Accepted audiences</td></tr><tr><td><code>algorithms</code></td><td><code>[&quot;RS256&quot;, &quot;ES256&quot;]</code></td><td>Never <code>none</code> nor <code>HS*</code></td></tr><tr><td><code>claims</code></td><td><code>{}</code></td><td>Conditions on claims, all must match. Values are globs (<code>*</code> does not cross <code>/</code>), a list means any of</td></tr><tr><td><code>principal</code></td><td><code>${sub}</code></td><td>Template over the claims. A leading <code>app:</code> is removed</td></tr><tr><td><code>groups</code></td><td><code>[]</code></td><td>Static groups, seen by IAM as <code>app-group:&lt;group&gt;</code></td></tr><tr><td><code>maxTokenAge</code></td><td>the verifier <code>maxTokenAge</code></td><td>Per-issuer max lifetime</td></tr><tr><td><code>session</code></td><td><code>application</code></td><td><code>application</code> (workload tokens) or <code>user</code>, see <a href="#user-sessions" class="">User sessions</a></td></tr></tbody></table>
 <p><code>useOIDCVerifier().verify(token)</code> returns the <code>AppIdentity</code> or <code>undefined</code>, <code>verifyOrFail(token)</code> throws an
 <code>OIDCTokenInvalid</code> (401).</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="oidcclient">OIDCClient<a href="#oidcclient" class="hash-link" aria-label="Direct link to OIDCClient" title="Direct link to OIDCClient" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>source</code></td><td><code>self</code></td><td><code>self</code>, <code>file</code>, <code>gcp-metadata</code> or <code>github-actions</code></td></tr><tr><td><code>tokenFile</code></td><td></td><td>For <code>file</code>: the projected token path</td></tr><tr><td><code>issuerService</code></td><td><code>OIDCIssuer</code></td><td>For <code>self</code>: the issuer service name</td></tr><tr><td><code>refreshMargin</code></td><td><code>60</code></td><td>Seconds before expiration when a cached token is renewed</td></tr><tr><td><code>requestTimeout</code></td><td><code>5000</code></td><td>Token request timeout in milliseconds</td></tr></tbody></table>
 <p>Sources:</p>
 <ul>
@@ -277,31 +91,6 @@ seen when the token expires.</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="iam">IAM<a href="#iam" class="hash-link" aria-label="Direct link to IAM" title="Direct link to IAM" translate="no">​</a></h2>
 <p><code>IAMService</code> gives an application session these principals:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Principal</th><th>Meaning</th></tr></thead><tbody><tr><td><code>app:&lt;principal&gt;</code></td><td>The application</td></tr><tr><td><code>app-issuer:&lt;issuer&gt;</code></td><td>Any application of this issuer</td></tr><tr><td><code>app-group:&lt;group&gt;</code></td><td>The static groups of its trusted issuer</td></tr><tr><td><code>authenticated-app</code></td><td>Any verified application</td></tr></tbody></table>
 <p>Users keep <code>user:&lt;id&gt;</code>, <code>group:&lt;name&gt;</code>, <code>authenticated</code>; neither side gets the other&#x27;s principals. Conditions can read
 <code>r.ctx.application</code> (<code>principal</code>, <code>issuer</code>, <code>subject</code>, <code>groups</code>, <code>claims</code>).</p>

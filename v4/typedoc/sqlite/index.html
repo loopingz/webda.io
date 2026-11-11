@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -24,31 +24,6 @@
 <p><code>Webda/SQLiteStore</code>, <code>Webda/SQLiteQueue</code> and <code>Webda/SQLitePubSub</code> on Node&#x27;s built-in <code>node:sqlite</code>
 (Node &gt;= 22.13, no third-party dependency). Without a <code>persistence</code> block the database lives in memory and is lost
 on <code>stop()</code>, like <code>MemoryStore</code>; with <code>persistence.path</code> it is a single durable file.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Need</th><th>Pick</th></tr></thead><tbody><tr><td>Throw-away data in tests, zero setup</td><td><code>MemoryStore</code> / <code>MemoryQueue</code></td></tr><tr><td>A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file</td><td><code>@webda/sqlite</code></td></tr><tr><td>One JSON file per object you can read by hand</td><td><code>@webda/fs</code></td></tr><tr><td>Several hosts, heavy concurrent traffic</td><td><code>@webda/postgres</code></td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="modes">Modes<a href="#modes" class="hash-link" aria-label="Direct link to Modes" title="Direct link to Modes" translate="no">​</a></h2>
 <ul>

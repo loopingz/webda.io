@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -39,7 +39,8 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>new SQLComparisonExpression</strong>(<code>operator</code>, <code>attribute</code>, <code>value</code>, <code>dialect</code>, <code>jsonAttribute?</code>): <code>SQLComparisonExpression</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/comparison.d.ts:23</p>
+<p>Defined in: packages/sql/lib/comparison.d.ts:24</p>
+<p>Create a new SQLComparisonExpression instance</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="operator">operator<a href="#operator" class="hash-link" aria-label="Direct link to operator" title="Direct link to operator" translate="no">​</a></h5>
 <p><code>ComparisonOperator</code></p>
@@ -65,7 +66,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>attribute</strong>: <code>string</code>[]</p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:452</p>
+<p>Defined in: packages/ql/lib/query.d.ts:459</p>
 <p>Attribute to read from the object (split by .)</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="inherited-from">Inherited from<a href="#inherited-from" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
 <p><code>WebdaQL.ComparisonExpression.attribute</code></p>
@@ -86,7 +87,8 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>operator</strong>: <code>ComparisonOperator</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:401</p>
+<p>Defined in: packages/ql/lib/query.d.ts:408</p>
+<p>Operator</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="inherited-from-1">Inherited from<a href="#inherited-from-1" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
 <p><code>WebdaQL.ComparisonExpression.operator</code></p>
 <hr>
@@ -94,7 +96,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>rawValue</strong>: <code>value</code> | <code>DynamicValue</code> | value | DynamicValue[] | <code>null</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:448</p>
+<p>Defined in: packages/ql/lib/query.d.ts:455</p>
 <p>Right side of the comparison (raw parsed value, possibly DynamicValue)</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="inherited-from-2">Inherited from<a href="#inherited-from-2" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
 <p><code>WebdaQL.ComparisonExpression.rawValue</code></p>
@@ -104,7 +106,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>get</strong> <strong>value</strong>(): <code>value</code> | <code>value</code>[] | <code>null</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:463</p>
+<p>Defined in: packages/ql/lib/query.d.ts:471</p>
 <p>Resolved value at evaluation time</p>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-1">Returns<a href="#returns-1" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h5>
 <p><code>value</code> | <code>value</code>[] | <code>null</code></p>
@@ -113,7 +115,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>set</strong> <strong>value</strong>(<code>val</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:468</p>
+<p>Defined in: packages/ql/lib/query.d.ts:476</p>
 <p>Set the raw value</p>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-1">Parameters<a href="#parameters-1" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h5>
 <h6 class="anchor anchorTargetStickyNavbar_S7XE" id="val">val<a href="#val" class="hash-link" aria-label="Direct link to val" title="Direct link to val" translate="no">​</a></h6>
@@ -128,7 +130,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>eval</strong>(<code>target</code>): <code>boolean</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:503</p>
+<p>Defined in: packages/ql/lib/query.d.ts:511</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="target">target<a href="#target" class="hash-link" aria-label="Direct link to target" title="Direct link to target" translate="no">​</a></h5>
 <p><code>any</code></p>
@@ -141,7 +143,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>isDynamic</strong>(): <code>boolean</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:472</p>
+<p>Defined in: packages/ql/lib/query.d.ts:480</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-4">Returns<a href="#returns-4" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>boolean</code></p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="inherited-from-5">Inherited from<a href="#inherited-from-5" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
@@ -151,7 +153,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>setAttributeValue</strong>(<code>target</code>): <code>void</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:499</p>
+<p>Defined in: packages/ql/lib/query.d.ts:507</p>
 <p>Set the value of the attribute based on the assignment</p>
 <p>If used as a Set expression</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-3">Parameters<a href="#parameters-3" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
@@ -167,7 +169,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>toString</strong>(): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/comparison.d.ts:39</p>
+<p>Defined in: packages/sql/lib/comparison.d.ts:40</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-6">Returns<a href="#returns-6" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>string</code></p>
 <p>the SQL condition</p>
@@ -178,7 +180,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>toStringAttribute</strong>(): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/comparison.d.ts:34</p>
+<p>Defined in: packages/sql/lib/comparison.d.ts:35</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-7">Returns<a href="#returns-7" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>string</code></p>
 <p>SQL attribute expression, typed when the value is a number or a boolean</p>
@@ -189,7 +191,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>toStringOperator</strong>(): <code>ComparisonOperator</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:522</p>
+<p>Defined in: packages/ql/lib/query.d.ts:530</p>
 <p>Allow subclass to create different display</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="returns-8">Returns<a href="#returns-8" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
 <p><code>ComparisonOperator</code></p>
@@ -201,7 +203,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><strong>toStringValue</strong>(<code>value</code>): <code>string</code></p>
 </blockquote>
-<p>Defined in: packages/sql/lib/comparison.d.ts:29</p>
+<p>Defined in: packages/sql/lib/comparison.d.ts:30</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-4">Parameters<a href="#parameters-4" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="value-2">value<a href="#value-2" class="hash-link" aria-label="Direct link to value" title="Direct link to value" translate="no">​</a></h5>
 <p><code>value</code> | <code>DynamicValue</code> | value | DynamicValue[] | <code>null</code></p>
@@ -216,7 +218,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><code>static</code> <strong>getAttributeValue</strong>(<code>target</code>, <code>attribute</code>): <code>any</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:492</p>
+<p>Defined in: packages/ql/lib/query.d.ts:500</p>
 <p>Traverse an object using a dot-notation attribute path</p>
 <h4 class="anchor anchorTargetStickyNavbar_S7XE" id="parameters-5">Parameters<a href="#parameters-5" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
 <h5 class="anchor anchorTargetStickyNavbar_S7XE" id="target-2">target<a href="#target-2" class="hash-link" aria-label="Direct link to target" title="Direct link to target" translate="no">​</a></h5>
@@ -235,7 +237,7 @@ matches, and never raises a cast error;</li>
 <blockquote>
 <p><code>static</code> <strong>likeToRegex</strong>(<code>like</code>): <code>RegExp</code></p>
 </blockquote>
-<p>Defined in: packages/ql/lib/query.d.ts:484</p>
+<p>Defined in: packages/ql/lib/query.d.ts:492</p>
 <p>Convert a SQL LIKE pattern to a JavaScript RegExp</p>
 <ul>
 <li class=""><code>%</code> matches zero or more characters</li>

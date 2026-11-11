@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,61 +23,11 @@
 <blockquote>
 <p><strong>DeletePolicy</strong> = <code>&quot;CASCADE&quot;</code> | <code>&quot;RESTRICT&quot;</code> | <code>&quot;SET_NULL&quot;</code> | <code>&quot;NONE&quot;</code></p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/df539e28343db1f0776543ef658148b3d655ed95/packages/models/src/relations.ts#L524" target="_blank" rel="noopener noreferrer" class="">packages/models/src/relations.ts:524</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/16fbc5692c3d4ed01bda7ace6f9f48ede8593e6f/packages/models/src/relations.ts#L545" target="_blank" rel="noopener noreferrer" class="">packages/models/src/relations.ts:545</a></p>
 <p>What happens to the dependents of a model when it is deleted</p>
 <p>Declared on the relation with the <code>@OnDelete &lt;POLICY&gt;</code> JSDoc tag (<code>@CascadeDelete</code> is a synonym of
 <code>@OnDelete CASCADE</code>), defaulted from the relation kind otherwise:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Policy</th><th>Effect when the target of the relation is deleted</th></tr></thead><tbody><tr><td><code>CASCADE</code></td><td>Delete every dependent, through the repository so its own events fire and it cascades in turn</td></tr><tr><td><code>RESTRICT</code></td><td>Refuse the delete with a <code>409 Conflict</code> while a dependent exists</td></tr><tr><td><code>SET_NULL</code></td><td>Remove the attribute of each dependent (a single link) or the item (a link array)</td></tr><tr><td><code>NONE</code></td><td>Do nothing</td></tr></tbody></table>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Relation</th><th>Default</th></tr></thead><tbody><tr><td><code>ModelParent</code> / <code>BelongTo</code></td><td><code>CASCADE</code> (<code>SET_NULL</code> is refused: a parent is mandatory)</td></tr><tr><td><code>ModelLink</code> / <code>RelateTo</code> / <code>ManyToOne</code> / <code>OneToOne</code></td><td><code>NONE</code></td></tr><tr><td><code>ModelLinksSimpleArray</code> / <code>ModelLinksArray</code> / <code>ManyToMany</code></td><td><code>NONE</code></td></tr><tr><td><code>Contains</code> (declared on the owner)</td><td><code>CASCADE</code>: deleting the owner deletes the listed models</td></tr></tbody></table>
 <p>The <code>RelationIntegrity</code> service of <code>@webda/core</code> applies the policies, on the repository <code>Delete</code> / <code>Deleted</code>
 events: <code>Repository.deleteMany</code> emits none, so it never cascades.</p>

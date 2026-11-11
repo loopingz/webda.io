@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -22,73 +22,10 @@
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="the-canact-contract">The <code>canAct</code> contract<a href="#the-canact-contract" class="hash-link" aria-label="Direct link to the-canact-contract" title="Direct link to the-canact-contract" translate="no">​</a></h2>
 <p>The one framework entry point is the static method, declared on the base <code>Model</code> of <code>@webda/models</code>:</p>
 <div class="language-typescript codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-typescript codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">static</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">canAct</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">context</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> IOperationContext</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> action</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> object</span><span class="token operator" style="color:#393A34">?</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> Model</span><span class="token punctuation" style="color:#393A34">)</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">Promise</span><span class="token operator" style="color:#393A34">&lt;</span><span class="token builtin">boolean</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">|</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token operator" style="color:#393A34">&gt;</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">|</span><span class="token plain"> </span><span class="token builtin">boolean</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">|</span><span class="token plain"> </span><span class="token builtin">string</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Parameter</th><th>Description</th></tr></thead><tbody><tr><td><code>context</code></td><td>The caller context: <code>context.getCurrentUserId()</code>, <code>context.getCurrentUser()</code>, the session</td></tr><tr><td><code>action</code></td><td>The action being attempted (see <a href="#action-names" class="">Action names</a>)</td></tr><tr><td><code>object</code></td><td>The object the action targets, see <a href="#the-object-argument" class="">the object argument</a></td></tr></tbody></table>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Return value</th><th>Result</th></tr></thead><tbody><tr><td><code>true</code></td><td>Allowed</td></tr><tr><td><code>false</code>, a string, or anything else</td><td>Refused</td></tr></tbody></table>
 <p>A string is the refusal reason: it is logged at <code>DEBUG</code> and <strong>never sent to the client</strong>. Returning the object itself is not an allowance (it was in v3). <code>canAct</code> may also throw (for example <code>RoleModel</code> throws <code>Forbidden</code> when there is no user): any error thrown by <code>canAct</code> counts as a refusal (non-HTTP errors are logged at <code>WARN</code>), on every path including GraphQL, so a failure can never answer differently from a refusal.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="the-object-argument">The object argument<a href="#the-object-argument" class="hash-link" aria-label="Direct link to The object argument" title="Direct link to The object argument" translate="no">​</a></h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Operation</th><th><code>object</code></th></tr></thead><tbody><tr><td>get, update, patch, delete, instance actions, behavior actions (binaries included), GraphQL links, subscriptions</td><td>The loaded object</td></tr><tr><td>create</td><td>The new object, built from the sanitized input, not saved yet</td></tr><tr><td>query (REST, gRPC, MCP, GraphQL lists, relation sub-queries, query subscriptions)</td><td>Each row, asked with <code>&quot;get&quot;</code></td></tr><tr><td>static (class-level) actions, model-registered static operations</td><td><code>undefined</code></td></tr></tbody></table>
 <p>There is no class-level gate on queries: a query is the per-row <code>&quot;get&quot;</code> check, after the store filter of <code>getPermissionQuery</code> (see <a href="#query-filtering" class="">Query filtering</a>).</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="objects-reached-through-a-parent-class">Objects reached through a parent class<a href="#objects-reached-through-a-parent-class" class="hash-link" aria-label="Direct link to Objects reached through a parent class" title="Direct link to Objects reached through a parent class" translate="no">​</a></h3>
@@ -127,119 +64,12 @@
 <p>There is no separate 401 for &quot;not logged in&quot;.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="where-permissions-are-enforced">Where permissions are enforced<a href="#where-permissions-are-enforced" class="hash-link" aria-label="Direct link to Where permissions are enforced" title="Direct link to Where permissions are enforced" translate="no">​</a></h2>
 <p>The checks run on <strong>operations sent by clients</strong>, through the shared helpers exported by <code>@webda/core</code>: <code>checkModelPermission(object, context, action, model?)</code> for objects and <code>checkStaticModelPermission(model, context, action)</code> for static actions. One helper, one meaning of &quot;allowed&quot;, on every transport:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Entry point</th><th>Check</th></tr></thead><tbody><tr><td>DomainService operations (<code>&lt;Model&gt;.Get</code>, <code>.Create</code>, <code>.Update</code>, <code>.Patch</code>, <code>.Delete</code>, <code>&lt;Plural&gt;.Query</code>, model actions). Every transport that dispatches operations goes through them: REST, gRPC, MCP</td><td>See the table below</td></tr><tr><td>Behavior actions (<code>&lt;Model&gt;.&lt;Attribute&gt;.&lt;Action&gt;</code>, binary attach/challenge/download included)</td><td><code>canAct(ctx, &quot;&lt;attribute&gt;.&lt;action&gt;&quot;, object)</code> on the parent object</td></tr><tr><td>GraphQL single-object reads, link loads, mutations and subscriptions</td><td>The same helpers (<code>NOT_FOUND</code> / <code>PERMISSION_DENIED</code>)</td></tr><tr><td>GraphQL list queries, relation sub-queries (<code>ModelRelated</code>), query subscriptions</td><td>The same query filtering as the DomainService</td></tr><tr><td>Operations registered on a model (<code>registerOperation</code> with <code>model:</code>)</td><td><code>canAct(ctx, &quot;&lt;method&gt;&quot;, object)</code>, or without object for static ones</td></tr><tr><td>Audit read operations</td><td><code>canAct(ctx, &quot;audit&quot;, object)</code></td></tr></tbody></table>
 <p>Server code is trusted: calling the model API directly (<code>Post.ref(uuid).get()</code>, <code>Post.create(...)</code>, <code>Post.query(...)</code>, <code>useRepository(Post)</code>) does <strong>not</strong> check permissions. Call <code>checkModelPermission</code> yourself when server code acts on behalf of a client.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="action-names">Action names<a href="#action-names" class="hash-link" aria-label="Direct link to Action names" title="Direct link to Action names" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Action string</th><th>Triggered by</th></tr></thead><tbody><tr><td><code>&quot;get&quot;</code></td><td><code>GET /&lt;plural&gt;/{pk}</code> (<code>&lt;Model&gt;.Get</code>), and each row of a query</td></tr><tr><td><code>&quot;create&quot;</code></td><td><code>POST /&lt;plural&gt;</code> (<code>&lt;Model&gt;.Create</code>)</td></tr><tr><td><code>&quot;update&quot;</code></td><td><code>PUT /&lt;plural&gt;/{pk}</code> and <code>PATCH /&lt;plural&gt;/{pk}</code> (<code>&lt;Model&gt;.Update</code>, <code>&lt;Model&gt;.Patch</code>)</td></tr><tr><td><code>&quot;delete&quot;</code></td><td><code>DELETE /&lt;plural&gt;/{pk}</code> (<code>&lt;Model&gt;.Delete</code>)</td></tr><tr><td><code>&quot;&lt;action&gt;&quot;</code></td><td>An instance action, by its exposed name: <code>PUT /&lt;plural&gt;/{pk}/&lt;action&gt;</code></td></tr><tr><td><code>&quot;&lt;action&gt;&quot;</code> (no object)</td><td>A static action: <code>PUT /&lt;plural&gt;/&lt;action&gt;</code></td></tr><tr><td><code>&quot;&lt;attribute&gt;.&lt;action&gt;&quot;</code></td><td>A behavior action, e.g. <code>&quot;avatar.download&quot;</code>, <code>&quot;avatar.attachChallenge&quot;</code></td></tr><tr><td><code>&quot;audit&quot;</code></td><td>Reading the audit trail of the object</td></tr></tbody></table>
 <p>There is no <code>&quot;query&quot;</code> or <code>&quot;patch&quot;</code> action: a query is filtered with <code>&quot;get&quot;</code> (see below), and a patch is an <code>&quot;update&quot;</code>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="how-each-operation-is-checked">How each operation is checked<a href="#how-each-operation-is-checked" class="hash-link" aria-label="Direct link to How each operation is checked" title="Direct link to How each operation is checked" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Operation</th><th>Check</th></tr></thead><tbody><tr><td>Get</td><td>The object is loaded, then <code>canAct(ctx, &quot;get&quot;, object)</code></td></tr><tr><td>Create</td><td>The object is built from the sanitized input; when the model has a parent (<code>ModelParent</code>), the parent must exist and be readable (otherwise 404); <code>prepareCreate(ctx)</code> is called when the model defines it, then <code>canAct(ctx, &quot;create&quot;, object)</code>; nothing is saved when it is refused. The object is created with the repository <code>create</code>, never upserted: an existing key is a <strong>409 Conflict</strong></td></tr><tr><td>Update / Patch</td><td>The key comes from the URL (a body carrying another key is a <strong>400</strong>), then <code>canAct(ctx, &quot;update&quot;, object)</code> on the <strong>stored</strong> object, before the client input is applied; moving the object to another parent requires reading the new parent</td></tr><tr><td>Delete</td><td><code>canAct(ctx, &quot;delete&quot;, object)</code></td></tr><tr><td>Action</td><td><code>canAct(ctx, &quot;&lt;action&gt;&quot;, object)</code> before the action runs; <code>canAct(ctx, &quot;&lt;action&gt;&quot;)</code> for a static action</td></tr><tr><td>Query</td><td>Permission query, then <code>canAct(ctx, &quot;get&quot;, row)</code> on each result (see below)</td></tr></tbody></table>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="client-input">Client input<a href="#client-input" class="hash-link" aria-label="Direct link to Client input" title="Direct link to Client input" translate="no">​</a></h3>
 <p>Before input reaches a model, the DomainService (and GraphQL) removes:</p>

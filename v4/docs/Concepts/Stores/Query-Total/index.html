@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -39,23 +39,6 @@ first page, without asking the server to count again; the offline client counts 
 to the cap), the next pages do not need it again.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="relation-exact-or-capped"><code>relation</code>: exact or capped<a href="#relation-exact-or-capped" class="hash-link" aria-label="Direct link to relation-exact-or-capped" title="Direct link to relation-exact-or-capped" translate="no">​</a></h2>
 <p><code>total</code> uses the Elasticsearch shape:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th><code>relation</code></th><th>Meaning</th></tr></thead><tbody><tr><td><code>&quot;eq&quot;</code></td><td><code>value</code> is the exact total</td></tr><tr><td><code>&quot;gte&quot;</code></td><td>the count stopped at <code>MAX_QUERY_COUNT</code>: the real total is <strong>at least</strong> <code>value</code></td></tr></tbody></table>
 <p>Show <code>&quot;10,000+&quot;</code> for <code>{ value: 10000, relation: &quot;gte&quot; }</code>. The cap bounds the cost of a count on large tables: the
 store reads at most <code>MAX_QUERY_COUNT + 1</code> rows.</p>
@@ -83,31 +66,6 @@ rows the model&#x27;s queries return: that <code>canAct</code> may refuse rows t
 <p><code>Repository.count(filter?, params?, { max? })</code> and <code>Model.count(…)</code> count without permission checks (a trusted,
 internal API), and return <code>{ value, relation, native }</code>:</p>
 <div class="language-typescript codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-typescript codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">await</span><span class="token plain"> Task</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">count</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;status = ?&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;open&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"> </span><span class="token comment" style="color:#999988;font-style:italic">// { value: 1234, relation: &quot;eq&quot;, native: true }</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">await</span><span class="token plain"> Task</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">count</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">undefined</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> max</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token number" style="color:#36acaa">100</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"> </span><span class="token comment" style="color:#999988;font-style:italic">// { value: 100, relation: &quot;gte&quot;, native: true }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Store</th><th>Count</th></tr></thead><tbody><tr><td>Memory, File</td><td>native, over the local data</td></tr><tr><td>PostgreSQL, SQLite</td><td>native: <code>SELECT COUNT(*) …</code>, capped with <code>COUNT(*) FROM (SELECT 1 … LIMIT max+1)</code></td></tr><tr><td>MongoDB</td><td>native: <code>countDocuments(filter, { limit: max + 1 })</code></td></tr><tr><td>DynamoDB, Firestore, …</td><td>in-memory fallback: scans the matching objects, stopping at <code>max + 1</code></td></tr></tbody></table>
 <p>The fallback (<code>native: false</code>) follows the store&#x27;s <code>aggregationFallback</code> parameter, like
 <a class="" href="/v4/docs/Concepts/Stores/Repositories#aggregation">aggregations</a>: <code>allow</code> scans, <code>warn</code> scans and logs once, <code>deny</code> throws an

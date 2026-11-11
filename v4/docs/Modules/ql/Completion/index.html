@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -45,47 +45,6 @@
 <li class=""><code>type</code>, <code>enum</code>, and <code>description</code> are preserved on leaf fields.</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="contextual-completion-behavior">Contextual Completion Behavior<a href="#contextual-completion-behavior" class="hash-link" aria-label="Direct link to Contextual Completion Behavior" title="Direct link to Contextual Completion Behavior" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>Context</th><th>Candidates Offered</th></tr></thead><tbody><tr><td>Beginning of query <code>|</code></td><td>Fields, keywords (<code>SELECT</code>, <code>ORDER BY</code>, <code>LIMIT</code>...). With <code>filterOnly: true</code>, statements are omitted.</td></tr><tr><td>Incomplete word <code>sta|</code></td><td>Fields matching prefix (<code>status</code>), range covers partial token <code>[0, 3]</code>.</td></tr><tr><td>After identifier <code>status |</code></td><td>Comparison operators (<code>=</code>, <code>!=</code>, <code>LIKE</code>, <code>IN</code>, <code>CONTAINS</code>, <code>IS NULL</code>, <code>IS NOT NULL</code>).</td></tr><tr><td>After operator on enum <code>status = |</code></td><td>Enum value literals (<code>&#x27;draft&#x27;</code>, <code>&#x27;published&#x27;</code>), parameters (<code>?</code>, <code>:name</code>).</td></tr><tr><td>After operator on boolean <code>done = |</code></td><td><code>TRUE</code>, <code>FALSE</code>.</td></tr><tr><td>Inside string literal <code>&#x27;dra|&#x27;</code></td><td>Enum value candidates matching prefix inside quotes.</td></tr><tr><td>After expression <code>status = &#x27;published&#x27; |</code></td><td>Keywords <code>AND</code>, <code>OR</code>, <code>ORDER BY</code>, <code>LIMIT</code>, <code>OFFSET</code>.</td></tr><tr><td>Dotted path <code>profile.|</code></td><td>Child properties of <code>profile.</code> only (<code>profile.email</code>), range covers <code>profile.</code>.</td></tr></tbody></table></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_snva"><a href="https://github.com/loopingz/webda.io/tree/docs/pages/Modules/ql/Completion.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_BSjk" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_XVwX"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/v4/docs/Modules/ql/Translators"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Store Translators</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/v4/docs/Modules/react-email/"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">@webda/react-email</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_EAoX thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#overview" class="table-of-contents__link toc-highlight">Overview</a></li><li><a href="#api-reference" class="table-of-contents__link toc-highlight">API Reference</a><ul><li><a href="#getcompletionsquery-caret-options" class="table-of-contents__link toc-highlight"><code>getCompletions(query, caret, options?)</code></a></li><li><a href="#fieldsfromschemaschema-maxdepth" class="table-of-contents__link toc-highlight"><code>fieldsFromSchema(schema, maxDepth?)</code></a></li></ul></li><li><a href="#contextual-completion-behavior" class="table-of-contents__link toc-highlight">Contextual Completion Behavior</a></li></ul></div></div></div></div></div></main></div></div></div></div>
 </body>
 </html>

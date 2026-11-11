@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.8d2f1379.css">
-<script src="/v4/assets/js/runtime~main.8be0f89c.js" defer="defer"></script>
-<script src="/v4/assets/js/main.8ef3d798.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/v4/assets/css/styles.daf2ccde.css">
+<script src="/v4/assets/js/runtime~main.2bd9923d.js" defer="defer"></script>
+<script src="/v4/assets/js/main.6c96fc74.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,51 +23,6 @@ service. See <a class="" href="/v4/docs/Security/Authentication">Authentication<
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="configuration-map">Configuration map<a href="#configuration-map" class="hash-link" aria-label="Direct link to Configuration map" title="Direct link to Configuration map" translate="no">​</a></h2>
 <p>The <code>Authentication</code> service type is now <code>Webda/Authentication</code> (package <code>@webda/auth</code>) and the email part is its own
 service, <code>Webda/EmailPasswordProvider</code>.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>v3</th><th>v4</th></tr></thead><tbody><tr><td><code>email.postValidation: true</code></td><td><code>verification: &quot;after&quot;</code></td></tr><tr><td><code>email.skipEmailValidation: true</code></td><td><code>verification: &quot;none&quot;</code></td></tr><tr><td>neither</td><td><code>verification: &quot;before&quot;</code> (default)</td></tr><tr><td><code>password.regexp</code></td><td><code>password.policy</code></td></tr><tr><td><code>email.delay</code></td><td><code>throttle.resendDelay</code></td></tr><tr><td><code>failedLoginBeforeDelay</code></td><td><code>throttle.failedBeforeDelay</code></td></tr><tr><td><code>failureRedirect</code></td><td><code>redirects.failure</code></td></tr><tr><td><code>successRedirect</code></td><td><code>redirects.verified</code></td></tr><tr><td><code>registerRedirect</code></td><td><code>redirects.register</code></td></tr></tbody></table>
 <div class="language-jsonc codeBlockContainer_NiE1 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_O0HP"><pre tabindex="0" class="prism-code language-jsonc codeBlock_P7iT thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_hroy"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;Authentication&quot;: { &quot;type&quot;: &quot;Webda/Authentication&quot;, &quot;compatibility&quot;: { &quot;v3&quot;: true } },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;emailAuth&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/EmailPasswordProvider&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;verification&quot;: &quot;before&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // example values: pages of your front-end, required (no defaults)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;redirects&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;verified&quot;: &quot;https://app.example.com/email-verified&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;failure&quot;: &quot;https://app.example.com/link-failed&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;register&quot;: &quot;https://app.example.com/register&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;recover&quot;: &quot;https://app.example.com/reset-password&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
 <p><code>redirects.failure</code> and <code>redirects.recover</code> are required, <code>redirects.verified</code> and <code>redirects.register</code> too unless
@@ -76,105 +31,11 @@ service, <code>Webda/EmailPasswordProvider</code>.</p>
 <p>New in v4: <code>redirects.recover</code>, <code>redirects.confirm</code>, <code>linking</code>, <code>registration</code>, <code>allowedEmailDomains</code>, <code>trustEmailVerification</code>,
 <code>throttle.lockout</code>, <code>password.verifier</code>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_S7XE" id="route-map">Route map<a href="#route-map" class="hash-link" aria-label="Direct link to Route map" title="Direct link to Route map" translate="no">​</a></h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>v3 route</th><th>v4</th></tr></thead><tbody><tr><td><code>POST /auth/email</code></td><td><code>Auth.Email.Login</code> (<code>POST auth/email/login</code>) / <code>Auth.Email.Register</code> (<code>POST auth/email/register</code>)</td></tr><tr><td><code>GET /auth/email/{email}/recover</code></td><td><code>Auth.Password.StartRecovery</code> (<code>POST auth/password/recovery</code>)</td></tr><tr><td><code>POST /auth/email/passwordRecovery</code></td><td><code>Auth.Password.Recover</code> (<code>POST auth/password/recover</code>)</td></tr><tr><td><code>GET /auth/email/callback</code></td><td><code>GET auth/email/verify</code> + <code>Auth.Email.Verify</code></td></tr><tr><td><code>GET /auth/email/{email}/validate</code></td><td><code>Auth.Email.StartVerification</code> (<code>POST auth/email/verification</code>)</td></tr><tr><td><code>GET /auth</code></td><td><code>Auth.Providers</code> (<code>GET auth/providers</code>)</td></tr><tr><td><code>DELETE /auth</code></td><td><code>Auth.Logout</code> (<code>POST auth/logout</code>)</td></tr><tr><td><code>GET /auth/me</code></td><td><code>Auth.Me</code> (<code>GET auth/me</code>)</td></tr></tbody></table>
 <p>New operations: <code>Auth.Refresh</code>, <code>Auth.Idents</code>, <code>Auth.Unlink</code>, <code>Auth.Password.Change</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_S7XE" id="google-webdagoogle-auth">Google (<code>@webda/google-auth</code>)<a href="#google-webdagoogle-auth" class="hash-link" aria-label="Direct link to google-webdagoogle-auth" title="Direct link to google-webdagoogle-auth" translate="no">​</a></h3>
 <p><code>GoogleAuthentication</code> is now an <code>@webda/auth</code> provider (<code>OAuthProvider</code>), configured as its own service next to
 <code>Authentication</code> (it was a provider of the v3 <code>Authentication</code> / an <code>OAuthService</code>). The modda name is unchanged.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <table><thead><tr><th>v3</th><th>v4</th></tr></thead><tbody><tr><td><code>url</code> default <code>/google</code></td><td><code>url</code> default <code>/auth/google</code></td></tr><tr><td><code>authorized_uris</code> (regexps)</td><td><code>authorized_uris</code>: absolute urls, same origin + path prefix match</td></tr><tr><td>referer used as post-login target</td><td><code>?redirect=</code> only (checked against <code>authorized_uris</code>), else <code>redirects.success</code></td></tr><tr><td><code>redirects.use_referer/whitelist/defaults</code></td><td><code>redirects.success</code>, <code>redirects.failure</code> (required)</td></tr><tr><td><code>no_referer</code>, <code>exposeScope</code>, <code>authenticationService</code>, <code>project_id</code></td><td>removed</td></tr><tr><td><code>scope</code> default <code>[&quot;email&quot;]</code></td><td><code>[&quot;openid&quot;, &quot;email&quot;, &quot;profile&quot;]</code></td></tr><tr><td><code>POST &lt;url&gt;/token</code> with <code>{ tokens: Credentials }</code></td><td><code>Auth.Google.Token</code> (<code>POST auth/google/token</code>): the same JSON body <code>{ tokens }</code> still works (its <code>id_token</code> is verified), or <code>{ token: &quot;&lt;id token&gt;&quot; }</code>; JSON <code>Content-Type</code> required</td></tr><tr><td><code>GoogleAuth.Tokens</code> event</td><td>kept: <code>{ tokens, context }</code> after a successful callback or token login</td></tr><tr><td><code>OAuth.Callback</code> event</td><td><code>Authentication.Login</code> (without provider tokens)</td></tr><tr><td>ident <code>__tokens</code> (plaintext)</td><td>ident <code>tokens</code>, encrypted (<code>await ident.tokens.get()</code>); upgraded idents are encrypted</td></tr><tr><td><code>getLocalClient()</code> (local callback server)</td><td>removed</td></tr></tbody></table>
 <p>The v3 <code>checkRequest</code> request filter (which let the provider referer call the routes) is gone: an application with
 its own request filters (CORS, CSRF...) must allow <code>GET &lt;url&gt;</code>, <code>GET &lt;url&gt;/callback</code> and <code>POST auth/google/token</code>.

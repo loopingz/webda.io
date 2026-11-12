@@ -281,6 +281,12 @@ class AzureDeployersTest extends AzureTest {
     writeFileSync(path, "package");
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
+    const realSetTimeout = setTimeout;
+    // publish waits one second between two status polls
+    const timer = vi
+      .spyOn(globalThis, "setTimeout")
+      .mockImplementation(((callback: () => void, ms?: number, ...args: any[]) =>
+        realSetTimeout(callback, ms === 1000 ? 0 : ms, ...args)) as any);
     try {
       fetch
         .mockResolvedValueOnce(new Response(null, { status: 202, headers: { location: "/api/deployments/1" } }))
@@ -310,6 +316,7 @@ class AzureDeployersTest extends AzureTest {
         .mockResolvedValueOnce(new Response(JSON.stringify({ status: 3 })));
       await expect(functions.publish(path, "test-function.scm.azurewebsites.net")).rejects.toThrow("OneDeploy failed");
     } finally {
+      timer.mockRestore();
       vi.unstubAllGlobals();
       rmSync(dir, { recursive: true, force: true });
     }

@@ -12,6 +12,12 @@ import { benchStore } from "./store.js";
 import { useServiceType } from "./fixtures.js";
 
 /**
+ * Seconds an empty receive blocks: stopping a consumer waits for its pending receive,
+ * so a one second timeout adds a second to every consumer scenario
+ */
+const RECEIVE_TIMEOUT = 0.05;
+
+/**
  * In-process broadcast pub/sub: every subscriber of the bus receives every message
  */
 class LocalPubSub extends PubSubService {
@@ -143,7 +149,7 @@ class BenchSuitesTest extends WebdaApplicationTest {
     const results = await benchQueue(
       {
         backend: "MemoryQueue",
-        createQueue: name => this.addService(MemoryQueue, { expire: 1, timeout: 1 } as any, name),
+        createQueue: name => this.addService(MemoryQueue, { expire: 1, timeout: RECEIVE_TIMEOUT } as any, name),
         redeliveryDelayMs: 1000
       },
       { profile: this.profile, reporters: [], filter: () => true, queueName: "SpecBenchQueue" }
@@ -167,7 +173,7 @@ class BenchSuitesTest extends WebdaApplicationTest {
     const results = await benchQueue(
       {
         backend: "MemoryQueue",
-        createQueue: name => this.addService(MemoryQueue, { expire: 1, timeout: 1 } as any, name),
+        createQueue: name => this.addService(MemoryQueue, { expire: 1, timeout: RECEIVE_TIMEOUT } as any, name),
         purge: async q => (q as any).__clean(),
         rawReceive: false,
         inconsistentSize: true
@@ -299,7 +305,7 @@ class BenchSuitesTest extends WebdaApplicationTest {
       {
         backend: "DupQueue",
         createQueue: async name => {
-          const q = await this.addService(MemoryQueue, { expire: 1, timeout: 1 } as any, name);
+          const q = await this.addService(MemoryQueue, { expire: 1, timeout: RECEIVE_TIMEOUT } as any, name);
           const origReceive = q.receiveMessage.bind(q);
           q.receiveMessage = async (proto?: any) => {
             const items = await origReceive(proto);

@@ -2404,8 +2404,13 @@ class BinaryCascadeTest extends WebdaApplicationTest {
         assert.strictEqual(Buffer.concat(chunks).toString(), "streamed");
       });
 
-      // 4. downloadTo error path when writeStream fails
-      await assert.rejects(() => svc.downloadTo({ hash: "h1" } as any, "/nonexistent-dir-webda/out.bin"));
+      // 4. downloadTo error path when writeStream fails: with a real stream to pipe, the rejection can only come
+      // from the write error handler (without one, pipe() threw first and the handler ran after the test, or not)
+      sinon.stub(svc, "_get").callsFake(async () => Readable.from(Buffer.from("payload")));
+      await assert.rejects(
+        () => svc.downloadTo({ hash: "h1" } as any, "/nonexistent-dir-webda/out.bin"),
+        (err: any) => err.code === "ENOENT"
+      );
     } finally {
       stub.restore();
     }

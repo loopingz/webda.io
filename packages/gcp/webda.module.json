@@ -287,8 +287,6 @@
             "additionalProperties": false,
             "description": "AWS external account client. This is used for AWS workloads, where\nAWS STS GetCallerIdentity serialized signed requests are exchanged for\nGCP access token.",
             "properties": {
-              "__#10@#private": {},
-              "__#11@#private": {},
               "apiKey": {
                 "type": "string"
               },
@@ -351,8 +349,6 @@
               }
             },
             "required": [
-              "__#10@#private",
-              "__#11@#private",
               "credentials",
               "eagerRefreshThresholdMillis",
               "projectNumber",
@@ -574,7 +570,6 @@
             "additionalProperties": false,
             "description": "Base external account client. This is used to instantiate AuthClients for\nexchanging external account credentials for GCP access token and authorizing\nrequests to GCP APIs.\nThe base class implements common logic for exchanging various type of\nexternal credentials for GCP access token. The logic of determining and\nretrieving the external credential based on the environment and\ncredential_source will be left for the subclasses.",
             "properties": {
-              "__#11@#private": {},
               "apiKey": {
                 "type": "string"
               },
@@ -637,7 +632,6 @@
               }
             },
             "required": [
-              "__#11@#private",
               "credentials",
               "eagerRefreshThresholdMillis",
               "projectNumber",
@@ -735,6 +729,10 @@
               },
               "retryRequestOptions": {
                 "$ref": "#/definitions/RetryRequestOptions"
+              },
+              "signal": {
+                "$ref": "#/definitions/AbortSignal",
+                "description": "An AbortSignal to cancel the ongoing non-streaming API call."
               },
               "timeout": {
                 "type": "number"
@@ -1021,7 +1019,6 @@
           "Gaxios": {
             "additionalProperties": false,
             "properties": {
-              "__#9@#private": {},
               "defaults": {
                 "$ref": "#/definitions/GaxiosOptions",
                 "description": "Default HTTP options that will be used for every HTTP request."
@@ -1032,7 +1029,6 @@
               }
             },
             "required": [
-              "__#9@#private",
               "defaults",
               "interceptors"
             ],
@@ -1451,7 +1447,6 @@
           "GoogleAuth<AuthClient>": {
             "additionalProperties": false,
             "properties": {
-              "__#7@#private": {},
               "apiKey": {
                 "anyOf": [
                   {
@@ -1562,7 +1557,6 @@
               }
             },
             "required": [
-              "__#7@#private",
               "apiKey",
               "cachedCredential",
               "jsonContent"
@@ -2672,7 +2666,6 @@
             "additionalProperties": false,
             "description": "Defines the Url-sourced and file-sourced external account clients mainly\nused for K8s and Azure workloads.",
             "properties": {
-              "__#11@#private": {},
               "apiKey": {
                 "type": "string"
               },
@@ -2735,7 +2728,6 @@
               }
             },
             "required": [
-              "__#11@#private",
               "credentials",
               "eagerRefreshThresholdMillis",
               "projectNumber",
@@ -3238,7 +3230,6 @@
             "additionalProperties": false,
             "description": "PluggableAuthClient enables the exchange of workload identity pool external credentials for\nGoogle access tokens by retrieving 3rd party tokens through a user supplied executable. These\nscripts/executables are completely independent of the Google Cloud Auth libraries. These\ncredentials plug into ADC and will call the specified executable to retrieve the 3rd party token\nto be exchanged for a Google access token.\n\n<p>To use these credentials, the GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES environment variable\nmust be set to '1'. This is for security reasons.\n\n<p>Both OIDC and SAML are supported. The executable must adhere to a specific response format\ndefined below.\n\n<p>The executable must print out the 3rd party token to STDOUT in JSON format. When an\noutput_file is specified in the credential configuration, the executable must also handle writing the\nJSON response to this file.\n\n<pre>\nOIDC response sample:\n{\n  \"version\": 1,\n  \"success\": true,\n  \"token_type\": \"urn:ietf:params:oauth:token-type:id_token\",\n  \"id_token\": \"HEADER.PAYLOAD.SIGNATURE\",\n  \"expiration_time\": 1620433341\n}\n\nSAML2 response sample:\n{\n  \"version\": 1,\n  \"success\": true,\n  \"token_type\": \"urn:ietf:params:oauth:token-type:saml2\",\n  \"saml_response\": \"...\",\n  \"expiration_time\": 1620433341\n}\n\nError response sample:\n{\n  \"version\": 1,\n  \"success\": false,\n  \"code\": \"401\",\n  \"message\": \"Error message.\"\n}\n</pre>\n\n<p>The \"expiration_time\" field in the JSON response is only required for successful\nresponses when an output file was specified in the credential configuration\n\n<p>The auth libraries will populate certain environment variables that will be accessible by the\nexecutable, such as: GOOGLE_EXTERNAL_ACCOUNT_AUDIENCE, GOOGLE_EXTERNAL_ACCOUNT_TOKEN_TYPE,\nGOOGLE_EXTERNAL_ACCOUNT_INTERACTIVE, GOOGLE_EXTERNAL_ACCOUNT_IMPERSONATED_EMAIL, and\nGOOGLE_EXTERNAL_ACCOUNT_OUTPUT_FILE.\n\n<p>Please see this repositories README for a complete executable request/response specification.",
             "properties": {
-              "__#11@#private": {},
               "apiKey": {
                 "type": "string"
               },
@@ -3301,7 +3292,6 @@
               }
             },
             "required": [
-              "__#11@#private",
               "credentials",
               "eagerRefreshThresholdMillis",
               "projectNumber",
@@ -5240,7 +5230,6 @@
           "Gaxios": {
             "additionalProperties": false,
             "properties": {
-              "__#9@#private": {},
               "defaults": {
                 "$ref": "#/definitions/GaxiosOptions",
                 "description": "Default HTTP options that will be used for every HTTP request."
@@ -5251,7 +5240,6 @@
               }
             },
             "required": [
-              "__#9@#private",
               "defaults",
               "interceptors"
             ],

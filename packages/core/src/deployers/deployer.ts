@@ -93,6 +93,40 @@ export interface DeployerInstance {
 }
 
 /**
+ * Git information already read for an application, by package name and version
+ *
+ * Reading it runs several git commands and hashes the uncommitted changes. Every unit of a
+ * deployment asks for it, often several times, and they must all see the same version.
+ */
+const gitInformations = new WeakMap<object, Map<string, GitInformation>>();
+
+/**
+ * Git information of the application, read once per application
+ *
+ * @param app - the application
+ * @param app.applicationPath - folder of the application, the current folder by default
+ * @param packageDescription - the application package
+ * @returns the git information
+ */
+function getApplicationGitInformation(
+  app: { applicationPath?: string },
+  packageDescription: PackageDescriptor
+): GitInformation {
+  let known = gitInformations.get(app);
+  if (!known) {
+    gitInformations.set(app, (known = new Map()));
+  }
+  // GIT_INFO takes precedence over the repository: keep following it
+  const key = `${packageDescription.name}@${packageDescription.version}@${process.env.GIT_INFO ?? ""}`;
+  let git = known.get(key);
+  if (!git) {
+    git = getGitInformation(app.applicationPath ?? process.cwd(), packageDescription.name, packageDescription.version);
+    known.set(key, git);
+  }
+  return git;
+}
+
+/**
  * Collect the variables for the templates of a deployer
  *
  * @param deployer - the deployer service, for `deployer` and `resources`
@@ -113,7 +147,7 @@ export function getDeploymentVariables(
     resources: deployer?.getParameters?.() ?? {},
     package: packageDescription,
     webda: project?.webda ?? {},
-    git: getGitInformation(app.applicationPath ?? process.cwd(), packageDescription.name, packageDescription.version),
+    git: getApplicationGitInformation(app, packageDescription),
     env: process.env,
     now: Date.now(),
     ...extra

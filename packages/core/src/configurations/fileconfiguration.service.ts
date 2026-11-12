@@ -1,4 +1,4 @@
-import { existsSync, watchFile } from "fs";
+import { existsSync, unwatchFile, watchFile } from "fs";
 import * as WebdaError from "../errors/errors.js";
 import { FileUtils } from "@webda/utils";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration.service.js";
@@ -15,6 +15,10 @@ export class FileConfigurationService<
    * Source paths
    */
   sourcePaths: Record<string, string> = {};
+  /**
+   * Files watched for changes, with their listener
+   */
+  protected watched: { path: string; callback: () => void }[] = [];
 
   /**
    * Resolve the file path for a given configuration source id, creating from defaults if missing
@@ -59,7 +63,18 @@ export class FileConfigurationService<
   canTriggerConfiguration(id: string, callback: () => void, defaultValue?: any): boolean {
     this.sourcePaths[id] ??= this.getFilePath(id);
     watchFile(this.sourcePaths[id], callback);
+    this.watched.push({ path: this.sourcePaths[id], callback });
     return true;
+  }
+
+  /**
+   * Stop watching the configuration files
+   * @override
+   */
+  async stop(): Promise<void> {
+    this.watched.forEach(({ path, callback }) => unwatchFile(path, callback));
+    this.watched = [];
+    return super.stop();
   }
 
   /**

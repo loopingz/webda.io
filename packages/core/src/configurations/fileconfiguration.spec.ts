@@ -6,7 +6,17 @@ import { getCommonJS } from "@webda/utils";
 import { FileConfigurationService } from "./fileconfiguration.service.js";
 import { useDynamicService } from "../core/hooks.js";
 import { useCoreEvents } from "../events/events.js";
+import { vi } from "vitest";
 const { __dirname } = getCommonJS(import.meta.url);
+
+// The service polls its file with the default interval of fs.watchFile, 5 seconds: poll faster here
+vi.mock("fs", async importOriginal => {
+  const fs = await importOriginal<typeof import("fs")>();
+  return {
+    ...fs,
+    watchFile: (path: string, listener: any) => fs.watchFile(path, { interval: 20 }, listener)
+  };
+});
 
 class FileConfigurationAbstractTest extends WebdaApplicationTest {
   getTestConfiguration() {

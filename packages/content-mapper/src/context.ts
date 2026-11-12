@@ -55,6 +55,60 @@ export function baseNames(sf: SourceFile, cls: any): string[] {
   return out;
 }
 
+/**
+ * Checker queries answered from a cache by {@link memoizeChecker}
+ *
+ * Each one is a round trip to the compiler process, and the schema converter
+ * asks the same question about a type every time it meets it again.
+ */
+const MEMOIZED_QUERIES = [
+  "typeToString",
+  "getJsDocTagsOfSymbol",
+  "getTypeOfSymbolAtLocation",
+  "getSymbolAtLocation",
+  "getTypeAtLocation",
+  "getTypeArguments",
+  "getPropertyOfType",
+  "isArrayLikeType"
+] as const;
+
+/**
+ * Wrap a checker so repeated queries are answered without a round trip to the compiler process.
+ *
+ * A checker belongs to one snapshot, where types, symbols and nodes are interned
+ * and never change, so an answer is valid as long as the checker is. Answers
+ * are shared between callers: treat the arrays as read-only.
+ * @param checker - the checker of a snapshot
+ * @returns a checker answering the same, backed by `checker`
+ */
+export function memoizeChecker(checker: Checker): Checker {
+  const memoized = Object.create(checker);
+  for (const name of MEMOIZED_QUERIES) {
+    const query = (checker as any)[name] as (...args: unknown[]) => unknown;
+    // One level of Map per argument, the answer under the last one
+    const answers = new Map<unknown, any>();
+    Object.defineProperty(memoized, name, {
+      /**
+       * Answer from the cache, asking the checker the first time
+       * @param args - the query arguments
+       * @returns the checker's answer
+       */
+      value: function memoizedQuery(...args: unknown[]) {
+        let level = answers;
+        for (let i = 0; i < args.length - 1; i++) {
+          let next = level.get(args[i]);
+          if (!next) level.set(args[i], (next = new Map()));
+          level = next;
+        }
+        const last = args[args.length - 1];
+        if (!level.has(last)) level.set(last, query.apply(checker, args));
+        return level.get(last);
+      }
+    });
+  }
+  return memoized;
+}
+
 /** A live analysis session; dispose to shut down the server process. */
 export interface Session {
   /**
@@ -102,7 +156,7 @@ export function openSession(configFile: string, rootDir: string, fs?: any): Sess
   /* v8 ignore stop */
 
   const program = project.program;
-  const checker: Checker = project.checker;
+  const checker: Checker = memoizeChecker(project.checker);
 
   const sourceFiles: SourceFile[] = [];
   // TypeScript file names always use "/", even on Windows

@@ -608,14 +608,18 @@ class TokenServiceTest extends WebdaApplicationTest {
     assert.strictEqual(await svc.verifyAccess(before.accessToken), undefined);
     assert.ok(await svc.verifyAccess(after.accessToken));
     // A token without iatMs is judged on iat: accepted once issued in a later second than the revocation
-    await new Promise(r => setTimeout(r, 1100));
-    const later = await useCrypto().jwtSign(
-      { sub: "u1", ident: "a:b", amr: ["pwd"], fam: "legacy", mfa: "none" },
-      { audience: "webda-access", expiresIn: 60 }
-    );
-    assert.ok(await svc.verifyAccess(later));
-    // another user is not affected
-    assert.ok(await svc.verifyAccess((await svc.issue(this.session("u2"))).accessToken));
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 1100 });
+    try {
+      const later = await useCrypto().jwtSign(
+        { sub: "u1", ident: "a:b", amr: ["pwd"], fam: "legacy", mfa: "none" },
+        { audience: "webda-access", expiresIn: 60 }
+      );
+      assert.ok(await svc.verifyAccess(later));
+      // another user is not affected
+      assert.ok(await svc.verifyAccess((await svc.issue(this.session("u2"))).accessToken));
+    } finally {
+      vi.useRealTimers();
+    }
   }
 
   @test

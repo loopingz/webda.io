@@ -290,7 +290,8 @@ class MemoryQueueTest extends QueueTest {
     await queue.deleteMessage("bouzouf");
     this.stub(queue.getParameters(), "timeoutMs").get(() => 1);
     assert.strictEqual((await queue.receiveMessage()).length, 0);
-    return this.simple(queue);
+    // Nothing is eventually consistent in memory: no need for the 1s pauses made for the remote queues
+    return this.simple(queue, false, 10);
   }
 
   @test

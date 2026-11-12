@@ -5,6 +5,7 @@ import { useCrypto } from "../services/cryptoservice.service.js";
 import { JSONUtils } from "@webda/utils";
 import { EncryptedField } from "./encrypted.model.js";
 import { Ident } from "./ident.model.js";
+import { vi } from "vitest";
 
 const SECRET = { access_token: "plain-access-value", refresh_token: "plain-refresh-value", expiry_date: 42 };
 
@@ -56,14 +57,18 @@ class EncryptedFieldTest extends WebdaApplicationTest {
     await field.set(SECRET);
     const before = useCrypto().getJWTHeader(field.__ciphertext).kid;
     // Key ids are seconds: make sure the rotation gets a new one
-    await new Promise(resolve => setTimeout(resolve, 1100));
-    await useCrypto().rotate();
-    const after = new EncryptedField();
-    await after.set(SECRET);
-    assert.notStrictEqual(useCrypto().getJWTHeader(after.__ciphertext).kid, before);
-    // Values encrypted with the previous key still decrypt
-    assert.deepStrictEqual(await field.get(), SECRET);
-    assert.deepStrictEqual(await after.get(), SECRET);
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 1100 });
+    try {
+      await useCrypto().rotate();
+      const after = new EncryptedField();
+      await after.set(SECRET);
+      assert.notStrictEqual(useCrypto().getJWTHeader(after.__ciphertext).kid, before);
+      // Values encrypted with the previous key still decrypt
+      assert.deepStrictEqual(await field.get(), SECRET);
+      assert.deepStrictEqual(await after.get(), SECRET);
+    } finally {
+      vi.useRealTimers();
+    }
   }
 
   @test

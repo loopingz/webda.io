@@ -61,8 +61,8 @@ export class DurationSpec {
   async expired_returns_true_when_reached() {
     const start = Date.now();
     const d = new (Duration as any)("1s", start);
-    await new Promise(r => setTimeout(r, 1100));
-    assert.strictEqual(d.expired(start), true);
+    // Started 1.1s ago: the 1s duration is reached without waiting for it
+    assert.strictEqual(d.expired(start - 1100), true);
   }
 
   @test

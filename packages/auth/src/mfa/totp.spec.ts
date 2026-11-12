@@ -233,7 +233,7 @@ class TotpTest extends AuthTest {
     await rejectsWith(() => this.op("User.Mfa.Verify", { method: "totp", code: validCode }, ctx), Throttled);
 
     // Wait for lockout (1000 ms in test config)
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    this.elapse(1100);
 
     // After lockout expires, valid code succeeds
     const freshCode = hotp(enrolled.secret, totpStep() + 1);

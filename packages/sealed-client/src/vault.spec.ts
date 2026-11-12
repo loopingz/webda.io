@@ -1,4 +1,5 @@
 import {
+  ARGON2_DEFAULTS,
   createKeyringKey,
   decryptKeyring,
   encryptKeyring,
@@ -15,6 +16,10 @@ import { describe, expect, it } from "vitest";
 import type { KeysApi, ServedDevice, ServedPublicKey, PublicKeyInput } from "./api.js";
 import { MemoryStorage } from "./storage.js";
 import { DeviceNotEnrolledError, DeviceRevokedError, KeyVault, VaultLockedError } from "./vault.js";
+
+// The production Argon2id cost (64 MiB, t=3) is half a second per derivation and the vault
+// derives several keys per test: the vault reads the defaults on each call, so lower them here
+Object.assign(ARGON2_DEFAULTS, { m: 256, t: 1 });
 
 const USER = "user-1";
 const CTX = { modelType: "Test/Note", uuid: "note-1", field: "content" };

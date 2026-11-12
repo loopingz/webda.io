@@ -258,6 +258,13 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   protected aliasMap: CompiledAlias[] = [];
   /**
+   * Routes changed since they were last mapped
+   *
+   * Mapping compiles and sorts every route, so a route added or removed only
+   * flags it and the next lookup maps them once
+   */
+  protected remapNeeded: boolean = false;
+  /**
    * Request filters to apply
    */
   private _requestFilters: RequestFilter[] = [];
@@ -392,7 +399,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     }
 
     if (this.getState() === "running") {
-      this.remapRoutes();
+      // Mapping compiles and sorts every route: defer it to the next lookup
+      this.remapNeeded = true;
+      if (Object.keys(this.aliases).some(alias => this.getFinalUrl(alias) === finalUrl)) {
+        useLog("WARN", `Alias ${finalUrl} shadows route ${finalUrl}`);
+      }
     }
   }
 
@@ -410,7 +421,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       this.routes[finalUrl].splice(this.routes[finalUrl].indexOf(info), 1);
     }
 
-    this.remapRoutes();
+    this.remapNeeded = true;
   }
 
   /**
@@ -457,6 +468,35 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Sort all routes and aliases again
    */
   public remapRoutes() {
+    this.mapRoutes();
+
+    // Rebuild aliasMap
+    this.aliasMap = [];
+    for (const url in this.aliases) {
+      const def = this.aliases[url];
+      const finalUrl = this.getFinalUrl(url);
+      if (this.routes[finalUrl]) {
+        useLog("WARN", `Alias ${finalUrl} shadows route ${finalUrl}`);
+      }
+      useLog("TRACE", `Add alias ${finalUrl} -> ${def.target}`);
+      const compiledTarget = compileAliasTarget(url, def.target);
+      const templateInfo = this.compileTemplate(finalUrl);
+      this.aliasMap.push({
+        rawUrl: url,
+        url: finalUrl,
+        definition: def,
+        target: compiledTarget,
+        ...templateInfo
+      });
+    }
+    this.aliasMap.sort(this.comparePath);
+  }
+
+  /**
+   * Compile the URI templates of all routes and sort them by priority
+   */
+  protected mapRoutes(): void {
+    this.remapNeeded = false;
     // Might need to ensure each routes is prefixed
     const prefix = useParameters().routePrefix || "";
     if (prefix) {
@@ -482,27 +522,15 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       });
     }
     this.pathMap.sort(this.comparePath);
+  }
 
-    // Rebuild aliasMap
-    this.aliasMap = [];
-    for (const url in this.aliases) {
-      const def = this.aliases[url];
-      const finalUrl = this.getFinalUrl(url);
-      if (this.routes[finalUrl]) {
-        useLog("WARN", `Alias ${finalUrl} shadows route ${finalUrl}`);
-      }
-      useLog("TRACE", `Add alias ${finalUrl} -> ${def.target}`);
-      const compiledTarget = compileAliasTarget(url, def.target);
-      const templateInfo = this.compileTemplate(finalUrl);
-      this.aliasMap.push({
-        rawUrl: url,
-        url: finalUrl,
-        definition: def,
-        target: compiledTarget,
-        ...templateInfo
-      });
+  /**
+   * Map the routes if they changed since the last mapping
+   */
+  protected ensureMapped(): void {
+    if (this.remapNeeded) {
+      this.mapRoutes();
     }
-    this.aliasMap.sort(this.comparePath);
   }
 
   /**
@@ -680,6 +708,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     method: HttpMethodType,
     url: string
   ): { alias: string; url: string; mode: RouteAliasMode; redirectCode?: number } | undefined {
+    this.ensureMapped();
     const finalUrl = this.getFinalUrl(url);
     for (const aliasEntry of this.aliasMap) {
       if (aliasEntry.definition.methods && !aliasEntry.definition.methods.includes(method)) {
@@ -721,6 +750,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @returns the list of results
    */
   getRouteMethodsFromUrl(url): HttpMethodType[] {
+    this.ensureMapped();
     const finalUrl = this.getFinalUrl(url);
     const methods = new Set<HttpMethodType>();
     for (const i in this.pathMap) {
@@ -782,6 +812,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @returns the result
    */
   public getRouteFromUrl(ctx: IWebContext, method: HttpMethodType, url: string) {
+    this.ensureMapped();
     const finalUrl = this.getFinalUrl(url);
     // Search for the route
     for (const i in this.pathMap) {
@@ -827,6 +858,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param skipHidden add hidden routes or not
    */
   completeOpenAPI(openapi: OpenAPIV3.Document, skipHidden: boolean = true) {
+    this.ensureMapped();
     const hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
     for (const i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {

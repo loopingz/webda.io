@@ -300,6 +300,23 @@ class RouterAliasTest extends WebdaApplicationTest {
     const warnLogs = logs.filter(l => l.level === "WARN" && l.args.some(a => String(a).includes("/collision")));
     assert.ok(warnLogs.length > 0, "Exact alias/route collision must log WARN");
 
+    // A route added later under an existing alias warns as well, and is mapped by the next lookup
+    logs.length = 0;
+    useRouter().addAlias("/late", "/other");
+    logs.length = 0;
+    useRouter().addRouteToRouter("/late", {
+      methods: ["GET"],
+      executor: "Router",
+      _method: async (ctx: WebContext) => {
+        ctx.write({ late: "route" });
+      }
+    } as RouteInfo);
+    assert.ok(
+      logs.some(l => l.level === "WARN" && l.args.some(a => String(a).includes("Alias /late shadows route /late"))),
+      "A route added under an alias must log WARN"
+    );
+    assert.deepStrictEqual(useRouter().getRouteMethodsFromUrl("/late"), ["GET"]);
+
     // Alias /users/me wins over /users/{uuid} route
     const res = await this.request("GET", "/users/me", { userId: "999" });
     assert.strictEqual(res.statusCode, 200);

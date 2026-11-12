@@ -684,7 +684,7 @@ export class SchemaConverter {
     const parentArguments = apparent.isTypeReference() ? this.checker.getTypeArguments(apparent) : [];
 
     for (const name of methodNames) {
-      const symbol = apparent.getProperty(name) ?? type.getProperty(name);
+      const symbol = this.checker.getPropertyOfType(apparent, name) ?? this.checker.getPropertyOfType(type, name);
       if (!symbol) continue;
 
       const methodType =
@@ -735,12 +735,15 @@ export class SchemaConverter {
    */
   private resolveFromDto(type: Type, location: Node): Type | "skip" | undefined {
     for (const name of ["fromDTO", "fromDto"]) {
-      let symbol = type.getProperty(name);
+      let symbol = this.checker.getPropertyOfType(type, name);
       if (!symbol) {
         const classSymbol = type.getSymbol();
         const declaration = this.declarationOf(classSymbol);
         if (classSymbol && declaration) {
-          symbol = this.checker.getTypeOfSymbolAtLocation(classSymbol, declaration).getProperty(name);
+          symbol = this.checker.getPropertyOfType(
+            this.checker.getTypeOfSymbolAtLocation(classSymbol, declaration),
+            name
+          );
         }
       }
       if (!symbol) continue;

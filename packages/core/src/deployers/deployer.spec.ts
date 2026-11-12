@@ -45,6 +45,16 @@ class DeploymentVariablesTest extends WebdaAsyncStorageTest {
   }
 
   @test
+  gitInformationIsReadOncePerApplication() {
+    const first = getDeploymentVariables().git;
+    // The same application gets the same object, without reading the repository again
+    assert.strictEqual(getDeploymentVariables({ getName: () => "Other" }).git, first);
+    // A changed GIT_INFO is followed
+    process.env.GIT_INFO = Buffer.from(JSON.stringify({ commit: "123456" })).toString("base64");
+    assert.strictEqual(getDeploymentVariables().git.commit, "123456");
+  }
+
+  @test
   resolve() {
     const deployer = { getName: () => "Stack", getParameters: () => ({}) };
     const variables = getDeploymentVariables(deployer);

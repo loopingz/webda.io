@@ -92,6 +92,48 @@ export function bindable(value: any): SQLInputValue {
   return value;
 }
 
+/** Whether node:sqlite binds positional values to numbered parameters, probed on first use */
+let positionalNumbered: boolean | undefined;
+
+/**
+ * Test-only: force how numbered parameters are bound
+ * @param supported - whether positional values reach numbered parameters, undefined probes again
+ */
+export function __setPositionalNumbered(supported?: boolean): void {
+  positionalNumbered = supported;
+}
+
+/**
+ * The arguments binding `values` to the numbered parameters (`?1`, `?2`...) of a statement
+ *
+ * Node 22 does not bind positional values to numbered parameters (`column index out of range`), it only takes them
+ * by name. Later versions bind them by position: what they do is left untouched.
+ * @param db - the database, to probe what this Node supports
+ * @param sql - the statement
+ * @param values - the parameters, the first one is `?1`
+ * @returns the arguments to spread on run(), all() or get()
+ */
+export function bindArguments(db: DatabaseSync, sql: string, values: any[]): any[] {
+  const bound = values.map(bindable);
+  if (!bound.length) return bound;
+  if (positionalNumbered === undefined) {
+    try {
+      db.prepare("SELECT ?1").get(1);
+      positionalNumbered = true;
+    } catch {
+      positionalNumbered = false;
+    }
+  }
+  if (positionalNumbered) return bound;
+  // Only the parameters of the statement can be named: quoted text may contain a question mark
+  const named: Record<string, SQLInputValue> = {};
+  for (const match of sql.replace(/'(?:[^']|'')*'|"(?:[^"]|"")*"/g, "").matchAll(/\?(\d+)/g)) {
+    named[match[1]] = bound[Number(match[1]) - 1] ?? null;
+  }
+  // A statement with anonymous parameters (`?`) binds by position on every version
+  return Object.keys(named).length ? [named] : bound;
+}
+
 /** SQLITE_READONLY */
 const READONLY = 8;
 
@@ -157,7 +199,7 @@ export class SQLiteClient implements SQLClient {
     }
     return {
       rows: [],
-      rowCount: Number(this.run(sql, () => this.statement(sql).run(...values.map(bindable))).changes)
+      rowCount: Number(this.run(sql, () => this.statement(sql).run(...bindArguments(this.db, sql, values))).changes)
     };
   }
 
@@ -172,7 +214,7 @@ export class SQLiteClient implements SQLClient {
     while (this.exclusive && !this.exclusive.isOwner()) {
       await this.exclusive.released;
     }
-    return this.run(sql, () => this.statement(sql).all(...values.map(bindable)));
+    return this.run(sql, () => this.statement(sql).all(...bindArguments(this.db, sql, values)));
   }
 
   /**

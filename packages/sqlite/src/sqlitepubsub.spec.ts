@@ -260,7 +260,7 @@ class SQLitePubSubTest extends WebdaApplicationTest {
       script,
       `import { DatabaseSync } from "node:sqlite";
 const db = new DatabaseSync(process.argv[2]);
-const insert = db.prepare("INSERT INTO webda_pubsub (channel, payload, created_at) VALUES (?1, ?2, ?3)");
+const insert = db.prepare("INSERT INTO webda_pubsub (channel, payload, created_at) VALUES (?, ?, ?)");
 db.exec("BEGIN");
 for (let i = 0; i < 250; i++) insert.run("xproc", JSON.stringify("from child " + i), Date.now());
 db.exec("COMMIT");

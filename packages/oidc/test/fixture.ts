@@ -18,6 +18,12 @@ export const AUDIENCE = "https://billing.example.com";
  * Base test registering the OIDC services from sources
  */
 export class OIDCTest extends WebdaApplicationTest {
+  /** @override */
+  async beforeEach() {
+    resetKeyPool();
+    await super.beforeEach();
+  }
+
   /**
    * Use the sources classes
    * @param app - the test application
@@ -42,6 +48,33 @@ export class OIDCTest extends WebdaApplicationTest {
   async addVerifier(params: Partial<OIDCVerifierParameters>): Promise<OIDCVerifier> {
     return this.addService(OIDCVerifier, { audience: AUDIENCE, ...params } as any, "OIDCVerifier");
   }
+}
+
+const KEY_POOL = new Map<string, Promise<jose.GenerateKeyPairResult>[]>();
+const KEY_POOL_USED = new Map<string, number>();
+
+/**
+ * Generate a key pair, reusing the ones of the previous tests.
+ *
+ * RSA generation is the main cost of these specs: the n-th key a test asks for an algorithm is the
+ * n-th key generated for it, so keys stay distinct inside a test and are generated once per file.
+ * @param alg - the algorithm
+ * @returns the key pair
+ */
+function generateKeyPair(alg: string): Promise<jose.GenerateKeyPairResult> {
+  const pool = KEY_POOL.get(alg) ?? [];
+  KEY_POOL.set(alg, pool);
+  const index = KEY_POOL_USED.get(alg) ?? 0;
+  KEY_POOL_USED.set(alg, index + 1);
+  pool[index] ??= jose.generateKeyPair(alg, { extractable: true });
+  return pool[index];
+}
+
+/**
+ * Make the next test reuse the generated keys from the first one
+ */
+export function resetKeyPool(): void {
+  KEY_POOL_USED.clear();
 }
 
 /**
@@ -78,7 +111,7 @@ export class FakeIdP {
    * @returns this
    */
   async addKey(kid: string, alg: string = "RS256"): Promise<this> {
-    const { privateKey, publicKey } = await jose.generateKeyPair(alg, { extractable: true });
+    const { privateKey, publicKey } = await generateKeyPair(alg);
     this.keys.set(kid, { privateKey, jwk: { ...(await jose.exportJWK(publicKey)), kid, alg, use: "sig" } });
     return this;
   }

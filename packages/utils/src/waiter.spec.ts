@@ -75,26 +75,31 @@ class WaiterTest {
       assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
       assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), false);
       assert.deepStrictEqual(res, { myobject: "test" });
-      const time = Date.now();
       consoleSpy.resetHistory();
-      await WaitFor(
-        async resolve => {
-          if (consoleSpy.callCount === 3) {
-            resolve({ myobject: "test" });
-            return true;
-          }
-          return false;
-        },
-        3,
-        "title",
-        logger
-      );
-      const elapsed = Date.now() - time;
-      assert.strictEqual(
-        elapsed > 2200 && elapsed < 3800,
-        true,
-        `Should have a duration close to 3 seconds, got: ${elapsed}ms`
-      );
+      // The default delayer waits 1s then 2s: run it on a fake clock
+      const clock = sinon.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+      try {
+        const time = Date.now();
+        const waiting = WaitFor(
+          async resolve => {
+            if (consoleSpy.callCount === 3) {
+              resolve({ myobject: "test" });
+              return true;
+            }
+            return false;
+          },
+          3,
+          "title",
+          logger
+        );
+        await clock.tickAsync(2999);
+        assert.strictEqual(consoleSpy.callCount, 2);
+        await clock.tickAsync(1);
+        await waiting;
+        assert.strictEqual(Date.now() - time, 3000, "Should have waited 1s then 2s");
+      } finally {
+        clock.restore();
+      }
       // COV test
       await WaitFor(async (resolve, reject) => {
         resolve();

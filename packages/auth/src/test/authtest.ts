@@ -15,6 +15,32 @@ export abstract class AuthTest extends WebdaApplicationTest {
     if (this.mailer) this.mailer.sent = [];
   }
 
+  /** @override */
+  async afterEach() {
+    this.restoreClock?.();
+    this.restoreClock = undefined;
+    await super.afterEach();
+  }
+
+  /** Restore `Date.now` once {@link elapse} moved it */
+  private restoreClock?: () => void;
+
+  /**
+   * Let time pass without waiting for it: `Date.now()` is moved forward until the end of the test.
+   *
+   * Expirations and lockouts only compare timestamps, so they do not need a real pause.
+   * @param ms - milliseconds to add to the clock
+   */
+  elapse(ms: number): void {
+    const current = Date.now;
+    this.restoreClock ??= function restoreClock() {
+      Date.now = current;
+    };
+    Date.now = function now() {
+      return current() + ms;
+    };
+  }
+
   /**
    * @param body - request body
    * @returns a fresh web context with a session

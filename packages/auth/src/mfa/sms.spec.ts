@@ -195,7 +195,7 @@ class SmsMfaTest extends AuthTest {
       const challenge: any = await this.op("User.Mfa.Challenge", { method: "sms" }, ctx);
       assert.strictEqual(challenge.expiresIn, 1);
       const expiring = this.lastCode();
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      this.elapse(1100);
       await rejectsWith(() => this.op("User.Mfa.Verify", { method: "sms", code: expiring }, ctx), InvalidMfaCode);
     } finally {
       this.sms.parameters.ttl = ttl;
@@ -240,7 +240,7 @@ class SmsMfaTest extends AuthTest {
     }
     // Locked: even the right code is refused
     await rejectsWith(() => this.op("User.Mfa.Verify", { method: "sms", code: sent }, ctx), Throttled);
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    this.elapse(1100);
     assert.strictEqual((await this.op<any>("User.Mfa.Verify", { method: "sms", code: sent }, ctx)).status, "ok");
   }
 

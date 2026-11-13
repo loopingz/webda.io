@@ -227,6 +227,8 @@ webdac build --watch                # Watch mode
 
 # Testing
 pnpm -r run test                    # Run all tests (root)
+pnpm run test:all                   # Run all tests in one vitest process, no coverage (root)
+pnpm run test:all --project core    # Same, for some packages only
 pnpm test                           # Test current package (Vitest)
 pnpm test -t "TestName"             # Run specific test
 npx vitest run <absolute_path>      # Run single test file

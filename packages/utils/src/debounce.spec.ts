@@ -1,15 +1,33 @@
-import { suite, test } from "@webda/test";
+import { afterEach, beforeEach, suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { debounce } from "./debounce.js";
 
 @suite
 export class DebounceTest {
+  clock: sinon.SinonFakeTimers;
+
   /**
-   * Helper to wait for a specific duration
+   * Debounce only relies on Date and timers: a fake clock keeps the suite instant and deterministic
    */
-  private wait(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  @beforeEach
+  installClock() {
+    this.clock = sinon.useFakeTimers({ now: 1000, toFake: ["Date", "setTimeout", "clearTimeout"] });
+  }
+
+  /**
+   * Restore the real timers
+   */
+  @afterEach
+  restoreClock() {
+    this.clock.restore();
+  }
+
+  /**
+   * Helper to wait for a specific duration on the fake clock
+   */
+  private async wait(ms: number): Promise<void> {
+    await this.clock.tickAsync(ms);
   }
 
   @test
@@ -237,7 +255,7 @@ export class DebounceTest {
     let callCount = 0;
     const debouncedFunc = debounce(async () => {
       callCount++;
-      await this.wait(10);
+      await new Promise(resolve => setTimeout(resolve, 10));
       return "done";
     }, 50);
 
@@ -339,7 +357,7 @@ export class DebounceTest {
 
   @test
   "should handle maxWait in tight loop"() {
-    const clock = sinon.useFakeTimers({ now: 1000, toFake: ["Date", "setTimeout", "clearTimeout"] });
+    const clock = this.clock;
     let callCount = 0;
     const debouncedFunc = debounce(
       () => {
@@ -368,7 +386,6 @@ export class DebounceTest {
       assert.strictEqual(callCount, 2);
     } finally {
       debouncedFunc.cancel();
-      clock.restore();
     }
   }
 

@@ -215,6 +215,11 @@ describe("SchemaConverter", () => {
     expect(properties.helper).toBeUndefined();
   });
 
+  it("excludes ES private fields, whose compiler name is not stable", () => {
+    expect(Object.keys(properties).filter(name => name.includes("#"))).toEqual([]);
+    expect((schema.required ?? []).filter(name => name.includes("#"))).toEqual([]);
+  });
+
   it("adds the openapi property only when asked", () => {
     expect(properties.openapi).toBeUndefined();
     const withOpenApi = generateServiceSchema(classOf("params.service.ts", "BroadService"), {

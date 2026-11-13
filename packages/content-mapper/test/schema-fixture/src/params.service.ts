@@ -140,6 +140,8 @@ export class BroadParameters extends ServiceParameters implements Retryable {
   opaque?: Opaque;
   /** Never reaches the schema. */
   private secret: string;
+  /** An ES private field: the compiler names it `__#<n>@#token`, with a number that changes between builds */
+  #token: string;
   /** Nor does a method. */
   helper(): void {}
 }

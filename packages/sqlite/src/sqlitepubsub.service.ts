@@ -2,6 +2,7 @@ import { PubSubService, ServiceParameters } from "@webda/core";
 import type { SQLDatabase } from "@webda/sql";
 import { CancelablePromise, JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
+import { bindArguments } from "./connection.js";
 import type { SQLiteConnectionParameters, SQLitePersistence } from "./connection.js";
 import { acquireDatabase, releaseDatabase } from "./dbregistry.js";
 import type { SQLiteHandle } from "./dbregistry.js";
@@ -287,15 +288,16 @@ export default class SQLitePubSubService<
         }
         this.dataVersion = version;
       }
-      const read = this.handle.db.prepare(
-        `SELECT id, payload FROM ${this.table} WHERE channel = ?1 AND id > ?2 ORDER BY id LIMIT ?3`
-      );
+      const sql = `SELECT id, payload FROM ${this.table} WHERE channel = ?1 AND id > ?2 ORDER BY id LIMIT ?3`;
+      const read = this.handle.db.prepare(sql);
       // A full batch may hide more rows (a burst from another process): read again until a batch is short
       let more = true;
       while (more) {
         more = false;
         for (const sub of [...this.subscribers]) {
-          const rows = read.all(this.channel(), sub.cursor, this.parameters.batchSize!) as unknown as {
+          const rows = read.all(
+            ...bindArguments(this.handle.db, sql, [this.channel(), sub.cursor, this.parameters.batchSize!])
+          ) as unknown as {
             id: number;
             payload: string;
           }[];

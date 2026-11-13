@@ -4,7 +4,7 @@ import * as assert from "node:assert";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { __setSQLiteLoader, bindable, SQLiteClient } from "./connection.js";
+import { __setPositionalNumbered, __setSQLiteLoader, bindable, bindArguments, SQLiteClient } from "./connection.js";
 import { __resetDatabases, acquireDatabase, databaseKey, releaseDatabase } from "./dbregistry.js";
 
 @suite
@@ -152,6 +152,45 @@ class DbRegistryTest {
     const handle = await acquireDatabase({}, "s");
     const res = await handle.client.query("SELECT ?1 AS b, ?2 AS d", [true, new Date(0)]);
     assert.deepStrictEqual({ ...res.rows[0] }, { b: 1, d: "1970-01-01T00:00:00.000Z" });
+  }
+
+  @test
+  async numberedParametersBindOnEveryNode() {
+    const handle = await acquireDatabase({}, "s");
+    const sql = "SELECT ?2 AS b, ?1 AS a, ?1 AS again, 'is ?9 it' AS text";
+    try {
+      // Node 22 only takes numbered parameters by name, the quoted ?9 is not one of them
+      __setPositionalNumbered(false);
+      assert.deepStrictEqual(bindArguments(handle.db, sql, ["x", true]), [{ 1: "x", 2: 1 }]);
+      assert.deepStrictEqual(
+        { ...(await handle.client.query(sql, ["x", true])).rows[0] },
+        { b: 1, a: "x", again: "x", text: "is ?9 it" }
+      );
+      // A value that is not given is bound to NULL, anonymous parameters stay positional
+      assert.deepStrictEqual(bindArguments(handle.db, "SELECT ?1, ?2", ["x"]), [{ 1: "x", 2: null }]);
+      assert.deepStrictEqual(bindArguments(handle.db, "SELECT ?, ?", ["x", "y"]), ["x", "y"]);
+      assert.deepStrictEqual({ ...(await handle.client.query("SELECT ? AS a", ["x"])).rows[0] }, { a: "x" });
+      assert.deepStrictEqual(bindArguments(handle.db, sql, []), []);
+      // Later versions bind by position
+      __setPositionalNumbered(true);
+      assert.deepStrictEqual(bindArguments(handle.db, sql, ["x", true]), ["x", 1]);
+      // Probed on first use, whatever this Node does the statement runs
+      __setPositionalNumbered();
+      assert.deepStrictEqual(
+        { ...(await handle.client.query(sql, ["x", true])).rows[0] },
+        { b: 1, a: "x", again: "x", text: "is ?9 it" }
+      );
+      // A database that cannot run the probe means no positional binding
+      __setPositionalNumbered();
+      const broken: any = {
+        prepare: () => {
+          throw new Error("column index out of range");
+        }
+      };
+      assert.deepStrictEqual(bindArguments(broken, "SELECT ?1", ["x"]), [{ 1: "x" }]);
+    } finally {
+      __setPositionalNumbered();
+    }
   }
 
   @test

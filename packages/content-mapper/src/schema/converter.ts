@@ -564,6 +564,9 @@ export class SchemaConverter {
     for (const prop of this.checker.getPropertiesOfType(type)) {
       const declaration = this.declarationOf(prop);
       if (this.isSymbolKeyed(prop, declaration)) continue;
+      // An ES private field (`#name`) is never serialized, and the compiler names it `__#<n>@#name`
+      // with a counter that depends on the order the classes were checked in
+      if (String(prop.escapedName).startsWith("__#")) continue;
 
       const location = declaration ?? this.targetNode;
       if (!location) continue;

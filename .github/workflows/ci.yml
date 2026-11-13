@@ -34,7 +34,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "26"
-          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install
@@ -100,7 +99,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
 
       - uses: fsouza/fake-gcs-action@f8e805c9cef6056421b73390d078b2fb467b989c # v0.4.2
         with:

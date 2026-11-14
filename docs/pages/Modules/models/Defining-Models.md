@@ -198,7 +198,7 @@ The source is parsed as [CommonMark](https://commonmark.org) by [micromark](http
 
 A scheme is unsafe when it is not `http`, `https`, `mailto` or `tel`. Relative URLs and anchors (`/a?b=c:d`, `#top`) are kept. The scheme is read after resolving backslash escapes and character references, so `javascript&colon;` is caught. HTML inside a code span, a fenced or an indented code block is code: it is kept.
 
-Sanitizing a text twice gives the same text, so a stored text can be sent back in an update. A text the parser still reports as unsafe after three passes is sanitized as `text`.
+Sanitizing a text twice gives the same text, so a stored text can be sent back in an update. A text the parser still reports as unsafe after three passes is sanitized as `text`, and what is left of its links and reference definitions is escaped (`]\(`, `]\:`) so that none of them is a link anymore.
 
 Limits to know:
 

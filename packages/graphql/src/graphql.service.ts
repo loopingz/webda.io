@@ -21,6 +21,7 @@ import {
   assertFilterOnly,
   callOperation,
   canCallOperation,
+  parseSubjectKey,
   readOperationBody,
   isOperationEnabled,
   createOperationFilter,
@@ -74,6 +75,7 @@ import {
   enforceModelOperationPermission,
   isInputAttribute,
   loadForAction,
+  modelOperationError,
   operationError,
   updateFromInput
 } from "./mutations.js";
@@ -1045,11 +1047,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           args: {
             [name]: { type: input }
           },
-          // Sanitized by createFromInput, with the modes of the model
+          // Sanitized with the modes of the model, by the model operation or by createFromInput
           extensions: { [RAW_ARGS]: [name] },
           resolve: async (_, args, context) => {
             this.log("INFO", "Create", name, context.getCurrentUserId());
-            return createFromInput(model, restoreInputKeys(input, args[name]), context);
+            const data = restoreInputKeys(input, args[name]);
+            const called = await this.callModelOperation(model, "modelCreate", context, data);
+            return called ? called.result : createFromInput(model, data, context);
           }
         };
       }
@@ -1062,10 +1066,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
-          // Sanitized by updateFromInput, with the modes of the model
+          // Sanitized with the modes of the model, by the model operation or by updateFromInput
           extensions: { [RAW_ARGS]: [name] },
-          resolve: async (_, args, context) =>
-            updateFromInput(model, args.uuid, restoreInputKeys(input, args[name]), context)
+          resolve: async (_, args, context) => {
+            const data = restoreInputKeys(input, args[name]);
+            const called = await this.callModelOperation(model, "modelUpdate", context, data, args.uuid);
+            return called ? called.result : updateFromInput(model, args.uuid, data, context);
+          }
         };
       }
       // check for actions
@@ -1078,8 +1085,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (_, args, context) => {
-            const object = await loadForAction(model, args.uuid, context, "delete");
-            await object.delete();
+            if (!(await this.callModelOperation(model, "modelDelete", context, undefined, args.uuid))) {
+              const object = await loadForAction(model, args.uuid, context, "delete");
+              await object.delete();
+            }
             return {
               success: true
             };
@@ -1345,6 +1354,51 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.schema = this.getGraphQLSchema(rootFields, mutations, subscriptions);
     // Regenerated after init (operations registered later): serve the new schema
     if (this.handler) this.createHandlers();
+  }
+
+  /**
+   * Run a model mutation as the operation a DomainService registered for it (`<Model>.Create`, `.Update`,
+   * `.Delete`), so GraphQL does exactly what the other transports do: the same permission checks in the same order,
+   * the input sanitized and validated against the model schema, the same events (audit) and transaction
+   *
+   * A model no DomainService exposes has no such operation: the caller then applies the mutation itself.
+   * @param model - model class
+   * @param method - the DomainService method of the operation
+   * @param context - the GraphQL request context
+   * @param input - the model input, as received
+   * @param key - the primary key, for an update or a delete
+   * @returns the operation result, undefined when the model has no such operation
+   * @throws GraphQLError the error of the operation (BAD_USER_INPUT with the validation details, NOT_FOUND,
+   * PERMISSION_DENIED, CONFLICT)
+   */
+  async callModelOperation(
+    model: any,
+    method: "modelCreate" | "modelUpdate" | "modelDelete",
+    context: WebContext,
+    input?: unknown,
+    key?: unknown
+  ): Promise<{ result: unknown } | undefined> {
+    const operations: Record<string, any> = useInstanceStorage().operations ?? {};
+    const id = Object.keys(operations).find(
+      name => operations[name].method === method && operations[name].context?.model === model
+    );
+    if (!id) {
+      return undefined;
+    }
+    const ctx = new GraphQLOperationContext(context, input);
+    if (method !== "modelCreate") {
+      // The key is a parameter of the operation, like the URL of the REST route
+      const fields: string[] = operations[id].context.pkFields ?? ["uuid"];
+      const parsed = parseSubjectKey(fields, key);
+      ctx.setParameters(typeof parsed === "object" ? parsed : { [fields[0]]: parsed });
+    }
+    await ctx.init();
+    try {
+      await callOperation(ctx, id);
+    } catch (err) {
+      throw modelOperationError(err);
+    }
+    return { result: ctx.result };
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   checkOperationPermission,
   createModel,
   getParentRelation,
+  hasSchema,
   isOperationEnabled,
   listOperationAuthorizers,
   loadModelForAction,
@@ -16,6 +17,7 @@ import {
   scopeMatches,
   useInstanceStorage,
   useModelMetadata,
+  validateOperationInput,
   WebdaError
 } from "@webda/core";
 import type { OperationContext, OperationDefinition } from "@webda/core";
@@ -68,7 +70,8 @@ export async function asGraphQL<T>(check: () => Promise<T>): Promise<T> {
 
 /**
  * The GraphQL error of a failed operation: NotFound → NOT_FOUND, Forbidden/Unauthorized → PERMISSION_DENIED,
- * BadRequest → BAD_USER_INPUT, any other 4xx WebdaError keeps its message (OPERATION_REFUSED); everything else is
+ * BadRequest → BAD_USER_INPUT (with the `details` REST answers, e.g. the validation errors), any other 4xx
+ * WebdaError keeps its message (OPERATION_REFUSED); everything else is
  * logged and reported as a generic INTERNAL_SERVER_ERROR so internal details never reach the client
  * @param err - what the operation threw
  * @returns the error to report
@@ -84,13 +87,56 @@ export function operationError(err: unknown): GraphQLError {
     return permissionDenied();
   }
   if (err instanceof WebdaError.BadRequest) {
-    return new GraphQLError(err.message, { extensions: { code: "BAD_USER_INPUT" } });
+    return new GraphQLError(err.message, {
+      extensions: { code: "BAD_USER_INPUT", ...(err.details === undefined ? {} : { details: err.details }) }
+    });
   }
   if (err instanceof WebdaError.CodeError && err.getResponseCode() >= 400 && err.getResponseCode() < 500) {
     return new GraphQLError(err.message, { extensions: { code: "OPERATION_REFUSED" } });
   }
   useLog("ERROR", "GraphQL operation failed:", err);
   return new GraphQLError("Internal server error", { extensions: { code: "INTERNAL_SERVER_ERROR" } });
+}
+
+/**
+ * The GraphQL error of a failed model operation (`<Model>.Create`, `.Update`, `.Delete`): an existing key is a
+ * CONFLICT, anything else is mapped by {@link operationError}
+ * @param err - what the operation threw
+ * @returns the error to report
+ */
+export function modelOperationError(err: unknown): GraphQLError {
+  if (err instanceof WebdaError.Conflict) {
+    return new GraphQLError("Object already exists", { extensions: { code: "CONFLICT" } });
+  }
+  return operationError(err);
+}
+
+/**
+ * Validate the input of a model mutation against the model schema, like the model operation does over REST: the
+ * same schema (the Input schema, required properties ignored as for `<Model>.Create` and `.Update`), the same
+ * validator and the same error
+ *
+ * Only used when no DomainService exposes the model: otherwise the mutation calls the model operation itself.
+ * @param model - model class
+ * @param action - "Create" or "Update", named in the error
+ * @param input - the input, its texts sanitized
+ * @throws GraphQLError BAD_USER_INPUT with the validation errors in `extensions.details`
+ */
+export function validateModelInput(model: any, action: string, input: any): void {
+  let identifier: string | undefined;
+  try {
+    identifier = useModelMetadata(model)?.Identifier;
+  } catch {
+    // Not a registered model: no schema to validate against
+  }
+  if (!identifier || !hasSchema(identifier)) {
+    return;
+  }
+  try {
+    validateOperationInput(`${identifier.split("/").pop()}.${action}`, `${identifier}?`, input);
+  } catch (err) {
+    throw operationError(err);
+  }
 }
 
 /**
@@ -191,8 +237,12 @@ export function isInputAttribute(attribute: string, graph?: ModelGraph, writable
 export async function createFromInput(model: any, input: any, context: any): Promise<any> {
   // Same input rules as the REST create: sanitized, parent link kept, client uuid ignored for UuidModels
   // The texts first, with the rules of the model operations: the same stored value on every transport
-  const data: any = prepareCreateInput(model, await sanitizeModelText(model, input ?? {}), context);
+  const text = await sanitizeModelText(model, input ?? {});
+  const data: any = prepareCreateInput(model, text, context);
   await enforceModelOperationPermission(model, context, "create", data);
+  // Once the caller may create: what is validated is the sanitized input, before the attributes a client cannot
+  // write are removed, like the operation input over REST
+  validateModelInput(model, "Create", text);
   const object = new model();
   object.load(data);
   // The parent must exist and be readable: an unreadable parent answers like a missing one
@@ -238,7 +288,8 @@ function primaryKeyFields(model: any): string[] {
  * @throws GraphQLError PERMISSION_DENIED when the object refuses the update
  */
 export async function updateFromInput(model: any, uuid: string, input: any, context: any): Promise<any> {
-  input = sanitizeModelInput(model, await sanitizeModelText(model, input ?? {}), context);
+  const text = await sanitizeModelText(model, input ?? {});
+  input = sanitizeModelInput(model, text, context);
   // The key comes from the arguments: a body carrying another key would write over that other object
   for (const field of primaryKeyFields(model)) {
     if (input[field] !== undefined && String(input[field]) !== String(uuid)) {
@@ -247,6 +298,7 @@ export async function updateFromInput(model: any, uuid: string, input: any, cont
     delete input[field];
   }
   const object = await loadForAction(model, uuid, context, "update");
+  validateModelInput(model, "Update", text);
   // Moving the object to another parent requires reading the new parent
   await asGraphQL(() => checkModelReparent(model, object, input, context));
   return object.load(input).save();

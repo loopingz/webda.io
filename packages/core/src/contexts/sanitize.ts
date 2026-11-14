@@ -197,8 +197,10 @@ function sanitizeMarkdownText(value: string): string {
       text = text.slice(0, start) + replacement + text.slice(end);
     }
   }
-  // Still not clean: nothing of it is trusted
-  return sanitizeHtml(value, DEFAULT_SANITIZE_OPTIONS);
+  // Still not clean: nothing of it is trusted. As text it holds no `<` anymore, so no raw HTML, autolink nor
+  // `<destination>`; the links and the definitions that are left are broken too (`](` and `]:` escaped), since their
+  // destination was not checked
+  return sanitizeHtml(value, DEFAULT_SANITIZE_OPTIONS).replace(/\](?=[(:])/g, "]\\");
 }
 
 /**
@@ -242,7 +244,8 @@ async function loadMarkdown(): Promise<void> {
  * - the destination of a link, an image or a reference definition with an unsafe scheme: replaced by `#`.
  *
  * A scheme is unsafe when it is not http, https, mailto or tel; relative URLs and anchors are kept. The result is
- * parsed again until nothing is left to neutralize; a text that does not settle is sanitized like `text`.
+ * parsed again until nothing is left to neutralize; a text that does not settle is sanitized like `text`, and its
+ * links and reference definitions are escaped (`]\(`, `]\:`).
  *
  * This is defense in depth: the renderer must still not enable raw HTML, or must sanitize its output. It does not
  * cover MDX, nor syntax extensions that give other constructs a meaning.

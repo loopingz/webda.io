@@ -9,6 +9,8 @@ import {
   ServiceParameters,
   Session,
   useApplication,
+  useContext,
+  useCoreEvents,
   useService,
   WebContext,
   WebdaError
@@ -27,6 +29,13 @@ import {
 } from "graphql";
 import { GraphQLService } from "./graphql.service.js";
 import { RAW_ARGS, sanitizeArguments, sanitizeFieldArguments } from "./sanitize.js";
+import {
+  createFromInput,
+  modelOperationError,
+  operationError,
+  updateFromInput,
+  validateModelInput
+} from "./mutations.js";
 import { AnyScalarType } from "./types/any.js";
 
 /**
@@ -43,6 +52,36 @@ class Article extends CoreModel {
   }
 }
 Article.registerSerializer(true, "GraphQLSanitizeArticle");
+
+/**
+ * Model whose schema constrains its attributes, open to everybody
+ */
+class Product extends CoreModel {
+  name?: string;
+  price?: number;
+  kind?: string;
+  email?: string;
+  code?: any;
+  static canAct(): boolean {
+    return true;
+  }
+}
+Product.registerSerializer(true, "GraphQLSanitizeProduct");
+
+const PRODUCT_SCHEMA: any = {
+  type: "object",
+  properties: {
+    uuid: { type: "string" },
+    name: { type: "string", pattern: "^[A-Z][A-Za-z &]*$", minLength: 2, "x-webda-sanitize": "none" },
+    price: { type: "number", maximum: 100 },
+    kind: { type: "string", enum: ["a", "b"] },
+    email: { type: "string", format: "email" },
+    // No GraphQL type describes it: only the schema refuses a wrong value
+    code: { anyOf: [{ type: "number" }, { type: "string", pattern: "^x" }] }
+  },
+  required: ["name"],
+  additionalProperties: false
+};
 
 const ARTICLE_SCHEMA: any = {
   type: "object",
@@ -95,6 +134,13 @@ class EchoService extends Service {
   echo(note: any, plain: string, anything: any) {
     EchoService.received.push({ note, plain, anything });
     return { note, plain, anything };
+  }
+
+  /**
+   * Stands for the delete operation of a model: records the key it is called with
+   */
+  modelDelete() {
+    EchoService.received.push(useContext<WebContext>().getParameters());
   }
 
   /**
@@ -165,6 +211,20 @@ class GraphQLSanitizeTest extends WebdaApplicationTest {
       .addModda("Webda/DomainService", DomainService)
       .addModda("Webda/GraphQLService", GraphQLService);
     app.getSchemas()["WebdaDemo/Article"] = ARTICLE_SCHEMA;
+    app.getSchemas()["WebdaDemo/Product"] = PRODUCT_SCHEMA;
+    app.addModel("WebdaDemo/Product", Product, {
+      Identifier: "WebdaDemo/Product",
+      Ancestors: [],
+      Subclasses: [],
+      Relations: {},
+      PrimaryKey: ["uuid"],
+      Events: [],
+      Schemas: { Input: PRODUCT_SCHEMA },
+      Actions: {},
+      Import: "",
+      Plural: "Products",
+      Reflection: {}
+    } as any);
     app.getSchemas()["Sanitize.Echo.input"] = NOTE_SCHEMA;
     app.addModel("WebdaDemo/Article", Article, {
       Identifier: "WebdaDemo/Article",
@@ -197,8 +257,11 @@ class GraphQLSanitizeTest extends WebdaApplicationTest {
   /** Start from no article, and a schema holding the operations and a field of another service */
   async beforeEach(): Promise<void> {
     await super.beforeEach();
-    for (const article of (await Article.query("LIMIT 1000")).results) {
-      await article.delete();
+    for (const object of [
+      ...(await Article.query("LIMIT 1000")).results,
+      ...(await Product.query("LIMIT 1000")).results
+    ]) {
+      await object.delete();
     }
     EchoService.received = [];
     this.registerOperations();
@@ -588,5 +651,219 @@ class GraphQLSanitizeTest extends WebdaApplicationTest {
       when: date,
       text: "t"
     });
+  }
+
+  /**
+   * Create a product over REST
+   * @param payload - the body
+   * @returns the created product, or the error of the refusal
+   */
+  async restCreate(payload: any): Promise<{ created?: any; error?: WebdaError.HttpError }> {
+    try {
+      return { created: await this.send("POST", "/api/products", payload) };
+    } catch (error) {
+      return { error: error as WebdaError.HttpError };
+    }
+  }
+
+  /**
+   * The stored attributes of a product, without its key
+   * @param uuid - its key
+   * @returns the attributes
+   */
+  async product(uuid: string): Promise<any> {
+    const { uuid: _uuid, ...attributes } = JSON.parse(JSON.stringify(await Product.ref(uuid).get()));
+    return attributes;
+  }
+
+  @test
+  async modelMutationsValidateLikeRest() {
+    const create = `mutation ($product: ProductInput) { createProduct(Product: $product) { uuid } }`;
+    const update = `mutation ($product: ProductInput, $uuid: String) { updateProduct(Product: $product, uuid: $uuid) { uuid } }`;
+    // payload, and whether the model schema accepts it
+    const cases: Record<string, [any, boolean]> = {
+      valid: [{ name: "Alpha & Co", price: 10, kind: "a", email: "a@b.io", code: "x1" }, true],
+      pattern: [{ name: "alpha" }, false],
+      "pattern on the text as sent": [{ name: "Alpha <b>" }, false],
+      minLength: [{ name: "A" }, false],
+      maximum: [{ name: "Alpha", price: 1000 }, false],
+      enum: [{ name: "Alpha", kind: "z" }, false],
+      format: [{ name: "Alpha", email: "nope" }, false],
+      // GraphQL has no type for `code` (an Object scalar): only the schema can refuse it
+      "wrong type in a free-form value": [{ name: "Alpha", code: "nope" }, false],
+      "free-form value of the other type": [{ name: "Alpha", code: 12 }, true],
+      // `<Model>.Create` ignores the required attributes, on every transport
+      "missing required attribute": [{ price: 1 }, true]
+    };
+    for (const [name, [payload, accepted]] of Object.entries(cases)) {
+      const rest = await this.restCreate(payload);
+      const variables = await this.send("POST", "/graphql", { query: create, variables: { product: payload } });
+      const literals = await this.send("POST", "/graphql", {
+        query: `mutation { createProduct(Product: ${this.literal(payload)}) { uuid } }`
+      });
+      assert.strictEqual(rest.error === undefined, accepted, name);
+      for (const answer of [variables, literals]) {
+        assert.strictEqual(answer.errors === undefined, accepted, `${name}: ${JSON.stringify(answer.errors)}`);
+        if (accepted) {
+          // The same stored object
+          assert.deepStrictEqual(
+            await this.product(answer.data.createProduct.uuid),
+            await this.product(rest.created.uuid)
+          );
+        } else {
+          // The same refusal: a 400 with the validation errors, not a null result nor an internal error
+          assert.strictEqual(answer.data.createProduct, null);
+          assert.strictEqual(answer.errors[0].message, rest.error!.message, name);
+          assert.strictEqual(answer.errors[0].extensions.code, "BAD_USER_INPUT");
+          assert.deepStrictEqual(answer.errors[0].extensions.details, JSON.parse(JSON.stringify(rest.error!.details)));
+          assert.strictEqual(rest.error!.getResponseCode(), 400);
+        }
+      }
+    }
+    assert.strictEqual((await Product.query("LIMIT 1000")).results.length, 9, "nothing stored by a refused create");
+    // An attribute the schema does not know: refused by the schema over REST, by the input type over GraphQL
+    assert.match((await this.restCreate({ name: "Alpha", extra: "x" })).error!.message, /additional properties/);
+    const unknown = await this.send("POST", "/graphql", {
+      query: create,
+      variables: { product: { name: "Alpha", extra: "x" } }
+    });
+    assert.match(unknown.errors[0].message, /unknown field "extra"/);
+    assert.strictEqual((await Product.query("LIMIT 1000")).results.length, 9);
+
+    // Update: absent attributes are accepted, the ones sent are validated
+    const viaRest = (await this.restCreate({ name: "Rest", price: 1 })).created.uuid;
+    const viaGraphQL = (await this.gql(create, { product: { name: "Rest", price: 1 } })).createProduct.uuid;
+    await this.send("PATCH", `/api/products/${viaRest}`, { price: 5 });
+    await this.gql(update, { uuid: viaGraphQL, product: { price: 5 } });
+    assert.deepStrictEqual(await this.product(viaGraphQL), { name: "Rest", price: 5 });
+    assert.deepStrictEqual(await this.product(viaGraphQL), await this.product(viaRest));
+    const restRefusal: any = await this.send("PATCH", `/api/products/${viaRest}`, { name: "bad" }).catch(e => e);
+    const refusal = await this.send("POST", "/graphql", {
+      query: update,
+      variables: { uuid: viaGraphQL, product: { name: "bad" } }
+    });
+    assert.strictEqual(refusal.errors[0].extensions.code, "BAD_USER_INPUT");
+    assert.strictEqual(refusal.errors[0].message.replace("Update", "Patch"), restRefusal.message);
+    assert.deepStrictEqual(await this.product(viaGraphQL), await this.product(viaRest), "nothing changed");
+    // A key in the input that is not the one of the object, a missing object
+    const mismatch = await this.send("POST", "/graphql", {
+      query: update,
+      variables: { uuid: viaGraphQL, product: { uuid: viaRest, price: 6 } }
+    });
+    const restMismatch: any = await this.send("PATCH", `/api/products/${viaRest}`, { uuid: viaGraphQL }).catch(e => e);
+    assert.strictEqual(mismatch.errors[0].extensions.code, "BAD_USER_INPUT");
+    assert.strictEqual(mismatch.errors[0].message.replace("Update", "Patch"), restMismatch.message);
+    assert.match(restMismatch.message, /uuid conflicts with path parameter/);
+    const missing = await this.send("POST", "/graphql", { query: update, variables: { uuid: "nope", product: {} } });
+    assert.strictEqual(missing.errors[0].extensions.code, "NOT_FOUND");
+    // Delete is the model operation too
+    const remove = `mutation ($uuid: String) { deleteProduct(uuid: $uuid) { success } }`;
+    assert.deepStrictEqual((await this.gql(remove, { uuid: viaGraphQL })).deleteProduct, { success: true });
+    assert.strictEqual(await Product.ref(viaGraphQL).exists(), false);
+    const gone = await this.send("POST", "/graphql", { query: remove, variables: { uuid: viaGraphQL } });
+    assert.strictEqual(gone.errors[0].extensions.code, "NOT_FOUND");
+  }
+
+  @test
+  async modelMutationsAreTheModelOperations() {
+    // What the audit log listens to: a GraphQL mutation is the operation the other transports call
+    const called: string[] = [];
+    const stop = useCoreEvents("Webda.OperationSuccess", (evt: any) => {
+      called.push(evt.operationId);
+    });
+    try {
+      const { uuid } = (await this.gql(`mutation { createProduct(Product: { name: "Audit" }) { uuid } }`))
+        .createProduct;
+      await this.gql(`mutation ($uuid: String) { updateProduct(uuid: $uuid, Product: { price: 2 }) { uuid } }`, {
+        uuid
+      });
+      await this.gql(`mutation ($uuid: String) { deleteProduct(uuid: $uuid) { success } }`, { uuid });
+    } finally {
+      stop();
+    }
+    assert.deepStrictEqual(called, ["Product.Create", "Product.Update", "Product.Delete"]);
+
+    // The key of an update or a delete is a parameter of the operation, named after the primary key of the model
+    class Pair {}
+    class Single {}
+    EchoService.received = [];
+    registerOperation("Pairs.Delete", {
+      service: "Echo",
+      method: "modelDelete",
+      input: "void",
+      output: "void",
+      context: { model: Pair, pkFields: ["left", "right"] }
+    } as any);
+    registerOperation("Singles.Delete", {
+      service: "Echo",
+      method: "modelDelete",
+      input: "void",
+      output: "void",
+      context: { model: Single }
+    } as any);
+    const context = await this.newContext<WebContext>();
+    context.setSession(new Session());
+    assert.notStrictEqual(
+      await this.service.callModelOperation(Pair, "modelDelete", context, undefined, '["l","r"]'),
+      undefined
+    );
+    assert.notStrictEqual(
+      await this.service.callModelOperation(Single, "modelDelete", context, undefined, "key"),
+      undefined
+    );
+    assert.deepStrictEqual(EchoService.received, [{ left: "l", right: "r" }, { uuid: "key" }]);
+    // A model no DomainService exposes has no operation: the caller applies the mutation itself
+    assert.strictEqual(await this.service.callModelOperation(Pair, "modelCreate", context, {}), undefined);
+    // An existing key is a conflict, other failures are mapped like any operation error
+    assert.strictEqual(modelOperationError(new WebdaError.Conflict("exists")).extensions.code, "CONFLICT");
+    assert.strictEqual(modelOperationError(new WebdaError.NotFound("x")).extensions.code, "NOT_FOUND");
+    assert.deepStrictEqual(operationError(new WebdaError.BadRequest("plain")).extensions, { code: "BAD_USER_INPUT" });
+  }
+
+  @test
+  async mutationsWithoutModelOperationValidateToo() {
+    // The path of a model no DomainService exposes: the same validator, the same error
+    const context = await this.newContext<WebContext>();
+    context.setSession(new Session());
+    const refused = (fn: () => Promise<unknown>) =>
+      fn().then(
+        () => undefined,
+        err => err
+      );
+    const pattern = await refused(() => createFromInput(Product, { name: "alpha" }, context));
+    const rest = await this.restCreate({ name: "alpha" });
+    assert.strictEqual(pattern.message, rest.error!.message);
+    assert.strictEqual(pattern.extensions.code, "BAD_USER_INPUT");
+    assert.deepStrictEqual(pattern.extensions.details, JSON.parse(JSON.stringify(rest.error!.details)));
+    assert.strictEqual((await Product.query("LIMIT 10")).results.length, 0);
+    const created = await createFromInput(Product, { name: "Alpha & Co", code: 1 }, context);
+    assert.strictEqual(created.name, "Alpha & Co");
+    const wrong = await refused(() => updateFromInput(Product, created.uuid, { code: "nope" }, context));
+    assert.match(wrong.message, /^Product\.Update InvalidInput: \/code/);
+    assert.strictEqual((await Product.ref(created.uuid).get()).code, 1);
+    assert.strictEqual((await updateFromInput(Product, created.uuid, { price: 3 }, context)).price, 3);
+    // The same through the mutations, for a model without operation
+    const service: any = this.service;
+    const callModelOperation = service.callModelOperation;
+    service.callModelOperation = async () => undefined;
+    try {
+      const made = (await this.gql(`mutation { createProduct(Product: { name: "Direct" }) { uuid } }`)).createProduct;
+      const update = `mutation ($uuid: String, $product: ProductInput) { updateProduct(uuid: $uuid, Product: $product) { price } }`;
+      const bad = await this.send("POST", "/graphql", {
+        query: update,
+        variables: { uuid: made.uuid, product: { price: 1000 } }
+      });
+      assert.strictEqual(bad.errors[0].extensions.code, "BAD_USER_INPUT");
+      assert.match(bad.errors[0].message, /^Product\.Update InvalidInput: \/price must be <= 100$/);
+      assert.strictEqual((await this.gql(update, { uuid: made.uuid, product: { price: 7 } })).updateProduct.price, 7);
+      await this.gql(`mutation ($uuid: String) { deleteProduct(uuid: $uuid) { success } }`, { uuid: made.uuid });
+      assert.strictEqual(await Product.ref(made.uuid).exists(), false);
+    } finally {
+      service.callModelOperation = callModelOperation;
+    }
+    // Nothing to validate against: a class that is not a model, a model without schema
+    validateModelInput(class NotAModel {}, "Create", { any: "thing" });
+    validateModelInput({ Metadata: {} }, "Create", { any: "thing" });
+    validateModelInput({ Metadata: { Identifier: "WebdaDemo/NoSchema" } }, "Create", { any: "thing" });
   }
 }

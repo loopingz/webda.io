@@ -327,6 +327,25 @@ function invalidInput(operationId: string, err: ValidationError): WebdaError.Bad
 }
 
 /**
+ * Validate the input of an operation against a schema, the way `callOperation` does
+ *
+ * For a transport that hands a model its input without calling the operation (the GraphQL mutations of a model no
+ * DomainService exposes): the same validator, and the same error as the operation answers.
+ * @param operationId - the operation, named in the error
+ * @param schema - the schema name (`<name>?` to ignore the required properties)
+ * @param input - the input
+ * @throws BadRequest `<operationId> InvalidInput: ...`, the validation errors in its `details`
+ */
+export function validateOperationInput(operationId: string, schema: string, input: unknown): void {
+  try {
+    validateSchema(schema, input);
+  } catch (err) {
+    if (err instanceof ValidationError) throw invalidInput(operationId, err);
+    throw err;
+  }
+}
+
+/**
  * The streamed input of an operation, each message validated against its input schema as it is read
  * @param operationId - the operation
  * @param schema - its input schema name
@@ -336,12 +355,7 @@ function invalidInput(operationId: string, err: ValidationError): WebdaError.Bad
 async function* validatedStream(operationId: string, schema: string, source: AsyncIterable<unknown>) {
   for await (const item of source) {
     if (schema && schema !== "void") {
-      try {
-        validateSchema(schema, item);
-      } catch (err) {
-        if (err instanceof ValidationError) throw invalidInput(operationId, err);
-        throw err;
-      }
+      validateOperationInput(operationId, schema, item);
     }
     yield item;
   }
@@ -778,28 +792,21 @@ async function checkOperation(context: OperationContext, operationId: string) {
     // Each message is validated as the operation reads it (resolveArguments)
     return;
   }
-  try {
-    if (operations[operationId].input && operations[operationId].input !== "void") {
-      // Validate the merged (path params + request body) against the input schema.
-      // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
-      // and must be merged with the body before validation because schemas like
-      // uuidRequest and binaryHashRequest declare them as required properties.
-      const { merged, params, body } = await getOperationInput(context, operationId);
-      // Coerce string path/query params (e.g. `"0"`) to the type the
-      // schema declares before validation runs, so AJV doesn't reject
-      // `index: "0"` against `{ type: "number" }`. Mutates `merged` in
-      // place so `resolveArguments` sees the typed value too.
-      const app = useApplication();
-      const inputSchema = app.getSchema(operations[operationId].input);
-      coerceParametersToSchema(inputSchema, merged, params, body, operations[operationId]);
-      validateSchema(operations[operationId].input, merged);
-      context.setExtension("operationResolvedInput", merged);
-    }
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      throw invalidInput(operationId, err);
-    }
-    throw err;
+  if (operations[operationId].input && operations[operationId].input !== "void") {
+    // Validate the merged (path params + request body) against the input schema.
+    // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
+    // and must be merged with the body before validation because schemas like
+    // uuidRequest and binaryHashRequest declare them as required properties.
+    const { merged, params, body } = await getOperationInput(context, operationId);
+    // Coerce string path/query params (e.g. `"0"`) to the type the
+    // schema declares before validation runs, so AJV doesn't reject
+    // `index: "0"` against `{ type: "number" }`. Mutates `merged` in
+    // place so `resolveArguments` sees the typed value too.
+    const app = useApplication();
+    const inputSchema = app.getSchema(operations[operationId].input);
+    coerceParametersToSchema(inputSchema, merged, params, body, operations[operationId]);
+    validateOperationInput(operationId, operations[operationId].input, merged);
+    context.setExtension("operationResolvedInput", merged);
   }
   const authorized = await runAuthorizers(context, operationId, operations[operationId], {
     input: context.getExtension("operationResolvedInput"),

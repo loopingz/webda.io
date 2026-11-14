@@ -1378,7 +1378,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     input?: unknown,
     key?: unknown
   ): Promise<{ result: unknown } | undefined> {
-    const operations: Record<string, any> = useInstanceStorage().operations ?? {};
+    const operations: Record<string, any> = useInstanceStorage().operations!;
     const id = Object.keys(operations).find(
       name => operations[name].method === method && operations[name].context?.model === model
     );

@@ -1026,15 +1026,10 @@ export function maskValue(val: unknown, seen = new WeakSet<object>()): unknown {
   if (Array.isArray(val)) {
     return val.map(item => maskValue(item, seen));
   }
-  const result: Record<string, unknown> = {};
-  for (const [key, propVal] of Object.entries(val)) {
-    if (SECRET_REGEX.test(key)) {
-      result[key] = SECRET_MASK;
-    } else {
-      result[key] = maskValue(propVal, seen);
-    }
-  }
-  return result;
+  // Object.fromEntries defines own properties: no key of the input is written through, so none reaches a prototype
+  return Object.fromEntries(
+    Object.entries(val).map(([key, propVal]) => [key, SECRET_REGEX.test(key) ? SECRET_MASK : maskValue(propVal, seen)])
+  );
 }
 
 /**

@@ -528,13 +528,10 @@ function isTextSchema(schema: any, root: any): boolean {
  * Check whether a schema accepts any JSON value, or any object: a free-form value, whose content no schema describes
  * @param schema - the schema
  * @param root - the schema carrying the definitions
- * @returns true for `{}`, `true`, an untyped schema and an object whose extra properties are free-form
+ * @returns true for `{}`, an untyped schema and an object whose extra properties are free-form (`true` included)
  */
 function isFreeFormSchema(schema: any, root: any): boolean {
   schema = resolveInputSchema(schema, root);
-  if (schema === true) {
-    return true;
-  }
   if (!schema || typeof schema !== "object" || schema.$ref !== undefined) {
     return false;
   }

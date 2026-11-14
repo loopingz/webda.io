@@ -22,7 +22,6 @@ import type { OperationContext, OperationDefinition } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import { useLog } from "@webda/workout";
 import { GraphQLError } from "graphql";
-import { cloneJson } from "./sanitize.js";
 
 /**
  * Return the GraphQL error of a refused mutation
@@ -192,7 +191,7 @@ export function isInputAttribute(attribute: string, graph?: ModelGraph, writable
 export async function createFromInput(model: any, input: any, context: any): Promise<any> {
   // Same input rules as the REST create: sanitized, parent link kept, client uuid ignored for UuidModels
   // The texts first, with the rules of the model operations: the same stored value on every transport
-  const data: any = prepareCreateInput(model, await sanitizeModelText(model, cloneJson(input ?? {})), context);
+  const data: any = prepareCreateInput(model, await sanitizeModelText(model, input ?? {}), context);
   await enforceModelOperationPermission(model, context, "create", data);
   const object = new model();
   object.load(data);
@@ -239,7 +238,7 @@ function primaryKeyFields(model: any): string[] {
  * @throws GraphQLError PERMISSION_DENIED when the object refuses the update
  */
 export async function updateFromInput(model: any, uuid: string, input: any, context: any): Promise<any> {
-  input = sanitizeModelInput(model, await sanitizeModelText(model, cloneJson(input ?? {})), context);
+  input = sanitizeModelInput(model, await sanitizeModelText(model, input ?? {}), context);
   // The key comes from the arguments: a body carrying another key would write over that other object
   for (const field of primaryKeyFields(model)) {
     if (input[field] !== undefined && String(input[field]) !== String(uuid)) {

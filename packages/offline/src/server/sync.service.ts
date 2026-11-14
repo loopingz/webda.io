@@ -654,8 +654,7 @@ export class SyncService extends Service<SyncServiceParameters> {
       return after;
     }
     const changed = Object.fromEntries(Object.entries(after).filter(([key, value]) => !sameJson(value, before?.[key])));
-    // A copy: a changed value can share nested objects with the stored one
-    return { ...after, ...(await sanitizeModelText(model, structuredClone(changed))) };
+    return { ...after, ...(await sanitizeModelText(model, changed)) };
   }
 
   /**

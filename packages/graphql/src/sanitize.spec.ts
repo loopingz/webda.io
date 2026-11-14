@@ -26,7 +26,7 @@ import {
   type ExecutionResult
 } from "graphql";
 import { GraphQLService } from "./graphql.service.js";
-import { cloneJson, RAW_ARGS, sanitizeArguments, sanitizeFieldArguments } from "./sanitize.js";
+import { RAW_ARGS, sanitizeArguments, sanitizeFieldArguments } from "./sanitize.js";
 import { AnyScalarType } from "./types/any.js";
 
 /**
@@ -584,15 +584,6 @@ class GraphQLSanitizeTest extends WebdaApplicationTest {
 
     // Values that are not plain JSON are handed over as they are
     const date = new Date(0);
-    const copy = cloneJson({
-      date,
-      list: [{ a: 1 }],
-      nil: null,
-      bare: Object.assign(Object.create(null), { b: "<b>" })
-    });
-    assert.strictEqual(copy.date, date);
-    assert.deepStrictEqual(copy.list, [{ a: 1 }]);
-    assert.deepStrictEqual({ ...copy.bare }, { b: "<b>" });
     assert.deepStrictEqual(await sanitizeArguments({ extensions: {} }, { when: date, text: "<b>t</b>" }), {
       when: date,
       text: "t"

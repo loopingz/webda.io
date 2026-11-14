@@ -273,17 +273,62 @@ function getMode(patterns: ModePattern[], segments: string[]): string | undefine
 }
 
 /**
- * A Markdown text found while micromark was not loaded yet: the object or array holding it, and its key
+ * Keys never copied from client input: writing them could reach a prototype
  */
-type DeferredText = [holder: any, key: string];
+const UNSAFE_KEYS = ["__proto__", "constructor", "prototype"];
 
 /**
- * Sanitize every string of a parsed JSON value, in place
+ * What a pass over an input found that it could not do
+ */
+type SanitizeState = {
+  /**
+   * A Markdown text was met while micromark was not loaded: the pass is to be run again once it is
+   */
+  markdownNeeded: boolean;
+};
+
+/**
+ * Sanitize a text with its mode
+ * @param value - the text
+ * @param mode - its mode, undefined for the default
+ * @param options - the options of the default sanitization
+ * @param state - what the pass could not do
+ * @returns the sanitized text
+ */
+function sanitizeText(
+  value: string,
+  mode: string | undefined,
+  options: SanitizeInputOptions,
+  state: SanitizeState
+): string {
+  switch (mode) {
+    case SANITIZE_NONE:
+      return value;
+    case SANITIZE_HTML:
+      // The default allowlist of sanitize-html
+      return sanitizeHtml(value);
+    case SANITIZE_MARKDOWN:
+      if (!markdown) {
+        // micromark is only imported when there is a Markdown text to sanitize: the result of this pass is dropped
+        state.markdownNeeded = true;
+        return value;
+      }
+      return sanitizeMarkdownText(value);
+    default:
+      return sanitizeHtml(value, options);
+  }
+}
+
+/**
+ * Sanitize every string of a parsed JSON value
+ *
+ * Nothing is written to the value: arrays and objects are built again, an object from its own entries
+ * (`Object.fromEntries` defines own properties, so no key of the client can reach a setter or a prototype).
  * @param value - the value
  * @param options - the sanitization options
  * @param patterns - the modes, their path split in segments
  * @param segments - the path of the value
- * @param deferred - receives the Markdown texts to sanitize once micromark is loaded
+ * @param state - what the pass could not do
  * @returns the sanitized value
  */
 function sanitizeValue(
@@ -291,50 +336,48 @@ function sanitizeValue(
   options: SanitizeInputOptions,
   patterns: ModePattern[],
   segments: string[],
-  deferred: DeferredText[]
+  state: SanitizeState
 ): any {
   if (typeof value === "string") {
-    // Only the root of an input gets here, and it is never a text with a mode
-    return sanitizeHtml(value, options);
+    // The root of an input has an empty path: it matches no pattern, so it is never a text with a mode
+    return sanitizeText(value, getMode(patterns, segments), options, state);
+  }
+  /**
+   * Sanitize an item of an array or a value of an object
+   * @param child - the item or the value
+   * @param key - its index or its key
+   * @returns the sanitized child, or the child itself when its key is one of the `raw` ones
+   */
+  const sanitizeChild = function sanitizeChild(child: any, key: string): any {
+    const path = [...segments, key];
+    if (Array.isArray(options.raw) && options.raw.includes(path.join("."))) {
+      return child;
+    }
+    return sanitizeValue(child, options, patterns, path, state);
+  };
+  if (Array.isArray(value)) {
+    return value.map((item, index) => sanitizeChild(item, String(index)));
   }
   if (value !== null && typeof value === "object") {
-    for (const key of Object.keys(value)) {
-      if (["__proto__", "constructor", "prototype"].includes(key)) {
-        delete value[key];
-        continue;
-      }
-      const path = [...segments, key];
-      if (Array.isArray(options.raw) && options.raw.includes(path.join("."))) {
-        continue;
-      }
-      const child = value[key];
-      if (typeof child !== "string") {
-        value[key] = sanitizeValue(child, options, patterns, path, deferred);
-        continue;
-      }
-      switch (getMode(patterns, path)) {
-        case SANITIZE_NONE:
-          break;
-        case SANITIZE_HTML:
-          // The default allowlist of sanitize-html
-          value[key] = sanitizeHtml(child);
-          break;
-        case SANITIZE_MARKDOWN:
-          // micromark is only imported when there is a Markdown text to sanitize
-          deferred.push([value, key]);
-          break;
-        default:
-          value[key] = sanitizeHtml(child, options);
-      }
+    const prototype = Object.getPrototypeOf(value);
+    // Anything else (a Date...) is not JSON: it holds no client text and is handed over as it is
+    if (prototype === Object.prototype || prototype === null) {
+      const copy = Object.fromEntries(
+        Object.entries(value)
+          .filter(([key]) => !UNSAFE_KEYS.includes(key))
+          .map(([key, child]) => [key, sanitizeChild(child, key)])
+      );
+      return prototype === null ? Object.setPrototypeOf(copy, null) : copy;
     }
   }
   return value;
 }
 
 /**
- * Sanitize every string of a parsed JSON value, in place, with the given sanitize-html options as they are
+ * Sanitize every string of a parsed JSON value, with the given sanitize-html options as they are
  *
- * `__proto__`, `constructor` and `prototype` keys are removed on the way.
+ * The value is not modified: a sanitized copy is returned, without the `__proto__`, `constructor` and `prototype`
+ * keys.
  * @param value - the parsed JSON value
  * @param options - the sanitize-html options, and the paths sanitized another way
  * @returns the sanitized value
@@ -347,22 +390,22 @@ export async function sanitizeInputWith<T = any>(value: T, options: SanitizeInpu
       return { segments: path.split("."), mode };
     });
   sanitizeHtml ??= (await import("sanitize-html")).default;
-  const deferred: DeferredText[] = [];
-  const result = sanitizeValue(value, options, patterns, [], deferred);
-  if (deferred.length > 0) {
-    await loadMarkdown();
-    for (const [holder, key] of deferred) {
-      holder[key] = sanitizeMarkdownText(holder[key]);
-    }
+  const state: SanitizeState = { markdownNeeded: false };
+  const result = sanitizeValue(value, options, patterns, [], state);
+  if (!state.markdownNeeded) {
+    return result as T;
   }
-  return result as T;
+  // The first Markdown text of the process: import micromark, then sanitize the value again, as it was received
+  await loadMarkdown();
+  return sanitizeValue(value, options, patterns, [], state) as T;
 }
 
 /**
- * Sanitize every string of a parsed JSON value, in place: every tag is removed and entities are escaped, unless
- * the options say otherwise
+ * Sanitize every string of a parsed JSON value: every tag is removed and entities are escaped, unless the options
+ * say otherwise
  *
- * `__proto__`, `constructor` and `prototype` keys are removed on the way.
+ * The value is not modified: a sanitized copy is returned, without the `__proto__`, `constructor` and `prototype`
+ * keys.
  * @param value - the parsed JSON value
  * @param options - sanitize-html options replacing the defaults, and the paths sanitized another way
  * @returns the sanitized value

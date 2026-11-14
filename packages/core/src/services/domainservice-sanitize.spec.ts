@@ -761,5 +761,19 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
     });
     assert.deepStrictEqual(Object.keys(polluted.a), ["b"]);
     assert.strictEqual(await sanitizeInput("<b>text</b>"), "text");
+    // The value is not modified: a copy is returned, with the shape it had
+    const date = new Date(0);
+    const bare = Object.assign(Object.create(null), { html: "<b>x</b>" });
+    const received = { list: ["<i>a</i>", { deep: "<u>b</u>" }], bare, date, n: 1, nil: null };
+    const copy = await sanitizeInput(received);
+    assert.deepStrictEqual(received.list, ["<i>a</i>", { deep: "<u>b</u>" }]);
+    assert.deepStrictEqual(copy.list, ["a", { deep: "b" }]);
+    assert.ok(Array.isArray(copy.list));
+    assert.strictEqual(Object.getPrototypeOf(copy.bare), null);
+    assert.strictEqual(copy.bare.html, "x");
+    assert.strictEqual(bare.html, "<b>x</b>");
+    // What is not JSON (a Date) holds no client text: handed over as it is
+    assert.strictEqual(copy.date, date);
+    assert.deepStrictEqual([copy.n, copy.nil], [1, null]);
   }
 }

@@ -89,8 +89,8 @@ export function getModelSanitizeModes(model: any): SanitizeModes {
  * import...), so a model stores the same text on every transport. It only deals with the texts: follow it with
  * {@link sanitizeModelInput} to remove the attributes a client cannot write.
  * @param model - the model class
- * @param input - the client input, as received (not sanitized yet); it is modified in place
- * @returns the input, its texts sanitized
+ * @param input - the client input, as received (not sanitized yet); it is not modified
+ * @returns a copy of the input, its texts sanitized
  */
 export async function sanitizeModelText<T = any>(model: ModelClass<any>, input: T): Promise<T> {
   return sanitizeInput(input, { modes: getModelSanitizeModes(model) });

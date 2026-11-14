@@ -16,29 +16,6 @@ export const RAW_ARGS = "webdaRawArgs";
 const wrapped = new WeakSet<(...args: any[]) => unknown>();
 
 /**
- * Copy the plain objects and arrays of a value
- *
- * A resolver argument can hold a part of the request variables as it is (a custom scalar is not copied by
- * graphql-js): it is copied before being sanitized in place, as a variable can be used by several fields that do
- * not sanitize it the same way.
- * @param value - an argument value
- * @returns the copy; anything but a plain object or an array (a Date...) is returned as it is
- */
-export function cloneJson<T = any>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map(cloneJson) as T;
-  }
-  if (value !== null && typeof value === "object") {
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype === Object.prototype || prototype === null) {
-      // Object.fromEntries defines own properties: a `__proto__` key stays a key, removed by the sanitization
-      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneJson(item)])) as T;
-    }
-  }
-  return value;
-}
-
-/**
  * Sanitize the arguments of a field: every string as text, and the prototype keys removed, except the arguments
  * its resolver sanitizes itself ({@link RAW_ARGS})
  * @param field - the field
@@ -50,11 +27,13 @@ export async function sanitizeArguments(
   args: Record<string, any>
 ): Promise<Record<string, any>> {
   const raw = (field.extensions?.[RAW_ARGS] as string[] | undefined) ?? [];
-  const sanitized: Record<string, any> = {};
-  for (const [name, value] of Object.entries(args)) {
-    sanitized[name] = raw.includes(name) ? value : await sanitizeInput(cloneJson(value));
-  }
-  return sanitized;
+  // sanitizeInput returns a copy: the request variables an argument can share (a custom scalar is not copied by
+  // graphql-js) are left as they are, for the other fields that use them
+  return Object.fromEntries(
+    await Promise.all(
+      Object.entries(args).map(async ([name, value]) => [name, raw.includes(name) ? value : await sanitizeInput(value)])
+    )
+  );
 }
 
 /**

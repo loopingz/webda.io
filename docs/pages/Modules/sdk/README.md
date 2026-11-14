@@ -93,6 +93,7 @@ const task = await api.Task.get(uuid); // cached when fresh
 task.isOverdue(); // @Shared, runs in the browser
 const owner = await task.owner.get(); // Link<User>
 const page = await api.Task.query("status = 'open' ORDER BY due LIMIT 20");
+const titles = await api.Task.query("SELECT title WHERE status = 'open'"); // partial objects: uuid and title
 await api.Task.patch(uuid, { status: "done" }); // merges the entity, invalidates the Task queries, emits change
 await api.Task.archive(uuid, { reason: "old" }); // typed custom action
 const me = await api.call("Auth.Me"); // typed by Operations; api.call("Unknown") is a type error

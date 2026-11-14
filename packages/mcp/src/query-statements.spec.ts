@@ -27,7 +27,7 @@ McpNote.registerSerializer();
 @suite
 class McpQueryStatementsTest extends McpFixtureTest {
   @test
-  async queryToolsTakeAFilterOnly() {
+  async queryToolsTakeAFilterOrAFieldList() {
     registerFixture();
     const domain = new DomainService("McpDomain", new DomainServiceParameters().load({}));
     this.registerService(domain);
@@ -40,7 +40,14 @@ class McpQueryStatementsTest extends McpFixtureTest {
       output: "void",
       context: { model: McpNote }
     } as any);
-    for (const query of ["DELETE", "DELETE WHERE uuid = 'n1'", "UPDATE SET title = 'pwned'", "SELECT title"]) {
+    for (const query of [
+      "DELETE",
+      "DELETE WHERE uuid = 'n1'",
+      "UPDATE SET title = 'pwned'",
+      "SELECT COUNT(*) AS n",
+      "SELECT __secret",
+      "SELECT title.constructor"
+    ]) {
       let error: unknown;
       try {
         await runOperation("McpNotes.Query", { session: new Session(), input: { query } });
@@ -63,5 +70,11 @@ class McpQueryStatementsTest extends McpFixtureTest {
       (value as any).results.map((n: any) => n.uuid),
       ["n1"]
     );
+    // A field list is accepted: a smaller tool result, the selected fields plus the primary key
+    const partial = await runOperation("McpNotes.Query", {
+      session: new Session(),
+      input: { query: "SELECT title WHERE title = 'keep'" }
+    });
+    assert.deepStrictEqual(JSON.parse(JSON.stringify((partial.value as any).results)), [{ uuid: "n1", title: "keep" }]);
   }
 }

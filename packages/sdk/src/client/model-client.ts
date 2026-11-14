@@ -178,6 +178,9 @@ export class RemoteBackend implements ModelBackend {
     const model = this.descriptor.id;
     const mode = options.cache ?? "default";
     const projection = options.select?.length ? options.select.join(",") : undefined;
+    // A WebdaQL field list (`SELECT title WHERE ...`) is a projection too: the server returns partial objects.
+    // Keywords are uppercase only, a lowercase `select` is a field name
+    const projected = projection !== undefined || /^\s*SELECT\s/.test(query);
     // A next page reuses the total cached with the first page of the same query: the server does not count again
     const first = withContinuation(query, undefined);
     const firstEntry =
@@ -206,12 +209,11 @@ export class RemoteBackend implements ModelBackend {
           if (mode !== "no-store") {
             const uids = results.map(data => {
               const uid = this.uidOf(data);
-              this.store(uid, data, projection !== undefined);
+              this.store(uid, data, projected);
               return uid;
             });
             // A projected page holds partial objects: it is not a cached query
-            if (projection === undefined)
-              cache.setQuery(model, query, uids, page.continuationToken, total ?? undefined);
+            if (!projected) cache.setQuery(model, query, uids, page.continuationToken, total ?? undefined);
           }
           return withTotal({ results, continuationToken: page.continuationToken }, total ?? undefined);
         }

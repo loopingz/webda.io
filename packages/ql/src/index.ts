@@ -5,6 +5,7 @@ export * from "./bind.js";
 export * from "./aggregation.js";
 export * from "./filter.js";
 export * from "./completion.js";
+export * from "./projection.js";
 
 // Refuse a second copy of the package, see registerWebdaPackage
 registerWebdaPackage("@webda/ql", import.meta.url);

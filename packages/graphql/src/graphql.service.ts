@@ -818,7 +818,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     try {
       const validator = new WebdaQL.PartialValidator(WebdaQL.unsanitize(filter));
       assertNoPrivateFields(validator);
-      assertFilterOnly(validator);
+      this.assertNoStatement(validator);
       return validator;
     } catch (err) {
       throw new GraphQLError(err instanceof WebdaError.BadRequest ? err.message : "Invalid filter", {
@@ -1599,6 +1599,19 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Refuse a parsed query that is not a filter: DELETE, UPDATE, and a SELECT field list. The REST, gRPC and MCP
+   * Query operations project their results on a field list; here the selection set already chooses the fields
+   * @param validator - the parsed client query
+   * @throws WebdaError.BadRequest for a DELETE, an UPDATE or a SELECT field list
+   */
+  protected assertNoStatement(validator: WebdaQL.QueryValidator): void {
+    if (validator.getQuery().fields !== undefined) {
+      throw new WebdaError.BadRequest("SELECT field lists are not accepted by queries: use the selection set");
+    }
+    assertFilterOnly(validator);
+  }
+
+  /**
    * Refuse a query argument that is not a filter: DELETE and UPDATE are never run from GraphQL, and a SELECT field
    * list is refused because the selection set already chooses the fields
    *
@@ -1614,7 +1627,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       return;
     }
     try {
-      assertFilterOnly(validator);
+      this.assertNoStatement(validator);
     } catch (err) {
       throw new GraphQLError(err instanceof Error ? err.message : String(err), {
         extensions: { code: "BAD_USER_INPUT" }

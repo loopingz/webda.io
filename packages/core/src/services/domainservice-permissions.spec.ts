@@ -8,7 +8,7 @@ import { Router, RouterParameters } from "../rest/router.service.js";
 import { useRouter } from "../rest/hooks.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
-import { runWithContext } from "../contexts/execution.js";
+import { runWithContext, useContext } from "../contexts/execution.js";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import { callOperation } from "../core/operations.js";
 import { Session } from "../session/session.js";
@@ -30,7 +30,11 @@ import {
   unsealContinuationToken,
   MAX_REFILL_PAGES,
   assertFilterOnly,
-  assertNoPrivateFields
+  assertNoPrivateFields,
+  assertQueryStatement,
+  assertSelectFields,
+  MAX_SELECT_DEPTH,
+  MAX_SELECT_FIELDS
 } from "../models/permissions.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { DomainService, DomainServiceParameters } from "./domainservice.service.js";
@@ -208,6 +212,32 @@ class Account extends UuidModel {
 }
 
 /**
+ * Model with an Output schema, a row-level `canAct` reading `team` and a per-caller `toDTO()`: `salary` is only
+ * shown to the caller "hr"
+ */
+class Dossier extends UuidModel {
+  title: string;
+  team: string;
+  salary?: number;
+  profile?: { email: string; phone: string };
+  tags?: { name: string; color: string }[];
+
+  static canAct(context: IOperationContext, _action: string, object?: Dossier): boolean | string {
+    // Reads a field clients rarely select: it must be there whatever the field list
+    return object === undefined || object.team === "open" || context.getCurrentUserId() === "hr" ? true : "closed team";
+  }
+
+  toDTO(): any {
+    const dto: any = super.toDTO();
+    if (useContext().getCurrentUserId() !== "hr") {
+      delete dto.salary;
+    }
+    return dto;
+  }
+}
+Dossier.registerSerializer();
+
+/**
  * Repository paging like Postgres or Firestore: the token is `offset + limit`, counted over the matching rows
  */
 class OffsetRepository extends MemoryRepository<any> {
@@ -370,6 +400,21 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       Plural: "Slugged"
     });
     app.addModel("WebdaDemo/Account", Account, metadata("WebdaDemo/Account"));
+    app.addModel("WebdaDemo/Dossier", Dossier, {
+      ...metadata("WebdaDemo/Dossier"),
+      Schemas: {
+        Output: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            team: { type: "string" },
+            salary: { type: "number" },
+            profile: { type: "object" },
+            tags: { type: "array" }
+          }
+        }
+      }
+    });
     const router = new Router("Router", new RouterParameters().load({}));
     this.registerService(router);
     router.resolve();
@@ -409,6 +454,7 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     registerRepository(PermSubTask, new MemoryRepository(PermSubTask, ["uuid"]));
     registerRepository(Slugged as any, new MemoryRepository(Slugged as any, ["slug"]) as any);
     registerRepository(Account, new MemoryRepository(Account, ["uuid"]));
+    registerRepository(Dossier, new MemoryRepository(Dossier, ["uuid"]));
     registerRepository(PermUser as any, new MemoryRepository(PermUser as any, ["uuid"]) as any);
     await PermTask.create({ uuid: "task-a", title: "A private", _user: USER_A } as any);
     await PermTask.create({ uuid: "task-b", title: "B private", _user: USER_B } as any);
@@ -1150,8 +1196,8 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       "DELETE WHERE uuid = 'task-b'",
       "UPDATE SET title = 'pwned'",
       "UPDATE SET title = 'pwned' WHERE uuid = 'task-b' LIMIT 1",
-      "SELECT title",
-      "SELECT title, uuid WHERE uuid = 'task-b' ORDER BY title LIMIT 5"
+      "SELECT title, COUNT(*) AS n GROUP BY title",
+      "SELECT COUNT(*) AS n WHERE uuid = 'task-b'"
     ];
     const before = JSON.stringify(await this.stored("task-b"));
     for (const q of statements) {
@@ -1209,6 +1255,367 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
   }
 
   @test
+  queryStatements() {
+    for (const query of ["", "a = 1", "SELECT a", "SELECT a, b.c WHERE d = 1 ORDER BY e LIMIT 5 OFFSET 'x'"]) {
+      assertQueryStatement(new QueryValidator(query));
+    }
+    for (const query of ["DELETE", "DELETE WHERE a = 1 LIMIT 2", "UPDATE SET a = 1"]) {
+      assert.throws(
+        () => assertQueryStatement(new QueryValidator(query)),
+        /(DELETE|UPDATE) statements are not accepted by queries/,
+        query
+      );
+    }
+    for (const query of ["SELECT COUNT(*) AS n", "SELECT a, SUM(b) AS s WHERE c = 1 GROUP BY a"]) {
+      assert.throws(
+        () => assertQueryStatement(new QueryValidator(query)),
+        (err: any) =>
+          err instanceof WebdaError.BadRequest && /Aggregations are not accepted by queries/.test(err.message),
+        query
+      );
+    }
+  }
+
+  @test
+  selectFieldsAreCheckedAgainstTheOutputSchema() {
+    /**
+     * Class carrying only metadata
+     * @param Metadata - the model metadata
+     * @returns the class
+     */
+    const model = (Metadata: any): any =>
+      class {
+        static Metadata = Metadata;
+      };
+    const output = (...names: string[]) => ({
+      Schemas: { Output: { properties: Object.fromEntries(names.map(name => [name, {}])) } } as any
+    });
+    const child = model({ ...output("title", "extra"), Subclasses: [model(output("deep"))] });
+    const parent = model({
+      ...output("title", "profile"),
+      Subclasses: [child],
+      PrimaryKey: ["org", "slug"],
+      // Server-only fields named by the other schemas are not selectable
+      Reflection: { internal: {} }
+    });
+    parent.Metadata.Schemas.Stored = { properties: { internal: {} } };
+    parent.Metadata.Schemas.Input = { properties: { password: {} } };
+    const check = (clazz: any, query: string) => assertSelectFields(clazz, new QueryValidator(query));
+    // No field list: nothing to check
+    check(parent, "missing = 1 ORDER BY other");
+    // Output fields, their sub-paths, the primary key, and the fields of the subclasses at any level
+    check(parent, "SELECT title, profile.email, profile.address.city, org, slug, extra, deep WHERE missing = 1");
+    for (const [query, field] of [
+      ["SELECT title, missing", "missing"],
+      ["SELECT missing.title", "missing.title"],
+      ["SELECT internal", "internal"],
+      ["SELECT password", "password"],
+      ["SELECT uuid", "uuid"]
+    ]) {
+      assert.throws(
+        () => check(parent, query),
+        (err: any) => err instanceof WebdaError.BadRequest && err.message === `Unknown field "${field}"`,
+        query
+      );
+    }
+    // The fields of a parent's other subclasses are not those of a subclass
+    assert.throws(() => check(child, "SELECT profile"), /Unknown field "profile"/);
+    check(child, "SELECT uuid, extra, deep");
+    // Without Output schema metadata, fields are not checked...
+    for (const clazz of [model(undefined), model({}), model({ Schemas: {} }), model({ Schemas: { Output: {} } })]) {
+      check(clazz, "SELECT anything, at.all");
+      // ...but a member of Object.prototype is never a field
+      for (const field of ["constructor", "a.constructor.b", "prototype", "a.prototype"]) {
+        assert.throws(() => check(clazz, `SELECT ${field}`), new RegExp(`Unknown field "${field}"`), field);
+      }
+    }
+    assert.throws(() => check(parent, "SELECT profile.constructor"), /Unknown field "profile.constructor"/);
+    // A class defined without metadata inherits the one of its parent, which does not describe it: not checked
+    check(class extends parent {}, "SELECT anything");
+    // A subclass without Output schema adds nothing, a parent without one is not checked
+    check(model({ Subclasses: [child] }), "SELECT anything");
+    assert.throws(() => check(model({ ...output("title"), Subclasses: [model({})] }), "SELECT other"), /Unknown field/);
+    // Bounded: number of paths and depth
+    const many = (count: number) => Array.from({ length: count }, (_, i) => `f${i}`).join(", ");
+    check(model({}), `SELECT ${many(MAX_SELECT_FIELDS)}`);
+    assert.throws(
+      () => check(model({}), `SELECT ${many(MAX_SELECT_FIELDS + 1)}`),
+      (err: any) => err instanceof WebdaError.BadRequest && /more than 64 fields/.test(err.message)
+    );
+    const deep = (depth: number) => Array.from({ length: depth }, () => "a").join(".");
+    check(model({}), `SELECT ${deep(MAX_SELECT_DEPTH)}`);
+    assert.throws(
+      () => check(model({}), `SELECT ${deep(MAX_SELECT_DEPTH + 1)}`),
+      (err: any) => err instanceof WebdaError.BadRequest && /more than 16 segments/.test(err.message)
+    );
+  }
+
+  /**
+   * Three dossiers: two of the open team, one of a closed team
+   */
+  async createDossiers() {
+    await Dossier.create({
+      uuid: "d1",
+      title: "One",
+      team: "open",
+      salary: 10,
+      profile: { email: "one@test", phone: "1" },
+      tags: [
+        { name: "a", color: "red" },
+        { name: "b", color: "blue" }
+      ]
+    } as any);
+    await Dossier.create({ uuid: "d2", title: "Two", team: "closed", salary: 20 } as any);
+    await Dossier.create({ uuid: "d3", title: "Three", team: "open", salary: 30, profile: null } as any);
+  }
+
+  @test
+  async fieldListsProjectTheResults() {
+    await this.createDossiers();
+    const query = async (q: string, user: string = USER_A) => {
+      const res = await this.request(user, "PUT", "/perm/dossiers", { q });
+      assert.strictEqual(res.status, 200, `${q}: ${JSON.stringify(res.body)}`);
+      return res.body;
+    };
+    // Without a field list: whole objects, as before
+    const full = await query("ORDER BY uuid ASC");
+    assert.deepStrictEqual(full, {
+      results: [
+        {
+          uuid: "d1",
+          title: "One",
+          team: "open",
+          profile: { email: "one@test", phone: "1" },
+          tags: [
+            { name: "a", color: "red" },
+            { name: "b", color: "blue" }
+          ]
+        },
+        { uuid: "d3", title: "Three", team: "open", profile: null }
+      ]
+    });
+    // The selected fields plus the primary key; the filter and the ORDER BY may use other fields
+    assert.deepStrictEqual(await query("SELECT title WHERE team = 'open' ORDER BY uuid DESC"), {
+      results: [
+        { uuid: "d3", title: "Three" },
+        { uuid: "d1", title: "One" }
+      ]
+    });
+    // Dotted paths, through objects, arrays and null
+    assert.deepStrictEqual((await query("SELECT profile.email, tags.name ORDER BY uuid ASC")).results, [
+      { uuid: "d1", profile: { email: "one@test" }, tags: [{ name: "a" }, { name: "b" }] },
+      { uuid: "d3" }
+    ]);
+    assert.deepStrictEqual((await query("SELECT profile, profile.email, uuid WHERE uuid = 'd3'")).results, [
+      { uuid: "d3", profile: null }
+    ]);
+    // 400s, before the store is asked
+    const spy = sinon.spy(Dossier.getRepository(), "query");
+    try {
+      for (const [q, message] of [
+        ["SELECT missing", 'Unknown field "missing"'],
+        ["SELECT title, missing.sub WHERE uuid = 'd1'", 'Unknown field "missing.sub"'],
+        ["SELECT title.constructor", 'Unknown field "title.constructor"'],
+        ["SELECT __secret", "Private fields cannot be queried"],
+        ["SELECT profile.__hash", "Private fields cannot be queried"],
+        ["SELECT team, COUNT(*) AS n GROUP BY team", "Aggregations are not accepted by queries"],
+        ["DELETE WHERE uuid = 'd1'", "DELETE statements are not accepted by queries"],
+        ["UPDATE SET title = 'x'", "UPDATE statements are not accepted by queries"]
+      ]) {
+        const res = await this.request(USER_A, "PUT", "/perm/dossiers", { q });
+        assert.strictEqual(res.status, 400, q);
+        await assert.rejects(
+          () => queryModelWithPermissions(Dossier, q, { getCurrentUserId: () => USER_A } as any),
+          (err: any) => err instanceof WebdaError.BadRequest && err.message === message,
+          q
+        );
+      }
+      assert.strictEqual(spy.callCount, 0, "a refused query never reaches the store");
+      // The store never receives the field list
+      await query("SELECT title WHERE team = 'open'");
+      assert.ok(spy.callCount > 0);
+      for (const call of spy.getCalls()) {
+        assert.doesNotMatch(String(call.args[0]), /SELECT/);
+      }
+    } finally {
+      spy.restore();
+    }
+    assert.strictEqual(((await Dossier.ref("d1").get()) as any).title, "One");
+  }
+
+  @test
+  async fieldListsKeepThePermissionChecks() {
+    await this.createDossiers();
+    const uuids = async (q: string, user: string) =>
+      (await this.request(user, "PUT", "/perm/dossiers", { q })).body.results.map((r: any) => r.uuid);
+    // canAct reads `team`, which is not selected: it still receives the whole row
+    for (const user of [USER_A, "hr"]) {
+      assert.deepStrictEqual(
+        await uuids("SELECT title ORDER BY uuid ASC", user),
+        await uuids("ORDER BY uuid ASC", user),
+        user
+      );
+    }
+    assert.deepStrictEqual(await uuids("SELECT title ORDER BY uuid ASC", USER_A), ["d1", "d3"]);
+    assert.deepStrictEqual(await uuids("SELECT title ORDER BY uuid ASC", "hr"), ["d1", "d2", "d3"]);
+    // A field toDTO() hides from this caller stays hidden when selected: absent, not a 400
+    const hidden = await this.request(USER_A, "PUT", "/perm/dossiers", { q: "SELECT salary, title WHERE uuid = 'd1'" });
+    assert.strictEqual(hidden.status, 200);
+    assert.deepStrictEqual(hidden.body.results, [{ uuid: "d1", title: "One" }]);
+    const shown = await this.request("hr", "PUT", "/perm/dossiers", { q: "SELECT salary WHERE uuid = 'd1'" });
+    assert.deepStrictEqual(shown.body.results, [{ uuid: "d1", salary: 10 }]);
+    // Deny by default: a model without canAct returns nothing, and still checks the query
+    await OpenNote.create({ uuid: "sn1", text: "t" } as any);
+    assert.deepStrictEqual((await this.request(USER_A, "PUT", "/perm/openNotes", { q: "SELECT text" })).body, {
+      results: []
+    });
+    // The permission query is merged as for a filter: B only reads its own tasks and the public one
+    const tasks = await this.request(USER_B, "PUT", "/perm/permTasks", { q: "SELECT title ORDER BY uuid ASC" });
+    assert.deepStrictEqual(tasks.body.results, [
+      { uuid: "task-b", title: "B private" },
+      { uuid: "task-public", title: "A public" }
+    ]);
+    // A natural key is kept instead of uuid
+    await this.request(USER_A, "POST", "/perm/slugged", { slug: "my-slug", text: "hello" });
+    const slugged = await this.request(USER_A, "PUT", "/perm/slugged", { q: "SELECT text" });
+    assert.deepStrictEqual(slugged.body.results, [{ slug: "my-slug", text: "hello" }]);
+  }
+
+  @test
+  async fieldListsOnTheSampleAppModels() {
+    const { useModel } = await import("../application/hooks.js");
+    // The compiled metadata: the Output schema of each model, subclasses resolved to classes
+    const Project: any = useModel("WebdaDemo/Project");
+    const select = (model: any, fields: string) => assertSelectFields(model, new QueryValidator(`SELECT ${fields}`));
+    select(Project, "uuid, name, company, acls.principal");
+    // A field declared by a subclass of a subclass: a query on Project returns its rows
+    select(Project, "attribute1");
+    assert.throws(() => select(Project, "nope"), /Unknown field "nope"/);
+    const Contact: any = useModel("WebdaDemo/Contact");
+    select(Contact, "firstName, lastName, owner, photos.location");
+    // `custom` is @SchemaIgnore: stored, but not part of what clients see
+    assert.throws(() => select(Contact, "custom"), /Unknown field "custom"/);
+
+    // A guest-style caller: canAct only opens the personal contacts, and toDTO() hides `age` from guests
+    registerRepository(Contact, new MemoryRepository(Contact, ["uuid"]));
+    await Contact.create({ uuid: "c1", firstName: "Ada", lastName: "L", type: "PERSONAL", age: 36 });
+    await Contact.create({ uuid: "c2", firstName: "Bob", lastName: "M", type: "PROFESSIONAL", age: 50 });
+    const isGuest = (context: IOperationContext) => context.getCurrentUserId() === "guest";
+    const canAct = sinon.stub(Contact.prototype, "canAct").callsFake(async function guestCanAct(
+      this: any,
+      context: any
+    ) {
+      return !isGuest(context) || this.type === "PERSONAL";
+    });
+    const baseDTO = Contact.prototype.toDTO;
+    const toDTO = sinon.stub(Contact.prototype, "toDTO").callsFake(function guestDTO(this: any) {
+      const dto = baseDTO.call(this);
+      if (isGuest(useContext())) {
+        delete dto.age;
+      }
+      return dto;
+    });
+    try {
+      const run = async (query: string, user: string) => {
+        const context: any = { getCurrentUserId: () => user };
+        const res = await queryModelWithPermissions(Contact, query, context);
+        // What the operation writes: the public form, built as the caller
+        return runWithContext(context, () =>
+          res.results.map(r => JSON.parse(JSON.stringify(typeof r.toDTO === "function" ? r.toDTO() : r)))
+        );
+      };
+      const fields = ["uuid", "firstName", "age"];
+      for (const user of ["guest", "member"]) {
+        // The same rows, and of each row the selected fields this caller already receives
+        const full = await run("ORDER BY uuid ASC", user);
+        const expected = full.map(row => Object.fromEntries(fields.filter(f => f in row).map(f => [f, row[f]])));
+        assert.deepStrictEqual(await run("SELECT firstName, age ORDER BY uuid ASC", user), expected, user);
+      }
+      assert.deepStrictEqual(await run("SELECT firstName, age", "guest"), [{ uuid: "c1", firstName: "Ada" }]);
+      assert.deepStrictEqual(await run("SELECT firstName, age ORDER BY uuid ASC", "member"), [
+        { uuid: "c1", firstName: "Ada", age: 36 },
+        { uuid: "c2", firstName: "Bob", age: 50 }
+      ]);
+    } finally {
+      canAct.restore();
+      toDTO.restore();
+    }
+  }
+
+  @test
+  async fieldListsDoNotChangePagingOrTotals() {
+    // Interleave rows B cannot read with rows B can read: pages are refilled
+    for (let i = 0; i < 8; i++) {
+      await AclDoc.create({
+        uuid: `r${i}`,
+        title: `t${i}`,
+        acl: [{ action: "get", type: "USER", principal: i % 2 ? USER_B : USER_A, allow: true }]
+      } as any);
+    }
+    const ctx: any = { getCurrentUserId: () => USER_B };
+    /**
+     * Read every page of a query
+     * @param head - the field list of each page, in turn
+     * @returns the pages
+     */
+    const pages = async (head: string[]) => {
+      const res: any[][] = [];
+      let token: string | undefined;
+      do {
+        const select = head[res.length % head.length];
+        const page = await queryModelWithPermissions(
+          AclDoc,
+          `${select} ORDER BY uuid ASC LIMIT 2${token ? ` OFFSET "${token}"` : ""}`.trim(),
+          ctx
+        );
+        res.push(page.results);
+        token = page.continuationToken;
+      } while (token && res.length < 10);
+      return res;
+    };
+    const plain = await pages([""]);
+    const selected = await pages(["SELECT title"]);
+    assert.deepStrictEqual(
+      selected.map(page => page.map(r => r.uuid)),
+      plain.map(page => page.map(r => r.uuid))
+    );
+    assert.deepStrictEqual(
+      selected.flat().map(r => r.uuid),
+      ["r1", "r3", "r5", "r7"]
+    );
+    assert.ok(selected.flat().every(r => Object.keys(r).join() === "uuid,title"));
+    // A token is bound to the filter and the ORDER BY, not to the field list: it can change between pages
+    const mixed = await pages(["SELECT title", "", "SELECT acl.principal, title"]);
+    assert.deepStrictEqual(
+      mixed.map(page => page.map(r => r.uuid)),
+      plain.map(page => page.map(r => r.uuid))
+    );
+    assert.ok(mixed[1][0] instanceof AclDoc, "no field list: model instances, as before");
+    // Rows without toDTO() (a model class built without `@webda/models`) are projected as they are
+    const rawModel: any = {
+      canAct: () => true,
+      query: async () => ({ results: [{ uuid: "p1", title: "Plain", other: 1 }] })
+    };
+    assert.deepStrictEqual((await queryModelWithPermissions(rawModel, "SELECT title", ctx)).results, [
+      { uuid: "p1", title: "Plain" }
+    ]);
+    assert.deepStrictEqual((await queryModelWithPermissions(rawModel, undefined, ctx)).results, [
+      { uuid: "p1", title: "Plain", other: 1 }
+    ]);
+    // The total is the one of the filter
+    const counted = await queryModelWithPermissions(PermTask, "SELECT title LIMIT 1", ctx, { count: true });
+    assert.deepStrictEqual(counted.total, { value: 2, relation: "eq" });
+    assert.deepStrictEqual(Object.keys(counted.results[0]), ["uuid", "title"]);
+    assert.ok(counted.continuationToken);
+    assert.deepStrictEqual(await countModelWithPermissions(PermTask, "SELECT title", ctx), {
+      value: 2,
+      relation: "eq"
+    });
+    const rest = await this.request(USER_B, "PUT", "/perm/permTasks", { q: "SELECT title LIMIT 1", count: true });
+    assert.deepStrictEqual(rest.body.total, { value: 2, relation: "eq" });
+  }
+
+  @test
   async otherTransportsTakeAFilterOnly() {
     // gRPC and MCP dispatch through callOperation with a non-HTTP OperationContext
     const call = async (operation: string, input: any) => {
@@ -1222,11 +1629,20 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       await callOperation(ctx, operation);
       return JSON.parse(<string>ctx.getOutput());
     };
-    for (const query of ["DELETE WHERE uuid = 'task-b'", "UPDATE SET title = 'x'", "SELECT title"]) {
+    for (const query of [
+      "DELETE WHERE uuid = 'task-b'",
+      "UPDATE SET title = 'x'",
+      "SELECT COUNT(*) AS n",
+      "SELECT __secret"
+    ]) {
       await assert.rejects(() => call("PermTasks.Query", { query }), WebdaError.BadRequest, query);
     }
     assert.strictEqual((await this.stored("task-b")).title, "B private");
     assert.deepStrictEqual((await call("PermTasks.Query", { query: "uuid = 'task-b'" })).results.length, 1);
+    // A field list projects the results on these transports too
+    assert.deepStrictEqual((await call("PermTasks.Query", { query: "SELECT title WHERE uuid = 'task-b'" })).results, [
+      { uuid: "task-b", title: "B private" }
+    ]);
   }
 
   @test
@@ -1872,5 +2288,8 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     });
     const search: any = useApplication<Application>().getSchema("searchRequest");
     assert.deepStrictEqual(search.properties.count, { type: "boolean" });
+    // The field list is documented on the query input and on the results
+    assert.match(search.properties.query.description, /SELECT f1, f2\.g WHERE/);
+    assert.match(schema.properties.results.description, /partial when the query has a field list/);
   }
 }

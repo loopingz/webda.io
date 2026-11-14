@@ -164,6 +164,15 @@ class PullTest extends SyncTest {
       () => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query: "DELETE WHERE title = 'a'" }] }),
       /DELETE/
     );
+    // Whole models are synced: a field list stays refused, here and in a snapshot
+    await assert.rejects(
+      () => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query: "SELECT title WHERE title = 'a'" }] }),
+      /SELECT field lists are not accepted/
+    );
+    await assert.rejects(
+      () => this.op("Sync.Snapshot", { scope: { model: "Test/Note", query: "SELECT title" } }),
+      /SELECT field lists are not accepted/
+    );
     await assert.rejects(
       () => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query: "title = " }] }),
       /syntax/i

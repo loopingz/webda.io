@@ -31,6 +31,11 @@ export interface CompletionOptions {
   fields?: CompletionField[];
   /** Only offer filter-query syntax (no SELECT / DELETE / UPDATE): for REST, GraphQL, MCP Query operations */
   filterOnly?: boolean;
+  /**
+   * With `filterOnly`, also offer a `SELECT f1, f2 WHERE ...` field list (no aggregate functions, GROUP BY, DELETE
+   * or UPDATE): for the Query operations that return partial results (REST, gRPC, MCP)
+   */
+  fieldList?: boolean;
   /** Named parameters available (offered as `:name` where a value is expected) */
   parameters?: string[];
   /** Max candidates, default 50 */
@@ -151,6 +156,13 @@ const FILTER_ONLY_DROPPED = new Set<string>([
   "MIN",
   "MAX"
 ]);
+
+/**
+ * Dropped with `filterOnly` and `fieldList`: a plain `SELECT` field list and its `WHERE` are kept
+ */
+const FIELD_LIST_DROPPED = new Set<string>(
+  [...FILTER_ONLY_DROPPED].filter(word => word !== "SELECT" && word !== "WHERE")
+);
 
 const KIND_RANK: Record<CompletionKind, number> = {
   field: 1,
@@ -584,10 +596,9 @@ export function getCompletions(query: string, caret: number, options?: Completio
 
     // 4. Handle filterOnly option
     if (options?.filterOnly) {
-      items = items.filter(it => {
-        const words = it.label.split(/\s+/);
-        return !words.some(w => FILTER_ONLY_DROPPED.has(w));
-      });
+      const dropped = options.fieldList ? FIELD_LIST_DROPPED : FILTER_ONLY_DROPPED;
+      // A whole label ("GROUP BY") or one of its words ("COUNT (")
+      items = items.filter(it => !dropped.has(it.label) && !it.label.split(/\s+/).some(w => dropped.has(w)));
     }
 
     // 5. Deduplicate items by label

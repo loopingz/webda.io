@@ -79,6 +79,7 @@ const task = await api.Task.get(uuid); // served from the EntityCache when fresh
 task.isOverdue(); // @Shared method, runs in the browser
 const owner = await task.owner.get(); // ModelParent<User> → Link<User>, cached
 const page = await api.Task.query("status = 'open' ORDER BY due LIMIT 20"); // { results, continuationToken }
+const titles = await api.Task.query("SELECT title WHERE status = 'open'"); // partial objects: uuid and title
 for await (const t of api.Task.iterate("status = 'open'")) {
 } // follows the continuation tokens
 await api.Task.patch(uuid, { status: "done" }); // PATCH, merges the entity, invalidates the Task queries

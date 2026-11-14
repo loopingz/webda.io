@@ -37,7 +37,8 @@ export function getCompletions(
 #### `CompletionOptions`
 
 - `fields?: CompletionField[]`: Known fields. Without them, no field candidates are returned.
-- `filterOnly?: boolean`: Restricts candidates to filter-query syntax (drops `SELECT`, `DELETE`, `UPDATE`, `SET`, `WHERE`, `GROUP BY`, `AS`, `DISTINCT`, and aggregate functions). Ideal for REST, GraphQL, and MCP query inputs.
+- `filterOnly?: boolean`: Restricts candidates to filter-query syntax (drops `SELECT`, `DELETE`, `UPDATE`, `SET`, `WHERE`, `GROUP BY`, `AS`, `DISTINCT`, and aggregate functions). For inputs that take a filter only, such as GraphQL.
+- `fieldList?: boolean`: With `filterOnly`, also offers `SELECT` at the start of the query, the fields inside the list and `WHERE` after it. Aggregate functions, `GROUP BY`, `AS`, `DISTINCT`, `DELETE`, `UPDATE` and `SET` stay dropped. Use `{ filterOnly: true, fieldList: true }` for the REST, gRPC and MCP query inputs, which return [partial results](./Statements.md#field-selection); keep `filterOnly` alone for GraphQL.
 - `parameters?: string[]`: Available named parameters (offered as `:name` where values are expected).
 - `limit?: number`: Maximum candidates returned (default `50`).
 
@@ -96,7 +97,7 @@ Rules:
 
 | Context | Candidates Offered |
 |---|---|
-| Beginning of query `\|` | Fields, keywords (`SELECT`, `ORDER BY`, `LIMIT`...). With `filterOnly: true`, statements are omitted. |
+| Beginning of query `\|` | Fields, keywords (`SELECT`, `ORDER BY`, `LIMIT`...). With `filterOnly: true`, statements are omitted; with `fieldList: true` too, `SELECT` is kept. |
 | Incomplete word `sta\|` | Fields matching prefix (`status`), range covers partial token `[0, 3]`. |
 | After identifier `status \|` | Comparison operators (`=`, `!=`, `LIKE`, `IN`, `CONTAINS`, `IS NULL`, `IS NOT NULL`). |
 | After operator on enum `status = \|` | Enum value literals (`'draft'`, `'published'`), parameters (`?`, `:name`). |

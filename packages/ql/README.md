@@ -115,7 +115,7 @@ WebdaQL supports `NOW()` to produce dynamic numeric timestamps (milliseconds sin
 
 WebdaQL parses `SELECT`, `DELETE` and `UPDATE` statements; the parsed `Query` carries `type` (`"SELECT"` for a plain filter), `fields` (SELECT) and `assignments` (UPDATE), and `toString()` round-trips them.
 
-- **Field lists are parse-level only**: the Query operations (REST, gRPC, MCP, GraphQL) refuse a `SELECT` field list with a 400, and repositories refuse it in `query()`.
+- **Field lists return partial results**: the Query operations (REST, gRPC, MCP) accept `SELECT title, owner.name WHERE ...` and return, for each result, the selected fields plus the primary key. The field list is applied to the public form of each row with `projectFields`, after the permission checks: the store still reads whole rows. GraphQL refuses a field list (its selection sets choose the fields), and so do repositories in `query()` (they return whole model instances).
 - **DELETE and UPDATE are repository-level operations**: `useRepository(Model).deleteMany("DELETE WHERE ...")` and `updateMany("UPDATE SET ... WHERE ...")` run them in bulk and return the affected count. They **bypass events, hooks, validation and `canAct`**. The Query operations refuse them with a 400, and `query()` / `iterate()` refuse them.
 
 ```typescript
@@ -175,6 +175,7 @@ See [Code Completion](../../docs/pages/Modules/ql/Completion.md).
 | `parse(query, allowedFields?)`        | Parses a filter or statement; `allowedFields` checks SELECT fields and SET targets                                 |
 | `validateQueryFields(query, allowed)` | Checks SELECT fields and SET targets against a field list                                                          |
 | `assertFilterQuery(query)`            | Refuses DELETE, UPDATE, SELECT field lists and aggregations                                                        |
+| `projectFields(object, paths)`        | Keeps the dotted paths of a SELECT field list on an object (arrays element by element); returns a new object      |
 | `toAggregationQuery(input, params?)`  | Converts the object form of an aggregation to a validated `AggregationQuery`                                       |
 | `validateAggregation(query)`          | Validates an `AggregationQuery` (paths, aliases, functions, ORDER BY, LIMIT)                                       |
 | `Aggregator`                          | In-memory aggregation engine: `add(item)` then `rows()`                                                            |
@@ -182,7 +183,7 @@ See [Code Completion](../../docs/pages/Modules/ql/Completion.md).
 | `AggregationError`                    | Runtime aggregation error with a `code` (`AGGREGATION_NOT_NATIVE`, `AGGREGATION_TOO_MANY_GROUPS`)                  |
 | `Query`                               | Parsed query result: `{ type, filter, fields?, assignments?, aggregation?, orderBy?, limit?, continuationToken? }` |
 | `OrderBy`                             | `{ field: string; direction: "ASC" \| "DESC" }`                                                                    |
-| `getCompletions(query, caret, opts)`  | Returns grammar-driven code completion candidates at a caret offset                                                |
+| `getCompletions(query, caret, opts)`  | Returns grammar-driven code completion candidates at a caret offset (`filterOnly`, `fieldList` options)           |
 | `fieldsFromSchema(schema, maxDepth?)` | Flattens a JSON schema into completion fields with dotted paths                                                    |
 
 ### See also

@@ -1,5 +1,33 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/azure-v4.0.0-beta.14...azure-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+
+
+### Performance Improvements
+
+* cache compiler queries and git information, stop the file configuration watcher ([#1066](https://github.com/loopingz/webda.io/issues/1066)) ([93d432f](https://github.com/loopingz/webda.io/commit/93d432fc1e040a701433d53db560b8b6ff7e4c4c))
+* **core:** map routes lazily and speed up the slowest unit tests ([#1065](https://github.com/loopingz/webda.io/issues/1065)) ([c0babaa](https://github.com/loopingz/webda.io/commit/c0babaaa1f9fa8be8c2fa65bb8794d297c41bea3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.1
+    * @webda/models bumped to 4.0.0-rc.1
+    * @webda/oci bumped to 4.0.0-rc.1
+    * @webda/ql bumped to 4.0.0-rc.1
+    * @webda/utils bumped to 4.0.0-rc.1
+    * @webda/workout bumped to 4.0.0-rc.1
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.1
+    * @webda/test bumped to 4.0.0-rc.1
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/azure-v4.0.0-beta.13...azure-v4.0.0-beta.14) (2026-11-10)
 
 

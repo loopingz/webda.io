@@ -1,5 +1,34 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.7...sdk-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.1
+    * @webda/utils bumped to 4.0.0-rc.1
+    * @webda/workout bumped to 4.0.0-rc.1
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.1
+    * @webda/graphql bumped to 4.0.0-rc.1
+    * @webda/grpc bumped to 4.0.0-rc.1
+    * @webda/models bumped to 4.0.0-rc.1
+    * @webda/offline bumped to 4.0.0-rc.1
+    * @webda/ql bumped to 4.0.0-rc.1
+    * @webda/test bumped to 4.0.0-rc.1
+  * peerDependencies
+    * @webda/graphql bumped to 4.0.0-rc.1
+    * @webda/grpc bumped to 4.0.0-rc.1
+    * @webda/offline bumped to 4.0.0-rc.1
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.6...sdk-v4.0.0-beta.7) (2026-11-10)
 
 

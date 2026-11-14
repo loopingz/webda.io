@@ -3,6 +3,45 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.14...core-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* **core:** client queries are not HTML-sanitized, their literals are per attribute ([#1081](https://github.com/loopingz/webda.io/issues/1081)) ([83f6be0](https://github.com/loopingz/webda.io/commit/83f6be062cbf954c62e754a5b742181de7b273c0))
+* **core:** per-attribute opt-out of input HTML sanitization ([#1076](https://github.com/loopingz/webda.io/issues/1076)) ([3f43c45](https://github.com/loopingz/webda.io/commit/3f43c45d074f1a690860fc46253c179c11e5de3b))
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Bug Fixes
+
+* sqlite on Node 22, stable gcp module file, deterministic downloadTo test ([#1070](https://github.com/loopingz/webda.io/issues/1070)) ([d992918](https://github.com/loopingz/webda.io/commit/d992918039c3f7006c8c522ea250d70027a10f99))
+
+
+### Performance Improvements
+
+* cache compiler queries and git information, stop the file configuration watcher ([#1066](https://github.com/loopingz/webda.io/issues/1066)) ([93d432f](https://github.com/loopingz/webda.io/commit/93d432fc1e040a701433d53db560b8b6ff7e4c4c))
+* **core:** map routes lazily and speed up the slowest unit tests ([#1065](https://github.com/loopingz/webda.io/issues/1065)) ([c0babaa](https://github.com/loopingz/webda.io/commit/c0babaaa1f9fa8be8c2fa65bb8794d297c41bea3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-rc.1
+    * @webda/decorators bumped to 4.0.0-rc.1
+    * @webda/models bumped to 4.0.0-rc.1
+    * @webda/ql bumped to 4.0.0-rc.1
+    * @webda/utils bumped to 4.0.0-rc.1
+    * @webda/workout bumped to 4.0.0-rc.1
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.1
+    * @webda/content-mapper bumped to 4.0.0-rc.1
+    * @webda/test bumped to 4.0.0-rc.1
+  * peerDependencies
+    * @webda/test bumped to 4.0.0-rc.1
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.13...core-v4.0.0-beta.14) (2026-11-10)
 
 

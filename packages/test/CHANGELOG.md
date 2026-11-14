@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.9...test-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/decorators bumped to 4.0.0-rc.1
+    * @webda/workout bumped to 4.0.0-rc.1
+
 ## [4.0.0-beta.9](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.8...test-v4.0.0-beta.9) (2026-11-04)
 
 

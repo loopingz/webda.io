@@ -105,6 +105,18 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.15](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.14...async-v4.0.0-beta.15) (2026-11-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.15
+    * @webda/ql bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.15
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.13...async-v4.0.0-beta.14) (2026-11-10)
 
 

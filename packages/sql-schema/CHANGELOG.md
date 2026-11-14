@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/sql-schema-v4.0.0-beta.3...sql-schema-v4.0.0-beta.4) (2026-11-14)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/models bumped to 4.0.0-beta.15
+  * peerDependencies
+    * @webda/models bumped to 4.0.0-beta.15
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/sql-schema-v4.0.0-beta.2...sql-schema-v4.0.0-beta.3) (2026-11-10)
 
 

@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.7...sdk-v4.0.0-beta.8) (2026-11-14)
+
+
+### Features
+
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.15
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.15
+    * @webda/graphql bumped to 4.0.0-beta.15
+    * @webda/grpc bumped to 4.0.0-beta.15
+    * @webda/models bumped to 4.0.0-beta.15
+    * @webda/offline bumped to 4.0.0-beta.15
+    * @webda/ql bumped to 4.0.0-beta.12
+  * peerDependencies
+    * @webda/graphql bumped to 4.0.0-beta.15
+    * @webda/grpc bumped to 4.0.0-beta.15
+    * @webda/offline bumped to 4.0.0-beta.15
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/sdk-v4.0.0-beta.6...sdk-v4.0.0-beta.7) (2026-11-10)
 
 

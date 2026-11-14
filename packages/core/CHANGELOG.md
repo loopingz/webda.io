@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.15](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.14...core-v4.0.0-beta.15) (2026-11-14)
+
+
+### Features
+
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Bug Fixes
+
+* sqlite on Node 22, stable gcp module file, deterministic downloadTo test ([#1070](https://github.com/loopingz/webda.io/issues/1070)) ([d992918](https://github.com/loopingz/webda.io/commit/d992918039c3f7006c8c522ea250d70027a10f99))
+
+
+### Performance Improvements
+
+* cache compiler queries and git information, stop the file configuration watcher ([#1066](https://github.com/loopingz/webda.io/issues/1066)) ([93d432f](https://github.com/loopingz/webda.io/commit/93d432fc1e040a701433d53db560b8b6ff7e4c4c))
+* **core:** map routes lazily and speed up the slowest unit tests ([#1065](https://github.com/loopingz/webda.io/issues/1065)) ([c0babaa](https://github.com/loopingz/webda.io/commit/c0babaaa1f9fa8be8c2fa65bb8794d297c41bea3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.15
+    * @webda/models bumped to 4.0.0-beta.15
+    * @webda/ql bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.15
+    * @webda/content-mapper bumped to 4.0.0-beta.12
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.13...core-v4.0.0-beta.14) (2026-11-10)
 
 

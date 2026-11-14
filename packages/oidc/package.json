@@ -1,6 +1,6 @@
 {
   "name": "@webda/oidc",
-  "version": "4.0.0-beta.14",
+  "version": "4.0.0-beta.15",
   "description": "OIDC workload identity and trust between Webda applications",
   "keywords": [
     "oidc",

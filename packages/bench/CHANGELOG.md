@@ -1,5 +1,21 @@
 # Changelog
 
+## [4.0.0-beta.15](https://github.com/loopingz/webda.io/compare/bench-v4.0.0-beta.14...bench-v4.0.0-beta.15) (2026-11-14)
+
+
+### Performance Improvements
+
+* cache compiler queries and git information, stop the file configuration watcher ([#1066](https://github.com/loopingz/webda.io/issues/1066)) ([93d432f](https://github.com/loopingz/webda.io/commit/93d432fc1e040a701433d53db560b8b6ff7e4c4c))
+* **core:** map routes lazily and speed up the slowest unit tests ([#1065](https://github.com/loopingz/webda.io/issues/1065)) ([c0babaa](https://github.com/loopingz/webda.io/commit/c0babaaa1f9fa8be8c2fa65bb8794d297c41bea3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.15
+    * @webda/models bumped to 4.0.0-beta.15
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/bench-v4.0.0-beta.13...bench-v4.0.0-beta.14) (2026-11-10)
 
 

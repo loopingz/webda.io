@@ -7,6 +7,7 @@ import {
   OperationsTransport,
   OperationsTransportParameters,
   QUERY_HYDRATE_REFUSED,
+  QUERY_STATEMENTS_ACCEPTED,
   WebdaError,
   callOperation,
   emitCoreEvent,
@@ -383,6 +384,8 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
     const ctx = new GrpcOperationContext(httpContext, stream, res);
     // The generated messages type a relation as its key: a hydrated object does not fit them
     ctx.setExtension(QUERY_HYDRATE_REFUSED, "HYDRATE is not available over gRPC");
+    // An RPC may write: the Query RPC of a model that enables statements runs DELETE and UPDATE
+    ctx.setExtension(QUERY_STATEMENTS_ACCEPTED, true);
     const input = new AsyncQueue<unknown>();
     // Handlers first: data may arrive while the session loads
     stream.onMessage((message, size) => {

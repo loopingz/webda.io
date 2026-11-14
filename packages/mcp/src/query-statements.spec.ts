@@ -3,6 +3,7 @@ import * as assert from "assert";
 import {
   DomainService,
   DomainServiceParameters,
+  isReadOnlyOperation,
   MemoryRepository,
   registerOperation,
   registerRepository,
@@ -108,6 +109,56 @@ class McpQueryStatementsTest extends McpFixtureTest {
       input: { query: "SELECT title WHERE title = 'keep'" }
     });
     assert.deepStrictEqual(JSON.parse(JSON.stringify((partial.value as any).results)), [{ uuid: "n1", title: "keep" }]);
+  }
+
+  @test
+  async queryToolsNeverRunStatements() {
+    registerFixture();
+    // Statements are enabled for every model of the service, in both modes
+    for (const mode of ["bulk", "events"]) {
+      const name = `McpStatementDomain${mode}`;
+      this.registerService(
+        new DomainService(name, new DomainServiceParameters().load({ queryStatements: { "*": mode } }))
+      );
+      registerRepository(McpAuthor, new MemoryRepository(McpAuthor, ["uuid"]));
+      await McpAuthor.create({ uuid: "a1", name: "Ada" } as any);
+      registerOperation("McpAuthors.Query", {
+        service: name,
+        method: "modelQuery",
+        input: "searchRequest",
+        output: "void",
+        context: { model: McpAuthor }
+      } as any);
+      for (const [id, method] of [
+        ["McpAuthor.Patch", "modelPatch"],
+        ["McpAuthor.Delete", "modelDelete"]
+      ]) {
+        registerOperation(id, {
+          service: name,
+          method,
+          input: "void",
+          output: "void",
+          context: { model: McpAuthor, pkFields: ["uuid"] }
+        } as any);
+      }
+      // The Query tool is announced read-only (`readOnlyHint`): a client may call it without asking the user, so
+      // it never writes. The Patch and Delete tools do
+      assert.strictEqual(isReadOnlyOperation("McpAuthors.Query", {}), true);
+      for (const query of ["DELETE", "DELETE WHERE uuid = 'a1'", "UPDATE SET name = 'pwned'"]) {
+        let error: unknown;
+        try {
+          await runOperation("McpAuthors.Query", { session: new Session(), input: { query } });
+        } catch (err) {
+          error = err;
+        }
+        assert.ok(error instanceof WebdaError.BadRequest, `${query}: ${error}`);
+        assert.strictEqual(
+          (errorToToolResult(error).content[0] as any).text,
+          `BAD_REQUEST: ${query.split(" ")[0]} statements are not accepted by queries`
+        );
+      }
+      assert.strictEqual(((await McpAuthor.ref("a1").get()) as any).name, "Ada");
+    }
   }
 
   @test

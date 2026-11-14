@@ -96,6 +96,46 @@ export class CompletionTest {
   }
 
   @test
+  statementsOption() {
+    const options: CompletionOptions = { fields: TEST_FIELDS, filterOnly: true, statements: true };
+    // At the start: the statements and the filter candidates, no field list
+    const start = complete("|", options).items.map(i => i.label);
+    for (const label of ["DELETE", "UPDATE", "status", "ORDER BY", "LIMIT"]) {
+      assert.ok(start.includes(label), `Should include ${label}`);
+    }
+    assert.ok(!start.includes("SELECT") && !start.includes("HYDRATE"), "No SELECT or HYDRATE");
+    // Inside the statements: SET, the fields, WHERE
+    assert.ok(
+      complete("UPDATE |", options)
+        .items.map(i => i.label)
+        .includes("SET")
+    );
+    assert.ok(
+      complete("UPDATE SET |", options)
+        .items.map(i => i.label)
+        .includes("status")
+    );
+    for (const query of ["UPDATE SET status = 'done' |", "DELETE |"]) {
+      const labels = complete(query, options).items.map(i => i.label);
+      assert.ok(labels.includes("WHERE") && labels.includes("LIMIT"), `${query}: WHERE and LIMIT`);
+      assert.ok(!labels.includes("GROUP BY") && !labels.includes("HYDRATE"), `${query}: no GROUP BY or HYDRATE`);
+    }
+    // With the field list too: every statement the Query operations take, never an aggregation
+    const both = complete("|", { ...options, fieldList: true }).items.map(i => i.label);
+    for (const label of ["SELECT", "DELETE", "UPDATE"]) {
+      assert.ok(both.includes(label), `Should include ${label}`);
+    }
+    assert.ok(!complete("SELECT |", { ...options, fieldList: true }).items.some(i => i.label === "COUNT"));
+    // Without filterOnly the option changes nothing, and filterOnly alone still drops the statements
+    assert.deepStrictEqual(
+      complete("|", { fields: TEST_FIELDS, statements: true }),
+      complete("|", { fields: TEST_FIELDS })
+    );
+    const filterOnly = complete("|", { fields: TEST_FIELDS, filterOnly: true }).items.map(i => i.label);
+    assert.ok(!filterOnly.includes("DELETE") && !filterOnly.includes("UPDATE"));
+  }
+
+  @test
   partialIdentifier() {
     // "sta|" -> status with range [0,3]
     const res = complete("sta|");

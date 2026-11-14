@@ -85,6 +85,11 @@ default value (`""`, `0`, `false`). Read only the fields you selected.
 relation as its key, so a hydrated object does not fit them. Read the related objects with their own RPCs, or use the
 REST or MCP Query operation (see [Hydration](../../docs/pages/Modules/ql/Statements.md#hydration)).
 
+A Query RPC also runs `UPDATE SET ... WHERE ...` and `DELETE WHERE ...` for the models that enable them
+(`queryStatements` parameter of the `DomainService`): the objects the caller may update or delete are changed, and
+the result message carries a `statement` message (`type`, `changed`, `skipped`, `more`), unset for a query. Other
+models answer `INVALID_ARGUMENT`.
+
 ## Streaming
 
 All four modes (unary, server, client and bidirectional streams) are live: messages are sent as the generator yields,

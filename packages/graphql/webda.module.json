@@ -8,6 +8,24 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "definitions": {
+          "queryStatements#2": {
+            "additionalProperties": {
+              "enum": [
+                false,
+                "bulk",
+                "events"
+              ],
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "default": {},
+            "description": "Models whose Query operation runs `UPDATE SET ... WHERE ...` and `DELETE WHERE ...` statements, by model\nidentifier (`\"*\"` for every other exposed model), and how their rows are written:\n\n- `\"bulk\"`: with the repository `updateMany` / `deleteMany`, restricted to the rows the caller may act on. No\n  per-object repository event is emitted and the model `patch()` / `delete()` methods are not called;\n- `\"events\"`: object by object through the model, like the `Patch` and `Delete` operations: repository events\n  are emitted and the model methods run;\n- `false`: refused (to take a model out of `\"*\"`).\n\nA model that is not listed refuses statements (400), as before. Statements need the `Patch` (UPDATE) or `Delete`\n(DELETE) operation of the model to be allowed for the caller, and check `canAct` on every row.",
+            "type": "object"
+          }
+        },
         "description": "Parameters for the GraphQL service",
         "properties": {
           "exposeGraphiQL": {
@@ -71,6 +89,16 @@
             "description": "Expose objects as operations too",
             "type": "boolean"
           },
+          "queryHydrateMaxDepth": {
+            "default": 2,
+            "description": "Deepest relation path a query can hydrate (`HYDRATE project.team` has a depth of two), between 1 and 5",
+            "type": "number"
+          },
+          "queryHydrateMaxObjects": {
+            "default": 1000,
+            "description": "Most distinct related objects one query can load with `HYDRATE`: a query loading more is refused (400)",
+            "type": "number"
+          },
           "queryMethod": {
             "default": "PUT",
             "description": "Method used for query objects",
@@ -79,6 +107,11 @@
               "GET"
             ],
             "type": "string"
+          },
+          "queryStatements": {
+            "$ref": "#/definitions/queryStatements%232",
+            "default": {},
+            "description": "Models whose Query operation runs `UPDATE SET ... WHERE ...` and `DELETE WHERE ...` statements, by model\nidentifier (`\"*\"` for every other exposed model), and how their rows are written:\n\n- `\"bulk\"`: with the repository `updateMany` / `deleteMany`, restricted to the rows the caller may act on. No\n  per-object repository event is emitted and the model `patch()` / `delete()` methods are not called;\n- `\"events\"`: object by object through the model, like the `Patch` and `Delete` operations: repository events\n  are emitted and the model methods run;\n- `false`: refused (to take a model out of `\"*\"`).\n\nA model that is not listed refuses statements (400), as before. Statements need the `Patch` (UPDATE) or `Delete`\n(DELETE) operation of the model to be allowed for the caller, and check `canAct` on every row."
           },
           "type": {
             "description": "Type of the service",

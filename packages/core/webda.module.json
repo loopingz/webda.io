@@ -926,6 +926,24 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "definitions": {
+          "queryStatements": {
+            "additionalProperties": {
+              "enum": [
+                false,
+                "bulk",
+                "events"
+              ],
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "default": {},
+            "description": "Models whose Query operation runs `UPDATE SET ... WHERE ...` and `DELETE WHERE ...` statements, by model\nidentifier (`\"*\"` for every other exposed model), and how their rows are written:\n\n- `\"bulk\"`: with the repository `updateMany` / `deleteMany`, restricted to the rows the caller may act on. No\n  per-object repository event is emitted and the model `patch()` / `delete()` methods are not called;\n- `\"events\"`: object by object through the model, like the `Patch` and `Delete` operations: repository events\n  are emitted and the model methods run;\n- `false`: refused (to take a model out of `\"*\"`).\n\nA model that is not listed refuses statements (400), as before. Statements need the `Patch` (UPDATE) or `Delete`\n(DELETE) operation of the model to be allowed for the caller, and check `canAct` on every row.",
+            "type": "object"
+          }
+        },
         "description": "Parameters for DomainService, controlling model exposure, URL naming, and query methods",
         "properties": {
           "models": {
@@ -980,6 +998,11 @@
               "GET"
             ],
             "type": "string"
+          },
+          "queryStatements": {
+            "$ref": "#/definitions/queryStatements",
+            "default": {},
+            "description": "Models whose Query operation runs `UPDATE SET ... WHERE ...` and `DELETE WHERE ...` statements, by model\nidentifier (`\"*\"` for every other exposed model), and how their rows are written:\n\n- `\"bulk\"`: with the repository `updateMany` / `deleteMany`, restricted to the rows the caller may act on. No\n  per-object repository event is emitted and the model `patch()` / `delete()` methods are not called;\n- `\"events\"`: object by object through the model, like the `Patch` and `Delete` operations: repository events\n  are emitted and the model methods run;\n- `false`: refused (to take a model out of `\"*\"`).\n\nA model that is not listed refuses statements (400), as before. Statements need the `Patch` (UPDATE) or `Delete`\n(DELETE) operation of the model to be allowed for the caller, and check `canAct` on every row."
           },
           "type": {
             "description": "Type of the service",

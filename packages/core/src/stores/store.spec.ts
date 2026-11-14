@@ -12,6 +12,7 @@ import { UuidModel, registerRepository, useRepository } from "@webda/models";
 import { checkAggregation, checkCount } from "../test/index.js";
 import { useCore } from "../core/hooks.js";
 import { queryModelWithPermissions } from "../models/permissions.js";
+import { executeModelStatement, parseModelStatement } from "../models/statements.js";
 import { useApplication, useParameters } from "../application/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { Counter, useMetric } from "../metrics/metrics.js";
@@ -1074,6 +1075,102 @@ class StoreHydrateTest extends WebdaApplicationTest {
     // Repositories still refuse the clause: objects are returned as they are stored
     await assert.rejects(() => rows.query("HYDRATE owner"), /HYDRATE is not accepted/);
     await assert.rejects(() => rows.iterate("HYDRATE owner INNER").next(), /HYDRATE is not accepted/);
+  }
+}
+
+/**
+ * A row its owner may change, and everyone may read unless it is hidden
+ */
+class StatementRow extends UuidModel {
+  owner: string;
+  state: string;
+  hidden?: boolean;
+  meta?: { note?: string; flag?: boolean };
+
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    super(data);
+    Object.assign(this, data);
+  }
+
+  static canAct(context: any, action: string, object?: StatementRow): boolean {
+    return !object || (!object.hidden && (action === "get" || object.owner === context.getCurrentUserId()));
+  }
+}
+StatementRow.registerSerializer();
+(StatementRow as any).Metadata = { Identifier: "WebdaTest/StatementRow", PrimaryKey: ["uuid"], Subclasses: [] };
+
+@suite
+class StoreStatementsTest extends WebdaApplicationTest {
+  /**
+   * A client statement reaches the store through its query, and its `updateMany` / `deleteMany` (bulk mode) or its
+   * `patch` / `delete` (events mode): only the rows the caller may change are written, in both modes
+   */
+  @test
+  async clientStatementsWriteTheAllowedRowsOnly() {
+    const context: any = { getCurrentUserId: () => "alice" };
+    const options = (mode: "bulk" | "events") => ({
+      mode,
+      sanitize: (_model: any, input: any) => input,
+      validate: () => {},
+      canWrite: () => true
+    });
+    for (const mode of ["bulk", "events"] as const) {
+      const store = new MemoryStore(`statements-${mode}`, { models: [] } as any);
+      const repository: any = store.getRepository(StatementRow as any);
+      registerRepository(StatementRow, repository);
+      const events: string[] = [];
+      for (const event of ["Patched", "Deleted"]) {
+        repository.on(event, (evt: any) => events.push(`${event}:${evt.object_id}`));
+      }
+      for (let i = 0; i < 6; i++) {
+        await repository.create({
+          uuid: `row${i}`,
+          owner: i % 2 ? "bob" : "alice",
+          state: "open",
+          hidden: i === 4,
+          meta: { note: `n${i}` }
+        });
+      }
+      const states = async () =>
+        Object.fromEntries((await repository.query("")).results.map((row: any) => [row.uuid, row.state]).sort());
+      const updated = await executeModelStatement(
+        StatementRow,
+        parseModelStatement("UPDATE SET state = 'done', meta.flag = TRUE WHERE state = 'open'"),
+        context,
+        options(mode)
+      );
+      // row0 and row2 are hers; row1, row3 and row5 are readable but not hers; row4 is hidden
+      assert.deepStrictEqual(updated.statement, { type: "UPDATE", changed: 2, skipped: 3, more: false }, mode);
+      assert.deepStrictEqual(await states(), {
+        row0: "done",
+        row1: "open",
+        row2: "done",
+        row3: "open",
+        row4: "open",
+        row5: "open"
+      });
+      assert.deepStrictEqual((await repository.get("row2")).meta, { note: "n2", flag: true });
+      const deleted = await executeModelStatement(
+        StatementRow,
+        parseModelStatement("DELETE WHERE uuid != 'row2' LIMIT 5"),
+        context,
+        options(mode)
+      );
+      assert.deepStrictEqual(deleted.statement, { type: "DELETE", changed: 1, skipped: 3, more: false }, mode);
+      assert.deepStrictEqual(Object.keys(await states()), ["row1", "row2", "row3", "row4", "row5"]);
+      // Per-object events fire in events mode only
+      assert.deepStrictEqual(events, mode === "events" ? ["Patched:row0", "Patched:row2", "Deleted:row0"] : [], mode);
+      // The repository bulk operations are unchanged: no permission, no event, every matching row
+      assert.strictEqual(await repository.updateMany("UPDATE SET state = 'raw' WHERE state = 'open'"), 4);
+      assert.strictEqual(await repository.deleteMany("DELETE WHERE owner = 'bob'"), 3);
+      assert.deepStrictEqual(await states(), { row2: "done", row4: "raw" });
+      assert.strictEqual(events.length, mode === "events" ? 3 : 0);
+      // And a query through the repository still refuses a statement
+      await assert.rejects(() => repository.query("DELETE"), /DELETE statements are not accepted here/);
+    }
   }
 }
 

@@ -62,6 +62,7 @@ export * from "./models/ident.model.js";
 export * from "./models/aclmodel.js";
 export * from "./models/permissions.js";
 export * from "./models/hydration.js";
+export * from "./models/statements.js";
 export * from "./models/polymorphic.js";
 export { ModelLinksAny, ModelAnyRef, modelLinkIdentity, sameModelLink } from "@webda/models";
 export type { ModelLinkData, ModelAnyRefWithData, PolymorphicKey } from "@webda/models";

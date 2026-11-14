@@ -6,7 +6,7 @@
   ],
   "versioning": "prerelease",
   "prerelease": true,
-  "prerelease-type": "beta",
+  "prerelease-type": "rc",
   "packages": {
     "packages/amqp": {},
     "packages/auth": {},
@@ -56,5 +56,6 @@
     "packages/versioning": {},
     "packages/workflow": {},
     "packages/workout": {}
-  }
+  },
+  "release-as": "4.0.0-rc.1"
 }

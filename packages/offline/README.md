@@ -92,6 +92,10 @@ A scope query is a WebdaQL filter, empty to sync the whole model. Requests are r
 scope, more than `maxScopes`, a model the service does not sync, a query longer than `maxQueryLength`, a syntax error,
 a `DELETE` / `UPDATE` statement or a field list, a private field, or a `LIMIT`, `OFFSET` or `ORDER BY`.
 
+A scope query is not HTML-sanitized (comparisons with `<` and `>` work); the server sanitizes its string literals
+like the attribute they are compared with, so `title = 'R&D'` matches the text a client pushed as `R&D`. The client
+evaluates the same query on its local replica as it is written, against the stored values.
+
 ### Production notes
 
 - Index `SyncChange.seq` (every pull is a range query on it) and `SyncChange.mutationId` (every push looks its mutation

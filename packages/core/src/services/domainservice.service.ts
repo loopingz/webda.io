@@ -6,7 +6,7 @@ import type { IOperationContext } from "../contexts/icontext.js";
 import { MFA, useLoginMfa } from "../models/mfa.model.js";
 import { useBehaviorParameters } from "../application/modelconfiguration.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import { getSanitizeModes, sanitizeInput, type SanitizeModes } from "../contexts/sanitize.js";
+import { getModelSanitizeModes, sanitizeInput } from "../contexts/sanitize.js";
 import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
 
@@ -67,20 +67,6 @@ export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T, co
   return Object.fromEntries(
     Object.entries(out).filter(([key]) => !removed.has(key) && (!key.startsWith("_") || writable.includes(key)))
   ) as T;
-}
-
-/**
- * Sanitization modes of the texts of a model: the attributes its Input schema marks `x-webda-sanitize`
- * (`@sanitize none`, `html` or `markdown` on the property, see {@link getSanitizeModes})
- * @param model - the model class
- * @returns the modes per dotted path, `*` standing for any array index or record key
- */
-export function getModelSanitizeModes(model: any): SanitizeModes {
-  try {
-    return getSanitizeModes(useModelMetadata(model)?.Schemas?.Input);
-  } catch {
-    return {};
-  }
 }
 
 /**
@@ -350,9 +336,11 @@ export class DomainService<
     searchRequest: {
       type: "object",
       properties: {
+        // WebdaQL: parsed, never rendered. Its literals are sanitized per attribute (sanitizeQueryLiterals)
         query: {
           type: "string",
-          description: QUERY_DESCRIPTION
+          description: QUERY_DESCRIPTION,
+          "x-webda-sanitize": "none"
         },
         count: {
           type: "boolean"

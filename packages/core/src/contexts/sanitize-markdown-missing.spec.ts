@@ -38,5 +38,15 @@ describe("markdown sanitization without micromark", () => {
     expect(failure.cause).toBeInstanceOf(Error);
     expect(state.imports).toBeGreaterThan(0);
     await expect(sanitizeMarkdown("# title")).rejects.toBeInstanceOf(SanitizerUnavailable);
+    // The literal of a query compared with a Markdown attribute fails the same way
+    const { sanitizeQueryLiterals } = await import("../models/permissions.js");
+    const { QueryValidator } = await import("@webda/ql");
+    const model = {
+      Metadata: { Schemas: { Input: { properties: { notes: { type: "string", "x-webda-sanitize": "markdown" } } } } }
+    };
+    await expect(sanitizeQueryLiterals(model, new QueryValidator("notes = '# title'"))).rejects.toBeInstanceOf(
+      SanitizerUnavailable
+    );
+    expect(await sanitizeQueryLiterals(model, new QueryValidator("other = 'R&D'"))).toBe(true);
   });
 });

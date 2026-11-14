@@ -16,6 +16,7 @@ import {
   useRepository,
   sanitizeModelInput,
   sanitizeModelText,
+  sanitizeQueryLiterals,
   validateModelSchema
 } from "@webda/core";
 import { patch as applyDelta } from "@webda/versioning";
@@ -432,17 +433,23 @@ export class SyncService extends Service<SyncServiceParameters> {
 
   /**
    * Validate client scopes
+   *
+   * The string literals of a scope query are sanitized like the texts of the model they are compared with
+   * (`sanitizeQueryLiterals`), as for a query on the model operations.
    * @param scopes - the scopes
    * @returns the scopes with their compiled filter
    */
-  protected validateScopes(scopes: SyncScope[]): { model: string; query: string; validator: QueryValidator }[] {
+  protected async validateScopes(
+    scopes: SyncScope[]
+  ): Promise<{ model: string; query: string; validator: QueryValidator }[]> {
     if (!Array.isArray(scopes) || scopes.length === 0) {
       throw new WebdaError.BadRequest("At least one scope is required");
     }
     if (scopes.length > this.parameters.maxScopes) {
       throw new WebdaError.BadRequest(`At most ${this.parameters.maxScopes} scopes are accepted`);
     }
-    return scopes.map(scope => {
+    const validated: { model: string; query: string; validator: QueryValidator }[] = [];
+    for (const scope of scopes) {
       if (!scope || !this.parameters.models.includes(scope.model)) {
         throw new WebdaError.BadRequest(`Model ${scope?.model} is not synced`);
       }
@@ -462,8 +469,10 @@ export class SyncService extends Service<SyncServiceParameters> {
       if (parsed.limit !== undefined || parsed.offset || parsed.orderBy?.length) {
         throw new WebdaError.BadRequest("Scope query cannot contain LIMIT, OFFSET or ORDER BY");
       }
-      return { model: scope.model, query, validator };
-    });
+      const sanitized = await sanitizeQueryLiterals(useModel(scope.model), validator);
+      validated.push({ model: scope.model, query: sanitized ? validator.toString() : query, validator });
+    }
+    return validated;
   }
 
   /**
@@ -513,7 +522,7 @@ export class SyncService extends Service<SyncServiceParameters> {
     rest: { method: "post", path: "sync/pull" }
   })
   async pull(scopes: SyncScope[], cursor?: string, limit?: number): Promise<PullResponse> {
-    const validated = this.validateScopes(scopes);
+    const validated = await this.validateScopes(scopes);
     // Bare millisecond: sorts before every seq of it, so a resync cursor never skips a write of the current ms
     const settle = this.seqAt(Date.now() - parseDuration(this.parameters.overlap));
     if (!cursor || cursor < this.horizon()) {
@@ -570,7 +579,7 @@ export class SyncService extends Service<SyncServiceParameters> {
     rest: { method: "post", path: "sync/snapshot" }
   })
   async snapshot(scope: SyncScope, continuationToken?: string): Promise<SnapshotResponse> {
-    const [valid] = this.validateScopes([scope]);
+    const [valid] = await this.validateScopes([scope]);
     let query = `${valid.query} LIMIT ${this.parameters.pageSize}`;
     if (continuationToken) {
       query += escape([" OFFSET ", ""], [continuationToken]);
@@ -862,7 +871,7 @@ export class SyncService extends Service<SyncServiceParameters> {
     rest: { method: "post", path: "sync/watch" }
   })
   async *watch(scopes: SyncScope[], _cursor?: string): AsyncGenerator<WatchEvent> {
-    const models = new Set(this.validateScopes(scopes).map(s => s.model));
+    const models = new Set((await this.validateScopes(scopes)).map(s => s.model));
     let pending: string | undefined;
     let last: string | undefined;
     let wake: (() => void) | undefined;

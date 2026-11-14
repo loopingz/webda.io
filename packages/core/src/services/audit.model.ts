@@ -175,7 +175,8 @@ const AUDIT_SCHEMAS: Record<string, JSONSchema7> = {
   },
   auditQueryRequest: {
     type: "object",
-    properties: { q: { type: "string" }, ...PAGINATION_PROPERTIES }
+    // WebdaQL: parsed, never rendered, and compared with entries the server wrote: not sanitized
+    properties: { q: <JSONSchema7>{ type: "string", "x-webda-sanitize": "none" }, ...PAGINATION_PROPERTIES }
   }
 };
 
@@ -475,6 +476,7 @@ export class AuditService extends Service<AuditServiceParameters> {
       }
       // A filter only: a DELETE or UPDATE must not run as its WHERE
       assertFilterOnly(query);
+      // The literals are compared as written: an entry is recorded by the server, its texts are not sanitized
       filter = query.getExpression().toString();
     }
     return this.findEntries(filter, limit, continuationToken);

@@ -160,6 +160,10 @@ Unlike static literals, `NOW()` returns a dynamic timestamp resolved when the qu
 
 Cached queries dynamically re-evaluate `NOW()` against the current clock time each time permissions or filters are checked.
 
+## Queries sent by clients
+
+A query received from a client is not HTML-sanitized: the grammar validates it. Its string literals are sanitized like the attribute they are compared with was when it was written, so `title = 'R&D'` finds the text a client wrote as `R&D` whether the attribute stores it escaped (`R&amp;D`, the default) or as written (`@sanitize none`). See [Text sanitization, Queries](../models/Defining-Models.md#queries). A query the application runs itself (`Model.query()`) compares with the stored values and is not rewritten.
+
 ## Query normalization
 
 The `QueryValidator` class parses and normalizes queries. It flattens nested AND/OR of the same type and canonicalizes string quoting to double quotes:

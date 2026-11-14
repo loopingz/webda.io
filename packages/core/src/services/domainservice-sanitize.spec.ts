@@ -10,24 +10,24 @@ import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { runWithContext } from "../contexts/execution.js";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import {
+  getModelSanitizeModes,
+  getSanitizeMode,
   getSanitizeModes,
   sanitizeInput,
+  sanitizeString,
   sanitizeMarkdown,
   SanitizerUnavailable,
   SANITIZE_KEYWORD
 } from "../contexts/sanitize.js";
 import { callOperation, readOperationBody, registerOperation } from "../core/operations.js";
+import { AndExpression, BooleanExpression, QueryValidator } from "@webda/ql";
+import { queryModelWithPermissions, sanitizeQueryLiterals } from "../models/permissions.js";
 import { useApplication } from "../application/hooks.js";
 import { useDynamicService } from "../core/hooks.js";
 import type { Application } from "../application/application.js";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
-import {
-  DomainService,
-  getModelSanitizeModes,
-  sanitizeModelInput,
-  sanitizeModelText
-} from "./domainservice.service.js";
+import { DomainService, sanitizeModelInput, sanitizeModelText } from "./domainservice.service.js";
 import { parse, postprocess, preprocess } from "micromark";
 
 /**
@@ -220,6 +220,14 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
     this.registerService(transport);
     transport.resolve();
     await transport.init();
+    // The same operations with the query in the URL
+    const viaGet = new RESTOperationsTransport(
+      "SanitizeTransportGet",
+      new RESTOperationsTransportParameters().load({ url: "/g/", exposeOpenAPI: false, queryMethod: "GET" })
+    );
+    this.registerService(viaGet);
+    viaGet.resolve();
+    await viaGet.init();
   }
 
   async beforeEach() {
@@ -722,6 +730,208 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
       notes: { md: "x" },
       content: ["y"]
     });
+  }
+
+  /**
+   * A WebdaQL string literal
+   * @param value - the text
+   * @returns the quoted literal
+   */
+  quote(value: string): string {
+    return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '""')}"`;
+  }
+
+  /**
+   * Run a client query on the teams over every entry of the query operation
+   * @param q - the WebdaQL query
+   * @returns the keys of the rows found, per entry: REST PUT (body), REST GET (URL), the operation called directly
+   * (what gRPC and MCP do)
+   */
+  async queryTeams(q: string): Promise<Record<string, string[] | string>> {
+    const keys = (res: any) => res.results.map((team: any) => team.uuid).sort();
+    const put = await this.request("PUT", "/s/teams", { q });
+    const get = await this.request("GET", `/g/teams?q=${encodeURIComponent(q)}`);
+    const ctx = await this.context({ query: q });
+    const direct = await callOperation(ctx, "Teams.Query").then(
+      () => keys(JSON.parse(ctx.getOutput())),
+      err => err.message
+    );
+    return {
+      put: put.status === 200 ? keys(put.body) : put.body,
+      get: get.status === 200 ? keys(get.body) : get.body,
+      direct
+    };
+  }
+
+  /**
+   * Run a client query, expecting the same rows on every entry
+   * @param q - the WebdaQL query
+   * @returns the keys of the rows found
+   */
+  async found(q: string): Promise<string[]> {
+    const { put, get, direct } = await this.queryTeams(q);
+    assert.deepStrictEqual(get, put, `GET and PUT differ for ${q}`);
+    assert.deepStrictEqual(direct, put, `the operation and PUT differ for ${q}`);
+    assert.ok(Array.isArray(put), `${q}: ${put}`);
+    return put as string[];
+  }
+
+  @test
+  async queryLiteralsFindWhatWasWritten() {
+    // For each mode: write a text through the operation, then find it with the same text as a literal
+    const texts = [
+      "R&D",
+      "a < b > c",
+      `say "hi" & 'bye'`,
+      "<b>x</b> plain",
+      "[x](javascript:alert(1)) and [y](https://x.io)",
+      "héllo \u{1F600} & ünï",
+      "back\\slash & 100%_done"
+    ];
+    const attributes = { displayName: "none", description: "text", notes: "markdown", content: "html" };
+    for (const [attribute, mode] of Object.entries(attributes)) {
+      for (const text of texts) {
+        const created = await this.request("POST", "/s/teams", { [attribute]: text });
+        assert.strictEqual(created.status, 200, `${mode} ${text}: ${JSON.stringify(created.body)}`);
+        const rows = await this.found(`${attribute} = ${this.quote(text)}`);
+        assert.ok(rows.includes(created.body.uuid), `${mode}: ${text} (stored ${created.body[attribute]})`);
+        // ... and not the rows holding another text
+        assert.ok(rows.length < 3, `${mode}: ${text} found ${rows.length} rows`);
+      }
+    }
+  }
+
+  @test
+  async queryOperatorsAndPaths() {
+    const make = async (body: any) => (await this.request("POST", "/s/teams", body)).body.uuid;
+    const rd = await make({
+      displayName: "R&D <team>",
+      description: "R&D <team>",
+      labels: ["R&D", "<b>x</b>"],
+      pages: ["<b>one</b>"],
+      profile: { bio: "A-->B & C", motto: "R&D" }
+    });
+    const zed = await make({ displayName: "Zed 50% & more", description: "Zed 50% & more" });
+    // Comparisons parse on every entry (`<` and `>` were escaped with the body before)
+    assert.deepStrictEqual(await this.found("description > 'S'"), [zed]);
+    assert.deepStrictEqual(await this.found("displayName < 'S' AND displayName >= 'R'"), [rd]);
+    assert.deepStrictEqual(await this.found("displayName != 'R&D <team>' AND displayName != 'Initial'"), [zed]);
+    // LIKE: the wildcards and their escapes are kept
+    assert.deepStrictEqual(await this.found("description LIKE 'R&%'"), [rd]);
+    assert.deepStrictEqual(await this.found("displayName LIKE 'R&D <t_am>'"), [rd]);
+    assert.deepStrictEqual(await this.found("description LIKE 'Zed 50\\% &%'"), [zed]);
+    assert.deepStrictEqual(await this.found("displayName LIKE '%50\\% & m%'"), [zed]);
+    // IN: every string of the list
+    assert.deepStrictEqual(await this.found("description IN ['R&D <team>', 'nope', 12]"), [rd]);
+    assert.deepStrictEqual(await this.found("displayName IN ['Zed 50% & more', 'R&D <team>']"), [rd, zed].sort());
+    // CONTAINS: the mode of the items of the array
+    assert.deepStrictEqual(await this.found("labels CONTAINS 'R&D'"), [rd]);
+    assert.deepStrictEqual(await this.found("labels CONTAINS '<b>x</b>'"), [rd]);
+    assert.deepStrictEqual(await this.found("pages CONTAINS '<b>one</b>'"), [rd]);
+    // Nested attributes: each with its own mode
+    assert.deepStrictEqual(await this.found("profile.bio = 'A-->B & C'"), [rd]);
+    assert.deepStrictEqual(await this.found("profile.motto = 'R&D'"), [rd]);
+    // An attribute the schema does not know is a text like any other; numbers, booleans and null are not texts
+    assert.deepStrictEqual(await this.found("unknown = 'R&D' OR count = 12 OR nickname IS NULL AND FALSE"), []);
+    assert.deepStrictEqual((await this.found("TRUE")).length, 3);
+    // A field list chooses what is returned: it is left as it is, the literals of its filter are sanitized
+    for (const q of [
+      "SELECT description WHERE description = 'R&D <team>'",
+      "SELECT description WHERE displayName = 'R&D <team>'"
+    ]) {
+      assert.deepStrictEqual(await this.found(q), [rd], q);
+      const selected = await this.request("PUT", "/s/teams", { q });
+      assert.deepStrictEqual(selected.body.results, [{ uuid: rd, description: "R&amp;D " }], q);
+    }
+    const [changed, rewritten] = await (async () => {
+      const validator = new QueryValidator("SELECT description, profile.bio WHERE description = 'R&D' LIMIT 5");
+      return [await sanitizeQueryLiterals(Team, validator), validator.toString()];
+    })();
+    assert.deepStrictEqual(
+      [changed, rewritten],
+      [true, 'SELECT description, profile.bio WHERE description = "R&amp;D" LIMIT 5']
+    );
+    // The same refusal everywhere, without the query in it
+    assert.deepStrictEqual(await this.queryTeams("description = = '<b>'"), {
+      put: "Query syntax error",
+      get: "Query syntax error",
+      direct: "Query syntax error"
+    });
+  }
+
+  @test
+  async queryLiteralsKeepTheQueryStructureAndTheTokens() {
+    for (let i = 0; i < 3; i++) {
+      await this.request("POST", "/s/teams", { description: "R&D", displayName: `Team ${i}` });
+    }
+    const hidden = (await this.request("POST", "/s/teams", { description: "R&D", displayName: "A&B<x>" })).body.uuid;
+    // The permission query is written by the application: its literals are compared as they are
+    (Team as any).getPermissionQuery = () => ({ query: "displayName != 'A&B<x>'", partial: true });
+    try {
+      const first = await this.request("PUT", "/s/teams", { q: "description = 'R&D' LIMIT 2" });
+      assert.strictEqual(first.body.results.length, 2);
+      assert.ok(first.body.continuationToken);
+      // The token is bound to the sanitized query: the same client query continues it
+      const next = await this.request("PUT", "/s/teams", {
+        q: `description = 'R&D' LIMIT 2 OFFSET ${this.quote(first.body.continuationToken)}`
+      });
+      assert.strictEqual(next.status, 200, JSON.stringify(next.body));
+      const all = [...first.body.results, ...next.body.results].map((team: any) => team.uuid);
+      assert.strictEqual(new Set(all).size, 3);
+      assert.ok(!all.includes(hidden));
+      // ... and another query does not
+      const other = await this.request("PUT", "/s/teams", {
+        q: `description = 'R&D2' LIMIT 2 OFFSET ${this.quote(first.body.continuationToken)}`
+      });
+      assert.strictEqual(other.status, 400);
+      // A literal stays a literal: it cannot add a condition
+      assert.deepStrictEqual(await this.found(`description = ${this.quote(`x" OR description = "R&D`)}`), []);
+    } finally {
+      delete (Team as any).getPermissionQuery;
+    }
+  }
+
+  @test
+  async queryLiteralSanitization() {
+    const literals = async (model: any, query: string): Promise<[boolean, string]> => {
+      const validator = new QueryValidator(query);
+      return [await sanitizeQueryLiterals(model, validator), validator.toString()];
+    };
+    // Nothing to change: the query is left as it is
+    assert.deepStrictEqual(await literals(Team, "displayName = 'R&D' AND count > 1 AND description = 'plain'"), [
+      false,
+      'displayName = "R&D" AND count > 1 AND description = "plain"'
+    ]);
+    assert.deepStrictEqual(await literals(Team, ""), [false, ""]);
+    assert.deepStrictEqual((await literals(Team, "description = NOW('-1d') OR nickname IS NOT NULL"))[0], false);
+    // Each literal with the mode of its attribute
+    assert.deepStrictEqual(
+      await literals(
+        Team,
+        "description = 'R&D' OR (notes = '<b>x</b> & y' AND content = '<i>z</i><script>w</script>')"
+      ),
+      [true, 'description = "R&amp;D" OR ( notes = "&lt;b>x&lt;/b> & y" AND content = "<i>z</i>" )']
+    );
+    assert.deepStrictEqual(
+      await literals(Team, "labels CONTAINS '<b>' AND labels = '<b>x</b>' AND summary IN ['a&b', 1]"),
+      [true, 'labels CONTAINS "<b>" AND labels = "x" AND summary IN ["a&amp;b", 1]']
+    );
+    // A class that is not a registered model: every literal is a text
+    assert.deepStrictEqual(await literals(class Unknown {}, "displayName = 'R&D'"), [true, 'displayName = "R&amp;D"']);
+    // An expression that compares nothing has no literal
+    const constant: any = { getExpression: () => new AndExpression([new BooleanExpression(true)]) };
+    assert.strictEqual(await sanitizeQueryLiterals(Team, constant), false);
+    // No query at all is the empty query
+    assert.strictEqual(
+      (await queryModelWithPermissions(Team, undefined as any, await this.context({}))).results.length,
+      1
+    );
+    // The helpers of the write path
+    assert.strictEqual(getSanitizeMode(getModelSanitizeModes(Team), ["members", "3", "name"]), "none");
+    assert.strictEqual(getSanitizeMode(getModelSanitizeModes(Team), ["members", "3", "role"]), undefined);
+    assert.strictEqual(await sanitizeString("<b>R&D</b>"), "R&amp;D");
+    assert.strictEqual(await sanitizeString("<b>R&D</b>", "html"), "<b>R&amp;D</b>");
+    assert.strictEqual(await sanitizeString("<b>R&D</b>", "none"), "<b>R&D</b>");
   }
 
   @test

@@ -13,11 +13,11 @@
   "typings": "lib/index.d.ts",
   "exports": {
     ".": {
-      "import": "./lib/index.js",
-      "require": "./lib/index.js",
       "types": "./lib/index.d.ts",
+      "browser": "./lib/browser.js",
       "node": "./lib/index.js",
-      "browser": "./lib/browser.js"
+      "import": "./lib/index.js",
+      "require": "./lib/index.js"
     }
   },
   "scripts": {

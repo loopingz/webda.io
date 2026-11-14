@@ -127,5 +127,13 @@ class GrpcQueryStatementsTest extends WebdaApplicationTest {
     assert.deepStrictEqual(partial.response.results, [{ uuid: "n1", title: "keep" }]);
     const keyOnly = await this.unary("SELECT missing");
     assert.deepStrictEqual(keyOnly.response.results, [{ uuid: "n1" }]);
+    // HYDRATE is refused: the messages type a relation as its key, a hydrated object does not fit them
+    for (const query of ["HYDRATE owner", "title = 'keep' HYDRATE owner INNER", "SELECT title HYDRATE owner.team"]) {
+      const res = await this.unary(query);
+      assert.strictEqual(res.status, GrpcStatus.INVALID_ARGUMENT, query);
+      assert.strictEqual(res.message, "HYDRATE is not available over gRPC", query);
+    }
+    // Lowercase words are fields
+    assert.deepStrictEqual((await this.unary("hydrate = 1 OR title = 'keep'")).response.results.length, 1);
   }
 }

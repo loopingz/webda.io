@@ -40,8 +40,8 @@ npm install @webda/ql
 ### Syntax overview
 
 ```
-expression? orderExpression? limitExpression? offsetExpression?      -- a filter query (implicit SELECT)
-SELECT f1, f2 [WHERE expression] [ORDER BY ...] [LIMIT n] [OFFSET t]
+expression? hydrateClause? orderExpression? limitExpression? offsetExpression?   -- a filter query (implicit SELECT)
+SELECT f1, f2 [WHERE expression] [HYDRATE rel [INNER|LEFT], ...] [ORDER BY ...] [LIMIT n] [OFFSET t]
 SELECT g, COUNT(*) AS n, SUM(f) AS s [WHERE expression] [GROUP BY g] [ORDER BY ...] [LIMIT n]
 DELETE [WHERE expression] [LIMIT n]
 UPDATE SET a = v, b.c = v [WHERE expression] [LIMIT n]
@@ -49,7 +49,8 @@ UPDATE SET a = v, b.c = v [WHERE expression] [LIMIT n]
 
 Keywords are uppercase only: `select`, `delete`, `set`, `where`... in lowercase are field names. Since the
 aggregation syntax, uppercase `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `AS`, `DISTINCT` and `GROUP BY` are reserved too
-(breaking for attributes with those uppercase names).
+(breaking for attributes with those uppercase names), and so are `HYDRATE`, `INNER` and `LEFT` since the HYDRATE
+clause.
 
 **Filter expressions** support:
 
@@ -113,9 +114,10 @@ WebdaQL supports `NOW()` to produce dynamic numeric timestamps (milliseconds sin
 
 ### Statements: SELECT, DELETE, UPDATE
 
-WebdaQL parses `SELECT`, `DELETE` and `UPDATE` statements; the parsed `Query` carries `type` (`"SELECT"` for a plain filter), `fields` (SELECT) and `assignments` (UPDATE), and `toString()` round-trips them.
+WebdaQL parses `SELECT`, `DELETE` and `UPDATE` statements; the parsed `Query` carries `type` (`"SELECT"` for a plain filter), `fields` (SELECT), `assignments` (UPDATE) and `hydrate` (the `HYDRATE` clause: `{ path, mode: "LEFT" | "INNER" }[]`), and `toString()` round-trips them.
 
 - **Field lists return partial results**: the Query operations (REST, gRPC, MCP) accept `SELECT title, owner.name WHERE ...` and return, for each result, the selected fields plus the primary key. The field list is applied to the public form of each row with `projectFields`, after the permission checks: the store still reads whole rows. GraphQL refuses a field list (its selection sets choose the fields), and so do repositories in `query()` (they return whole model instances).
+- **`HYDRATE` loads relations**: the REST and MCP Query operations accept `status = 'open' HYDRATE owner, project INNER, project.team`. Each listed relation holds the related object instead of its key, read as the caller (`null` when it is missing or unreadable; `INNER` drops the result instead), within a depth and an object budget. gRPC, GraphQL and repositories refuse it. See [Hydration](../../docs/pages/Modules/ql/Statements.md#hydration).
 - **DELETE and UPDATE are repository-level operations**: `useRepository(Model).deleteMany("DELETE WHERE ...")` and `updateMany("UPDATE SET ... WHERE ...")` run them in bulk and return the affected count. They **bypass events, hooks, validation and `canAct`**. The Query operations refuse them with a 400, and `query()` / `iterate()` refuse them.
 
 ```typescript
@@ -161,30 +163,32 @@ See [Code Completion](../../docs/pages/Modules/ql/Completion.md).
 
 ### API reference
 
-| Export                                | Description                                                                                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `QueryValidator`                      | Parses a WQL string; `eval(obj)` evaluates it, `toString()` normalizes it                                          |
-| `bind(query, params)`                 | Binds `?` / `:name` placeholders to escaped values                                                                 |
-| `escape(parts, values)`               | Escapes template literal values (used by the compile-time rewrite)                                                 |
-| `validateSyntax(query)`               | Checks a query against the grammar without evaluating it; placeholders allowed                                     |
-| `PrependCondition(query, condition)`  | Merges a condition in front of an existing query, preserving ORDER BY / LIMIT / OFFSET                             |
-| `ExpressionBuilder`                   | ANTLR visitor that builds the optimized expression AST                                                             |
-| `AndExpression`                       | Logic AND node                                                                                                     |
-| `OrExpression`                        | Logic OR node                                                                                                      |
-| `ComparisonExpression`                | Comparison leaf node                                                                                               |
-| `parse(query, allowedFields?)`        | Parses a filter or statement; `allowedFields` checks SELECT fields and SET targets                                 |
-| `validateQueryFields(query, allowed)` | Checks SELECT fields and SET targets against a field list                                                          |
-| `assertFilterQuery(query)`            | Refuses DELETE, UPDATE, SELECT field lists and aggregations                                                        |
-| `projectFields(object, paths)`        | Keeps the dotted paths of a SELECT field list on an object (arrays element by element); returns a new object      |
-| `toAggregationQuery(input, params?)`  | Converts the object form of an aggregation to a validated `AggregationQuery`                                       |
-| `validateAggregation(query)`          | Validates an `AggregationQuery` (paths, aliases, functions, ORDER BY, LIMIT)                                       |
-| `Aggregator`                          | In-memory aggregation engine: `add(item)` then `rows()`                                                            |
-| `compareValues(a, b)`                 | The cross-backend ordering of aggregated values (null < numbers < strings)                                         |
-| `AggregationError`                    | Runtime aggregation error with a `code` (`AGGREGATION_NOT_NATIVE`, `AGGREGATION_TOO_MANY_GROUPS`)                  |
-| `Query`                               | Parsed query result: `{ type, filter, fields?, assignments?, aggregation?, orderBy?, limit?, continuationToken? }` |
-| `OrderBy`                             | `{ field: string; direction: "ASC" \| "DESC" }`                                                                    |
-| `getCompletions(query, caret, opts)`  | Returns grammar-driven code completion candidates at a caret offset (`filterOnly`, `fieldList` options)           |
-| `fieldsFromSchema(schema, maxDepth?)` | Flattens a JSON schema into completion fields with dotted paths                                                    |
+| Export                                | Description                                                                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `QueryValidator`                      | Parses a WQL string; `eval(obj)` evaluates it, `toString()` normalizes it                                            |
+| `bind(query, params)`                 | Binds `?` / `:name` placeholders to escaped values                                                                   |
+| `escape(parts, values)`               | Escapes template literal values (used by the compile-time rewrite)                                                   |
+| `validateSyntax(query)`               | Checks a query against the grammar without evaluating it; placeholders allowed                                       |
+| `PrependCondition(query, condition)`  | Merges a condition in front of an existing query, preserving ORDER BY / LIMIT / OFFSET                               |
+| `ExpressionBuilder`                   | ANTLR visitor that builds the optimized expression AST                                                               |
+| `AndExpression`                       | Logic AND node                                                                                                       |
+| `OrExpression`                        | Logic OR node                                                                                                        |
+| `ComparisonExpression`                | Comparison leaf node                                                                                                 |
+| `parse(query, allowedFields?)`        | Parses a filter or statement; `allowedFields` checks SELECT fields and SET targets                                   |
+| `validateQueryFields(query, allowed)` | Checks SELECT fields and SET targets against a field list                                                            |
+| `assertFilterQuery(query)`            | Refuses DELETE, UPDATE, SELECT field lists, aggregations and HYDRATE clauses                                         |
+| `projectFields(object, paths)`        | Keeps the dotted paths of a SELECT field list on an object (arrays element by element); returns a new object         |
+| `toAggregationQuery(input, params?)`  | Converts the object form of an aggregation to a validated `AggregationQuery`                                         |
+| `validateAggregation(query)`          | Validates an `AggregationQuery` (paths, aliases, functions, ORDER BY, LIMIT)                                         |
+| `Aggregator`                          | In-memory aggregation engine: `add(item)` then `rows()`                                                              |
+| `compareValues(a, b)`                 | The cross-backend ordering of aggregated values (null < numbers < strings)                                           |
+| `AggregationError`                    | Runtime aggregation error with a `code` (`AGGREGATION_NOT_NATIVE`, `AGGREGATION_TOO_MANY_GROUPS`)                    |
+| `Query`                               | Parsed query result: `{ type, filter, fields?, assignments?, aggregation?, orderBy?, limit?, continuationToken? }`   |
+| `OrderBy`                             | `{ field: string; direction: "ASC" \| "DESC" }`                                                                      |
+| `getCompletions(query, caret, opts)`  | Returns grammar-driven code completion candidates at a caret offset (`filterOnly`, `fieldList`, `relations` options) |
+| `relationsFromGraph(relations, ...)`  | Lists the relations of a model a `HYDRATE` clause can name, as completion candidates                                 |
+| `stringifyHydrate(hydrate)`           | Prints the relations of a `HYDRATE` clause in their canonical form                                                   |
+| `fieldsFromSchema(schema, maxDepth?)` | Flattens a JSON schema into completion fields with dotted paths                                                      |
 
 ### See also
 

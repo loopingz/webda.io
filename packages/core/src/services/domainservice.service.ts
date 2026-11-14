@@ -14,7 +14,13 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
-import { ARGUMENTS_KEYWORD, registerOperation } from "../core/operations.js";
+import { ARGUMENTS_KEYWORD, probeOperation, registerOperation } from "../core/operations.js";
+import {
+  DEFAULT_HYDRATE_MAX_DEPTH,
+  DEFAULT_HYDRATE_MAX_OBJECTS,
+  MAX_HYDRATE_DEPTH,
+  QUERY_HYDRATE_REFUSED
+} from "../models/hydration.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 import { bindRestInput } from "../rest/binding.js";
 import {
@@ -223,6 +229,18 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   models?: string[];
   /**
+   * Deepest relation path a query can hydrate (`HYDRATE project.team` has a depth of two), between 1 and 5
+   *
+   * @default 2
+   */
+  queryHydrateMaxDepth?: number;
+  /**
+   * Most distinct related objects one query can load with `HYDRATE`: a query loading more is refused (400)
+   *
+   * @default 1000
+   */
+  queryHydrateMaxObjects?: number;
+  /**
    * Used to store the excluded models
    * @SchemaIgnore
    */
@@ -240,6 +258,8 @@ export class DomainServiceParameters extends ServiceParameters {
     this.nameTransfomer ??= "camelCase";
     this.queryMethod ??= "PUT";
     this.models ??= ["*"];
+    this.queryHydrateMaxDepth ??= DEFAULT_HYDRATE_MAX_DEPTH;
+    this.queryHydrateMaxObjects ??= DEFAULT_HYDRATE_MAX_OBJECTS;
     this.excludedModels = this.models.filter(i => i.startsWith("!")).map(i => i.substring(1));
     // Only contains excluded models so a wildcard is implied
     if (this.models.length === this.excludedModels.length) {
@@ -552,11 +572,57 @@ export class DomainService<
   }
 
   /**
+   * Check the hydration limits
+   * @returns this
+   * @throws Error when `queryHydrateMaxDepth` is not an integer between 1 and 5, or `queryHydrateMaxObjects` is not a
+   * positive integer
+   */
+  resolve(): this {
+    const { queryHydrateMaxDepth: depth, queryHydrateMaxObjects: objects } = this.parameters;
+    if (!Number.isInteger(depth) || depth < 1 || depth > MAX_HYDRATE_DEPTH) {
+      throw new Error(`${this.getName()}: queryHydrateMaxDepth must be an integer between 1 and ${MAX_HYDRATE_DEPTH}`);
+    }
+    if (!Number.isInteger(objects) || objects < 1) {
+      throw new Error(`${this.getName()}: queryHydrateMaxObjects must be a positive integer`);
+    }
+    return super.resolve();
+  }
+
+  /**
+   * Whether the caller could `GET` an object of a model, before it is read: the operation-level gate of the objects
+   * a query hydrates. The model must be exposed (its `Get` operation is registered: an internal or excluded model
+   * is never hydrated), and the operation enabled and allowed for the caller (operation permission, MFA freshness,
+   * token scopes, authorizers), exactly as for a direct call. The model's `canAct("get")` is asked after it
+   * @param model - the related model class
+   * @param key - the primary key of the object
+   * @param context - the caller context
+   * @returns true when the `Get` operation of the model can be called for this key
+   */
+  protected async canGetModel(model: ModelClass, key: any, context: OperationContext): Promise<boolean> {
+    let metadata: any;
+    try {
+      metadata = useModelMetadata(model);
+    } catch {
+      // A class registered without metadata
+    }
+    const identifier: unknown = metadata?.Identifier;
+    if (typeof identifier !== "string") {
+      return false;
+    }
+    const pkFields = metadata.PrimaryKey?.length ? metadata.PrimaryKey : ["uuid"];
+    const input = key !== null && typeof key === "object" ? key : { [String(pkFields[0])]: key };
+    return (await probeOperation(context, `${identifier.split("/").pop()}.Get`, { input })) === true;
+  }
+
+  /**
    * Query models
    *
    * With a field list (`SELECT title, owner.name WHERE ...`) each result only holds the selected fields and the
-   * primary key, see {@link queryModelWithPermissions}.
-   * @param query - the query string: a WebdaQL filter, optionally with a SELECT field list
+   * primary key. With a HYDRATE clause (`HYDRATE owner, project INNER`) the listed relations hold the related
+   * objects the caller could `GET` ({@link canGetModel}, then their `canAct`), within `queryHydrateMaxDepth` and
+   * `queryHydrateMaxObjects`; a transport can refuse it ({@link QUERY_HYDRATE_REFUSED}). See
+   * {@link queryModelWithPermissions}.
+   * @param query - the query string: a WebdaQL filter, optionally with a SELECT field list and a HYDRATE clause
    * @param count - also return the total of the query (`total`), when the model allows it
    * @returns the query results
    */
@@ -566,9 +632,18 @@ export class DomainService<
     if (query !== undefined && query !== null && typeof query !== "string") {
       throw new WebdaError.BadRequest("Query must be a string");
     }
+    const refused = context.getExtension<string>(QUERY_HYDRATE_REFUSED);
     return runWithContext(context, async () => {
       try {
-        return await queryModelWithPermissions(model, query, context, { count: count === true });
+        return await queryModelWithPermissions(model, query, context, {
+          count: count === true,
+          hydrate: {
+            maxDepth: this.parameters.queryHydrateMaxDepth,
+            maxObjects: this.parameters.queryHydrateMaxObjects,
+            refused: typeof refused === "string" && refused ? refused : undefined,
+            canGet: (target, key) => this.canGetModel(target, key, context)
+          }
+        });
       } catch (err) {
         if (err instanceof SyntaxError) {
           this.log("INFO", "Query syntax error");

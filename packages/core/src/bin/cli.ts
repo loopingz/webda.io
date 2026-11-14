@@ -99,7 +99,8 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
       query: {
         type: "string",
         alias: "q",
-        describe: "Search query (WebdaQL filter, or SELECT f1, f2.g WHERE ... for partial results)"
+        describe:
+          "Search query (WebdaQL filter, or SELECT f1, f2.g WHERE ... for partial results; HYDRATE rel to load relations)"
       },
       count: { type: "boolean", describe: "Also return the total of the query" }
     }

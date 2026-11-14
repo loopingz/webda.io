@@ -952,6 +952,131 @@ class StoreSelectFieldsTest extends WebdaApplicationTest {
   }
 }
 
+/**
+ * Models open to everyone, for the HYDRATE clause of client queries: a row links to its owner
+ */
+class HydrateOwner extends UuidModel {
+  name: string;
+
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    super(data);
+    Object.assign(this, data);
+  }
+
+  static canAct(): boolean {
+    return true;
+  }
+}
+HydrateOwner.registerSerializer();
+const HYDRATE_OWNER_METADATA = { Identifier: "WebdaTest/HydrateOwner", PrimaryKey: ["uuid"], Subclasses: [] };
+(HydrateOwner as any).Metadata = HYDRATE_OWNER_METADATA;
+
+class HydrateRow extends UuidModel {
+  order: number;
+  owner: string;
+
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    super(data);
+    Object.assign(this, data);
+  }
+
+  static canAct(): boolean {
+    return true;
+  }
+}
+HydrateRow.registerSerializer();
+(HydrateRow as any).Metadata = {
+  Identifier: "WebdaTest/HydrateRow",
+  PrimaryKey: ["uuid"],
+  Subclasses: [],
+  Relations: { links: [{ attribute: "owner", model: "WebdaTest/HydrateOwner", type: "LINK" }] }
+};
+
+@suite
+class StoreHydrateTest extends WebdaApplicationTest {
+  /**
+   * A HYDRATE clause of a client query is applied after the store query: the store receives the filter only, and
+   * the related objects are plain reads of their own store
+   */
+  @test
+  async clientHydrateNeverReachesTheStore() {
+    useApplication<any>().addModel("WebdaTest/HydrateOwner", HydrateOwner, HYDRATE_OWNER_METADATA);
+    const store = new MemoryStore("hydrateRows", { models: [] } as any);
+    const rows: any = store.getRepository(HydrateRow as any);
+    const owners: any = new MemoryStore("hydrateOwners", { models: [] } as any).getRepository(HydrateOwner as any);
+    registerRepository(HydrateRow, rows);
+    registerRepository(HydrateOwner, owners);
+    await owners.create({ uuid: "o1", name: "One" });
+    for (let i = 0; i < 6; i++) {
+      // Every other row links to an owner that does not exist
+      await rows.create({ uuid: `row${i}`, order: i, owner: i % 2 ? "gone" : "o1" });
+    }
+    const queries: string[] = [];
+    const original = rows.query.bind(rows);
+    const stubQuery = stub(rows, "query").callsFake(async (q: any, ...args: any[]) => {
+      queries.push(String(q));
+      return original(q, ...args);
+    });
+    const gets = stub(owners, "get").callThrough();
+    try {
+      const context: any = new OperationContext();
+      const plain = await queryModelWithPermissions(HydrateRow, "order < 4 ORDER BY order ASC", context);
+      // LEFT: the same rows, a missing owner is null
+      const left = await queryModelWithPermissions(HydrateRow, "order < 4 HYDRATE owner ORDER BY order ASC", context);
+      assert.deepStrictEqual(JSON.parse(JSON.stringify(left.results)), [
+        { uuid: "row0", order: 0, owner: { uuid: "o1", name: "One" } },
+        { uuid: "row1", order: 1, owner: null },
+        { uuid: "row2", order: 2, owner: { uuid: "o1", name: "One" } },
+        { uuid: "row3", order: 3, owner: null }
+      ]);
+      assert.deepStrictEqual(
+        left.results.map(row => row.uuid),
+        plain.results.map(row => row.uuid)
+      );
+      // INNER: the rows without owner are dropped, and replaced from the next store pages
+      const inner = await queryModelWithPermissions(
+        HydrateRow,
+        "HYDRATE owner INNER ORDER BY order ASC LIMIT 2",
+        context
+      );
+      assert.deepStrictEqual(JSON.parse(JSON.stringify(inner.results)), [
+        { uuid: "row0", order: 0, owner: { uuid: "o1", name: "One" } },
+        { uuid: "row2", order: 2, owner: { uuid: "o1", name: "One" } }
+      ]);
+      assert.ok(inner.continuationToken);
+      const next = await queryModelWithPermissions(
+        HydrateRow,
+        `SELECT owner.name HYDRATE owner INNER ORDER BY order ASC LIMIT 2 OFFSET "${inner.continuationToken}"`,
+        context
+      );
+      assert.deepStrictEqual(next.results, [{ uuid: "row4", owner: { uuid: "o1", name: "One" } }]);
+      // The store was asked for the filter only, the same one with and without the clause
+      assert.strictEqual(queries[0], queries[1]);
+      queries.forEach(q => assert.doesNotMatch(q, /HYDRATE|INNER|SELECT/));
+      // The related objects are plain reads, once per key and per query
+      assert.deepStrictEqual(
+        gets
+          .getCalls()
+          .map(call => String(call.args[0]))
+          .sort(),
+        ["gone", "gone", "gone", "o1", "o1", "o1"]
+      );
+    } finally {
+      stubQuery.restore();
+      gets.restore();
+    }
+    // Repositories still refuse the clause: objects are returned as they are stored
+    await assert.rejects(() => rows.query("HYDRATE owner"), /HYDRATE is not accepted/);
+    await assert.rejects(() => rows.iterate("HYDRATE owner INNER").next(), /HYDRATE is not accepted/);
+  }
+}
+
 @suite
 class StoreAggregationTest extends WebdaApplicationTest {
   @test

@@ -180,7 +180,10 @@ export class RemoteBackend implements ModelBackend {
     const projection = options.select?.length ? options.select.join(",") : undefined;
     // A WebdaQL field list (`SELECT title WHERE ...`) is a projection too: the server returns partial objects.
     // Keywords are uppercase only, a lowercase `select` is a field name
-    const projected = projection !== undefined || /^\s*SELECT\s/.test(query);
+    // A HYDRATE clause (`HYDRATE owner`) returns relations as objects instead of keys: neither the entities nor a
+    // cached query, and never merged into a cached entity (a filter value holding the word only skips the cache)
+    const hydrated = /(?:^|\s)HYDRATE\s/.test(query);
+    const projected = projection !== undefined || hydrated || /^\s*SELECT\s/.test(query);
     // A next page reuses the total cached with the first page of the same query: the server does not count again
     const first = withContinuation(query, undefined);
     const firstEntry =
@@ -209,7 +212,7 @@ export class RemoteBackend implements ModelBackend {
           if (mode !== "no-store") {
             const uids = results.map(data => {
               const uid = this.uidOf(data);
-              this.store(uid, data, projected);
+              if (!hydrated) this.store(uid, data, projected);
               return uid;
             });
             // A projected page holds partial objects: it is not a cached query

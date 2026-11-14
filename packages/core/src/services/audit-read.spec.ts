@@ -427,11 +427,13 @@ class AuditReadTest extends WebdaApplicationTest {
     await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
     const op = `Seed.${this.unique("S").replace(/[^A-Za-z0-9]/g, "")}`;
     await this.seed({ operationId: op });
-    // A statement never runs as its WHERE, and a field list is not a projection
+    // A statement never runs as its WHERE, a field list is not a projection, and audit entries hydrate nothing
     for (const q of [
       `DELETE WHERE operationId = '${op}'`,
       `UPDATE SET operationId = 'x' WHERE operationId = '${op}'`,
-      `SELECT operationId WHERE operationId = '${op}'`
+      `SELECT operationId WHERE operationId = '${op}'`,
+      `operationId = '${op}' HYDRATE subject`,
+      `HYDRATE subject INNER`
     ]) {
       await assert.rejects(
         () => this.call("Audit.Query", { q }, { id: "root", roles: ["admin"] }),

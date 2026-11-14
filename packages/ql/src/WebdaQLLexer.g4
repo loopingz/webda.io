@@ -80,6 +80,11 @@ ORDER_BY: 'ORDER BY';
 ASC: 'ASC';
 DESC: 'DESC';
 
+// Hydration of relations (uppercase only: `hydrate`, `inner` and `left` stay identifiers)
+HYDRATE: 'HYDRATE';
+INNER: 'INNER';
+LEFT: 'LEFT';
+
 // Aggregation
 GROUP_BY: 'GROUP BY';
 AS: 'AS';

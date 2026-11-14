@@ -287,6 +287,26 @@ describe("ModelClient", () => {
     // A lowercase `select` is a field name: a plain filter, cached as usual
     await api.Task.query("select = 1");
     expect(api.client.cache.getQuery("App/Task", "select = 1")).toMatchObject({ uids: ["t1"] });
+    // A HYDRATE clause returns relations as objects: the page is not cached, and a cached entity keeps its keys
+    const flat = page;
+    page = { results: [{ uuid: "t1", title: "two", owner: { uuid: "u1", name: "Ada" } }] };
+    api.client.cache.setEntity("App/Task", "t1", { uuid: "t1", title: "old", owner: "u1" });
+    for (const hydrate of [
+      "HYDRATE owner",
+      "status = 'open' HYDRATE owner INNER LIMIT 2",
+      "SELECT title WHERE status = 'open' HYDRATE owner"
+    ]) {
+      expect((await api.Task.query(hydrate)).results[0].title).toBe("two");
+      expect(api.client.cache.getQuery("App/Task", hydrate)).toBeUndefined();
+      expect(api.client.cache.getEntity("App/Task", "t1")?.data).toEqual({ uuid: "t1", title: "old", owner: "u1" });
+    }
+    api.client.cache.clear();
+    await api.Task.query("HYDRATE owner");
+    expect(api.client.cache.getEntity("App/Task", "t1")).toBeUndefined();
+    // A lowercase `hydrate` is a field name: a plain filter, cached as usual
+    page = flat;
+    await api.Task.query("hydrate = 1");
+    expect(api.client.cache.getQuery("App/Task", "hydrate = 1")).toMatchObject({ uids: ["t1"] });
     api.client.cache.clear();
     // no-store
     await api.Task.query("", { cache: "no-store" });
@@ -295,7 +315,7 @@ describe("ModelClient", () => {
     await api.Task.query("");
     expect(api.client.cache.getQuery("App/Task", "")).toMatchObject({ uids: ["t1"], continuationToken: "2" });
     await api.Task.query("", { cache: "reload" });
-    expect(api.calls).toHaveLength(7);
+    expect(api.calls).toHaveLength(12);
     // An empty answer is an empty page
     page = undefined;
     expect(await api.Task.query("nothing")).toEqual({ results: [], continuationToken: undefined });

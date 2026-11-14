@@ -9,8 +9,10 @@ import {
   type AggregationResult,
   type Assignment,
   type CompletionField,
+  type CompletionRelation,
   type Expression,
   fieldsFromSchema,
+  relationsFromGraph,
   type Query as WebdaQLQuery,
   type QueryParameters
 } from "@webda/ql";
@@ -444,6 +446,15 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       return fieldsFromSchema(schema);
     }
     return [];
+  }
+
+  /**
+   * Relations of the model a client query can name in a `HYDRATE` clause, from its metadata: its parent and its
+   * links, as completion candidates (the relations of the related models are not listed, see `relationsFromGraph`)
+   * @returns array of completion relations
+   */
+  getCompletionRelations(): CompletionRelation[] {
+    return relationsFromGraph((this.model as any)?.Metadata?.Relations);
   }
 
   /**

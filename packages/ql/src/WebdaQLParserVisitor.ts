@@ -31,6 +31,8 @@ import { UpdateStatementContext } from "./WebdaQLParserParser.js";
 import { SelectStatementContext } from "./WebdaQLParserParser.js";
 import { FilterQueryContext } from "./WebdaQLParserParser.js";
 import { WhereClauseContext } from "./WebdaQLParserParser.js";
+import { HydrateClauseContext } from "./WebdaQLParserParser.js";
+import { HydrateItemContext } from "./WebdaQLParserParser.js";
 import { AssignmentListContext } from "./WebdaQLParserParser.js";
 import { AssignmentContext } from "./WebdaQLParserParser.js";
 import { FieldListContext } from "./WebdaQLParserParser.js";
@@ -277,6 +279,20 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitWhereClause?: (ctx: WhereClauseContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `WebdaQLParserParser.hydrateClause`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitHydrateClause?: (ctx: HydrateClauseContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `WebdaQLParserParser.hydrateItem`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitHydrateItem?: (ctx: HydrateItemContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `WebdaQLParserParser.assignmentList`.

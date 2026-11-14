@@ -1599,25 +1599,31 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * Refuse a parsed query that is not a filter: DELETE, UPDATE, and a SELECT field list. The REST, gRPC and MCP
-   * Query operations project their results on a field list; here the selection set already chooses the fields
+   * Refuse a parsed query that is not a filter: DELETE, UPDATE, a SELECT field list and a HYDRATE clause. The REST,
+   * gRPC and MCP Query operations project their results on a field list, and the REST and MCP ones hydrate
+   * relations; here the selection set already chooses the fields, and the relation fields load the related objects
    * @param validator - the parsed client query
-   * @throws WebdaError.BadRequest for a DELETE, an UPDATE or a SELECT field list
+   * @throws WebdaError.BadRequest for a DELETE, an UPDATE, a SELECT field list or a HYDRATE clause
    */
   protected assertNoStatement(validator: WebdaQL.QueryValidator): void {
-    if (validator.getQuery().fields !== undefined) {
+    const { fields, hydrate } = validator.getQuery();
+    if (fields !== undefined) {
       throw new WebdaError.BadRequest("SELECT field lists are not accepted by queries: use the selection set");
+    }
+    if (hydrate !== undefined) {
+      throw new WebdaError.BadRequest("HYDRATE is not accepted: select the relation fields");
     }
     assertFilterOnly(validator);
   }
 
   /**
-   * Refuse a query argument that is not a filter: DELETE and UPDATE are never run from GraphQL, and a SELECT field
-   * list is refused because the selection set already chooses the fields
+   * Refuse a query argument that is not a filter: DELETE and UPDATE are never run from GraphQL, a SELECT field
+   * list is refused because the selection set already chooses the fields, and a HYDRATE clause because the relation
+   * fields already load the related objects
    *
    * A query that does not parse is left to the query path, which reports it as before.
    * @param query - the client query
-   * @throws GraphQLError BAD_USER_INPUT for a DELETE, an UPDATE or a SELECT field list
+   * @throws GraphQLError BAD_USER_INPUT for a DELETE, an UPDATE, a SELECT field list or a HYDRATE clause
    */
   assertFilterQuery(query: string): void {
     let validator: WebdaQL.QueryValidator;
